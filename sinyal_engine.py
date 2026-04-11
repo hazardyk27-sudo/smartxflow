@@ -461,11 +461,40 @@ def fetch_cm_recent_cooldowns():
         return set()
 
 
+def _find_ref_snapshot(history, hours=10):
+    """Geçmişten tam olarak 'hours' saat öncesine en yakın snapshot'ı döndür.
+    Pct veya başka bir kritere BAKMAZ — sadece zamana göre seçer."""
+    target = datetime.now(timezone.utc) - timedelta(hours=hours)
+    best = None
+    best_diff = float('inf')
+    for r in history:
+        raw = r.get('scraped_at', '')
+        if not raw:
+            continue
+        try:
+            t = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+            diff = abs((t - target).total_seconds())
+            if diff < best_diff:
+                best_diff = diff
+                best = r
+        except Exception:
+            pass
+    return best
+
+
 def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
-    """Confirmed Money kriterlerini kontrol et."""
+    """Confirmed Money kriterlerini kontrol et.
+    Her kriter bağımsız olarak değerlendirilir:
+      1. Hacim >= CM_VOLUME_THRESHOLD
+      2. Anlık pct > CM_PCT_THRESHOLD
+      3. Son CM_STABILITY_SNAPSHOTS ardışık history'de pct > CM_PCT_THRESHOLD
+      4. Anlık odds 1.35-2.20 aralığında
+      5. Oran düşüşü: tam 10 saat önceki snapshot'a göre >= %4 düşüş (pct'den bağımsız)
+    """
     signals = []
 
     for h, latest in latest_snapshots.items():
+        # Kriter 1: Hacim
         if parse_volume_amt(latest.get('volume', '')) < CM_VOLUME_THRESHOLD:
             continue
         match_history = history_by_hash.get(h, [])
@@ -483,32 +512,31 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
             if (mk, code) in cooldown_set:
                 continue
 
+            # Kriter 2: Anlık para yüzdesi
             pct_now = parse_odds_pct(latest.get(p_field))
             if pct_now <= CM_PCT_THRESHOLD:
                 continue
 
+            # Kriter 3: Stabilite — son N snapshot'ta pct > eşik
             last_snaps = match_history_sorted[:CM_STABILITY_SNAPSHOTS]
             if len(last_snaps) < CM_STABILITY_SNAPSHOTS:
                 continue
             if not all(parse_odds_pct(r.get(p_field)) > CM_PCT_THRESHOLD for r in last_snaps):
                 continue
 
+            # Kriter 4: Anlık oran aralığı
             odds_0 = parse_odds_pct(latest.get(o_field))
-
-            # Seçim oranı aralık filtresi: 1.35 ≤ odds ≤ 2.20
             if not (CM_MIN_ODDS <= odds_0 <= CM_MAX_ODDS):
                 continue
 
-            # 16h penceresindeki en eski snapshot ile karşılaştır
-            oldest_snap = match_history_sorted[-1] if match_history_sorted else None
-            if not oldest_snap:
+            # Kriter 5: Oran düşüşü — tam 10 saat öncesine en yakın snapshot (pct'den bağımsız)
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
                 continue
-
-            odds_oldest = parse_odds_pct(oldest_snap.get(o_field))
-            if odds_0 <= 0 or odds_oldest <= 0:
+            odds_ref = parse_odds_pct(ref_snap.get(o_field))
+            if odds_0 <= 0 or odds_ref <= 0:
                 continue
-
-            drop_pct = (odds_oldest - odds_0) / odds_oldest
+            drop_pct = (odds_ref - odds_0) / odds_ref
             if drop_pct < CM_ODDS_DROP_PCT:
                 continue
 
@@ -520,7 +548,7 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
                 'date': latest.get('date', ''),
                 'selection_code': code,
                 'selection_label': label,
-                'odds_16h': str(round(odds_oldest, 4)),
+                'odds_16h': str(round(odds_ref, 4)),
                 'odds_now': str(round(odds_0, 4)),
                 'pct_now': str(round(pct_now, 2)),
                 'volume_now': str(int(parse_volume_amt(latest.get('volume', '')))),
@@ -760,10 +788,17 @@ def fetch_fs_cooldown():
 
 def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
     """Fake Sharp kriterlerini kontrol et.
-    CM'in tam tersi: odds yükselirken pct >80% kalıyorsa sahte sharp baskısı."""
+    Her kriter bağımsız olarak değerlendirilir:
+      1. Hacim >= FS_VOLUME_THRESHOLD
+      2. Anlık pct > FS_PCT_THRESHOLD
+      3. Son FS_STABILITY_SNAPSHOTS ardışık history'de pct > FS_PCT_THRESHOLD
+      4. Anlık odds 1.35-2.20 aralığında
+      5. Oran yükselişi: tam 10 saat önceki snapshot'a göre >= %4 yükseliş (pct'den bağımsız)
+    CM'in tam tersi: pct yüksekken oran da yükselmişse sahte sharp baskısı."""
     signals = []
 
     for h, latest in latest_snapshots.items():
+        # Kriter 1: Hacim
         if parse_volume_amt(latest.get('volume', '')) < FS_VOLUME_THRESHOLD:
             continue
         match_history = history_by_hash.get(h, [])
@@ -780,33 +815,31 @@ def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
             if (mk, code) in cooldown_set:
                 continue
 
+            # Kriter 2: Anlık para yüzdesi
             pct_now = parse_odds_pct(latest.get(p_field))
             if pct_now <= FS_PCT_THRESHOLD:
                 continue
 
+            # Kriter 3: Stabilite — son N snapshot'ta pct > eşik
             last_snaps = match_history_sorted[:FS_STABILITY_SNAPSHOTS]
             if len(last_snaps) < FS_STABILITY_SNAPSHOTS:
                 continue
             if not all(parse_odds_pct(r.get(p_field)) > FS_PCT_THRESHOLD for r in last_snaps):
                 continue
 
+            # Kriter 4: Anlık oran aralığı
             odds_0 = parse_odds_pct(latest.get(o_field))
-
-            # Seçim oranı aralık filtresi: 1.35 ≤ odds ≤ 2.20
             if not (FS_MIN_ODDS <= odds_0 <= FS_MAX_ODDS):
                 continue
 
-            # 16h penceresindeki en eski snapshot ile karşılaştır
-            oldest_snap = match_history_sorted[-1] if match_history_sorted else None
-            if not oldest_snap:
+            # Kriter 5: Oran yükselişi — tam 10 saat öncesine en yakın snapshot (pct'den bağımsız)
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
                 continue
-
-            odds_oldest = parse_odds_pct(oldest_snap.get(o_field))
-            if odds_0 <= 0 or odds_oldest <= 0:
+            odds_ref = parse_odds_pct(ref_snap.get(o_field))
+            if odds_0 <= 0 or odds_ref <= 0:
                 continue
-
-            # Fake Sharp: odds YÜKSELMİŞ olmak zorunda (CM'in tersi)
-            rise_pct = (odds_0 - odds_oldest) / odds_oldest
+            rise_pct = (odds_0 - odds_ref) / odds_ref
             if rise_pct < FS_ODDS_RISE_PCT:
                 continue
 
@@ -818,7 +851,7 @@ def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
                 'date': latest.get('date', ''),
                 'selection_code': code,
                 'selection_label': label,
-                'odds_16h': str(round(odds_oldest, 4)),
+                'odds_16h': str(round(odds_ref, 4)),
                 'odds_now': str(round(odds_0, 4)),
                 'pct_now': str(round(pct_now, 2)),
                 'volume_now': str(int(parse_volume_amt(latest.get('volume', '')))),
