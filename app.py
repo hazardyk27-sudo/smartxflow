@@ -7515,7 +7515,7 @@ def _build_unified_underdog_signals():
     1. DB'den tüm kayıtları çek (sinyal_engine + app tarafından kaydedilmiş)
     2. Anlık cache'den live sinyalleri hesapla
     3. (home, away, code) bazlı merge — date format farklılığını tolere eder
-    4. Volume >= 2000 filtresi
+    4. Volume >= 200 filtresi
     5. (home, away, code) bazlı dedup — en yüksek volume'u tut
     """
     def _pv(v):
@@ -7538,7 +7538,7 @@ def _build_unified_underdog_signals():
         league = m.get('league', '')
         date = m.get('date', '')
         volume = odds_obj.get('Volume', '')
-        if _pv(volume) < 2000:
+        if _pv(volume) < 200:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
@@ -7572,7 +7572,7 @@ def _build_unified_underdog_signals():
             all_signals.append(ls)
             db_hak.add(hak)
 
-    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 2000]
+    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 200]
 
     seen = {}
     for s in all_signals:
@@ -7611,7 +7611,7 @@ def underdog_pressure_endpoint():
             volume_val = float(str(volume).replace('£', '').replace(',', '').replace(' ', '').strip()) if volume else 0.0
         except (ValueError, TypeError):
             volume_val = 0.0
-        if volume_val < 2000:
+        if volume_val < 200:
             continue
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),

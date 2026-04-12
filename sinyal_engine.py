@@ -29,7 +29,7 @@ ERROR_WAIT = 60
 # Underdog Pressure kriterleri
 ODDS_THRESHOLD = 2.90
 PCT_THRESHOLD = 50.0
-VOLUME_THRESHOLD = 2000.0
+VOLUME_THRESHOLD = 200.0
 
 # Confirmed Money kriterleri
 CM_PCT_THRESHOLD = 80.0
