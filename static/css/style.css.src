@@ -1347,6 +1347,30 @@ h1, h2, h3, h4, h5, h6,
     color: #c9d1d9;
 }
 
+.modal-fav-btn {
+    background: none;
+    border: none;
+    color: #5c636b;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.modal-fav-btn:hover {
+    background: rgba(248, 113, 113, 0.08);
+    color: #f87171;
+}
+.modal-fav-btn.fav-active {
+    color: #f87171;
+}
+.modal-fav-btn.fav-active svg {
+    fill: #f87171;
+}
+
 .modal-body {
     padding: 28px 32px;
     overflow-y: auto;
