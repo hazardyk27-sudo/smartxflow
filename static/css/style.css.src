@@ -1350,7 +1350,7 @@ h1, h2, h3, h4, h5, h6,
 .modal-fav-btn {
     background: none;
     border: none;
-    color: #5c636b;
+    color: #4a5058;
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
