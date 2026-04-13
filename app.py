@@ -2499,10 +2499,10 @@ _backfill_done = set()
 def _backfill_match_date_times(rows, table_name):
     """Backfill date-only match_date values with time parsed from match_key.
     Idempotent: skips rows that already have time info (+03:00).
-    Runs once per table per process; also updates in-memory rows."""
+    Runs once per table per process (marked done only after success).
+    Also updates in-memory rows so the current response reflects corrected values."""
     if table_name in _backfill_done:
         return
-    _backfill_done.add(table_name)
     import re as _re
     from datetime import date as _d
     months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
@@ -2528,6 +2528,7 @@ def _backfill_match_date_times(rows, table_name):
                 to_fix.append((row.get('id'), new_md, i))
                 rows[i]['match_date'] = new_md
     if not to_fix:
+        _backfill_done.add(table_name)
         return
     try:
         supabase = get_supabase_client()
@@ -2548,6 +2549,8 @@ def _backfill_match_date_times(rows, table_name):
                     fixed += 1
             except Exception:
                 pass
+        if fixed == len(to_fix):
+            _backfill_done.add(table_name)
         if fixed:
             print(f"[Backfill] {table_name}: fixed {fixed}/{len(to_fix)} match_date values with +03:00")
     except Exception as e:
