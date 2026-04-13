@@ -111,10 +111,11 @@ CREATE TABLE IF NOT EXISTS confirmed_money_v2_signals (
     current_pct     text,
     volume_now      text,
     current_volume  text,
-    odds_drop_pct   real,
+    odds_drop_pct   numeric,
     created_at      timestamptz DEFAULT now(),
     last_updated_at timestamptz,
-    result          text
+    result          text,
+    UNIQUE (match_key, selection_code)
 );
 ALTER TABLE confirmed_money_v2_signals ADD COLUMN IF NOT EXISTS result text;
 """
