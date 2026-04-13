@@ -286,7 +286,7 @@ def save_new_signals(signals, with_current_cols):
     for s in signals:
         rec = {
             'match_key': s['match_key'], 'home_team': s['home_team'], 'away_team': s['away_team'],
-            'league': s['league'], 'match_date': _betwatch_date_to_iso(s['date']),
+            'league': s['league'], 'match_date': _betwatch_to_iso_datetime(s['date']),
             'selection_code': s['selection_code'], 'selection_label': s['selection_label'],
             'odds': s['odds'], 'pct': s['pct'], 'amt': s['amt'], 'volume': s['volume'],
             'created_at': now,
