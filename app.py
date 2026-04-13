@@ -7925,6 +7925,7 @@ def confirmed_money_v2_endpoint():
             return False
 
     now = time.time()
+    today_str = str(_date.today())
     if _cm_v2_signals_cache is not None and (now - _cm_v2_signals_cache_time) < CM_V2_SIGNALS_CACHE_TTL:
         all_signals = _cm_v2_signals_cache
     else:
@@ -7935,7 +7936,15 @@ def confirmed_money_v2_endpoint():
             if key not in _cm_v2_seen:
                 _cm_v2_seen[key] = s
         deduped = list(_cm_v2_seen.values())
-        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_v2_in_odds_range(s)]
+        # Geçmiş maçları her zaman göster; sadece bugün/gelecek aktif sinyallerde oran filtresi uygula
+        all_signals = []
+        for s in deduped:
+            sig_date = str(s.get('date') or s.get('match_date') or '')
+            is_past = sig_date and sig_date < today_str
+            if is_past:
+                all_signals.append(s)
+            elif not _cm_odds_reversed(s) and _cm_v2_in_odds_range(s):
+                all_signals.append(s)
         _cm_v2_signals_cache = all_signals
         _cm_v2_signals_cache_time = now
 
