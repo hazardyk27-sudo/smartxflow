@@ -2462,6 +2462,59 @@ def _update_underdog_signal_scores():
         print(f"[UnderdogSignals] score update error: {e}")
 
 
+def _backfill_match_date_times(rows, table_name):
+    """Backfill date-only match_date values with time parsed from match_key.
+    Idempotent: skips rows that already have time info (+03:00)."""
+    import re as _re
+    from datetime import date as _d
+    months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+              'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+              'Nov': 11, 'Dec': 12}
+    to_fix = []
+    for row in rows:
+        md = str(row.get('match_date', '') or '')
+        if '+03:00' in md:
+            continue
+        mk = str(row.get('match_key', '') or '')
+        parts = mk.split('|')
+        if len(parts) < 3:
+            continue
+        date_part = parts[-1].strip()
+        dm = _re.search(r'(\d{2})\.(\w{3})', date_part)
+        tm = _re.search(r'(\d{2}):(\d{2})', date_part)
+        if dm and tm:
+            mon = months.get(dm.group(2).capitalize(), 0)
+            if mon:
+                iso_date = _d(_d.today().year, mon, int(dm.group(1))).isoformat()
+                new_md = f"{iso_date}T{tm.group(1)}:{tm.group(2)}:00+03:00"
+                to_fix.append((row.get('id'), new_md))
+    if not to_fix:
+        return
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return
+        http = supabase._get_http_client()
+        hdrs = supabase._headers()
+        hdrs['Content-Type'] = 'application/json'
+        hdrs['Prefer'] = 'return=minimal'
+        fixed = 0
+        for rid, new_md in to_fix:
+            try:
+                pr = http.patch(
+                    f"{supabase._rest_url(table_name)}?id=eq.{rid}",
+                    headers=hdrs, json={'match_date': new_md}, timeout=5
+                )
+                if pr.status_code in (200, 204):
+                    fixed += 1
+            except Exception:
+                pass
+        if fixed:
+            print(f"[Backfill] {table_name}: fixed {fixed}/{len(to_fix)} match_date values with +03:00")
+    except Exception as e:
+        print(f"[Backfill] {table_name} error: {e}")
+
+
 def _fetch_all_underdog_signals():
     """Fetch signals from underdog_signals table (all records, up to 5000)."""
     try:
@@ -2473,7 +2526,7 @@ def _fetch_all_underdog_signals():
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
-            # Normalise field names for frontend compatibility
+            _backfill_match_date_times(rows, 'underdog_signals')
             result = []
             for r in rows:
                 result.append({
@@ -7774,6 +7827,7 @@ def _fetch_all_confirmed_money_signals():
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
+            _backfill_match_date_times(rows, 'confirmed_money_signals')
             result = []
             for r in rows:
                 result.append({
@@ -7819,6 +7873,7 @@ def _fetch_all_confirmed_money_v2_signals():
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
+            _backfill_match_date_times(rows, 'confirmed_money_v2_signals')
             result = []
             for r in rows:
                 result.append({
@@ -8129,6 +8184,7 @@ def _fetch_all_fake_sharp_signals():
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             rows = resp.json()
+            _backfill_match_date_times(rows, 'fake_sharp_signals')
             result = []
             for r in rows:
                 result.append({
