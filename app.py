@@ -2494,6 +2494,7 @@ def _fetch_all_underdog_signals():
                     'current_amt': r.get('current_amt') or '',
                     'current_volume': r.get('current_volume') or '',
                     'last_updated_at': r.get('last_updated_at') or '',
+                    'created_at': r.get('created_at') or '',
                     'score': r.get('score') or '',
                     'result': r.get('result') or '',
                 })
