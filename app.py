@@ -7930,6 +7930,30 @@ def confirmed_money_v2_endpoint():
         all_signals = _cm_v2_signals_cache
     else:
         raw = _fetch_all_confirmed_money_v2_signals()
+        # V2 tablosu yoksa/boşsa — V1 verisini V2 kriterleriyle filtrele (fallback)
+        if not raw:
+            raw_v1 = _fetch_all_confirmed_money_signals()
+            raw = []
+            for s in raw_v1:
+                try:
+                    sc = s.get('selection_code', '')
+                    if sc == 'X':
+                        continue
+                    pct_raw = str(s.get('pct_now', '') or '').replace('%', '').strip()
+                    pct_val = float(pct_raw) if pct_raw else 0.0
+                    if pct_val < 88.0:
+                        continue
+                    drop_raw = str(s.get('odds_drop_pct', '') or '')
+                    drop_val = float(drop_raw) if drop_raw else 0.0
+                    if drop_val < 7.0:
+                        continue
+                    odds_raw = str(s.get('odds_now', '') or '')
+                    odds_val = float(odds_raw) if odds_raw else 0.0
+                    if not (1.55 <= odds_val <= 2.20):
+                        continue
+                    raw.append(s)
+                except Exception:
+                    continue
         _cm_v2_seen = {}
         for s in raw:
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
