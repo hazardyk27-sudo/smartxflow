@@ -1132,7 +1132,7 @@ def fetch_existing_fs_signals():
     try:
         url = (
             f"{SUPABASE_URL}/rest/v1/fake_sharp_signals"
-            "?select=match_key,selection_code,home_team,away_team,match_date"
+            "?select=match_key,selection_code,home_team,away_team,match_date,odds_16h"
             "&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=12)
@@ -1142,6 +1142,29 @@ def fetch_existing_fs_signals():
     except Exception as e:
         log(f"[FS-FetchExisting] Hata: {e}")
         return []
+
+
+def delete_invalid_fs_signals(invalid_signals):
+    """Geçersizleşen Fake Sharp sinyallerini DB'den sil.
+    Geçersizlik koşulu: mevcut oran yükselişi artık FS_ODDS_RISE_PCT eşiğinin altında."""
+    if not invalid_signals:
+        return 0
+    deleted = 0
+    wh = _headers_write()
+    for sig in invalid_signals:
+        try:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            mk_enc = url_quote(mk, safe='')
+            sc_enc = url_quote(sc, safe='')
+            del_url = f"{SUPABASE_URL}/rest/v1/fake_sharp_signals?match_key=eq.{mk_enc}&selection_code=eq.{sc_enc}"
+            r = requests.delete(del_url, headers=wh, timeout=10)
+            if r.status_code in (200, 204):
+                deleted += 1
+                log(f"[FS-Invalidate] Silindi: {sig.get('home_team')} vs {sig.get('away_team')} [{sc}] — yükseliş eşiğin altına düştü")
+        except Exception as e:
+            log(f"[FS-Invalidate] Hata: {e}")
+    return deleted
 
 
 def update_fs_current_odds(existing_fs, snapshot_lookup):
@@ -1215,8 +1238,34 @@ def run_fs_scan(snapshots, snapshot_lookup):
         inserted = save_fake_sharp_signals(new_signals) if new_signals else 0
 
         fs_updated, fs_not_found = update_fs_current_odds(existing_fs, snapshot_lookup)
+
+        # Geçersizleşen sinyalleri tespit et ve sil:
+        # Anlık oran, yakalanan anın oranına (odds_16h) göre artık yeterli yükselişi göstermiyorsa → sil
+        code_map = {'1': 'odds1', '2': 'odds2'}
+        invalid_fs = []
+        for sig in existing_fs:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            o_field = code_map.get(sc)
+            if not o_field:
+                continue
+            row = snapshot_lookup.get(mk)
+            if not row:
+                continue
+            try:
+                odds_ref = float(str(sig.get('odds_16h') or 0))
+                odds_cur = parse_odds_pct(row.get(o_field))
+                if odds_ref <= 0 or odds_cur <= 0:
+                    continue
+                rise_pct = (odds_cur - odds_ref) / odds_ref
+                if rise_pct < FS_ODDS_RISE_PCT:
+                    invalid_fs.append(sig)
+            except Exception:
+                continue
+
+        fs_deleted = delete_invalid_fs_signals(invalid_fs)
         log(f"[FakeSharp] found={len(signals)} new={len(new_signals)} inserted={inserted} "
-            f"updated={fs_updated} (existing={len(existing_fs)} no_snapshot={fs_not_found})")
+            f"updated={fs_updated} deleted_invalid={fs_deleted} (existing={len(existing_fs)} no_snapshot={fs_not_found})")
     except Exception as e:
         log(f"[FakeSharp] Tarama hatası: {e}")
         import traceback

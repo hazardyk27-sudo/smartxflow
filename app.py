@@ -8138,6 +8138,18 @@ def fake_sharp_endpoint():
             if key not in _fs_seen:
                 _fs_seen[key] = s
         all_signals = list(_fs_seen.values())
+        # Güvenlik filtresi: current_odds, odds_16h'a göre %4 yükseliş eşiğinin altına düştüyse sinyali gizle
+        def _fs_still_valid(s):
+            try:
+                o16 = float(str(s.get('odds_16h') or 0))
+                ocur = float(str(s.get('current_odds') or s.get('odds_now') or 0))
+                if o16 <= 0 or ocur <= 0:
+                    return True
+                rise = (ocur - o16) / o16
+                return rise >= 0.04
+            except Exception:
+                return True
+        all_signals = [s for s in all_signals if _fs_still_valid(s)]
         _fs_signals_cache = all_signals
         _fs_signals_cache_time = now
 
