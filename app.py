@@ -7919,8 +7919,11 @@ def confirmed_money_endpoint():
             if key not in _cm_seen:
                 _cm_seen[key] = s
         deduped = list(_cm_seen.values())
-        # Tersine dönen oranları, aralık dışındakileri ve düşüş eşiği altındakileri filtrele
-        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s) and _cm_still_valid(s)]
+        # Tersine dönen oranları ve aralık dışındakileri filtrele
+        # NOT: _cm_still_valid() burada kullanılmıyor çünkü odds_now zaten düşmüş referans noktasıdır;
+        # current_odds ≈ odds_now olduğunda drop_pct ≈ 0 → yanlış filtreleme yapardı.
+        # 10h karşılaştırması engine tarafında (delete_invalid_cm_signals) doğru şekilde yapılıyor.
+        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
