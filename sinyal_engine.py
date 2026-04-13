@@ -740,7 +740,7 @@ def _betwatch_to_iso_datetime(date_str):
                 iso_date = _d(_d.today().year, mon, day).isoformat()
                 t = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
                 if t:
-                    return f"{iso_date}T{t.group(1)}:{t.group(2)}"
+                    return f"{iso_date}T{t.group(1)}:{t.group(2)}:00+03:00"
                 return iso_date
     except Exception:
         pass
