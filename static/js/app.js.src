@@ -1372,6 +1372,9 @@ async function loadMatches(appendMode = false) {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1${srcParam}`;
             } else if (dateFilterMode === 'TODAY') {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1${srcParam}`;
+            } else if (dateFilterMode && dateFilterMode.startsWith('PAST_')) {
+                const daysBack = dateFilterMode.split('_')[1];
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=d-${daysBack}&bulk=1${srcParam}`;
             } else {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
             }
@@ -1465,6 +1468,8 @@ async function loadAllRemainingMatches() {
                 apiUrl += '&date_filter=yesterday';
             } else if (dateFilterMode === 'TODAY') {
                 apiUrl += '&date_filter=today';
+            } else if (dateFilterMode && dateFilterMode.startsWith('PAST_')) {
+                apiUrl += `&date_filter=d-${dateFilterMode.split('_')[1]}`;
             }
             
             const response = await fetch(apiUrl);
@@ -2368,9 +2373,8 @@ function setDayFilter(filter) {
     
     currentDayFilter = filter;
     
-    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün', future: 'Gelecek'};
     var labelEl = document.getElementById('dayFilterLabel');
-    if (labelEl) labelEl.textContent = labels[filter] || 'Tümü';
+    if (labelEl) labelEl.textContent = _getDayFilterLabel(filter);
 
     document.querySelectorAll('.day-filter-option').forEach(function(opt) {
         opt.classList.toggle('active', opt.getAttribute('data-value') === filter);
@@ -2383,12 +2387,16 @@ function setDayFilter(filter) {
         dateFilterMode = 'TODAY';
         if (todayBtn) todayBtn.classList.add('active');
         if (yesterdayBtn) yesterdayBtn.classList.remove('active');
-    } else if (filter === 'yesterday') {
-        dateFilterMode = 'YESTERDAY';
+    } else if (filter === 'yesterday' || filter === 'd-1') {
+        dateFilterMode = filter === 'yesterday' ? 'YESTERDAY' : 'PAST_1';
         if (yesterdayBtn) yesterdayBtn.classList.add('active');
         if (todayBtn) todayBtn.classList.remove('active');
     } else if (filter === 'future') {
         dateFilterMode = 'FUTURE';
+        if (todayBtn) todayBtn.classList.remove('active');
+        if (yesterdayBtn) yesterdayBtn.classList.remove('active');
+    } else if (filter && filter.startsWith('d-')) {
+        dateFilterMode = 'PAST_' + filter.slice(2);
         if (todayBtn) todayBtn.classList.remove('active');
         if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     } else {
@@ -2405,9 +2413,29 @@ function openMobileFilterModal() {
     var overlay = document.getElementById('mobileFilterOverlay');
     if (!overlay) return;
     
+    var isPast = currentDayFilter && currentDayFilter.startsWith('d-');
     document.querySelectorAll('.mf-chip[data-group="date"]').forEach(function(c) {
-        c.classList.toggle('active', c.getAttribute('data-value') === currentDayFilter);
+        var val = c.getAttribute('data-value');
+        if (val === 'past') {
+            c.classList.toggle('active', isPast);
+            if (isPast) c.textContent = _getDayFilterLabel(currentDayFilter) + ' ▾';
+            else c.textContent = 'Geçmiş ▾';
+        } else {
+            c.classList.toggle('active', val === currentDayFilter);
+        }
     });
+    var pd = document.getElementById('mfPastDropdown');
+    var pv = document.getElementById('mfPastSelectedValue');
+    if (pd && pv) {
+        if (isPast) {
+            pv.value = currentDayFilter;
+            _buildMfPastDropdown(pd);
+            pd.style.display = 'flex';
+        } else {
+            pv.value = '';
+            pd.style.display = 'none';
+        }
+    }
     
     var sortVal = (currentSortColumn === 'volume') ? 'volume' : 'date';
     document.querySelectorAll('.mf-chip[data-group="sort"]').forEach(function(c) {
@@ -2435,6 +2463,54 @@ function mfSelect(el) {
         c.classList.remove('active');
     });
     el.classList.add('active');
+    if (group === 'date') {
+        var pd = document.getElementById('mfPastDropdown');
+        if (pd) pd.style.display = 'none';
+        var pv = document.getElementById('mfPastSelectedValue');
+        if (pv) pv.value = '';
+    }
+}
+
+function mfSelectPast(el) {
+    var chips = el.closest('.mf-chips').querySelectorAll('.mf-chip[data-group="date"]');
+    chips.forEach(function(c) { c.classList.remove('active'); });
+    el.classList.add('active');
+    var pd = document.getElementById('mfPastDropdown');
+    if (!pd) return;
+    if (pd.style.display === 'flex') {
+        pd.style.display = 'none';
+    } else {
+        _buildMfPastDropdown(pd);
+        pd.style.display = 'flex';
+    }
+}
+
+function _buildMfPastDropdown(container) {
+    var nowTR = nowTurkey ? nowTurkey() : dayjs();
+    var selectedVal = (document.getElementById('mfPastSelectedValue') || {}).value || '';
+    var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    container.innerHTML = '';
+    for (var i = 1; i <= 7; i++) {
+        var d = nowTR.subtract(i, 'day');
+        var label = i === 1 ? 'Dün' : (d.date() + ' ' + months[d.month()]);
+        var val = 'd-' + i;
+        var btn = document.createElement('button');
+        btn.className = 'mf-past-day-btn' + (selectedVal === val ? ' active' : '');
+        btn.textContent = label;
+        btn.setAttribute('data-val', val);
+        btn.setAttribute('data-label', label);
+        btn.onclick = (function(v, lbl, b) {
+            return function() {
+                container.querySelectorAll('.mf-past-day-btn').forEach(function(x) { x.classList.remove('active'); });
+                b.classList.add('active');
+                var pv = document.getElementById('mfPastSelectedValue');
+                if (pv) pv.value = v;
+                var toggle = document.querySelector('.mf-past-toggle');
+                if (toggle) toggle.textContent = lbl + ' ▾';
+            };
+        })(val, label, btn);
+        container.appendChild(btn);
+    }
 }
 
 function mfToggle(el) {
@@ -2458,8 +2534,19 @@ function applyMobileFilter() {
     var dateChip = document.querySelector('.mf-chip[data-group="date"].active');
     var sortChip = document.querySelector('.mf-chip[data-group="sort"].active');
     
-    var dateVal = dateChip ? dateChip.getAttribute('data-value') : 'all';
+    var dateChipVal = dateChip ? dateChip.getAttribute('data-value') : 'all';
     var sortVal = sortChip ? sortChip.getAttribute('data-value') : 'date';
+    
+    var dateVal = dateChipVal;
+    if (dateChipVal === 'past') {
+        var pvEl = document.getElementById('mfPastSelectedValue');
+        var pastVal = pvEl ? pvEl.value : '';
+        if (pastVal && pastVal.startsWith('d-')) {
+            dateVal = pastVal;
+        } else {
+            dateVal = 'd-1';
+        }
+    }
     
     _mobileHideEnded = !!document.querySelector('.mf-sw[data-value="hideEnded"].active');
     _mobileHideLive = !!document.querySelector('.mf-sw[data-value="hideLive"].active');
@@ -2484,20 +2571,40 @@ function applyMobileFilter() {
     updateTableHeaders();
     
     var modeMap = {all: 'ALL', today: 'TODAY', yesterday: 'YESTERDAY', future: 'FUTURE'};
-    dateFilterMode = modeMap[dateVal] || 'ALL';
+    if (dateVal.startsWith('d-')) {
+        dateFilterMode = 'PAST_' + dateVal.slice(2);
+    } else {
+        dateFilterMode = modeMap[dateVal] || 'ALL';
+    }
     currentDayFilter = dateVal;
     
     var todayBtn = document.getElementById('todayBtn');
     var yesterdayBtn = document.getElementById('yesterdayBtn');
     if (todayBtn) todayBtn.classList.toggle('active', dateVal === 'today');
-    if (yesterdayBtn) yesterdayBtn.classList.toggle('active', dateVal === 'yesterday');
+    if (yesterdayBtn) yesterdayBtn.classList.toggle('active', dateVal === 'd-1' || dateVal === 'yesterday');
     
     var labelEl = document.getElementById('dayFilterLabel');
-    var labels = {all: 'Tümü', today: 'Bugün', yesterday: 'Dün', future: 'Gelecek'};
-    if (labelEl) labelEl.textContent = labels[dateVal] || 'Tümü';
+    if (labelEl) labelEl.textContent = _getDayFilterLabel(dateVal);
     
     delete _matchesMarketCache[currentMarket + '|' + dateFilterMode + '|' + currentSource];
     loadMatches();
+}
+
+function _getDayFilterLabel(dateVal) {
+    if (!dateVal || dateVal === 'all') return 'Tümü';
+    if (dateVal === 'today') return 'Bugün';
+    if (dateVal === 'yesterday' || dateVal === 'd-1') return 'Dün';
+    if (dateVal === 'future') return 'Gelecek';
+    if (dateVal.startsWith('d-')) {
+        var n = parseInt(dateVal.slice(2));
+        if (!isNaN(n)) {
+            var nowTR = nowTurkey ? nowTurkey() : dayjs();
+            var d = nowTR.subtract(n, 'day');
+            var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            return d.date() + ' ' + months[d.month()];
+        }
+    }
+    return 'Tümü';
 }
 
 const originalRenderMatches = renderMatches;
@@ -2828,6 +2935,16 @@ function applySorting(data) {
             return matchDateStr === yesterdayStr;
         });
         console.log('[Filter] YESTERDAY filtered count:', sortedData.length);
+    } else if (dateFilterMode && dateFilterMode.startsWith('PAST_')) {
+        const daysBack = parseInt(dateFilterMode.split('_')[1]);
+        const targetStr = nowTR.subtract(daysBack, 'day').format('YYYY-MM-DD');
+        console.log('[Filter] PAST mode:', targetStr);
+        sortedData = sortedData.filter(m => {
+            const matchDateStr = getMatchDateTR(m.date);
+            if (!matchDateStr) return false;
+            return matchDateStr === targetStr;
+        });
+        console.log('[Filter] PAST filtered count:', sortedData.length);
     } else if (dateFilterMode === 'TODAY') {
         console.log('[Filter] TODAY mode:', todayStr);
         sortedData = sortedData.filter(m => {

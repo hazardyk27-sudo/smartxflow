@@ -496,8 +496,8 @@ def cleanup_old_matches():
     
     last_cleanup_date = today
     
-    # D-2 = Dünden önceki gün (silinecek)
-    cutoff = today - timedelta(days=2)
+    # D-8 = 8 günden eski veriler silinir (7 günlük geçmiş tutulur)
+    cutoff = today - timedelta(days=8)
     cutoff_str = cutoff.strftime('%Y-%m-%d')
     
     print(f"[Cleanup] Starting cleanup for matches before {cutoff_str}...")

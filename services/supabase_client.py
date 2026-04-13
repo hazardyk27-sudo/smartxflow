@@ -442,6 +442,64 @@ class SupabaseClient:
                 print(f"[Supabase] YESTERDAY: Batch fetched odds for {with_odds}/{len(fixtures)} matches")
                 print(f"[Supabase] YESTERDAY: Got {len(matches)} matches (fixtures-first)")
                 return matches
+            elif date_filter and date_filter.startswith('d-') and date_filter[2:].isdigit():
+                # Geçmiş gün desteği: d-2, d-3, ... d-7
+                days_back = int(date_filter[2:])
+                target_date = now_tr.date() - timedelta(days=days_back)
+                target_str = target_date.strftime('%Y-%m-%d')
+                print(f"[Supabase] PAST({date_filter}): Fixtures-first approach for {target_str}")
+                from datetime import time as dt_time
+                from urllib.parse import quote
+                target_start_tr = tr_tz.localize(datetime.combine(target_date, dt_time.min))
+                target_end_tr = tr_tz.localize(datetime.combine(target_date + timedelta(days=1), dt_time.min))
+                target_start_utc = target_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                target_end_utc = target_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(target_start_utc)}&kickoff_utc=lt.{quote(target_end_utc)}&order=kickoff_utc.desc&limit=500"
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+                if fix_resp.status_code != 200:
+                    print(f"[Supabase] PAST({date_filter}) fixtures fetch error: {fix_resp.status_code}")
+                    return []
+                fixtures = fix_resp.json()
+                print(f"[Supabase] PAST({date_filter}): Got {len(fixtures)} fixtures")
+                if not fixtures:
+                    return []
+                odds_cache = {}
+                hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
+                batch_size = 50
+                for i in range(0, len(hashes), batch_size):
+                    batch_hashes = hashes[i:i+batch_size]
+                    hash_list = ','.join(batch_hashes)
+                    if not hash_list:
+                        continue
+                    try:
+                        batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
+                        batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
+                        if batch_resp.status_code == 200:
+                            for row in batch_resp.json():
+                                h = row.get('match_id_hash', '')
+                                if h and h not in odds_cache:
+                                    odds_cache[h] = row
+                    except Exception as e:
+                        print(f"[Supabase] PAST({date_filter}) batch error: {e}")
+                matches = []
+                with_odds = 0
+                for fix in fixtures:
+                    match_hash = fix.get('match_id_hash', '')
+                    if match_hash in odds_cache:
+                        latest = self._normalize_history_row(odds_cache[match_hash], market)
+                        with_odds += 1
+                    else:
+                        latest = {}
+                    matches.append({
+                        'home_team': fix.get('home_team', ''),
+                        'away_team': fix.get('away_team', ''),
+                        'league': fix.get('league', ''),
+                        'date': fix.get('kickoff_utc', ''),
+                        'match_id_hash': match_hash,
+                        'latest': latest
+                    })
+                print(f"[Supabase] PAST({date_filter}): {with_odds}/{len(fixtures)} matches with odds")
+                return matches
             elif date_filter == 'today':
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
                 today_date = now_tr.date()
@@ -1991,6 +2049,34 @@ class SupabaseClient:
                 deleted[fix_table] = fix_count
                 print(f"[Cleanup] Deleted {fix_count} old records from {fix_table}")
         
+        signal_tables = [
+            ('confirmed_money_signals', 'match_date'),
+            ('underdog_signals', 'match_date'),
+            ('fake_sharp_signals', 'match_date'),
+            ('confirmed_money_v2_signals', 'match_date'),
+        ]
+        for sig_table, date_col in signal_tables:
+            try:
+                headers_sig = self._headers()
+                check_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{cutoff_date}&select=id&limit=1"
+                check_resp = self._get_http_client().get(check_url, headers=headers_sig, timeout=15)
+                if check_resp.status_code == 404:
+                    continue
+                headers_del = self._headers()
+                headers_del['Prefer'] = 'return=representation'
+                del_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{cutoff_date}"
+                del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
+                if del_resp.status_code == 200:
+                    try:
+                        count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                        if count > 0:
+                            deleted[sig_table] = count
+                            print(f"[Cleanup] Deleted {count} old records from {sig_table}")
+                    except:
+                        pass
+            except Exception as e:
+                print(f"[Cleanup] Exception for {sig_table}: {e}")
+
         return deleted
     
     def _snapshot_to_legacy(self, snap: Dict, market: str) -> Dict[str, Any]:
