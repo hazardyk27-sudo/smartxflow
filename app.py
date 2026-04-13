@@ -2494,10 +2494,15 @@ def _update_underdog_signal_scores():
         print(f"[UnderdogSignals] score update error: {e}")
 
 
+_backfill_done = set()
+
 def _backfill_match_date_times(rows, table_name):
     """Backfill date-only match_date values with time parsed from match_key.
     Idempotent: skips rows that already have time info (+03:00).
-    Also updates in-memory rows so the current response reflects corrected values."""
+    Runs once per table per process; also updates in-memory rows."""
+    if table_name in _backfill_done:
+        return
+    _backfill_done.add(table_name)
     import re as _re
     from datetime import date as _d
     months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
