@@ -54,6 +54,10 @@ _cm_signals_cache = None
 _cm_signals_cache_time = 0
 CM_SIGNALS_CACHE_TTL = 60
 
+_cm_v2_signals_cache = None
+_cm_v2_signals_cache_time = 0
+CM_V2_SIGNALS_CACHE_TTL = 60
+
 _fs_signals_cache = None
 _fs_signals_cache_time = 0
 FS_SIGNALS_CACHE_TTL = 60
@@ -7771,6 +7775,51 @@ def _fetch_all_confirmed_money_signals():
         return []
 
 
+def _fetch_all_confirmed_money_v2_signals():
+    """confirmed_money_v2_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return []
+        headers = supabase._headers()
+        url = (
+            f"{supabase._rest_url('confirmed_money_v2_signals')}"
+            f"?select=*&order=created_at.desc,home_team.asc&limit=1000"
+        )
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            rows = resp.json()
+            result = []
+            for r in rows:
+                result.append({
+                    'id': r.get('id'),
+                    'match_key': r.get('match_key', ''),
+                    'home_team': r.get('home_team', ''),
+                    'away_team': r.get('away_team', ''),
+                    'league': r.get('league', ''),
+                    'date': _normalize_match_date(r.get('match_date', '')),
+                    'match_date': _normalize_match_date(r.get('match_date', '')),
+                    'selection_code': r.get('selection_code', ''),
+                    'selection_label': r.get('selection_label', ''),
+                    'odds_16h': r.get('odds_16h', ''),
+                    'odds_now': r.get('odds_now', ''),
+                    'current_odds': r.get('current_odds') or '',
+                    'pct_now': r.get('pct_now', ''),
+                    'current_pct': r.get('current_pct') or '',
+                    'volume_now': r.get('volume_now', ''),
+                    'current_volume': r.get('current_volume') or '',
+                    'odds_drop_pct': r.get('odds_drop_pct') or '',
+                    'last_updated_at': r.get('last_updated_at') or '',
+                    'created_at': r.get('created_at') or '',
+                    'result': r.get('result') or '',
+                })
+            return result
+        return []
+    except Exception as e:
+        print(f"[ConfirmedMoneyV2Signals] fetch error: {e}")
+        return []
+
+
 def _cm_odds_reversed(s):
     """True if current_odds > odds_now — signal is no longer valid (odds bounced back)."""
     try:
@@ -7785,6 +7834,15 @@ def _cm_in_odds_range(s):
     try:
         v = float(str(s.get('odds_now') or '').strip())
         return 1.35 <= v <= 2.20
+    except Exception:
+        return False
+
+
+def _cm_v2_in_odds_range(s):
+    """True if odds_now is within the allowed CMv2 selection range [1.55, 2.20]."""
+    try:
+        v = float(str(s.get('odds_now') or '').strip())
+        return 1.55 <= v <= 2.20
     except Exception:
         return False
 
@@ -7821,6 +7879,65 @@ def confirmed_money_endpoint():
         all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
+
+    active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
+
+    avg_drop = 0.0
+    avg_pct = 0.0
+    if active_signals:
+        drop_list = []
+        pct_list = []
+        for s in active_signals:
+            try:
+                drop_list.append(float(str(s.get('odds_drop_pct', '') or 0)))
+            except Exception:
+                pass
+            try:
+                pct_list.append(float(str(s.get('pct_now', '') or 0).replace('%', '').strip()))
+            except Exception:
+                pass
+        if drop_list:
+            avg_drop = round(sum(drop_list) / len(drop_list), 2)
+        if pct_list:
+            avg_pct = round(sum(pct_list) / len(pct_list), 1)
+
+    return jsonify({
+        'signals': all_signals,
+        'count': len(active_signals),
+        'avg_drop_pct': avg_drop,
+        'avg_pct': avg_pct,
+    })
+
+
+@app.route('/api/confirmed-money-v2', methods=['GET'])
+@license_required
+def confirmed_money_v2_endpoint():
+    """Confirmed Money V2 sinyallerini döndür (90 günlük, DB'den). 60s server cache."""
+    global _cm_v2_signals_cache, _cm_v2_signals_cache_time
+    from datetime import date as _date
+
+    def _is_today_or_future(d):
+        if not d:
+            return False
+        try:
+            return str(d) >= str(_date.today())
+        except Exception:
+            return False
+
+    now = time.time()
+    if _cm_v2_signals_cache is not None and (now - _cm_v2_signals_cache_time) < CM_V2_SIGNALS_CACHE_TTL:
+        all_signals = _cm_v2_signals_cache
+    else:
+        raw = _fetch_all_confirmed_money_v2_signals()
+        _cm_v2_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _cm_v2_seen:
+                _cm_v2_seen[key] = s
+        deduped = list(_cm_v2_seen.values())
+        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_v2_in_odds_range(s)]
+        _cm_v2_signals_cache = all_signals
+        _cm_v2_signals_cache_time = now
 
     active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
 

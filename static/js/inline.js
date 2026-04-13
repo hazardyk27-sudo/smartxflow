@@ -1,113 +1,1260 @@
-function _updateModalFavBtn(){var btn=document.getElementById('modalFavBtn');if(!btn)return;if(typeof selectedMatch==='undefined'||!selectedMatch){btn.classList.remove('fav-active');return;}var mk=(selectedMatch.home_team||'')+'|'+(selectedMatch.away_team||'')+'|'+(selectedMatch.league||'');var isFav=typeof _userFavorites!=='undefined'&&_userFavorites.has(mk);btn.setAttribute('data-matchkey',mk);if(isFav){btn.classList.add('fav-active');}else{btn.classList.remove('fav-active');}}
-function toggleModalFavorite(){var btn=document.getElementById('modalFavBtn');if(!btn||typeof selectedMatch==='undefined'||!selectedMatch)return;var mk=(selectedMatch.home_team||'')+'|'+(selectedMatch.away_team||'')+'|'+(selectedMatch.league||'');var did=typeof getWebDeviceId==='function'?getWebDeviceId():'';fetch('/api/favorite/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_key:mk,device_id:did})}).then(function(r){return r.json();}).then(function(data){if(data.error){console.warn('[Fav] error:',data.error);return;}if(typeof _userFavorites!=='undefined'){if(data.favorited){_userFavorites.add(mk);}else{_userFavorites.delete(mk);}}_updateModalFavBtn();document.querySelectorAll('.fav-heart').forEach(function(h){if(h.getAttribute('data-matchkey')===mk){if(data.favorited){h.classList.add('fav-active');}else{h.classList.remove('fav-active');}}});if(typeof _favCounts!=='undefined')_favCounts[mk]=data.total_count||0;}).catch(function(){});}
-var currentTrendTab='analysis';var trendsDataCache={};var _isPro=null;function openTrendsModal(tab){var t=tab||'analysis';if(t==='analysis'&&_isPro===null)_isPro=(window.userPlan==='pro');if(t==='analysis'&&!_isPro){if(confirm('Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')){window.location.href='/pricing';}
-return;}
-currentTrendTab=t;var titleEl=document.getElementById('trendsModalTitle');var subtitleEl=document.getElementById('trendsModalSubtitle');var contentArea=document.getElementById('trendsContentArea');if(t==='moves'){if(titleEl)titleEl.textContent='Kılavuz';if(subtitleEl)subtitleEl.textContent='Kullanım tavsiyeleri';}else{if(titleEl)titleEl.textContent='Analizler';if(subtitleEl)subtitleEl.textContent='Profesyonel piyasa analizleri';}
-if(t==='moves'){contentArea.innerHTML='<div class="trends-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2e3238" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div>Sol menüden bir konu seçin</div></div>';document.querySelector('.trends-modal-body').classList.add('sidebar-mode');}else{document.querySelector('.trends-modal-body').classList.remove('sidebar-mode');}
-document.getElementById('trendsModalOverlay').style.display='flex';document.body.style.overflow='hidden';var _ca=document.getElementById('trendsContentArea');if(_ca)_ca.scrollTop=0;loadTrends(t);}
-function closeTrendsModal(){document.getElementById('trendsModalOverlay').style.display='none';document.body.style.overflow='';var body=document.querySelector('.trends-modal-body');if(body)body.classList.remove('mobile-article-open');}
-function parseTrendsHierarchy(data){var groups={};var groupOrder=[];data.forEach(function(item){var title=item.title||'';var parts=title.split(' - ');var mainTitle=parts[0].trim();var subTitle=parts.length>1?parts.slice(1).join(' - ').trim():'';if(!groups[mainTitle]){groups[mainTitle]=[];groupOrder.push(mainTitle);}
-groups[mainTitle].push({subTitle:subTitle,content:item.content||'',image_url:item.image_url||'',created_at:item.created_at||''});});return{groups:groups,order:groupOrder};}
-function renderSidebar(hierarchy){var sidebar=document.getElementById('trendsSidebar');if(hierarchy.order.length===0){sidebar.innerHTML='<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Henüz içerik yok</div>';return;}
-var html='';hierarchy.order.forEach(function(mainTitle,gi){var items=hierarchy.groups[mainTitle];var hasSubItems=items.length>1||items[0].subTitle;html+='<div class="sidebar-group" data-group="'+gi+'">';html+='<div class="sidebar-main-title" onclick="toggleSidebarGroup('+gi+','+(hasSubItems?'true':'false')+')">';html+='<span>'+mainTitle+'</span>';if(hasSubItems){html+='<svg class="sidebar-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';}
-html+='</div>';if(hasSubItems){html+='<div class="sidebar-sub-list" style="display:none;">';items.forEach(function(sub,si){var label=sub.subTitle||'Genel';html+='<div class="sidebar-sub-item" data-group="'+gi+'" data-sub="'+si+'" onclick="selectSubItem('+gi+','+si+')">'+label+'</div>';});html+='</div>';}
-html+='</div>';});sidebar.innerHTML=html;}
-function toggleSidebarGroup(gi,hasSubItems){var group=document.querySelector('.sidebar-group[data-group="'+gi+'"]');if(!group)return;if(hasSubItems){var subList=group.querySelector('.sidebar-sub-list');var chevron=group.querySelector('.sidebar-chevron');if(subList.style.display==='none'){subList.style.display='block';if(chevron)chevron.classList.add('open');}else{subList.style.display='none';if(chevron)chevron.classList.remove('open');}}else{selectSubItem(gi,0);}}
-function isMobileView(){return window.innerWidth<=768;}
-function selectSubItem(gi,si){document.querySelectorAll('.sidebar-sub-item.active, .sidebar-main-title.active').forEach(function(el){el.classList.remove('active');});var subEl=document.querySelector('.sidebar-sub-item[data-group="'+gi+'"][data-sub="'+si+'"]');if(subEl)subEl.classList.add('active');var hierarchy=trendsDataCache[currentTrendTab];if(!hierarchy)return;var mainTitle=hierarchy.order[gi];var item=hierarchy.groups[mainTitle][si];var contentArea=document.getElementById('trendsContentArea');var html='';if(isMobileView()){html+='<div class="trends-mobile-back" onclick="mobileBackToList()">';html+='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';html+='<span>Geri</span>';html+='</div>';html+='<div class="trends-mobile-content-wrap">';}
-html+='<div class="trends-article">';html+='<h3 class="trends-article-title">'+mainTitle;if(item.subTitle)html+=' <span class="trends-article-sep">—</span> '+item.subTitle;html+='</h3>';if(item.image_url){html+='<div class="trends-article-image"><img src="'+item.image_url+'" alt=""></div>';}
-html+='<div class="trends-article-body">'+item.content+'</div>';if(item.created_at){var date=new Date(item.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'});html+='<div class="trends-article-date">'+date+'</div>';}
-html+='</div>';if(isMobileView()){html+='</div>';}
-contentArea.innerHTML=html;if(isMobileView()){document.querySelector('.trends-modal-body').classList.add('mobile-article-open');}}
-function mobileBackToList(){document.querySelector('.trends-modal-body').classList.remove('mobile-article-open');}
-var _analystsCache=null;var _analystsCacheTs=0;var _selectedAnalystId=null;var _fullAnalysisData=null;var _viewingUnderdogPressure=false;var _viewingConfirmedMoney=false;var _viewingFakeSharp=false;function renderAnalysisList(data){var sidebar=document.getElementById('trendsSidebar');var contentArea=document.getElementById('trendsContentArea');if(!data||data.length===0){contentArea.innerHTML='<div class="trends-placeholder"><div style="font-size:32px;margin-bottom:12px;">📊</div><div>Henüz içerik yok</div></div>';sidebar.innerHTML='';return;}
-sidebar.innerHTML='';_fullAnalysisData=data;var cardsHtml=buildAnalystCards();var filtered=_selectedAnalystId?data.filter(function(item){return item.analyst_id==_selectedAnalystId;}):data;var listHtml=buildAnalysisCards(filtered);contentArea.scrollTop=0;contentArea.innerHTML='<div style="padding-bottom:20px;">'+cardsHtml+'<div style="display:flex;flex-direction:column;gap:12px;">'+listHtml+'</div></div>';}
-function buildAnalystCards(){if(!_analystsCache||_analystsCache.length===0)return'';var html='<div class="analyst-cards-strip">';html+='<div class="analyst-card'+(!_selectedAnalystId&&!_viewingUnderdogPressure&&!_viewingConfirmedMoney&&!_viewingFakeSharp?' active':'')+'" onclick="filterByAnalyst(null)">';html+='<div class="analyst-card-avatar-placeholder" style="font-size:14px;">All</div>';html+='<div class="analyst-card-name">Tümü</div>';html+='</div>';html+='<div class="analyst-card'+(_viewingUnderdogPressure?' active':'')+'" onclick="showUnderdogPressure()" style="border-color:rgba(210,153,34,0.4);position:relative;">';html+='<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#d29922;background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';html+='<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(210,153,34,0.08);border:1.5px solid rgba(210,153,34,0.3);color:#d29922;">⚡</div>';html+='<div class="analyst-card-name">Underdog</div>';html+='<div class="analyst-card-pct" style="color:#d29922;">Pressure</div>';html+='</div>';html+='<div class="analyst-card'+(_viewingConfirmedMoney?' active':'')+'" onclick="showConfirmedMoney()" style="border-color:rgba(52,211,153,0.4);position:relative;">';html+='<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';html+='<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(52,211,153,0.08);border:1.5px solid rgba(52,211,153,0.3);color:#34d399;">💰</div>';html+='<div class="analyst-card-name">Confirmed</div>';html+='<div class="analyst-card-pct" style="color:#34d399;">Money</div>';html+='</div>';html+='<div class="analyst-card'+(_viewingFakeSharp?' active':'')+'" onclick="showFakeSharp()" style="border-color:rgba(249,115,22,0.4);position:relative;">';html+='<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#f97316;background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';html+='<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(249,115,22,0.08);border:1.5px solid rgba(249,115,22,0.3);color:#f97316;">🎯</div>';html+='<div class="analyst-card-name">Fake</div>';html+='<div class="analyst-card-pct" style="color:#f97316;">Sharp</div>';html+='</div>';_analystsCache.forEach(function(a){var isActive=_selectedAnalystId==a.id;var s=a.stats||{};var pctColor=s.success_pct>=60?'#3fb950':s.success_pct>=40?'#d29922':(s.total>0?'#f85149':'#3a3f45');html+='<div class="analyst-card'+(isActive?' active':'')+'" onclick="filterByAnalyst('+a.id+')">';if(a.avatar_url){html+='<img class="analyst-card-avatar" src="'+a.avatar_url+'" alt="">';}else{html+='<div class="analyst-card-avatar-placeholder">'+(a.name||'?')[0].toUpperCase()+'</div>';}
-html+='<div class="analyst-card-name">'+(a.name||'')+'</div>';html+='<div class="analyst-card-pct" style="color:'+pctColor+';">%'+(s.success_pct||0)+'</div>';html+='<div class="analyst-card-meta">'+(s.total||0)+' analiz | '+(s.avg_odds||'0')+' ort.</div>';html+='</div>';});html+='</div>';return html;}
-function buildAnalysisCards(items){if(!items||items.length===0)return'<div class="trends-placeholder"><div>Bu analizci için henüz analiz yok</div></div>';var html='';items.forEach(function(item){var date=item.created_at?new Date(item.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'}):'';html+='<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:12px;padding:16px 20px;">';var analystName='';if(item.analyst_id&&_analystsCache){for(var i=0;i<_analystsCache.length;i++){if(_analystsCache[i].id==item.analyst_id){analystName=_analystsCache[i].name;break;}}}
-html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';html+='<div style="font-size:15px;font-weight:600;color:#e0e4e8;">'+(item.title||'')+'</div>';if(item.result){var rColors={won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};var rLabels={won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};html+='<span style="background:'+(rColors[item.result]||'#3a3f45')+'18;color:'+(rColors[item.result]||'#3a3f45')+';border:1px solid '+(rColors[item.result]||'#3a3f45')+'30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">'+(rLabels[item.result]||item.result)+'</span>';}
-html+='</div>';if(item.preference||item.odds||item.confidence){html+='<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';if(item.preference)html+='<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 '+(item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span>';if(item.odds){html+='<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: '+item.odds+'</span>';}
-if(item.confidence){var confColor=item.confidence>=7?'#34d399':item.confidence>=4?'#fbbf24':'#f87171';html+='<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:'+confColor+';font-weight:600;white-space:nowrap;">Güven: '+item.confidence+'/10</span>';}
-html+='</div>';}
-html+='<div style="font-size:13px;color:#7d848c;line-height:1.7;margin-bottom:10px;">'+(item.content||'')+'</div>';if(item.image_url){html+='<div style="margin-bottom:10px;"><img src="'+item.image_url+'" style="max-width:100%;border-radius:8px;border:1px solid #2e3238;" alt=""></div>';}
-html+='<div style="display:flex;justify-content:space-between;align-items:center;">';html+='<div style="font-size:11px;color:#3a3f45;">'+date+'</div>';if(analystName){html+='<div style="font-size:11px;color:#58a6ff;">Analizci: '+analystName+'</div>';}
-html+='</div>';html+='</div>';});return html;}
-function filterByAnalyst(analystId){_viewingUnderdogPressure=false;_viewingConfirmedMoney=false;_viewingFakeSharp=false;if(analystId===null){_selectedAnalystId=null;if(_fullAnalysisData){renderAnalysisList(_fullAnalysisData);}
-return;}
-showAnalystProfile(analystId);}
-var _analystProfileData=null;var _analystSelectedDate=null;var _underdogSelectedDate=null;var _underdogLastData=null;var _confirmedMoneySelectedDate=null;var _confirmedMoneyLastData=null;var _fakeSharpSelectedDate=null;var _fakeSharpLastData=null;var _MONTH_ABBR_MAP={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};function _parseSignalDateToISO(dateStr){if(!dateStr)return null;var s=String(dateStr).trim();if(s.length>=10&&s[4]==='-')return s.substring(0,10);var m=s.match(/^(\d{2})\.([A-Za-z]{3})/);if(m){var mon=_MONTH_ABBR_MAP[m[2].charAt(0).toUpperCase()+m[2].slice(1).toLowerCase()]||'01';var year=new Date().getFullYear();if(parseInt(mon)<(new Date().getMonth()+1)-2)year+=1;return year+'-'+mon+'-'+m[1];}
-return null;}
-function _extractKickoffTime(dateStr){if(!dateStr)return '';var s=String(dateStr);var m=s.match(/(\d{2}):(\d{2})(?::\d{2})?/);if(m){var h=(parseInt(m[1],10)+3)%24;return String(h).padStart(2,'0')+':'+m[2];}return '';}
-function showAnalystProfile(analystId){_selectedAnalystId=analystId;var contentArea=document.getElementById('trendsContentArea');contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';fetch('/api/analysts/'+analystId+'/analyses').then(function(r){return r.json();}).then(function(data){if(data.error){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;">'+data.error+'</div></div>';return;}
-_analystProfileData=data;var groups=data.date_groups||[];_analystSelectedDate=groups.length>0?groups[0].date:null;renderAnalystProfileView();}).catch(function(){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;">Veriler yüklenemedi</div></div>';});}
-function renderAnalystProfileView(){var contentArea=document.getElementById('trendsContentArea');var data=_analystProfileData;if(!data)return;var a=data.analyst;var groups=data.date_groups||[];var s=a.stats||{};var pct=s.success_pct?parseFloat(s.success_pct).toFixed(0):'0';var pctColor=s.success_pct>=60?'#34d399':s.success_pct>=40?'#fbbf24':(s.total>0?'#f87171':'#3a3f45');var avgOdds=s.avg_odds?parseFloat(s.avg_odds).toFixed(2):'-';var TR_DAYS_SHORT=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];var TR_MONTHS_UPPER=['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];var TR_DAYS_FULL=['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];var html='';html+='<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';html+='Tüm Analizciler</div>';html+='<div class="ap-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';var roiVal=s.roi_pct!==undefined?parseFloat(s.roi_pct):0;var netVal=s.net_profit!==undefined?parseFloat(s.net_profit):0;var roiStr=roiVal>0?'+'+roiVal.toFixed(1):roiVal.toFixed(1);var netStr=netVal>0?'+'+netVal.toFixed(2)+'u':netVal.toFixed(2)+'u';var roiColor1=roiVal>0?'#4ade80':(roiVal<0?'#f87171':'#5c636b');var roiColor2=roiVal>0?'#16a34a':(roiVal<0?'#dc2626':'#3a3f45');var netColor1=netVal>0?'#4ade80':(netVal<0?'#f87171':'#5c636b');var netColor2=netVal>0?'#16a34a':(netVal<0?'#dc2626':'#3a3f45');var decided=(s.won||0)+(s.lost||0);var statBox='border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';var statBoxRel=statBox+'position:relative;';var numStyle='font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';var labelStyle='font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';html+='<div class="ap-profile-row" style="display:flex;align-items:center;gap:3px;">';html+='<div class="ap-profile-info" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';if(a.avatar_url){html+='<div style="position:relative;flex-shrink:0;"><img src="'+a.avatar_url+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #1c1f23;"></div></div>';}else{html+='<div style="position:relative;flex-shrink:0;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#34d399;">'+(a.name||'?')[0].toUpperCase()+'</div><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #1c1f23;"></div></div>';}
-html+='<div>';html+='<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">'+(a.name||'')+'</div>';html+='<div style="font-size:9px;color:#3a3f45;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';html+='</div></div>';html+='<div class="ap-profile-stats" style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:14px;">';html+='<div style="'+statBox+'"><div style="'+numStyle+'background:linear-gradient(180deg,'+pctColor+','+pctColor+'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%'+pct+'</div><div style="'+labelStyle+'">Başarı</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'background:linear-gradient(180deg,#c9d1d9,#5c636b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'+(s.total||0)+'</div><div style="'+labelStyle+'">Toplam</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'+(s.won||0)+'</div><div style="'+labelStyle+'">Kazanan</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'background:linear-gradient(180deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'+(s.lost||0)+'</div><div style="'+labelStyle+'">Kaybeden</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'background:linear-gradient(180deg,#fbbf24,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'+avgOdds+'</div><div style="'+labelStyle+'">Ort. Oran</div></div>';html+='<div style="'+statBoxRel+'"><div style="'+numStyle+'background:linear-gradient(180deg,'+roiColor1+','+roiColor2+');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%'+roiStr+'</div><div style="'+labelStyle+'">Yatırım Getirisi</div>';html+='<div style="position:absolute;top:2px;right:3px;cursor:help;" title="1 birimlik sabit bahis varsayımıyla toplam yatırım getirisi."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';html+='</div>';html+='<div style="'+statBoxRel+'"><div style="'+numStyle+'background:linear-gradient(180deg,'+netColor1+','+netColor2+');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'+netStr+'</div><div style="'+labelStyle+'">Net Kâr</div>';html+='<div style="position:absolute;top:2px;right:3px;cursor:help;" title="Tüm analizler 1 unit kabul edildiğinde oluşan toplam kâr/zarar."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';html+='</div>';html+='</div></div></div>';html+='<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="analystDateStrip">';var today=new Date();var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');var allDates=[];if(groups.length>0){var oldestParts=groups[groups.length-1].date.split('-');var oldest=new Date(parseInt(oldestParts[0]),parseInt(oldestParts[1])-1,parseInt(oldestParts[2]));var newest=new Date(parseInt(groups[0].date.split('-')[0]),parseInt(groups[0].date.split('-')[1])-1,parseInt(groups[0].date.split('-')[2]));if(newest<today)newest=today;var cur=new Date(oldest);while(cur<=newest){allDates.push(cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0'));cur.setDate(cur.getDate()+1);}}else{for(var di=-2;di<=2;di++){var dd=new Date(today);dd.setDate(dd.getDate()+di);allDates.push(dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0'));}}
-var dateGroupMap={};groups.forEach(function(g){dateGroupMap[g.date]=g;});allDates.forEach(function(dateKey){var dp=dateKey.split('-');var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));var dayShort=TR_DAYS_SHORT[dObj.getDay()];var dateNum=String(dObj.getDate()).padStart(2,'0')+'.'+String(dObj.getMonth()+1).padStart(2,'0');var isToday=dateKey===todayStr;var isSelected=dateKey===_analystSelectedDate;var hasData=!!dateGroupMap[dateKey];if(isSelected){html+='<div onclick="selectAnalystDate(\''+dateKey+'\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';html+='<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';else html+='<div style="height:8px;"></div>';}else{html+='<div onclick="selectAnalystDate(\''+dateKey+'\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';html+='<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:'+(isToday?'#7d848c':'#5c636b')+';font-weight:'+(isToday?'600':'500')+';margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';else html+='<div style="height:8px;"></div>';}
-html+='</div>';});html+='</div>';var selectedGroup=dateGroupMap[_analystSelectedDate];if(_analystSelectedDate&&selectedGroup){var selParts=_analystSelectedDate.split('-');var selD=new Date(parseInt(selParts[0]),parseInt(selParts[1])-1,parseInt(selParts[2]));var selDateLabel=selD.getDate()+' '+TR_MONTHS_UPPER[selD.getMonth()]+' '+selD.getFullYear()+', '+TR_DAYS_FULL[selD.getDay()];html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 2px 8px;margin-bottom:4px;">';html+='<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';html+=selDateLabel+'</div>';html+='<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">'+selectedGroup.items.length+' ANALİZ</span>';html+='</div>';selectedGroup.items.forEach(function(item){var date=item.created_at?new Date(item.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul'}):'';html+='<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:12px;padding:16px 20px;margin-bottom:12px;">';html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';html+='<div style="font-size:15px;font-weight:600;color:#e0e4e8;">'+(item.title||'')+'</div>';if(item.result){var rColors={won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};var rLabels={won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};html+='<span style="background:'+(rColors[item.result]||'#3a3f45')+'18;color:'+(rColors[item.result]||'#3a3f45')+';border:1px solid '+(rColors[item.result]||'#3a3f45')+'30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">'+(rLabels[item.result]||item.result)+'</span>';}else{html+='<span style="background:rgba(88,166,255,0.06);color:#58a6ff;border:1px solid rgba(88,166,255,0.12);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">Beklemede</span>';}
-html+='</div>';if(item.preference||item.odds||item.confidence){html+='<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';if(item.preference)html+='<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 '+(item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</span>';if(item.odds)html+='<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: '+item.odds+'</span>';if(item.confidence){var confColor=item.confidence>=7?'#34d399':item.confidence>=4?'#fbbf24':'#f87171';html+='<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:'+confColor+';font-weight:600;white-space:nowrap;">Güven: '+item.confidence+'/10</span>';}
-html+='</div>';}
-html+='<div style="font-size:13px;color:#7d848c;line-height:1.7;margin-bottom:10px;word-wrap:break-word;overflow-wrap:break-word;">'+(item.content||'')+'</div>';if(item.image_url){html+='<div style="margin-bottom:10px;"><img src="'+item.image_url+'" style="max-width:100%;border-radius:8px;border:1px solid #2e3238;" alt=""></div>';}
-if(item.result_note){html+='<div style="font-size:11px;color:#7d848c;line-height:1.5;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid rgba(255,255,255,0.08);">'+item.result_note+'</div>';}
-html+='<div style="font-size:11px;color:#3a3f45;">'+date+'</div>';html+='</div>';});}else{html+='<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Henüz analiz mevcut değil</div>';}
-contentArea.innerHTML='<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">'+html+'</div>';var strip=document.getElementById('analystDateStrip');if(strip){var selectedEl=strip.querySelector('.ds-sel');if(selectedEl)selectedEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});}}
-function selectAnalystDate(dateKey){_analystSelectedDate=dateKey;renderAnalystProfileView();}
-function selectUnderdogDate(dateKey){_underdogSelectedDate=dateKey;if(_underdogLastData)renderUnderdogPressureView(_underdogLastData);}
-function backToAnalystList(){_selectedAnalystId=null;_viewingUnderdogPressure=false;_viewingConfirmedMoney=false;_viewingFakeSharp=false;if(_fullAnalysisData){renderAnalysisList(_fullAnalysisData);}else{loadTrends('analysis');}}
-function showUnderdogPressure(){_selectedAnalystId=null;_viewingUnderdogPressure=true;_viewingConfirmedMoney=false;_viewingFakeSharp=false;var contentArea=document.getElementById('trendsContentArea');contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';var licKey=(typeof window.userLicenseKey!=='undefined'&&window.userLicenseKey)?window.userLicenseKey:(localStorage.getItem('smartxflow_web_license')||'');var headers=licKey?{'X-License-Key':licKey}:{};fetch('/api/underdog-pressure',{headers:headers}).then(function(r){return r.json();}).then(function(data){if(data.error){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#d29922;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">'+(data.message||'Bu özellik PRO lisans gerektirir.')+'</div></div>';return;}
-renderUnderdogPressureView(data);}).catch(function(){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';});}
-function renderUnderdogPressureView(data){_underdogLastData=data;var TR_DAYS_SHORT=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];var TR_MONTHS_UPPER=['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];var TR_DAYS_FULL=['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];var contentArea=document.getElementById('trendsContentArea');var signals=data.signals||[];var count=data.count||0;var avgOdds=data.avg_odds?parseFloat(data.avg_odds).toFixed(2):'-';var avgPct=data.avg_pct?parseFloat(data.avg_pct).toFixed(0):'-';var statBox='border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';var numStyle='font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';var labelStyle='font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';var html='';html+='<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';html+='Tüm Analizciler</div>';html+='<div style="background:rgba(210,153,34,0.04);border:1px solid rgba(210,153,34,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';html+='<div style="width:40px;height:40px;border-radius:50%;background:rgba(210,153,34,0.08);border:1.5px solid rgba(210,153,34,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>';html+='<div>';html+='<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Underdog Pressure</div>';html+='<div style="font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';html+='</div></div>';html+='<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Oran ≥ 3.00 olan underdog tarafa para akışının ≥ %50 olduğu bugün/gelecek maçları tespit eder.</div>';html+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#d29922;">'+count+'</div><div style="'+labelStyle+'">Aktif Sinyal</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#93c5fd;">'+avgOdds+'</div><div style="'+labelStyle+'">Ort. Oran</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#34d399;">%'+avgPct+'</div><div style="'+labelStyle+'">Ort. Para %</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#c9d1d9;">1X2</div><div style="'+labelStyle+'">Piyasa</div></div>';html+='</div></div>';var today=new Date();var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');var yest=new Date(today);yest.setDate(yest.getDate()-1);var yesterdayStr=yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');var udDateGroupMap={};signals.forEach(function(s){var iso=_parseSignalDateToISO(s.match_date||s.date);if(!iso)iso=todayStr;if(!udDateGroupMap[iso])udDateGroupMap[iso]=[];udDateGroupMap[iso].push(s);});var udDatesWithData=Object.keys(udDateGroupMap).sort();var udFirstDate=udDatesWithData[0]||todayStr;if(udFirstDate>yesterdayStr)udFirstDate=yesterdayStr;var udLastDate=udDatesWithData[udDatesWithData.length-1]||todayStr;if(udLastDate<todayStr)udLastDate=todayStr;var udAllDates=[];var udCur=new Date(udFirstDate+'T00:00:00');var udEnd=new Date(udLastDate+'T00:00:00');while(udCur<=udEnd){udAllDates.push(udCur.getFullYear()+'-'+String(udCur.getMonth()+1).padStart(2,'0')+'-'+String(udCur.getDate()).padStart(2,'0'));udCur.setDate(udCur.getDate()+1);}
-if(!_underdogSelectedDate||!udDateGroupMap[_underdogSelectedDate]){_underdogSelectedDate=udDateGroupMap[todayStr]?todayStr:(udDatesWithData[0]||todayStr);}
-html+='<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="udDateStrip">';udAllDates.forEach(function(dateKey){var dp=dateKey.split('-');var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));var dayShort=TR_DAYS_SHORT[dObj.getDay()];var dateNum=String(dObj.getDate()).padStart(2,'0')+'.'+String(dObj.getMonth()+1).padStart(2,'0');var isToday=dateKey===todayStr;var isSelected=dateKey===_underdogSelectedDate;var hasData=!!udDateGroupMap[dateKey];if(isSelected){html+='<div onclick="selectUnderdogDate(\''+dateKey+'\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';html+='<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';else html+='<div style="height:8px;"></div>';}else{html+='<div onclick="selectUnderdogDate(\''+dateKey+'\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';html+='<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:'+(isToday?'#7d848c':'#5c636b')+';font-weight:'+(isToday?'600':'500')+';margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';else html+='<div style="height:8px;"></div>';}
-html+='</div>';});html+='</div>';var selDaySignals=udDateGroupMap[_underdogSelectedDate]||[];if(selDaySignals.length===0){html+='<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';}else{var selDp=_underdogSelectedDate.split('-');var selDObj=new Date(parseInt(selDp[0]),parseInt(selDp[1])-1,parseInt(selDp[2]));var selDateLabel=selDObj.getDate()+' '+TR_MONTHS_UPPER[selDObj.getMonth()]+' '+selDObj.getFullYear()+', '+TR_DAYS_FULL[selDObj.getDay()];html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 8px;margin-bottom:4px;">';html+='<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';html+=selDateLabel+'</div>';html+='<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">'+selDaySignals.length+' SİNYAL</span>';html+='</div>';var timeGrouped={};var timeOrder=[];selDaySignals.forEach(function(s){var tk=s.match_date||s.date||'';if(!timeGrouped[tk]){timeGrouped[tk]=[];timeOrder.push(tk);}
-timeGrouped[tk].push(s);});timeOrder.forEach(function(tk){var items=timeGrouped[tk];html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';html+='<div style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">'+tk+'</div>';html+='<span style="font-size:9px;color:#3a3f45;">'+items.length+' maç</span>';html+='</div>';items.forEach(function(sig){var selLabel=sig.selection_code==='1'?'Ev Sahibi':sig.selection_code==='2'?'Deplasman':'Beraberlik';var amtFmt=sig.amt?('£\u00a0'+parseFloat(String(sig.amt).replace(/[^0-9.]/g,'')).toLocaleString('en-GB',{maximumFractionDigits:0})):'';var volFmt=sig.volume?('£\u00a0'+parseFloat(String(sig.volume).replace(/[^0-9.]/g,'')).toLocaleString('en-GB',{maximumFractionDigits:0})):'';html+='<div style="background:#1c1f23;border:1px solid rgba(210,153,34,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';html+='<div style="flex:1;min-width:0;">';html+='<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sig.home_team||'')+' - '+(sig.away_team||'')+'</div>';html+='<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';var _ktU=_extractKickoffTime(sig.date||sig.match_date||'');html+='<div style="font-size:10px;color:#484f58;">'+(sig.league||'')+(_ktU?'<span style="margin-left:7px;color:#5c636b;font-weight:600;">⏱ '+_ktU+'</span>':'')+'</div>';if(amtFmt)html+='<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Para:</span>\u00a0'+amtFmt+'</div>';if(volFmt)html+='<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0'+volFmt+'</div>';html+='</div>';var cAmtRaw=sig.current_amt||'';var cVolRaw=sig.current_volume||'';var cAmtNum=parseFloat(String(cAmtRaw).replace(/[^0-9.]/g,''))||0;var cVolNum=parseFloat(String(cVolRaw).replace(/[^0-9.]/g,''))||0;var initAmtNum=parseFloat(String(sig.amt||'').replace(/[^0-9.]/g,''))||0;var initVolNum=parseFloat(String(sig.volume||'').replace(/[^0-9.]/g,''))||0;var cAmtFmt=(cAmtNum&&cAmtNum!==initAmtNum)?('£\u00a0'+cAmtNum.toLocaleString('en-GB',{maximumFractionDigits:0})):'';var cVolFmt2=(cVolNum&&cVolNum!==initVolNum)?('£\u00a0'+cVolNum.toLocaleString('en-GB',{maximumFractionDigits:0})):'';if(cAmtFmt||cVolFmt2){html+='<div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">';html+='<span style="font-size:9px;color:#3a3f45;letter-spacing:0.2px;">Güncel →</span>';if(cAmtFmt)html+='<div style="font-size:10px;color:#5a636e;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Para:</span>\u00a0'+cAmtFmt+'</div>';if(cVolFmt2)html+='<div style="font-size:10px;color:#5a636e;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0'+cVolFmt2+'</div>';html+='</div>';}html+='</div>';html+='<div style="display:flex;gap:4px;flex-shrink:0;">';html+='<span style="background:rgba(210,153,34,0.1);color:#d29922;border:1px solid rgba(210,153,34,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">'+selLabel+'</span>';html+='<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">'+(sig.odds||'-')+'</span>';html+='<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%'+(sig.pct?parseFloat(sig.pct).toFixed(0):'-')+'</span>';if(sig.score)html+='<span style="background:rgba(255,255,255,0.04);color:#7d848c;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:0.5px;">'+sig.score+'</span>';html+='<button onclick="event.stopPropagation();openMatchModalFromAPI(\''+(sig.home_team||'').replace(/'/g,"\\'")+'\',\''+(sig.away_team||'').replace(/'/g,"\\'")+'\',\''+(sig.league||'').replace(/'/g,"\\'")+'\',\''+(sig.date||sig.match_date||'').replace(/'/g,"\\'")+'\');" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#8b949e;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;cursor:pointer;transition:all 0.15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.08)\';this.style.color=\'#8b949e\'"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>İncele</button>';html+='</div></div></div>';});});}
-contentArea.innerHTML='<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">'+html+'</div>';var stripEl=document.getElementById('udDateStrip');if(stripEl){var selEl=stripEl.querySelector('.ds-sel');if(selEl)selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});}}
-function selectConfirmedMoneyDate(dateKey){_confirmedMoneySelectedDate=dateKey;if(_confirmedMoneyLastData)renderConfirmedMoneyView(_confirmedMoneyLastData);}
-function showConfirmedMoney(){_selectedAnalystId=null;_viewingUnderdogPressure=false;_viewingConfirmedMoney=true;_viewingFakeSharp=false;var contentArea=document.getElementById('trendsContentArea');contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';var licKey=(typeof window.userLicenseKey!=='undefined'&&window.userLicenseKey)?window.userLicenseKey:(localStorage.getItem('smartxflow_web_license')||'');var headers=licKey?{'X-License-Key':licKey}:{};fetch('/api/confirmed-money',{headers:headers}).then(function(r){return r.json();}).then(function(data){if(data.error){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#34d399;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">'+(data.message||'Bu özellik PRO lisans gerektirir.')+'</div></div>';return;}
-renderConfirmedMoneyView(data);}).catch(function(){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';});}
-function renderConfirmedMoneyView(data){_confirmedMoneyLastData=data;var TR_DAYS_SHORT=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];var contentArea=document.getElementById('trendsContentArea');var signals=data.signals||[];var count=data.count||0;var avgOdds=data.avg_odds?parseFloat(data.avg_odds).toFixed(2):'-';var avgDrop=data.avg_drop_pct?parseFloat(data.avg_drop_pct).toFixed(1):'-';var statBox='border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';var numStyle='font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';var labelStyle='font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';var html='';html+='<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';html+='Tüm Analizciler</div>';html+='<div style="background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';html+='<div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(52,211,153,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💰</div>';html+='<div>';html+='<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money</div>';html+='<div style="font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';html+='</div></div>';html+='<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%80, oran 16 saat içinde monoton düşen (≥%4), hacim ≥£2,000 olan maçları tespit eder.</div>';html+='<div style="display:flex;gap:4px;flex-wrap:wrap;">';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#34d399;">'+count+'</div><div style="'+labelStyle+'">Aktif Sinyal</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#93c5fd;">'+avgOdds+'</div><div style="'+labelStyle+'">Ort. Oran</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#f87171;">-%'+avgDrop+'</div><div style="'+labelStyle+'">Ort. Düşüş</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#c9d1d9;">1X2</div><div style="'+labelStyle+'">Piyasa</div></div>';html+='</div></div>';var today=new Date();var todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');var yest=new Date(today);yest.setDate(yest.getDate()-1);var yesterdayStr=yest.getFullYear()+'-'+String(yest.getMonth()+1).padStart(2,'0')+'-'+String(yest.getDate()).padStart(2,'0');var cmDateGroupMap={};signals.forEach(function(s){var iso=_parseSignalDateToISO(s.match_date||s.date);if(!iso)iso=todayStr;if(!cmDateGroupMap[iso])cmDateGroupMap[iso]=[];cmDateGroupMap[iso].push(s);});var cmDatesWithData=Object.keys(cmDateGroupMap).sort();var cmFirstDate=cmDatesWithData[0]||todayStr;if(cmFirstDate>yesterdayStr)cmFirstDate=yesterdayStr;var cmLastDate=cmDatesWithData[cmDatesWithData.length-1]||todayStr;if(cmLastDate<todayStr)cmLastDate=todayStr;var cmAllDates=[];var cmCur=new Date(cmFirstDate+'T00:00:00');var cmEnd=new Date(cmLastDate+'T00:00:00');while(cmCur<=cmEnd){cmAllDates.push(cmCur.getFullYear()+'-'+String(cmCur.getMonth()+1).padStart(2,'0')+'-'+String(cmCur.getDate()).padStart(2,'0'));cmCur.setDate(cmCur.getDate()+1);}
-if(!_confirmedMoneySelectedDate||!cmDateGroupMap[_confirmedMoneySelectedDate]){_confirmedMoneySelectedDate=cmDateGroupMap[todayStr]?todayStr:(cmDatesWithData[0]||todayStr);}
-html+='<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="cmDateStrip">';cmAllDates.forEach(function(dateKey){var dp=dateKey.split('-');var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));var dayShort=TR_DAYS_SHORT[dObj.getDay()];var dateNum=String(dObj.getDate()).padStart(2,'0')+'.'+String(dObj.getMonth()+1).padStart(2,'0');var isToday=dateKey===todayStr;var isSelected=dateKey===_confirmedMoneySelectedDate;var hasData=!!cmDateGroupMap[dateKey];if(isSelected){html+='<div onclick="selectConfirmedMoneyDate(\''+dateKey+'\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';html+='<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';}else{html+='<div onclick="selectConfirmedMoneyDate(\''+dateKey+'\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';html+='<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:'+(isToday?'#7d848c':'#3a3f45')+';font-weight:'+(isToday?'600':'400')+';margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';}
-html+='</div>';});html+='</div>';var selDaySignals=cmDateGroupMap[_confirmedMoneySelectedDate]||[];if(selDaySignals.length===0){html+='<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';}else{selDaySignals.forEach(function(sig){var selCode=sig.selection_code||'';var selLabel=selCode==='1'?'Ev Sahibi':selCode==='2'?'Deplasman':selCode==='X'?'Beraberlik':selCode;var dropPct=sig.odds_drop_pct?parseFloat(sig.odds_drop_pct).toFixed(1):'-';var initOdds=sig.odds_now||'-';var initPct=sig.pct_now||'-';var initVol=sig.volume_now||'';var curOdds=sig.current_odds||'';var curPct=sig.current_pct||'';var curVol=sig.current_volume||'';function _cmRow(odds,pct,vol){var pN=parseFloat(String(pct).replace('%','').trim());var vN=parseFloat(String(vol).replace(/[^0-9.]/g,''));var amtSel=(pN>0&&vN>0)?('£\u00a0'+Math.round(pN/100*vN).toLocaleString('en-GB')):'';var volFmt=vN>0?('£\u00a0'+Math.round(vN).toLocaleString('en-GB')):'';var od=odds&&odds!=='-'?odds:'-';var pc=pN>0?pN.toFixed(0)+'%':'-';return '<span style="font-size:11px;color:#5c636b;">ORAN</span><span style="font-size:12px;font-weight:700;color:#93c5fd;margin-left:4px;">'+od+'</span><span style="font-size:11px;color:#5c636b;margin-left:10px;">PARA</span><span style="font-size:12px;font-weight:700;color:#34d399;margin-left:4px;">'+pc+'</span>'+(amtSel?'<span style="font-size:11px;color:#5c636b;margin-left:10px;">SEÇİM</span><span style="font-size:12px;font-weight:600;color:#e0e4e8;margin-left:4px;">'+amtSel+'</span>':'')+(volFmt?'<span style="font-size:11px;color:#5c636b;margin-left:10px;">HACİM</span><span style="font-size:12px;font-weight:600;color:#7d848c;margin-left:4px;">'+volFmt+'</span>':'');}html+='<div style="background:#1c1f23;border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">';html+='<div style="font-size:13px;font-weight:600;color:#e0e4e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">'+(sig.home_team||'')+' - '+(sig.away_team||'')+'</div>';html+='<div style="display:flex;gap:4px;flex-shrink:0;">';html+='<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">'+selLabel+'</span>';if(dropPct!=='-')html+='<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-%'+dropPct+'</span>';html+='<button onclick="event.stopPropagation();openMatchModalFromAPI(\''+(sig.home_team||'').replace(/'/g,"\\'")+'\',\''+(sig.away_team||'').replace(/'/g,"\\'")+'\',\''+(sig.league||'').replace(/'/g,"\\'")+'\',\''+(sig.date||sig.match_date||'').replace(/'/g,"\\'")+'\');" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#8b949e;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;cursor:pointer;transition:all 0.15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.08)\';this.style.color=\'#8b949e\'"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>İncele</button>';html+='</div></div>';var _ktCM=_extractKickoffTime(sig.date||sig.match_date||'');html+='<div style="font-size:10px;color:#484f58;margin-bottom:8px;">'+(sig.league||'')+(_ktCM?'<span style="margin-left:7px;color:#5c636b;font-weight:600;">⏱ '+_ktCM+'</span>':'')+'</div>';html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';html+='<span style="font-size:10px;font-weight:600;color:#3a3f45;min-width:34px;">İlk</span>';html+=_cmRow(initOdds,initPct,initVol);html+='</div>';if(curOdds){html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';html+='<span style="font-size:10px;font-weight:600;color:#34d399;min-width:34px;">Şimdi</span>';html+=_cmRow(curOdds,curPct||initPct,curVol||initVol);html+='</div>';}html+='</div>';});}
-contentArea.innerHTML='<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">'+html+'</div>';var stripEl=document.getElementById('cmDateStrip');if(stripEl){var selEl=stripEl.querySelector('.ds-sel');if(selEl)selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});}}
-function selectFakeSharpDate(dateKey){_fakeSharpSelectedDate=dateKey;if(_fakeSharpLastData)renderFakeSharpView(_fakeSharpLastData);}
-function showFakeSharp(){_selectedAnalystId=null;_viewingUnderdogPressure=false;_viewingConfirmedMoney=false;_viewingFakeSharp=true;var contentArea=document.getElementById('trendsContentArea');contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';var licKey=(typeof window.userLicenseKey!=='undefined'&&window.userLicenseKey)?window.userLicenseKey:(localStorage.getItem('smartxflow_web_license')||'');var headers=licKey?{'X-License-Key':licKey}:{};fetch('/api/fake-sharp',{headers:headers}).then(function(r){return r.json();}).then(function(data){if(data.error){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f97316;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">'+(data.message||'Bu özellik PRO lisans gerektirir.')+'</div></div>';return;}
-renderFakeSharpView(data);}).catch(function(){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';});}
-function renderFakeSharpView(data){_fakeSharpLastData=data;var TR_DAYS_SHORT=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];var contentArea=document.getElementById('trendsContentArea');var signals=data.signals||[];var count=data.count||0;var avgRise=data.avg_rise_pct?parseFloat(data.avg_rise_pct).toFixed(1):'-';var avgPct=data.avg_pct?parseFloat(data.avg_pct).toFixed(0):'-';var statBox='border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';var numStyle='font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';var labelStyle='font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';var html='';html+='<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';html+='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';html+='Tüm Analizciler</div>';html+='<div style="background:rgba(249,115,22,0.04);border:1px solid rgba(249,115,22,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';html+='<div style="width:40px;height:40px;border-radius:50%;background:rgba(249,115,22,0.08);border:1.5px solid rgba(249,115,22,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎯</div>';html+='<div>';html+='<div style="font-size:15px;font-weight:700;color:#f97316;">Fake Sharp</div>';html+='<div style="font-size:11px;color:#5c636b;margin-top:2px;">Sahte sharp hareketi — yüksek para oranı ile artan odds</div>';html+='</div>';html+='</div>';html+='<div style="display:flex;gap:8px;flex-wrap:wrap;">';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#f97316;">'+count+'</div><div style="'+labelStyle+'">Aktif Sinyal</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#fbbf24;">'+avgRise+'%</div><div style="'+labelStyle+'">Ort. Yükseliş</div></div>';html+='<div style="'+statBox+'"><div style="'+numStyle+'color:#e0e4e8;">'+avgPct+'%</div><div style="'+labelStyle+'">Ort. Para %</div></div>';html+='</div>';html+='</div>';var todayStr=new Date().toISOString().substring(0,10);var fsDateGroupMap={};signals.forEach(function(s){var d=_parseSignalDateToISO(s.date||s.match_date||'');if(d){if(!fsDateGroupMap[d])fsDateGroupMap[d]=[];fsDateGroupMap[d].push(s);}});var fsDatesWithData=Object.keys(fsDateGroupMap).sort();var today=new Date();var fsAllDates=[];for(var di=-3;di<=3;di++){var dd=new Date(today);dd.setDate(today.getDate()+di);fsAllDates.push(dd.toISOString().substring(0,10));}
-if(!_fakeSharpSelectedDate||!fsDateGroupMap[_fakeSharpSelectedDate]){_fakeSharpSelectedDate=fsDateGroupMap[todayStr]?todayStr:(fsDatesWithData[0]||todayStr);}
-html+='<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="fsDateStrip">';fsAllDates.forEach(function(dateKey){var dp=dateKey.split('-');var dObj=new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2]));var dayShort=TR_DAYS_SHORT[dObj.getDay()];var dateNum=String(dObj.getDate()).padStart(2,'0')+'.'+String(dObj.getMonth()+1).padStart(2,'0');var isToday=dateKey===todayStr;var isSelected=dateKey===_fakeSharpSelectedDate;var hasData=!!fsDateGroupMap[dateKey];if(isSelected){html+='<div onclick="selectFakeSharpDate(\''+dateKey+'\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';html+='<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#f97316;border-radius:50%;margin:4px auto 0;"></div>';}else{html+='<div onclick="selectFakeSharpDate(\''+dateKey+'\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';html+='<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">'+dayShort+'</div>';html+='<div style="font-size:12px;color:'+(isToday?'#7d848c':'#3a3f45')+';font-weight:'+(isToday?'600':'400')+';margin-top:3px;line-height:1;">'+(isToday?'Bugün':dateNum)+'</div>';if(hasData)html+='<div style="width:4px;height:4px;background:#f97316;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';}
-html+='</div>';});html+='</div>';var selDaySignals=fsDateGroupMap[_fakeSharpSelectedDate]||[];if(selDaySignals.length===0){html+='<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';}else{selDaySignals.forEach(function(sig){var selCode=sig.selection_code||'';var selLabel=selCode==='1'?'Ev Sahibi':selCode==='2'?'Deplasman':selCode;var risePct=sig.odds_rise_pct?parseFloat(sig.odds_rise_pct).toFixed(1):'-';var initOdds=sig.odds_now||'-';var initPct=sig.pct_now||'-';var initVol=sig.volume_now||'';var curOdds=sig.current_odds||'';var curPct=sig.current_pct||'';var curVol=sig.current_volume||'';function _fsRow(odds,pct,vol){var pN=parseFloat(String(pct).replace('%','').trim());var vN=parseFloat(String(vol).replace(/[^0-9.]/g,''));var amtSel=(pN>0&&vN>0)?('£\u00a0'+Math.round(pN/100*vN).toLocaleString('en-GB')):'';var volFmt=vN>0?('£\u00a0'+Math.round(vN).toLocaleString('en-GB')):'';var od=odds&&odds!=='-'?odds:'-';var pc=pN>0?pN.toFixed(0)+'%':'-';return '<span style="font-size:11px;color:#5c636b;">ORAN</span><span style="font-size:12px;font-weight:700;color:#93c5fd;margin-left:4px;">'+od+'</span><span style="font-size:11px;color:#5c636b;margin-left:10px;">PARA</span><span style="font-size:12px;font-weight:700;color:#f97316;margin-left:4px;">'+pc+'</span>'+(amtSel?'<span style="font-size:11px;color:#5c636b;margin-left:10px;">SEÇİM</span><span style="font-size:12px;font-weight:600;color:#e0e4e8;margin-left:4px;">'+amtSel+'</span>':'')+(volFmt?'<span style="font-size:11px;color:#5c636b;margin-left:10px;">HACİM</span><span style="font-size:12px;font-weight:600;color:#7d848c;margin-left:4px;">'+volFmt+'</span>':'');}html+='<div style="background:#1c1f23;border:1px solid rgba(249,115,22,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">';html+='<div style="font-size:13px;font-weight:600;color:#e0e4e8;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(sig.home_team||'')+' - '+(sig.away_team||'')+'</div>';html+='<div style="display:flex;gap:4px;flex-shrink:0;">';html+='<span style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">'+selLabel+'</span>';html+='<span style="background:rgba(251,191,36,0.08);color:#fbbf24;border:1px solid rgba(251,191,36,0.15);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">↑'+risePct+'%</span>';html+='<button onclick="event.stopPropagation();openMatchModalFromAPI(\''+(sig.home_team||'').replace(/'/g,"\\'")+'\',\''+(sig.away_team||'').replace(/'/g,"\\'")+'\',\''+(sig.league||'').replace(/'/g,"\\'")+'\',\''+(sig.date||sig.match_date||'').replace(/'/g,"\\'")+'\');" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:#8b949e;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;cursor:pointer;transition:all 0.15s;flex-shrink:0;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.08)\';this.style.color=\'#8b949e\'"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>İncele</button>';html+='</div>';html+='</div>';var _ktFS=_extractKickoffTime(sig.date||sig.match_date||'');html+='<div style="font-size:10px;color:#484f58;margin-bottom:6px;">'+(sig.league||'')+(_ktFS?'<span style="margin-left:7px;color:#5c636b;font-weight:600;">⏱ '+_ktFS+'</span>':'')+'</div>';html+='<div style="display:flex;flex-direction:column;gap:4px;">';html+='<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#5c636b;padding:5px 8px;background:rgba(255,255,255,0.02);border-radius:6px;">';html+='<span style="color:#3a3f45;font-weight:600;letter-spacing:0.3px;min-width:42px;">AÇILIŞ</span>';html+=_fsRow(sig.odds_16h,initPct,initVol);html+='</div>';html+='<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#5c636b;padding:5px 8px;background:rgba(249,115,22,0.03);border-radius:6px;border:1px solid rgba(249,115,22,0.08);">';html+='<span style="color:#f97316;font-weight:600;letter-spacing:0.3px;min-width:42px;">ANLИК</span>';html+=_fsRow(curOdds||initOdds,curPct||initPct,curVol||initVol);html+='</div>';html+='</div>';html+='</div>';});}
-contentArea.innerHTML='<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">'+html+'</div>';var stripEl=document.getElementById('fsDateStrip');if(stripEl){var selEl=stripEl.querySelector('.ds-sel');if(selEl)selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});}}
-function loadAnalysts(callback){var now=Date.now();if(_analystsCache&&(now-_analystsCacheTs)<120000){if(callback)callback();return;}
-fetch('/api/analysts?active=true').then(function(r){return r.json();}).then(function(data){if(Array.isArray(data)){_analystsCache=data;_analystsCacheTs=Date.now();}
-if(callback)callback();}).catch(function(){if(callback)callback();});}
-var _trendsRawCache={};var _trendsRawCacheTs={};var _TRENDS_CACHE_TTL=60000;function loadTrends(category){var sidebar=document.getElementById('trendsSidebar');var contentArea=document.getElementById('trendsContentArea');var now=Date.now();if(category==='analysis'){var cachedData=(_trendsRawCache[category]&&(now-(_trendsRawCacheTs[category]||0))<_TRENDS_CACHE_TTL)?_trendsRawCache[category]:null;var cachedAnalysts=(_analystsCache&&(now-_analystsCacheTs)<120000);if(cachedData&&cachedAnalysts){renderAnalysisList(cachedData);return;}
-contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';var analystsPromise=cachedAnalysts?Promise.resolve(null):fetch('/api/analysts?active=true').then(function(r){return r.json();});var dataPromise=cachedData?Promise.resolve(cachedData):fetch('/api/analyses?category='+category,{headers:window.userLicenseKey?{'X-License-Key':window.userLicenseKey}:{}}).then(function(r){return r.json();});Promise.all([analystsPromise,dataPromise]).then(function(results){if(results[0]&&Array.isArray(results[0])){_analystsCache=results[0];_analystsCacheTs=Date.now();}
-var data=results[1];if(data&&data.error){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">'+(data.message||'Erişim reddedildi')+'</div></div>';return;}
-if(data&&!data.error){_trendsRawCache[category]=data;_trendsRawCacheTs[category]=Date.now();}
-renderAnalysisList(data||[]);}).catch(function(){contentArea.innerHTML='<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';});return;}
-if(_trendsRawCache[category]&&(now-(_trendsRawCacheTs[category]||0))<_TRENDS_CACHE_TTL){_renderMovesData(_trendsRawCache[category]);return;}
-sidebar.innerHTML='<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Yükleniyor...</div>';fetch('/api/analyses?category='+category,{headers:window.userLicenseKey?{'X-License-Key':window.userLicenseKey}:{}}).then(function(r){return r.json();}).then(function(data){if(data&&!data.error){_trendsRawCache[category]=data;_trendsRawCacheTs[category]=Date.now();}
-_renderMovesData(data);}).catch(function(){sidebar.innerHTML='<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';});}
-function _renderMovesData(data){var hierarchy=parseTrendsHierarchy(data||[]);trendsDataCache['moves']=hierarchy;renderSidebar(hierarchy);if(hierarchy.order.length>0&&!isMobileView()){var firstGroup=hierarchy.groups[hierarchy.order[0]];if(firstGroup.length>1||firstGroup[0].subTitle){toggleSidebarGroup(0,true);selectSubItem(0,0);}else{selectSubItem(0,0);}}}
-var tutorialStepsDesktop=[{selector:'#alertBand',title:'Alarm Bandı',desc:'Canlı alarm bandı — yeni tespit edilen son 10 alarm burada gösterilir.',pos:'bottom'},{selector:'.market-tabs.desktop-only',title:'Piyasa Sekmeleri',desc:'Moneyway ve Oran sayfaları arasında geçiş yapın. 1X2, 2.5 ve KG marketlerini görüntüleyin.',pos:'bottom'},{selector:'#todayBtn',title:'Günün Maçları',desc:'Sadece bugünkü maçları filtrelemek için bu butonu kullanın. Tekrar tıklayınca filtre kalkar.',pos:'bottom'},{selector:'.mw-outcomes-cell',title:'Oran Sütunları',desc:'Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.',pos:'bottom'},{selector:'.volume-cell',title:'Miktar Sütunu',desc:'Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.',pos:'bottom'},{selector:'.tab[data-market="dropping_1x2"]',title:'Oran (Dropping Odds)',desc:'Oranların son 24 saatte ne kadar düştüğünü takip edin.',pos:'bottom'},{selector:'#alarmsBtn',title:'Alarm Paneli',desc:'Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın.',pos:'bottom'},{selector:'.btn.btn-today.desktop-only[onclick*="moves"]',title:'Kılavuz',desc:'Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.',pos:'bottom'},{selector:'.btn.btn-today.desktop-only[onclick*="analysis"]',title:'Analizler',desc:'Profesyonel analizlere buradan ulaşın. Maç öncesi değerlendirmeler ve piyasa yorumları burada paylaşılır (PRO üyelere özel).',pos:'bottom'}];var tutorialStepsMobile=[{selector:'#alertBand',title:'Alarm Bandı',desc:'Canlı alarm bandı — yeni sinyaller burada akar.',pos:'top'},{selector:'.mobile-tab-system',title:'Piyasa Sekmeleri',desc:'Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.',pos:'bottom'},{selector:'#dayFilterDropdown',title:'Gün Filtresi',desc:'Bugünkü veya dünkü maçları filtreleyin.',pos:'bottom'},{selector:'.odds-card-row',title:'Oran Sütunları',desc:'Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.',pos:'top'},{selector:'.odds-card-volume',title:'Miktar',desc:'Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.',pos:'top'},{selector:'.mobile-alarm-btn[onclick*="moves"]',title:'Kılavuz',desc:'Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.',pos:'bottom'},{selector:'.mobile-alarm-btn[onclick*="analysis"]',title:'Analizler',desc:'Profesyonel maç analizleri ve piyasa yorumları (PRO üyelere özel).',pos:'bottom'},{selector:'.mobile-alarm-btn[onclick*="toggleAlarmsSidebar"]',title:'Alarmlar',desc:'Tüm alarm türlerini görüntüleyin ve filtreleyin.',pos:'bottom'}];var tutorialCurrentStep=0;var tutorialActive=false;var tutorialOverlayEl=null;var tutorialTooltipEl=null;var tutorialPrevHighlight=null;function getTutorialSteps(){return isMobileView()?tutorialStepsMobile:tutorialStepsDesktop;}
-var tutorialResizeTimer=null;window.addEventListener('resize',function(){if(!tutorialActive)return;clearTimeout(tutorialResizeTimer);tutorialResizeTimer=setTimeout(function(){showTutorialStep(tutorialCurrentStep);},250);});function startTutorial(){if(tutorialActive)return;tutorialActive=true;tutorialCurrentStep=0;if(!tutorialOverlayEl){tutorialOverlayEl=document.createElement('div');tutorialOverlayEl.className='tutorial-overlay';tutorialOverlayEl.onclick=function(){endTutorial();};document.body.appendChild(tutorialOverlayEl);}else{tutorialOverlayEl.style.display='';}
-if(!tutorialTooltipEl){tutorialTooltipEl=document.createElement('div');tutorialTooltipEl.className='tutorial-tooltip';document.body.appendChild(tutorialTooltipEl);}else{tutorialTooltipEl.style.display='';}
-showTutorialStep(0);}
-function findNextVisibleStep(startIndex,direction){var steps=getTutorialSteps();var i=startIndex;while(i>=0&&i<steps.length){var el=document.querySelector(steps[i].selector);if(el&&el.offsetParent!==null)return i;i+=direction;}
-return-1;}
-function showTutorialStep(index){var steps=getTutorialSteps();if(index<0||index>=steps.length){endTutorial();return;}
-var visibleIndex=findNextVisibleStep(index,index>=tutorialCurrentStep?1:-1);if(visibleIndex===-1){endTutorial();return;}
-index=visibleIndex;tutorialCurrentStep=index;var step=steps[index];if(tutorialPrevHighlight){tutorialPrevHighlight.classList.remove('tutorial-highlight');tutorialPrevHighlight=null;}
-var el=document.querySelector(step.selector);if(el){el.classList.add('tutorial-highlight');tutorialPrevHighlight=el;el.scrollIntoView({behavior:'smooth',block:'nearest'});}
-var isLast=(findNextVisibleStep(index+1,1)===-1);var isFirst=(findNextVisibleStep(index-1,-1)===-1);var prevBtn=isFirst?'':'<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← Geri</button>';var nextLabel=isLast?'Başla!':'İleri →';var nextAction=isLast?'endTutorial()':'nextTutorialStep()';var visibleCount=0;var currentVisible=0;for(var vi=0;vi<steps.length;vi++){var ve=document.querySelector(steps[vi].selector);if(ve&&ve.offsetParent!==null){visibleCount++;if(vi<index)currentVisible++;}}
-currentVisible++;tutorialTooltipEl.innerHTML='<div class="tutorial-arrow" id="tutorialArrow"></div>'+'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">'+'<div class="tutorial-tooltip-title">'+step.title+'</div>'+'<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">Atla</button>'+'</div>'+'<div class="tutorial-tooltip-desc">'+step.desc+'</div>'+'<div class="tutorial-tooltip-footer">'+'<span class="tutorial-step-counter">'+currentVisible+' / '+visibleCount+'</span>'+'<div class="tutorial-tooltip-actions">'+
-prevBtn+'<button class="tutorial-btn tutorial-btn-next" onclick="'+nextAction+'">'+nextLabel+'</button>'+'</div>'+'</div>';setTimeout(function(){positionTooltip(el,step.pos);},80);}
-function positionTooltip(targetEl,preferredPos){if(!tutorialTooltipEl)return;tutorialTooltipEl.style.transform='';if(!targetEl){tutorialTooltipEl.style.top='50%';tutorialTooltipEl.style.left='50%';tutorialTooltipEl.style.transform='translate(-50%, -50%)';var arrow0=document.getElementById('tutorialArrow');if(arrow0)arrow0.style.display='none';return;}
-if(isMobileView()){var arrow1=document.getElementById('tutorialArrow');if(arrow1)arrow1.style.display='none';return;}
-var rect=targetEl.getBoundingClientRect();var ttRect=tutorialTooltipEl.getBoundingClientRect();var arrow=document.getElementById('tutorialArrow');var gap=14;if(arrow)arrow.style.display='';if(preferredPos==='bottom'||rect.top<ttRect.height+gap+20){tutorialTooltipEl.style.top=(rect.bottom+gap)+'px';if(arrow){arrow.className='tutorial-arrow tutorial-arrow-top';}}else{tutorialTooltipEl.style.top=(rect.top-ttRect.height-gap)+'px';if(arrow){arrow.className='tutorial-arrow tutorial-arrow-bottom';}}
-var leftPos=rect.left+(rect.width/2)-(ttRect.width/2);if(leftPos<12)leftPos=12;if(leftPos+ttRect.width>window.innerWidth-12)leftPos=window.innerWidth-ttRect.width-12;tutorialTooltipEl.style.left=leftPos+'px';if(arrow){var arrowLeft=rect.left+(rect.width/2)-leftPos-6;if(arrowLeft<16)arrowLeft=16;if(arrowLeft>ttRect.width-28)arrowLeft=ttRect.width-28;arrow.style.left=arrowLeft+'px';}}
-function nextTutorialStep(){showTutorialStep(tutorialCurrentStep+1);}
-function prevTutorialStep(){showTutorialStep(tutorialCurrentStep-1);}
-function endTutorial(){tutorialActive=false;localStorage.setItem('sxf_tutorial_done','1');if(tutorialPrevHighlight){tutorialPrevHighlight.classList.remove('tutorial-highlight');tutorialPrevHighlight=null;}
-if(tutorialOverlayEl)tutorialOverlayEl.style.display='none';if(tutorialTooltipEl)tutorialTooltipEl.style.display='none';}
-(function(){if(!localStorage.getItem('sxf_tutorial_done')){setTimeout(function(){if(!tutorialActive)startTutorial();},2500);}})();
+var currentTrendTab = 'analysis';
+var trendsDataCache = {};
+var _isPro = null;
+function openTrendsModal(tab) {
+    var t = tab || 'analysis';
+    if (t === 'analysis' && _isPro === null) _isPro = (window.userPlan === 'pro');
+    if (t === 'analysis' && !_isPro) {
+        if (confirm('Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
+            window.location.href = '/pricing';
+        }
+        return;
+    }
+    currentTrendTab = t;
+    var titleEl = document.getElementById('trendsModalTitle');
+    var subtitleEl = document.getElementById('trendsModalSubtitle');
+    var contentArea = document.getElementById('trendsContentArea');
+    if (t === 'moves') {
+        if (titleEl) titleEl.textContent = 'Kılavuz';
+        if (subtitleEl) subtitleEl.textContent = 'Kullanım tavsiyeleri';
+    } else {
+        if (titleEl) titleEl.textContent = 'Analizler';
+        if (subtitleEl) subtitleEl.textContent = 'Profesyonel piyasa analizleri';
+    }
+    if (t === 'moves') {
+        contentArea.innerHTML = '<div class="trends-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2e3238" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div>Sol menüden bir konu seçin</div></div>';
+        document.querySelector('.trends-modal-body').classList.add('sidebar-mode');
+    } else {
+        document.querySelector('.trends-modal-body').classList.remove('sidebar-mode');
+    }
+    document.getElementById('trendsModalOverlay').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    var _ca = document.getElementById('trendsContentArea');
+    if (_ca) _ca.scrollTop = 0;
+    loadTrends(t);
+}
+function closeTrendsModal() {
+    document.getElementById('trendsModalOverlay').style.display = 'none';
+    document.body.style.overflow = '';
+    var body = document.querySelector('.trends-modal-body');
+    if (body) body.classList.remove('mobile-article-open');
+}
+function parseTrendsHierarchy(data) {
+    var groups = {};
+    var groupOrder = [];
+    data.forEach(function(item) {
+        var title = item.title || '';
+        var parts = title.split(' - ');
+        var mainTitle = parts[0].trim();
+        var subTitle = parts.length > 1 ? parts.slice(1).join(' - ').trim() : '';
+        if (!groups[mainTitle]) {
+            groups[mainTitle] = [];
+            groupOrder.push(mainTitle);
+        }
+        groups[mainTitle].push({
+            subTitle: subTitle,
+            content: item.content || '',
+            image_url: item.image_url || '',
+            created_at: item.created_at || ''
+        });
+    });
+    return { groups: groups, order: groupOrder };
+}
+function renderSidebar(hierarchy) {
+    var sidebar = document.getElementById('trendsSidebar');
+    if (hierarchy.order.length === 0) {
+        sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Henüz içerik yok</div>';
+        return;
+    }
+    var html = '';
+    hierarchy.order.forEach(function(mainTitle, gi) {
+        var items = hierarchy.groups[mainTitle];
+        var hasSubItems = items.length > 1 || items[0].subTitle;
+        html += '<div class="sidebar-group" data-group="' + gi + '">';
+        html += '<div class="sidebar-main-title" onclick="toggleSidebarGroup(' + gi + ',' + (hasSubItems ? 'true' : 'false') + ')">';
+        html += '<span>' + mainTitle + '</span>';
+        if (hasSubItems) {
+            html += '<svg class="sidebar-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+        }
+        html += '</div>';
+        if (hasSubItems) {
+            html += '<div class="sidebar-sub-list" style="display:none;">';
+            items.forEach(function(sub, si) {
+                var label = sub.subTitle || 'Genel';
+                html += '<div class="sidebar-sub-item" data-group="' + gi + '" data-sub="' + si + '" onclick="selectSubItem(' + gi + ',' + si + ')">' + label + '</div>';
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+    });
+    sidebar.innerHTML = html;
+}
+function toggleSidebarGroup(gi, hasSubItems) {
+    var group = document.querySelector('.sidebar-group[data-group="' + gi + '"]');
+    if (!group) return;
+    if (hasSubItems) {
+        var subList = group.querySelector('.sidebar-sub-list');
+        var chevron = group.querySelector('.sidebar-chevron');
+        if (subList.style.display === 'none') {
+            subList.style.display = 'block';
+            if (chevron) chevron.classList.add('open');
+        } else {
+            subList.style.display = 'none';
+            if (chevron) chevron.classList.remove('open');
+        }
+    } else {
+        selectSubItem(gi, 0);
+    }
+}
+function isMobileView() {
+    return window.innerWidth <= 768;
+}
+function selectSubItem(gi, si) {
+    document.querySelectorAll('.sidebar-sub-item.active, .sidebar-main-title.active').forEach(function(el) {
+        el.classList.remove('active');
+    });
+    var subEl = document.querySelector('.sidebar-sub-item[data-group="' + gi + '"][data-sub="' + si + '"]');
+    if (subEl) subEl.classList.add('active');
+    var hierarchy = trendsDataCache[currentTrendTab];
+    if (!hierarchy) return;
+    var mainTitle = hierarchy.order[gi];
+    var item = hierarchy.groups[mainTitle][si];
+    var contentArea = document.getElementById('trendsContentArea');
+    var html = '';
+    if (isMobileView()) {
+        html += '<div class="trends-mobile-back" onclick="mobileBackToList()">';
+        html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
+        html += '<span>Geri</span>';
+        html += '</div>';
+        html += '<div class="trends-mobile-content-wrap">';
+    }
+    html += '<div class="trends-article">';
+    html += '<h3 class="trends-article-title">' + mainTitle;
+    if (item.subTitle) html += ' <span class="trends-article-sep">—</span> ' + item.subTitle;
+    html += '</h3>';
+    if (item.image_url) {
+        html += '<div class="trends-article-image"><img src="' + item.image_url + '" alt=""></div>';
+    }
+    html += '<div class="trends-article-body">' + item.content + '</div>';
+    if (item.created_at) {
+        var date = new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'});
+        html += '<div class="trends-article-date">' + date + '</div>';
+    }
+    html += '</div>';
+    if (isMobileView()) {
+        html += '</div>';
+    }
+    contentArea.innerHTML = html;
+    if (isMobileView()) {
+        document.querySelector('.trends-modal-body').classList.add('mobile-article-open');
+    }
+}
+function mobileBackToList() {
+    document.querySelector('.trends-modal-body').classList.remove('mobile-article-open');
+}
+var _analystsCache = null;
+var _analystsCacheTs = 0;
+var _selectedAnalystId = null;
+var _fullAnalysisData = null;
+var _viewingUnderdogPressure = false;
+var _viewingConfirmedMoney = false;
+var _viewingConfirmedMoneyV2 = false;
+var _confirmedMoneyV2SelectedDate = null;
+var _confirmedMoneyV2LastData = null;
+
+function renderAnalysisList(data) {
+    var sidebar = document.getElementById('trendsSidebar');
+    var contentArea = document.getElementById('trendsContentArea');
+    if (!data || data.length === 0) {
+        contentArea.innerHTML = '<div class="trends-placeholder"><div style="font-size:32px;margin-bottom:12px;">📊</div><div>Henüz içerik yok</div></div>';
+        sidebar.innerHTML = '';
+        return;
+    }
+    sidebar.innerHTML = '';
+    _fullAnalysisData = data;
+    var cardsHtml = buildAnalystCards();
+    var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
+    var listHtml = buildAnalysisCards(filtered);
+    contentArea.scrollTop = 0;
+    contentArea.innerHTML = '<div style="padding-bottom:20px;">' + cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;">' + listHtml + '</div></div>';
+}
+
+function buildAnalystCards() {
+    if (!_analystsCache || _analystsCache.length === 0) return '';
+    var html = '<div class="analyst-cards-strip">';
+    html += '<div class="analyst-card' + (!_selectedAnalystId && !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 ? ' active' : '') + '" onclick="filterByAnalyst(null)">';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:14px;">All</div>';
+    html += '<div class="analyst-card-name">Tümü</div>';
+    html += '</div>';
+    html += '<div class="analyst-card' + (_viewingUnderdogPressure ? ' active' : '') + '" onclick="showUnderdogPressure()" style="border-color:rgba(210,153,34,0.4);position:relative;">';
+    html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#d29922;background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(210,153,34,0.08);border:1.5px solid rgba(210,153,34,0.3);color:#d29922;">⚡</div>';
+    html += '<div class="analyst-card-name">Underdog</div>';
+    html += '<div class="analyst-card-pct" style="color:#d29922;">Pressure</div>';
+    html += '</div>';
+    html += '<div class="analyst-card' + (_viewingConfirmedMoney ? ' active' : '') + '" onclick="showConfirmedMoney()" style="border-color:rgba(52,211,153,0.4);position:relative;">';
+    html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#34d399;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(52,211,153,0.08);border:1.5px solid rgba(52,211,153,0.3);color:#34d399;">💰</div>';
+    html += '<div class="analyst-card-name">Confirmed</div>';
+    html += '<div class="analyst-card-pct" style="color:#34d399;">Money</div>';
+    html += '</div>';
+    html += '<div class="analyst-card' + (_viewingConfirmedMoneyV2 ? ' active' : '') + '" onclick="showConfirmedMoneyV2()" style="border-color:rgba(99,102,241,0.4);position:relative;">';
+    html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#6366f1;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);color:#6366f1;">💎</div>';
+    html += '<div class="analyst-card-name">Confirmed</div>';
+    html += '<div class="analyst-card-pct" style="color:#6366f1;">Money V2</div>';
+    html += '</div>';
+    _analystsCache.forEach(function(a) {
+        var isActive = _selectedAnalystId == a.id;
+        var s = a.stats || {};
+        var pctColor = s.success_pct >= 60 ? '#3fb950' : s.success_pct >= 40 ? '#d29922' : (s.total > 0 ? '#f85149' : '#3a3f45');
+        html += '<div class="analyst-card' + (isActive ? ' active' : '') + '" onclick="filterByAnalyst(' + a.id + ')">';
+        if (a.avatar_url) {
+            html += '<img class="analyst-card-avatar" src="' + a.avatar_url + '" alt="">';
+        } else {
+            html += '<div class="analyst-card-avatar-placeholder">' + (a.name || '?')[0].toUpperCase() + '</div>';
+        }
+        html += '<div class="analyst-card-name">' + (a.name || '') + '</div>';
+        html += '<div class="analyst-card-pct" style="color:' + pctColor + ';">%' + (s.success_pct || 0) + '</div>';
+        html += '<div class="analyst-card-meta">' + (s.total || 0) + ' analiz | ' + (s.avg_odds || '0') + ' ort.</div>';
+        html += '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function buildAnalysisCards(items) {
+    if (!items || items.length === 0) return '<div class="trends-placeholder"><div>Bu analizci için henüz analiz yok</div></div>';
+    var html = '';
+    items.forEach(function(item) {
+        var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
+        html += '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:12px;padding:16px 20px;">';
+        var analystName = '';
+        if (item.analyst_id && _analystsCache) {
+            for (var i = 0; i < _analystsCache.length; i++) {
+                if (_analystsCache[i].id == item.analyst_id) { analystName = _analystsCache[i].name; break; }
+            }
+        }
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+        html += '<div style="font-size:15px;font-weight:600;color:#e0e4e8;">' + (item.title || '') + '</div>';
+        if (item.result) {
+            var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};
+            var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
+            html += '<span style="background:' + (rColors[item.result]||'#3a3f45') + '18;color:' + (rColors[item.result]||'#3a3f45') + ';border:1px solid ' + (rColors[item.result]||'#3a3f45') + '30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
+        }
+        html += '</div>';
+        if (item.preference || item.odds || item.confidence) {
+            html += '<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';
+            if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+            if (item.odds) {
+                html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: ' + item.odds + '</span>';
+            }
+            if (item.confidence) {
+                var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
+                html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">Güven: ' + item.confidence + '/10</span>';
+            }
+            html += '</div>';
+        }
+        html += '<div style="font-size:13px;color:#7d848c;line-height:1.7;margin-bottom:10px;">' + (item.content || '') + '</div>';
+        if (item.image_url) {
+            html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #2e3238;" alt=""></div>';
+        }
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+        html += '<div style="font-size:11px;color:#3a3f45;">' + date + '</div>';
+        if (analystName) {
+            html += '<div style="font-size:11px;color:#58a6ff;">Analizci: ' + analystName + '</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+    });
+    return html;
+}
+
+function filterByAnalyst(analystId) {
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = false;
+    if (analystId === null) {
+        _selectedAnalystId = null;
+        if (_fullAnalysisData) {
+            renderAnalysisList(_fullAnalysisData);
+        }
+        return;
+    }
+    showAnalystProfile(analystId);
+}
+
+var _analystProfileData = null;
+var _analystSelectedDate = null;
+var _underdogSelectedDate = null;
+var _underdogLastData = null;
+var _confirmedMoneySelectedDate = null;
+var _confirmedMoneyLastData = null;
+
+var _MONTH_ABBR_MAP = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+function _parseSignalDateToISO(dateStr) {
+    if (!dateStr) return null;
+    var s = String(dateStr).trim();
+    if (s.length >= 10 && s[4] === '-') return s.substring(0, 10);
+    var m = s.match(/^(\d{2})\.([A-Za-z]{3})/);
+    if (m) {
+        var mon = _MONTH_ABBR_MAP[m[2].charAt(0).toUpperCase()+m[2].slice(1).toLowerCase()] || '01';
+        var year = new Date().getFullYear();
+        if (parseInt(mon) < (new Date().getMonth() + 1) - 2) year += 1;
+        return year + '-' + mon + '-' + m[1];
+    }
+    return null;
+}
+
+function showAnalystProfile(analystId) {
+    _selectedAnalystId = analystId;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    fetch('/api/analysts/' + analystId + '/analyses')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;">' + data.error + '</div></div>';
+                return;
+            }
+            _analystProfileData = data;
+            var groups = data.date_groups || [];
+            _analystSelectedDate = groups.length > 0 ? groups[0].date : null;
+            renderAnalystProfileView();
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderAnalystProfileView() {
+    var contentArea = document.getElementById('trendsContentArea');
+    var data = _analystProfileData;
+    if (!data) return;
+    var a = data.analyst;
+    var groups = data.date_groups || [];
+    var s = a.stats || {};
+    var pct = s.success_pct ? parseFloat(s.success_pct).toFixed(0) : '0';
+    var pctColor = s.success_pct >= 60 ? '#34d399' : s.success_pct >= 40 ? '#fbbf24' : (s.total > 0 ? '#f87171' : '#3a3f45');
+    var avgOdds = s.avg_odds ? parseFloat(s.avg_odds).toFixed(2) : '-';
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div class="ap-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    var roiVal = s.roi_pct !== undefined ? parseFloat(s.roi_pct) : 0;
+    var netVal = s.net_profit !== undefined ? parseFloat(s.net_profit) : 0;
+    var roiStr = roiVal > 0 ? '+' + roiVal.toFixed(1) : roiVal.toFixed(1);
+    var netStr = netVal > 0 ? '+' + netVal.toFixed(2) + 'u' : netVal.toFixed(2) + 'u';
+    var roiColor1 = roiVal > 0 ? '#4ade80' : (roiVal < 0 ? '#f87171' : '#5c636b');
+    var roiColor2 = roiVal > 0 ? '#16a34a' : (roiVal < 0 ? '#dc2626' : '#3a3f45');
+    var netColor1 = netVal > 0 ? '#4ade80' : (netVal < 0 ? '#f87171' : '#5c636b');
+    var netColor2 = netVal > 0 ? '#16a34a' : (netVal < 0 ? '#dc2626' : '#3a3f45');
+    var decided = (s.won || 0) + (s.lost || 0);
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var statBoxRel = statBox + 'position:relative;';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    html += '<div class="ap-profile-row" style="display:flex;align-items:center;gap:3px;">';
+    html += '<div class="ap-profile-info" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">';
+    if (a.avatar_url) {
+        html += '<div style="position:relative;flex-shrink:0;"><img src="' + a.avatar_url + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(255,255,255,0.08);" alt=""><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #1c1f23;"></div></div>';
+    } else {
+        html += '<div style="position:relative;flex-shrink:0;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#34d399;">' + (a.name || '?')[0].toUpperCase() + '</div><div style="position:absolute;bottom:1px;right:1px;width:7px;height:7px;background:#34d399;border-radius:50%;border:1.5px solid #1c1f23;"></div></div>';
+    }
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
+    html += '<div style="font-size:9px;color:#3a3f45;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
+    html += '</div></div>';
+    html += '<div class="ap-profile-stats" style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:14px;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">Başarı</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#5c636b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">Toplam</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.won || 0) + '</div><div style="' + labelStyle + '">Kazanan</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.lost || 0) + '</div><div style="' + labelStyle + '">Kaybeden</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#fbbf24,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
+    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + roiColor1 + ',' + roiColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + roiStr + '</div><div style="' + labelStyle + '">Yatırım Getirisi</div>';
+    html += '<div style="position:absolute;top:2px;right:3px;cursor:help;" title="1 birimlik sabit bahis varsayımıyla toplam yatırım getirisi."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';
+    html += '</div>';
+    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + netColor1 + ',' + netColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + netStr + '</div><div style="' + labelStyle + '">Net Kâr</div>';
+    html += '<div style="position:absolute;top:2px;right:3px;cursor:help;" title="Tüm analizler 1 unit kabul edildiğinde oluşan toplam kâr/zarar."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';
+    html += '</div>';
+    html += '</div></div></div>';
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="analystDateStrip">';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var allDates = [];
+    if (groups.length > 0) {
+        var oldestParts = groups[groups.length - 1].date.split('-');
+        var oldest = new Date(parseInt(oldestParts[0]), parseInt(oldestParts[1])-1, parseInt(oldestParts[2]));
+        var newest = new Date(parseInt(groups[0].date.split('-')[0]), parseInt(groups[0].date.split('-')[1])-1, parseInt(groups[0].date.split('-')[2]));
+        if (newest < today) newest = today;
+        var cur = new Date(oldest);
+        while (cur <= newest) {
+            allDates.push(cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0') + '-' + String(cur.getDate()).padStart(2,'0'));
+            cur.setDate(cur.getDate() + 1);
+        }
+    } else {
+        for (var di = -2; di <= 2; di++) {
+            var dd = new Date(today);
+            dd.setDate(dd.getDate() + di);
+            allDates.push(dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0'));
+        }
+    }
+    var dateGroupMap = {};
+    groups.forEach(function(g) { dateGroupMap[g.date] = g; });
+    allDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _analystSelectedDate;
+        var hasData = !!dateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        } else {
+            html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
+            html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selectedGroup = dateGroupMap[_analystSelectedDate];
+    if (_analystSelectedDate && selectedGroup) {
+        var selParts = _analystSelectedDate.split('-');
+        var selD = new Date(parseInt(selParts[0]), parseInt(selParts[1])-1, parseInt(selParts[2]));
+        var selDateLabel = selD.getDate() + ' ' + TR_MONTHS_UPPER[selD.getMonth()] + ' ' + selD.getFullYear() + ', ' + TR_DAYS_FULL[selD.getDay()];
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 2px 8px;margin-bottom:4px;">';
+        html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
+        html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+        html += selDateLabel + '</div>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selectedGroup.items.length + ' ANALİZ</span>';
+        html += '</div>';
+        selectedGroup.items.forEach(function(item) {
+            var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
+            html += '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:12px;padding:16px 20px;margin-bottom:12px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+            html += '<div style="font-size:15px;font-weight:600;color:#e0e4e8;">' + (item.title || '') + '</div>';
+            if (item.result) {
+                var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};
+                var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
+                html += '<span style="background:' + (rColors[item.result]||'#3a3f45') + '18;color:' + (rColors[item.result]||'#3a3f45') + ';border:1px solid ' + (rColors[item.result]||'#3a3f45') + '30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
+            } else {
+                html += '<span style="background:rgba(88,166,255,0.06);color:#58a6ff;border:1px solid rgba(88,166,255,0.12);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">Beklemede</span>';
+            }
+            html += '</div>';
+            if (item.preference || item.odds || item.confidence) {
+                html += '<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';
+                if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+                if (item.odds) html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: ' + item.odds + '</span>';
+                if (item.confidence) {
+                    var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
+                    html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">Güven: ' + item.confidence + '/10</span>';
+                }
+                html += '</div>';
+            }
+            html += '<div style="font-size:13px;color:#7d848c;line-height:1.7;margin-bottom:10px;word-wrap:break-word;overflow-wrap:break-word;">' + (item.content || '') + '</div>';
+            if (item.image_url) {
+                html += '<div style="margin-bottom:10px;"><img src="' + item.image_url + '" style="max-width:100%;border-radius:8px;border:1px solid #2e3238;" alt=""></div>';
+            }
+            if (item.result_note) {
+                html += '<div style="font-size:11px;color:#7d848c;line-height:1.5;margin-bottom:8px;padding:6px 10px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid rgba(255,255,255,0.08);">' + item.result_note + '</div>';
+            }
+            html += '<div style="font-size:11px;color:#3a3f45;">' + date + '</div>';
+            html += '</div>';
+        });
+    } else {
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Henüz analiz mevcut değil</div>';
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var strip = document.getElementById('analystDateStrip');
+    if (strip) {
+        var selectedEl = strip.querySelector('.ds-sel');
+        if (selectedEl) selectedEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function selectAnalystDate(dateKey) {
+    _analystSelectedDate = dateKey;
+    renderAnalystProfileView();
+}
+
+function selectUnderdogDate(dateKey) {
+    _underdogSelectedDate = dateKey;
+    if (_underdogLastData) renderUnderdogPressureView(_underdogLastData);
+}
+
+function backToAnalystList() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = false;
+    if (_fullAnalysisData) {
+        renderAnalysisList(_fullAnalysisData);
+    } else {
+        loadTrends('analysis');
+    }
+}
+
+function showUnderdogPressure() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = true;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = false;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
+    var headers = licKey ? {'X-License-Key': licKey} : {};
+    fetch('/api/underdog-pressure', {headers: headers})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#d29922;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                return;
+            }
+            renderUnderdogPressureView(data);
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderUnderdogPressureView(data) {
+    _underdogLastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
+    var contentArea = document.getElementById('trendsContentArea');
+    var signals = data.signals || [];
+    var count = data.count || 0;
+    var avgOdds = data.avg_odds ? parseFloat(data.avg_odds).toFixed(2) : '-';
+    var avgPct = data.avg_pct ? parseFloat(data.avg_pct).toFixed(0) : '-';
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div style="background:rgba(210,153,34,0.04);border:1px solid rgba(210,153,34,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(210,153,34,0.08);border:1.5px solid rgba(210,153,34,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Underdog Pressure</div>';
+    html += '<div style="font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '</div></div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Oran ≥ 3.00 olan underdog tarafa para akışının ≥ %50 olduğu bugün/gelecek maçları tespit eder.</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#d29922;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '</div></div>';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
+    var udDateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = todayStr;
+        if (!udDateGroupMap[iso]) udDateGroupMap[iso] = [];
+        udDateGroupMap[iso].push(s);
+    });
+    var udDatesWithData = Object.keys(udDateGroupMap).sort();
+    var udFirstDate = udDatesWithData[0] || todayStr;
+    // Always include yesterday in the strip even if no data exists for it
+    if (udFirstDate > yesterdayStr) udFirstDate = yesterdayStr;
+    var udLastDate = udDatesWithData[udDatesWithData.length - 1] || todayStr;
+    if (udLastDate < todayStr) udLastDate = todayStr;
+    var udAllDates = [];
+    var udCur = new Date(udFirstDate + 'T00:00:00');
+    var udEnd = new Date(udLastDate + 'T00:00:00');
+    while (udCur <= udEnd) {
+        udAllDates.push(udCur.getFullYear() + '-' + String(udCur.getMonth()+1).padStart(2,'0') + '-' + String(udCur.getDate()).padStart(2,'0'));
+        udCur.setDate(udCur.getDate() + 1);
+    }
+    if (!_underdogSelectedDate || !udDateGroupMap[_underdogSelectedDate]) {
+        // Default to today if there's data for today, otherwise first date with data
+        _underdogSelectedDate = udDateGroupMap[todayStr] ? todayStr : (udDatesWithData[0] || todayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="udDateStrip">';
+    udAllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _underdogSelectedDate;
+        var hasData = !!udDateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectUnderdogDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        } else {
+            html += '<div onclick="selectUnderdogDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
+            html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selDaySignals = udDateGroupMap[_underdogSelectedDate] || [];
+    if (selDaySignals.length === 0) {
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+    } else {
+        var selDp = _underdogSelectedDate.split('-');
+        var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
+        var selDateLabel = selDObj.getDate() + ' ' + TR_MONTHS_UPPER[selDObj.getMonth()] + ' ' + selDObj.getFullYear() + ', ' + TR_DAYS_FULL[selDObj.getDay()];
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 8px;margin-bottom:4px;">';
+        html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
+        html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+        html += selDateLabel + '</div>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '</div>';
+        var timeGrouped = {};
+        var timeOrder = [];
+        selDaySignals.forEach(function(s) {
+            var tk = s.match_date || s.date || '';
+            if (!timeGrouped[tk]) { timeGrouped[tk] = []; timeOrder.push(tk); }
+            timeGrouped[tk].push(s);
+        });
+        timeOrder.forEach(function(tk) {
+            var items = timeGrouped[tk];
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
+            html += '<div style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tk + '</div>';
+            html += '<span style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '</div>';
+            items.forEach(function(sig) {
+                var selLabel = sig.selection_code === '1' ? 'Ev Sahibi' : sig.selection_code === '2' ? 'Deplasman' : 'Beraberlik';
+                var amtFmt = sig.amt ? ('£\u00a0' + parseFloat(String(sig.amt).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+                var volFmt = sig.volume ? ('£\u00a0' + parseFloat(String(sig.volume).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+                html += '<div style="background:#1c1f23;border:1px solid rgba(210,153,34,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+                html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
+                html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
+                if (amtFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Para:</span>\u00a0' + amtFmt + '</div>';
+                if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0' + volFmt + '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;gap:4px;flex-shrink:0;">';
+                html += '<span style="background:rgba(210,153,34,0.1);color:#d29922;border:1px solid rgba(210,153,34,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + (sig.odds || '-') + '</span>';
+                html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%' + (sig.pct ? parseFloat(sig.pct).toFixed(0) : '-') + '</span>';
+                if (sig.score) html += '<span style="background:rgba(255,255,255,0.04);color:#7d848c;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:0.5px;">' + sig.score + '</span>';
+                html += '</div></div></div>';
+            });
+        });
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var stripEl = document.getElementById('udDateStrip');
+    if (stripEl) {
+        var selEl = stripEl.querySelector('.ds-sel');
+        if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function selectConfirmedMoneyDate(dateKey) {
+    _confirmedMoneySelectedDate = dateKey;
+    if (_confirmedMoneyLastData) renderConfirmedMoneyView(_confirmedMoneyLastData);
+}
+
+function showConfirmedMoney() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = true;
+    _viewingConfirmedMoneyV2 = false;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
+    var headers = licKey ? {'X-License-Key': licKey} : {};
+    fetch('/api/confirmed-money', {headers: headers})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#34d399;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                return;
+            }
+            renderConfirmedMoneyView(data);
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderConfirmedMoneyView(data) {
+    _confirmedMoneyLastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var contentArea = document.getElementById('trendsContentArea');
+    var signals = data.signals || [];
+    var count = data.count || 0;
+    var avgOdds = data.avg_odds ? parseFloat(data.avg_odds).toFixed(2) : '-';
+    var avgDrop = data.avg_drop_pct ? parseFloat(data.avg_drop_pct).toFixed(1) : '-';
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div style="background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(52,211,153,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💰</div>';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money</div>';
+    html += '<div style="font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '</div></div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%80, oran 16 saat içinde monoton düşen (≥%4), hacim ≥£2,000 olan maçları tespit eder.</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">Ort. Düşüş</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '</div></div>';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
+    var cmDateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = todayStr;
+        if (!cmDateGroupMap[iso]) cmDateGroupMap[iso] = [];
+        cmDateGroupMap[iso].push(s);
+    });
+    var cmDatesWithData = Object.keys(cmDateGroupMap).sort();
+    var cmFirstDate = cmDatesWithData[0] || todayStr;
+    if (cmFirstDate > yesterdayStr) cmFirstDate = yesterdayStr;
+    var cmLastDate = cmDatesWithData[cmDatesWithData.length - 1] || todayStr;
+    if (cmLastDate < todayStr) cmLastDate = todayStr;
+    var cmAllDates = [];
+    var cmCur = new Date(cmFirstDate + 'T00:00:00');
+    var cmEnd = new Date(cmLastDate + 'T00:00:00');
+    while (cmCur <= cmEnd) {
+        cmAllDates.push(cmCur.getFullYear() + '-' + String(cmCur.getMonth()+1).padStart(2,'0') + '-' + String(cmCur.getDate()).padStart(2,'0'));
+        cmCur.setDate(cmCur.getDate() + 1);
+    }
+    if (!_confirmedMoneySelectedDate || !cmDateGroupMap[_confirmedMoneySelectedDate]) {
+        _confirmedMoneySelectedDate = cmDateGroupMap[todayStr] ? todayStr : (cmDatesWithData[0] || todayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="cmDateStrip">';
+    cmAllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _confirmedMoneySelectedDate;
+        var hasData = !!cmDateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectConfirmedMoneyDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
+        } else {
+            html += '<div onclick="selectConfirmedMoneyDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selDaySignals = cmDateGroupMap[_confirmedMoneySelectedDate] || [];
+    if (selDaySignals.length === 0) {
+        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';
+    } else {
+        selDaySignals.forEach(function(sig) {
+            var selCode = sig.selection_code || '';
+            var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : selCode;
+            var oddsNow = sig.current_odds || sig.odds_now || '-';
+            var pctNow = sig.current_pct || sig.pct_now || '-';
+            var volNow = sig.current_volume || sig.volume_now || '';
+            var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
+            var volFmt = volNow ? ('£\u00a0' + parseFloat(String(volNow).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+            html += '<div style="background:#1c1f23;border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+            html += '<div style="flex:1;min-width:0;">';
+            html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
+            html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
+            if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0' + volFmt + '</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+            html += '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + oddsNow + '</span>';
+            html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%' + (pctNow !== '-' ? parseFloat(pctNow).toFixed(0) : '-') + '</span>';
+            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
+            html += '</div></div></div>';
+        });
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var stripEl = document.getElementById('cmDateStrip');
+    if (stripEl) {
+        var selEl = stripEl.querySelector('.ds-sel');
+        if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function selectConfirmedMoneyV2Date(dateKey) {
+    _confirmedMoneyV2SelectedDate = dateKey;
+    if (_confirmedMoneyV2LastData) renderConfirmedMoneyV2View(_confirmedMoneyV2LastData);
+}
+
+function showConfirmedMoneyV2() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = true;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
+    var headers = licKey ? {'X-License-Key': licKey} : {};
+    fetch('/api/confirmed-money-v2', {headers: headers})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#6366f1;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                return;
+            }
+            renderConfirmedMoneyV2View(data);
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderConfirmedMoneyV2View(data) {
+    _confirmedMoneyV2LastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var contentArea = document.getElementById('trendsContentArea');
+    var signals = data.signals || [];
+    var count = data.count || 0;
+    var avgDrop = data.avg_drop_pct ? parseFloat(data.avg_drop_pct).toFixed(1) : '-';
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div style="background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💎</div>';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money V2</div>';
+    html += '<div style="font-size:9px;color:#6366f1;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '</div></div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%88, oran 1.55-2.20, ≥%7 düşüş — 3 günlük araştırmada sıfır kayıp. Sadece 1/2 seçimleri.</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#6366f1;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">Ort. Düşüş</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">88%+</div><div style="' + labelStyle + '">Para Eşiği</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1/2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '</div></div>';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
+    var v2DateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = todayStr;
+        if (!v2DateGroupMap[iso]) v2DateGroupMap[iso] = [];
+        v2DateGroupMap[iso].push(s);
+    });
+    var v2DatesWithData = Object.keys(v2DateGroupMap).sort();
+    var v2FirstDate = v2DatesWithData[0] || todayStr;
+    if (v2FirstDate > yesterdayStr) v2FirstDate = yesterdayStr;
+    var v2LastDate = v2DatesWithData[v2DatesWithData.length - 1] || todayStr;
+    if (v2LastDate < todayStr) v2LastDate = todayStr;
+    var v2AllDates = [];
+    var v2Cur = new Date(v2FirstDate + 'T00:00:00');
+    var v2End = new Date(v2LastDate + 'T00:00:00');
+    while (v2Cur <= v2End) {
+        v2AllDates.push(v2Cur.getFullYear() + '-' + String(v2Cur.getMonth()+1).padStart(2,'0') + '-' + String(v2Cur.getDate()).padStart(2,'0'));
+        v2Cur.setDate(v2Cur.getDate() + 1);
+    }
+    if (!_confirmedMoneyV2SelectedDate || !v2DateGroupMap[_confirmedMoneyV2SelectedDate]) {
+        _confirmedMoneyV2SelectedDate = v2DateGroupMap[todayStr] ? todayStr : (v2DatesWithData[0] || todayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="cmV2DateStrip">';
+    v2AllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _confirmedMoneyV2SelectedDate;
+        var hasData = !!v2DateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectConfirmedMoneyV2Date(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#6366f1;border-radius:50%;margin:4px auto 0;"></div>';
+        } else {
+            html += '<div onclick="selectConfirmedMoneyV2Date(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#6366f1;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selDaySignals = v2DateGroupMap[_confirmedMoneyV2SelectedDate] || [];
+    if (selDaySignals.length === 0) {
+        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';
+    } else {
+        selDaySignals.forEach(function(sig) {
+            var selCode = sig.selection_code || '';
+            var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode;
+            var oddsNow = sig.current_odds || sig.odds_now || '-';
+            var pctNow = sig.current_pct || sig.pct_now || '-';
+            var volNow = sig.current_volume || sig.volume_now || '';
+            var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
+            var volFmt = volNow ? ('£\u00a0' + parseFloat(String(volNow).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+            html += '<div style="background:#1c1f23;border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+            html += '<div style="flex:1;min-width:0;">';
+            html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
+            html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
+            if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0' + volFmt + '</div>';
+            html += '</div>';
+            html += '</div>';
+            html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+            html += '<span style="background:rgba(99,102,241,0.1);color:#6366f1;border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + oddsNow + '</span>';
+            html += '<span style="background:rgba(99,102,241,0.06);color:#6366f1;border:1px solid rgba(99,102,241,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%' + (pctNow !== '-' ? parseFloat(pctNow).toFixed(0) : '-') + '</span>';
+            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
+            html += '</div></div></div>';
+        });
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var stripEl = document.getElementById('cmV2DateStrip');
+    if (stripEl) {
+        var selEl = stripEl.querySelector('.ds-sel');
+        if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function loadAnalysts(callback) {
+    var now = Date.now();
+    if (_analystsCache && (now - _analystsCacheTs) < 120000) {
+        if (callback) callback();
+        return;
+    }
+    fetch('/api/analysts?active=true')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (Array.isArray(data)) {
+                _analystsCache = data;
+                _analystsCacheTs = Date.now();
+            }
+            if (callback) callback();
+        })
+        .catch(function() { if (callback) callback(); });
+}
+var _trendsRawCache = {};
+var _trendsRawCacheTs = {};
+var _TRENDS_CACHE_TTL = 60000;
+function loadTrends(category) {
+    var sidebar = document.getElementById('trendsSidebar');
+    var contentArea = document.getElementById('trendsContentArea');
+    var now = Date.now();
+    if (category === 'analysis') {
+        var cachedData = (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) ? _trendsRawCache[category] : null;
+        var cachedAnalysts = (_analystsCache && (now - _analystsCacheTs) < 120000);
+        if (cachedData && cachedAnalysts) {
+            renderAnalysisList(cachedData);
+            return;
+        }
+        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+        var analystsPromise = cachedAnalysts ? Promise.resolve(null) : fetch('/api/analysts?active=true').then(function(r) { return r.json(); });
+        var dataPromise = cachedData ? Promise.resolve(cachedData) : fetch('/api/analyses?category=' + category, {
+            headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
+        }).then(function(r) { return r.json(); });
+        Promise.all([analystsPromise, dataPromise]).then(function(results) {
+            if (results[0] && Array.isArray(results[0])) {
+                _analystsCache = results[0];
+                _analystsCacheTs = Date.now();
+            }
+            var data = results[1];
+            if (data && data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + (data.message || 'Erişim reddedildi') + '</div></div>';
+                return;
+            }
+            if (data && !data.error) {
+                _trendsRawCache[category] = data;
+                _trendsRawCacheTs[category] = Date.now();
+            }
+            renderAnalysisList(data || []);
+        }).catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+        return;
+    }
+    if (_trendsRawCache[category] && (now - (_trendsRawCacheTs[category] || 0)) < _TRENDS_CACHE_TTL) {
+        _renderMovesData(_trendsRawCache[category]);
+        return;
+    }
+    sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Yükleniyor...</div>';
+    fetch('/api/analyses?category=' + category, {
+        headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
+    })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && !data.error) {
+                _trendsRawCache[category] = data;
+                _trendsRawCacheTs[category] = Date.now();
+            }
+            _renderMovesData(data);
+        })
+        .catch(function() {
+            sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';
+        });
+}
+function _renderMovesData(data) {
+    var hierarchy = parseTrendsHierarchy(data || []);
+    trendsDataCache['moves'] = hierarchy;
+    renderSidebar(hierarchy);
+    if (hierarchy.order.length > 0 && !isMobileView()) {
+        var firstGroup = hierarchy.groups[hierarchy.order[0]];
+        if (firstGroup.length > 1 || firstGroup[0].subTitle) {
+            toggleSidebarGroup(0, true);
+            selectSubItem(0, 0);
+        } else {
+            selectSubItem(0, 0);
+        }
+    }
+}
+
+var tutorialStepsDesktop = [
+    { selector: '#alertBand', title: 'Alarm Bandı', desc: 'Canlı alarm bandı — yeni tespit edilen son 10 alarm burada gösterilir.', pos: 'bottom' },
+    { selector: '.market-tabs.desktop-only', title: 'Piyasa Sekmeleri', desc: 'Moneyway ve Oran sayfaları arasında geçiş yapın. 1X2, 2.5 ve KG marketlerini görüntüleyin.', pos: 'bottom' },
+    { selector: '#todayBtn', title: 'Günün Maçları', desc: 'Sadece bugünkü maçları filtrelemek için bu butonu kullanın. Tekrar tıklayınca filtre kalkar.', pos: 'bottom' },
+    { selector: '.mw-outcomes-cell', title: 'Oran Sütunları', desc: 'Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.', pos: 'bottom' },
+    { selector: '.volume-cell', title: 'Miktar Sütunu', desc: 'Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.', pos: 'bottom' },
+    { selector: '.tab[data-market="dropping_1x2"]', title: 'Oran (Dropping Odds)', desc: 'Oranların son 24 saatte ne kadar düştüğünü takip edin.', pos: 'bottom' },
+    { selector: '#alarmsBtn', title: 'Alarm Paneli', desc: 'Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın.', pos: 'bottom' },
+    { selector: '.btn.btn-today.desktop-only[onclick*="moves"]', title: 'Kılavuz', desc: 'Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.', pos: 'bottom' },
+    { selector: '.btn.btn-today.desktop-only[onclick*="analysis"]', title: 'Analizler', desc: 'Profesyonel analizlere buradan ulaşın. Maç öncesi değerlendirmeler ve piyasa yorumları burada paylaşılır (PRO üyelere özel).', pos: 'bottom' }
+];
+
+var tutorialStepsMobile = [
+    { selector: '#alertBand', title: 'Alarm Bandı', desc: 'Canlı alarm bandı — yeni sinyaller burada akar.', pos: 'top' },
+    { selector: '.mobile-tab-system', title: 'Piyasa Sekmeleri', desc: 'Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.', pos: 'bottom' },
+    { selector: '#dayFilterDropdown', title: 'Gün Filtresi', desc: 'Bugünkü veya dünkü maçları filtreleyin.', pos: 'bottom' },
+    { selector: '.odds-card-row', title: 'Oran Sütunları', desc: 'Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.', pos: 'top' },
+    { selector: '.odds-card-volume', title: 'Miktar', desc: 'Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.', pos: 'top' },
+    { selector: '.mobile-alarm-btn[onclick*="moves"]', title: 'Kılavuz', desc: 'Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.', pos: 'bottom' },
+    { selector: '.mobile-alarm-btn[onclick*="analysis"]', title: 'Analizler', desc: 'Profesyonel maç analizleri ve piyasa yorumları (PRO üyelere özel).', pos: 'bottom' },
+    { selector: '.mobile-alarm-btn[onclick*="toggleAlarmsSidebar"]', title: 'Alarmlar', desc: 'Tüm alarm türlerini görüntüleyin ve filtreleyin.', pos: 'bottom' }
+];
+
+var tutorialCurrentStep = 0;
+var tutorialActive = false;
+var tutorialOverlayEl = null;
+var tutorialTooltipEl = null;
+var tutorialPrevHighlight = null;
+
+function getTutorialSteps() {
+    return isMobileView() ? tutorialStepsMobile : tutorialStepsDesktop;
+}
+
+var tutorialResizeTimer = null;
+window.addEventListener('resize', function() {
+    if (!tutorialActive) return;
+    clearTimeout(tutorialResizeTimer);
+    tutorialResizeTimer = setTimeout(function() {
+        showTutorialStep(tutorialCurrentStep);
+    }, 250);
+});
+
+function startTutorial() {
+    if (tutorialActive) return;
+    tutorialActive = true;
+    tutorialCurrentStep = 0;
+
+    if (!tutorialOverlayEl) {
+        tutorialOverlayEl = document.createElement('div');
+        tutorialOverlayEl.className = 'tutorial-overlay';
+        tutorialOverlayEl.onclick = function() { endTutorial(); };
+        document.body.appendChild(tutorialOverlayEl);
+    } else {
+        tutorialOverlayEl.style.display = '';
+    }
+
+    if (!tutorialTooltipEl) {
+        tutorialTooltipEl = document.createElement('div');
+        tutorialTooltipEl.className = 'tutorial-tooltip';
+        document.body.appendChild(tutorialTooltipEl);
+    } else {
+        tutorialTooltipEl.style.display = '';
+    }
+
+    showTutorialStep(0);
+}
+
+function findNextVisibleStep(startIndex, direction) {
+    var steps = getTutorialSteps();
+    var i = startIndex;
+    while (i >= 0 && i < steps.length) {
+        var el = document.querySelector(steps[i].selector);
+        if (el && el.offsetParent !== null) return i;
+        i += direction;
+    }
+    return -1;
+}
+
+function showTutorialStep(index) {
+    var steps = getTutorialSteps();
+    if (index < 0 || index >= steps.length) { endTutorial(); return; }
+
+    var visibleIndex = findNextVisibleStep(index, index >= tutorialCurrentStep ? 1 : -1);
+    if (visibleIndex === -1) { endTutorial(); return; }
+    index = visibleIndex;
+
+    tutorialCurrentStep = index;
+    var step = steps[index];
+
+    if (tutorialPrevHighlight) {
+        tutorialPrevHighlight.classList.remove('tutorial-highlight');
+        tutorialPrevHighlight = null;
+    }
+
+    var el = document.querySelector(step.selector);
+    if (el) {
+        el.classList.add('tutorial-highlight');
+        tutorialPrevHighlight = el;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    var isLast = (findNextVisibleStep(index + 1, 1) === -1);
+    var isFirst = (findNextVisibleStep(index - 1, -1) === -1);
+
+    var prevBtn = isFirst ? '' : '<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← Geri</button>';
+    var nextLabel = isLast ? 'Başla!' : 'İleri →';
+    var nextAction = isLast ? 'endTutorial()' : 'nextTutorialStep()';
+
+    var visibleCount = 0;
+    var currentVisible = 0;
+    for (var vi = 0; vi < steps.length; vi++) {
+        var ve = document.querySelector(steps[vi].selector);
+        if (ve && ve.offsetParent !== null) {
+            visibleCount++;
+            if (vi < index) currentVisible++;
+        }
+    }
+    currentVisible++;
+
+    tutorialTooltipEl.innerHTML =
+        '<div class="tutorial-arrow" id="tutorialArrow"></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">' +
+            '<div class="tutorial-tooltip-title">' + step.title + '</div>' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">Atla</button>' +
+        '</div>' +
+        '<div class="tutorial-tooltip-desc">' + step.desc + '</div>' +
+        '<div class="tutorial-tooltip-footer">' +
+            '<span class="tutorial-step-counter">' + currentVisible + ' / ' + visibleCount + '</span>' +
+            '<div class="tutorial-tooltip-actions">' +
+                prevBtn +
+                '<button class="tutorial-btn tutorial-btn-next" onclick="' + nextAction + '">' + nextLabel + '</button>' +
+            '</div>' +
+        '</div>';
+
+    setTimeout(function() { positionTooltip(el, step.pos); }, 80);
+}
+
+function positionTooltip(targetEl, preferredPos) {
+    if (!tutorialTooltipEl) return;
+
+    tutorialTooltipEl.style.transform = '';
+
+    if (!targetEl) {
+        tutorialTooltipEl.style.top = '50%';
+        tutorialTooltipEl.style.left = '50%';
+        tutorialTooltipEl.style.transform = 'translate(-50%, -50%)';
+        var arrow0 = document.getElementById('tutorialArrow');
+        if (arrow0) arrow0.style.display = 'none';
+        return;
+    }
+
+    if (isMobileView()) {
+        var arrow1 = document.getElementById('tutorialArrow');
+        if (arrow1) arrow1.style.display = 'none';
+        return;
+    }
+
+    var rect = targetEl.getBoundingClientRect();
+    var ttRect = tutorialTooltipEl.getBoundingClientRect();
+    var arrow = document.getElementById('tutorialArrow');
+    var gap = 14;
+
+    if (arrow) arrow.style.display = '';
+
+    if (preferredPos === 'bottom' || rect.top < ttRect.height + gap + 20) {
+        tutorialTooltipEl.style.top = (rect.bottom + gap) + 'px';
+        if (arrow) { arrow.className = 'tutorial-arrow tutorial-arrow-top'; }
+    } else {
+        tutorialTooltipEl.style.top = (rect.top - ttRect.height - gap) + 'px';
+        if (arrow) { arrow.className = 'tutorial-arrow tutorial-arrow-bottom'; }
+    }
+
+    var leftPos = rect.left + (rect.width / 2) - (ttRect.width / 2);
+    if (leftPos < 12) leftPos = 12;
+    if (leftPos + ttRect.width > window.innerWidth - 12) leftPos = window.innerWidth - ttRect.width - 12;
+    tutorialTooltipEl.style.left = leftPos + 'px';
+
+    if (arrow) {
+        var arrowLeft = rect.left + (rect.width / 2) - leftPos - 6;
+        if (arrowLeft < 16) arrowLeft = 16;
+        if (arrowLeft > ttRect.width - 28) arrowLeft = ttRect.width - 28;
+        arrow.style.left = arrowLeft + 'px';
+    }
+}
+
+function nextTutorialStep() {
+    showTutorialStep(tutorialCurrentStep + 1);
+}
+
+function prevTutorialStep() {
+    showTutorialStep(tutorialCurrentStep - 1);
+}
+
+function endTutorial() {
+    tutorialActive = false;
+    localStorage.setItem('sxf_tutorial_done', '1');
+
+    if (tutorialPrevHighlight) {
+        tutorialPrevHighlight.classList.remove('tutorial-highlight');
+        tutorialPrevHighlight = null;
+    }
+    if (tutorialOverlayEl) tutorialOverlayEl.style.display = 'none';
+    if (tutorialTooltipEl) tutorialTooltipEl.style.display = 'none';
+}
+
+(function() {
+    if (!localStorage.getItem('sxf_tutorial_done')) {
+        setTimeout(function() {
+            if (!tutorialActive) startTutorial();
+        }, 2500);
+    }
+})();

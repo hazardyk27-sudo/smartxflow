@@ -40,6 +40,15 @@ CM_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
 CM_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
 CM_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
+# Confirmed Money V2 kriterleri (araştırma tabanlı, %100 başarı bölgesi)
+CMV2_PCT_THRESHOLD       = 88.0
+CMV2_ODDS_DROP_PCT       = 0.07   # %7 düşüş
+CMV2_VOLUME_THRESHOLD    = 2000.0
+CMV2_COOLDOWN_HOURS      = 3
+CMV2_STABILITY_SNAPSHOTS = 3
+CMV2_MIN_ODDS            = 1.55   # Kısa oranlar hariç
+CMV2_MAX_ODDS            = 2.20
+
 # Fake Sharp kriterleri
 FS_PCT_THRESHOLD = 75.0
 FS_ODDS_RISE_PCT = 0.04      # %4 yükseliş (göreli)
@@ -84,8 +93,35 @@ CREATE TABLE IF NOT EXISTS confirmed_money_signals (
 ALTER TABLE confirmed_money_signals ADD COLUMN IF NOT EXISTS result text;
 """
 
+CMV2_MIGRATION_SQL = """
+-- confirmed_money_v2_signals tablosu:
+CREATE TABLE IF NOT EXISTS confirmed_money_v2_signals (
+    id              bigserial PRIMARY KEY,
+    match_key       text NOT NULL,
+    home_team       text,
+    away_team       text,
+    league          text,
+    match_date      text,
+    selection_code  text NOT NULL,
+    selection_label text,
+    odds_16h        text,
+    odds_now        text,
+    current_odds    text,
+    pct_now         text,
+    current_pct     text,
+    volume_now      text,
+    current_volume  text,
+    odds_drop_pct   real,
+    created_at      timestamptz DEFAULT now(),
+    last_updated_at timestamptz,
+    result          text
+);
+ALTER TABLE confirmed_money_v2_signals ADD COLUMN IF NOT EXISTS result text;
+"""
+
 _columns_verified = False
 _cm_table_verified = False
+_cm_v2_table_verified = False
 _fs_table_verified = False
 
 
@@ -411,6 +447,23 @@ def check_cm_table_exists():
         return False
 
 
+def check_cm_v2_table_exists():
+    """confirmed_money_v2_signals tablosunun mevcut olup olmadığını kontrol et."""
+    global _cm_v2_table_verified
+    if _cm_v2_table_verified:
+        return True
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals?select=id&limit=1"
+        r = requests.get(url, headers=_headers_read(), timeout=8)
+        if r.status_code == 200:
+            _cm_v2_table_verified = True
+            log("[CMv2] confirmed_money_v2_signals tablosu mevcut")
+            return True
+        return False
+    except Exception:
+        return False
+
+
 def fetch_history_16h():
     """Son 10 saatin tüm snapshot'larını çek, home|away|date bazlı grupla.
     NOT: match_id_hash (UUID) yerine home|away|date anahtarı kullanılır çünkü
@@ -448,6 +501,25 @@ def fetch_cm_recent_cooldowns():
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=CM_COOLDOWN_HOURS)).isoformat()
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_signals"
+            f"?select=match_key,selection_code"
+            f"&created_at=gte.{cutoff}"
+            f"&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=10)
+        if r.status_code == 200:
+            rows = r.json()
+            return {(row['match_key'], row['selection_code']) for row in rows}
+        return set()
+    except Exception:
+        return set()
+
+
+def fetch_cm_v2_recent_cooldowns():
+    """Son CMV2_COOLDOWN_HOURS saatteki confirmed_money_v2_signals kayıtlarını çek."""
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CMV2_COOLDOWN_HOURS)).isoformat()
+        url = (
+            f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals"
             f"?select=match_key,selection_code"
             f"&created_at=gte.{cutoff}"
             f"&limit=5000"
@@ -558,6 +630,75 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
     return signals
 
 
+def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
+    """Confirmed Money V2 kriterlerini kontrol et (araştırma tabanlı, sıkılaştırılmış).
+    V1'den farklar:
+      - Pct eşiği: >%80 → ≥%88
+      - Oran aralığı: 1.35-2.20 → 1.55-2.20 (kısa oranlar hariç)
+      - Oran düşüşü: ≥%4 → ≥%7
+      - X (beraberlik) seçimi yoktur (sadece '1' ve '2')
+    """
+    signals = []
+
+    for h, latest in latest_snapshots.items():
+        if parse_volume_amt(latest.get('volume', '')) < CMV2_VOLUME_THRESHOLD:
+            continue
+        match_history = history_by_hash.get(h, [])
+        if not match_history:
+            continue
+        match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
+
+        for code, label, o_field, p_field in [
+            ('1', 'Ev Sahibi', 'odds1', 'pct1'),
+            ('2', 'Deplasman', 'odds2', 'pct2'),
+        ]:
+            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
+
+            if (mk, code) in cooldown_set:
+                continue
+
+            pct_now = parse_odds_pct(latest.get(p_field))
+            if pct_now < CMV2_PCT_THRESHOLD:
+                continue
+
+            last_snaps = match_history_sorted[:CMV2_STABILITY_SNAPSHOTS]
+            if len(last_snaps) < CMV2_STABILITY_SNAPSHOTS:
+                continue
+            if not all(parse_odds_pct(r.get(p_field)) >= CMV2_PCT_THRESHOLD for r in last_snaps):
+                continue
+
+            odds_0 = parse_odds_pct(latest.get(o_field))
+            if not (CMV2_MIN_ODDS <= odds_0 <= CMV2_MAX_ODDS):
+                continue
+
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
+                continue
+            odds_ref = parse_odds_pct(ref_snap.get(o_field))
+            if odds_0 <= 0 or odds_ref <= 0:
+                continue
+            drop_pct = (odds_ref - odds_0) / odds_ref
+            if drop_pct < CMV2_ODDS_DROP_PCT:
+                continue
+
+            signals.append({
+                'match_key': mk,
+                'home_team': latest.get('home', ''),
+                'away_team': latest.get('away', ''),
+                'league': latest.get('league', ''),
+                'date': latest.get('date', ''),
+                'selection_code': code,
+                'selection_label': label,
+                'odds_16h': str(round(odds_ref, 4)),
+                'odds_now': str(round(odds_0, 4)),
+                'pct_now': str(round(pct_now, 2)),
+                'volume_now': str(int(parse_volume_amt(latest.get('volume', '')))),
+                'odds_drop_pct': round(drop_pct * 100, 2),
+            })
+
+    return signals
+
+
 def _betwatch_date_to_iso(date_str):
     """'08.Apr 14:00:00' formatını '2026-04-08' ISO'ya çevirir."""
     try:
@@ -639,6 +780,59 @@ def save_confirmed_money_signals(signals):
         return len(records)
     log(f"[ConfirmedMoney] INSERT hatası: {r.status_code} {r.text[:200]}")
     return 0
+
+
+def save_confirmed_money_v2_signals(signals):
+    """Yeni Confirmed Money V2 sinyallerini kaydet."""
+    if not signals:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    records = []
+    for s in signals:
+        records.append({
+            'match_key': s['match_key'],
+            'home_team': s['home_team'],
+            'away_team': s['away_team'],
+            'league': s['league'],
+            'match_date': _betwatch_to_iso_datetime(s['date']),
+            'selection_code': s['selection_code'],
+            'selection_label': s['selection_label'],
+            'odds_16h': s['odds_16h'],
+            'odds_now': s['odds_now'],
+            'current_odds': s['odds_now'],
+            'pct_now': s['pct_now'],
+            'current_pct': s['pct_now'],
+            'volume_now': s['volume_now'],
+            'current_volume': s['volume_now'],
+            'odds_drop_pct': s['odds_drop_pct'],
+            'created_at': now,
+            'last_updated_at': now,
+        })
+    url = f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals"
+    headers = _headers_write('return=minimal')
+    r = requests.post(url, headers=headers, json=records, timeout=15)
+    if r.status_code in (200, 201):
+        log(f"[CMv2] INSERT OK ({len(records)} yeni sinyal)")
+        return len(records)
+    log(f"[CMv2] INSERT hatası: {r.status_code} {r.text[:200]}")
+    return 0
+
+
+def fetch_existing_cm_v2_signals():
+    """DB'deki mevcut confirmed_money_v2_signals listesini çek."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals"
+            "?select=match_key,selection_code,home_team,away_team,match_date"
+            "&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=12)
+        if r.status_code == 200:
+            return r.json()
+        return []
+    except Exception as e:
+        log(f"[CMv2-FetchExisting] Hata: {e}")
+        return []
 
 
 def fetch_existing_cm_signals():
@@ -741,6 +935,41 @@ def run_cm_scan(snapshots, snapshot_lookup):
             f"updated={cm_updated} (existing={len(existing_cm)} no_snapshot={cm_not_found})")
     except Exception as e:
         log(f"[ConfirmedMoney] Tarama hatası: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def run_cm_v2_scan(snapshots, snapshot_lookup):
+    """Confirmed Money V2 taraması (araştırma tabanlı, sıkılaştırılmış kriterler)."""
+    if not check_cm_v2_table_exists():
+        log(f"[CMv2] Tablo yok — CMV2_MIGRATION_SQL çalıştırın")
+        return
+    try:
+        history = fetch_history_16h()
+        cooldown_set_v2 = fetch_cm_v2_recent_cooldowns()
+        signals = find_confirmed_money_v2(snapshots, history, cooldown_set_v2)
+
+        existing_v2 = fetch_existing_cm_v2_signals()
+
+        existing_keys = {
+            (r.get('home_team', '').strip().lower(),
+             r.get('away_team', '').strip().lower(),
+             r.get('selection_code', ''))
+            for r in existing_v2
+        }
+
+        new_signals = [
+            s for s in signals
+            if (s.get('home_team', '').strip().lower(),
+                s.get('away_team', '').strip().lower(),
+                s.get('selection_code', '')) not in existing_keys
+        ]
+
+        inserted = save_confirmed_money_v2_signals(new_signals) if new_signals else 0
+        log(f"[CMv2] found={len(signals)} new={len(new_signals)} inserted={inserted} "
+            f"(existing={len(existing_v2)})")
+    except Exception as e:
+        log(f"[CMv2] Tarama hatası: {e}")
         import traceback
         traceback.print_exc()
 
@@ -1006,6 +1235,7 @@ def run_scan():
     snapshot_lookup = build_snapshot_lookup(snapshots)
     run_underdog_scan(snapshots, snapshot_lookup)
     run_cm_scan(snapshots, snapshot_lookup)
+    run_cm_v2_scan(snapshots, snapshot_lookup)
     run_fs_scan(snapshots, snapshot_lookup)
 
 
@@ -1015,6 +1245,7 @@ def run_engine():
     print(f"Tarama aralığı  : {SCAN_INTERVAL // 60} dakika")
     print(f"[Underdog]      : odds>={ODDS_THRESHOLD}, pct>={PCT_THRESHOLD}%, vol>={VOLUME_THRESHOLD:,.0f}")
     print(f"[ConfirmedMoney]: pct>{CM_PCT_THRESHOLD}%, düsüş>={CM_ODDS_DROP_PCT*100:.0f}%, vol>={CM_VOLUME_THRESHOLD:,.0f}, cooldown={CM_COOLDOWN_HOURS}sa")
+    print(f"[CMv2]          : pct>={CMV2_PCT_THRESHOLD}%, düşüş>={CMV2_ODDS_DROP_PCT*100:.0f}%, oran={CMV2_MIN_ODDS}-{CMV2_MAX_ODDS}, vol>={CMV2_VOLUME_THRESHOLD:,.0f}")
     print(f"[FakeSharp]     : pct>{FS_PCT_THRESHOLD}%, yükseliş>={FS_ODDS_RISE_PCT*100:.0f}%, vol>={FS_VOLUME_THRESHOLD:,.0f}, cooldown={FS_COOLDOWN_HOURS}sa")
     print(f"Supabase URL    : {SUPABASE_URL[:40]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)
@@ -1033,6 +1264,13 @@ def run_engine():
         print("\n" + "=" * 60)
         print("UYARI: confirmed_money_signals tablosu yok.")
         print(CM_MIGRATION_SQL)
+        print("Engine migration olmadan da çalışmaya devam eder.")
+        print("=" * 60 + "\n")
+
+    if not check_cm_v2_table_exists():
+        print("\n" + "=" * 60)
+        print("UYARI: confirmed_money_v2_signals tablosu yok.")
+        print(CMV2_MIGRATION_SQL)
         print("Engine migration olmadan da çalışmaya devam eder.")
         print("=" * 60 + "\n")
 
