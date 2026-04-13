@@ -2344,10 +2344,8 @@ def _normalize_to_iso_date(date_str):
         s = str(date_str).strip()
         if not s:
             return ''
-        # Zaten ISO (YYYY-MM-DD veya YYYY-MM-DDTHH:MM)
         if len(s) >= 10 and s[4] == '-' and s[7] == '-':
             return s[:10]
-        # Betwatch formatı: '13.Apr 18:30:00'
         m = _re.search(r'(\d{2})\.(\w{3})', s)
         if m:
             months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
@@ -2357,6 +2355,40 @@ def _normalize_to_iso_date(date_str):
             mon = months.get(m.group(2).capitalize(), 0)
             if mon:
                 return _d(_d.today().year, mon, day).isoformat()
+    except Exception:
+        pass
+    return str(date_str)[:10] if date_str else ''
+
+
+def _normalize_to_iso_datetime_tr(date_str):
+    """'13.Apr 18:30:00' veya '2026-04-13T14:00' → 'YYYY-MM-DDTHH:MM:00+03:00' (Türkiye saati).
+    Betwatch saatleri zaten Türkiye saatindedir. Saat yoksa sadece YYYY-MM-DD döner."""
+    import re as _re
+    from datetime import date as _d
+    try:
+        s = str(date_str).strip()
+        if not s:
+            return ''
+        if '+03:00' in s:
+            return s
+        if len(s) >= 10 and s[4] == '-' and s[7] == '-':
+            t = _re.search(r'T(\d{2}):(\d{2})', s)
+            if t:
+                return f"{s[:10]}T{t.group(1)}:{t.group(2)}:00+03:00"
+            return s[:10]
+        m = _re.search(r'(\d{2})\.(\w{3})', s)
+        if m:
+            months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                      'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                      'Nov': 11, 'Dec': 12}
+            day = int(m.group(1))
+            mon = months.get(m.group(2).capitalize(), 0)
+            if mon:
+                iso_date = _d(_d.today().year, mon, day).isoformat()
+                t = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
+                if t:
+                    return f"{iso_date}T{t.group(1)}:{t.group(2)}:00+03:00"
+                return iso_date
     except Exception:
         pass
     return str(date_str)[:10] if date_str else ''
@@ -2376,7 +2408,7 @@ def _save_underdog_signals(signals):
                 'home_team': s.get('home_team', ''),
                 'away_team': s.get('away_team', ''),
                 'league': s.get('league', ''),
-                'match_date': _normalize_to_iso_date(s.get('date', '')),
+                'match_date': _normalize_to_iso_datetime_tr(s.get('date', '')),
                 'selection_code': s.get('selection_code', ''),
                 'odds': str(s.get('odds', '')),
                 'pct': str(s.get('pct', '')),
@@ -2464,14 +2496,15 @@ def _update_underdog_signal_scores():
 
 def _backfill_match_date_times(rows, table_name):
     """Backfill date-only match_date values with time parsed from match_key.
-    Idempotent: skips rows that already have time info (+03:00)."""
+    Idempotent: skips rows that already have time info (+03:00).
+    Also updates in-memory rows so the current response reflects corrected values."""
     import re as _re
     from datetime import date as _d
     months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
               'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
               'Nov': 11, 'Dec': 12}
     to_fix = []
-    for row in rows:
+    for i, row in enumerate(rows):
         md = str(row.get('match_date', '') or '')
         if '+03:00' in md:
             continue
@@ -2487,7 +2520,8 @@ def _backfill_match_date_times(rows, table_name):
             if mon:
                 iso_date = _d(_d.today().year, mon, int(dm.group(1))).isoformat()
                 new_md = f"{iso_date}T{tm.group(1)}:{tm.group(2)}:00+03:00"
-                to_fix.append((row.get('id'), new_md))
+                to_fix.append((row.get('id'), new_md, i))
+                rows[i]['match_date'] = new_md
     if not to_fix:
         return
     try:
@@ -2499,7 +2533,7 @@ def _backfill_match_date_times(rows, table_name):
         hdrs['Content-Type'] = 'application/json'
         hdrs['Prefer'] = 'return=minimal'
         fixed = 0
-        for rid, new_md in to_fix:
+        for rid, new_md, _ in to_fix:
             try:
                 pr = http.patch(
                     f"{supabase._rest_url(table_name)}?id=eq.{rid}",
@@ -8522,7 +8556,7 @@ def admin_import_underdog_signals_for_date():
                 'home_team': s.get('home_team', ''),
                 'away_team': s.get('away_team', ''),
                 'league': s.get('league', ''),
-                'match_date': _normalize_to_iso_date(s.get('date', '')),
+                'match_date': _normalize_to_iso_datetime_tr(s.get('date', '')),
                 'selection_code': s.get('selection_code', ''),
                 'odds': str(s.get('odds', '')),
                 'pct': str(s.get('pct', '')),
