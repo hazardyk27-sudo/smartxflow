@@ -2333,6 +2333,34 @@ def _get_finished_scores_map():
         print(f"[FT-Scores] hata: {e}")
         return {}
 
+def _normalize_to_iso_date(date_str):
+    """'13.Apr 18:30:00' veya '2026-04-13T14:00' gibi her formatı 'YYYY-MM-DD' ISO'ya çevirir.
+    Cleanup sorgusu match_date < 'YYYY-MM-DD' şeklinde karşılaştırır;
+    ham betwatch formatı ('13.Apr...') metin sıralamasında her zaman yanlış eşleşir."""
+    import re as _re
+    from datetime import date as _d
+    try:
+        s = str(date_str).strip()
+        if not s:
+            return ''
+        # Zaten ISO (YYYY-MM-DD veya YYYY-MM-DDTHH:MM)
+        if len(s) >= 10 and s[4] == '-' and s[7] == '-':
+            return s[:10]
+        # Betwatch formatı: '13.Apr 18:30:00'
+        m = _re.search(r'(\d{2})\.(\w{3})', s)
+        if m:
+            months = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5,
+                      'Jun': 6, 'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10,
+                      'Nov': 11, 'Dec': 12}
+            day = int(m.group(1))
+            mon = months.get(m.group(2).capitalize(), 0)
+            if mon:
+                return _d(_d.today().year, mon, day).isoformat()
+    except Exception:
+        pass
+    return str(date_str)[:10] if date_str else ''
+
+
 def _save_underdog_signals(signals):
     """Upsert new signals to underdog_signals table; ignore duplicates."""
     try:
@@ -2347,7 +2375,7 @@ def _save_underdog_signals(signals):
                 'home_team': s.get('home_team', ''),
                 'away_team': s.get('away_team', ''),
                 'league': s.get('league', ''),
-                'match_date': s.get('date', ''),
+                'match_date': _normalize_to_iso_date(s.get('date', '')),
                 'selection_code': s.get('selection_code', ''),
                 'odds': str(s.get('odds', '')),
                 'pct': str(s.get('pct', '')),
@@ -8418,7 +8446,7 @@ def admin_import_underdog_signals_for_date():
                 'home_team': s.get('home_team', ''),
                 'away_team': s.get('away_team', ''),
                 'league': s.get('league', ''),
-                'match_date': s.get('date', ''),
+                'match_date': _normalize_to_iso_date(s.get('date', '')),
                 'selection_code': s.get('selection_code', ''),
                 'odds': str(s.get('odds', '')),
                 'pct': str(s.get('pct', '')),
