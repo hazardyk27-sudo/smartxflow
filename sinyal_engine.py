@@ -841,7 +841,7 @@ def fetch_existing_cm_signals():
     try:
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_signals"
-            "?select=match_key,selection_code,home_team,away_team,match_date"
+            "?select=match_key,selection_code,home_team,away_team,match_date,odds_now"
             "&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=12)
@@ -851,6 +851,29 @@ def fetch_existing_cm_signals():
     except Exception as e:
         log(f"[CM-FetchExisting] Hata: {e}")
         return []
+
+
+def delete_invalid_cm_signals(invalid_signals):
+    """Geçersizleşen Confirmed Money sinyallerini DB'den sil.
+    Geçersizlik koşulu: 10 saat önceki orana göre mevcut düşüş CM_ODDS_DROP_PCT eşiğinin altında."""
+    if not invalid_signals:
+        return 0
+    deleted = 0
+    wh = _headers_write()
+    for sig in invalid_signals:
+        try:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            mk_enc = url_quote(mk, safe='')
+            sc_enc = url_quote(sc, safe='')
+            del_url = f"{SUPABASE_URL}/rest/v1/confirmed_money_signals?match_key=eq.{mk_enc}&selection_code=eq.{sc_enc}"
+            r = requests.delete(del_url, headers=wh, timeout=10)
+            if r.status_code in (200, 204):
+                deleted += 1
+                log(f"[CM-Invalidate] Silindi: {sig.get('home_team')} vs {sig.get('away_team')} [{sc}] — düşüş eşiğin altına düştü")
+        except Exception as e:
+            log(f"[CM-Invalidate] Hata: {e}")
+    return deleted
 
 
 def update_cm_current_values(existing_cm, snapshot_lookup):
@@ -932,8 +955,38 @@ def run_cm_scan(snapshots, snapshot_lookup):
 
         # Mevcut tüm CM kayıtlarının current_* değerlerini güncelle
         cm_updated, cm_not_found = update_cm_current_values(existing_cm, snapshot_lookup)
+
+        # Geçersizleşen sinyalleri tespit et ve sil:
+        # Anlık oran, 10 saat önceki orana göre artık yeterli düşüşü göstermiyorsa → sil
+        code_map_cm = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
+        invalid_cm = []
+        for sig in existing_cm:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            o_field = code_map_cm.get(sc)
+            if not o_field:
+                continue
+            row = snapshot_lookup.get(mk)
+            if not row:
+                continue
+            match_history = history.get(mk, [])
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
+                continue
+            try:
+                odds_ref = parse_odds_pct(ref_snap.get(o_field))
+                odds_cur = parse_odds_pct(row.get(o_field))
+                if odds_ref <= 0 or odds_cur <= 0:
+                    continue
+                drop_pct = (odds_ref - odds_cur) / odds_ref
+                if drop_pct < CM_ODDS_DROP_PCT:
+                    invalid_cm.append(sig)
+            except Exception:
+                continue
+
+        cm_deleted = delete_invalid_cm_signals(invalid_cm)
         log(f"[ConfirmedMoney] found={len(signals)} new={len(new_signals)} inserted={inserted} "
-            f"updated={cm_updated} (existing={len(existing_cm)} no_snapshot={cm_not_found})")
+            f"updated={cm_updated} deleted_invalid={cm_deleted} (existing={len(existing_cm)} no_snapshot={cm_not_found})")
     except Exception as e:
         log(f"[ConfirmedMoney] Tarama hatası: {e}")
         import traceback

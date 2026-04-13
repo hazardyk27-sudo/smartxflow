@@ -7866,6 +7866,22 @@ def _cm_in_odds_range(s):
         return False
 
 
+def _cm_still_valid(s):
+    """Endpoint güvenlik filtresi: current_odds ile odds_now arasındaki düşüş
+    CM_ODDS_DROP_PCT (%4) eşiğinin altındaysa sinyal geçersizdir.
+    Veri eksikse sinyali göster (güvenli taraf)."""
+    _CM_DROP = 0.04
+    try:
+        odds_now = float(str(s.get('odds_now') or '').strip())
+        odds_cur = float(str(s.get('current_odds') or '').strip())
+        if odds_now <= 0 or odds_cur <= 0:
+            return True
+        drop_pct = (odds_now - odds_cur) / odds_now
+        return drop_pct >= _CM_DROP
+    except Exception:
+        return True
+
+
 def _cm_v2_in_odds_range(s):
     """True if odds_now is within the allowed CMv2 selection range [1.55, 2.20]."""
     try:
@@ -7903,8 +7919,8 @@ def confirmed_money_endpoint():
             if key not in _cm_seen:
                 _cm_seen[key] = s
         deduped = list(_cm_seen.values())
-        # Tersine dönen oranları ve odds aralığı dışındakileri filtrele
-        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
+        # Tersine dönen oranları, aralık dışındakileri ve düşüş eşiği altındakileri filtrele
+        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s) and _cm_still_valid(s)]
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
