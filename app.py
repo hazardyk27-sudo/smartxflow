@@ -53,6 +53,7 @@ SERVER_ALARM_CACHE_TTL = 120
 _cm_signals_cache = None
 _cm_signals_cache_time = 0
 CM_SIGNALS_CACHE_TTL = 60
+CM_ODDS_DROP_PCT = 0.04  # %4 düşüş eşiği — sinyal_engine.py ile aynı
 
 _cm_v2_signals_cache = None
 _cm_v2_signals_cache_time = 0
@@ -7869,15 +7870,14 @@ def _cm_in_odds_range(s):
 def _cm_still_valid(s):
     """Endpoint güvenlik filtresi: current_odds ile odds_now arasındaki düşüş
     CM_ODDS_DROP_PCT (%4) eşiğinin altındaysa sinyal geçersizdir.
-    Veri eksikse sinyali göster (güvenli taraf)."""
-    _CM_DROP = 0.04
+    Veri eksikse sinyali göster (fail-open, mevcut helper stiliyle tutarlı)."""
     try:
         odds_now = float(str(s.get('odds_now') or '').strip())
         odds_cur = float(str(s.get('current_odds') or '').strip())
         if odds_now <= 0 or odds_cur <= 0:
             return True
         drop_pct = (odds_now - odds_cur) / odds_now
-        return drop_pct >= _CM_DROP
+        return drop_pct >= CM_ODDS_DROP_PCT
     except Exception:
         return True
 
