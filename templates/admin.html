@@ -9187,21 +9187,7 @@
                 listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz sinyal yok</div>';
                 return;
             }
-
-            function _fmtRow(odds, pct, vol) {
-                var pN = parseFloat(String(pct).replace('%','').trim());
-                var vN = parseFloat(String(vol).replace(/[^0-9.]/g,''));
-                var amtSel = (pN > 0 && vN > 0) ? ('£\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB')) : '';
-                var volFmt = vN > 0 ? ('£\u00a0' + Math.round(vN).toLocaleString('en-GB')) : '';
-                var od = (odds && odds !== '-') ? odds : '-';
-                var pc = pN > 0 ? pN.toFixed(0) + '%' : '-';
-                return '<span style="font-size:11px;color:#484f58;">ORAN</span> <span style="font-size:12px;font-weight:700;color:#93c5fd;">' + od + '</span>'
-                    + ' <span style="font-size:11px;color:#484f58;margin-left:8px;">PARA</span> <span style="font-size:12px;font-weight:700;color:#34d399;">' + pc + '</span>'
-                    + (amtSel ? ' <span style="font-size:11px;color:#484f58;margin-left:8px;">SEÇİM</span> <span style="font-size:12px;font-weight:600;color:#c9d1d9;">' + amtSel + '</span>' : '')
-                    + (volFmt ? ' <span style="font-size:11px;color:#484f58;margin-left:8px;">HACİM</span> <span style="font-size:12px;font-weight:600;color:#8b949e;">' + volFmt + '</span>' : '');
-            }
-
-            var dateGroups = {};
+var dateGroups = {};
             filtered.forEach(function(s) {
                 var d = _adminParseDateToISO(s.match_date||'');
                 if (!dateGroups[d]) dateGroups[d] = [];
@@ -9249,8 +9235,8 @@
                     var _fo=function(v){return(v&&v!=='-')?String(v):''};
                     html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
                     html += _adminCmpCell('Oran:',_fo(initOdds),_fo(curOdds));
-                    html += _adminCmpCell('Para:',_fa(_iPN,_iVN),_fa(_cPN,_cVN));
                     html += _adminCmpCell('%Para:',_fp(initPct),_fp(curPct||initPct));
+                    html += _adminCmpCell('Para:',_fa(_iPN,_iVN),_fa(_cPN,_cVN));
                     html += _adminCmpCell('Hacim:',_iVN>0?('\u00a3\u00a0'+Math.round(_iVN).toLocaleString('en-GB')):'',_cVN>0?('\u00a3\u00a0'+Math.round(_cVN).toLocaleString('en-GB')):'');
                     html += '</div>';
                     // Sonuç satırı
@@ -9450,21 +9436,7 @@
                 listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz sinyal yok</div>';
                 return;
             }
-
-            function _fmtFsRow(odds, pct, vol) {
-                var pN = parseFloat(String(pct).replace('%','').trim());
-                var vN = parseFloat(String(vol).replace(/[^0-9.]/g,''));
-                var amtSel = (pN > 0 && vN > 0) ? ('£\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB')) : '';
-                var volFmt = vN > 0 ? ('£\u00a0' + Math.round(vN).toLocaleString('en-GB')) : '';
-                var od = (odds && odds !== '-') ? odds : '-';
-                var pc = pN > 0 ? pN.toFixed(0) + '%' : '-';
-                return '<span style="font-size:11px;color:#484f58;">ORAN</span> <span style="font-size:12px;font-weight:700;color:#93c5fd;">' + od + '</span>'
-                    + ' <span style="font-size:11px;color:#484f58;margin-left:8px;">PARA</span> <span style="font-size:12px;font-weight:700;color:#f97316;">' + pc + '</span>'
-                    + (amtSel ? ' <span style="font-size:11px;color:#484f58;margin-left:8px;">SEÇİM</span> <span style="font-size:12px;font-weight:600;color:#c9d1d9;">' + amtSel + '</span>' : '')
-                    + (volFmt ? ' <span style="font-size:11px;color:#484f58;margin-left:8px;">HACİM</span> <span style="font-size:12px;font-weight:600;color:#8b949e;">' + volFmt + '</span>' : '');
-            }
-
-            var dateGroups = {};
+var dateGroups = {};
             filtered.forEach(function(s) {
                 var d = _adminParseDateToISO(s.match_date||'');
                 if (!dateGroups[d]) dateGroups[d] = [];
@@ -9514,8 +9486,8 @@
                     var _fsInitOdds=sig.odds_16h||initOdds;
                     html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
                     html += _adminCmpCellInvert('Oran:',_fsFO(_fsInitOdds),_fsFO(curOdds));
-                    html += _adminCmpCell('Para:',_fsFA(_fsIPN,_fsIVN),_fsFA(_fsCPN,_fsCVN));
                     html += _adminCmpCell('%Para:',_fsFP(initPct),_fsFP(curPct||initPct));
+                    html += _adminCmpCell('Para:',_fsFA(_fsIPN,_fsIVN),_fsFA(_fsCPN,_fsCVN));
                     html += _adminCmpCell('Hacim:',_fsIVN>0?('\u00a3\u00a0'+Math.round(_fsIVN).toLocaleString('en-GB')):'',_fsCVN>0?('\u00a3\u00a0'+Math.round(_fsCVN).toLocaleString('en-GB')):'');
                     html += '</div>';
                     var sigResult = sig.result || '';
@@ -9712,8 +9684,8 @@
                     var _v2FO=function(v){return(v&&v!=='-')?String(v):''};
                     html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
                     html += _adminCmpCell('Oran:',_v2FO(initOdds),_v2FO(curOdds));
-                    html += _adminCmpCell('Para:',_v2FA(_v2IPN,_v2IVN),_v2FA(_v2CPN,_v2CVN));
                     html += _adminCmpCell('%Para:',_v2FP(initPct),_v2FP(curPct||initPct));
+                    html += _adminCmpCell('Para:',_v2FA(_v2IPN,_v2IVN),_v2FA(_v2CPN,_v2CVN));
                     html += _adminCmpCell('Hacim:',_v2IVN>0?('\u00a3\u00a0'+Math.round(_v2IVN).toLocaleString('en-GB')):'',_v2CVN>0?('\u00a3\u00a0'+Math.round(_v2CVN).toLocaleString('en-GB')):'');
                     html += '</div>';
                     html += '<div style="display:flex;align-items:center;gap:6px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';

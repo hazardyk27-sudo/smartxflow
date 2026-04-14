@@ -835,7 +835,7 @@ function renderConfirmedMoneyView(data) {
             var selCode = sig.selection_code || '';
             var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : selCode;
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
-            var initOdds = sig.odds_now || '-';
+            var initOdds = sig.odds_16h || sig.odds_now || '-';
             var initPct = sig.pct_now || '-';
             var initVol = sig.volume_now || '';
             var curPct = sig.current_pct || '';
