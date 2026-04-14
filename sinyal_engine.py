@@ -203,11 +203,19 @@ def fetch_latest_snapshots():
 
 
 def build_snapshot_lookup(snapshots):
-    """Snapshot listesini match_key bazlı dict'e çevir (home|away|date -> row)."""
+    """Snapshot listesini match_key bazlı dict'e çevir (home|away|date -> row).
+    Her maç için hem UTC (eski kayıtlar) hem UTC+3 (yeni kayıtlar) key eklenir.
+    """
     lookup = {}
     for _hash, row in snapshots.items():
-        mk = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('date', '')}"
-        lookup[mk] = row
+        home = row.get('home', '')
+        away = row.get('away', '')
+        date = row.get('date', '')
+        mk_utc = f"{home}|{away}|{date}"
+        lookup[mk_utc] = row
+        mk_tr = f"{home}|{away}|{_normalize_date_key(date)}"
+        if mk_tr != mk_utc:
+            lookup[mk_tr] = row
     return lookup
 
 
@@ -249,6 +257,28 @@ def check_columns_exist():
         return False
 
 
+def _normalize_date_key(date_str):
+    """Arbworld UTC tarihini UTC+3 (Türkiye) saatine çevirir, saniyesiz.
+    '14.Apr 18:00:00' → '14.Apr 21:00'  (app.py cache ile aynı format)
+    """
+    try:
+        import re as _re
+        s = str(date_str)
+        dm = _re.search(r'(\d{1,2})\.(\w{3})', s)
+        tm = _re.search(r'(\d{2}):(\d{2})(?::\d{2})?', s)
+        if dm and tm:
+            h_utc = int(tm.group(1))
+            mi = tm.group(2)
+            day = int(dm.group(1))
+            h_tr = (h_utc + 3) % 24
+            if h_utc + 3 >= 24:
+                day += 1
+            return f"{day:02d}.{dm.group(2)} {h_tr:02d}:{mi}"
+    except Exception:
+        pass
+    return str(date_str)
+
+
 def find_signals(snapshots):
     """Underdog Pressure kriterlerini karşılayan sinyalleri bul."""
     signals = []
@@ -267,7 +297,7 @@ def find_signals(snapshots):
             if parse_odds_pct(raw_odds) >= ODDS_THRESHOLD and parse_odds_pct(raw_pct) >= PCT_THRESHOLD:
                 signals.append({
                     'home_team': home, 'away_team': away, 'league': league, 'date': date,
-                    'match_key': f"{home}|{away}|{date}",
+                    'match_key': f"{home}|{away}|{_normalize_date_key(date)}",
                     'selection_code': code, 'selection_label': label,
                     'odds': str(raw_odds) if raw_odds is not None else '',
                     'pct': str(raw_pct) if raw_pct is not None else '',

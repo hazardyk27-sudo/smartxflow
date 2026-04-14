@@ -7706,8 +7706,27 @@ def _build_unified_underdog_signals():
     seen = {}
     for s in all_signals:
         key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
-        if key not in seen or _pv(s.get('volume', '')) > _pv(seen[key].get('volume', '')):
-            seen[key] = s
+        if key not in seen:
+            seen[key] = dict(s)
+        else:
+            ex = seen[key]
+            s_has_cur = bool(s.get('last_updated_at'))
+            ex_has_cur = bool(ex.get('last_updated_at'))
+            if s_has_cur and not ex_has_cur:
+                ex['current_odds'] = s.get('current_odds') or ex.get('current_odds') or ''
+                ex['current_pct'] = s.get('current_pct') or ex.get('current_pct') or ''
+                ex['current_amt'] = s.get('current_amt') or ex.get('current_amt') or ''
+                ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
+                ex['last_updated_at'] = s.get('last_updated_at') or ''
+            elif _pv(s.get('volume', '')) > _pv(ex.get('volume', '')):
+                new_s = dict(s)
+                if not s_has_cur and ex_has_cur:
+                    new_s['current_odds'] = ex.get('current_odds') or ''
+                    new_s['current_pct'] = ex.get('current_pct') or ''
+                    new_s['current_amt'] = ex.get('current_amt') or ''
+                    new_s['current_volume'] = ex.get('current_volume') or ''
+                    new_s['last_updated_at'] = ex.get('last_updated_at') or ''
+                seen[key] = new_s
     return list(seen.values())
 
 
