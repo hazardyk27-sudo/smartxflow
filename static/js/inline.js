@@ -834,26 +834,75 @@ function renderConfirmedMoneyView(data) {
         selDaySignals.forEach(function(sig) {
             var selCode = sig.selection_code || '';
             var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : selCode;
-            var oddsNow = sig.current_odds || sig.odds_now || '-';
-            var pctNow = sig.current_pct || sig.pct_now || '-';
-            var volNow = sig.current_volume || sig.volume_now || '';
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
-            var volFmt = volNow ? ('£\u00a0' + parseFloat(String(volNow).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+            var initOdds = sig.odds_now || '-';
+            var initPct = sig.pct_now || '-';
+            var initVol = sig.volume_now || '';
+            var curPct = sig.current_pct || '';
+            var curVol = sig.current_volume || '';
+            var pN = parseFloat(String(initPct).replace(/[^0-9.]/g,''));
+            var vN = parseFloat(String(initVol).replace(/[^0-9.]/g,''));
+            var cpN = parseFloat(String(curPct).replace(/[^0-9.]/g,''));
+            var cvN = parseFloat(String(curVol).replace(/[^0-9.]/g,''));
+            var amtFmt  = (pN > 0 && vN > 0)   ? ('£\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB'))   : '';
+            var curAmtFmt = (cpN > 0 && cvN > 0) ? ('£\u00a0' + Math.round(cpN/100*cvN).toLocaleString('en-GB')) : '';
+            var pctFmt  = pN > 0  ? pN.toFixed(0)  + '%' : '';
+            var curPctFmt = cpN > 0 ? cpN.toFixed(0) + '%' : '';
+            var volFmt  = vN > 0  ? ('£\u00a0' + Math.round(vN).toLocaleString('en-GB'))  : '';
+            var curVolFmt = cvN > 0 ? ('£\u00a0' + Math.round(cvN).toLocaleString('en-GB')) : '';
+            var hoursBeforeHtml = '';
+            if (sig.created_at && sig.match_date) {
+                try {
+                    var matchDt   = new Date(sig.match_date);
+                    var createdDt = new Date(sig.created_at);
+                    var diffH = Math.round((matchDt - createdDt) / 3600000);
+                    if (diffH > 0 && diffH <= 240) {
+                        hoursBeforeHtml = '<span style="background:rgba(52,211,153,0.08);color:#27a874;border:1px solid rgba(52,211,153,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                    }
+                } catch(e) {}
+            }
+            function _cmpCell(label, orig, cur) {
+                if (!orig) return '';
+                var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
+                var cNum = parseFloat(String(cur).replace(/[^0-9.]/g,''));
+                var arrow = '', aColor = '#7d848c';
+                if (cur && cur !== orig && !isNaN(oNum) && !isNaN(cNum)) {
+                    if (cNum > oNum)      { arrow = '\u2191'; aColor = '#34d399'; }
+                    else if (cNum < oNum) { arrow = '\u2193'; aColor = '#f87171'; }
+                }
+                var out = '<div style="display:flex;align-items:center;gap:3px;">';
+                out += '<span style="color:#3a3f45;font-size:9px;font-weight:500;">' + label + '</span>';
+                out += '<span style="color:#7d848c;font-size:10px;">' + orig + '</span>';
+                if (cur && cur !== orig) {
+                    if (arrow) out += '<span style="color:' + aColor + ';font-size:10px;font-weight:700;">' + arrow + '</span>';
+                    out += '<span style="color:' + aColor + ';font-size:10px;font-weight:600;">' + cur + '</span>';
+                }
+                out += '</div>';
+                return out;
+            }
             html += '<div style="background:#1c1f23;border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
             html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
             html += '<div style="flex:1;min-width:0;">';
+            html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
             html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
-            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
-            html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
-            if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0' + volFmt + '</div>';
+            if (hoursBeforeHtml) html += hoursBeforeHtml;
+            html += '</div>';
+            html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
+            html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+            if (amtFmt) html += _cmpCell('Para:', amtFmt, curAmtFmt);
+            if (pctFmt) html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
+            if (volFmt) html += _cmpCell('Hacim:', volFmt, curVolFmt);
             html += '</div>';
             html += '</div>';
-            html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+            html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
+            html += '<div style="display:flex;gap:4px;">';
             html += '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + oddsNow + '</span>';
-            html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%' + (pctNow !== '-' ? parseFloat(pctNow).toFixed(0) : '-') + '</span>';
-            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
-            html += '</div></div></div>';
+            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
+            if (pctFmt) html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
+            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div></div>';
         });
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
@@ -976,26 +1025,75 @@ function renderConfirmedMoneyV2View(data) {
         selDaySignals.forEach(function(sig) {
             var selCode = sig.selection_code || '';
             var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode;
-            var oddsNow = sig.current_odds || sig.odds_now || '-';
-            var pctNow = sig.current_pct || sig.pct_now || '-';
-            var volNow = sig.current_volume || sig.volume_now || '';
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
-            var volFmt = volNow ? ('£\u00a0' + parseFloat(String(volNow).replace(/[^0-9.]/g,'')).toLocaleString('en-GB', {maximumFractionDigits:0})) : '';
+            var initOdds = sig.odds_16h || sig.odds_now || '-';
+            var initPct = sig.pct_now || '-';
+            var initVol = sig.volume_now || '';
+            var curPct = sig.current_pct || '';
+            var curVol = sig.current_volume || '';
+            var pN = parseFloat(String(initPct).replace(/[^0-9.]/g,''));
+            var vN = parseFloat(String(initVol).replace(/[^0-9.]/g,''));
+            var cpN = parseFloat(String(curPct).replace(/[^0-9.]/g,''));
+            var cvN = parseFloat(String(curVol).replace(/[^0-9.]/g,''));
+            var amtFmt  = (pN > 0 && vN > 0)   ? ('£\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB'))   : '';
+            var curAmtFmt = (cpN > 0 && cvN > 0) ? ('£\u00a0' + Math.round(cpN/100*cvN).toLocaleString('en-GB')) : '';
+            var pctFmt  = pN > 0  ? pN.toFixed(0)  + '%' : '';
+            var curPctFmt = cpN > 0 ? cpN.toFixed(0) + '%' : '';
+            var volFmt  = vN > 0  ? ('£\u00a0' + Math.round(vN).toLocaleString('en-GB'))  : '';
+            var curVolFmt = cvN > 0 ? ('£\u00a0' + Math.round(cvN).toLocaleString('en-GB')) : '';
+            var hoursBeforeHtml = '';
+            if (sig.created_at && sig.match_date) {
+                try {
+                    var matchDt   = new Date(sig.match_date);
+                    var createdDt = new Date(sig.created_at);
+                    var diffH = Math.round((matchDt - createdDt) / 3600000);
+                    if (diffH > 0 && diffH <= 240) {
+                        hoursBeforeHtml = '<span style="background:rgba(99,102,241,0.08);color:#8587e0;border:1px solid rgba(99,102,241,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                    }
+                } catch(e) {}
+            }
+            function _cmpCell(label, orig, cur) {
+                if (!orig) return '';
+                var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
+                var cNum = parseFloat(String(cur).replace(/[^0-9.]/g,''));
+                var arrow = '', aColor = '#7d848c';
+                if (cur && cur !== orig && !isNaN(oNum) && !isNaN(cNum)) {
+                    if (cNum > oNum)      { arrow = '\u2191'; aColor = '#34d399'; }
+                    else if (cNum < oNum) { arrow = '\u2193'; aColor = '#f87171'; }
+                }
+                var out = '<div style="display:flex;align-items:center;gap:3px;">';
+                out += '<span style="color:#3a3f45;font-size:9px;font-weight:500;">' + label + '</span>';
+                out += '<span style="color:#7d848c;font-size:10px;">' + orig + '</span>';
+                if (cur && cur !== orig) {
+                    if (arrow) out += '<span style="color:' + aColor + ';font-size:10px;font-weight:700;">' + arrow + '</span>';
+                    out += '<span style="color:' + aColor + ';font-size:10px;font-weight:600;">' + cur + '</span>';
+                }
+                out += '</div>';
+                return out;
+            }
             html += '<div style="background:#1c1f23;border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
             html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
             html += '<div style="flex:1;min-width:0;">';
+            html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
             html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
-            html += '<div style="display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;">';
-            html += '<div style="font-size:10px;color:#484f58;">' + (sig.league || '') + '</div>';
-            if (volFmt) html += '<div style="font-size:10px;color:#7d848c;display:flex;align-items:center;gap:3px;"><span style="color:#3a3f45;">Hacim:</span>\u00a0' + volFmt + '</div>';
+            if (hoursBeforeHtml) html += hoursBeforeHtml;
+            html += '</div>';
+            html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
+            html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+            if (amtFmt) html += _cmpCell('Para:', amtFmt, curAmtFmt);
+            if (pctFmt) html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
+            if (volFmt) html += _cmpCell('Hacim:', volFmt, curVolFmt);
             html += '</div>';
             html += '</div>';
-            html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+            html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
+            html += '<div style="display:flex;gap:4px;">';
             html += '<span style="background:rgba(99,102,241,0.1);color:#6366f1;border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + oddsNow + '</span>';
-            html += '<span style="background:rgba(99,102,241,0.06);color:#6366f1;border:1px solid rgba(99,102,241,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">%' + (pctNow !== '-' ? parseFloat(pctNow).toFixed(0) : '-') + '</span>';
-            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
-            html += '</div></div></div>';
+            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
+            if (pctFmt) html += '<span style="background:rgba(99,102,241,0.06);color:#6366f1;border:1px solid rgba(99,102,241,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
+            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
+            html += '</div>';
+            html += '</div>';
+            html += '</div></div>';
         });
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
