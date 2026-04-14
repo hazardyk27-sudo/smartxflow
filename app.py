@@ -8275,6 +8275,44 @@ def admin_set_cm_signal_result(signal_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/admin/cmv2-signal-result/<int:signal_id>', methods=['PATCH'])
+def admin_set_cmv2_signal_result(signal_id):
+    """Set the result (win/loss/null) for a CMv2 signal by ID."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    result_val = data.get('result')
+    if result_val not in ('win', 'loss', None, ''):
+        return jsonify({'error': 'Invalid result value. Use win, loss, or null.'}), 400
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'error': 'DB unavailable'}), 503
+        key = supabase.key
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+        }
+        patch_url = f"{supabase._rest_url('confirmed_money_v2_signals')}?id=eq.{signal_id}"
+        patch_data = {'result': result_val if result_val else None}
+        resp = supabase._get_http_client().patch(patch_url, headers=headers, json=patch_data, timeout=10)
+        if resp.status_code in (200, 204):
+            global _cm_v2_admin_signals_cache, _cm_v2_admin_signals_cache_time
+            _cm_v2_admin_signals_cache = None
+            _cm_v2_admin_signals_cache_time = 0
+            return jsonify({'ok': True, 'signal_id': signal_id, 'result': result_val})
+        if resp.status_code == 400:
+            body = resp.text[:500]
+            migration_sql = 'ALTER TABLE confirmed_money_v2_signals ADD COLUMN IF NOT EXISTS result text;'
+            return jsonify({'error': 'MIGRATION_NEEDED', 'migration_sql': migration_sql, 'detail': body}), 400
+        return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
+    except Exception as e:
+        print(f"[CMv2-Result] PATCH error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 def _fetch_all_fake_sharp_signals():
     """fake_sharp_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
     try:

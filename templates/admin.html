@@ -8893,9 +8893,11 @@
                     var safeSc = sc.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
                     var clearBtn = res ? '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'background:#161b22;border-color:#21262d;color:#3a3f45;" title="Temizle">✕</button>' : '';
                     var rowId = 'udrow-' + (mk + sc).split('').reduce(function(h,c){return (((h<<5)-h)+c.charCodeAt(0))|0;},0).toString(36).replace('-','n');
+                    var _udHoursHtml = '';
+                    if (sig.created_at && sig.match_date) { try { var _udMDt=new Date(sig.match_date); var _udCDt=new Date(sig.created_at); var _udDiff=Math.round((_udMDt-_udCDt)/3600000); if(_udDiff>0&&_udDiff<=240){_udHoursHtml='<span style="background:rgba(210,153,34,0.08);color:#a07c20;border:1px solid rgba(210,153,34,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">⏱ '+_udDiff+' saat önce</span>';}} catch(e){} }
                     html += '<div id="' + rowId + '" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#161b22;border:1px solid #21262d;margin-bottom:6px;flex-wrap:wrap;">';
                     html += '<div style="flex:1;min-width:150px;">';
-                    html += '<div style="font-size:13px;font-weight:600;color:#c9d1d9;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + scoreHtml + '</div>';
+                    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:13px;font-weight:600;color:#c9d1d9;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + scoreHtml + '</span>' + (_udHoursHtml||'') + '</div>';
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div>';
                     html += '</div>';
                     html += '<span style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.25);color:#d29922;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
@@ -9672,14 +9674,48 @@
                     html += _adminCmpCell('%Para:',_v2FP(initPct),_v2FP(curPct||initPct));
                     html += _adminCmpCell('Hacim:',_v2IVN>0?('\u00a3\u00a0'+Math.round(_v2IVN).toLocaleString('en-GB')):'',_v2CVN>0?('\u00a3\u00a0'+Math.round(_v2CVN).toLocaleString('en-GB')):'');
                     html += '</div>';
-                    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
-                    if (sigResult === 'win') html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
-                    else if (sigResult === 'loss') html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
+                    html += '<div style="display:flex;align-items:center;gap:6px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
+                    if (sigId) {
+                        html += '<button onclick="setCmv2Result(' + sigId + ',\'win\')" style="cursor:pointer;border:1px solid rgba(52,211,153,' + (sigResult==='win'?'0.5':'0.2') + ');border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:rgba(52,211,153,' + (sigResult==='win'?'0.12':'0.03') + ');color:' + (sigResult==='win'?'#34d399':'#4a5568') + ';transition:all 0.15s;">✓ Kazandı</button>';
+                        html += '<button onclick="setCmv2Result(' + sigId + ',\'loss\')" style="cursor:pointer;border:1px solid rgba(248,113,113,' + (sigResult==='loss'?'0.5':'0.2') + ');border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:rgba(248,113,113,' + (sigResult==='loss'?'0.12':'0.03') + ');color:' + (sigResult==='loss'?'#f87171':'#4a5568') + ';transition:all 0.15s;">✗ Kaybetti</button>';
+                        if (sigResult) html += '<button onclick="setCmv2Result(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
+                    } else {
+                        if (sigResult === 'win') html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
+                        else if (sigResult === 'loss') html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
+                    }
                     html += '</div>';
                     html += '</div>';
                 });
             });
             listEl.innerHTML = html;
+        }
+
+        async function setCmv2Result(signalId, result) {
+            try {
+                var resp = await fetch('/api/admin/cmv2-signal-result/' + signalId, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({result: result}),
+                });
+                var data = await resp.json();
+                if (data.ok) {
+                    var listEl = document.getElementById('cmv2AdminList');
+                    if (listEl) listEl.style.opacity = '0.5';
+                    var r2 = await fetch('/api/admin/confirmed-signals-v2');
+                    if (!r2.ok) throw new Error('Liste yenileme başarısız: HTTP ' + r2.status);
+                    var d2 = await r2.json();
+                    _cmv2SignalsCache = d2.signals || [];
+                    buildCmv2DateTabs(_cmv2SignalsCache);
+                    renderCmv2SignalList(_cmv2SignalsCache, document.getElementById('cmv2AdminList'));
+                    if (listEl) listEl.style.opacity = '1';
+                } else if (data.error === 'MIGRATION_NEEDED') {
+                    alert('Migration gerekli:\n' + (data.migration_sql || 'ALTER TABLE confirmed_money_v2_signals ADD COLUMN IF NOT EXISTS result text;'));
+                } else {
+                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                }
+            } catch(e) {
+                alert('İstek başarısız: ' + e.message);
+            }
         }
 
     </script>
