@@ -8211,6 +8211,29 @@ def admin_get_confirmed_signals():
     return jsonify({'signals': signals, 'count': len(signals)})
 
 
+@app.route('/api/admin/confirmed-signals-v2', methods=['GET'])
+def admin_get_confirmed_signals_v2():
+    """Return all CMv2 signals for admin (last 1000), deduped."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    global _cm_v2_signals_cache, _cm_v2_signals_cache_time
+    now = time.time()
+    if _cm_v2_signals_cache is not None and (now - _cm_v2_signals_cache_time) < CM_V2_SIGNALS_CACHE_TTL:
+        signals = _cm_v2_signals_cache
+    else:
+        raw = _fetch_all_confirmed_money_v2_signals()
+        _cm_v2_seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _cm_v2_seen:
+                _cm_v2_seen[key] = s
+        deduped = list(_cm_v2_seen.values())
+        signals = [s for s in deduped if _cm_v2_in_odds_range(s)]
+        _cm_v2_signals_cache = signals
+        _cm_v2_signals_cache_time = now
+    return jsonify({'signals': signals, 'count': len(signals)})
+
+
 @app.route('/api/admin/cm-signal-result/<int:signal_id>', methods=['PATCH'])
 def admin_set_cm_signal_result(signal_id):
     """Set the result (win/loss/null) for a CM signal by ID."""

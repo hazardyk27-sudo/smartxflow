@@ -869,6 +869,10 @@
                 <span class="nav-item-icon">💰</span>
                 <span>Confirmed Money</span>
             </div>
+            <div class="nav-item" onclick="showPage('confirmedsignalsv2')" data-page="confirmedsignalsv2">
+                <span class="nav-item-icon">💎</span>
+                <span>Confirmed Money V2</span>
+            </div>
             <div class="nav-item" onclick="showPage('fakesharpsignals')" data-page="fakesharpsignals">
                 <span class="nav-item-icon">🎯</span>
                 <span>Fake Sharp</span>
@@ -3264,6 +3268,21 @@
             </div>
         </div>
 
+        <div id="page-confirmedsignalsv2" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">💎 Confirmed Money V2 Sinyalleri</h2>
+                    <p class="page-subtitle">Otomatik tespit edilen CMv2 sinyalleri (16 saat pencere + hacim + momentum)</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadConfirmedV2Signals()" style="padding:8px 18px;font-size:13px;">Yenile</button>
+            </div>
+            <div id="cmv2AdminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
+            <div id="cmv2DateTabs" style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;"></div>
+            <div id="cmv2AdminList" style="display:flex;flex-direction:column;gap:0;">
+                <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
+            </div>
+        </div>
+
         <div id="page-fakesharpsignals" class="page-content">
             <div class="page-header">
                 <div>
@@ -4024,6 +4043,7 @@
             if (pageId === 'orders') loadOrders();
             if (pageId === 'underdogsignals') loadUnderdogSignals();
             if (pageId === 'confirmedsignals') loadConfirmedSignals();
+            if (pageId === 'confirmedsignalsv2') loadConfirmedV2Signals();
             if (pageId === 'fakesharpsignals') loadFsSignals();
         }
         
@@ -8967,6 +8987,29 @@
         })();
 
         // ============================================
+        // _adminCmpCell — karşılaştırma hücresi yardımcısı
+        // ============================================
+        function _adminCmpCell(lbl, orig, cur) {
+            if (!orig) return '';
+            var oN = parseFloat(String(orig).replace(/[^0-9.]/g, ''));
+            var cN = parseFloat(String(cur).replace(/[^0-9.]/g, ''));
+            var arrow = '', aClr = '#8b949e';
+            if (cur && cur !== orig && !isNaN(oN) && !isNaN(cN)) {
+                if (cN > oN) { arrow = '↑'; aClr = '#34d399'; }
+                else if (cN < oN) { arrow = '↓'; aClr = '#f87171'; }
+            }
+            var o = '<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;margin-bottom:2px;">';
+            o += '<span style="color:#484f58;font-size:10px;font-weight:500;">' + lbl + '</span>';
+            o += '<span style="color:#8b949e;font-size:11px;">' + orig + '</span>';
+            if (cur && cur !== orig) {
+                if (arrow) o += '<span style="color:' + aClr + ';font-size:11px;font-weight:700;">' + arrow + '</span>';
+                o += '<span style="color:' + aClr + ';font-size:11px;font-weight:600;">' + cur + '</span>';
+            }
+            o += '</span>';
+            return o;
+        }
+
+        // ============================================
         // CONFIRMED MONEY SİNYALLERİ
         // ============================================
         var _cmSignalsCache = [];
@@ -9156,18 +9199,20 @@
                     if (dropPct !== '-') html += '<span style="color:#f87171;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
                     if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
                     html += '</div></div>';
-                    // İlk row
-                    html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                    html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;min-width:36px;">İlk</span>';
-                    html += _fmtRow(initOdds, initPct, initVol);
+                    // Karşılaştırma satırı (_adminCmpCell formatı)
+                    var _iPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _iVN=parseFloat(String(initVol).replace(/[^0-9.]/g,''))||0;
+                    var _cPN=parseFloat(String(curPct||initPct).replace(/[^0-9.]/g,''))||0;
+                    var _cVN=parseFloat(String(curVol||initVol).replace(/[^0-9.]/g,''))||0;
+                    var _fa=function(pN,vN){return(pN>0&&vN>0)?('\u00a3\u00a0'+Math.round(pN/100*vN).toLocaleString('en-GB')):''};
+                    var _fp=function(v){var n=parseFloat(String(v||'').replace(/[^0-9.]/g,''));return isNaN(n)||n===0?'':(n.toFixed(0)+'%')};
+                    var _fo=function(v){return(v&&v!=='-')?String(v):''};
+                    html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
+                    html += _adminCmpCell('Oran:',_fo(initOdds),_fo(curOdds));
+                    html += _adminCmpCell('Para:',_fa(_iPN,_iVN),_fa(_cPN,_cVN));
+                    html += _adminCmpCell('%Para:',_fp(initPct),_fp(curPct||initPct));
+                    html += _adminCmpCell('Hacim:',_iVN>0?('\u00a3\u00a0'+Math.round(_iVN).toLocaleString('en-GB')):'',_cVN>0?('\u00a3\u00a0'+Math.round(_cVN).toLocaleString('en-GB')):'');
                     html += '</div>';
-                    // Şimdi row
-                    if (curOdds) {
-                        html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                        html += '<span style="font-size:10px;font-weight:600;color:#34d399;min-width:36px;">Şimdi</span>';
-                        html += _fmtRow(curOdds, curPct||initPct, curVol||initVol);
-                        html += '</div>';
-                    }
                     // Sonuç satırı
                     var sigResult = sig.result || '';
                     var sigId = sig.id || '';
@@ -9413,16 +9458,21 @@
                     if (risePct !== '-') html += '<span style="color:#fbbf24;font-size:11px;font-weight:600;">+%' + risePct + '</span>';
                     if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
                     html += '</div></div>';
-                    html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                    html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;min-width:36px;">Açılış</span>';
-                    html += _fmtFsRow(sig.odds_16h||initOdds, initPct, initVol);
+                    // Karşılaştırma satırı (_adminCmpCell formatı)
+                    var _fsIPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _fsIVN=parseFloat(String(initVol).replace(/[^0-9.]/g,''))||0;
+                    var _fsCPN=parseFloat(String(curPct||initPct).replace(/[^0-9.]/g,''))||0;
+                    var _fsCVN=parseFloat(String(curVol||initVol).replace(/[^0-9.]/g,''))||0;
+                    var _fsFA=function(pN,vN){return(pN>0&&vN>0)?('\u00a3\u00a0'+Math.round(pN/100*vN).toLocaleString('en-GB')):''};
+                    var _fsFP=function(v){var n=parseFloat(String(v||'').replace(/[^0-9.]/g,''));return isNaN(n)||n===0?'':(n.toFixed(0)+'%')};
+                    var _fsFO=function(v){return(v&&v!=='-')?String(v):''};
+                    var _fsInitOdds=sig.odds_16h||initOdds;
+                    html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
+                    html += _adminCmpCell('Oran:',_fsFO(_fsInitOdds),_fsFO(curOdds));
+                    html += _adminCmpCell('Para:',_fsFA(_fsIPN,_fsIVN),_fsFA(_fsCPN,_fsCVN));
+                    html += _adminCmpCell('%Para:',_fsFP(initPct),_fsFP(curPct||initPct));
+                    html += _adminCmpCell('Hacim:',_fsIVN>0?('\u00a3\u00a0'+Math.round(_fsIVN).toLocaleString('en-GB')):'',_fsCVN>0?('\u00a3\u00a0'+Math.round(_fsCVN).toLocaleString('en-GB')):'');
                     html += '</div>';
-                    if (curOdds) {
-                        html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                        html += '<span style="font-size:10px;font-weight:600;color:#f97316;min-width:36px;">Şimdi</span>';
-                        html += _fmtFsRow(curOdds, curPct||initPct, curVol||initVol);
-                        html += '</div>';
-                    }
                     var sigResult = sig.result || '';
                     var sigId = sig.id || '';
                     html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
@@ -9469,6 +9519,161 @@
             } catch(e) {
                 alert('İstek başarısız: ' + e.message);
             }
+        }
+
+        // ============================================
+        // CONFIRMED MONEY V2 SİNYALLERİ — ADMIN
+        // ============================================
+        var _cmv2SignalsCache = [];
+        var _cmv2SelectedDate = null;
+
+        async function loadConfirmedV2Signals() {
+            _cmv2SelectedDate = null;
+            var listEl = document.getElementById('cmv2AdminList');
+            var statsEl = document.getElementById('cmv2AdminStats');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            try {
+                var resp = await fetch('/api/admin/confirmed-signals-v2');
+                if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
+                var data = await resp.json();
+                _cmv2SignalsCache = data.signals || [];
+                renderCmv2AdminSignals(_cmv2SignalsCache, listEl, statsEl);
+            } catch(e) {
+                listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Hata: ' + e.message + '</div>';
+            }
+        }
+
+        function renderCmv2AdminSignals(signals, listEl, statsEl) {
+            if (statsEl) {
+                var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:10px 20px;border-radius:8px;background:#161b22;border:1px solid #30363d;min-width:70px;';
+                var avgOdds = signals.length > 0 ? (signals.reduce(function(s,x){ return s + parseFloat((x.current_odds||x.odds_now||'0').replace(/[^0-9.]/g,'')||0); },0) / signals.length).toFixed(2) : '-';
+                var avgDrop = signals.length > 0 ? (signals.reduce(function(s,x){ return s + (parseFloat(x.odds_drop_pct||0)||0); },0) / signals.length).toFixed(1) : '-';
+                var wins = signals.filter(function(x){ return x.result === 'win'; }).length;
+                var losses = signals.filter(function(x){ return x.result === 'loss'; }).length;
+                var judged = wins + losses;
+                var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
+                var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
+                statsEl.innerHTML =
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#a78bfa;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>' +
+                    '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
+                    '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
+                        '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
+                        '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
+            }
+            buildCmv2DateTabs(signals);
+            renderCmv2SignalList(signals, listEl);
+        }
+
+        function buildCmv2DateTabs(signals) {
+            var tabsEl = document.getElementById('cmv2DateTabs');
+            if (!tabsEl) return;
+            var TR_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            function _fmtKey(d) { return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2); }
+            var signalDates = {};
+            signals.forEach(function(s) { var d = _adminParseDateToISO(s.match_date||''); if (d) signalDates[d] = (signalDates[d]||0)+1; });
+            var tabs = [];
+            for (var i = -3; i <= 3; i++) { var d = new Date(today); d.setDate(today.getDate() + i); tabs.push(d); }
+            if (!_cmv2SelectedDate) {
+                var todayKey = _fmtKey(today);
+                _cmv2SelectedDate = signalDates[todayKey] ? todayKey : (Object.keys(signalDates).sort().reverse()[0] || todayKey);
+            }
+            var html = '';
+            var allActive = _cmv2SelectedDate === 'all';
+            html += '<button onclick="selectCmv2Date(\'all\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (allActive?'#a78bfa':'#30363d') + ';background:' + (allActive?'rgba(167,139,250,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                '<span style="font-size:10px;font-weight:600;color:' + (allActive?'#a78bfa':'#8b949e') + ';letter-spacing:0.5px;">TÜM</span>' +
+                '<span style="font-size:12px;font-weight:700;color:' + (allActive?'#a78bfa':'#c9d1d9') + ';">Tarih</span>' +
+                (Object.keys(signalDates).length?'<div style="width:5px;height:5px;border-radius:50%;background:#a78bfa;margin-top:2px;"></div>':'<div style="width:5px;height:5px;margin-top:2px;"></div>') + '</button>';
+            tabs.forEach(function(d) {
+                var key = _fmtKey(d);
+                var isToday = key === _fmtKey(today);
+                var isActive = _cmv2SelectedDate === key;
+                var hasSignals = !!signalDates[key];
+                html += '<button onclick="selectCmv2Date(\'' + key + '\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (isActive?'#a78bfa':'#30363d') + ';background:' + (isActive?'rgba(167,139,250,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                    '<span style="font-size:10px;font-weight:600;color:' + (isActive?'#a78bfa':'#8b949e') + ';letter-spacing:0.5px;">' + TR_SHORT[d.getDay()] + '</span>' +
+                    '<span style="font-size:12px;font-weight:700;color:' + (isActive?'#a78bfa':'#c9d1d9') + ';">' + (isToday?'Bugün':(('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2))) + '</span>' +
+                    (hasSignals?'<div style="width:5px;height:5px;border-radius:50%;background:#a78bfa;margin-top:2px;"></div>':'<div style="width:5px;height:5px;margin-top:2px;"></div>') + '</button>';
+            });
+            tabsEl.innerHTML = html;
+        }
+
+        function selectCmv2Date(dateKey) {
+            _cmv2SelectedDate = dateKey;
+            buildCmv2DateTabs(_cmv2SignalsCache);
+            renderCmv2SignalList(_cmv2SignalsCache, document.getElementById('cmv2AdminList'));
+        }
+
+        function renderCmv2SignalList(signals, listEl) {
+            var TR_MONTHS = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+            var filtered = (_cmv2SelectedDate && _cmv2SelectedDate !== 'all')
+                ? signals.filter(function(s) { return _adminParseDateToISO(s.match_date||'') === _cmv2SelectedDate; })
+                : signals;
+            var _seen = {};
+            filtered = filtered.filter(function(s) {
+                var k = (s.home_team||'') + '|' + (s.away_team||'') + '|' + (s.selection_code||'');
+                if (_seen[k]) return false; _seen[k] = true; return true;
+            });
+            if (!filtered.length) { listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz sinyal yok</div>'; return; }
+            var dateGroups = {};
+            filtered.forEach(function(s) { var d = _adminParseDateToISO(s.match_date||''); if (!dateGroups[d]) dateGroups[d]=[]; dateGroups[d].push(s); });
+            var html = '';
+            Object.keys(dateGroups).sort().forEach(function(dateKey) {
+                var items = dateGroups[dateKey];
+                var dp = dateKey.split('-');
+                var dObj = dp.length===3 ? new Date(parseInt(dp[0]),parseInt(dp[1])-1,parseInt(dp[2])) : null;
+                var dateLabel = dObj ? (dObj.getDate()+' '+TR_MONTHS[dObj.getMonth()]+' '+dObj.getFullYear()) : dateKey;
+                html += '<div style="padding:10px 0 4px;font-size:11px;font-weight:600;color:#484f58;letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid #21262d;margin-bottom:6px;">' + dateLabel + ' <span style="color:#3a3f45;font-weight:400;">(' + items.length + ' sinyal)</span></div>';
+                items.forEach(function(sig) {
+                    var sc = sig.selection_code || '';
+                    var selLabel = sc==='1'?'Ev Sahibi':sc==='2'?'Deplasman':sc==='X'?'Beraberlik':sc;
+                    var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
+                    var initOdds = sig.odds_16h || sig.odds_now || '-';
+                    var initPct = sig.pct_now || '-';
+                    var initVol = sig.volume_now || '';
+                    var curOdds = sig.current_odds || sig.odds_now || '';
+                    var curPct = sig.current_pct || '';
+                    var curVol = sig.current_volume || '';
+                    var createdAt = sig.created_at ? new Date(sig.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                    var sigResult = sig.result || '';
+                    var sigId = sig.id || '';
+                    html += '<div style="padding:10px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(167,139,250,0.1);margin-bottom:6px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">';
+                    html += '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>';
+                    html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div></div>';
+                    html += '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">';
+                    html += '<span style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
+                    if (dropPct !== '-') html += '<span style="color:#f87171;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
+                    if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
+                    html += '</div></div>';
+                    // Karşılaştırma satırı
+                    var _v2IPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _v2IVN=parseFloat(String(initVol).replace(/[^0-9.]/g,''))||0;
+                    var _v2CPN=parseFloat(String(curPct||initPct).replace(/[^0-9.]/g,''))||0;
+                    var _v2CVN=parseFloat(String(curVol||initVol).replace(/[^0-9.]/g,''))||0;
+                    var _v2FA=function(pN,vN){return(pN>0&&vN>0)?('\u00a3\u00a0'+Math.round(pN/100*vN).toLocaleString('en-GB')):''};
+                    var _v2FP=function(v){var n=parseFloat(String(v||'').replace(/[^0-9.]/g,''));return isNaN(n)||n===0?'':(n.toFixed(0)+'%')};
+                    var _v2FO=function(v){return(v&&v!=='-')?String(v):''};
+                    html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
+                    html += _adminCmpCell('Oran:',_v2FO(initOdds),_v2FO(curOdds));
+                    html += _adminCmpCell('Para:',_v2FA(_v2IPN,_v2IVN),_v2FA(_v2CPN,_v2CVN));
+                    html += _adminCmpCell('%Para:',_v2FP(initPct),_v2FP(curPct||initPct));
+                    html += _adminCmpCell('Hacim:',_v2IVN>0?('\u00a3\u00a0'+Math.round(_v2IVN).toLocaleString('en-GB')):'',_v2CVN>0?('\u00a3\u00a0'+Math.round(_v2CVN).toLocaleString('en-GB')):'');
+                    html += '</div>';
+                    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
+                    if (sigResult === 'win') html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
+                    else if (sigResult === 'loss') html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
+                    html += '</div>';
+                    html += '</div>';
+                });
+            });
+            listEl.innerHTML = html;
         }
 
     </script>
