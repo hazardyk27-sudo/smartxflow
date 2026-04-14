@@ -526,6 +526,16 @@ def fetch_history_16h():
     return history
 
 
+def _normalize_mk(mk):
+    """Match_key'in tarih kısmını UTC+3'e normalize eder (cooldown kontrol tutarlılığı).
+    'home|away|14.Apr 18:45:00' → 'home|away|14.Apr 21:45'
+    """
+    parts = mk.split('|')
+    if len(parts) == 3:
+        return f"{parts[0]}|{parts[1]}|{_normalize_date_key(parts[2])}"
+    return mk
+
+
 def fetch_cm_recent_cooldowns():
     """Son CM_COOLDOWN_HOURS saatteki confirmed_money_signals kayıtlarını çek."""
     try:
@@ -539,7 +549,15 @@ def fetch_cm_recent_cooldowns():
         r = requests.get(url, headers=_headers_read(), timeout=10)
         if r.status_code == 200:
             rows = r.json()
-            return {(row['match_key'], row['selection_code']) for row in rows}
+            result = set()
+            for row in rows:
+                mk = row['match_key']
+                sc = row['selection_code']
+                result.add((mk, sc))
+                mk_norm = _normalize_mk(mk)
+                if mk_norm != mk:
+                    result.add((mk_norm, sc))
+            return result
         return set()
     except Exception:
         return set()
@@ -558,7 +576,15 @@ def fetch_cm_v2_recent_cooldowns():
         r = requests.get(url, headers=_headers_read(), timeout=10)
         if r.status_code == 200:
             rows = r.json()
-            return {(row['match_key'], row['selection_code']) for row in rows}
+            result = set()
+            for row in rows:
+                mk = row['match_key']
+                sc = row['selection_code']
+                result.add((mk, sc))
+                mk_norm = _normalize_mk(mk)
+                if mk_norm != mk:
+                    result.add((mk_norm, sc))
+            return result
         return set()
     except Exception:
         return set()
@@ -610,7 +636,7 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
             ('X', 'Beraberlik', 'oddsx', 'pctx'),
             ('2', 'Deplasman',  'odds2', 'pct2'),
         ]:
-            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
+            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{_normalize_date_key(latest.get('date', ''))}"
 
             if (mk, code) in cooldown_set:
                 continue
@@ -683,7 +709,7 @@ def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
             ('1', 'Ev Sahibi', 'odds1', 'pct1'),
             ('2', 'Deplasman', 'odds2', 'pct2'),
         ]:
-            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
+            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{_normalize_date_key(latest.get('date', ''))}"
 
             if (mk, code) in cooldown_set:
                 continue
@@ -1093,7 +1119,15 @@ def fetch_fs_cooldown():
         r = requests.get(url, headers=_headers_read(), timeout=10)
         if r.status_code == 200:
             rows = r.json()
-            return {(row['match_key'], row['selection_code']) for row in rows}
+            result = set()
+            for row in rows:
+                mk = row['match_key']
+                sc = row['selection_code']
+                result.add((mk, sc))
+                mk_norm = _normalize_mk(mk)
+                if mk_norm != mk:
+                    result.add((mk_norm, sc))
+            return result
         return set()
     except Exception:
         return set()
@@ -1123,7 +1157,7 @@ def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
             ('1', 'Ev Sahibi', 'odds1', 'pct1'),
             ('2', 'Deplasman', 'odds2', 'pct2'),
         ]:
-            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{latest.get('date', '')}"
+            mk = f"{latest.get('home', '')}|{latest.get('away', '')}|{_normalize_date_key(latest.get('date', ''))}"
 
             if (mk, code) in cooldown_set:
                 continue

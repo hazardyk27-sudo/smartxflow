@@ -8029,12 +8029,23 @@ def confirmed_money_endpoint():
         all_signals = _cm_signals_cache
     else:
         raw = _fetch_all_confirmed_money_signals()
-        # Deduplication: aynı (home, away, selection_code) için tek kayıt tut (en güncel)
+        # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
+        # Tercih: last_updated_at dolu olanı; ikisi de doluysa created_at yenisini al
+        # current_* değerleri her iki kayıttan birleştirilir
         _cm_seen = {}
         for s in raw:
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
             if key not in _cm_seen:
-                _cm_seen[key] = s
+                _cm_seen[key] = dict(s)
+            else:
+                ex = _cm_seen[key]
+                s_has_cur = bool(s.get('last_updated_at'))
+                ex_has_cur = bool(ex.get('last_updated_at'))
+                if s_has_cur and not ex_has_cur:
+                    ex['current_odds'] = s.get('current_odds') or ex.get('current_odds') or ''
+                    ex['current_pct'] = s.get('current_pct') or ex.get('current_pct') or ''
+                    ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
+                    ex['last_updated_at'] = s.get('last_updated_at') or ''
         deduped = list(_cm_seen.values())
         # Tersine dönen oranları ve aralık dışındakileri filtrele
         # NOT: _cm_still_valid() burada kullanılmıyor çünkü odds_now zaten düşmüş referans noktasıdır;
@@ -8122,7 +8133,16 @@ def confirmed_money_v2_endpoint():
         for s in raw:
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
             if key not in _cm_v2_seen:
-                _cm_v2_seen[key] = s
+                _cm_v2_seen[key] = dict(s)
+            else:
+                ex = _cm_v2_seen[key]
+                s_has_cur = bool(s.get('last_updated_at'))
+                ex_has_cur = bool(ex.get('last_updated_at'))
+                if s_has_cur and not ex_has_cur:
+                    ex['current_odds'] = s.get('current_odds') or ex.get('current_odds') or ''
+                    ex['current_pct'] = s.get('current_pct') or ex.get('current_pct') or ''
+                    ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
+                    ex['last_updated_at'] = s.get('last_updated_at') or ''
         deduped = list(_cm_v2_seen.values())
         # Geçmiş maçları her zaman göster; sadece bugün/gelecek aktif sinyallerde oran filtresi uygula
         all_signals = []
@@ -8301,7 +8321,16 @@ def fake_sharp_endpoint():
         for s in raw:
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
             if key not in _fs_seen:
-                _fs_seen[key] = s
+                _fs_seen[key] = dict(s)
+            else:
+                ex = _fs_seen[key]
+                s_has_cur = bool(s.get('last_updated_at'))
+                ex_has_cur = bool(ex.get('last_updated_at'))
+                if s_has_cur and not ex_has_cur:
+                    ex['current_odds'] = s.get('current_odds') or ex.get('current_odds') or ''
+                    ex['current_pct'] = s.get('current_pct') or ex.get('current_pct') or ''
+                    ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
+                    ex['last_updated_at'] = s.get('last_updated_at') or ''
         all_signals = list(_fs_seen.values())
         # Güvenlik filtresi: current_odds, odds_16h'a göre %4 yükseliş eşiğinin altına düştüyse sinyali gizle
         def _fs_still_valid(s):
