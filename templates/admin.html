@@ -9010,6 +9010,25 @@
             o += '</span>';
             return o;
         }
+        function _adminCmpCellInvert(lbl, orig, cur) {
+            if (!orig) return '';
+            var oN = parseFloat(String(orig).replace(/[^0-9.]/g, ''));
+            var cN = parseFloat(String(cur).replace(/[^0-9.]/g, ''));
+            var arrow = '', aClr = '#8b949e';
+            if (cur && cur !== orig && !isNaN(oN) && !isNaN(cN)) {
+                if (cN > oN) { arrow = '↑'; aClr = '#f87171'; }
+                else if (cN < oN) { arrow = '↓'; aClr = '#34d399'; }
+            }
+            var o = '<span style="display:inline-flex;align-items:center;gap:3px;margin-right:12px;margin-bottom:2px;">';
+            o += '<span style="color:#484f58;font-size:10px;font-weight:500;">' + lbl + '</span>';
+            o += '<span style="color:#8b949e;font-size:11px;">' + orig + '</span>';
+            if (cur && cur !== orig) {
+                if (arrow) o += '<span style="color:' + aClr + ';font-size:11px;font-weight:700;">' + arrow + '</span>';
+                o += '<span style="color:' + aClr + ';font-size:11px;font-weight:600;">' + cur + '</span>';
+            }
+            o += '</span>';
+            return o;
+        }
 
         // ============================================
         // CONFIRMED MONEY SİNYALLERİ
@@ -9190,18 +9209,19 @@
                     var curOdds = sig.current_odds || '';
                     var curPct = sig.current_pct || '';
                     var curVol = sig.current_volume || '';
-                    var createdAt = sig.created_at ? new Date(sig.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
                     var _cmHoursHtml = '';
                     if (sig.created_at && sig.match_date) { try { var _cmMDt=new Date(sig.match_date); var _cmCDt=new Date(sig.created_at); var _cmDiff=Math.round((_cmMDt-_cmCDt)/3600000); if(_cmDiff>0&&_cmDiff<=240){_cmHoursHtml='<span style="background:rgba(52,211,153,0.08);color:#27a874;border:1px solid rgba(52,211,153,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">⏱ '+_cmDiff+' saat önce</span>';}} catch(e){} }
+                    var _cmPN = parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _cmPctBadge = _cmPN > 0 ? _cmPN.toFixed(0) + '%' : '';
                     html += '<div style="padding:10px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(52,211,153,0.1);margin-bottom:6px;">';
-                    // Header
-                    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">';
                     html += '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="font-size:13px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>' + (_cmHoursHtml||'') + '</div>';
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div></div>';
-                    html += '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">';
-                    html += '<span style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
-                    if (dropPct !== '-') html += '<span style="color:#f87171;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
-                    if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
+                    html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+                    html += '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                    if (initOdds && initOdds !== '-') html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
+                    if (_cmPctBadge) html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + _cmPctBadge + '</span>';
+                    if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
                     html += '</div></div>';
                     // Karşılaştırma satırı (_adminCmpCell formatı)
                     var _iPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
@@ -9455,16 +9475,19 @@
                     var createdAt = sig.created_at ? new Date(sig.created_at).toLocaleString('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
                     var _fsHoursHtml = '';
                     if (sig.created_at && sig.match_date) { try { var _fsMDt=new Date(sig.match_date); var _fsCDt=new Date(sig.created_at); var _fsDiff=Math.round((_fsMDt-_fsCDt)/3600000); if(_fsDiff>0&&_fsDiff<=240){_fsHoursHtml='<span style="background:rgba(249,115,22,0.08);color:#c2600a;border:1px solid rgba(249,115,22,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">⏱ '+_fsDiff+' saat önce</span>';}} catch(e){} }
+                    var _fsPN = parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _fsPctBadge = _fsPN > 0 ? _fsPN.toFixed(0) + '%' : '';
                     html += '<div style="padding:10px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(249,115,22,0.1);margin-bottom:6px;">';
-                    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">';
                     html += '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="font-size:13px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>' + (_fsHoursHtml||'') + '</div>';
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div></div>';
-                    html += '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">';
-                    html += '<span style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.25);color:#f97316;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
-                    if (risePct !== '-') html += '<span style="color:#fbbf24;font-size:11px;font-weight:600;">+%' + risePct + '</span>';
-                    if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
+                    html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+                    html += '<span style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                    if (initOdds && initOdds !== '-') html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
+                    if (_fsPctBadge) html += '<span style="background:rgba(249,115,22,0.06);color:#f97316;border:1px solid rgba(249,115,22,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + _fsPctBadge + '</span>';
+                    if (risePct !== '-') html += '<span style="background:rgba(251,191,36,0.06);color:#fbbf24;border:1px solid rgba(251,191,36,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">+' + risePct + '%</span>';
                     html += '</div></div>';
-                    // Karşılaştırma satırı (_adminCmpCell formatı)
+                    // Karşılaştırma satırı (Oran inverted: artış = kötü)
                     var _fsIPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
                     var _fsIVN=parseFloat(String(initVol).replace(/[^0-9.]/g,''))||0;
                     var _fsCPN=parseFloat(String(curPct||initPct).replace(/[^0-9.]/g,''))||0;
@@ -9474,7 +9497,7 @@
                     var _fsFO=function(v){return(v&&v!=='-')?String(v):''};
                     var _fsInitOdds=sig.odds_16h||initOdds;
                     html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                    html += _adminCmpCell('Oran:',_fsFO(_fsInitOdds),_fsFO(curOdds));
+                    html += _adminCmpCellInvert('Oran:',_fsFO(_fsInitOdds),_fsFO(curOdds));
                     html += _adminCmpCell('Para:',_fsFA(_fsIPN,_fsIVN),_fsFA(_fsCPN,_fsCVN));
                     html += _adminCmpCell('%Para:',_fsFP(initPct),_fsFP(curPct||initPct));
                     html += _adminCmpCell('Hacim:',_fsIVN>0?('\u00a3\u00a0'+Math.round(_fsIVN).toLocaleString('en-GB')):'',_fsCVN>0?('\u00a3\u00a0'+Math.round(_fsCVN).toLocaleString('en-GB')):'');
@@ -9651,14 +9674,17 @@
                     var sigId = sig.id || '';
                     var _v2HoursHtml = '';
                     if (sig.created_at && sig.match_date) { try { var _v2MDt=new Date(sig.match_date); var _v2CDt=new Date(sig.created_at); var _v2Diff=Math.round((_v2MDt-_v2CDt)/3600000); if(_v2Diff>0&&_v2Diff<=240){_v2HoursHtml='<span style="background:rgba(99,102,241,0.08);color:#8587e0;border:1px solid rgba(99,102,241,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">⏱ '+_v2Diff+' saat önce</span>';}} catch(e){} }
+                    var _v2PN = parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
+                    var _v2PctBadge = _v2PN > 0 ? _v2PN.toFixed(0) + '%' : '';
                     html += '<div style="padding:10px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(167,139,250,0.1);margin-bottom:6px;">';
-                    html += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">';
                     html += '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><div style="font-size:13px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>' + (_v2HoursHtml||'') + '</div>';
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div></div>';
-                    html += '<div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">';
-                    html += '<span style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
-                    if (dropPct !== '-') html += '<span style="color:#f87171;font-size:11px;font-weight:600;">-%' + dropPct + '</span>';
-                    if (createdAt) html += '<span style="color:#3a3f45;font-size:10px;margin-left:6px;">' + createdAt + '</span>';
+                    html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+                    html += '<span style="background:rgba(167,139,250,0.1);color:#a78bfa;border:1px solid rgba(167,139,250,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                    if (initOdds && initOdds !== '-') html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
+                    if (_v2PctBadge) html += '<span style="background:rgba(99,102,241,0.06);color:#6366f1;border:1px solid rgba(99,102,241,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + _v2PctBadge + '</span>';
+                    if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
                     html += '</div></div>';
                     // Karşılaştırma satırı
                     var _v2IPN=parseFloat(String(initPct).replace(/[^0-9.]/g,''))||0;
