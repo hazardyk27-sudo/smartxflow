@@ -8899,10 +8899,10 @@
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div>';
                     html += '</div>';
                     html += '<span style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.25);color:#d29922;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
-                    html += '<span style="color:#93c5fd;font-size:12px;font-weight:600;">' + (sig.odds||'-') + '</span>';
-                    html += '<span style="color:#34d399;font-size:12px;font-weight:600;">' + (sig.pct||'-') + '</span>';
-                    if (sig.amt) html += '<span style="color:#8b949e;font-size:11px;" title="Seçenek parası">Para: ' + sig.amt + '</span>';
-                    if (sig.volume) html += '<span style="color:#484f58;font-size:11px;" title="Toplam hacim">Hacim: ' + sig.volume + '</span>';
+                    html += _adminCmpCell('Oran:', sig.odds||'', '');
+                    html += _adminCmpCell('%Para:', sig.pct||'', '');
+                    html += _adminCmpCell('Para:', sig.amt||'', '');
+                    html += _adminCmpCell('Hacim:', sig.volume||'', '');
                     html += '<div style="display:flex;gap:4px;margin-left:auto;">';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
