@@ -8884,31 +8884,47 @@
                     var mk = sig.match_key || (sig.home_team + '|' + sig.away_team + '|' + (sig.match_date || sig.date || ''));
                     var sc = sig.selection_code || '';
                     var selLabel = sc === '1' ? 'Ev Sahibi' : sc === '2' ? 'Deplasman' : 'Beraberlik';
-                    var scoreHtml = sig.score ? '<span style="background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:11px;font-weight:600;padding:1px 8px;border-radius:4px;margin-left:6px;">' + sig.score + '</span>' : '';
+                    var scoreHtml = sig.score ? '<span style="background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:11px;font-weight:600;padding:1px 8px;border-radius:4px;">' + sig.score + '</span>' : '';
                     var res = sig.result || '';
-                    var wonActive = res === 'won' ? 'background:#1a3a1e;border-color:#3fb950;color:#3fb950;' : 'background:#161b22;border-color:#30363d;color:#8b949e;';
-                    var lostActive = res === 'lost' ? 'background:#3a1a1a;border-color:#f85149;color:#f85149;' : 'background:#161b22;border-color:#30363d;color:#8b949e;';
-                    var btnBase = 'cursor:pointer;border:1px solid;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:600;transition:all 0.15s;';
+                    var wonActive = res === 'won' ? 'background:rgba(63,185,80,0.12);border-color:#3fb950;color:#3fb950;' : 'background:transparent;border-color:rgba(52,211,153,0.2);color:#4a5568;';
+                    var lostActive = res === 'lost' ? 'background:rgba(248,81,73,0.12);border-color:#f85149;color:#f85149;' : 'background:transparent;border-color:rgba(248,113,113,0.2);color:#4a5568;';
+                    var btnBase = 'cursor:pointer;border:1px solid;border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;transition:all 0.15s;';
                     var safeMk = mk.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
                     var safeSc = sc.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-                    var clearBtn = res ? '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'background:#161b22;border-color:#21262d;color:#3a3f45;" title="Temizle">✕</button>' : '';
                     var rowId = 'udrow-' + (mk + sc).split('').reduce(function(h,c){return (((h<<5)-h)+c.charCodeAt(0))|0;},0).toString(36).replace('-','n');
                     var _udHoursHtml = '';
                     if (sig.created_at && sig.match_date) { try { var _udMDt=new Date(sig.match_date); var _udCDt=new Date(sig.created_at); var _udDiff=Math.round((_udMDt-_udCDt)/3600000); if(_udDiff>0&&_udDiff<=240){_udHoursHtml='<span style="background:rgba(210,153,34,0.08);color:#a07c20;border:1px solid rgba(210,153,34,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">⏱ '+_udDiff+' saat önce</span>';}} catch(e){} }
-                    html += '<div id="' + rowId + '" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#161b22;border:1px solid #21262d;margin-bottom:6px;flex-wrap:wrap;">';
-                    html += '<div style="flex:1;min-width:150px;">';
-                    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-size:13px;font-weight:600;color:#c9d1d9;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + scoreHtml + '</span>' + (_udHoursHtml||'') + '</div>';
+                    var _udOdds = sig.odds || '';
+                    var _udPctN = parseFloat(String(sig.pct||'').replace(/[^0-9.]/g,''))||0;
+                    var _udPctBadge = _udPctN > 0 ? _udPctN.toFixed(0) + '%' : '';
+                    html += '<div id="' + rowId + '" style="padding:10px 12px;border-radius:8px;background:#161b22;border:1px solid rgba(210,153,34,0.12);margin-bottom:6px;">';
+                    // Header row: left (match + ⏱ + league) | right (Seçenek/Oran/%Para badges)
+                    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;">';
+                    html += '<div style="flex:1;min-width:0;">';
+                    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+                    html += '<span style="font-size:13px;font-weight:600;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</span>';
+                    if (_udHoursHtml) html += _udHoursHtml;
+                    html += '</div>';
                     html += '<div style="font-size:10px;color:#484f58;margin-top:2px;">' + (sig.league||'') + '</div>';
                     html += '</div>';
-                    html += '<span style="background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.25);color:#d29922;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;">' + selLabel + '</span>';
+                    html += '<div style="display:flex;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">';
+                    html += '<span style="background:rgba(210,153,34,0.1);color:#d29922;border:1px solid rgba(210,153,34,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                    if (_udOdds && _udOdds !== '-') html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + _udOdds + '</span>';
+                    if (_udPctBadge) html += '<span style="background:rgba(210,153,34,0.06);color:#d29922;border:1px solid rgba(210,153,34,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + _udPctBadge + '</span>';
+                    html += '</div></div>';
+                    // Compare row
+                    html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
                     html += _adminCmpCell('Oran:', sig.odds||'', '');
                     html += _adminCmpCell('%Para:', sig.pct||'', '');
                     html += _adminCmpCell('Para:', sig.amt||'', '');
                     html += _adminCmpCell('Hacim:', sig.volume||'', '');
-                    html += '<div style="display:flex;gap:4px;margin-left:auto;">';
+                    html += '</div>';
+                    // Action row: score badge + buttons
+                    html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
+                    if (scoreHtml) html += scoreHtml;
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
-                    html += clearBtn;
+                    if (res) html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'border-color:rgba(255,255,255,0.06);color:#3a3f45;">✕</button>';
                     html += '</div></div>';
                 });
             });
