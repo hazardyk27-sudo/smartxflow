@@ -8971,7 +8971,7 @@
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
                     if (res) html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'border-color:rgba(255,255,255,0.06);color:#3a3f45;">✕</button>';
-                    html += '<button data-approvekey="' + _udApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_udApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_udApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_udApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_udApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_udApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
+                    html += '<button data-approvekey="' + _udApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(this.dataset.approvekey)" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_udApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_udApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_udApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_udApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div></div>';
                 });
             });
@@ -9366,7 +9366,7 @@ var dateGroups = {};
                             html += '<button onclick="setCmResult(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
                         }
                     }
-                    html += '<button data-approvekey="' + _cmApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_cmApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_cmApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_cmApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_cmApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_cmApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
+                    html += '<button data-approvekey="' + _cmApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(this.dataset.approvekey)" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_cmApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_cmApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_cmApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_cmApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });
@@ -9621,7 +9621,7 @@ var dateGroups = {};
                             html += '<button onclick="setFsResult(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
                         }
                     }
-                    html += '<button data-approvekey="' + _fsApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_fsApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_fsApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_fsApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_fsApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_fsApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
+                    html += '<button data-approvekey="' + _fsApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(this.dataset.approvekey)" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_fsApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_fsApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_fsApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_fsApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });
@@ -9818,7 +9818,7 @@ var dateGroups = {};
                         if (sigResult === 'win') html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
                         else if (sigResult === 'loss') html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
                     }
-                    html += '<button data-approvekey="' + _v2ApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_v2ApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_v2Approved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_v2Approved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_v2Approved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_v2Approved?'✓ Onaylı':'☆ Onayla') + '</button>';
+                    html += '<button data-approvekey="' + _v2ApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(this.dataset.approvekey)" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_v2Approved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_v2Approved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_v2Approved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_v2Approved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });
