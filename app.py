@@ -8796,6 +8796,28 @@ def admin_approve_signal():
     return jsonify({'status': 'ok', 'approve_key': approve_key})
 
 
+@app.route('/api/admin/approved-signal-result', methods=['PATCH'])
+def admin_update_approved_signal_result():
+    """Update result (win/loss/'') for an approved signal."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    approve_key = data.get('approve_key', '').strip()
+    result_val = data.get('result', '')
+    if not approve_key:
+        return jsonify({'error': 'approve_key required'}), 400
+    if result_val not in ('win', 'loss', ''):
+        return jsonify({'error': 'Invalid result. Use win, loss, or ""'}), 400
+    with _approved_signals_lock:
+        signals = _load_approved_signals()
+        if approve_key not in signals:
+            return jsonify({'error': 'Signal not found'}), 404
+        signals[approve_key]['result'] = result_val
+        if not _save_approved_signals(signals):
+            return jsonify({'error': 'SAVE_FAILED', 'message': 'Sonuç kaydedilemedi'}), 500
+    return jsonify({'status': 'ok', 'approve_key': approve_key, 'result': result_val})
+
+
 @app.route('/api/admin/approve-signal', methods=['DELETE'])
 def admin_unapprove_signal():
     """Remove approval from a signal."""

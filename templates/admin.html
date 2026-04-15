@@ -877,6 +877,10 @@
                 <span class="nav-item-icon">🎯</span>
                 <span>Fake Sharp</span>
             </div>
+            <div class="nav-item" onclick="showPage('approvedsignals')" data-page="approvedsignals">
+                <span class="nav-item-icon">⭐</span>
+                <span>Onaylı Sinyaller</span>
+            </div>
         </nav>
         <div class="sidebar-footer">
             <a href="/" class="back-home">
@@ -3297,6 +3301,20 @@
                 <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
             </div>
         </div>
+
+        <div id="page-approvedsignals" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">⭐ Onaylı Sinyaller</h2>
+                    <p class="page-subtitle">Admin onayından geçen sinyaller ve performans ölçümü</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadApprovedSignalsPage()" style="padding:8px 18px;font-size:13px;">Yenile</button>
+            </div>
+            <div id="approvedSignalsStats" style="margin-bottom:20px;"></div>
+            <div id="approvedSignalsList" style="display:flex;flex-direction:column;gap:0;border:1px solid #21262d;border-radius:8px;overflow:hidden;">
+                <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
+            </div>
+        </div>
     </main>
 
     <div class="toast" id="toast"></div>
@@ -4045,6 +4063,7 @@
             if (pageId === 'confirmedsignals') loadConfirmedSignals();
             if (pageId === 'confirmedsignalsv2') loadConfirmedV2Signals();
             if (pageId === 'fakesharpsignals') loadFsSignals();
+            if (pageId === 'approvedsignals') loadApprovedSignalsPage();
         }
         
         var _allOrders = [];
@@ -9851,6 +9870,208 @@ var dateGroups = {};
                 }
             } catch(e) {
                 alert('İstek başarısız: ' + e.message);
+            }
+        }
+
+        // ============================================
+        // ONAYLI SİNYALLER ADMIN SAYFASI
+        // ============================================
+
+        async function loadApprovedSignalsPage() {
+            var listEl = document.getElementById('approvedSignalsList');
+            var statsEl = document.getElementById('approvedSignalsStats');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            try {
+                var resp = await fetch('/api/admin/approved-signals');
+                if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
+                var data = await resp.json();
+                var signals = Object.entries(data.approved || {}).map(function(entry) {
+                    return Object.assign({approve_key: entry[0]}, entry[1]);
+                });
+                signals.sort(function(a, b) { return (b.approved_at || '') > (a.approved_at || '') ? 1 : -1; });
+                renderApprovedSignalsStats(signals, statsEl);
+                renderApprovedSignalsAdmin(signals, listEl);
+            } catch(e) {
+                listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Hata: ' + e.message + '</div>';
+            }
+        }
+
+        function renderApprovedSignalsStats(signals, statsEl) {
+            if (!statsEl) return;
+            var total = signals.length;
+            var wins = signals.filter(function(s) { return s.result === 'win'; }).length;
+            var losses = signals.filter(function(s) { return s.result === 'loss'; }).length;
+            var pending = total - wins - losses;
+            var evaluated = wins + losses;
+            var winPct = evaluated > 0 ? (wins / evaluated * 100).toFixed(1) : '-';
+            var winPctNum = evaluated > 0 ? (wins / evaluated * 100) : null;
+
+            var oddsArr = signals.filter(function(s){ return parseFloat(s.odds||'0') > 0; }).map(function(s){ return parseFloat(s.odds); });
+            var avgOdds = oddsArr.length > 0 ? (oddsArr.reduce(function(a,b){return a+b;}, 0)/oddsArr.length).toFixed(2) : '-';
+
+            var evalSignals = signals.filter(function(s){ return s.result === 'win' || s.result === 'loss'; });
+            var roi = '-';
+            if (evaluated > 0) {
+                var totalReturn = evalSignals.reduce(function(acc, s) {
+                    var odds = parseFloat(s.odds || '0') || 0;
+                    return acc + (s.result === 'win' ? (odds - 1) : -1);
+                }, 0);
+                var roiNum = (totalReturn / evaluated * 100);
+                roi = (roiNum >= 0 ? '+' : '') + roiNum.toFixed(1) + '%';
+            }
+
+            var avgEvalOdds = '-';
+            if (evalSignals.length > 0) {
+                var evalOddsArr = evalSignals.map(function(s){ return parseFloat(s.odds||'0') || 0; });
+                avgEvalOdds = (evalOddsArr.reduce(function(a,b){return a+b;},0)/evalOddsArr.length).toFixed(2);
+            }
+
+            var winColor = winPctNum === null ? '#8b949e' : (winPctNum >= 60 ? '#34d399' : winPctNum >= 45 ? '#f0883e' : '#f87171');
+            var roiColor = roi === '-' ? '#8b949e' : (roi.startsWith('-') ? '#f87171' : '#34d399');
+
+            var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:14px 22px;border-radius:10px;background:#161b22;border:1px solid #30363d;min-width:80px;gap:2px;';
+
+            var TYPE_LABEL = {underdog:'Underdog',cm:'Conf. Money',cmv2:'CM v2',fakesharp:'Fake Sharp'};
+            var TYPE_COLOR = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316'};
+            var typeMap = {};
+            signals.forEach(function(s) {
+                var t = s.signal_type || 'unknown';
+                if (!typeMap[t]) typeMap[t] = {total:0,wins:0,losses:0};
+                typeMap[t].total++;
+                if (s.result === 'win') typeMap[t].wins++;
+                if (s.result === 'loss') typeMap[t].losses++;
+            });
+            var typeBreakdown = Object.entries(typeMap).map(function(entry) {
+                var type = entry[0]; var stats = entry[1];
+                var typeEval = stats.wins + stats.losses;
+                var typeWinPct = typeEval > 0 ? (stats.wins/typeEval*100).toFixed(0) + '%' : '-';
+                var typeLabel = TYPE_LABEL[type] || type;
+                var typeColor = TYPE_COLOR[type] || '#8b949e';
+                return '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:6px;background:#161b22;border:1px solid #30363d;">' +
+                    '<span style="color:' + typeColor + ';font-size:12px;font-weight:700;">' + typeLabel + '</span>' +
+                    '<span style="color:#8b949e;font-size:11px;">' + stats.total + ' sinyal</span>' +
+                    (typeEval > 0 ? '<span style="color:' + (stats.wins/typeEval >= 0.5?'#34d399':'#f87171') + ';font-size:12px;font-weight:700;">' + typeWinPct + '</span>' +
+                    '<span style="color:#8b949e;font-size:10px;">(' + stats.wins + 'K/' + stats.losses + 'K)</span>' : '<span style="color:#484f58;font-size:11px;">bekliyor</span>') +
+                '</div>';
+            }).join('');
+
+            statsEl.innerHTML =
+                '<div style="background:#0d1117;border:1px solid #21262d;border-radius:12px;padding:20px 24px;margin-bottom:16px;">' +
+                    '<div style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;">Performans Özeti</div>' +
+                    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">' +
+                        '<div style="' + sb + '"><div style="font-size:24px;font-weight:800;color:#3b82f6;">' + total + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                        '<div style="' + sb + '"><div style="font-size:24px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
+                        '<div style="' + sb + '"><div style="font-size:24px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
+                        '<div style="' + sb + '"><div style="font-size:24px;font-weight:800;color:#8b949e;">' + pending + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Bekliyor</div></div>' +
+                        '<div style="' + sb + ';border-color:' + winColor + '40;">' +
+                            '<div style="font-size:24px;font-weight:800;color:' + winColor + ';">' + (winPct !== '-' ? winPct + '%' : '-') + '</div>' +
+                            '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazanma %</div>' +
+                        '</div>' +
+                        '<div style="' + sb + '"><div style="font-size:22px;font-weight:800;color:#e6edf3;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
+                        '<div style="' + sb + '"><div style="font-size:22px;font-weight:800;color:#e6edf3;">' + avgEvalOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Değ. Ort. Oran</div></div>' +
+                        '<div style="' + sb + ';border-color:' + roiColor + '40;">' +
+                            '<div style="font-size:22px;font-weight:800;color:' + roiColor + ';">' + roi + '</div>' +
+                            '<div style="font-size:11px;color:#8b949e;margin-top:2px;">ROI</div>' +
+                        '</div>' +
+                    '</div>' +
+                    (typeBreakdown ? '<div style="border-top:1px solid #21262d;padding-top:12px;"><div style="font-size:11px;color:#8b949e;margin-bottom:8px;">Sinyal Türüne Göre</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + typeBreakdown + '</div></div>' : '') +
+                '</div>';
+        }
+
+        function renderApprovedSignalsAdmin(signals, listEl) {
+            if (!listEl) return;
+            if (signals.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz onaylanmış sinyal yok.</div>';
+                return;
+            }
+            var SC_LABELS = {'1':'Ev Gal.','X':'Beraberlik','2':'Dep. Gal.','Over':'Üst','Under':'Alt'};
+            var TYPE_BG = {underdog:'rgba(210,153,34,0.12)',cm:'rgba(52,211,153,0.08)',cmv2:'rgba(99,102,241,0.08)',fakesharp:'rgba(249,115,22,0.08)'};
+            var TYPE_BDR = {underdog:'rgba(210,153,34,0.35)',cm:'rgba(52,211,153,0.25)',cmv2:'rgba(99,102,241,0.25)',fakesharp:'rgba(249,115,22,0.25)'};
+            var TYPE_TXT = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316'};
+            var TYPE_LABEL = {underdog:'UD',cm:'CM',cmv2:'CMv2',fakesharp:'FS'};
+
+            var html = '<div style="display:grid;grid-template-columns:40px 1fr 70px 70px 200px 60px;align-items:center;padding:8px 16px;background:#161b22;border-bottom:1px solid #21262d;font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.05em;">' +
+                '<span>Tür</span><span>Maç</span><span style="text-align:center;">Oran</span><span style="text-align:center;">Para %</span><span style="text-align:center;">Sonuç</span><span style="text-align:right;">Tarih</span>' +
+            '</div>';
+
+            signals.forEach(function(sig, idx) {
+                var type = sig.signal_type || '';
+                var bg = TYPE_BG[type] || 'rgba(255,255,255,0.03)';
+                var bdr = TYPE_BDR[type] || 'rgba(255,255,255,0.08)';
+                var txt = TYPE_TXT[type] || '#8b949e';
+                var lbl = TYPE_LABEL[type] || type.toUpperCase();
+                var result = sig.result || '';
+                var sc = sig.selection_code || '';
+                var scLabel = SC_LABELS[sc] || sc;
+                var ak = (sig.approve_key || '').replace(/"/g, '&quot;');
+
+                var dateFormatted = '';
+                if (sig.match_date) {
+                    try {
+                        var d = new Date(sig.match_date);
+                        dateFormatted = d.getDate() + '.' + (d.getMonth()+1) + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+                    } catch(e2) {}
+                }
+                var approvedAt = '';
+                if (sig.approved_at) {
+                    try {
+                        var ad = new Date(sig.approved_at);
+                        approvedAt = ad.getDate() + '.' + (ad.getMonth()+1) + ' ' + String(ad.getHours()).padStart(2,'0') + ':' + String(ad.getMinutes()).padStart(2,'0');
+                    } catch(e3) {}
+                }
+
+                var winActive = result === 'win';
+                var lossActive = result === 'loss';
+                var rowBg = result === 'win' ? 'rgba(52,211,153,0.04)' : result === 'loss' ? 'rgba(248,113,113,0.04)' : (idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)');
+                var resultBadge = result === 'win' ? '<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(52,211,153,0.2);border:1px solid rgba(52,211,153,0.5);color:#34d399;font-size:10px;font-weight:700;margin-right:6px;">✓ KAZANDI</span>' :
+                    result === 'loss' ? '<span style="display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(248,113,113,0.2);border:1px solid rgba(248,113,113,0.5);color:#f87171;font-size:10px;font-weight:700;margin-right:6px;">✗ KAYBETTİ</span>' : '';
+
+                html += '<div style="display:grid;grid-template-columns:40px 1fr 70px 70px 200px 60px;align-items:center;padding:11px 16px;border-bottom:1px solid #21262d;background:' + rowBg + ';transition:background 0.15s;">' +
+                    '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:' + bg + ';border:1px solid ' + bdr + ';color:' + txt + ';text-align:center;">' + lbl + '</span>' +
+                    '<div style="padding:0 12px;min-width:0;">' +
+                        '<div style="font-size:13px;font-weight:600;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team||'') + ' - ' + (sig.away_team||'') + '</div>' +
+                        '<div style="font-size:11px;color:#8b949e;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.league||'') + (dateFormatted ? ' · ' + dateFormatted : '') + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:center;">' +
+                        '<div style="font-size:14px;font-weight:700;color:#e6edf3;">' + (sig.odds||'-') + '</div>' +
+                        '<div style="font-size:10px;color:#8b949e;">' + scLabel + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:center;">' +
+                        '<div style="font-size:13px;font-weight:600;color:#60a5fa;">' + (sig.pct||'-') + '</div>' +
+                        '<div style="font-size:10px;color:#8b949e;">' + (sig.amt||'') + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:5px;justify-content:center;">' +
+                        resultBadge +
+                        '<button data-akey="' + ak + '" data-res="win" onclick="setApprovedResult(this.dataset.akey, this.dataset.res)" style="cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid ' + (winActive?'rgba(52,211,153,0.7)':'rgba(52,211,153,0.2)') + ';background:' + (winActive?'rgba(52,211,153,0.2)':'rgba(52,211,153,0.05)') + ';color:' + (winActive?'#34d399':'#34d39970') + ';font-size:11px;font-weight:700;transition:all 0.15s;">✓</button>' +
+                        '<button data-akey="' + ak + '" data-res="loss" onclick="setApprovedResult(this.dataset.akey, this.dataset.res)" style="cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid ' + (lossActive?'rgba(248,113,113,0.7)':'rgba(248,113,113,0.2)') + ';background:' + (lossActive?'rgba(248,113,113,0.2)':'rgba(248,113,113,0.05)') + ';color:' + (lossActive?'#f87171':'#f8717170') + ';font-size:11px;font-weight:700;transition:all 0.15s;">✗</button>' +
+                        (result ? '<button data-akey="' + ak + '" data-res="" onclick="setApprovedResult(this.dataset.akey, this.dataset.res)" style="cursor:pointer;padding:5px 7px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#484f58;font-size:10px;">↺</button>' : '') +
+                    '</div>' +
+                    '<div style="font-size:10px;color:#484f58;text-align:right;">' + approvedAt + '</div>' +
+                '</div>';
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        async function setApprovedResult(approveKey, result) {
+            try {
+                var resp = await fetch('/api/admin/approved-signal-result', {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({approve_key: approveKey, result: result})
+                });
+                var data = await resp.json();
+                if (data.status === 'ok') {
+                    var msg = result === 'win' ? '✓ Kazandı olarak işaretlendi' : result === 'loss' ? '✗ Kaybetti olarak işaretlendi' : 'Sonuç sıfırlandı';
+                    var type = result === 'win' ? 'success' : result === 'loss' ? 'error' : 'info';
+                    showToast(msg, type);
+                    loadApprovedSignalsPage();
+                } else {
+                    showToast('Hata: ' + (data.error || 'Bilinmeyen'), 'error');
+                }
+            } catch(e) {
+                showToast('Bağlantı hatası: ' + e.message, 'error');
             }
         }
 
