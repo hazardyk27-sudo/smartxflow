@@ -7863,21 +7863,56 @@
             }
         }
 
-        // Underdog auto-refresh timer
+        // Sinyal sayfası auto-refresh timer'ları (60 saniye)
         var _udRefreshTimer = null;
+        var _cmRefreshTimer = null;
+        var _cmv2RefreshTimer = null;
+        var _fsRefreshTimer = null;
 
-        function startUdAutoRefresh() {
-            stopUdAutoRefresh();
-            _udRefreshTimer = setInterval(function() {
-                var page = document.getElementById('page-underdogsignals');
-                if (page && page.classList.contains('active')) {
-                    loadUnderdogSignals();
-                }
+        function _makeAutoRefresh(pageId, loadFn, timerRef) {
+            return setInterval(function() {
+                var page = document.getElementById('page-' + pageId);
+                if (page && page.classList.contains('active')) { loadFn(); }
             }, 60000);
         }
 
+        function startUdAutoRefresh() {
+            stopUdAutoRefresh();
+            _udRefreshTimer = _makeAutoRefresh('underdogsignals', loadUnderdogSignals);
+        }
         function stopUdAutoRefresh() {
             if (_udRefreshTimer) { clearInterval(_udRefreshTimer); _udRefreshTimer = null; }
+        }
+
+        function startCmAutoRefresh() {
+            stopCmAutoRefresh();
+            _cmRefreshTimer = _makeAutoRefresh('confirmedsignals', loadConfirmedSignals);
+        }
+        function stopCmAutoRefresh() {
+            if (_cmRefreshTimer) { clearInterval(_cmRefreshTimer); _cmRefreshTimer = null; }
+        }
+
+        function startCmv2AutoRefresh() {
+            stopCmv2AutoRefresh();
+            _cmv2RefreshTimer = _makeAutoRefresh('confirmedsignalsv2', loadConfirmedV2Signals);
+        }
+        function stopCmv2AutoRefresh() {
+            if (_cmv2RefreshTimer) { clearInterval(_cmv2RefreshTimer); _cmv2RefreshTimer = null; }
+        }
+
+        function startFsAutoRefresh() {
+            stopFsAutoRefresh();
+            _fsRefreshTimer = _makeAutoRefresh('fakesharpsignals', loadFsSignals);
+        }
+        function stopFsAutoRefresh() {
+            if (_fsRefreshTimer) { clearInterval(_fsRefreshTimer); _fsRefreshTimer = null; }
+        }
+
+        function _stopAllSignalRefreshes() {
+            stopUdAutoRefresh();
+            stopCmAutoRefresh();
+            stopCmv2AutoRefresh();
+            stopFsAutoRefresh();
         }
 
         // Load license data when license page is shown
@@ -7891,10 +7926,15 @@
             if (pageName === 'dashboard') {
                 loadAnalyticsDashboard();
             }
+            _stopAllSignalRefreshes();
             if (pageName === 'underdogsignals') {
                 startUdAutoRefresh();
-            } else {
-                stopUdAutoRefresh();
+            } else if (pageName === 'confirmedsignals') {
+                startCmAutoRefresh();
+            } else if (pageName === 'confirmedsignalsv2') {
+                startCmv2AutoRefresh();
+            } else if (pageName === 'fakesharpsignals') {
+                startFsAutoRefresh();
             }
         };
 
