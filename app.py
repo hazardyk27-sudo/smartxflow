@@ -8230,7 +8230,13 @@ def admin_get_confirmed_signals():
         _cm_signals_cache = signals
         _cm_signals_cache_time = now
 
-    return jsonify({'signals': signals, 'count': len(signals)})
+    with _approved_signals_lock:
+        approved = _load_approved_signals()
+    enriched = []
+    for s in signals:
+        ak = 'cm|{}|{}|{}'.format(s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        enriched.append({**s, 'is_approved': ak in approved})
+    return jsonify({'signals': enriched, 'count': len(enriched)})
 
 
 @app.route('/api/admin/confirmed-signals-v2', methods=['GET'])
@@ -8252,7 +8258,13 @@ def admin_get_confirmed_signals_v2():
         signals = list(_cm_v2_seen.values())
         _cm_v2_admin_signals_cache = signals
         _cm_v2_admin_signals_cache_time = now
-    return jsonify({'signals': signals, 'count': len(signals)})
+    with _approved_signals_lock:
+        approved = _load_approved_signals()
+    enriched = []
+    for s in signals:
+        ak = 'cmv2|{}|{}|{}'.format(s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        enriched.append({**s, 'is_approved': ak in approved})
+    return jsonify({'signals': enriched, 'count': len(enriched)})
 
 
 @app.route('/api/admin/cm-signal-result/<int:signal_id>', methods=['PATCH'])
@@ -8480,7 +8492,13 @@ def admin_get_fake_sharp_signals():
         _fs_signals_cache = signals
         _fs_signals_cache_time = now
 
-    return jsonify({'signals': signals, 'count': len(signals)})
+    with _approved_signals_lock:
+        approved = _load_approved_signals()
+    enriched = []
+    for s in signals:
+        ak = 'fs|{}|{}|{}'.format(s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        enriched.append({**s, 'is_approved': ak in approved})
+    return jsonify({'signals': enriched, 'count': len(enriched)})
 
 
 @app.route('/api/admin/fs-signal-result/<int:signal_id>', methods=['PATCH'])
@@ -8531,12 +8549,17 @@ def admin_get_underdog_signals():
     signals = _build_unified_underdog_signals()
 
     results_map = _load_ud_results()
+    with _approved_signals_lock:
+        approved = _load_approved_signals()
+    enriched = []
     for sig in signals:
         mk = sig.get('match_key', '')
         sc = sig.get('selection_code', '')
         if not sig.get('result'):
             sig['result'] = results_map.get(f"{mk}|{sc}", '')
-    return jsonify({'signals': signals, 'count': len(signals)})
+        ak = 'ud|{}|{}|{}'.format(sig.get('home_team', ''), sig.get('away_team', ''), sc)
+        enriched.append({**sig, 'is_approved': ak in approved})
+    return jsonify({'signals': enriched, 'count': len(enriched)})
 
 
 @app.route('/api/admin/underdog-signals/result', methods=['PATCH'])
@@ -8790,20 +8813,11 @@ def admin_unapprove_signal():
 @app.route('/api/approved-signals', methods=['GET'])
 @license_required
 def get_approved_signals_public():
-    """Public endpoint — returns approved signals (license required)."""
+    """Public endpoint — returns all approved signals (license required)."""
     with _approved_signals_lock:
         data = _load_approved_signals()
-    cutoff = datetime.utcnow() - timedelta(days=30)
     signals = []
     for key, sig in data.items():
-        try:
-            approved_at_str = sig.get('approved_at', '')
-            if approved_at_str:
-                approved_at = datetime.fromisoformat(approved_at_str.replace('Z', ''))
-                if approved_at < cutoff:
-                    continue
-        except Exception:
-            pass
         signals.append({**sig, 'approve_key': key})
     signals.sort(key=lambda x: x.get('approved_at', ''), reverse=True)
     return jsonify({'signals': signals, 'count': len(signals)})
