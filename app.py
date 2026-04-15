@@ -82,8 +82,10 @@ def _save_approved_signals(data):
         os.makedirs(os.path.dirname(_APPROVED_SIGNALS_PATH), exist_ok=True)
         with open(_APPROVED_SIGNALS_PATH, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
     except Exception as e:
         print(f"[ApprovedSignals] Save error: {e}")
+        return False
 
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
@@ -8789,7 +8791,8 @@ def admin_approve_signal():
             'volume': body.get('volume', ''),
             'approved_at': datetime.utcnow().isoformat() + 'Z',
         }
-        _save_approved_signals(data)
+        if not _save_approved_signals(data):
+            return jsonify({'error': 'SAVE_FAILED', 'message': 'Onay kaydedilemedi'}), 500
     return jsonify({'status': 'ok', 'approve_key': approve_key})
 
 
@@ -8806,7 +8809,8 @@ def admin_unapprove_signal():
         data = _load_approved_signals()
         removed = approve_key in data
         data.pop(approve_key, None)
-        _save_approved_signals(data)
+        if not _save_approved_signals(data):
+            return jsonify({'error': 'SAVE_FAILED', 'message': 'Onay kaldırılamadı'}), 500
     return jsonify({'status': 'ok', 'removed': removed})
 
 
