@@ -171,6 +171,10 @@ def fetch_latest_snapshots():
     Kolonlar: home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2
     Anahtar: tabloda gerçek match_id_hash varsa onu kullan; yoksa home|away|date
     (fetch_history_16h() da aynı formatı kullanır — lookup tutarlılığı sağlanır).
+
+    EK: moneyway_1x2_history'den son 2 saatin en güncel snapshot'ları da eklenir
+    (history fallback). Bu sayede maç başladıktan sonra canlı tablodan düşen maçlar
+    için de FakeSharp sinyali üretilebilir. Canlı tablo her zaman önceliklidir.
     """
     try:
         url = (
@@ -195,7 +199,52 @@ def fetch_latest_snapshots():
             if key not in latest:
                 row['match_id_hash'] = key
                 latest[key] = row
-        log(f"[Fetch] {len(latest)} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+        live_count = len(latest)
+
+        # --- History fallback: son 2 saatteki maçların en güncel snapshot'ı ---
+        # Maç başladıktan sonra moneyway_1x2'den düşen maçlar için FakeSharp
+        # sinyalinin üretilebilmesi amacıyla history tablosundan ek snapshot çekilir.
+        try:
+            cutoff_2h = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+            hist_url = (
+                f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
+                f"?select=home,away,league,date,odds1,oddsx,odds2,pct1,pctx,pct2,amt1,amtx,amt2,volume,scraped_at"
+                f"&scraped_at=gte.{cutoff_2h}"
+                f"&order=scraped_at.desc"
+                f"&limit=20000"
+            )
+            hr = requests.get(hist_url, headers=_headers_read(), timeout=20)
+            if hr.status_code == 200:
+                hist_rows = hr.json()
+                # Her maç için sadece en güncel (desc sıralı, ilk gelen) snapshot'ı al
+                hist_latest = {}
+                for row in hist_rows:
+                    home = row.get('home', '')
+                    away = row.get('away', '')
+                    date = row.get('date', '')
+                    if not home or not away:
+                        continue
+                    key = f"{home}|{away}|{date}"
+                    if key not in hist_latest:
+                        row['match_id_hash'] = key
+                        hist_latest[key] = row
+                # Canlı tabloda olmayan maçları ekle (canlı tablo öncelikli)
+                fallback_count = 0
+                for key, row in hist_latest.items():
+                    if key not in latest:
+                        latest[key] = row
+                        fallback_count += 1
+                if fallback_count > 0:
+                    log(f"[Fetch] {live_count} maç (live) + {fallback_count} maç (history fallback, son 2sa)")
+                else:
+                    log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+            else:
+                log(f"[Fetch] History fallback HTTP {hr.status_code} — atlandı")
+                log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+        except Exception as he:
+            log(f"[Fetch] History fallback hata: {he} — atlandı")
+            log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+
         return latest
     except Exception as e:
         log(f"[Fetch] Hata: {e}")
