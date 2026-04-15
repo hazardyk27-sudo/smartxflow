@@ -8954,10 +8954,10 @@
                     html += '</div></div>';
                     // Compare row
                     html += '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:5px 0;border-top:1px solid rgba(255,255,255,0.04);">';
-                    html += _adminCmpCell('Oran:', sig.odds||'', '');
-                    html += _adminCmpCell('%Para:', sig.pct||'', '');
-                    html += _adminCmpCell('Para:', sig.amt||'', '');
-                    html += _adminCmpCell('Hacim:', sig.volume||'', '');
+                    html += _adminCmpCell('Oran:', sig.odds||'', sig.current_odds||'');
+                    html += _adminCmpCell('%Para:', sig.pct||'', sig.current_pct||'');
+                    html += _adminCmpCell('Para:', sig.amt||'', sig.current_amt||'');
+                    html += _adminCmpCell('Hacim:', sig.volume||'', sig.current_volume||'');
                     html += '</div>';
                     // Action row: score badge + buttons
                     html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
