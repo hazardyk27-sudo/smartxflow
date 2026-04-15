@@ -234,16 +234,13 @@ def fetch_latest_snapshots():
                     if key not in latest:
                         latest[key] = row
                         fallback_count += 1
-                if fallback_count > 0:
-                    log(f"[Fetch] {live_count} maç (live) + {fallback_count} maç (history fallback, son 2sa)")
-                else:
-                    log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+                log(f"[Fetch] {live_count} maç (live) + {fallback_count} maç (history fallback, son 2sa)")
             else:
                 log(f"[Fetch] History fallback HTTP {hr.status_code} — atlandı")
-                log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+                log(f"[Fetch] {live_count} maç (live) + 0 maç (history fallback)")
         except Exception as he:
             log(f"[Fetch] History fallback hata: {he} — atlandı")
-            log(f"[Fetch] {live_count} benzersiz maç için son snapshot çekildi (moneyway_1x2)")
+            log(f"[Fetch] {live_count} maç (live) + 0 maç (history fallback)")
 
         return latest
     except Exception as e:
