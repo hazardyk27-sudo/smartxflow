@@ -8765,8 +8765,10 @@
         // UNDERDOG SİNYALLERİ
         // ============================================
         var _udSignalsCache = null;
-
         var _udSelectedDate = null;
+        var _adminApprovedKeys = {};
+        var _adminApproveData = {};
+        var _adminApprovedKeysLoaded = false;
 
         function _udParseDate(dateStr) {
             if (!dateStr) return '';
@@ -8856,6 +8858,7 @@
             const statsEl = document.getElementById('udAdminStats');
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            if (!_adminApprovedKeysLoaded) await loadAdminApprovedKeys();
             try {
                 const resp = await fetch('/api/admin/underdog-signals');
                 if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
@@ -8960,11 +8963,15 @@
                     html += _adminCmpCell('Hacim:', sig.volume||'', sig.current_volume||'');
                     html += '</div>';
                     // Action row: score badge + buttons
+                    var _udApproveKey = 'ud|' + (sig.home_team||'') + '|' + (sig.away_team||'') + '|' + sc;
+                    _adminApproveData[_udApproveKey] = {signal_type:'underdog',match_key:mk,selection_code:sc,home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||sig.date||'',odds:sig.odds||'',pct:sig.pct||'',amt:sig.amt||'',volume:sig.volume||''};
+                    var _udApproved = !!_adminApprovedKeys[_udApproveKey];
                     html += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
                     if (scoreHtml) html += scoreHtml;
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="won" style="' + btnBase + wonActive + '">✓ Kazandı</button>';
                     html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="lost" style="' + btnBase + lostActive + '">✗ Kaybetti</button>';
                     if (res) html += '<button class="ud-result-btn" data-mk="' + safeMk + '" data-sc="' + safeSc + '" data-res="" style="' + btnBase + 'border-color:rgba(255,255,255,0.06);color:#3a3f45;">✕</button>';
+                    html += '<button data-approvekey="' + _udApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_udApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_udApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_udApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_udApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_udApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div></div>';
                 });
             });
@@ -9086,6 +9093,66 @@
             return o;
         }
 
+        async function loadAdminApprovedKeys() {
+            try {
+                var resp = await fetch('/api/admin/approved-signals');
+                var data = await resp.json();
+                _adminApprovedKeys = {};
+                if (data.approved) {
+                    Object.keys(data.approved).forEach(function(key) {
+                        _adminApprovedKeys[key] = true;
+                    });
+                }
+                _adminApprovedKeysLoaded = true;
+            } catch(e) {
+                console.error('[Admin] loadAdminApprovedKeys error:', e);
+            }
+        }
+
+        async function toggleApproveSignal(approveKey) {
+            var isApproved = !!_adminApprovedKeys[approveKey];
+            var sigData = _adminApproveData[approveKey] || {};
+            try {
+                var resp;
+                if (isApproved) {
+                    resp = await fetch('/api/admin/approve-signal', {
+                        method: 'DELETE',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({approve_key: approveKey})
+                    });
+                } else {
+                    resp = await fetch('/api/admin/approve-signal', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(Object.assign({approve_key: approveKey}, sigData))
+                    });
+                }
+                var result = await resp.json();
+                if (result.status === 'ok') {
+                    if (isApproved) {
+                        delete _adminApprovedKeys[approveKey];
+                        showToast('Onay kaldırıldı', 'info');
+                    } else {
+                        _adminApprovedKeys[approveKey] = true;
+                        showToast('Sinyal onaylandı ✓', 'success');
+                    }
+                    document.querySelectorAll('[data-approvekey]').forEach(function(btn) {
+                        if (btn.getAttribute('data-approvekey') === approveKey) {
+                            var nowApproved = !!_adminApprovedKeys[approveKey];
+                            btn.style.border = '1px solid ' + (nowApproved ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.08)');
+                            btn.style.background = nowApproved ? 'rgba(52,211,153,0.12)' : 'transparent';
+                            btn.style.color = nowApproved ? '#34d399' : '#484f58';
+                            btn.textContent = nowApproved ? '✓ Onaylı' : '☆ Onayla';
+                        }
+                    });
+                } else {
+                    showToast('Hata: ' + (result.error || 'Bilinmeyen'), 'error');
+                }
+            } catch(e) {
+                showToast('Hata: ' + e.message, 'error');
+            }
+        }
+
         // ============================================
         // CONFIRMED MONEY SİNYALLERİ
         // ============================================
@@ -9098,6 +9165,7 @@
             var statsEl = document.getElementById('cmAdminStats');
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            if (!_adminApprovedKeysLoaded) await loadAdminApprovedKeys();
             try {
                 var resp = await fetch('/api/admin/confirmed-signals');
                 if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
@@ -9282,6 +9350,9 @@ var dateGroups = {};
                     // Sonuç satırı
                     var sigResult = sig.result || '';
                     var sigId = sig.id || '';
+                    var _cmApproveKey = 'cm|' + (sig.home_team||'') + '|' + (sig.away_team||'') + '|' + sc;
+                    _adminApproveData[_cmApproveKey] = {signal_type:'cm',match_key:''+(sig.match_key||''),selection_code:sc,home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:String(initOdds||''),pct:String(initPct||''),amt:_fa(_iPN,_iVN),volume:_iVN>0?('\u00a3\u00a0'+Math.round(_iVN).toLocaleString('en-GB')):''};
+                    var _cmApproved = !!_adminApprovedKeys[_cmApproveKey];
                     html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
                     if (sigResult === 'win') {
                         html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
@@ -9295,6 +9366,7 @@ var dateGroups = {};
                             html += '<button onclick="setCmResult(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
                         }
                     }
+                    html += '<button data-approvekey="' + _cmApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_cmApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_cmApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_cmApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_cmApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_cmApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });
@@ -9365,6 +9437,7 @@ var dateGroups = {};
             var statsEl = document.getElementById('fsAdminStats');
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            if (!_adminApprovedKeysLoaded) await loadAdminApprovedKeys();
             try {
                 var resp = await fetch('/api/admin/fake-sharp-signals');
                 if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
@@ -9532,6 +9605,9 @@ var dateGroups = {};
                     html += '</div>';
                     var sigResult = sig.result || '';
                     var sigId = sig.id || '';
+                    var _fsApproveKey = 'fs|' + (sig.home_team||'') + '|' + (sig.away_team||'') + '|' + sc;
+                    _adminApproveData[_fsApproveKey] = {signal_type:'fakesharp',match_key:''+(sig.match_key||''),selection_code:sc,home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:_fsFO(_fsInitOdds),pct:_fsFP(initPct),amt:_fsFA(_fsIPN,_fsIVN),volume:_fsIVN>0?('\u00a3\u00a0'+Math.round(_fsIVN).toLocaleString('en-GB')):''};
+                    var _fsApproved = !!_adminApprovedKeys[_fsApproveKey];
                     html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
                     if (sigResult === 'win') {
                         html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
@@ -9545,6 +9621,7 @@ var dateGroups = {};
                             html += '<button onclick="setFsResult(' + sigId + ',null)" style="cursor:pointer;border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:3px 9px;font-size:10px;font-weight:500;background:transparent;color:#3a3f45;transition:all 0.15s;">Temizle</button>';
                         }
                     }
+                    html += '<button data-approvekey="' + _fsApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_fsApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_fsApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_fsApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_fsApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_fsApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });
@@ -9590,6 +9667,7 @@ var dateGroups = {};
             var statsEl = document.getElementById('cmv2AdminStats');
             if (!listEl) return;
             listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            if (!_adminApprovedKeysLoaded) await loadAdminApprovedKeys();
             try {
                 var resp = await fetch('/api/admin/confirmed-signals-v2');
                 if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
@@ -9728,6 +9806,9 @@ var dateGroups = {};
                     html += _adminCmpCell('Para:',_v2FA(_v2IPN,_v2IVN),_v2FA(_v2CPN,_v2CVN));
                     html += _adminCmpCell('Hacim:',_v2IVN>0?('\u00a3\u00a0'+Math.round(_v2IVN).toLocaleString('en-GB')):'',_v2CVN>0?('\u00a3\u00a0'+Math.round(_v2CVN).toLocaleString('en-GB')):'');
                     html += '</div>';
+                    var _v2ApproveKey = 'cmv2|' + (sig.home_team||'') + '|' + (sig.away_team||'') + '|' + sc;
+                    _adminApproveData[_v2ApproveKey] = {signal_type:'cmv2',match_key:''+(sig.match_key||''),selection_code:sc,home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:_v2FO(initOdds),pct:_v2FP(initPct),amt:_v2FA(_v2IPN,_v2IVN),volume:_v2IVN>0?('\u00a3\u00a0'+Math.round(_v2IVN).toLocaleString('en-GB')):''};
+                    var _v2Approved = !!_adminApprovedKeys[_v2ApproveKey];
                     html += '<div style="display:flex;align-items:center;gap:6px;padding:7px 0 2px;border-top:1px solid rgba(255,255,255,0.04);margin-top:2px;">';
                     if (sigId) {
                         html += '<button onclick="setCmv2Result(' + sigId + ',\'win\')" style="cursor:pointer;border:1px solid rgba(52,211,153,' + (sigResult==='win'?'0.5':'0.2') + ');border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:rgba(52,211,153,' + (sigResult==='win'?'0.12':'0.03') + ');color:' + (sigResult==='win'?'#34d399':'#4a5568') + ';transition:all 0.15s;">✓ Kazandı</button>';
@@ -9737,6 +9818,7 @@ var dateGroups = {};
                         if (sigResult === 'win') html += '<span style="background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.4);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✓ KAZANDI</span>';
                         else if (sigResult === 'loss') html += '<span style="background:rgba(248,113,113,0.12);color:#f87171;border:1px solid rgba(248,113,113,0.35);border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;">✗ KAYBETTİ</span>';
                     }
+                    html += '<button data-approvekey="' + _v2ApproveKey.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(' + JSON.stringify(_v2ApproveKey) + ')" style="margin-left:auto;cursor:pointer;border:1px solid ' + (_v2Approved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (_v2Approved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (_v2Approved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (_v2Approved?'✓ Onaylı':'☆ Onayla') + '</button>';
                     html += '</div>';
                     html += '</div>';
                 });

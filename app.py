@@ -65,6 +65,26 @@ _fs_signals_cache = None
 _fs_signals_cache_time = 0
 FS_SIGNALS_CACHE_TTL = 60
 
+_APPROVED_SIGNALS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'approved_signals.json')
+_approved_signals_lock = threading.Lock()
+
+def _load_approved_signals():
+    try:
+        if os.path.exists(_APPROVED_SIGNALS_PATH):
+            with open(_APPROVED_SIGNALS_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"[ApprovedSignals] Load error: {e}")
+    return {}
+
+def _save_approved_signals(data):
+    try:
+        os.makedirs(os.path.dirname(_APPROVED_SIGNALS_PATH), exist_ok=True)
+        with open(_APPROVED_SIGNALS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[ApprovedSignals] Save error: {e}")
+
 def get_cached_alarms(force_refresh=False):
     """Get alarms from server-side cache or refresh from Supabase. Waits for app warmup if in progress."""
     global _server_alarm_cache, _server_alarm_cache_time
@@ -8709,6 +8729,84 @@ def admin_import_underdog_signals_for_date():
         import traceback
         print(f"[UnderdogImport] error: {traceback.format_exc()}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@app.route('/api/admin/approved-signals', methods=['GET'])
+def admin_get_approved_signals_list():
+    """Return all approved signals (admin)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    with _approved_signals_lock:
+        data = _load_approved_signals()
+    return jsonify({'approved': data, 'count': len(data)})
+
+
+@app.route('/api/admin/approve-signal', methods=['POST'])
+def admin_approve_signal():
+    """Approve a signal — save full signal data to approved_signals.json."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    body = request.get_json(silent=True) or {}
+    approve_key = body.get('approve_key', '').strip()
+    if not approve_key:
+        return jsonify({'error': 'approve_key required'}), 400
+    with _approved_signals_lock:
+        data = _load_approved_signals()
+        data[approve_key] = {
+            'signal_type': body.get('signal_type', ''),
+            'match_key': body.get('match_key', ''),
+            'selection_code': body.get('selection_code', ''),
+            'home_team': body.get('home_team', ''),
+            'away_team': body.get('away_team', ''),
+            'league': body.get('league', ''),
+            'match_date': body.get('match_date', ''),
+            'odds': body.get('odds', ''),
+            'pct': body.get('pct', ''),
+            'amt': body.get('amt', ''),
+            'volume': body.get('volume', ''),
+            'approved_at': datetime.utcnow().isoformat() + 'Z',
+        }
+        _save_approved_signals(data)
+    return jsonify({'status': 'ok', 'approve_key': approve_key})
+
+
+@app.route('/api/admin/approve-signal', methods=['DELETE'])
+def admin_unapprove_signal():
+    """Remove approval from a signal."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    body = request.get_json(silent=True) or {}
+    approve_key = body.get('approve_key', '').strip()
+    if not approve_key:
+        return jsonify({'error': 'approve_key required'}), 400
+    with _approved_signals_lock:
+        data = _load_approved_signals()
+        removed = approve_key in data
+        data.pop(approve_key, None)
+        _save_approved_signals(data)
+    return jsonify({'status': 'ok', 'removed': removed})
+
+
+@app.route('/api/approved-signals', methods=['GET'])
+@license_required
+def get_approved_signals_public():
+    """Public endpoint — returns approved signals (license required)."""
+    with _approved_signals_lock:
+        data = _load_approved_signals()
+    cutoff = datetime.utcnow() - timedelta(days=30)
+    signals = []
+    for key, sig in data.items():
+        try:
+            approved_at_str = sig.get('approved_at', '')
+            if approved_at_str:
+                approved_at = datetime.fromisoformat(approved_at_str.replace('Z', ''))
+                if approved_at < cutoff:
+                    continue
+        except Exception:
+            pass
+        signals.append({**sig, 'approve_key': key})
+    signals.sort(key=lambda x: x.get('approved_at', ''), reverse=True)
+    return jsonify({'signals': signals, 'count': len(signals)})
 
 
 @app.route('/api/analysts', methods=['POST'])
