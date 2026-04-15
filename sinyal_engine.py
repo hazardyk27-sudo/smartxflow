@@ -978,6 +978,29 @@ def delete_invalid_cm_signals(invalid_signals):
     return deleted
 
 
+def delete_invalid_cm_v2_signals(invalid_signals):
+    """Geçersizleşen Confirmed Money V2 sinyallerini DB'den sil.
+    Geçersizlik koşulu: güncel 10 saatlik referansa göre mevcut düşüş CMV2_ODDS_DROP_PCT eşiğinin altında."""
+    if not invalid_signals:
+        return 0
+    deleted = 0
+    wh = _headers_write()
+    for sig in invalid_signals:
+        try:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            mk_enc = url_quote(mk, safe='')
+            sc_enc = url_quote(sc, safe='')
+            del_url = f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals?match_key=eq.{mk_enc}&selection_code=eq.{sc_enc}"
+            r = requests.delete(del_url, headers=wh, timeout=10)
+            if r.status_code in (200, 204):
+                deleted += 1
+                log(f"[CMv2-Invalidate] Silindi: {sig.get('home_team')} vs {sig.get('away_team')} [{sc}] — düşüş eşiğin altına düştü")
+        except Exception as e:
+            log(f"[CMv2-Invalidate] Hata: {e}")
+    return deleted
+
+
 def update_cm_current_values(existing_cm, snapshot_lookup):
     """
     DB'deki tüm CM sinyallerinin current_* değerlerini güncelle.
@@ -1122,8 +1145,38 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
         ]
 
         inserted = save_confirmed_money_v2_signals(new_signals) if new_signals else 0
+
+        # Geçersizleşen CMv2 sinyallerini tespit et ve sil:
+        # Güncel 10 saatlik referansa göre düşüş eşiği artık sağlanmıyorsa → sil
+        code_map_v2 = {'1': 'odds1', '2': 'odds2'}
+        invalid_v2 = []
+        for sig in existing_v2:
+            mk = sig.get('match_key', '')
+            sc = sig.get('selection_code', '')
+            o_field = code_map_v2.get(sc)
+            if not o_field:
+                continue
+            row = snapshot_lookup.get(mk)
+            if not row:
+                continue
+            match_history = history.get(mk, [])
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
+                continue
+            try:
+                odds_ref = parse_odds_pct(ref_snap.get(o_field))
+                odds_cur = parse_odds_pct(row.get(o_field))
+                if odds_ref <= 0 or odds_cur <= 0:
+                    continue
+                drop_pct = (odds_ref - odds_cur) / odds_ref
+                if drop_pct < CMV2_ODDS_DROP_PCT:
+                    invalid_v2.append(sig)
+            except Exception:
+                continue
+
+        v2_deleted = delete_invalid_cm_v2_signals(invalid_v2)
         log(f"[CMv2] found={len(signals)} new={len(new_signals)} inserted={inserted} "
-            f"(existing={len(existing_v2)})")
+            f"deleted_invalid={v2_deleted} (existing={len(existing_v2)})")
     except Exception as e:
         log(f"[CMv2] Tarama hatası: {e}")
         import traceback
@@ -1403,7 +1456,7 @@ def run_fs_scan(snapshots, snapshot_lookup):
         fs_updated, fs_not_found = update_fs_current_odds(existing_fs, snapshot_lookup)
 
         # Geçersizleşen sinyalleri tespit et ve sil:
-        # Anlık oran, yakalanan anın oranına (odds_16h) göre artık yeterli yükselişi göstermiyorsa → sil
+        # Güncel 10 saatlik referansa göre mevcut oran yükselişi eşiğin altına düştüyse → sil
         code_map = {'1': 'odds1', '2': 'odds2'}
         invalid_fs = []
         for sig in existing_fs:
@@ -1415,8 +1468,12 @@ def run_fs_scan(snapshots, snapshot_lookup):
             row = snapshot_lookup.get(mk)
             if not row:
                 continue
+            match_history = history.get(mk, [])
+            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            if not ref_snap:
+                continue
             try:
-                odds_ref = float(str(sig.get('odds_16h') or 0))
+                odds_ref = parse_odds_pct(ref_snap.get(o_field))
                 odds_cur = parse_odds_pct(row.get(o_field))
                 if odds_ref <= 0 or odds_cur <= 0:
                     continue
