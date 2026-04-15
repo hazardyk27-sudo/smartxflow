@@ -3310,7 +3310,8 @@
                 </div>
                 <button class="btn btn-primary" onclick="loadApprovedSignalsPage()" style="padding:8px 18px;font-size:13px;">Yenile</button>
             </div>
-            <div id="approvedSignalsStats" style="margin-bottom:20px;"></div>
+            <div id="approvedSignalsStats" style="margin-bottom:16px;"></div>
+            <div id="approvedDateTabs" style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;"></div>
             <div id="approvedSignalsList" style="display:flex;flex-direction:column;gap:0;border:1px solid #21262d;border-radius:8px;overflow:hidden;">
                 <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
             </div>
@@ -9877,10 +9878,14 @@ var dateGroups = {};
         // ONAYLI SİNYALLER ADMIN SAYFASI
         // ============================================
 
-        async function loadApprovedSignalsPage() {
+        var _approvedSelectedDate = null;
+        var _approvedSignalsCache = [];
+
+        async function loadApprovedSignalsPage(preserveDate) {
             var listEl = document.getElementById('approvedSignalsList');
             var statsEl = document.getElementById('approvedSignalsStats');
             if (!listEl) return;
+            if (!preserveDate) _approvedSelectedDate = null;
             listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
             try {
                 var resp = await fetch('/api/admin/approved-signals');
@@ -9889,12 +9894,98 @@ var dateGroups = {};
                 var signals = Object.entries(data.approved || {}).map(function(entry) {
                     return Object.assign({approve_key: entry[0]}, entry[1]);
                 });
-                signals.sort(function(a, b) { return (b.approved_at || '') > (a.approved_at || '') ? 1 : -1; });
+                signals.sort(function(a, b) { return (b.match_date || b.approved_at || '') > (a.match_date || a.approved_at || '') ? -1 : 1; });
+                _approvedSignalsCache = signals;
                 renderApprovedSignalsStats(signals, statsEl);
+                buildApprovedDateTabs(signals);
                 renderApprovedSignalsAdmin(signals, listEl);
             } catch(e) {
                 listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Hata: ' + e.message + '</div>';
             }
+        }
+
+        function buildApprovedDateTabs(signals) {
+            var tabsEl = document.getElementById('approvedDateTabs');
+            if (!tabsEl) return;
+            var TR_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            var signalDates = {};
+            signals.forEach(function(s) {
+                var d = _udParseDate(s.match_date || '');
+                if (d) signalDates[d] = (signalDates[d] || 0) + 1;
+            });
+            var allDates = Object.keys(signalDates).sort();
+            // Build window: today ±3 days + any extra dates outside window
+            var windowDays = [];
+            for (var i = -3; i <= 3; i++) {
+                var wd = new Date(today);
+                wd.setDate(today.getDate() + i);
+                windowDays.push(wd);
+            }
+            // Extra dates outside window (from actual signals)
+            var windowKeys = windowDays.map(function(d) { return _udFmtKey(d); });
+            var extraDates = allDates.filter(function(d) { return windowKeys.indexOf(d) === -1; });
+            // Auto-select: today if has signals, else most recent date with signals
+            if (!_approvedSelectedDate) {
+                var todayKey = _udFmtKey(today);
+                if (signalDates[todayKey]) {
+                    _approvedSelectedDate = todayKey;
+                } else {
+                    var datesWithSignals = allDates.reverse();
+                    _approvedSelectedDate = datesWithSignals[0] || todayKey;
+                }
+            }
+            var html = '';
+            // "Tümü" tab
+            var allActive = _approvedSelectedDate === 'all';
+            html += '<button onclick="selectApprovedDate(\'all\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (allActive?'#3b82f6':'#30363d') + ';background:' + (allActive?'rgba(59,130,246,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                '<span style="font-size:10px;font-weight:600;color:' + (allActive?'#3b82f6':'#8b949e') + ';letter-spacing:0.5px;">TÜM</span>' +
+                '<span style="font-size:12px;font-weight:700;color:' + (allActive?'#3b82f6':'#c9d1d9') + ';">Tarih</span>' +
+                (allDates.length ? '<div style="width:5px;height:5px;border-radius:50%;background:#3b82f6;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+            '</button>';
+            // Extra dates before window
+            extraDates.filter(function(d) { return d < windowKeys[0]; }).forEach(function(key) {
+                var isActive = _approvedSelectedDate === key;
+                var cnt = signalDates[key] || 0;
+                html += '<button onclick="selectApprovedDate(\'' + key + '\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (isActive?'#3b82f6':'#30363d') + ';background:' + (isActive?'rgba(59,130,246,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                    '<span style="font-size:10px;font-weight:600;color:' + (isActive?'#3b82f6':'#8b949e') + ';">---</span>' +
+                    '<span style="font-size:11px;font-weight:700;color:' + (isActive?'#3b82f6':'#c9d1d9') + ';">' + key.substring(5).replace('-','.') + '</span>' +
+                    (cnt ? '<div style="width:5px;height:5px;border-radius:50%;background:#3b82f6;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+                '</button>';
+            });
+            // Window days
+            windowDays.forEach(function(d) {
+                var key = _udFmtKey(d);
+                var isToday = key === _udFmtKey(today);
+                var isActive = _approvedSelectedDate === key;
+                var hasSignals = !!signalDates[key];
+                var dayName = TR_SHORT[d.getDay()];
+                var dateDisp = ('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2);
+                html += '<button onclick="selectApprovedDate(\'' + key + '\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (isActive?'#3b82f6':'#30363d') + ';background:' + (isActive?'rgba(59,130,246,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                    '<span style="font-size:10px;font-weight:600;color:' + (isActive?'#3b82f6':'#8b949e') + ';letter-spacing:0.5px;">' + dayName + '</span>' +
+                    '<span style="font-size:12px;font-weight:700;color:' + (isActive?'#3b82f6':'#c9d1d9') + ';">' + (isToday ? 'Bugün' : dateDisp) + '</span>' +
+                    (hasSignals ? '<div style="width:5px;height:5px;border-radius:50%;background:#3b82f6;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+                '</button>';
+            });
+            // Extra dates after window
+            extraDates.filter(function(d) { return d > windowKeys[windowKeys.length-1]; }).forEach(function(key) {
+                var isActive = _approvedSelectedDate === key;
+                var cnt = signalDates[key] || 0;
+                html += '<button onclick="selectApprovedDate(\'' + key + '\')" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 14px;border-radius:8px;border:1px solid ' + (isActive?'#3b82f6':'#30363d') + ';background:' + (isActive?'rgba(59,130,246,0.12)':'#161b22') + ';cursor:pointer;gap:2px;">' +
+                    '<span style="font-size:10px;font-weight:600;color:' + (isActive?'#3b82f6':'#8b949e') + ';">---</span>' +
+                    '<span style="font-size:11px;font-weight:700;color:' + (isActive?'#3b82f6':'#c9d1d9') + ';">' + key.substring(5).replace('-','.') + '</span>' +
+                    (cnt ? '<div style="width:5px;height:5px;border-radius:50%;background:#3b82f6;margin-top:2px;"></div>' : '<div style="width:5px;height:5px;margin-top:2px;"></div>') +
+                '</button>';
+            });
+            tabsEl.innerHTML = html;
+        }
+
+        function selectApprovedDate(dateKey) {
+            _approvedSelectedDate = dateKey;
+            var listEl = document.getElementById('approvedSignalsList');
+            buildApprovedDateTabs(_approvedSignalsCache);
+            renderApprovedSignalsAdmin(_approvedSignalsCache, listEl);
         }
 
         function renderApprovedSignalsStats(signals, statsEl) {
@@ -9981,8 +10072,16 @@ var dateGroups = {};
 
         function renderApprovedSignalsAdmin(signals, listEl) {
             if (!listEl) return;
+            // Date filter
+            var filtered = (_approvedSelectedDate && _approvedSelectedDate !== 'all')
+                ? signals.filter(function(s) { return _udParseDate(s.match_date || '') === _approvedSelectedDate; })
+                : signals;
             if (signals.length === 0) {
                 listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Henüz onaylanmış sinyal yok.</div>';
+                return;
+            }
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Bu tarih için onaylı sinyal bulunmuyor.</div>';
                 return;
             }
             var SC_LABELS = {'1':'Ev Gal.','X':'Beraberlik','2':'Dep. Gal.','Over':'Üst','Under':'Alt'};
@@ -9995,7 +10094,7 @@ var dateGroups = {};
                 '<span>Tür</span><span>Maç</span><span style="text-align:center;">Oran</span><span style="text-align:center;">Para %</span><span style="text-align:center;">Sonuç</span><span style="text-align:right;">Tarih</span>' +
             '</div>';
 
-            signals.forEach(function(sig, idx) {
+            filtered.forEach(function(sig, idx) {
                 var type = sig.signal_type || '';
                 var bg = TYPE_BG[type] || 'rgba(255,255,255,0.03)';
                 var bdr = TYPE_BDR[type] || 'rgba(255,255,255,0.08)';
@@ -10066,7 +10165,7 @@ var dateGroups = {};
                     var msg = result === 'win' ? '✓ Kazandı olarak işaretlendi' : result === 'loss' ? '✗ Kaybetti olarak işaretlendi' : 'Sonuç sıfırlandı';
                     var type = result === 'win' ? 'success' : result === 'loss' ? 'error' : 'info';
                     showToast(msg, type);
-                    loadApprovedSignalsPage();
+                    loadApprovedSignalsPage(true);
                 } else {
                     showToast('Hata: ' + (data.error || 'Bilinmeyen'), 'error');
                 }
