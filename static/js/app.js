@@ -7378,10 +7378,10 @@ function isMatchTodayOrFuture(alarm) {
         return dateStr >= _todayStrCache;
     }
     
-    // match_date yoksa trigger_at'den çıkar
+    // match_date yoksa trigger_at'den çıkar (Turkey timezone ile)
     const triggerAt = alarm.trigger_at || alarm.event_time || '';
     if (triggerAt && triggerAt.length >= 10) {
-        const dateStr = triggerAt.substring(0, 10);
+        const dateStr = dayjs(triggerAt).tz('Europe/Istanbul').format('YYYY-MM-DD');
         return dateStr >= _todayStrCache;
     }
     
@@ -9254,9 +9254,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
         return;
     }
     
-    if (!cachedAllAlarms || cachedAllAlarms.length === 0) {
-        await loadAllAlarmsOnce(false);
-    }
+    await loadAllAlarmsOnce(false);
     if (reqId && reqId !== _modalRequestId) return;
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
