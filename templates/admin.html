@@ -9819,6 +9819,7 @@ var dateGroups = {};
                 var volN = parseFloat(String(sig.volume_now||'0').replace(/[^0-9.,£\s]/g,'').replace(/,/g,''));
                 var pctFmt = pctN > 0 ? pctN.toFixed(0) + '%' : '-';
                 var volFmt = volN > 0 ? '£ ' + Math.round(volN).toLocaleString('en-GB') : '-';
+                _adminApproveData[ak] = {signal_type:'eml',match_key:''+(sig.match_key||''),selection_code:sig.selection_code||'',home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:'',pct:pctFmt,amt:'',volume:volFmt};
                 var resultBadge = '';
                 if (sig.result === 'win') resultBadge = '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✓ Kazandı</span>';
                 else if (sig.result === 'loss') resultBadge = '<span style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✗ Kaybetti</span>';
@@ -9837,6 +9838,7 @@ var dateGroups = {};
                 html += '<button onclick="emlSetResult(' + sig.id + ',\'win\')" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.06);color:#34d399;cursor:pointer;">✓ Kazandı</button>';
                 html += '<button onclick="emlSetResult(' + sig.id + ',\'loss\')" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.06);color:#f87171;cursor:pointer;">✗ Kaybetti</button>';
                 if (sig.result) html += '<button onclick="emlSetResult(' + sig.id + ',null)" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid #30363d;background:#161b22;color:#8b949e;cursor:pointer;">Sıfırla</button>';
+                html += '<button data-approvekey="' + ak.replace(/"/g,'&quot;') + '" onclick="toggleApproveSignal(this.dataset.approvekey)" style="margin-left:auto;cursor:pointer;border:1px solid ' + (isApproved?'rgba(52,211,153,0.5)':'rgba(255,255,255,0.08)') + ';border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;background:' + (isApproved?'rgba(52,211,153,0.12)':'transparent') + ';color:' + (isApproved?'#34d399':'#484f58') + ';transition:all 0.15s;">' + (isApproved?'✓ Onaylı':'☆ Onayla') + '</button>';
                 html += '</div>';
                 html += '</div>';
             });
@@ -10217,8 +10219,8 @@ var dateGroups = {};
 
             var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:14px 22px;border-radius:10px;background:#161b22;border:1px solid #30363d;min-width:80px;gap:2px;';
 
-            var TYPE_LABEL = {underdog:'Underdog',cm:'Conf. Money',cmv2:'CM v2',fakesharp:'Fake Sharp'};
-            var TYPE_COLOR = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316'};
+            var TYPE_LABEL = {underdog:'Underdog',cm:'Conf. Money',cmv2:'CM v2',fakesharp:'Fake Sharp',eml:'Early ML'};
+            var TYPE_COLOR = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316',eml:'#0ea5e9'};
             var typeMap = {};
             signals.forEach(function(s) {
                 var t = s.signal_type || 'unknown';
@@ -10279,10 +10281,10 @@ var dateGroups = {};
                 return;
             }
             var SC_LABELS = {'1':'Ev Gal.','X':'Beraberlik','2':'Dep. Gal.','Over':'Üst','Under':'Alt'};
-            var TYPE_BG = {underdog:'rgba(210,153,34,0.12)',cm:'rgba(52,211,153,0.08)',cmv2:'rgba(99,102,241,0.08)',fakesharp:'rgba(249,115,22,0.08)'};
-            var TYPE_BDR = {underdog:'rgba(210,153,34,0.35)',cm:'rgba(52,211,153,0.25)',cmv2:'rgba(99,102,241,0.25)',fakesharp:'rgba(249,115,22,0.25)'};
-            var TYPE_TXT = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316'};
-            var TYPE_LABEL = {underdog:'UD',cm:'CM',cmv2:'CMv2',fakesharp:'FS'};
+            var TYPE_BG = {underdog:'rgba(210,153,34,0.12)',cm:'rgba(52,211,153,0.08)',cmv2:'rgba(99,102,241,0.08)',fakesharp:'rgba(249,115,22,0.08)',eml:'rgba(14,165,233,0.08)'};
+            var TYPE_BDR = {underdog:'rgba(210,153,34,0.35)',cm:'rgba(52,211,153,0.25)',cmv2:'rgba(99,102,241,0.25)',fakesharp:'rgba(249,115,22,0.25)',eml:'rgba(14,165,233,0.25)'};
+            var TYPE_TXT = {underdog:'#d99a22',cm:'#34d399',cmv2:'#a78bfa',fakesharp:'#f97316',eml:'#0ea5e9'};
+            var TYPE_LABEL = {underdog:'UD',cm:'CM',cmv2:'CMv2',fakesharp:'FS',eml:'EML'};
 
             var html = '<div style="display:grid;grid-template-columns:40px 1fr 70px 70px 200px 60px;align-items:center;padding:8px 16px;background:#161b22;border-bottom:1px solid #21262d;font-size:11px;font-weight:600;color:#8b949e;text-transform:uppercase;letter-spacing:0.05em;">' +
                 '<span>Tür</span><span>Maç</span><span style="text-align:center;">Oran</span><span style="text-align:center;">Para %</span><span style="text-align:center;">Sonuç</span><span style="text-align:right;">Tarih</span>' +
