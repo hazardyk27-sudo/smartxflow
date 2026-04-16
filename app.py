@@ -65,6 +65,10 @@ _fs_signals_cache = None
 _fs_signals_cache_time = 0
 FS_SIGNALS_CACHE_TTL = 60
 
+_eml_signals_cache = None
+_eml_signals_cache_time = 0
+EML_SIGNALS_CACHE_TTL = 60
+
 _APPROVED_SIGNALS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'approved_signals.json')
 _approved_signals_lock = threading.Lock()
 
@@ -8347,6 +8351,47 @@ def admin_set_cmv2_signal_result(signal_id):
         return jsonify({'error': str(e)}), 500
 
 
+def _fetch_all_eml_signals():
+    """early_money_lock_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return []
+        headers = supabase._headers()
+        url = (
+            f"{supabase._rest_url('early_money_lock_signals')}"
+            f"?select=*&order=created_at.desc,home_team.asc&limit=1000"
+        )
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            rows = resp.json()
+            result = []
+            for r in rows:
+                result.append({
+                    'id': r.get('id'),
+                    'match_key': r.get('match_key', ''),
+                    'home_team': r.get('home_team', ''),
+                    'away_team': r.get('away_team', ''),
+                    'league': r.get('league', ''),
+                    'date': _normalize_match_date(r.get('match_date', '')),
+                    'match_date': _normalize_match_date(r.get('match_date', '')),
+                    'kickoff_utc': r.get('kickoff_utc', ''),
+                    'selection_code': r.get('selection_code', ''),
+                    'selection_label': r.get('selection_label', ''),
+                    'pct_now': r.get('pct_now', ''),
+                    'volume_now': r.get('volume_now', ''),
+                    'consecutive_snapshots': r.get('consecutive_snapshots', 5),
+                    'created_at': r.get('created_at') or '',
+                    'last_updated_at': r.get('last_updated_at') or '',
+                    'result': r.get('result') or '',
+                })
+            return result
+        return []
+    except Exception as e:
+        print(f"[EMLSignals] fetch error: {e}")
+        return []
+
+
 def _fetch_all_fake_sharp_signals():
     """fake_sharp_signals tablosundan en son 1000 sinyali çek (created_at desc)."""
     try:
@@ -8539,6 +8584,143 @@ def admin_set_fs_signal_result(signal_id):
     except Exception as e:
         print(f"[FS-Result] PATCH error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
+# EARLY MONEY LOCK API ENDPOINTS
+# ============================================================
+
+@app.route('/api/early-money-lock', methods=['GET'])
+@license_required
+def early_money_lock_endpoint():
+    """Early Money Lock sinyallerini döndür (DB'den). 60s server cache."""
+    global _eml_signals_cache, _eml_signals_cache_time
+    from datetime import date as _date
+
+    def _is_today_or_future(d):
+        if not d:
+            return False
+        try:
+            return str(d) >= str(_date.today())
+        except Exception:
+            return False
+
+    now = time.time()
+    if _eml_signals_cache is not None and (now - _eml_signals_cache_time) < EML_SIGNALS_CACHE_TTL:
+        all_signals = _eml_signals_cache
+    else:
+        raw = _fetch_all_eml_signals()
+        _seen = {}
+        for s in raw:
+            key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+            if key not in _seen:
+                _seen[key] = s
+        all_signals = list(_seen.values())
+        _eml_signals_cache = all_signals
+        _eml_signals_cache_time = now
+
+    active_signals = [s for s in all_signals if _is_today_or_future(s.get('date'))]
+
+    avg_pct = 0.0
+    if active_signals:
+        pct_list = []
+        for s in active_signals:
+            try:
+                pct_list.append(float(str(s.get('pct_now', '') or 0).replace('%', '').strip()))
+            except Exception:
+                pass
+        if pct_list:
+            avg_pct = round(sum(pct_list) / len(pct_list), 1)
+
+    return jsonify({
+        'signals': all_signals,
+        'count': len(active_signals),
+        'avg_pct': avg_pct,
+    })
+
+
+@app.route('/api/admin/early-money-lock-signals', methods=['GET'])
+def admin_get_eml_signals():
+    """Return all EML signals for admin."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+
+    global _eml_signals_cache, _eml_signals_cache_time
+    now = time.time()
+    if _eml_signals_cache is not None and (now - _eml_signals_cache_time) < EML_SIGNALS_CACHE_TTL:
+        signals = _eml_signals_cache
+    else:
+        signals = _fetch_all_eml_signals()
+        _eml_signals_cache = signals
+        _eml_signals_cache_time = now
+
+    with _approved_signals_lock:
+        approved = _load_approved_signals()
+    enriched = []
+    for s in signals:
+        ak = 'eml|{}|{}|{}'.format(s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
+        enriched.append({**s, 'is_approved': ak in approved})
+    return jsonify({'signals': enriched, 'count': len(enriched)})
+
+
+@app.route('/api/admin/eml-signal-result/<int:signal_id>', methods=['PATCH'])
+def admin_set_eml_signal_result(signal_id):
+    """Set the result (win/loss/null) for an EML signal by ID."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json(silent=True) or {}
+    result_val = data.get('result')
+    if result_val not in ('win', 'loss', None, ''):
+        return jsonify({'error': 'Invalid result value. Use win, loss, or null.'}), 400
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return jsonify({'error': 'DB unavailable'}), 503
+        key = supabase.key
+        headers = {
+            'apikey': key,
+            'Authorization': f'Bearer {key}',
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+        }
+        patch_url = f"{supabase._rest_url('early_money_lock_signals')}?id=eq.{signal_id}"
+        patch_data = {'result': result_val if result_val else None}
+        resp = supabase._get_http_client().patch(patch_url, headers=headers, json=patch_data, timeout=10)
+        if resp.status_code in (200, 204):
+            global _eml_signals_cache, _eml_signals_cache_time
+            _eml_signals_cache = None
+            _eml_signals_cache_time = 0
+            return jsonify({'ok': True, 'signal_id': signal_id, 'result': result_val})
+        return jsonify({'error': f'DB error {resp.status_code}', 'detail': resp.text[:200]}), 500
+    except Exception as e:
+        print(f"[EML-Result] PATCH error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/admin/setup-eml-table', methods=['POST'])
+def admin_setup_eml_table():
+    """Early Money Lock migration SQL'ini döndür (admin bilgi endpoint'i)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    migration_sql = """CREATE TABLE IF NOT EXISTS early_money_lock_signals (
+    id bigserial PRIMARY KEY,
+    match_key text NOT NULL,
+    home_team text,
+    away_team text,
+    league text,
+    match_date text,
+    kickoff_utc text,
+    selection_code text NOT NULL,
+    selection_label text,
+    pct_now text,
+    volume_now text,
+    consecutive_snapshots integer DEFAULT 5,
+    created_at timestamptz DEFAULT now(),
+    last_updated_at timestamptz,
+    result text,
+    UNIQUE (match_key, selection_code)
+);"""
+    return jsonify({'migration_sql': migration_sql, 'message': 'Supabase SQL Editor\'da bu SQL\'i çalıştırın.'})
 
 
 @app.route('/api/admin/underdog-signals', methods=['GET'])

@@ -877,6 +877,10 @@
                 <span class="nav-item-icon">🎯</span>
                 <span>Fake Sharp</span>
             </div>
+            <div class="nav-item" onclick="showPage('emlsignals')" data-page="emlsignals">
+                <span class="nav-item-icon">🔒</span>
+                <span>Early Money Lock</span>
+            </div>
             <div class="nav-item" onclick="showPage('approvedsignals')" data-page="approvedsignals">
                 <span class="nav-item-icon">⭐</span>
                 <span>Onaylı Sinyaller</span>
@@ -3302,6 +3306,21 @@
             </div>
         </div>
 
+        <div id="page-emlsignals" class="page-content">
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title">🔒 Early Money Lock Sinyalleri</h2>
+                    <p class="page-subtitle">Maça ≥24 saat kalmış, hacim ≥£5,000, 5 ardışık snapshot'ta %80+ PCT kilitlenen para akışı</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadEmlSignals()" style="padding:8px 18px;font-size:13px;">Yenile</button>
+            </div>
+            <div id="emlAdminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
+            <div id="emlDateTabs" style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;"></div>
+            <div id="emlAdminList" style="display:flex;flex-direction:column;gap:0;">
+                <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
+            </div>
+        </div>
+
         <div id="page-approvedsignals" class="page-content">
             <div class="page-header">
                 <div>
@@ -4064,6 +4083,7 @@
             if (pageId === 'confirmedsignals') loadConfirmedSignals();
             if (pageId === 'confirmedsignalsv2') loadConfirmedV2Signals();
             if (pageId === 'fakesharpsignals') loadFsSignals();
+            if (pageId === 'emlsignals') loadEmlSignals();
             if (pageId === 'approvedsignals') loadApprovedSignalsPage();
         }
         
@@ -7888,6 +7908,7 @@
         var _cmRefreshTimer = null;
         var _cmv2RefreshTimer = null;
         var _fsRefreshTimer = null;
+        var _emlRefreshTimer = null;
 
         function _makeAutoRefresh(pageId, loadFn, timerRef) {
             return setInterval(function() {
@@ -7928,11 +7949,20 @@
             if (_fsRefreshTimer) { clearInterval(_fsRefreshTimer); _fsRefreshTimer = null; }
         }
 
+        function startEmlAutoRefresh() {
+            stopEmlAutoRefresh();
+            _emlRefreshTimer = _makeAutoRefresh('emlsignals', loadEmlSignals);
+        }
+        function stopEmlAutoRefresh() {
+            if (_emlRefreshTimer) { clearInterval(_emlRefreshTimer); _emlRefreshTimer = null; }
+        }
+
         function _stopAllSignalRefreshes() {
             stopUdAutoRefresh();
             stopCmAutoRefresh();
             stopCmv2AutoRefresh();
             stopFsAutoRefresh();
+            stopEmlAutoRefresh();
         }
 
         // Load license data when license page is shown
@@ -7955,6 +7985,8 @@
                 startCmv2AutoRefresh();
             } else if (pageName === 'fakesharpsignals') {
                 startFsAutoRefresh();
+            } else if (pageName === 'emlsignals') {
+                startEmlAutoRefresh();
             }
         };
 
@@ -9666,6 +9698,168 @@ var dateGroups = {};
                     _fsSignalsCache = d2.signals || [];
                     buildFsDateTabs(_fsSignalsCache);
                     renderFsSignalList(_fsSignalsCache, document.getElementById('fsAdminList'));
+                    if (listEl) listEl.style.opacity = '1';
+                } else {
+                    alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+                }
+            } catch(e) {
+                alert('İstek başarısız: ' + e.message);
+            }
+        }
+
+        // ============================================
+        // EARLY MONEY LOCK SİNYALLERİ — ADMIN
+        // ============================================
+        var _emlSignalsCache = [];
+        var _emlSelectedDate = null;
+
+        async function loadEmlSignals() {
+            _emlSelectedDate = null;
+            var listEl = document.getElementById('emlAdminList');
+            var statsEl = document.getElementById('emlAdminStats');
+            if (!listEl) return;
+            listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>';
+            if (!_adminApprovedKeysLoaded) await loadAdminApprovedKeys();
+            try {
+                var resp = await fetch('/api/admin/early-money-lock-signals');
+                if (!resp.ok) { listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Yükleme hatası: ' + resp.status + '</div>'; return; }
+                var data = await resp.json();
+                _emlSignalsCache = data.signals || [];
+                renderEmlAdminSignals(_emlSignalsCache, listEl, statsEl);
+            } catch(e) {
+                listEl.innerHTML = '<div style="color:#f85149;padding:20px;">Hata: ' + e.message + '</div>';
+            }
+        }
+
+        function renderEmlAdminSignals(signals, listEl, statsEl) {
+            if (statsEl) {
+                var sb = 'display:inline-flex;flex-direction:column;align-items:center;padding:10px 20px;border-radius:8px;background:#161b22;border:1px solid #30363d;min-width:70px;';
+                var wins = signals.filter(function(x){ return x.result === 'win'; }).length;
+                var losses = signals.filter(function(x){ return x.result === 'loss'; }).length;
+                var judged = wins + losses;
+                var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
+                var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
+                statsEl.innerHTML =
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#0ea5e9;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
+                    '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
+                    '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
+                        '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
+                        '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
+            }
+            buildEmlDateTabs(signals);
+            renderEmlSignalList(signals, listEl);
+        }
+
+        function buildEmlDateTabs(signals) {
+            var tabsEl = document.getElementById('emlDateTabs');
+            if (!tabsEl) return;
+            var TR_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+            var today = new Date();
+            today.setHours(0,0,0,0);
+            function _emlFmtKey(d) {
+                return d.getFullYear() + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + ('0'+d.getDate()).slice(-2);
+            }
+            var signalDates = {};
+            signals.forEach(function(s) {
+                var d = _adminParseDateToISO(s.match_date||'');
+                if (d) signalDates[d] = (signalDates[d]||0)+1;
+            });
+            var tabs = [];
+            for (var i = -1; i <= 5; i++) {
+                var d = new Date(today);
+                d.setDate(d.getDate() + i);
+                tabs.push(_emlFmtKey(d));
+            }
+            Object.keys(signalDates).forEach(function(k) {
+                if (!tabs.includes(k)) tabs.push(k);
+            });
+            tabs.sort();
+            if (!_emlSelectedDate) {
+                _emlSelectedDate = signalDates[_emlFmtKey(today)] ? _emlFmtKey(today) : (Object.keys(signalDates)[0] || _emlFmtKey(today));
+            }
+            tabsEl.innerHTML = tabs.map(function(k) {
+                var dp = k.split('-');
+                var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+                var isToday = k === _emlFmtKey(today);
+                var isSel = k === _emlSelectedDate;
+                var cnt = signalDates[k] || 0;
+                var bg = isSel ? '#0ea5e9' : '#21262d';
+                var fg = isSel ? '#fff' : (cnt > 0 ? '#c9d1d9' : '#484f58');
+                return '<div onclick="emlSelectDate(\'' + k + '\')" style="cursor:pointer;padding:6px 12px;border-radius:6px;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:' + (isSel?'700':'500') + ';white-space:nowrap;flex-shrink:0;">' +
+                    TR_SHORT[dObj.getDay()] + ' ' + String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0') +
+                    (cnt > 0 ? ' <span style="background:rgba(255,255,255,0.2);border-radius:9px;padding:1px 5px;font-size:10px;">' + cnt + '</span>' : '') + '</div>';
+            }).join('');
+        }
+
+        function emlSelectDate(dateKey) {
+            _emlSelectedDate = dateKey;
+            buildEmlDateTabs(_emlSignalsCache);
+            renderEmlSignalList(_emlSignalsCache, document.getElementById('emlAdminList'));
+        }
+
+        function renderEmlSignalList(signals, listEl) {
+            if (!listEl) return;
+            var filtered = signals.filter(function(s) {
+                var d = _adminParseDateToISO(s.match_date||'');
+                return d === _emlSelectedDate;
+            });
+            if (filtered.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center;color:#8b949e;padding:40px;">Bu tarihte sinyal yok</div>';
+                return;
+            }
+            var html = '';
+            filtered.forEach(function(sig) {
+                var ak = 'eml|' + (sig.home_team||'') + '|' + (sig.away_team||'') + '|' + (sig.selection_code||'');
+                var isApproved = _adminApprovedKeys && _adminApprovedKeys[ak];
+                var selLabel = sig.selection_code==='1'?'Ev Sahibi':sig.selection_code==='2'?'Deplasman':sig.selection_code==='X'?'Beraberlik':(sig.selection_label||sig.selection_code);
+                var pctN = parseFloat(String(sig.pct_now||'0').replace(/[^0-9.]/g,''));
+                var volN = parseFloat(String(sig.volume_now||'0').replace(/[^0-9.,£\s]/g,'').replace(/,/g,''));
+                var pctFmt = pctN > 0 ? pctN.toFixed(0) + '%' : '-';
+                var volFmt = volN > 0 ? '£ ' + Math.round(volN).toLocaleString('en-GB') : '-';
+                var resultBadge = '';
+                if (sig.result === 'win') resultBadge = '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✓ Kazandı</span>';
+                else if (sig.result === 'loss') resultBadge = '<span style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✗ Kaybetti</span>';
+                html += '<div style="border-bottom:1px solid #21262d;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+                html += '<div style="flex:1;min-width:200px;">';
+                html += '<div style="font-size:13px;font-weight:600;color:#c9d1d9;">' + (sig.home_team||'') + ' vs ' + (sig.away_team||'') + '</div>';
+                html += '<div style="font-size:11px;color:#484f58;margin-top:2px;">' + (sig.league||'') + ' · ' + (sig.match_date||'').substring(0,10) + '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
+                html += '<span style="background:rgba(14,165,233,0.08);color:#0ea5e9;border:1px solid rgba(14,165,233,0.2);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">🔒 ' + selLabel + '</span>';
+                html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">PCT ' + pctFmt + '</span>';
+                html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">Hacim ' + volFmt + '</span>';
+                html += resultBadge;
+                html += '</div>';
+                html += '<div style="display:flex;gap:6px;align-items:center;">';
+                html += '<button onclick="emlSetResult(' + sig.id + ',\'win\')" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.06);color:#34d399;cursor:pointer;">✓ Kazandı</button>';
+                html += '<button onclick="emlSetResult(' + sig.id + ',\'loss\')" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.06);color:#f87171;cursor:pointer;">✗ Kaybetti</button>';
+                if (sig.result) html += '<button onclick="emlSetResult(' + sig.id + ',null)" style="padding:4px 10px;font-size:11px;border-radius:5px;border:1px solid #30363d;background:#161b22;color:#8b949e;cursor:pointer;">Sıfırla</button>';
+                html += '</div>';
+                html += '</div>';
+            });
+            listEl.innerHTML = '<div style="border:1px solid #21262d;border-radius:8px;overflow:hidden;">' + html + '</div>';
+        }
+
+        async function emlSetResult(signalId, result) {
+            try {
+                var resp = await fetch('/api/admin/eml-signal-result/' + signalId, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({result: result})
+                });
+                var data = await resp.json();
+                if (data.ok) {
+                    var listEl = document.getElementById('emlAdminList');
+                    if (listEl) listEl.style.opacity = '0.5';
+                    var r2 = await fetch('/api/admin/early-money-lock-signals');
+                    if (!r2.ok) throw new Error('Liste yenileme başarısız: HTTP ' + r2.status);
+                    var d2 = await r2.json();
+                    _emlSignalsCache = d2.signals || [];
+                    buildEmlDateTabs(_emlSignalsCache);
+                    renderEmlSignalList(_emlSignalsCache, document.getElementById('emlAdminList'));
                     if (listEl) listEl.style.opacity = '1';
                 } else {
                     alert('Hata: ' + (data.error || 'Bilinmeyen hata'));

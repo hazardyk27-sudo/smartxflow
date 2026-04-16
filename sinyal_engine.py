@@ -58,6 +58,33 @@ FS_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
 FS_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
 FS_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
+# Early Money Lock kriterleri
+EML_PCT_THRESHOLD        = 80.0    # Seçimin para yüzdesi >= %80
+EML_VOLUME_THRESHOLD     = 5000.0  # Toplam hacim >= £5,000
+EML_CONSECUTIVE_SNAPS    = 5       # 5 ardışık snapshot'ta pct >= %80
+EML_HOURS_BEFORE_KICKOFF = 24      # Maça en az 24 saat kalmış olmalı
+
+EML_MIGRATION_SQL = """
+CREATE TABLE IF NOT EXISTS early_money_lock_signals (
+    id bigserial PRIMARY KEY,
+    match_key text NOT NULL,
+    home_team text,
+    away_team text,
+    league text,
+    match_date text,
+    kickoff_utc text,
+    selection_code text NOT NULL,
+    selection_label text,
+    pct_now text,
+    volume_now text,
+    consecutive_snapshots integer DEFAULT 5,
+    created_at timestamptz DEFAULT now(),
+    last_updated_at timestamptz,
+    result text,
+    UNIQUE (match_key, selection_code)
+);
+"""
+
 MIGRATION_SQL = """
 -- underdog_signals current kolonları (zaten çalıştırıldıysa atla):
 ALTER TABLE underdog_signals ADD COLUMN IF NOT EXISTS current_odds text;
@@ -124,6 +151,7 @@ _columns_verified = False
 _cm_table_verified = False
 _cm_v2_table_verified = False
 _fs_table_verified = False
+_eml_table_verified = False
 
 
 def log(msg):
@@ -1493,8 +1521,232 @@ def run_fs_scan(snapshots, snapshot_lookup):
 
 
 # ============================================================
-# MAIN SCAN + ENGINE LOOP
+# EARLY MONEY LOCK SINYAL ENGINE
 # ============================================================
+
+def check_eml_table_exists():
+    """early_money_lock_signals tablosunun mevcut olup olmadığını kontrol et."""
+    global _eml_table_verified
+    if _eml_table_verified:
+        return True
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/early_money_lock_signals?select=id&limit=1"
+        r = requests.get(url, headers=_headers_read(), timeout=8)
+        if r.status_code == 200:
+            _eml_table_verified = True
+            log("[EML] early_money_lock_signals tablosu mevcut")
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def fetch_eml_existing():
+    """Tüm mevcut EML sinyallerinin (match_key, selection_code) çiftlerini döndür (tekrar tetikleme engeli)."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/early_money_lock_signals"
+            f"?select=match_key,selection_code"
+            f"&limit=10000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=10)
+        if r.status_code == 200:
+            rows = r.json()
+            result = set()
+            for row in rows:
+                mk = row['match_key']
+                sc = row['selection_code']
+                result.add((mk, sc))
+                mk_norm = _normalize_mk(mk)
+                if mk_norm != mk:
+                    result.add((mk_norm, sc))
+            return result
+        return set()
+    except Exception:
+        return set()
+
+
+def fetch_eml_history(match_hashes):
+    """Belirtilen match hash'leri için son 24 saatteki snapshot geçmişini çek."""
+    if not match_hashes:
+        return {}
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        url = (
+            f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
+            f"?select=match_id_hash,scraped_at,pct1,pct2,pctx,volume,odds1,odds2"
+            f"&scraped_at=gte.{cutoff}"
+            f"&order=scraped_at.desc"
+            f"&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=15)
+        if r.status_code == 200:
+            rows = r.json()
+            by_hash = {}
+            for row in rows:
+                h = row.get('match_id_hash', '')
+                if h not in match_hashes:
+                    continue
+                by_hash.setdefault(h, []).append(row)
+            return by_hash
+        log(f"[EML] History çekilemedi: {r.status_code}")
+        return {}
+    except Exception as e:
+        log(f"[EML] fetch_eml_history hata: {e}")
+        return {}
+
+
+def fetch_eml_kickoffs():
+    """live_fixtures tablosundan kickoff_utc değerlerini çek (match_id_hash -> kickoff_utc)."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/live_fixtures"
+            f"?select=match_id_hash,kickoff_utc,home_team,away_team,league,match_date"
+            f"&status=eq.upcoming"
+            f"&limit=2000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=10)
+        if r.status_code == 200:
+            return {row['match_id_hash']: row for row in r.json() if row.get('kickoff_utc')}
+        return {}
+    except Exception as e:
+        log(f"[EML] fetch_eml_kickoffs hata: {e}")
+        return {}
+
+
+def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
+    """
+    Early Money Lock kriterleri:
+    1. Maça >= 24 saat kalmış (kickoff_utc üzerinden hesap)
+    2. Toplam hacim >= £5,000
+    3. Bir seçimde son 5 ardışık snapshot'ta pct >= %80
+    4. Maç başına yalnızca 1 tetikleme (existing_signals ile kontrol)
+    """
+    signals = []
+    now_utc = datetime.now(timezone.utc)
+
+    all_hashes = set(latest_snapshots.keys())
+    history_by_hash = fetch_eml_history(all_hashes)
+
+    for h, latest in latest_snapshots.items():
+        # Kriter 1: Hacim >= £5,000
+        vol = parse_volume_amt(latest.get('volume', ''))
+        if vol < EML_VOLUME_THRESHOLD:
+            continue
+
+        # Kriter 2: Kickoff >= 24 saat ileride
+        kickoff_info = kickoff_map.get(h)
+        if kickoff_info and kickoff_info.get('kickoff_utc'):
+            try:
+                ko_str = kickoff_info['kickoff_utc']
+                if ko_str.endswith('Z'):
+                    ko_str = ko_str[:-1] + '+00:00'
+                ko_dt = datetime.fromisoformat(ko_str)
+                if ko_dt.tzinfo is None:
+                    ko_dt = ko_dt.replace(tzinfo=timezone.utc)
+                hours_until = (ko_dt - now_utc).total_seconds() / 3600
+                if hours_until < EML_HOURS_BEFORE_KICKOFF:
+                    continue
+            except Exception:
+                continue
+        else:
+            continue
+
+        match_history = history_by_hash.get(h, [])
+        if not match_history:
+            continue
+
+        match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
+
+        if len(match_history_sorted) < EML_CONSECUTIVE_SNAPS:
+            continue
+
+        for code, label, p_field in [
+            ('1', 'Ev Sahibi', 'pct1'),
+            ('2', 'Deplasman', 'pct2'),
+            ('X', 'Beraberlik', 'pctx'),
+        ]:
+            home = latest.get('home', kickoff_info.get('home_team', ''))
+            away = latest.get('away', kickoff_info.get('away_team', ''))
+            date_str = latest.get('date', kickoff_info.get('match_date', ''))
+            mk = f"{home}|{away}|{_normalize_date_key(date_str)}"
+
+            if (mk, code) in existing_signals:
+                continue
+
+            # Kriter 3: Son 5 ardışık snapshot'ta pct >= %80
+            last_snaps = match_history_sorted[:EML_CONSECUTIVE_SNAPS]
+            if len(last_snaps) < EML_CONSECUTIVE_SNAPS:
+                continue
+
+            all_above = all(
+                parse_odds_pct(snap.get(p_field)) >= EML_PCT_THRESHOLD
+                for snap in last_snaps
+            )
+            if not all_above:
+                continue
+
+            pct_now = parse_odds_pct(latest.get(p_field))
+
+            signals.append({
+                'match_key': mk,
+                'home_team': home,
+                'away_team': away,
+                'league': latest.get('league', kickoff_info.get('league', '')),
+                'match_date': date_str,
+                'kickoff_utc': kickoff_info.get('kickoff_utc', ''),
+                'selection_code': code,
+                'selection_label': label,
+                'pct_now': f"{pct_now:.1f}",
+                'volume_now': latest.get('volume', ''),
+                'consecutive_snapshots': EML_CONSECUTIVE_SNAPS,
+            })
+
+    return signals
+
+
+def save_eml_signals(signals):
+    """EML sinyallerini Supabase'e kaydet (UPSERT)."""
+    if not signals:
+        return
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/early_money_lock_signals"
+            f"?on_conflict=match_key,selection_code"
+        )
+        for sig in signals:
+            payload = {**sig, 'last_updated_at': datetime.now(timezone.utc).isoformat()}
+            r = requests.post(url, json=payload, headers={
+                **_headers_write(),
+                'Prefer': 'resolution=ignore-duplicates,return=minimal'
+            }, timeout=10)
+            if r.status_code in (200, 201):
+                log(f"[EML] Sinyal kaydedildi: {sig['home_team']} vs {sig['away_team']} ({sig['selection_label']})")
+            else:
+                log(f"[EML] Kayıt hatası: {r.status_code} {r.text[:120]}")
+    except Exception as e:
+        log(f"[EML] save_eml_signals hata: {e}")
+
+
+def run_eml_scan(latest_snapshots):
+    """Early Money Lock tarama döngüsü."""
+    if not check_eml_table_exists():
+        return
+
+    kickoff_map = fetch_eml_kickoffs()
+    if not kickoff_map:
+        log("[EML] Kickoff verisi boş, tarama atlandı")
+        return
+
+    existing = fetch_eml_existing()
+    signals = find_early_money_lock(latest_snapshots, existing, kickoff_map)
+
+    if signals:
+        log(f"[EML] {len(signals)} yeni sinyal bulundu")
+        save_eml_signals(signals)
+    else:
+        log("[EML] Yeni sinyal yok")
+
 
 def run_scan():
     log("[SinyalEngine] Tarama başlıyor...")
@@ -1507,6 +1759,7 @@ def run_scan():
     run_cm_scan(snapshots, snapshot_lookup)
     run_cm_v2_scan(snapshots, snapshot_lookup)
     run_fs_scan(snapshots, snapshot_lookup)
+    run_eml_scan(snapshots)
 
 
 def run_engine():
@@ -1548,6 +1801,14 @@ def run_engine():
         print("\n" + "=" * 60)
         print("UYARI: fake_sharp_signals tablosu yok.")
         print("migrations/create_fake_sharp_signals.sql çalıştırın.")
+        print("Engine migration olmadan da çalışmaya devam eder.")
+        print("=" * 60 + "\n")
+
+    if not check_eml_table_exists():
+        print("\n" + "=" * 60)
+        print("UYARI: early_money_lock_signals tablosu yok.")
+        print(EML_MIGRATION_SQL)
+        print("migrations/create_early_money_lock_signals.sql Supabase SQL Editor'da çalıştırın.")
         print("Engine migration olmadan da çalışmaya devam eder.")
         print("=" * 60 + "\n")
 
