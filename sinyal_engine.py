@@ -1597,17 +1597,25 @@ def fetch_eml_history(match_hashes):
 
 
 def fetch_eml_kickoffs():
-    """live_fixtures tablosundan kickoff_utc değerlerini çek (match_id_hash -> kickoff_utc)."""
+    """fixtures tablosundan kickoff_utc değerlerini çek (match_id_hash -> kickoff_utc)."""
     try:
+        now_iso = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         url = (
-            f"{SUPABASE_URL}/rest/v1/live_fixtures"
-            f"?select=match_id_hash,kickoff_utc,home_team,away_team,league,match_date"
-            f"&status=eq.upcoming"
+            f"{SUPABASE_URL}/rest/v1/fixtures"
+            f"?select=match_id_hash,kickoff_utc,home_team,away_team,league,fixture_date"
+            f"&kickoff_utc=gt.{now_iso}"
             f"&limit=2000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=10)
         if r.status_code == 200:
-            return {row['match_id_hash']: row for row in r.json() if row.get('kickoff_utc')}
+            result = {}
+            for row in r.json():
+                if not row.get('kickoff_utc'):
+                    continue
+                row['match_date'] = row.get('fixture_date', '')
+                result[row['match_id_hash']] = row
+            return result
+        log(f"[EML] fetch_eml_kickoffs HTTP {r.status_code}: {r.text[:100]}")
         return {}
     except Exception as e:
         log(f"[EML] fetch_eml_kickoffs hata: {e}")
