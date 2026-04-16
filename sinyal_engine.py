@@ -15,6 +15,8 @@ Tablolar:
 import os
 import sys
 import time
+import re
+import hashlib
 import requests
 from datetime import datetime, timezone, timedelta
 from urllib.parse import quote as url_quote
@@ -1622,6 +1624,30 @@ def fetch_eml_kickoffs():
         return {}
 
 
+def _make_match_id_hash(home: str, away: str, league: str) -> str:
+    """Match ID hash — alarm_calculator.py / standalone_scraper.py ile birebir aynı algoritma.
+    Canonical: md5(league_norm|home_norm|away_norm)[:12]
+    """
+    def norm(v):
+        if not v:
+            return ""
+        v = str(v).strip()
+        tr_map = {'ı': 'i', 'İ': 'I', 'ş': 's', 'Ş': 'S', 'ğ': 'g', 'Ğ': 'G',
+                  'ü': 'u', 'Ü': 'U', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'}
+        for c, r in tr_map.items():
+            v = v.replace(c, r)
+        v = v.lower()
+        v = re.sub(r'[^a-z0-9\s]', '', v)
+        v = ' '.join(v.split())
+        for sfx in ['fc', 'fk', 'sk', 'sc', 'afc', 'cf', 'ac', 'as']:
+            while v.endswith(' ' + sfx):
+                v = v[:-len(sfx) - 1].strip()
+        return v
+
+    canonical = f"{norm(league)}|{norm(home)}|{norm(away)}"
+    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+
+
 def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
     """
     Early Money Lock kriterleri:
@@ -1629,60 +1655,93 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
     2. Toplam hacim >= £5,000
     3. Bir seçimde son 5 ardışık snapshot'ta pct >= %80
     4. Maç başına yalnızca 1 tetikleme (existing_signals ile kontrol)
+
+    DÜZELTME: latest_snapshots keys = "home|away|date" string,
+    kickoff_map ve history_by_hash keys = 12 karakterlik MD5 hash.
+    Bu uyumsuzluğu gidermek için her maç için computed_hash hesaplanır.
     """
     signals = []
     now_utc = datetime.now(timezone.utc)
 
-    all_hashes = set(latest_snapshots.keys())
-    history_by_hash = fetch_eml_history(all_hashes)
+    # Tüm history'yi tek seferde çek (hash bazlı lookup için computed hash'leri kullan)
+    # Önce tüm computed hash'leri hesapla
+    hash_to_row = {}
+    for _key, row in latest_snapshots.items():
+        home = row.get('home', '')
+        away = row.get('away', '')
+        league = row.get('league', '')
+        if not home or not away:
+            continue
+        computed = _make_match_id_hash(home, away, league)
+        hash_to_row[computed] = row
 
-    for h, latest in latest_snapshots.items():
+    all_computed_hashes = set(hash_to_row.keys())
+    history_by_hash = fetch_eml_history(all_computed_hashes)
+
+    # Debug sayaçları
+    cnt_total = len(hash_to_row)
+    cnt_vol = cnt_kickoff = cnt_history = cnt_snap = 0
+
+    for computed_hash, latest in hash_to_row.items():
+        home = latest.get('home', '')
+        away = latest.get('away', '')
+        league = latest.get('league', '')
+
         # Kriter 1: Hacim >= £5,000
         vol = parse_volume_amt(latest.get('volume', ''))
         if vol < EML_VOLUME_THRESHOLD:
             continue
+        cnt_vol += 1
 
         # Kriter 2: Kickoff >= 24 saat ileride
-        kickoff_info = kickoff_map.get(h)
-        if kickoff_info and kickoff_info.get('kickoff_utc'):
-            try:
-                ko_str = kickoff_info['kickoff_utc']
-                if ko_str.endswith('Z'):
-                    ko_str = ko_str[:-1] + '+00:00'
-                ko_dt = datetime.fromisoformat(ko_str)
-                if ko_dt.tzinfo is None:
-                    ko_dt = ko_dt.replace(tzinfo=timezone.utc)
-                hours_until = (ko_dt - now_utc).total_seconds() / 3600
-                if hours_until < EML_HOURS_BEFORE_KICKOFF:
-                    continue
-            except Exception:
-                continue
-        else:
+        # computed_hash ile kickoff_map'e bak (key formatı artık eşleşiyor)
+        kickoff_info = kickoff_map.get(computed_hash)
+        if not kickoff_info or not kickoff_info.get('kickoff_utc'):
             continue
+        try:
+            ko_str = kickoff_info['kickoff_utc']
+            if ko_str.endswith('Z'):
+                ko_str = ko_str[:-1] + '+00:00'
+            ko_dt = datetime.fromisoformat(ko_str)
+            if ko_dt.tzinfo is None:
+                ko_dt = ko_dt.replace(tzinfo=timezone.utc)
+            hours_until = (ko_dt - now_utc).total_seconds() / 3600
+            if hours_until < EML_HOURS_BEFORE_KICKOFF:
+                continue
+        except Exception:
+            continue
+        cnt_kickoff += 1
 
-        match_history = history_by_hash.get(h, [])
+        # match_date: fixtures'tan gelen fixture_date (YYYY-MM-DD) tercih edilir;
+        # yoksa moneyway tablosundaki raw date kullanılır
+        fixture_date = kickoff_info.get('fixture_date', '') or kickoff_info.get('match_date', '')
+        raw_date = latest.get('date', '')
+        match_date = fixture_date if fixture_date else raw_date
+
+        # Kriter 3: Son 5 ardışık snapshot'ta pct >= %80
+        # computed_hash ile history_by_hash'e bak (key formatı artık eşleşiyor)
+        match_history = history_by_hash.get(computed_hash, [])
         if not match_history:
             continue
+        cnt_history += 1
 
         match_history_sorted = sorted(match_history, key=lambda r: r.get('scraped_at', ''), reverse=True)
 
         if len(match_history_sorted) < EML_CONSECUTIVE_SNAPS:
             continue
+        cnt_snap += 1
 
         for code, label, p_field in [
             ('1', 'Ev Sahibi', 'pct1'),
             ('2', 'Deplasman', 'pct2'),
             ('X', 'Beraberlik', 'pctx'),
         ]:
-            home = latest.get('home', kickoff_info.get('home_team', ''))
-            away = latest.get('away', kickoff_info.get('away_team', ''))
-            date_str = latest.get('date', kickoff_info.get('match_date', ''))
-            mk = f"{home}|{away}|{_normalize_date_key(date_str)}"
+            # match_key için raw_date kullan (_normalize_date_key UTC→TR çevirisi yapar)
+            mk = f"{home}|{away}|{_normalize_date_key(raw_date)}"
 
             if (mk, code) in existing_signals:
                 continue
 
-            # Kriter 3: Son 5 ardışık snapshot'ta pct >= %80
             last_snaps = match_history_sorted[:EML_CONSECUTIVE_SNAPS]
             if len(last_snaps) < EML_CONSECUTIVE_SNAPS:
                 continue
@@ -1700,8 +1759,8 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
                 'match_key': mk,
                 'home_team': home,
                 'away_team': away,
-                'league': latest.get('league', kickoff_info.get('league', '')),
-                'match_date': date_str,
+                'league': league or kickoff_info.get('league', ''),
+                'match_date': match_date,
                 'kickoff_utc': kickoff_info.get('kickoff_utc', ''),
                 'selection_code': code,
                 'selection_label': label,
@@ -1710,6 +1769,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
                 'consecutive_snapshots': EML_CONSECUTIVE_SNAPS,
             })
 
+    log(f"[EML] Tarama özeti: {cnt_total} maç → vol≥£{EML_VOLUME_THRESHOLD:.0f}: {cnt_vol} → kickoff≥{EML_HOURS_BEFORE_KICKOFF}sa: {cnt_kickoff} → history var: {cnt_history} → {EML_CONSECUTIVE_SNAPS} snap: {cnt_snap} → sinyal: {len(signals)}")
     return signals
 
 
