@@ -495,22 +495,28 @@ def update_current_values_for_existing(existing_signals, snapshot_lookup):
 
 def cleanup_low_volume_signals():
     """underdog_signals tablosundan VOLUME_THRESHOLD altındaki eski/hatalı kayıtları sil.
-    Eşik 1000'den 2000'e yükseltilmeden önce kaydedilmiş düşük hacimli kayıtları temizler.
+    volume VE current_volume sütunlarının ikisi de kontrol edilir; hangisi düşükse esas alınır.
     """
     try:
         url = (
             f"{SUPABASE_URL}/rest/v1/underdog_signals"
-            "?select=match_key,selection_code,volume&limit=5000"
+            "?select=match_key,selection_code,home_team,away_team,volume,current_volume&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=12)
         if r.status_code != 200:
+            log(f"[Cleanup] Sinyal listesi alınamadı: HTTP {r.status_code}")
             return
         rows = r.json()
-        to_delete = [
-            row for row in rows
-            if parse_volume_amt(row.get('volume', '')) < VOLUME_THRESHOLD
-        ]
+        to_delete = []
+        for row in rows:
+            vol_orig = parse_volume_amt(row.get('volume', ''))
+            vol_curr = parse_volume_amt(row.get('current_volume', ''))
+            # volume sütunu boşsa current_volume'a bak; ikisi de boşsa 0 sayılır
+            effective_vol = vol_orig if vol_orig > 0 else vol_curr
+            if effective_vol < VOLUME_THRESHOLD:
+                to_delete.append(row)
         if not to_delete:
+            log(f"[Cleanup] Tüm {len(rows)} underdog sinyali hacim eşiğini (£{VOLUME_THRESHOLD:,.0f}) karşılıyor.")
             return
         wh = _headers_write()
         deleted = 0
@@ -524,7 +530,10 @@ def cleanup_low_volume_signals():
             dr = requests.delete(del_url, headers=wh, timeout=10)
             if dr.status_code in (200, 204):
                 deleted += 1
-        log(f"[Cleanup] {deleted}/{len(to_delete)} düşük hacimli underdog kaydı silindi (eşik: {VOLUME_THRESHOLD:,.0f})")
+                log(f"[Cleanup] Silindi: {row.get('home_team','?')} vs {row.get('away_team','?')} vol={row.get('volume','?')}")
+            else:
+                log(f"[Cleanup] Silinemedi: {row.get('home_team','?')} vs {row.get('away_team','?')} HTTP {dr.status_code}")
+        log(f"[Cleanup] {deleted}/{len(to_delete)} düşük hacimli underdog kaydı silindi (eşik: £{VOLUME_THRESHOLD:,.0f})")
     except Exception as e:
         log(f"[Cleanup] Hata: {e}")
 
