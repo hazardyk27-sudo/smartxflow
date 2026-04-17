@@ -4182,7 +4182,12 @@ def calculate_dropping_scores(config):
                         home = (m.get('home') or m.get('home_team') or m.get('Home') or '').lower().strip()
                         away = (m.get('away') or m.get('away_team') or m.get('Away') or '').lower().strip()
                         league = (m.get('league') or '').lower().strip()
-                        match_date_raw = m.get('date') or ''
+                        # YYYY-MM-DD formatında sakla (display format JS filtresini bozuyor)
+                        kickoff_raw = m.get('kickoff_utc', '') or ''
+                        if kickoff_raw and len(kickoff_raw) >= 10:
+                            match_date_raw = kickoff_raw[:10]  # YYYY-MM-DD
+                        else:
+                            match_date_raw = m.get('date') or ''
                         if home and away:
                             key = f"{home}|{away}|{league}"
                             moneyway_matches.add(key)

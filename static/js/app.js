@@ -8124,8 +8124,8 @@ function updateAlarmCounts() {
         if (currentAlarmDateFilter === 'all') {
             const matchDateStr = g.match_date || g.fixture_date || getMatchDateFromAlarm(g.latestAlarm);
             if (!matchDateStr) return true;
-            const { yesterdayStr } = getDateFilterStrings();
-            return matchDateStr >= yesterdayStr;
+            const { todayStr } = getDateFilterStrings();
+            return matchDateStr >= todayStr;
         }
         return true;
     });
@@ -8430,8 +8430,8 @@ function getFilteredAlarms() {
             if (!matchDateStr) return currentAlarmDateFilter === 'all';
             
             if (currentAlarmDateFilter === 'all') {
-                // Tümü: Dün + Bugün + Gelecek (D-1+)
-                return matchDateStr >= yesterdayStr;
+                // Tümü: Bugün + Gelecek (Dün hariç)
+                return matchDateStr >= todayStr;
             } else if (currentAlarmDateFilter === 'today') {
                 return matchDateStr === todayStr;
             } else if (currentAlarmDateFilter === 'yesterday') {
