@@ -2905,16 +2905,12 @@ class AlarmCalculator:
         l2_max = parse_float(config.get('max_drop_l2'))
         l3_min = parse_float(config.get('min_drop_l3'))
         
-        # Kalıcılık süresi (dakika) - varsayılan 120 dk
-        persistence_enabled = config.get('persistence_enabled', True)
-        persistence_minutes = parse_float(config.get('persistence_minutes')) or 120
-        
         # Max odds eşikleri - açılış oranı bu değerin üzerindeyse alarm tetiklenmez
         max_odds_1x2 = parse_float(config.get('max_odds_1x2')) or 999
         max_odds_ou25 = parse_float(config.get('max_odds_ou25')) or 999
         max_odds_btts = parse_float(config.get('max_odds_btts')) or 999
         
-        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+, Kalıcılık: {'AÇIK' if persistence_enabled else 'KAPALI'} ({persistence_minutes} dk)")
+        log(f"[Dropping Config] L1: {l1_min}-{l1_max}%, L2: {l2_min}-{l2_max}%, L3: {l3_min}%+")
         log(f"[Dropping Config] Max Odds: 1X2={max_odds_1x2}, O/U2.5={max_odds_ou25}, BTTS={max_odds_btts}")
         
         alarms = []
@@ -3007,7 +3003,6 @@ class AlarmCalculator:
                     # Legacy şema: odds1, oddsx, odds2, over, under vb. kolonları kullan
                     opening_odds = parse_float(history[0].get(odds_key, 0))
                     current_odds = parse_float(history[-1].get(odds_key, 0))
-                    history_for_persistence = history
                     
                     if current_odds <= 0 or opening_odds <= 0:
                         continue
@@ -3027,51 +3022,6 @@ class AlarmCalculator:
                     if drop_pct < l1_min:
                         recovered_keys.add(_chk_key)
                         continue
-                    
-                    # === KALICILIK KONTROLÜ (persistence_enabled ise) ===
-                    recent_snapshots = []
-                    if persistence_enabled:
-                        # Son snapshot'ın zamanından geriye X dakika içindeki TÜM snapshot'larda drop devam etmeli
-                        
-                        # Son snapshot'ın zamanını al (referans nokta) - history_for_persistence kullan
-                        latest_scraped_at = parse_timestamp(get_scraped_at(history_for_persistence[-1]))
-                        if latest_scraped_at == datetime.min:
-                            latest_scraped_at = datetime.now()
-                        
-                        persistence_threshold = latest_scraped_at - timedelta(minutes=persistence_minutes)
-                        
-                        # Kalıcılık penceresi içindeki snapshot'ları filtrele - history_for_persistence kullan
-                        for snap in history_for_persistence:
-                            snap_time = parse_timestamp(get_scraped_at(snap))
-                            if snap_time != datetime.min and snap_time >= persistence_threshold:
-                                recent_snapshots.append(snap)
-                        
-                        # En az 2 snapshot olmalı kalıcılık kontrolü için
-                        if len(recent_snapshots) < 2:
-                            # Yeterli snapshot yok, alarm tetiklenmez
-                            continue
-                        
-                        # Pencere içindeki TÜM snapshot'larda:
-                        # 1. Oran opening_odds'un altında kalmalı (geri dönüş yok)
-                        # 2. Her snapshot'ta minimum L1 drop_pct eşiği karşılanmalı
-                        drop_persistent = True
-                        for snap in recent_snapshots:
-                            # Legacy şema: odds_key (odds1, oddsx vb.) kullan
-                            snap_odds = parse_float(snap.get(odds_key, 0))
-                            if snap_odds <= 0:
-                                continue
-                            # Oran opening'e geri dönmüşse veya üstüne çıktıysa, kalıcı drop değil
-                            if snap_odds >= opening_odds:
-                                drop_persistent = False
-                                break
-                            # Her snapshot'ta minimum drop_pct (L1) karşılanmalı
-                            snap_drop_pct = ((opening_odds - snap_odds) / opening_odds) * 100
-                            if snap_drop_pct < l1_min:
-                                drop_persistent = False
-                                break
-                        
-                        if not drop_persistent:
-                            continue
                     
                     # Level belirleme
                     if drop_pct >= l3_min:
@@ -3108,12 +3058,10 @@ class AlarmCalculator:
                         'trigger_at': trigger_at,
                         'created_at': now_turkey_iso(),
                         'alarm_type': 'dropping',
-                        'persistence_minutes': int(persistence_minutes),
-                        'snapshots_checked': int(len(recent_snapshots))
                     }
                     alarms.append(alarm)
                     valid_keys.add(f"{match_id}|{market_names.get(market, market)}|{selection}")
-                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f}) | Kalıcı: {len(recent_snapshots)} snap")
+                    log(f"  [DROPPING-{level}] {home} vs {away} | {market_names.get(market, market)}-{selection} | {opening_odds:.2f}->{current_odds:.2f} (-%{drop_pct:.1f})")
         
         if alarms:
             new_count = self._upsert_alarms('dropping_alarms', alarms, ['match_id_hash', 'market', 'selection'])
