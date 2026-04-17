@@ -8124,8 +8124,8 @@ function updateAlarmCounts() {
         if (currentAlarmDateFilter === 'all') {
             const matchDateStr = g.match_date || g.fixture_date || getMatchDateFromAlarm(g.latestAlarm);
             if (!matchDateStr) return true;
-            const { todayStr } = getDateFilterStrings();
-            return matchDateStr >= todayStr;
+            const { yesterdayStr } = getDateFilterStrings();
+            return matchDateStr >= yesterdayStr;
         }
         return true;
     });
@@ -8229,12 +8229,12 @@ function getMatchDateFromAlarm(alarm) {
 
 function filterAlarmsByMatchDate(alarms) {
     if (currentAlarmDateFilter === 'all') {
-        // Tümü: Bugün + Gelecek (Dün hariç)
-        const today = dayjs().tz('Europe/Istanbul').format('YYYY-MM-DD');
+        // Tümü: Dün + Bugün + Gelecek (D-1+)
+        const yesterday = dayjs().tz('Europe/Istanbul').subtract(1, 'day').format('YYYY-MM-DD');
         return alarms.filter(alarm => {
             const matchDateStr = getMatchDateFromAlarm(alarm);
             if (!matchDateStr) return true; // Tarih yoksa göster
-            return matchDateStr >= today;
+            return matchDateStr >= yesterday;
         });
     }
     
@@ -8430,8 +8430,8 @@ function getFilteredAlarms() {
             if (!matchDateStr) return currentAlarmDateFilter === 'all';
             
             if (currentAlarmDateFilter === 'all') {
-                // Tümü: Bugün + Gelecek (Dün hariç)
-                return matchDateStr >= todayStr;
+                // Tümü: Dün + Bugün + Gelecek (D-1+)
+                return matchDateStr >= yesterdayStr;
             } else if (currentAlarmDateFilter === 'today') {
                 return matchDateStr === todayStr;
             } else if (currentAlarmDateFilter === 'yesterday') {
