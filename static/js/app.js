@@ -191,6 +191,58 @@ function toggleFavorite(el) {
     .catch(function() {});
 }
 
+function _syncModalFavBtn(mk) {
+    var btn = document.getElementById('modalFavBtn');
+    if (!btn) return;
+    if (mk && _userFavorites.has(mk)) {
+        btn.classList.add('fav-active');
+    } else {
+        btn.classList.remove('fav-active');
+    }
+}
+
+function toggleModalFavorite() {
+    if (!selectedMatch) return;
+    var mk = _getMatchKey(selectedMatch);
+    if (!mk) return;
+    var did = getWebDeviceId();
+    fetch('/api/favorite/toggle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({match_key: mk, device_id: did})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) { console.warn('[ModalFav] error:', data.error); return; }
+        if (data.favorited) {
+            _userFavorites.add(mk);
+        } else {
+            _userFavorites.delete(mk);
+        }
+        _syncModalFavBtn(mk);
+        document.querySelectorAll('.fav-heart').forEach(function(h) {
+            if (h.getAttribute('data-matchkey') === mk) {
+                if (data.favorited) { h.classList.add('fav-active'); }
+                else { h.classList.remove('fav-active'); }
+            }
+        });
+        _favCounts[mk] = data.total_count || 0;
+        var displayCount = _favCounts[mk];
+        document.querySelectorAll('.fav-count').forEach(function(fc) {
+            var heart = fc.parentElement ? fc.parentElement.querySelector('.fav-heart') : null;
+            if (heart && heart.getAttribute('data-matchkey') === mk) {
+                fc.innerHTML = _favCountHtml(displayCount);
+            }
+        });
+        document.querySelectorAll('.mobile-fav-count').forEach(function(mc) {
+            if (mc.getAttribute('data-matchkey') === mk) {
+                mc.textContent = (displayCount > 0 ? displayCount : 0) + ' kişi takip ediyor';
+            }
+        });
+    })
+    .catch(function() {});
+}
+
 function toggleFavoritesFilter() {
     _favFilterActive = !_favFilterActive;
     var btn = document.getElementById('favoritesBtn');
@@ -3400,6 +3452,7 @@ async function openMatchModalFromMatches(index) {
         });
         
         document.getElementById('modalOverlay').classList.add('active');
+        _syncModalFavBtn(_getMatchKey(selectedMatch));
         
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
@@ -3500,6 +3553,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     });
     
     document.getElementById('modalOverlay').classList.add('active');
+    _syncModalFavBtn(_getMatchKey(selectedMatch));
 
     const matchIdHash2 = selectedMatch.match_id || '';
     const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
@@ -3560,6 +3614,7 @@ async function openMatchModal(index) {
         });
         
         document.getElementById('modalOverlay').classList.add('active');
+        _syncModalFavBtn(_getMatchKey(selectedMatch));
         
         const home = selectedMatch.home_team;
         const away = selectedMatch.away_team;
