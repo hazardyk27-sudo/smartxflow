@@ -7672,7 +7672,7 @@ def _build_unified_underdog_signals():
     1. DB'den tüm kayıtları çek (sinyal_engine + app tarafından kaydedilmiş)
     2. Anlık cache'den live sinyalleri hesapla
     3. (home, away, code) bazlı merge — date format farklılığını tolere eder
-    4. Volume >= 200 filtresi
+    4. Volume >= 800 filtresi (sinyal_engine.py ile senkron)
     5. (home, away, code) bazlı dedup — en yüksek volume'u tut
     """
     def _pv(v):
@@ -7682,7 +7682,8 @@ def _build_unified_underdog_signals():
             return 0.0
 
     odds_threshold = 2.90
-    pct_threshold = 50.0
+    # PCT eşiği hacime göre kademelenir (sinyal_engine.py ile senkron)
+    # vol >= 5000 → %50, vol 800-5000 → %55
 
     db_signals = _fetch_all_underdog_signals()
 
@@ -7695,8 +7696,10 @@ def _build_unified_underdog_signals():
         league = m.get('league', '')
         date = m.get('date', '')
         volume = odds_obj.get('Volume', '')
-        if _pv(volume) < 200:
+        vol_val = _pv(volume)
+        if vol_val < 800:
             continue
+        required_pct = 50.0 if vol_val >= 5000 else 55.0
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
             ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
@@ -7709,7 +7712,7 @@ def _build_unified_underdog_signals():
                 pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
             except Exception:
                 pct_val = 0.0
-            if odds_val >= odds_threshold and pct_val >= pct_threshold:
+            if odds_val >= odds_threshold and pct_val >= required_pct:
                 live_signals.append({
                     'match_key': f"{home}|{away}|{date}",
                     'home_team': home, 'away_team': away, 'league': league,
@@ -7729,7 +7732,7 @@ def _build_unified_underdog_signals():
             all_signals.append(ls)
             db_hak.add(hak)
 
-    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 200]
+    all_signals = [s for s in all_signals if _pv(s.get('volume', '')) >= 800]
 
     seen = {}
     for s in all_signals:
@@ -8854,9 +8857,8 @@ def admin_import_underdog_signals_for_date():
                 batch_errors.append(msg)
                 print(f"[UnderdogImport] history fetch warning — {msg}")
 
-        # Step 3: apply underdog thresholds and build signals list
+        # Step 3: apply underdog thresholds and build signals list (sinyal_engine.py ile senkron)
         odds_threshold = 2.90
-        pct_threshold  = 50.0
         signals = []
         for fix in fixtures:
             mhash = fix.get('match_id_hash', '')
@@ -8868,6 +8870,13 @@ def admin_import_underdog_signals_for_date():
             league = fix.get('league', '')
             date   = fix.get('kickoff_utc', target_date)
             volume = row.get('volume', '')
+            try:
+                vol_val = float(str(volume).replace('£', '').replace(',', '').replace(' ', '').strip()) if volume else 0.0
+            except (ValueError, TypeError):
+                vol_val = 0.0
+            if vol_val < 800:
+                continue
+            required_pct = 50.0 if vol_val >= 5000 else 55.0
             candidates = [
                 ('1', 'Ev Sahibi', row.get('odds1', '-'), row.get('pct1', ''), row.get('amt1', '')),
                 ('2', 'Deplasman', row.get('odds2', '-'), row.get('pct2', ''), row.get('amt2', '')),
@@ -8881,7 +8890,7 @@ def admin_import_underdog_signals_for_date():
                     pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
                 except (ValueError, TypeError):
                     pct_val = 0.0
-                if odds_val >= odds_threshold and pct_val >= pct_threshold:
+                if odds_val >= odds_threshold and pct_val >= required_pct:
                     signals.append({
                         'home_team': home, 'away_team': away, 'league': league,
                         'date': date, 'selection_code': code, 'selection_label': label,
