@@ -599,8 +599,8 @@ class SupabaseClient:
             else:
                 # ALL mode: Hash-based approach for consistent matching
                 today_date = now_tr.date()
-                yesterday_date = today_date - timedelta(days=1)
-                yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+                seven_days_ago_date = today_date - timedelta(days=7)
+                seven_days_ago_str = seven_days_ago_date.strftime('%Y-%m-%d')
                 
                 print(f"[Supabase] ALL: Hash-based approach (match_id_hash)")
                 
@@ -641,8 +641,8 @@ class SupabaseClient:
                 
                 print(f"[Supabase] ALL: {len(odds_by_hash)} unique matches by hash")
                 
-                # Step 2: Get fixtures metadata for kickoff times
-                fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                # Step 2: Get fixtures metadata for kickoff times (son 7 gün)
+                fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
                 fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=10)
                 
                 fixtures_by_hash = {}
@@ -706,8 +706,8 @@ class SupabaseClient:
                 fixtures_only_count = 0
                 
                 if missing_hashes:
-                    # Batch fetch all fixture details at once
-                    batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{yesterday_str}"
+                    # Batch fetch all fixture details at once (son 7 gün)
+                    batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
                     try:
                         batch_fix_resp = self._get_http_client().get(batch_fix_url, headers=self._headers(), timeout=10)
                         if batch_fix_resp.status_code == 200:
@@ -775,8 +775,7 @@ class SupabaseClient:
             tr_tz = pytz.timezone('Europe/Istanbul')
             now_tr = datetime.now(tr_tz)
             today_date = now_tr.date()
-            yesterday_date = today_date - timedelta(days=1)
-            yesterday_str = yesterday_date.strftime('%Y-%m-%d')
+            seven_days_ago_str = (today_date - timedelta(days=7)).strftime('%Y-%m-%d')
             today_str = today_date.strftime('%Y-%m-%d')
             
             if market.startswith('dropping_'):
@@ -784,8 +783,8 @@ class SupabaseClient:
             else:
                 history_table = f"{market}_history"
             
-            # Step 1: Get fixtures (today+ or D-1+ depending on mode)
-            date_gte = today_str if today_only else yesterday_str
+            # Step 1: Get fixtures (today+ or D-7+ depending on mode)
+            date_gte = today_str if today_only else seven_days_ago_str
             fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{date_gte}"
             fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
             
@@ -798,7 +797,7 @@ class SupabaseClient:
                     if match_hash:
                         fixtures_by_hash[match_hash] = fix
             
-            mode_label = "today+" if today_only else "D-1+"
+            mode_label = "today+" if today_only else "D-7+"
             print(f"[Paginated] Got {len(fixtures_by_hash)} {mode_label} fixtures")
             
             if not fixtures_by_hash:
