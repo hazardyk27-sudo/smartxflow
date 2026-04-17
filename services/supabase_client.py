@@ -3253,29 +3253,6 @@ def write_bigmoney_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
     return insert_ok
 
 
-def write_dropping_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
-    """Write Dropping alarms to Supabase - ADMIN.EXE ALANLARI"""
-    mapped_alarms = []
-    for alarm in alarms:
-        mapped = {
-            'match_id': alarm.get('match_id', ''),
-            'match_id_hash': alarm.get('match_id_hash', ''),
-            'home': alarm.get('home', ''),
-            'away': alarm.get('away', ''),
-            'league': alarm.get('league', ''),
-            'market': alarm.get('market', ''),
-            'selection': alarm.get('selection', ''),
-            'opening_odds': alarm.get('opening_odds'),
-            'current_odds': alarm.get('current_odds'),
-            'odds_drop_pct': alarm.get('odds_drop_pct', 0),
-            'level': alarm.get('level', ''),
-            'match_date': alarm.get('match_date', ''),
-            'trigger_at': alarm.get('trigger_at', ''),
-            'created_at': alarm.get('created_at', ''),
-            'alarm_type': alarm.get('alarm_type', 'dropping')
-        }
-        mapped_alarms.append(mapped)
-    return write_alarms_to_supabase('dropping_alarms', mapped_alarms, on_conflict='home,away,market,selection')
 
 
 def write_volumeshock_alarms_to_supabase(alarms: List[Dict[str, Any]]) -> bool:
