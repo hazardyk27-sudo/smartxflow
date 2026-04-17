@@ -8941,10 +8941,9 @@
                     ? '<div style="' + sb + 'border-color:rgba(59,130,246,0.4);"><div style="font-size:18px;font-weight:800;color:#60a5fa;">%' + successRate + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı</div></div>'
                     : '';
                 statsEl.innerHTML =
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#d29922;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#d29922;">' + resolvedCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#3fb950;">' + wonCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f85149;">' + lostCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + pendingCount + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Bekliyor</div></div>' +
                     successHtml;
             }
             buildUdDateTabs(signals);
@@ -9241,13 +9240,12 @@
                 var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
                 var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
                 statsEl.innerHTML =
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#34d399;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#34d399;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>' +
                     '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
                     '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
-                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
                         '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
                         '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
@@ -9512,13 +9510,12 @@ var dateGroups = {};
                 var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
                 var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
                 statsEl.innerHTML =
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f97316;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f97316;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#fbbf24;">+%' + avgRise + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Yükseliş</div></div>' +
                     '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
                     '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
-                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
                         '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
                         '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
@@ -9740,11 +9737,10 @@ var dateGroups = {};
                 var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
                 var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
                 statsEl.innerHTML =
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#0ea5e9;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#0ea5e9;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
                     '<div style="' + sb + 'border-color:rgba(52,211,153,0.25);background:rgba(52,211,153,0.04);"><div style="font-size:18px;font-weight:800;color:#34d399;">' + wins + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kazandı</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(248,113,113,0.25);background:rgba(248,113,113,0.04);"><div style="font-size:18px;font-weight:800;color:#f87171;">' + losses + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Kaybetti</div></div>' +
-                    '<div style="' + sb + 'border-color:rgba(255,255,255,0.08);"><div style="font-size:18px;font-weight:800;color:#8b949e;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Sonuçlu</div></div>' +
                     '<div style="' + sb + 'border-color:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.3);background:rgba(' + (winColor==='#34d399'?'52,211,153':winColor==='#f0883e'?'240,136,62':'248,113,113') + ',0.06);min-width:90px;">' +
                         '<div style="font-size:20px;font-weight:800;color:' + winColor + ';">' + (winPct === '-' ? '-' : '%' + winPct) + '</div>' +
                         '<div style="font-size:11px;color:#8b949e;margin-top:2px;">Başarı Oranı</div></div>';
@@ -9906,7 +9902,7 @@ var dateGroups = {};
                 var winPct = judged > 0 ? (wins / judged * 100).toFixed(1) : '-';
                 var winColor = judged === 0 ? '#8b949e' : (parseFloat(winPct) >= 55 ? '#34d399' : parseFloat(winPct) >= 45 ? '#f0883e' : '#f87171');
                 statsEl.innerHTML =
-                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#a78bfa;">' + signals.length + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
+                    '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#a78bfa;">' + judged + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Toplam</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#93c5fd;">' + avgOdds + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Oran</div></div>' +
                     '<div style="' + sb + '"><div style="font-size:18px;font-weight:800;color:#f87171;">-%' + avgDrop + '</div><div style="font-size:11px;color:#8b949e;margin-top:2px;">Ort. Düşüş</div></div>' +
                     '<div style="width:1px;background:#21262d;margin:0 4px;align-self:stretch;"></div>' +
