@@ -30,8 +30,10 @@ ERROR_WAIT = 60
 
 # Underdog Pressure kriterleri
 ODDS_THRESHOLD = 2.90
-PCT_THRESHOLD = 50.0
-VOLUME_THRESHOLD = 200.0
+PCT_THRESHOLD = 50.0          # vol >= UNDERDOG_HIGH_VOL için pct eşiği
+UNDERDOG_MID_PCT  = 55.0      # £800-£5000 aralığı için pct eşiği
+VOLUME_THRESHOLD  = 800.0     # minimum hacim sınırı (eski: 200)
+UNDERDOG_HIGH_VOL = 5000.0    # bu eşik üstünde PCT_THRESHOLD (%50) uygulanır
 
 # Confirmed Money kriterleri
 CM_PCT_THRESHOLD = 80.0
@@ -356,7 +358,13 @@ def _normalize_date_key(date_str):
 
 
 def find_signals(snapshots):
-    """Underdog Pressure kriterlerini karşılayan sinyalleri bul."""
+    """Underdog Pressure kriterlerini karşılayan sinyalleri bul.
+
+    Hacim bazlı kademeli kural:
+      vol < £800          → reddedilir
+      £800 ≤ vol < £5000  → odds >= 2.90 VE pct >= %55 (UNDERDOG_MID_PCT)
+      vol >= £5000        → odds >= 2.90 VE pct >= %50 (PCT_THRESHOLD, mevcut kural)
+    """
     signals = []
     for _hash, row in snapshots.items():
         home = row.get('home', '')
@@ -364,13 +372,16 @@ def find_signals(snapshots):
         league = row.get('league', '')
         date = row.get('date', '')
         volume_str = row.get('volume', '')
-        if parse_volume_amt(volume_str) < VOLUME_THRESHOLD:
+        vol = parse_volume_amt(volume_str)
+        if vol < VOLUME_THRESHOLD:
             continue
+        # Hacim kademesine göre pct eşiğini belirle
+        required_pct = PCT_THRESHOLD if vol >= UNDERDOG_HIGH_VOL else UNDERDOG_MID_PCT
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi',  row.get('odds1'), row.get('pct1'), row.get('amt1')),
             ('2', 'Deplasman',  row.get('odds2'), row.get('pct2'), row.get('amt2')),
         ]:
-            if parse_odds_pct(raw_odds) >= ODDS_THRESHOLD and parse_odds_pct(raw_pct) >= PCT_THRESHOLD:
+            if parse_odds_pct(raw_odds) >= ODDS_THRESHOLD and parse_odds_pct(raw_pct) >= required_pct:
                 signals.append({
                     'home_team': home, 'away_team': away, 'league': league, 'date': date,
                     'match_key': f"{home}|{away}|{_normalize_date_key(date)}",
@@ -1834,7 +1845,7 @@ def run_engine():
     print("=" * 60)
     print("SMARTXFLOW SİNYAL ENGINE v1.3")
     print(f"Tarama aralığı  : {SCAN_INTERVAL // 60} dakika")
-    print(f"[Underdog]      : odds>={ODDS_THRESHOLD}, pct>={PCT_THRESHOLD}%, vol>={VOLUME_THRESHOLD:,.0f}")
+    print(f"[Underdog]      : odds>={ODDS_THRESHOLD}, vol<{VOLUME_THRESHOLD:,.0f}→ret, vol{VOLUME_THRESHOLD:,.0f}-{UNDERDOG_HIGH_VOL:,.0f}→pct≥{UNDERDOG_MID_PCT}%, vol≥{UNDERDOG_HIGH_VOL:,.0f}→pct≥{PCT_THRESHOLD}%")
     print(f"[ConfirmedMoney]: pct>{CM_PCT_THRESHOLD}%, düsüş>={CM_ODDS_DROP_PCT*100:.0f}%, vol>={CM_VOLUME_THRESHOLD:,.0f}, cooldown={CM_COOLDOWN_HOURS}sa")
     print(f"[CMv2]          : pct>={CMV2_PCT_THRESHOLD}%, düşüş>={CMV2_ODDS_DROP_PCT*100:.0f}%, oran={CMV2_MIN_ODDS}-{CMV2_MAX_ODDS}, vol>={CMV2_VOLUME_THRESHOLD:,.0f}")
     print(f"[FakeSharp]     : pct>{FS_PCT_THRESHOLD}%, yükseliş>={FS_ODDS_RISE_PCT*100:.0f}%, vol>={FS_VOLUME_THRESHOLD:,.0f}, cooldown={FS_COOLDOWN_HOURS}sa")
