@@ -7787,8 +7787,10 @@ def underdog_pressure_endpoint():
             volume_val = float(str(volume).replace('£', '').replace(',', '').replace(' ', '').strip()) if volume else 0.0
         except (ValueError, TypeError):
             volume_val = 0.0
-        if volume_val < 200:
+        if volume_val < 800:
             continue
+        # Hacim kademesine göre pct eşiği (sinyal_engine.py ile senkron)
+        required_pct = 50.0 if volume_val >= 5000 else 55.0
         for code, label, raw_odds, raw_pct, raw_amt in [
             ('1', 'Ev Sahibi', odds_obj.get('Odds1', '-'), odds_obj.get('Pct1', ''), odds_obj.get('Amt1', '')),
             ('2', 'Deplasman', odds_obj.get('Odds2', '-'), odds_obj.get('Pct2', ''), odds_obj.get('Amt2', '')),
@@ -7801,7 +7803,7 @@ def underdog_pressure_endpoint():
                 pct_val = float(str(raw_pct).replace('%', '').strip()) if raw_pct else 0.0
             except (ValueError, TypeError):
                 pct_val = 0.0
-            if odds_val >= 2.90 and pct_val >= 50.0:
+            if odds_val >= 2.90 and pct_val >= required_pct:
                 live_signals_to_save.append({
                     'home_team': home, 'away_team': away, 'league': league, 'date': date,
                     'selection_code': code, 'selection_label': label,
