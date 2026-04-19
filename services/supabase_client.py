@@ -2863,7 +2863,7 @@ def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', li
     global _alarm_last_good
     client = get_supabase_client()
     if not client or not client.is_available:
-        return None
+        return _alarm_last_good.get(table_name)
     
     try:
         url = f"{client._rest_url(table_name)}?select=*&order={order_by}.desc&limit={limit}"
@@ -2889,10 +2889,10 @@ def fetch_alarms_from_supabase(table_name: str, order_by: str = 'created_at', li
                 return data
         else:
             print(f"[Supabase] Error fetching {table_name}: {resp.status_code} - {resp.text[:200]}")
-            return None
+            return _alarm_last_good.get(table_name)
     except Exception as e:
         print(f"[Supabase] Error fetching {table_name}: {e}")
-        return None
+        return _alarm_last_good.get(table_name)
 
 
 def get_sharp_alarms_from_supabase() -> List[Dict[str, Any]]:
