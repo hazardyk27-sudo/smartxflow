@@ -3031,7 +3031,7 @@ class AlarmCalculator:
                     else:
                         level = 'L1'
                     
-                    trigger_at = get_scraped_at(history_for_persistence[-1]) or now_turkey_iso()
+                    trigger_at = get_scraped_at(history[-1]) or now_turkey_iso()
                     match_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
                     
                     # Volume bilgisi (varsa)
