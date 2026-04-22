@@ -7542,7 +7542,7 @@ async function loadAlertBand() {
         allAlarms = allAlarms.concat(mim);
         
         console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
-        const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
+        const filteredAlarms = allAlarms.filter(isMatchYesterdayOrLater);
         console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
         
         const groupedForBand = groupAlarmsForBand(filteredAlarms);
@@ -8430,8 +8430,8 @@ function getFilteredAlarms() {
             if (!matchDateStr) return currentAlarmDateFilter === 'all';
             
             if (currentAlarmDateFilter === 'all') {
-                // Tümü: Bugün + Gelecek (Dün hariç)
-                return matchDateStr >= todayStr;
+                // Tümü: Dün + Bugün + Gelecek (D-1 dahil)
+                return matchDateStr >= yesterdayStr;
             } else if (currentAlarmDateFilter === 'today') {
                 return matchDateStr === todayStr;
             } else if (currentAlarmDateFilter === 'yesterday') {

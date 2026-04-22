@@ -1539,16 +1539,15 @@ class AlarmCalculator:
             log(f"[MONEYWAY BATCH ERROR] {e}")
         return 0
     
-    def cleanup_old_alarms(self, days_to_keep: int = 2) -> int:
+    def cleanup_old_alarms(self, days_to_keep: int = 7) -> int:
         """
-        D-2+ alarmları sil (bugün ve dün hariç tüm eski alarmlar)
+        D-7+ alarmları sil (son 7 gün hariç tüm eski alarmlar)
         match_date bazlı silme: Maç tarihi cutoff'tan eski olan alarmlar silinir
-        - D (bugün): Korunur
-        - D-1 (dün): Korunur  
-        - D-2+ (öncesi): Silinir
+        - D..D-6 (son 7 gün): Korunur
+        - D-7+ (öncesi): Silinir
         
         Args:
-            days_to_keep: Kaç gün tutulacak (default: 2 = bugün + dün)
+            days_to_keep: Kaç gün tutulacak (default: 7 = son 7 gün)
         
         Returns:
             Silinen toplam alarm sayısı
@@ -1557,7 +1556,7 @@ class AlarmCalculator:
         cutoff_date = today - timedelta(days=days_to_keep)
         cutoff_str = cutoff_date.strftime('%Y-%m-%d')
         
-        log(f"[Cleanup] Alarm D-2+ silme: match_date < {cutoff_str} silinecek (bugün={today})")
+        log(f"[Cleanup] Alarm D-7+ silme: match_date < {cutoff_str} silinecek (bugün={today})")
         
         alarm_tables = [
             'sharp_alarms',
@@ -2105,10 +2104,10 @@ class AlarmCalculator:
         return total_alarms
     
     def _cleanup_expired_match_alarms(self):
-        """Delete alarms for matches that ended more than 2 days ago (based on match_date)."""
+        """Delete alarms for matches that ended more than 7 days ago (based on match_date)."""
         try:
             today = now_turkey().date()
-            cutoff = today - timedelta(days=2)
+            cutoff = today - timedelta(days=7)
             cutoff_str = cutoff.strftime('%Y-%m-%d')
             
             alarm_tables = [
