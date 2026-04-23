@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-SmartXFlow Sinyal Engine v1.2
+SmartXFlow Sinyal Engine v1.3
 İki sinyal tipini aynı anda tarar:
   1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £2,000
   2. Confirmed Money: pct > 80%, oran >= %4 düşüş (10 saat), volume >= £2,000, stabilite onaylı
 
-Çalışma aralığı: 15 dakika
+Çalışma modu: scraper_signal tablosundan tetiklenir (alarm_engine ile aynı model).
+  - Her 30 saniyede bir yeni sinyal kontrol edilir.
+  - Yeni sinyal gelince → anında tarama çalışır.
+  - 30 dakika sinyal gelmezse → yedek olarak yine de çalışır.
 
 Tablolar:
   - underdog_signals (mevcut)
@@ -25,8 +28,9 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')
 
-SCAN_INTERVAL = 15 * 60
-ERROR_WAIT = 60
+POLL_INTERVAL    = 30        # scraper_signal kontrol aralığı (saniye)
+FALLBACK_INTERVAL = 30 * 60  # sinyal gelmese bile en geç bu sürede çalış
+ERROR_WAIT       = 60
 
 # Underdog Pressure kriterleri
 ODDS_THRESHOLD = 2.90
@@ -1850,10 +1854,27 @@ def run_scan():
     run_eml_scan(snapshots)
 
 
+def check_new_scraper_signal(since_ts: str) -> str | None:
+    """since_ts'den sonra gelen ilk scraper_signal'ın created_at'ını döner, yoksa None."""
+    try:
+        from urllib.parse import quote as _q
+        url = (f"{SUPABASE_URL}/rest/v1/scraper_signal"
+               f"?created_at=gt.{_q(since_ts)}"
+               f"&order=created_at.asc&limit=1&select=created_at")
+        r = requests.get(url, headers=_headers_read(), timeout=10)
+        if r.status_code == 200:
+            rows = r.json()
+            if rows:
+                return rows[0]['created_at']
+    except Exception as e:
+        log(f"[Signal Check] Hata: {e}")
+    return None
+
+
 def run_engine():
     print("=" * 60)
     print("SMARTXFLOW SİNYAL ENGINE v1.3")
-    print(f"Tarama aralığı  : {SCAN_INTERVAL // 60} dakika")
+    print(f"Poll interval   : {POLL_INTERVAL}s | Fallback: {FALLBACK_INTERVAL // 60} dakika")
     print(f"[Underdog]      : odds>={ODDS_THRESHOLD}, vol<{VOLUME_THRESHOLD:,.0f}→ret, vol{VOLUME_THRESHOLD:,.0f}-{UNDERDOG_HIGH_VOL:,.0f}→pct≥{UNDERDOG_MID_PCT}%, vol≥{UNDERDOG_HIGH_VOL:,.0f}→pct≥{PCT_THRESHOLD}%")
     print(f"[ConfirmedMoney]: pct>{CM_PCT_THRESHOLD}%, düsüş>={CM_ODDS_DROP_PCT*100:.0f}%, vol>={CM_VOLUME_THRESHOLD:,.0f}, cooldown={CM_COOLDOWN_HOURS}sa")
     print(f"[CMv2]          : pct>={CMV2_PCT_THRESHOLD}%, düşüş>={CMV2_ODDS_DROP_PCT*100:.0f}%, oran={CMV2_MIN_ODDS}-{CMV2_MAX_ODDS}, vol>={CMV2_VOLUME_THRESHOLD:,.0f}")
@@ -1901,19 +1922,34 @@ def run_engine():
         print("=" * 60 + "\n")
 
     update_heartbeat("started")
-    log("Engine başlatıldı — ilk tarama hemen çalışıyor...")
-    last_scan = 0
+
+    # Başlangıç timestamp'i: mevcut son sinyali baz al, geçmiştekileri işleme
+    _now_ts = datetime.now(timezone.utc).isoformat()
+    last_signal_ts = _now_ts
+    last_scan_time = 0        # fallback için son tarama zamanı
     consecutive_errors = 0
+
+    log("Engine başlatıldı — scraper sinyali bekleniyor...")
 
     while True:
         try:
-            now = time.time()
-            if now - last_scan >= SCAN_INTERVAL:
+            new_ts = check_new_scraper_signal(last_signal_ts)
+            elapsed = time.time() - last_scan_time
+            should_run = bool(new_ts) or elapsed >= FALLBACK_INTERVAL
+
+            if should_run:
+                if new_ts:
+                    log(f"Scraper sinyali alındı ({new_ts}) — tarama başlıyor...")
+                    last_signal_ts = new_ts
+                else:
+                    log(f"Fallback tarama ({FALLBACK_INTERVAL // 60} dakika geçti) — tarama başlıyor...")
+
                 run_scan()
                 update_heartbeat("idle")
-                last_scan = time.time()
+                last_scan_time = time.time()
                 consecutive_errors = 0
-            time.sleep(30)
+
+            time.sleep(POLL_INTERVAL)
 
         except KeyboardInterrupt:
             log("Durduruldu (Ctrl+C)")
