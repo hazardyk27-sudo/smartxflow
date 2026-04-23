@@ -2328,7 +2328,8 @@ def _get_finished_scores_map():
         if not supabase or not supabase.is_available:
             return {}
         headers = supabase._headers()
-        url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&select=home_team,away_team,score,match_id_hash&order=updated_at.desc&limit=200"
+        cutoff_7d = (now_turkey() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00+03:00')
+        url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&updated_at=gte.{cutoff_7d}&select=home_team,away_team,score,match_id_hash&order=updated_at.desc&limit=2000"
         resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         scores = {}
         if resp.status_code == 200:
