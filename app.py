@@ -2328,7 +2328,7 @@ def _get_finished_scores_map():
         if not supabase or not supabase.is_available:
             return {}
         headers = supabase._headers()
-        cutoff_7d = (now_turkey() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00+03:00')
+        cutoff_7d = (now_turkey() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00+03:00').replace('+', '%2B')
         scores = {}
         batch_size = 1000
         offset = 0
