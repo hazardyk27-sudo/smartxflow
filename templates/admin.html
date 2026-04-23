@@ -3310,7 +3310,7 @@
             <div class="page-header">
                 <div>
                     <h2 class="page-title">🔒 Early Money Lock Sinyalleri</h2>
-                    <p class="page-subtitle">Maça ≥24 saat kalmış, hacim ≥£5,000, 5 ardışık snapshot'ta %80+ PCT kilitlenen para akışı</p>
+                    <p class="page-subtitle">Maça ≥24 saat kalmış, hacim ≥£5,000, 5 ardışık snapshot'ta %85+ PCT kilitlenen para akışı</p>
                 </div>
                 <button class="btn btn-primary" onclick="loadEmlSignals()" style="padding:8px 18px;font-size:13px;">Yenile</button>
             </div>
@@ -9813,9 +9813,12 @@ var dateGroups = {};
                 var selLabel = sig.selection_code==='1'?'Ev Sahibi':sig.selection_code==='2'?'Deplasman':sig.selection_code==='X'?'Beraberlik':(sig.selection_label||sig.selection_code);
                 var pctN = parseFloat(String(sig.pct_now||'0').replace(/[^0-9.]/g,''));
                 var volN = parseFloat(String(sig.volume_now||'0').replace(/[^0-9.,£\s]/g,'').replace(/,/g,''));
+                var amtN = parseFloat(String(sig.amt_now||'0').replace(/[^0-9.]/g,''));
                 var pctFmt = pctN > 0 ? pctN.toFixed(0) + '%' : '-';
                 var volFmt = volN > 0 ? '£ ' + Math.round(volN).toLocaleString('en-GB') : '-';
-                _adminApproveData[ak] = {signal_type:'eml',match_key:''+(sig.match_key||''),selection_code:sig.selection_code||'',home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:'',pct:pctFmt,amt:'',volume:volFmt};
+                var amtFmt = amtN > 0 ? '£ ' + Math.round(amtN).toLocaleString('en-GB') : '-';
+                var hoursFmt = (sig.hours_before_kickoff != null && sig.hours_before_kickoff !== '') ? parseFloat(sig.hours_before_kickoff).toFixed(1) + ' sa önce' : '-';
+                _adminApproveData[ak] = {signal_type:'eml',match_key:''+(sig.match_key||''),selection_code:sig.selection_code||'',home_team:sig.home_team||'',away_team:sig.away_team||'',league:sig.league||'',match_date:sig.match_date||'',odds:'',pct:pctFmt,amt:amtFmt,volume:volFmt};
                 var resultBadge = '';
                 if (sig.result === 'win') resultBadge = '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✓ Kazandı</span>';
                 else if (sig.result === 'loss') resultBadge = '<span style="background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;">✗ Kaybetti</span>';
@@ -9828,6 +9831,8 @@ var dateGroups = {};
                 html += '<span style="background:rgba(14,165,233,0.08);color:#0ea5e9;border:1px solid rgba(14,165,233,0.2);border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;">🔒 ' + selLabel + '</span>';
                 html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">PCT ' + pctFmt + '</span>';
                 html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">Hacim ' + volFmt + '</span>';
+                html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">Seçenek ' + amtFmt + '</span>';
+                html += '<span style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px;font-size:11px;color:#7d848c;">' + hoursFmt + '</span>';
                 html += resultBadge;
                 html += '</div>';
                 html += '<div style="display:flex;gap:6px;align-items:center;">';

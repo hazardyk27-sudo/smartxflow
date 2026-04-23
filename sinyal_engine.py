@@ -67,9 +67,9 @@ FS_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
 FS_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 
 # Early Money Lock kriterleri
-EML_PCT_THRESHOLD        = 80.0    # Seçimin para yüzdesi >= %80
+EML_PCT_THRESHOLD        = 85.0    # Seçimin para yüzdesi >= %85
 EML_VOLUME_THRESHOLD     = 5000.0  # Toplam hacim >= £5,000
-EML_CONSECUTIVE_SNAPS    = 5       # 5 ardışık snapshot'ta pct >= %80
+EML_CONSECUTIVE_SNAPS    = 5       # 5 ardışık snapshot'ta pct >= %85
 EML_HOURS_BEFORE_KICKOFF = 24      # Maça en az 24 saat kalmış olmalı
 
 EML_MIGRATION_SQL = """
@@ -85,12 +85,19 @@ CREATE TABLE IF NOT EXISTS early_money_lock_signals (
     selection_label text,
     pct_now text,
     volume_now text,
+    amt_now text,
+    hours_before_kickoff real,
     consecutive_snapshots integer DEFAULT 5,
     created_at timestamptz DEFAULT now(),
     last_updated_at timestamptz,
     result text,
     UNIQUE (match_key, selection_code)
 );
+"""
+
+EML_ALTER_SQL = """
+ALTER TABLE early_money_lock_signals ADD COLUMN IF NOT EXISTS amt_now text;
+ALTER TABLE early_money_lock_signals ADD COLUMN IF NOT EXISTS hours_before_kickoff real;
 """
 
 MIGRATION_SQL = """
@@ -1566,6 +1573,16 @@ def check_eml_table_exists():
         return False
 
 
+def check_eml_columns_exist():
+    """amt_now ve hours_before_kickoff kolonlarının mevcut olup olmadığını kontrol et."""
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/early_money_lock_signals?select=amt_now,hours_before_kickoff&limit=1"
+        r = requests.get(url, headers=_headers_read(), timeout=8)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def fetch_eml_existing():
     """Tüm mevcut EML sinyallerinin (match_key, selection_code) çiftlerini döndür (tekrar tetikleme engeli)."""
     try:
@@ -1754,6 +1771,8 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
             continue
         cnt_snap += 1
 
+        amt_field_map = {'1': 'amt1', 'X': 'amtx', '2': 'amt2'}
+
         for code, label, p_field in [
             ('1', 'Ev Sahibi', 'pct1'),
             ('2', 'Deplasman', 'pct2'),
@@ -1777,6 +1796,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
                 continue
 
             pct_now = parse_odds_pct(latest.get(p_field))
+            amt_raw = parse_volume_amt(latest.get(amt_field_map.get(code, ''), ''))
 
             signals.append({
                 'match_key': mk,
@@ -1789,6 +1809,8 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
                 'selection_label': label,
                 'pct_now': f"{pct_now:.1f}",
                 'volume_now': latest.get('volume', ''),
+                'amt_now': str(int(amt_raw)) if amt_raw > 0 else '',
+                'hours_before_kickoff': round(hours_until, 1),
                 'consecutive_snapshots': EML_CONSECUTIVE_SNAPS,
             })
 
@@ -1805,14 +1827,20 @@ def save_eml_signals(signals):
             f"{SUPABASE_URL}/rest/v1/early_money_lock_signals"
             f"?on_conflict=match_key,selection_code"
         )
+        hdrs = {**_headers_write(), 'Prefer': 'resolution=ignore-duplicates,return=minimal'}
         for sig in signals:
             payload = {**sig, 'last_updated_at': datetime.now(timezone.utc).isoformat()}
-            r = requests.post(url, json=payload, headers={
-                **_headers_write(),
-                'Prefer': 'resolution=ignore-duplicates,return=minimal'
-            }, timeout=10)
+            r = requests.post(url, json=payload, headers=hdrs, timeout=10)
             if r.status_code in (200, 201):
                 log(f"[EML] Sinyal kaydedildi: {sig['home_team']} vs {sig['away_team']} ({sig['selection_label']})")
+            elif r.status_code in (400, 422) and ('amt_now' in r.text or 'hours_before_kickoff' in r.text or 'column' in r.text.lower()):
+                # Yeni kolonlar henüz DB'de yok — fallback: kolonlar olmadan kaydet
+                payload_compat = {k: v for k, v in payload.items() if k not in ('amt_now', 'hours_before_kickoff')}
+                r2 = requests.post(url, json=payload_compat, headers=hdrs, timeout=10)
+                if r2.status_code in (200, 201):
+                    log(f"[EML] Sinyal kaydedildi (compat): {sig['home_team']} vs {sig['away_team']} ({sig['selection_label']})")
+                else:
+                    log(f"[EML] Kayıt hatası (compat): {r2.status_code} {r2.text[:120]}")
             else:
                 log(f"[EML] Kayıt hatası: {r.status_code} {r.text[:120]}")
     except Exception as e:
@@ -1916,8 +1944,15 @@ def run_engine():
         print("\n" + "=" * 60)
         print("UYARI: early_money_lock_signals tablosu yok.")
         print(EML_MIGRATION_SQL)
-        print("migrations/create_early_money_lock_signals.sql Supabase SQL Editor'da çalıştırın.")
+        print("Supabase SQL Editor'da çalıştırın.")
         print("Engine migration olmadan da çalışmaya devam eder.")
+        print("=" * 60 + "\n")
+    elif not check_eml_columns_exist():
+        print("\n" + "=" * 60)
+        print("UYARI: early_money_lock_signals tablosunda amt_now / hours_before_kickoff kolonları yok.")
+        print("Supabase SQL Editor'da şu komutu çalıştırın:")
+        print(EML_ALTER_SQL)
+        print("Engine kolonlar olmadan da çalışmaya devam eder.")
         print("=" * 60 + "\n")
 
     update_heartbeat("started")

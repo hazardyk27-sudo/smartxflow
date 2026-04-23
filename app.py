@@ -8059,6 +8059,8 @@ def _fetch_all_eml_signals():
                     'selection_label': r.get('selection_label', ''),
                     'pct_now': r.get('pct_now', ''),
                     'volume_now': r.get('volume_now', ''),
+                    'amt_now': r.get('amt_now', ''),
+                    'hours_before_kickoff': r.get('hours_before_kickoff'),
                     'consecutive_snapshots': r.get('consecutive_snapshots', 5),
                     'created_at': r.get('created_at') or '',
                     'last_updated_at': r.get('last_updated_at') or '',
