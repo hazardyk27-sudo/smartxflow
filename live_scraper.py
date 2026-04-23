@@ -102,9 +102,25 @@ def make_live_match_hash(home: str, away: str, league: str) -> str:
 
 
 SOFASCORE_URL = "https://api.sofascore.com/api/v1/sport/football/events/live"
+SOFASCORE_URL_WWW = "https://www.sofascore.com/api/v1/sport/football/events/live"
 SOFASCORE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Origin": "https://www.sofascore.com",
+    "Referer": "https://www.sofascore.com/",
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache",
+    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-site",
 }
+_ss_session = None
+_ss_session_ts = 0
 
 
 _TEAM_ABBREVS = {
@@ -163,11 +179,34 @@ def _calc_sofascore_minute(event: Dict) -> str:
     return ''
 
 
+def _get_ss_session() -> requests.Session:
+    global _ss_session, _ss_session_ts
+    now = time.time()
+    if _ss_session is None or (now - _ss_session_ts) > 1800:
+        s = requests.Session()
+        try:
+            s.get("https://www.sofascore.com/", headers=SOFASCORE_HEADERS, timeout=10)
+        except Exception:
+            pass
+        _ss_session = s
+        _ss_session_ts = now
+    return _ss_session
+
+
 def _fetch_sofascore_live() -> Dict[str, Dict]:
     try:
-        resp = requests.get(SOFASCORE_URL, headers=SOFASCORE_HEADERS, timeout=15)
-        if resp.status_code != 200:
-            log(f"  [Sofascore] HTTP {resp.status_code}")
+        session = _get_ss_session()
+        resp = None
+        for url in [SOFASCORE_URL, SOFASCORE_URL_WWW]:
+            try:
+                resp = session.get(url, headers=SOFASCORE_HEADERS, timeout=15)
+                if resp.status_code == 200:
+                    break
+                log(f"  [Sofascore] {url.split('/')[2]} → HTTP {resp.status_code}")
+            except Exception as e:
+                log(f"  [Sofascore] {url.split('/')[2]} → hata: {e}")
+                resp = None
+        if resp is None or resp.status_code != 200:
             return {}
         data = resp.json()
         events = data.get('events', [])
@@ -359,13 +398,21 @@ def _fetch_sofascore_finished_events() -> Dict[str, str]:
     yesterday = (now_utc - timedelta(hours=6)).strftime('%Y-%m-%d')
     if yesterday != dates[0]:
         dates.append(yesterday)
+    session = _get_ss_session()
     for d in dates:
         try:
-            resp = requests.get(
-                f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{d}",
-                headers=SOFASCORE_HEADERS, timeout=15
-            )
-            if resp.status_code != 200:
+            resp = None
+            for base in ["https://api.sofascore.com", "https://www.sofascore.com"]:
+                try:
+                    resp = session.get(
+                        f"{base}/api/v1/sport/football/scheduled-events/{d}",
+                        headers=SOFASCORE_HEADERS, timeout=15
+                    )
+                    if resp.status_code == 200:
+                        break
+                except Exception:
+                    resp = None
+            if resp is None or resp.status_code != 200:
                 continue
             for ev in resp.json().get('events', []):
                 st = ev.get('status', {})
