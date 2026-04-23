@@ -690,9 +690,28 @@ def fetch_cm_v2_recent_cooldowns():
         return set()
 
 
+def _find_oldest_snapshot(history):
+    """Tarihçedeki en eski snapshot'ı döndür (scraped_at minimum).
+    Pct veya başka bir kritere BAKMAZ — sadece zamana göre seçer."""
+    best = None
+    best_ts = None
+    for r in history:
+        raw = r.get('scraped_at', '')
+        if not raw:
+            continue
+        try:
+            t = datetime.fromisoformat(raw.replace('Z', '+00:00'))
+            if best_ts is None or t < best_ts:
+                best_ts = t
+                best = r
+        except Exception:
+            pass
+    return best
+
+
 def _find_ref_snapshot(history, hours=10):
     """Geçmişten tam olarak 'hours' saat öncesine en yakın snapshot'ı döndür.
-    Pct veya başka bir kritere BAKMAZ — sadece zamana göre seçer."""
+    Fake Sharp gibi zaman bazlı referans gerektiren sinyaller için kullanılır."""
     target = datetime.now(timezone.utc) - timedelta(hours=hours)
     best = None
     best_diff = float('inf')
@@ -718,7 +737,7 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
       2. Anlık pct > CM_PCT_THRESHOLD
       3. Son CM_STABILITY_SNAPSHOTS ardışık history'de pct > CM_PCT_THRESHOLD
       4. Anlık odds 1.35-2.20 aralığında
-      5. Oran düşüşü: tam 10 saat önceki snapshot'a göre >= %4 düşüş (pct'den bağımsız)
+      5. Oran düşüşü: tarihçedeki ilk snapshot'a göre >= %4 düşüş (pct'den bağımsız)
     """
     signals = []
 
@@ -758,8 +777,8 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
             if not (CM_MIN_ODDS <= odds_0 <= CM_MAX_ODDS):
                 continue
 
-            # Kriter 5: Oran düşüşü — tam 10 saat öncesine en yakın snapshot (pct'den bağımsız)
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            # Kriter 5: Oran düşüşü — tarihçedeki ilk snapshot'a göre >= %4 düşüş (pct'den bağımsız)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -828,7 +847,7 @@ def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
             if not (CMV2_MIN_ODDS <= odds_0 <= CMV2_MAX_ODDS):
                 continue
 
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -1136,7 +1155,7 @@ def run_cm_scan(snapshots, snapshot_lookup):
         cm_updated, cm_not_found = update_cm_current_values(existing_cm, snapshot_lookup)
 
         # Geçersizleşen sinyalleri tespit et ve sil:
-        # Anlık oran, 10 saat önceki orana göre artık yeterli düşüşü göstermiyorsa → sil
+        # Anlık oran, tarihçedeki ilk snapshot oranına göre artık yeterli düşüşü göstermiyorsa → sil
         code_map_cm = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
         invalid_cm = []
         for sig in existing_cm:
@@ -1149,7 +1168,7 @@ def run_cm_scan(snapshots, snapshot_lookup):
             if not row:
                 continue
             match_history = history.get(mk, [])
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             try:
@@ -1201,7 +1220,7 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
         inserted = save_confirmed_money_v2_signals(new_signals) if new_signals else 0
 
         # Geçersizleşen CMv2 sinyallerini tespit et ve sil:
-        # Güncel 10 saatlik referansa göre düşüş eşiği artık sağlanmıyorsa → sil
+        # Anlık oran, tarihçedeki ilk snapshot oranına göre artık yeterli düşüşü göstermiyorsa → sil
         code_map_v2 = {'1': 'odds1', '2': 'odds2'}
         invalid_v2 = []
         for sig in existing_v2:
@@ -1214,7 +1233,7 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
             if not row:
                 continue
             match_history = history.get(mk, [])
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             try:
