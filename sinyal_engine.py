@@ -1693,7 +1693,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
     Early Money Lock kriterleri:
     1. Maça >= 24 saat kalmış (kickoff_utc üzerinden hesap)
     2. Toplam hacim >= £5,000
-    3. Bir seçimde son 5 ardışık snapshot'ta pct >= %80
+    3. Bir seçimde son 5 ardışık snapshot'ta pct >= %85
     4. Maç başına yalnızca 1 tetikleme (existing_signals ile kontrol)
 
     DÜZELTME: latest_snapshots keys = "home|away|date" string,
@@ -1758,7 +1758,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
         raw_date = latest.get('date', '')
         match_date = fixture_date if fixture_date else raw_date
 
-        # Kriter 3: Son 5 ardışık snapshot'ta pct >= %80
+        # Kriter 3: Son 5 ardışık snapshot'ta pct >= %85
         # computed_hash ile history_by_hash'e bak (key formatı artık eşleşiyor)
         match_history = history_by_hash.get(computed_hash, [])
         if not match_history:
