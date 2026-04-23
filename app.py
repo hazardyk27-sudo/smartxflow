@@ -2329,11 +2329,21 @@ def _get_finished_scores_map():
             return {}
         headers = supabase._headers()
         cutoff_7d = (now_turkey() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00+03:00')
-        url = f"{supabase._rest_url('live_fixtures')}?status=eq.ft&updated_at=gte.{cutoff_7d}&select=home_team,away_team,score,match_id_hash&order=updated_at.desc&limit=2000"
-        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
         scores = {}
-        if resp.status_code == 200:
-            for f in resp.json():
+        batch_size = 1000
+        offset = 0
+        while True:
+            url = (f"{supabase._rest_url('live_fixtures')}?status=eq.ft"
+                   f"&updated_at=gte.{cutoff_7d}"
+                   f"&select=home_team,away_team,score,match_id_hash"
+                   f"&order=updated_at.desc&limit={batch_size}&offset={offset}")
+            resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                break
+            rows = resp.json()
+            if not rows:
+                break
+            for f in rows:
                 sc = (f.get('score') or '').strip()
                 if sc:
                     h = f.get('match_id_hash', '')
@@ -2342,6 +2352,10 @@ def _get_finished_scores_map():
                     scores[key_name] = entry
                     if h:
                         scores[h] = entry
+            if len(rows) < batch_size:
+                break
+            offset += batch_size
+        print(f"[FT-Scores] {len(scores)//2} maç skoru yüklendi (7 günlük)")
         result = {'scores': scores}
         _ft_scores_cache['data'] = result
         _ft_scores_cache['ts'] = now
