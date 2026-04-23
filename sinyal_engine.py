@@ -42,7 +42,7 @@ UNDERDOG_HIGH_VOL = 5000.0    # bu eşik üstünde PCT_THRESHOLD (%50) uygulanı
 # Confirmed Money kriterleri
 CM_PCT_THRESHOLD = 80.0
 CM_ODDS_DROP_PCT = 0.04      # %4 düşüş (göreli)
-CM_VOLUME_THRESHOLD = 2000.0
+CM_VOLUME_THRESHOLD = 5000.0
 CM_COOLDOWN_HOURS = 3
 CM_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
 CM_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
@@ -51,7 +51,7 @@ CM_MAX_ODDS = 2.20           # Seçim oranı üst sınırı
 # Confirmed Money V2 kriterleri (araştırma tabanlı, %100 başarı bölgesi)
 CMV2_PCT_THRESHOLD       = 88.0
 CMV2_ODDS_DROP_PCT       = 0.07   # %7 düşüş
-CMV2_VOLUME_THRESHOLD    = 2000.0
+CMV2_VOLUME_THRESHOLD    = 5000.0
 CMV2_COOLDOWN_HOURS      = 3
 CMV2_STABILITY_SNAPSHOTS = 3
 CMV2_MIN_ODDS            = 1.55   # Kısa oranlar hariç
@@ -60,7 +60,7 @@ CMV2_MAX_ODDS            = 2.20
 # Fake Sharp kriterleri
 FS_PCT_THRESHOLD = 75.0
 FS_ODDS_RISE_PCT = 0.04      # %4 yükseliş (göreli)
-FS_VOLUME_THRESHOLD = 2000.0
+FS_VOLUME_THRESHOLD = 5000.0
 FS_COOLDOWN_HOURS = 3
 FS_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
 FS_MIN_ODDS = 1.35           # Seçim oranı alt sınırı
@@ -709,26 +709,6 @@ def _find_oldest_snapshot(history):
     return best
 
 
-def _find_ref_snapshot(history, hours=10):
-    """Geçmişten tam olarak 'hours' saat öncesine en yakın snapshot'ı döndür.
-    Fake Sharp gibi zaman bazlı referans gerektiren sinyaller için kullanılır."""
-    target = datetime.now(timezone.utc) - timedelta(hours=hours)
-    best = None
-    best_diff = float('inf')
-    for r in history:
-        raw = r.get('scraped_at', '')
-        if not raw:
-            continue
-        try:
-            t = datetime.fromisoformat(raw.replace('Z', '+00:00'))
-            diff = abs((t - target).total_seconds())
-            if diff < best_diff:
-                best_diff = diff
-                best = r
-        except Exception:
-            pass
-    return best
-
 
 def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
     """Confirmed Money kriterlerini kontrol et.
@@ -1351,8 +1331,8 @@ def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
             if not (FS_MIN_ODDS <= odds_0 <= FS_MAX_ODDS):
                 continue
 
-            # Kriter 5: Oran yükselişi — tam 10 saat öncesine en yakın snapshot (pct'den bağımsız)
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            # Kriter 5: Oran yükselişi — tarihçedeki ilk snapshot'a göre (pct'den bağımsız)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -1542,7 +1522,7 @@ def run_fs_scan(snapshots, snapshot_lookup):
             if not row:
                 continue
             match_history = history.get(mk, [])
-            ref_snap = _find_ref_snapshot(match_history, hours=10)
+            ref_snap = _find_oldest_snapshot(match_history)
             if not ref_snap:
                 continue
             try:
