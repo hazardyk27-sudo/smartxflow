@@ -7388,7 +7388,51 @@ def _build_unified_underdog_signals():
                     new_s['current_volume'] = ex.get('current_volume') or ''
                     new_s['last_updated_at'] = ex.get('last_updated_at') or ''
                 seen[key] = new_s
-    return list(seen.values())
+
+    # Cache'den anlık veri ile current_* doldur ve is_stale hesapla
+    cache_lookup = {}
+    for m in matches_data:
+        h = (m.get('home_team', '') or '').lower().strip()
+        a = (m.get('away_team', '') or '').lower().strip()
+        odds_obj = m.get('odds') or {}
+        for code, raw_pct, raw_odds, raw_amt in [
+            ('1', odds_obj.get('Pct1', ''), odds_obj.get('Odds1', ''), odds_obj.get('Amt1', '')),
+            ('2', odds_obj.get('Pct2', ''), odds_obj.get('Odds2', ''), odds_obj.get('Amt2', '')),
+        ]:
+            if h and a:
+                cache_lookup[(h, a, code)] = {
+                    'current_pct': str(raw_pct) if raw_pct else '',
+                    'current_odds': str(raw_odds) if raw_odds and raw_odds != '-' else '',
+                    'current_amt': str(raw_amt) if raw_amt else '',
+                    'current_volume': str(odds_obj.get('Volume', '')) if odds_obj.get('Volume') else '',
+                }
+
+    result = []
+    for s in seen.values():
+        sd = dict(s)
+        h = (sd.get('home_team', '') or '').lower().strip()
+        a = (sd.get('away_team', '') or '').lower().strip()
+        code = sd.get('selection_code', '')
+        cur = cache_lookup.get((h, a, code))
+        if cur:
+            if not sd.get('current_pct'):  sd['current_pct']    = cur['current_pct']
+            if not sd.get('current_odds'): sd['current_odds']   = cur['current_odds']
+            if not sd.get('current_amt'):  sd['current_amt']    = cur['current_amt']
+            if not sd.get('current_volume'): sd['current_volume'] = cur['current_volume']
+        # is_stale: sinyal anında tetiklendi ama şu an eşiğin altına düştü
+        is_stale = False
+        cur_pct_raw = sd.get('current_pct', '')
+        if cur_pct_raw and not sd.get('score'):  # bitmemiş maç + current_pct var
+            try:
+                cur_pct_val = float(str(cur_pct_raw).replace('%', '').strip())
+                cur_vol = _pv(sd.get('current_volume', '') or sd.get('volume', ''))
+                req_pct = 50.0 if cur_vol >= 5000 else 55.0
+                is_stale = cur_pct_val < req_pct
+            except Exception:
+                pass
+        sd['is_stale'] = is_stale
+        result.append(sd)
+    return result
 
 
 @app.route('/api/underdog-pressure', methods=['GET'])

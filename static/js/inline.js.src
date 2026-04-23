@@ -687,11 +687,15 @@ function renderUnderdogPressureView(data) {
                     out += '</div>';
                     return out;
                 }
-                html += '<div style="background:#1c1f23;border:1px solid rgba(210,153,34,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+                var isStale = sig.is_stale === true;
+                var cardBorder = isStale ? 'rgba(120,120,120,0.18)' : 'rgba(210,153,34,0.15)';
+                var cardOpacity = isStale ? '0.55' : '1';
+                html += '<div style="background:#1c1f23;border:1px solid ' + cardBorder + ';border-radius:10px;padding:12px 16px;margin-bottom:8px;opacity:' + cardOpacity + ';">';
                 html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
                 html += '<div style="flex:1;min-width:0;">';
                 html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
                 html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+                if (isStale) html += '<span style="background:rgba(180,83,9,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;letter-spacing:0.3px;">\u2193 ZAYIFLADI</span>';
                 if (hoursBeforeHtml) html += hoursBeforeHtml;
                 html += '</div>';
                 html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
