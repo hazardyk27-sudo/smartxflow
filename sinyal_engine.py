@@ -658,7 +658,7 @@ def fetch_first_snapshots():
         h = f"{home}|{away}|{date}"
         if h not in first_snaps:
             first_snaps[h] = row
-    log(f"[FirstSnap] {len(first_snaps)} maç için ilk snapshot çekildi ({len(rows)} satır)")
+    log(f"[CM-Fetch] {len(first_snaps)} maç için referans snapshot çekildi, ilk snap ({len(rows)} satır)")
     return first_snaps
 
 
@@ -1050,7 +1050,7 @@ def fetch_existing_cm_signals():
 
 def delete_invalid_cm_signals(invalid_signals):
     """Geçersizleşen Confirmed Money sinyallerini DB'den sil.
-    Geçersizlik koşulu: 10 saat önceki orana göre mevcut düşüş CM_ODDS_DROP_PCT eşiğinin altında."""
+    Geçersizlik koşulu: sinyal anındaki referans orana (odds_16h) göre mevcut düşüş CM_ODDS_DROP_PCT eşiğinin altında."""
     if not invalid_signals:
         return 0
     deleted = 0
@@ -1073,7 +1073,7 @@ def delete_invalid_cm_signals(invalid_signals):
 
 def delete_invalid_cm_v2_signals(invalid_signals):
     """Geçersizleşen Confirmed Money V2 sinyallerini DB'den sil.
-    Geçersizlik koşulu: güncel 10 saatlik referansa göre mevcut düşüş CMV2_ODDS_DROP_PCT eşiğinin altında."""
+    Geçersizlik koşulu: sinyal anındaki referans orana (odds_16h) göre mevcut düşüş CMV2_ODDS_DROP_PCT eşiğinin altında."""
     if not invalid_signals:
         return 0
     deleted = 0
