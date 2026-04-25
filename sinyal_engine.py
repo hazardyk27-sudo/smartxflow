@@ -213,7 +213,7 @@ def fetch_latest_snapshots():
     güncel tablo (~1987 maç) — history tablosundan çok daha kapsamlı.
     Kolonlar: home,away,league,date,volume,odds1,oddsx,odds2,amt1,amtx,amt2,pct1,pctx,pct2
     Anahtar: tabloda gerçek match_id_hash varsa onu kullan; yoksa home|away|date
-    (fetch_history_16h() da aynı formatı kullanır — lookup tutarlılığı sağlanır).
+    (fetch_recent_history() / fetch_first_snapshots() da aynı formatı kullanır — lookup tutarlılığı sağlanır).
 
     EK: moneyway_1x2_history'den son 2 saatin en güncel snapshot'ları da eklenir
     (history fallback). Bu sayede maç başladıktan sonra canlı tablodan düşen maçlar
@@ -602,8 +602,9 @@ def check_cm_v2_table_exists():
         return False
 
 
-def fetch_history_16h():
+def fetch_recent_history():
     """Son 10 saatin tüm snapshot'larını çek, home|away|date bazlı grupla.
+    PCT stabilite kontrolü için kullanılır (son N ardışık snapshot'ta pct > eşik).
     NOT: match_id_hash (UUID) yerine home|away|date anahtarı kullanılır çünkü
     fetch_latest_snapshots() moneyway_1x2'den aynı format anahtarı üretiyor."""
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=10, minutes=5)).isoformat()
@@ -629,8 +630,36 @@ def fetch_history_16h():
         if h not in history:
             history[h] = []
         history[h].append(row)
-    log(f"[CM-Fetch] {len(history)} maç için 10 saatlik geçmiş çekildi ({len(rows)} satır)")
+    log(f"[CM-Fetch] {len(history)} maç için son geçmiş çekildi ({len(rows)} satır)")
     return history
+
+
+def fetch_first_snapshots():
+    """Her maç için ilk (en eski) snapshot'ı çek.
+    Zaman filtresi yok — scraped_at ASC sıralı, maç başına yalnızca ilk satır tutulur.
+    Odds karşılaştırması için referans noktası olarak kullanılır (ilk snap → şimdiki snap)."""
+    url = (
+        f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
+        f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
+        f"&order=scraped_at.asc&limit=50000"
+    )
+    r = requests.get(url, headers=_headers_read(), timeout=30)
+    if r.status_code != 200:
+        log(f"[FirstSnap] HTTP {r.status_code}: {r.text[:200]}")
+        return {}
+    rows = r.json()
+    first_snaps = {}
+    for row in rows:
+        home = row.get('home', '')
+        away = row.get('away', '')
+        date = row.get('date', '')
+        if not home or not away:
+            continue
+        h = f"{home}|{away}|{date}"
+        if h not in first_snaps:
+            first_snaps[h] = row
+    log(f"[FirstSnap] {len(first_snaps)} maç için ilk snapshot çekildi ({len(rows)} satır)")
+    return first_snaps
 
 
 def _normalize_mk(mk):
@@ -717,15 +746,17 @@ def _find_oldest_snapshot(history):
 
 
 
-def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
+def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set, first_snapshots=None):
     """Confirmed Money kriterlerini kontrol et.
     Her kriter bağımsız olarak değerlendirilir:
       1. Hacim >= CM_VOLUME_THRESHOLD
       2. Anlık pct > CM_PCT_THRESHOLD
       3. Son CM_STABILITY_SNAPSHOTS ardışık history'de pct > CM_PCT_THRESHOLD
       4. Anlık odds 1.35-2.20 aralığında
-      5. Oran düşüşü: tarihçedeki ilk snapshot'a göre >= %4 düşüş (pct'den bağımsız)
+      5. Oran düşüşü: maçın ilk snapshot'ına göre >= %4 düşüş (pct'den bağımsız)
     """
+    if first_snapshots is None:
+        first_snapshots = {}
     signals = []
 
     for h, latest in latest_snapshots.items():
@@ -764,8 +795,8 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
             if not (CM_MIN_ODDS <= odds_0 <= CM_MAX_ODDS):
                 continue
 
-            # Kriter 5: Oran düşüşü — tarihçedeki ilk snapshot'a göre >= %4 düşüş (pct'den bağımsız)
-            ref_snap = _find_oldest_snapshot(match_history)
+            # Kriter 5: Oran düşüşü — maçın ilk snapshot'ına göre >= %4 düşüş
+            ref_snap = first_snapshots.get(h)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -793,7 +824,7 @@ def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set):
     return signals
 
 
-def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
+def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set, first_snapshots=None):
     """Confirmed Money V2 kriterlerini kontrol et (araştırma tabanlı, sıkılaştırılmış).
     V1'den farklar:
       - Pct eşiği: >%80 → ≥%88
@@ -801,6 +832,8 @@ def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
       - Oran düşüşü: ≥%4 → ≥%7
       - X (beraberlik) seçimi yoktur (sadece '1' ve '2')
     """
+    if first_snapshots is None:
+        first_snapshots = {}
     signals = []
 
     for h, latest in latest_snapshots.items():
@@ -834,7 +867,7 @@ def find_confirmed_money_v2(latest_snapshots, history_by_hash, cooldown_set):
             if not (CMV2_MIN_ODDS <= odds_0 <= CMV2_MAX_ODDS):
                 continue
 
-            ref_snap = _find_oldest_snapshot(match_history)
+            ref_snap = first_snapshots.get(h)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -1113,9 +1146,10 @@ def run_cm_scan(snapshots, snapshot_lookup):
         log(f"[ConfirmedMoney] Tablo yok — migrations/create_confirmed_money_signals.sql çalıştırın")
         return
     try:
-        history = fetch_history_16h()
+        history = fetch_recent_history()
+        first_snaps = fetch_first_snapshots()
         cooldown_set = fetch_cm_recent_cooldowns()
-        signals = find_confirmed_money(snapshots, history, cooldown_set)
+        signals = find_confirmed_money(snapshots, history, cooldown_set, first_snaps)
 
         # Önce DB'deki mevcut kayıtları çek
         existing_cm = fetch_existing_cm_signals()
@@ -1142,24 +1176,21 @@ def run_cm_scan(snapshots, snapshot_lookup):
         cm_updated, cm_not_found = update_cm_current_values(existing_cm, snapshot_lookup)
 
         # Geçersizleşen sinyalleri tespit et ve sil:
-        # Anlık oran, tarihçedeki ilk snapshot oranına göre artık yeterli düşüşü göstermiyorsa → sil
-        code_map_cm = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
+        # Sinyal oluşturulduğundaki referans oran (odds_16h) ile şimdiki oran karşılaştırılır.
+        # Artık yeterli düşüş yoksa → sil
         invalid_cm = []
         for sig in existing_cm:
             mk = sig.get('match_key', '')
             sc = sig.get('selection_code', '')
+            code_map_cm = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
             o_field = code_map_cm.get(sc)
             if not o_field:
                 continue
             row = snapshot_lookup.get(mk)
             if not row:
                 continue
-            match_history = history.get(mk, [])
-            ref_snap = _find_oldest_snapshot(match_history)
-            if not ref_snap:
-                continue
             try:
-                odds_ref = parse_odds_pct(ref_snap.get(o_field))
+                odds_ref = parse_odds_pct(sig.get('odds_16h'))
                 odds_cur = parse_odds_pct(row.get(o_field))
                 if odds_ref <= 0 or odds_cur <= 0:
                     continue
@@ -1184,9 +1215,10 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
         log(f"[CMv2] Tablo yok — CMV2_MIGRATION_SQL çalıştırın")
         return
     try:
-        history = fetch_history_16h()
+        history = fetch_recent_history()
+        first_snaps = fetch_first_snapshots()
         cooldown_set_v2 = fetch_cm_v2_recent_cooldowns()
-        signals = find_confirmed_money_v2(snapshots, history, cooldown_set_v2)
+        signals = find_confirmed_money_v2(snapshots, history, cooldown_set_v2, first_snaps)
 
         existing_v2 = fetch_existing_cm_v2_signals()
 
@@ -1207,7 +1239,8 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
         inserted = save_confirmed_money_v2_signals(new_signals) if new_signals else 0
 
         # Geçersizleşen CMv2 sinyallerini tespit et ve sil:
-        # Anlık oran, tarihçedeki ilk snapshot oranına göre artık yeterli düşüşü göstermiyorsa → sil
+        # Sinyal oluşturulduğundaki referans oran (odds_16h) ile şimdiki oran karşılaştırılır.
+        # Artık yeterli düşüş yoksa → sil
         code_map_v2 = {'1': 'odds1', '2': 'odds2'}
         invalid_v2 = []
         for sig in existing_v2:
@@ -1219,12 +1252,8 @@ def run_cm_v2_scan(snapshots, snapshot_lookup):
             row = snapshot_lookup.get(mk)
             if not row:
                 continue
-            match_history = history.get(mk, [])
-            ref_snap = _find_oldest_snapshot(match_history)
-            if not ref_snap:
-                continue
             try:
-                odds_ref = parse_odds_pct(ref_snap.get(o_field))
+                odds_ref = parse_odds_pct(sig.get('odds_16h'))
                 odds_cur = parse_odds_pct(row.get(o_field))
                 if odds_ref <= 0 or odds_cur <= 0:
                     continue
@@ -1292,15 +1321,17 @@ def fetch_fs_cooldown():
         return set()
 
 
-def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
+def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set, first_snapshots=None):
     """Fake Sharp kriterlerini kontrol et.
     Her kriter bağımsız olarak değerlendirilir:
       1. Hacim >= FS_VOLUME_THRESHOLD
       2. Anlık pct > FS_PCT_THRESHOLD
       3. Son FS_STABILITY_SNAPSHOTS ardışık history'de pct > FS_PCT_THRESHOLD
       4. Anlık odds 1.35-2.20 aralığında
-      5. Oran yükselişi: tam 10 saat önceki snapshot'a göre >= %4 yükseliş (pct'den bağımsız)
+      5. Oran yükselişi: maçın ilk snapshot'ına göre >= %4 yükseliş (pct'den bağımsız)
     CM'in tam tersi: pct yüksekken oran da yükselmişse sahte sharp baskısı."""
+    if first_snapshots is None:
+        first_snapshots = {}
     signals = []
 
     for h, latest in latest_snapshots.items():
@@ -1338,8 +1369,8 @@ def find_fake_sharp(latest_snapshots, history_by_hash, cooldown_set):
             if not (FS_MIN_ODDS <= odds_0 <= FS_MAX_ODDS):
                 continue
 
-            # Kriter 5: Oran yükselişi — tarihçedeki ilk snapshot'a göre (pct'den bağımsız)
-            ref_snap = _find_oldest_snapshot(match_history)
+            # Kriter 5: Oran yükselişi — maçın ilk snapshot'ına göre (pct'den bağımsız)
+            ref_snap = first_snapshots.get(h)
             if not ref_snap:
                 continue
             odds_ref = parse_odds_pct(ref_snap.get(o_field))
@@ -1491,9 +1522,10 @@ def run_fs_scan(snapshots, snapshot_lookup):
         log("[FakeSharp] Tablo yok — migrations/create_fake_sharp_signals.sql çalıştırın")
         return
     try:
-        history = fetch_history_16h()
+        history = fetch_recent_history()
+        first_snaps = fetch_first_snapshots()
         cooldown_set = fetch_fs_cooldown()
-        signals = find_fake_sharp(snapshots, history, cooldown_set)
+        signals = find_fake_sharp(snapshots, history, cooldown_set, first_snaps)
 
         existing_fs = fetch_existing_fs_signals()
 
@@ -1516,7 +1548,8 @@ def run_fs_scan(snapshots, snapshot_lookup):
         fs_updated, fs_not_found = update_fs_current_odds(existing_fs, snapshot_lookup)
 
         # Geçersizleşen sinyalleri tespit et ve sil:
-        # Güncel 10 saatlik referansa göre mevcut oran yükselişi eşiğin altına düştüyse → sil
+        # Sinyal oluşturulduğundaki referans oran (odds_16h) ile şimdiki oran karşılaştırılır.
+        # Artık yeterli yükseliş yoksa → sil
         code_map = {'1': 'odds1', '2': 'odds2'}
         invalid_fs = []
         for sig in existing_fs:
@@ -1528,12 +1561,8 @@ def run_fs_scan(snapshots, snapshot_lookup):
             row = snapshot_lookup.get(mk)
             if not row:
                 continue
-            match_history = history.get(mk, [])
-            ref_snap = _find_oldest_snapshot(match_history)
-            if not ref_snap:
-                continue
             try:
-                odds_ref = parse_odds_pct(ref_snap.get(o_field))
+                odds_ref = parse_odds_pct(sig.get('odds_16h'))
                 odds_cur = parse_odds_pct(row.get(o_field))
                 if odds_ref <= 0 or odds_cur <= 0:
                     continue
