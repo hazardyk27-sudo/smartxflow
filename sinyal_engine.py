@@ -726,26 +726,6 @@ def fetch_cm_v2_recent_cooldowns():
         return set()
 
 
-def _find_oldest_snapshot(history):
-    """Tarihçedeki en eski snapshot'ı döndür (scraped_at minimum).
-    Pct veya başka bir kritere BAKMAZ — sadece zamana göre seçer."""
-    best = None
-    best_ts = None
-    for r in history:
-        raw = r.get('scraped_at', '')
-        if not raw:
-            continue
-        try:
-            t = datetime.fromisoformat(raw.replace('Z', '+00:00'))
-            if best_ts is None or t < best_ts:
-                best_ts = t
-                best = r
-        except Exception:
-            pass
-    return best
-
-
-
 def find_confirmed_money(latest_snapshots, history_by_hash, cooldown_set, first_snapshots=None):
     """Confirmed Money kriterlerini kontrol et.
     Her kriter bağımsız olarak değerlendirilir:
