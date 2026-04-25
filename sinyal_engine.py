@@ -1019,7 +1019,7 @@ def fetch_existing_cm_v2_signals():
     try:
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals"
-            "?select=match_key,selection_code,home_team,away_team,match_date"
+            "?select=match_key,selection_code,home_team,away_team,match_date,odds_16h"
             "&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=12)
@@ -1036,7 +1036,7 @@ def fetch_existing_cm_signals():
     try:
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_signals"
-            "?select=match_key,selection_code,home_team,away_team,match_date,odds_now"
+            "?select=match_key,selection_code,home_team,away_team,match_date,odds_now,odds_16h"
             "&limit=5000"
         )
         r = requests.get(url, headers=_headers_read(), timeout=12)
