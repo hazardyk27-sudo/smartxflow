@@ -602,11 +602,11 @@ def check_cm_v2_table_exists():
         return False
 
 
-def fetch_recent_history():
+def fetch_recent_history(active_keys=None):
     """Son 10 saatin tüm snapshot'larını çek, home|away|date bazlı grupla.
     PCT stabilite kontrolü için kullanılır (son N ardışık snapshot'ta pct > eşik).
-    NOT: match_id_hash (UUID) yerine home|away|date anahtarı kullanılır çünkü
-    fetch_latest_snapshots() moneyway_1x2'den aynı format anahtarı üretiyor."""
+    active_keys: moneyway_1x2 canlı tablosundan gelen başlamamış maç key seti.
+    Bu set verilirse yalnızca o maçların geçmişi işlenir, biten maçlar atlanır."""
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=10, minutes=5)).isoformat()
     url = (
         f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
@@ -619,7 +619,6 @@ def fetch_recent_history():
         log(f"[CM-Fetch] HTTP {r.status_code}: {r.text[:200]}")
         return {}
     rows = r.json()
-    now_utc = datetime.now(timezone.utc)
     history = {}
     skipped = 0
     for row in rows:
@@ -628,15 +627,10 @@ def fetch_recent_history():
         date = row.get('date', '')
         if not home or not away:
             continue
-        iso_kickoff = _betwatch_to_iso_datetime(date)
-        if iso_kickoff and 'T' in iso_kickoff:
-            try:
-                if datetime.fromisoformat(iso_kickoff) < now_utc:
-                    skipped += 1
-                    continue
-            except Exception:
-                pass
         h = f"{home}|{away}|{date}"
+        if active_keys and h not in active_keys:
+            skipped += 1
+            continue
         if h not in history:
             history[h] = []
         history[h].append(row)
@@ -644,13 +638,16 @@ def fetch_recent_history():
     return history
 
 
-def fetch_first_snapshots():
+def fetch_first_snapshots(active_keys=None):
     """Her maç için ilk (en eski) snapshot'ı çek.
-    Zaman filtresi yok — scraped_at ASC sıralı, maç başına yalnızca ilk satır tutulur.
-    Odds karşılaştırması için referans noktası olarak kullanılır (ilk snap → şimdiki snap)."""
+    scraped_at >= (now - 24h) filtresi: Şubat'tan beri birikmiş eski verileri dışarıda bırakır.
+    active_keys: moneyway_1x2 canlı tablosundan gelen başlamamış maç key seti.
+    Bu set verilirse yalnızca o maçların snapshot'ı işlenir, biten maçlar atlanır."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     url = (
         f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
         f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
+        f"&scraped_at=gte.{cutoff}"
         f"&order=scraped_at.asc&limit=50000"
     )
     r = requests.get(url, headers=_headers_read(), timeout=30)
@@ -658,7 +655,6 @@ def fetch_first_snapshots():
         log(f"[FirstSnap] HTTP {r.status_code}: {r.text[:200]}")
         return {}
     rows = r.json()
-    now_utc = datetime.now(timezone.utc)
     first_snaps = {}
     skipped = 0
     for row in rows:
@@ -667,15 +663,10 @@ def fetch_first_snapshots():
         date = row.get('date', '')
         if not home or not away:
             continue
-        iso_kickoff = _betwatch_to_iso_datetime(date)
-        if iso_kickoff and 'T' in iso_kickoff:
-            try:
-                if datetime.fromisoformat(iso_kickoff) < now_utc:
-                    skipped += 1
-                    continue
-            except Exception:
-                pass
         h = f"{home}|{away}|{date}"
+        if active_keys and h not in active_keys:
+            skipped += 1
+            continue
         if h not in first_snaps:
             first_snaps[h] = row
     log(f"[CM-Fetch] {len(first_snaps)} aktif maç için referans snapshot çekildi ({len(rows)} satır, {skipped} biten atlandı)")
@@ -1140,14 +1131,14 @@ def update_cm_current_values(existing_cm, snapshot_lookup):
     return updated, not_found
 
 
-def run_cm_scan(snapshots, snapshot_lookup):
+def run_cm_scan(snapshots, snapshot_lookup, active_keys=None):
     """Confirmed Money taraması."""
     if not check_cm_table_exists():
         log(f"[ConfirmedMoney] Tablo yok — migrations/create_confirmed_money_signals.sql çalıştırın")
         return
     try:
-        history = fetch_recent_history()
-        first_snaps = fetch_first_snapshots()
+        history = fetch_recent_history(active_keys)
+        first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set = fetch_cm_recent_cooldowns()
         signals = find_confirmed_money(snapshots, history, cooldown_set, first_snaps)
 
@@ -1209,14 +1200,14 @@ def run_cm_scan(snapshots, snapshot_lookup):
         traceback.print_exc()
 
 
-def run_cm_v2_scan(snapshots, snapshot_lookup):
+def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None):
     """Confirmed Money V2 taraması (araştırma tabanlı, sıkılaştırılmış kriterler)."""
     if not check_cm_v2_table_exists():
         log(f"[CMv2] Tablo yok — CMV2_MIGRATION_SQL çalıştırın")
         return
     try:
-        history = fetch_recent_history()
-        first_snaps = fetch_first_snapshots()
+        history = fetch_recent_history(active_keys)
+        first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set_v2 = fetch_cm_v2_recent_cooldowns()
         signals = find_confirmed_money_v2(snapshots, history, cooldown_set_v2, first_snaps)
 
@@ -1516,14 +1507,14 @@ def update_fs_current_odds(existing_fs, snapshot_lookup):
     return updated, not_found
 
 
-def run_fs_scan(snapshots, snapshot_lookup):
+def run_fs_scan(snapshots, snapshot_lookup, active_keys=None):
     """Fake Sharp taraması."""
     if not check_fs_table_exists():
         log("[FakeSharp] Tablo yok — migrations/create_fake_sharp_signals.sql çalıştırın")
         return
     try:
-        history = fetch_recent_history()
-        first_snaps = fetch_first_snapshots()
+        history = fetch_recent_history(active_keys)
+        first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set = fetch_fs_cooldown()
         signals = find_fake_sharp(snapshots, history, cooldown_set, first_snaps)
 
@@ -1903,10 +1894,16 @@ def run_scan():
         log("[SinyalEngine] Veri çekilemedi, tarama atlandı")
         return
     snapshot_lookup = build_snapshot_lookup(snapshots)
+    active_keys = {
+        f"{v['home']}|{v['away']}|{v['date']}"
+        for v in snapshots.values()
+        if v.get('home') and v.get('away') and v.get('date')
+    }
+    log(f"[SinyalEngine] {len(active_keys)} aktif maç (moneyway_1x2)")
     run_underdog_scan(snapshots, snapshot_lookup)
-    run_cm_scan(snapshots, snapshot_lookup)
-    run_cm_v2_scan(snapshots, snapshot_lookup)
-    run_fs_scan(snapshots, snapshot_lookup)
+    run_cm_scan(snapshots, snapshot_lookup, active_keys)
+    run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
+    run_fs_scan(snapshots, snapshot_lookup, active_keys)
     run_eml_scan(snapshots)
 
 
