@@ -1738,7 +1738,7 @@ def _make_match_id_hash(home: str, away: str, league: str) -> str:
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 
-def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
+def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, active_keys=None):
     """
     Early Money Lock kriterleri:
     1. Maça >= 24 saat kalmış (kickoff_utc üzerinden hesap)
@@ -1757,6 +1757,8 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map):
     # Önce tüm computed hash'leri hesapla
     hash_to_row = {}
     for _key, row in latest_snapshots.items():
+        if active_keys is not None and _key not in active_keys:
+            continue
         home = row.get('home', '')
         away = row.get('away', '')
         league = row.get('league', '')
@@ -1897,7 +1899,7 @@ def save_eml_signals(signals):
         log(f"[EML] save_eml_signals hata: {e}")
 
 
-def run_eml_scan(latest_snapshots):
+def run_eml_scan(latest_snapshots, active_keys=None):
     """Early Money Lock tarama döngüsü."""
     if not check_eml_table_exists():
         return
@@ -1908,7 +1910,7 @@ def run_eml_scan(latest_snapshots):
         return
 
     existing = fetch_eml_existing()
-    signals = find_early_money_lock(latest_snapshots, existing, kickoff_map)
+    signals = find_early_money_lock(latest_snapshots, existing, kickoff_map, active_keys=active_keys)
 
     if signals:
         log(f"[EML] {len(signals)} yeni sinyal bulundu")
@@ -1929,7 +1931,7 @@ def run_scan():
     run_cm_scan(snapshots, snapshot_lookup, active_keys)
     run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
     run_fs_scan(snapshots, snapshot_lookup, active_keys)
-    run_eml_scan(snapshots)
+    run_eml_scan(snapshots, active_keys=active_keys)
 
 
 def check_new_scraper_signal(since_ts: str) -> str | None:
