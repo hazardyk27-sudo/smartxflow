@@ -291,6 +291,33 @@ def fetch_latest_snapshots():
         return {}
 
 
+def fetch_live_active_keys():
+    """moneyway_1x2 CANLI tablosundan home|away|date key setini döner.
+    History fallback OLMADAN — yalnızca scraper'ın şu an yazdığı başlamamış maçlar.
+    Bu set fetch_first_snapshots() ve fetch_recent_history() için filtre olarak kullanılır."""
+    try:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/moneyway_1x2"
+            "?select=home,away,date"
+            "&limit=5000"
+        )
+        r = requests.get(url, headers=_headers_read(), timeout=20)
+        if r.status_code != 200:
+            log(f"[LiveKeys] HTTP {r.status_code} — active_keys boş")
+            return set()
+        rows = r.json()
+        keys = {
+            f"{row['home']}|{row['away']}|{row['date']}"
+            for row in rows
+            if row.get('home') and row.get('away') and row.get('date')
+        }
+        log(f"[LiveKeys] {len(keys)} aktif maç anahtarı (moneyway_1x2 live)")
+        return keys
+    except Exception as e:
+        log(f"[LiveKeys] Hata: {e}")
+        return set()
+
+
 def build_snapshot_lookup(snapshots):
     """Snapshot listesini match_key bazlı dict'e çevir (home|away|date -> row).
     Her maç için hem UTC (eski kayıtlar) hem UTC+3 (yeni kayıtlar) key eklenir.
@@ -628,7 +655,7 @@ def fetch_recent_history(active_keys=None):
         if not home or not away:
             continue
         h = f"{home}|{away}|{date}"
-        if active_keys and h not in active_keys:
+        if active_keys is not None and h not in active_keys:
             skipped += 1
             continue
         if h not in history:
@@ -664,7 +691,7 @@ def fetch_first_snapshots(active_keys=None):
         if not home or not away:
             continue
         h = f"{home}|{away}|{date}"
-        if active_keys and h not in active_keys:
+        if active_keys is not None and h not in active_keys:
             skipped += 1
             continue
         if h not in first_snaps:
@@ -1894,12 +1921,7 @@ def run_scan():
         log("[SinyalEngine] Veri çekilemedi, tarama atlandı")
         return
     snapshot_lookup = build_snapshot_lookup(snapshots)
-    active_keys = {
-        f"{v['home']}|{v['away']}|{v['date']}"
-        for v in snapshots.values()
-        if v.get('home') and v.get('away') and v.get('date')
-    }
-    log(f"[SinyalEngine] {len(active_keys)} aktif maç (moneyway_1x2)")
+    active_keys = fetch_live_active_keys()
     run_underdog_scan(snapshots, snapshot_lookup)
     run_cm_scan(snapshots, snapshot_lookup, active_keys)
     run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
