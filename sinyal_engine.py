@@ -303,19 +303,22 @@ def fetch_live_active_keys():
         )
         r = requests.get(url, headers=_headers_read(), timeout=20)
         if r.status_code != 200:
-            log(f"[LiveKeys] HTTP {r.status_code} — active_keys boş")
-            return set()
+            log(f"[LiveKeys] HTTP {r.status_code} — filtre devre dışı (None)")
+            return None
         rows = r.json()
         keys = {
             f"{row['home']}|{row['away']}|{row['date']}"
             for row in rows
             if row.get('home') and row.get('away') and row.get('date')
         }
+        if not keys:
+            log(f"[LiveKeys] Uyarı: 0 anahtar döndü — filtre devre dışı (None)")
+            return None
         log(f"[LiveKeys] {len(keys)} aktif maç anahtarı (moneyway_1x2 live)")
         return keys
     except Exception as e:
-        log(f"[LiveKeys] Hata: {e}")
-        return set()
+        log(f"[LiveKeys] Hata: {e} — filtre devre dışı (None)")
+        return None
 
 
 def build_snapshot_lookup(snapshots):
