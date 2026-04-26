@@ -619,18 +619,28 @@ def fetch_recent_history():
         log(f"[CM-Fetch] HTTP {r.status_code}: {r.text[:200]}")
         return {}
     rows = r.json()
+    now_utc = datetime.now(timezone.utc)
     history = {}
+    skipped = 0
     for row in rows:
         home = row.get('home', '')
         away = row.get('away', '')
         date = row.get('date', '')
         if not home or not away:
             continue
+        iso_kickoff = _betwatch_to_iso_datetime(date)
+        if iso_kickoff and 'T' in iso_kickoff:
+            try:
+                if datetime.fromisoformat(iso_kickoff) < now_utc:
+                    skipped += 1
+                    continue
+            except Exception:
+                pass
         h = f"{home}|{away}|{date}"
         if h not in history:
             history[h] = []
         history[h].append(row)
-    log(f"[CM-Fetch] {len(history)} maç için son geçmiş çekildi ({len(rows)} satır)")
+    log(f"[CM-Fetch] {len(history)} aktif maç için son geçmiş çekildi ({len(rows)} satır, {skipped} biten atlandı)")
     return history
 
 
@@ -648,17 +658,27 @@ def fetch_first_snapshots():
         log(f"[FirstSnap] HTTP {r.status_code}: {r.text[:200]}")
         return {}
     rows = r.json()
+    now_utc = datetime.now(timezone.utc)
     first_snaps = {}
+    skipped = 0
     for row in rows:
         home = row.get('home', '')
         away = row.get('away', '')
         date = row.get('date', '')
         if not home or not away:
             continue
+        iso_kickoff = _betwatch_to_iso_datetime(date)
+        if iso_kickoff and 'T' in iso_kickoff:
+            try:
+                if datetime.fromisoformat(iso_kickoff) < now_utc:
+                    skipped += 1
+                    continue
+            except Exception:
+                pass
         h = f"{home}|{away}|{date}"
         if h not in first_snaps:
             first_snaps[h] = row
-    log(f"[CM-Fetch] {len(first_snaps)} maç için referans snapshot çekildi, ilk snap ({len(rows)} satır)")
+    log(f"[CM-Fetch] {len(first_snaps)} aktif maç için referans snapshot çekildi ({len(rows)} satır, {skipped} biten atlandı)")
     return first_snaps
 
 
