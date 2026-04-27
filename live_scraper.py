@@ -103,6 +103,8 @@ def make_live_match_hash(home: str, away: str, league: str) -> str:
 
 SOFASCORE_URL = "https://api.sofascore.com/api/v1/sport/football/events/live"
 SOFASCORE_URL_WWW = "https://www.sofascore.com/api/v1/sport/football/events/live"
+APIFOOTBALL_KEY = os.environ.get("APIFOOTBALL_KEY", "")
+APIFOOTBALL_URL = "https://v3.football.api-sports.io/fixtures"
 SOFASCORE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -666,9 +668,105 @@ def _betwatch_ko_to_utc(ce_val: str, fallback: str) -> str:
         return fallback
 
 
+def _apifootball_minute(status: dict) -> str:
+    """API-Football fixture.status → dakika string'e çevir."""
+    short = status.get('short', '')
+    elapsed = status.get('elapsed')
+    if short == 'HT':
+        return 'HT'
+    if short in ('FT', 'AET'):
+        return 'FT'
+    if short in ('P', 'PEN'):
+        return 'PEN'
+    if short == 'ET':
+        return 'ET'
+    if short in ('NS', 'TBD', 'PST', 'CANC', 'ABD', 'SUSP', 'INT', 'BT'):
+        return ''
+    if elapsed is None:
+        return ''
+    e = int(elapsed)
+    if short == '1H':
+        if e > 45:
+            return f"45+{e - 45}'"
+        return f"{e}'"
+    if short == '2H':
+        if e > 90:
+            return f"90+{e - 90}'"
+        return f"{e}'"
+    return f"{e}'" if e else ''
+
+
+def _fetch_apifootball_live() -> Dict[str, Dict]:
+    """API-Football v3 ile canlı skor/dakika çeker.
+    Sofascore ile aynı format döner: key=norm_home|norm_away"""
+    if not APIFOOTBALL_KEY:
+        return {}
+    try:
+        resp = requests.get(
+            APIFOOTBALL_URL,
+            params={'live': 'all'},
+            headers={
+                'x-apisports-key': APIFOOTBALL_KEY,
+                'Accept': 'application/json',
+            },
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            log(f"  [APIFootball] HTTP {resp.status_code}: {resp.text[:100]}")
+            return {}
+        data = resp.json()
+        results_left = data.get('results', 0)
+        response = data.get('response', [])
+        if not isinstance(response, list):
+            log(f"  [APIFootball] Beklenmeyen format")
+            return {}
+        result = {}
+        for item in response:
+            teams = item.get('teams', {})
+            home = teams.get('home', {}).get('name', '')
+            away = teams.get('away', {}).get('name', '')
+            if not home or not away:
+                continue
+            goals = item.get('goals', {})
+            h_score = goals.get('home')
+            a_score = goals.get('away')
+            score_str = f"{h_score}-{a_score}" if h_score is not None and a_score is not None else ''
+            fixture = item.get('fixture', {})
+            status = fixture.get('status', {})
+            minute_str = _apifootball_minute(status)
+            ts = fixture.get('timestamp', 0)
+            kickoff_utc = ''
+            if ts:
+                utc_dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                tr_dt = utc_dt + timedelta(hours=3)
+                kickoff_utc = tr_dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
+            league = item.get('league', {})
+            league_name = league.get('name', '')
+            key = _normalize_team(home) + '|' + _normalize_team(away)
+            result[key] = {
+                'score': score_str,
+                'minute': minute_str,
+                'home': home,
+                'away': away,
+                'kickoff_utc': kickoff_utc,
+                'league': league_name,
+            }
+        log(f"  [APIFootball] {len(result)} canlı maç ({results_left} toplam)")
+        return result
+    except Exception as e:
+        log(f"  [APIFootball] Hata: {e}")
+        return {}
+
+
 def _fetch_sofascore_data() -> Dict[str, Dict]:
-    """Sofascore canlı verilerini çeker (thread içinde çalışır)."""
-    return _fetch_sofascore_live()
+    """Skor/dakika kaynağı: önce Sofascore, ban varsa API-Football fallback."""
+    ss = _fetch_sofascore_live()
+    if ss:
+        return ss
+    if APIFOOTBALL_KEY:
+        log("  [Fallback] Sofascore başarısız → API-Football deneniyor...")
+        return _fetch_apifootball_live()
+    return {}
 
 
 def _get_betwatch_date() -> str:
