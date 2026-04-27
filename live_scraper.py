@@ -123,6 +123,9 @@ SOFASCORE_HEADERS = {
 }
 _ss_session = None
 _ss_session_ts = 0
+_apifootball_cache: Dict[str, Dict] = {}
+_apifootball_cache_ts: float = 0.0
+APIFOOTBALL_CACHE_TTL = 15 * 60
 
 
 _TEAM_ABBREVS = {
@@ -698,9 +701,16 @@ def _apifootball_minute(status: dict) -> str:
 
 def _fetch_apifootball_live() -> Dict[str, Dict]:
     """API-Football v3 ile canlı skor/dakika çeker.
-    Sofascore ile aynı format döner: key=norm_home|norm_away"""
+    Sofascore ile aynı format döner: key=norm_home|norm_away
+    14 dakika cache — günlük 100 istek sınırında kalır."""
+    global _apifootball_cache, _apifootball_cache_ts
     if not APIFOOTBALL_KEY:
         return {}
+    now = time.time()
+    if _apifootball_cache and (now - _apifootball_cache_ts) < APIFOOTBALL_CACHE_TTL:
+        age_min = (now - _apifootball_cache_ts) / 60
+        log(f"  [APIFootball] Cache HIT ({age_min:.1f} dk önce çekildi, {len(_apifootball_cache)} maç)")
+        return _apifootball_cache
     try:
         resp = requests.get(
             APIFOOTBALL_URL,
@@ -751,10 +761,15 @@ def _fetch_apifootball_live() -> Dict[str, Dict]:
                 'kickoff_utc': kickoff_utc,
                 'league': league_name,
             }
-        log(f"  [APIFootball] {len(result)} canlı maç ({results_left} toplam)")
+        log(f"  [APIFootball] {len(result)} canlı maç çekildi — sonraki güncelleme ~15 dk sonra (~96/gün)")
+        _apifootball_cache = result
+        _apifootball_cache_ts = time.time()
         return result
     except Exception as e:
         log(f"  [APIFootball] Hata: {e}")
+        if _apifootball_cache:
+            log(f"  [APIFootball] Hata sonrası eski cache kullanılıyor ({len(_apifootball_cache)} maç)")
+            return _apifootball_cache
         return {}
 
 
