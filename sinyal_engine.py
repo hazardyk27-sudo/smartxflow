@@ -1749,6 +1749,9 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
     DÜZELTME: latest_snapshots keys = "home|away|date" string,
     kickoff_map ve history_by_hash keys = 12 karakterlik MD5 hash.
     Bu uyumsuzluğu gidermek için her maç için computed_hash hesaplanır.
+
+    active_keys: moneyway_1x2 canlı tablosundan gelen başlamamış maç key seti.
+    Verilirse yalnızca o maçlar işlenir, biten maçlar atlanır.
     """
     signals = []
     now_utc = datetime.now(timezone.utc)
@@ -1756,8 +1759,10 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
     # Tüm history'yi tek seferde çek (hash bazlı lookup için computed hash'leri kullan)
     # Önce tüm computed hash'leri hesapla
     hash_to_row = {}
+    skipped_inactive = 0
     for _key, row in latest_snapshots.items():
         if active_keys is not None and _key not in active_keys:
+            skipped_inactive += 1
             continue
         home = row.get('home', '')
         away = row.get('away', '')
@@ -1766,6 +1771,8 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
             continue
         computed = _make_match_id_hash(home, away, league)
         hash_to_row[computed] = row
+    if skipped_inactive:
+        log(f"[EML] {skipped_inactive} biten maç atlandı (active_keys filtresi)")
 
     all_computed_hashes = set(hash_to_row.keys())
     history_by_hash = fetch_eml_history(all_computed_hashes)
@@ -1931,7 +1938,7 @@ def run_scan():
     run_cm_scan(snapshots, snapshot_lookup, active_keys)
     run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
     run_fs_scan(snapshots, snapshot_lookup, active_keys)
-    run_eml_scan(snapshots, active_keys=active_keys)
+    run_eml_scan(snapshots, active_keys)
 
 
 def check_new_scraper_signal(since_ts: str) -> str | None:
