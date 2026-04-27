@@ -579,8 +579,20 @@ def cleanup_low_volume_signals():
         log(f"[Cleanup] Hata: {e}")
 
 
-def run_underdog_scan(snapshots, snapshot_lookup):
+def run_underdog_scan(snapshots, snapshot_lookup, active_keys=None):
     """Underdog Pressure taraması."""
+    if active_keys is not None:
+        filtered = {}
+        skipped = 0
+        for _hash, row in snapshots.items():
+            h = f"{row.get('home', '')}|{row.get('away', '')}|{row.get('date', '')}"
+            if h in active_keys:
+                filtered[_hash] = row
+            else:
+                skipped += 1
+        if skipped:
+            log(f"[Underdog] {skipped} biten maç atlandı, {len(filtered)} aktif maç işleniyor")
+        snapshots = filtered
     has_cols = check_columns_exist()
     cleanup_low_volume_signals()
     new_triggers = find_signals(snapshots)
@@ -1934,7 +1946,7 @@ def run_scan():
         return
     snapshot_lookup = build_snapshot_lookup(snapshots)
     active_keys = fetch_live_active_keys()
-    run_underdog_scan(snapshots, snapshot_lookup)
+    run_underdog_scan(snapshots, snapshot_lookup, active_keys)
     run_cm_scan(snapshots, snapshot_lookup, active_keys)
     run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
     run_fs_scan(snapshots, snapshot_lookup, active_keys)
