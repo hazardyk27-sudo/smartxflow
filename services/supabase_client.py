@@ -461,44 +461,103 @@ class SupabaseClient:
                     return []
                 fixtures = fix_resp.json()
                 print(f"[Supabase] PAST({date_filter}): Got {len(fixtures)} fixtures")
-                if not fixtures:
+                if fixtures:
+                    odds_cache = {}
+                    hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
+                    batch_size = 50
+                    for i in range(0, len(hashes), batch_size):
+                        batch_hashes = hashes[i:i+batch_size]
+                        hash_list = ','.join(batch_hashes)
+                        if not hash_list:
+                            continue
+                        try:
+                            batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
+                            batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
+                            if batch_resp.status_code == 200:
+                                for row in batch_resp.json():
+                                    h = row.get('match_id_hash', '')
+                                    if h and h not in odds_cache:
+                                        odds_cache[h] = row
+                        except Exception as e:
+                            print(f"[Supabase] PAST({date_filter}) batch error: {e}")
+                    matches = []
+                    with_odds = 0
+                    for fix in fixtures:
+                        match_hash = fix.get('match_id_hash', '')
+                        if match_hash in odds_cache:
+                            latest = self._normalize_history_row(odds_cache[match_hash], market)
+                            with_odds += 1
+                        else:
+                            latest = {}
+                        matches.append({
+                            'home_team': fix.get('home_team', ''),
+                            'away_team': fix.get('away_team', ''),
+                            'league': fix.get('league', ''),
+                            'date': fix.get('kickoff_utc', ''),
+                            'match_id_hash': match_hash,
+                            'latest': latest
+                        })
+                    print(f"[Supabase] PAST({date_filter}): {with_odds}/{len(fixtures)} matches with odds")
+                    return matches
+
+                # Fallback: history-first (fixtures tablosu o gün için boş)
+                # Geçmiş günler için scraper fixtures'ı silmiş olabilir; history tablosunda
+                # gerçek odds verisi ground-truth olarak duruyor.
+                print(f"[Supabase] PAST({date_filter}): Fixtures empty, falling back to {history_table}")
+                hist_url = (
+                    f"{self._rest_url(history_table)}"
+                    f"?select=*"
+                    f"&scraped_at=gte.{quote(target_start_utc)}"
+                    f"&scraped_at=lt.{quote(target_end_utc)}"
+                    f"&order=scraped_at.desc"
+                    f"&limit=50000"
+                )
+                hist_resp = self._get_http_client().get(hist_url, headers=self._headers(), timeout=60)
+                if hist_resp.status_code != 200:
+                    print(f"[Supabase] PAST({date_filter}) history fallback fetch error: {hist_resp.status_code}")
                     return []
-                odds_cache = {}
-                hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
-                batch_size = 50
-                for i in range(0, len(hashes), batch_size):
-                    batch_hashes = hashes[i:i+batch_size]
-                    hash_list = ','.join(batch_hashes)
-                    if not hash_list:
+                hist_rows = hist_resp.json()
+                print(f"[Supabase] PAST({date_filter}) history fallback: Got {len(hist_rows)} rows")
+                if not hist_rows:
+                    return []
+
+                # Distinct by match_id_hash; en yeni satır (desc order'da ilk gelen) tutulur
+                import re as _re_iso
+                betwatch_re = _re_iso.compile(r'^\s*(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?')
+                latest_by_hash = {}
+                for row in hist_rows:
+                    h = row.get('match_id_hash', '')
+                    if not h or h in latest_by_hash:
                         continue
-                    try:
-                        batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
-                        batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
-                        if batch_resp.status_code == 200:
-                            for row in batch_resp.json():
-                                h = row.get('match_id_hash', '')
-                                if h and h not in odds_cache:
-                                    odds_cache[h] = row
-                    except Exception as e:
-                        print(f"[Supabase] PAST({date_filter}) batch error: {e}")
+                    latest_by_hash[h] = row
+
                 matches = []
-                with_odds = 0
-                for fix in fixtures:
-                    match_hash = fix.get('match_id_hash', '')
-                    if match_hash in odds_cache:
-                        latest = self._normalize_history_row(odds_cache[match_hash], market)
-                        with_odds += 1
-                    else:
-                        latest = {}
+                for h, row in latest_by_hash.items():
+                    latest = self._normalize_history_row(row, market)
+                    # date alanı: Betwatch text "29.Apr 16:00:00" → ISO (target_date + saat)
+                    raw_date = row.get('date', '') or ''
+                    iso_date = ''
+                    m_re = betwatch_re.match(str(raw_date))
+                    if m_re:
+                        try:
+                            hh = int(m_re.group(3))
+                            mm = int(m_re.group(4))
+                            ss = int(m_re.group(5)) if m_re.group(5) else 0
+                            iso_date = f"{target_str}T{hh:02d}:{mm:02d}:{ss:02d}+00:00"
+                        except Exception:
+                            iso_date = ''
+                    if not iso_date:
+                        # Son çare: scraped_at'i kullan (TR offsetli, frontend handle eder)
+                        iso_date = row.get('scraped_at', '') or f"{target_str}T12:00:00+00:00"
                     matches.append({
-                        'home_team': fix.get('home_team', ''),
-                        'away_team': fix.get('away_team', ''),
-                        'league': fix.get('league', ''),
-                        'date': fix.get('kickoff_utc', ''),
-                        'match_id_hash': match_hash,
+                        'home_team': row.get('home', ''),
+                        'away_team': row.get('away', ''),
+                        'league': row.get('league', ''),
+                        'date': iso_date,
+                        'match_id_hash': h,
                         'latest': latest
                     })
-                print(f"[Supabase] PAST({date_filter}): {with_odds}/{len(fixtures)} matches with odds")
+                print(f"[Supabase] PAST({date_filter}) history fallback: {len(matches)} unique matches")
                 return matches
             elif date_filter == 'today':
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
