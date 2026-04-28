@@ -37,10 +37,21 @@ DROP TABLE IF EXISTS dropping_ou25_hist CASCADE;
 DROP TABLE IF EXISTS alarm_config CASCADE;
 
 -- ----------------------------------------------------------------------------
--- 4) match_favorites: Eski device_id-bazli favori sistemi.
+-- 4) match_favorites: Eski device_id-bazli favori sistemi (71 satir).
 --    Yeni sistem: license_favorites (license_key + match_key).
---    Kodda 0 referans, 71 satirlik veri device_id'liydi -> mapping yok,
---    migrate edilemezdi. Veri zaten silindi.
+--    Kodda 0 referans (yeni UI license_favorites'i kullaniyor).
+--
+--    UYARI - Migration kayip: match_favorites.device_id -> license_devices.device_id
+--    -> license_favorites.license_key esleme yolu MUMKUN (license_devices tablosu
+--    158 satirla mapping sagliyor). Bu cleanup'ta veri MIGRATE EDILMEDEN dogrudan
+--    silindi. Eger 71 eski device-bazli favori onemliyse Replit checkpoint'inden
+--    geri don ve once asagidaki SQL ile migrate et:
+--
+--      INSERT INTO license_favorites (license_key, match_key, created_at)
+--      SELECT DISTINCT ld.license_key, mf.match_key, mf.created_at
+--      FROM match_favorites mf
+--      JOIN license_devices ld ON ld.device_id = mf.device_id
+--      ON CONFLICT DO NOTHING;
 -- ----------------------------------------------------------------------------
 DROP TABLE IF EXISTS match_favorites CASCADE;
 

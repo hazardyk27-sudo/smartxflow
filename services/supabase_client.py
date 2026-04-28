@@ -1986,6 +1986,18 @@ class SupabaseClient:
         except Exception as e:
             print(f"[Cleanup] Error fetching old live fixture hashes: {e}")
 
+        from datetime import datetime as _dt, timedelta as _td
+        try:
+            _cutoff_dt = _dt.strptime(cutoff_date, '%Y-%m-%d')
+            today_dt = _cutoff_dt + _td(days=8)
+            signal_cutoff_d1 = (today_dt - _td(days=1)).strftime('%Y-%m-%d')
+            scraper_signal_cutoff = (today_dt - _td(days=1)).strftime('%Y-%m-%dT00:00:00')
+            telegram_cutoff = (today_dt - _td(days=30)).strftime('%Y-%m-%dT00:00:00')
+        except Exception:
+            signal_cutoff_d1 = cutoff_date
+            scraper_signal_cutoff = cutoff_date + 'T00:00:00'
+            telegram_cutoff = cutoff_date + 'T00:00:00'
+
         snapshot_tables = ['moneyway_snapshots', 'dropping_odds_snapshots']
         for table in snapshot_tables:
             table_count = 0
@@ -2010,7 +2022,7 @@ class SupabaseClient:
                     print(f"[Cleanup] Exception for {table}: {e}")
             if table_count > 0:
                 deleted[table] = table_count
-                print(f"[Cleanup] Deleted {table_count} old records from {table}")
+            print(f"[Cleanup] {table}: {table_count} satir silindi")
         
         if live_old_hashes:
             table_count = 0
@@ -2035,7 +2047,7 @@ class SupabaseClient:
                     print(f"[Cleanup] Exception for live_snapshots: {e}")
             if table_count > 0:
                 deleted['live_snapshots'] = table_count
-                print(f"[Cleanup] Deleted {table_count} old records from live_snapshots")
+            print(f"[Cleanup] live_snapshots: {table_count} satir silindi")
 
         history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
                           'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
@@ -2063,7 +2075,7 @@ class SupabaseClient:
                     print(f"[Cleanup] Exception for {table}: {e}")
             if table_count > 0:
                 deleted[table] = table_count
-                print(f"[Cleanup] Deleted {table_count} old records from {table}")
+            print(f"[Cleanup] {table}: {table_count} satir silindi")
 
         main_tables = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
                        'dropping_1x2', 'dropping_ou25', 'dropping_btts']
@@ -2090,7 +2102,7 @@ class SupabaseClient:
                     print(f"[Cleanup] Exception for {table}: {e}")
             if table_count > 0:
                 deleted[table] = table_count
-                print(f"[Cleanup] Deleted {table_count} old records from {table}")
+            print(f"[Cleanup] {table}: {table_count} satir silindi")
         
         for fix_table in ['fixtures', 'live_fixtures']:
             fix_count = 0
@@ -2151,66 +2163,66 @@ class SupabaseClient:
             ('early_money_lock_signals', 'match_date'),
         ]
         for sig_table, date_col in signal_tables:
+            sig_count = 0
             try:
                 headers_sig = self._headers()
-                check_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{cutoff_date}&select=id&limit=1"
+                check_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{signal_cutoff_d1}&select=id&limit=1"
                 check_resp = self._get_http_client().get(check_url, headers=headers_sig, timeout=15)
                 if check_resp.status_code == 404:
+                    print(f"[Cleanup] {sig_table}: tablo bulunamadi (atlandi)")
                     continue
                 headers_del = self._headers()
                 headers_del['Prefer'] = 'return=representation'
-                del_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{cutoff_date}"
+                del_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{signal_cutoff_d1}"
                 del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
                 if del_resp.status_code == 200:
                     try:
-                        count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
-                        if count > 0:
-                            deleted[sig_table] = count
-                            print(f"[Cleanup] Deleted {count} old records from {sig_table}")
+                        sig_count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                        if sig_count > 0:
+                            deleted[sig_table] = sig_count
                     except:
                         pass
+                elif del_resp.status_code not in [204, 404]:
+                    print(f"[Cleanup] Error deleting {sig_table}: {del_resp.status_code}")
+                print(f"[Cleanup] {sig_table}: {sig_count} satir silindi (kickoff < {signal_cutoff_d1})")
             except Exception as e:
                 print(f"[Cleanup] Exception for {sig_table}: {e}")
 
+        ss_count = 0
         try:
-            from datetime import datetime as _dt, timedelta as _td
-            cutoff_dt = _dt.strptime(cutoff_date, '%Y-%m-%d')
-            scraper_signal_cutoff = cutoff_dt.strftime('%Y-%m-%dT00:00:00')
             headers_del = self._headers()
             headers_del['Prefer'] = 'return=representation'
             del_url = f"{self._rest_url('scraper_signal')}?created_at=lt.{scraper_signal_cutoff}"
             del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
             if del_resp.status_code == 200:
                 try:
-                    count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
-                    if count > 0:
-                        deleted['scraper_signal'] = count
-                        print(f"[Cleanup] Deleted {count} old records from scraper_signal")
+                    ss_count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                    if ss_count > 0:
+                        deleted['scraper_signal'] = ss_count
                 except:
                     pass
             elif del_resp.status_code not in [204, 404]:
                 print(f"[Cleanup] Error deleting scraper_signal: {del_resp.status_code}")
+            print(f"[Cleanup] scraper_signal: {ss_count} satir silindi (created_at < {scraper_signal_cutoff})")
         except Exception as e:
             print(f"[Cleanup] Exception for scraper_signal: {e}")
 
+        tg_count = 0
         try:
-            from datetime import datetime as _dt, timedelta as _td
-            today_dt = _dt.strptime(cutoff_date, '%Y-%m-%d') + _td(days=8)
-            telegram_cutoff = (today_dt - _td(days=30)).strftime('%Y-%m-%dT00:00:00')
             headers_del = self._headers()
             headers_del['Prefer'] = 'return=representation'
             del_url = f"{self._rest_url('telegram_sent_log')}?last_sent_at=lt.{telegram_cutoff}"
             del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
             if del_resp.status_code == 200:
                 try:
-                    count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
-                    if count > 0:
-                        deleted['telegram_sent_log'] = count
-                        print(f"[Cleanup] Deleted {count} old records from telegram_sent_log (>30d)")
+                    tg_count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                    if tg_count > 0:
+                        deleted['telegram_sent_log'] = tg_count
                 except:
                     pass
             elif del_resp.status_code not in [204, 404]:
                 print(f"[Cleanup] Error deleting telegram_sent_log: {del_resp.status_code}")
+            print(f"[Cleanup] telegram_sent_log: {tg_count} satir silindi (last_sent_at < {telegram_cutoff} / >30d)")
         except Exception as e:
             print(f"[Cleanup] Exception for telegram_sent_log: {e}")
 
