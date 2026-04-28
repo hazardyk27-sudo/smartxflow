@@ -504,32 +504,49 @@ class SupabaseClient:
                 # Geçmiş günler için scraper fixtures'ı silmiş olabilir; history tablosunda
                 # gerçek odds verisi ground-truth olarak duruyor.
                 print(f"[Supabase] PAST({date_filter}): Fixtures empty, falling back to {history_table}")
-                hist_url = (
-                    f"{self._rest_url(history_table)}"
-                    f"?select=*"
-                    f"&scraped_at=gte.{quote(target_start_utc)}"
-                    f"&scraped_at=lt.{quote(target_end_utc)}"
-                    f"&order=scraped_at.desc"
-                    f"&limit=50000"
-                )
-                hist_resp = self._get_http_client().get(hist_url, headers=self._headers(), timeout=60)
-                if hist_resp.status_code != 200:
-                    print(f"[Supabase] PAST({date_filter}) history fallback fetch error: {hist_resp.status_code}")
-                    return []
-                hist_rows = hist_resp.json()
-                print(f"[Supabase] PAST({date_filter}) history fallback: Got {len(hist_rows)} rows")
-                if not hist_rows:
-                    return []
 
-                # Distinct by match_id_hash; en yeni satır (desc order'da ilk gelen) tutulur
+                # Pagination: PostgREST default max-rows cap'ini aşmamak için Range header ile
+                # sayfa sayfa çek. Distinct match_id_hash dedup'ı stream'de yapılır.
                 import re as _re_iso
                 betwatch_re = _re_iso.compile(r'^\s*(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?')
                 latest_by_hash = {}
-                for row in hist_rows:
-                    h = row.get('match_id_hash', '')
-                    if not h or h in latest_by_hash:
-                        continue
-                    latest_by_hash[h] = row
+                page_size = 1000
+                max_pages = 100  # 100K satıra kadar güvenli üst sınır
+                total_fetched = 0
+                page_idx = 0
+                while page_idx < max_pages:
+                    range_start = page_idx * page_size
+                    range_end = range_start + page_size - 1
+                    page_url = (
+                        f"{self._rest_url(history_table)}"
+                        f"?select=*"
+                        f"&scraped_at=gte.{quote(target_start_utc)}"
+                        f"&scraped_at=lt.{quote(target_end_utc)}"
+                        f"&order=scraped_at.desc"
+                    )
+                    page_headers = self._headers()
+                    page_headers['Range-Unit'] = 'items'
+                    page_headers['Range'] = f"{range_start}-{range_end}"
+                    page_resp = self._get_http_client().get(page_url, headers=page_headers, timeout=60)
+                    if page_resp.status_code not in (200, 206):
+                        print(f"[Supabase] PAST({date_filter}) history page {page_idx} error: {page_resp.status_code}")
+                        break
+                    page_rows = page_resp.json()
+                    if not isinstance(page_rows, list) or not page_rows:
+                        break
+                    total_fetched += len(page_rows)
+                    for row in page_rows:
+                        h = row.get('match_id_hash', '')
+                        if not h or h in latest_by_hash:
+                            continue
+                        latest_by_hash[h] = row
+                    if len(page_rows) < page_size:
+                        # Son sayfa
+                        break
+                    page_idx += 1
+                print(f"[Supabase] PAST({date_filter}) history fallback: fetched {total_fetched} rows in {page_idx + 1} page(s)")
+                if not latest_by_hash:
+                    return []
 
                 matches = []
                 for h, row in latest_by_hash.items():
