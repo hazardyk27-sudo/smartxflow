@@ -1991,7 +1991,7 @@ class SupabaseClient:
             _cutoff_dt = _dt.strptime(cutoff_date, '%Y-%m-%d')
             today_dt = _cutoff_dt + _td(days=8)
             signal_cutoff_d1 = (today_dt - _td(days=1)).strftime('%Y-%m-%d')
-            scraper_signal_cutoff = (today_dt - _td(days=1)).strftime('%Y-%m-%dT00:00:00')
+            scraper_signal_cutoff = (today_dt - _td(days=7)).strftime('%Y-%m-%dT00:00:00')
             telegram_cutoff = (today_dt - _td(days=30)).strftime('%Y-%m-%dT00:00:00')
         except Exception:
             signal_cutoff_d1 = cutoff_date

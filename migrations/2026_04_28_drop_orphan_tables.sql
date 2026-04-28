@@ -41,18 +41,43 @@ DROP TABLE IF EXISTS alarm_config CASCADE;
 --    Yeni sistem: license_favorites (license_key + match_key).
 --    Kodda 0 referans (yeni UI license_favorites'i kullaniyor).
 --
---    UYARI - Migration kayip: match_favorites.device_id -> license_devices.device_id
---    -> license_favorites.license_key esleme yolu MUMKUN (license_devices tablosu
---    158 satirla mapping sagliyor). Bu cleanup'ta veri MIGRATE EDILMEDEN dogrudan
---    silindi. Eger 71 eski device-bazli favori onemliyse Replit checkpoint'inden
---    geri don ve once asagidaki SQL ile migrate et:
+--    Migration: device_id -> license_key esleme license_devices tablosu uzerinden
+--    yapilir. Asagidaki INSERT idempotent (ON CONFLICT DO NOTHING) ve DROP
+--    oncesinde calisir. match_favorites tablosu zaten REST API ile bosaltildiysa
+--    (cleanup adimi sirasinda) bu INSERT 0 satir yazar; tablo hala dolu ise
+--    eski device-bazli favoriler license_favorites'a tasinir.
 --
---      INSERT INTO license_favorites (license_key, match_key, created_at)
---      SELECT DISTINCT ld.license_key, mf.match_key, mf.created_at
---      FROM match_favorites mf
---      JOIN license_devices ld ON ld.device_id = mf.device_id
---      ON CONFLICT DO NOTHING;
+--    NOT: license_favorites tablosunda match_key alanindan birden fazla eski
+--    device ayni mac icin favori isaretlemis olabilir; DISTINCT ile tekillestiriyoruz.
 -- ----------------------------------------------------------------------------
+
+-- 4.a) Migrate match_favorites -> license_favorites (idempotent, defansif)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'match_favorites'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'license_devices'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'license_favorites'
+    ) THEN
+        INSERT INTO license_favorites (license_key, match_key, created_at)
+        SELECT DISTINCT ld.license_key, mf.match_key, mf.created_at
+        FROM match_favorites mf
+        JOIN license_devices ld ON ld.device_id = mf.device_id
+        WHERE mf.match_key IS NOT NULL
+        ON CONFLICT DO NOTHING;
+
+        RAISE NOTICE 'match_favorites -> license_favorites migration tamamlandi';
+    ELSE
+        RAISE NOTICE 'match_favorites/license_devices/license_favorites tablolari eksik, migration atlandi';
+    END IF;
+END $$;
+
+-- 4.b) Eski tabloyu kaldir
 DROP TABLE IF EXISTS match_favorites CASCADE;
 
 COMMIT;
