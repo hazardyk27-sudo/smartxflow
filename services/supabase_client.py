@@ -548,24 +548,43 @@ class SupabaseClient:
                 if not latest_by_hash:
                     return []
 
+                # Kickoff-day filtresi: history'den scraped_at aralığında çekilen satırlar
+                # aynı maç için günler boyunca üretilmiş olabilir (canlı/öncesi takip).
+                # Sadece Betwatch `date` alanındaki kickoff günü target_date'e denk gelen
+                # maçları sonuca al; aksi halde yanlış güne sızar (örn. 23 Nis Chelsea-Leeds
+                # maçı 22 Nis snapshot'larında da görünür).
+                _MONTH_MAP = {
+                    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+                    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+                }
+                target_day = target_date.day
+                target_month = target_date.month
                 matches = []
+                skipped_wrong_day = 0
+                skipped_unparsed = 0
                 for h, row in latest_by_hash.items():
-                    latest = self._normalize_history_row(row, market)
-                    # date alanı: Betwatch text "29.Apr 16:00:00" → ISO (target_date + saat)
                     raw_date = row.get('date', '') or ''
-                    iso_date = ''
                     m_re = betwatch_re.match(str(raw_date))
-                    if m_re:
-                        try:
-                            hh = int(m_re.group(3))
-                            mm = int(m_re.group(4))
-                            ss = int(m_re.group(5)) if m_re.group(5) else 0
-                            iso_date = f"{target_str}T{hh:02d}:{mm:02d}:{ss:02d}+00:00"
-                        except Exception:
-                            iso_date = ''
-                    if not iso_date:
-                        # Son çare: scraped_at'i kullan (TR offsetli, frontend handle eder)
-                        iso_date = row.get('scraped_at', '') or f"{target_str}T12:00:00+00:00"
+                    if not m_re:
+                        skipped_unparsed += 1
+                        continue
+                    try:
+                        row_day = int(m_re.group(1))
+                        row_month = _MONTH_MAP.get(m_re.group(2).lower())
+                        if not row_month:
+                            skipped_unparsed += 1
+                            continue
+                        if row_day != target_day or row_month != target_month:
+                            skipped_wrong_day += 1
+                            continue
+                        hh = int(m_re.group(3))
+                        mm = int(m_re.group(4))
+                        ss = int(m_re.group(5)) if m_re.group(5) else 0
+                        iso_date = f"{target_str}T{hh:02d}:{mm:02d}:{ss:02d}+00:00"
+                    except Exception:
+                        skipped_unparsed += 1
+                        continue
+                    latest = self._normalize_history_row(row, market)
                     matches.append({
                         'home_team': row.get('home', '') or row.get('home_team', ''),
                         'away_team': row.get('away', '') or row.get('away_team', ''),
@@ -574,7 +593,7 @@ class SupabaseClient:
                         'match_id_hash': h,
                         'latest': latest
                     })
-                print(f"[Supabase] PAST({date_filter}) history fallback: {len(matches)} unique matches")
+                print(f"[Supabase] PAST({date_filter}) history fallback: {len(matches)} matches (kickoff={target_str}); skipped {skipped_wrong_day} wrong-day, {skipped_unparsed} unparsed")
                 return matches
             elif date_filter == 'today':
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
