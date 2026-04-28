@@ -567,8 +567,8 @@ class SupabaseClient:
                         # Son çare: scraped_at'i kullan (TR offsetli, frontend handle eder)
                         iso_date = row.get('scraped_at', '') or f"{target_str}T12:00:00+00:00"
                     matches.append({
-                        'home_team': row.get('home', ''),
-                        'away_team': row.get('away', ''),
+                        'home_team': row.get('home', '') or row.get('home_team', ''),
+                        'away_team': row.get('away', '') or row.get('away_team', ''),
                         'league': row.get('league', ''),
                         'date': iso_date,
                         'match_id_hash': h,
