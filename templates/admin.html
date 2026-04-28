@@ -3315,7 +3315,7 @@
                 <button class="btn btn-primary" onclick="loadEmlSignals()" style="padding:8px 18px;font-size:13px;">Yenile</button>
             </div>
             <div id="emlAdminStats" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
-            <div id="emlDateTabs" style="display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;"></div>
+            <div id="emlDateTabs" style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:16px;padding-bottom:4px;"></div>
             <div id="emlAdminList" style="display:flex;flex-direction:column;gap:0;">
                 <div style="text-align:center;color:#8b949e;padding:40px;">Yükleniyor...</div>
             </div>
@@ -9784,9 +9784,9 @@ var dateGroups = {};
                 var cnt = signalDates[k] || 0;
                 var bg = isSel ? '#0ea5e9' : '#21262d';
                 var fg = isSel ? '#fff' : (cnt > 0 ? '#c9d1d9' : '#484f58');
-                return '<div onclick="emlSelectDate(\'' + k + '\')" style="cursor:pointer;padding:6px 12px;border-radius:6px;background:' + bg + ';color:' + fg + ';font-size:12px;font-weight:' + (isSel?'700':'500') + ';white-space:nowrap;flex-shrink:0;">' +
+                return '<div onclick="emlSelectDate(\'' + k + '\')" style="cursor:pointer;padding:4px 8px;border-radius:5px;background:' + bg + ';color:' + fg + ';font-size:11px;font-weight:' + (isSel?'700':'500') + ';white-space:nowrap;flex-shrink:0;">' +
                     TR_SHORT[dObj.getDay()] + ' ' + String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0') +
-                    (cnt > 0 ? ' <span style="background:rgba(255,255,255,0.2);border-radius:9px;padding:1px 5px;font-size:10px;">' + cnt + '</span>' : '') + '</div>';
+                    (cnt > 0 ? ' <span style="background:rgba(255,255,255,0.2);border-radius:8px;padding:0 4px;font-size:10px;">' + cnt + '</span>' : '') + '</div>';
             }).join('');
         }
 
