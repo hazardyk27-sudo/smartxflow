@@ -1750,6 +1750,44 @@ def _make_match_id_hash(home: str, away: str, league: str) -> str:
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 
+_EML_MONTH_MAP = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+}
+
+
+def _parse_betwatch_date_to_utc(raw_date, now_utc):
+    """Betwatch date formatı '02.May 12:00:00' → UTC datetime.
+    Yıl belirsiz olduğu için en yakın gelecek/yakın geçmiş seçilir."""
+    if not raw_date:
+        return None
+    m = re.match(r'^\s*(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?', str(raw_date))
+    if not m:
+        return None
+    try:
+        day = int(m.group(1))
+        month = _EML_MONTH_MAP.get(m.group(2).lower())
+        if not month:
+            return None
+        hour = int(m.group(3))
+        minute = int(m.group(4))
+        sec = int(m.group(5)) if m.group(5) else 0
+        year = now_utc.year
+        try:
+            dt = datetime(year, month, day, hour, minute, sec, tzinfo=timezone.utc)
+        except ValueError:
+            return None
+        # 7 günden fazla geçmişteyse +1 yıl (yılbaşı geçişi için)
+        if (dt - now_utc).total_seconds() < -7 * 86400:
+            try:
+                dt = datetime(year + 1, month, day, hour, minute, sec, tzinfo=timezone.utc)
+            except ValueError:
+                return None
+        return dt
+    except Exception:
+        return None
+
+
 def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, active_keys=None):
     """
     Early Money Lock kriterleri:
@@ -1792,6 +1830,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
     # Debug sayaçları
     cnt_total = len(hash_to_row)
     cnt_vol = cnt_kickoff = cnt_history = cnt_snap = 0
+    cnt_kickoff_fallback = 0
 
     for computed_hash, latest in hash_to_row.items():
         home = latest.get('home', '')
@@ -1805,27 +1844,45 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
         cnt_vol += 1
 
         # Kriter 2: Kickoff >= 24 saat ileride
-        # computed_hash ile kickoff_map'e bak (key formatı artık eşleşiyor)
+        # 1. Önce fixtures.kickoff_utc dene (en güvenilir)
+        # 2. Olmazsa latest.date alanından parse et (fallback)
         kickoff_info = kickoff_map.get(computed_hash)
-        if not kickoff_info or not kickoff_info.get('kickoff_utc'):
+        ko_dt = None
+        kickoff_utc_iso = ''
+        fixture_date = ''
+
+        if kickoff_info and kickoff_info.get('kickoff_utc'):
+            try:
+                ko_str = kickoff_info['kickoff_utc']
+                if ko_str.endswith('Z'):
+                    ko_str = ko_str[:-1] + '+00:00'
+                _ko = datetime.fromisoformat(ko_str)
+                if _ko.tzinfo is None:
+                    _ko = _ko.replace(tzinfo=timezone.utc)
+                ko_dt = _ko
+                kickoff_utc_iso = kickoff_info.get('kickoff_utc', '')
+                fixture_date = kickoff_info.get('fixture_date', '') or kickoff_info.get('match_date', '')
+            except Exception:
+                ko_dt = None
+
+        if ko_dt is None:
+            # Fallback: latest.date ('02.May 12:00:00') alanından parse et
+            ko_dt = _parse_betwatch_date_to_utc(latest.get('date', ''), now_utc)
+            if ko_dt is not None:
+                cnt_kickoff_fallback += 1
+                kickoff_utc_iso = ko_dt.isoformat()
+                fixture_date = ko_dt.strftime('%Y-%m-%d')
+
+        if ko_dt is None:
             continue
-        try:
-            ko_str = kickoff_info['kickoff_utc']
-            if ko_str.endswith('Z'):
-                ko_str = ko_str[:-1] + '+00:00'
-            ko_dt = datetime.fromisoformat(ko_str)
-            if ko_dt.tzinfo is None:
-                ko_dt = ko_dt.replace(tzinfo=timezone.utc)
-            hours_until = (ko_dt - now_utc).total_seconds() / 3600
-            if hours_until < EML_HOURS_BEFORE_KICKOFF:
-                continue
-        except Exception:
+
+        hours_until = (ko_dt - now_utc).total_seconds() / 3600
+        if hours_until < EML_HOURS_BEFORE_KICKOFF:
             continue
         cnt_kickoff += 1
 
         # match_date: fixtures'tan gelen fixture_date (YYYY-MM-DD) tercih edilir;
-        # yoksa moneyway tablosundaki raw date kullanılır
-        fixture_date = kickoff_info.get('fixture_date', '') or kickoff_info.get('match_date', '')
+        # yoksa fallback'ten üretilen tarih ya da raw date kullanılır
         raw_date = latest.get('date', '')
         match_date = fixture_date if fixture_date else raw_date
 
@@ -1885,7 +1942,7 @@ def find_early_money_lock(latest_snapshots, existing_signals, kickoff_map, activ
                 'consecutive_snapshots': EML_CONSECUTIVE_SNAPS,
             })
 
-    log(f"[EML] Tarama özeti: {cnt_total} maç → vol≥£{EML_VOLUME_THRESHOLD:.0f}: {cnt_vol} → kickoff≥{EML_HOURS_BEFORE_KICKOFF}sa: {cnt_kickoff} → history var: {cnt_history} → {EML_CONSECUTIVE_SNAPS} snap: {cnt_snap} → sinyal: {len(signals)}")
+    log(f"[EML] Tarama özeti: {cnt_total} maç → vol≥£{EML_VOLUME_THRESHOLD:.0f}: {cnt_vol} → kickoff≥{EML_HOURS_BEFORE_KICKOFF}sa: {cnt_kickoff} (fallback: {cnt_kickoff_fallback}) → history var: {cnt_history} → {EML_CONSECUTIVE_SNAPS} snap: {cnt_snap} → sinyal: {len(signals)}")
     return signals
 
 
