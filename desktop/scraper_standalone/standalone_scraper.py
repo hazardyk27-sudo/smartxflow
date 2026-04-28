@@ -778,10 +778,10 @@ EXTRACTORS = {
 
 def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     """
-    D-2+ maçlarını sil (bugün ve dün hariç tüm eski maçlar)
-    - D (bugün): Korunur
-    - D-1 (dün): Korunur
-    - D-2+ (öncesi): Silinir
+    D-8+ maçlarını sil (son 7 gün hariç tüm eski maçlar)
+    - D (bugün) ve D+1, D+2... (ileri tarihli): Korunur
+    - D-1..D-7 (son 7 gün): Korunur
+    - D-8+ (öncesi): Silinir
     
     Temizlenen tablolar:
     - history tablolari (scraped_at bazli)
@@ -798,9 +798,9 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     today = now.date()
     yesterday = today - timedelta(days=1)
-    d_minus_2 = today - timedelta(days=2)
+    d_minus_8 = today - timedelta(days=8)
     
-    _log(f"[Cleanup] D-2+ silme: {d_minus_2} ve oncesi silinecek (bugun={today}, dun={yesterday})")
+    _log(f"[Cleanup] D-8+ silme: {d_minus_8} ve oncesi silinecek (bugun={today}, dun={yesterday}, son 7 gun korunur)")
     
     total_deleted = 0
     
@@ -816,11 +816,11 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     for table in history_tables:
         try:
-            cutoff_iso = d_minus_2.strftime('%Y-%m-%dT23:59:59')
+            cutoff_iso = d_minus_8.strftime('%Y-%m-%dT23:59:59')
             url = f"{writer._rest_url(table)}?scraped_at=lt.{cutoff_iso}"
             resp = requests.delete(url, headers=writer._headers(), timeout=30)
             if resp.status_code in [200, 204]:
-                _log(f"  [Cleanup] {table}: D-2+ kayitlar silindi")
+                _log(f"  [Cleanup] {table}: D-8+ kayitlar silindi")
                 total_deleted += 1
         except Exception as e:
             _log(f"  [Cleanup] {table}: Hata - {e}")
@@ -837,14 +837,14 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     months_map = {1:'jan',2:'feb',3:'mar',4:'apr',5:'may',6:'jun',7:'jul',8:'aug',9:'sep',10:'oct',11:'nov',12:'dec'}
     valid_dates = []
-    for offset in range(0, 7):
+    for offset in range(0, 8):
         d = today - timedelta(days=offset)
-        if offset <= 1:
+        if offset <= 7:
             month_str = months_map[d.month].capitalize()
             valid_dates.append(f"{d.day:02d}.{month_str}")
             valid_dates.append(f"{d.day}.{month_str}")
     
-    _log(f"  [Cleanup] Gecerli tarihler: {valid_dates[:4]}...")
+    _log(f"  [Cleanup] Gecerli tarihler: {valid_dates[:4]}... ({len(valid_dates)} kalip)")
     
     for table in live_tables:
         try:
@@ -871,11 +871,11 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     # 3. Fixtures (fixture_date bazli)
     try:
-        cutoff_date = d_minus_2.strftime('%Y-%m-%d')
+        cutoff_date = d_minus_8.strftime('%Y-%m-%d')
         url = f"{writer._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}"
         resp = requests.delete(url, headers=writer._headers(), timeout=30)
         if resp.status_code in [200, 204]:
-            _log(f"  [Cleanup] fixtures: D-2+ kayitlar silindi")
+            _log(f"  [Cleanup] fixtures: D-8+ kayitlar silindi")
             total_deleted += 1
     except Exception as e:
         _log(f"  [Cleanup] fixtures: Hata - {e}")
@@ -959,7 +959,7 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
             supabase_url=writer.supabase_url,
             supabase_key=writer.supabase_key
         )
-        alarm_deleted = alarm_calc.cleanup_old_alarms(days_to_keep=2)
+        alarm_deleted = alarm_calc.cleanup_old_alarms(days_to_keep=7)
         total_deleted += alarm_deleted
     except Exception as e:
         _log(f"[Cleanup] Alarm cleanup hatası: {e}")

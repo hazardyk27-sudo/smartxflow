@@ -17,7 +17,7 @@ import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
 import standalone_scraper as ss_module
-from standalone_scraper import SupabaseWriter, run_scrape
+from standalone_scraper import SupabaseWriter, run_scrape, cleanup_old_matches
 
 arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '')
 if arbworld_cookie:
@@ -274,14 +274,35 @@ def get_last_signal_time() -> Optional[datetime]:
         print(f"[Loop] Son sinyal zamanı alınamadı: {e}")
     return None
 
+def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_holder: list):
+    """Günde 1 kez cleanup_old_matches'i çalıştır (D-8+ siler, son 7 gün korunur).
+    last_cleanup_date_holder: [last_date or None] - mutable holder for state."""
+    try:
+        today = datetime.now(timezone.utc).date()
+        if last_cleanup_date_holder[0] == today:
+            return
+        writer = SupabaseWriter(supabase_url, supabase_key)
+        print(f"[Cleanup] Günlük cleanup başlatılıyor (D-8+ silinecek, son 7 gün korunur)")
+        deleted = cleanup_old_matches(writer, logger_callback=lambda m: print(f"[Cleanup] {m}"))
+        last_cleanup_date_holder[0] = today
+        print(f"[Cleanup] Tamamlandı - {deleted} işlem")
+    except Exception as e:
+        print(f"[Cleanup] Hata: {e}")
+        traceback.print_exc()
+
 def run_loop():
-    """9 dakikada bir scrape döngüsü + 10 dk watchdog"""
+    """9 dakikada bir scrape döngüsü + 10 dk watchdog + günlük cleanup (D-8+ siler)"""
     INTERVAL_MINUTES = 9
     INTERVAL_SECONDS = INTERVAL_MINUTES * 60
     WATCHDOG_MINUTES = 10
     WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
     print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
     print(f"[Watchdog] {WATCHDOG_MINUTES} dk veri gelmezse Telegram uyarısı gönderilecek")
+    print(f"[Cleanup] Günlük cleanup aktif (D-8+ silinir, son 7 gün korunur)")
+    
+    supabase_url_for_cleanup = os.environ.get('SUPABASE_URL')
+    supabase_key_for_cleanup = os.environ.get('SUPABASE_ANON_KEY')
+    last_cleanup_date_holder = [None]
     
     last_successful_scrape = None
     watchdog_alert_sent = False
@@ -312,6 +333,9 @@ def run_loop():
         except Exception as e:
             print(f"[Loop] main() hatası: {e}")
             traceback.print_exc()
+        
+        if supabase_url_for_cleanup and supabase_key_for_cleanup:
+            _try_run_cleanup(supabase_url_for_cleanup, supabase_key_for_cleanup, last_cleanup_date_holder)
         
         if not scrape_ok or last_successful_scrape is None:
             now = datetime.now(timezone.utc)
