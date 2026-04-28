@@ -816,7 +816,7 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     
     for table in history_tables:
         try:
-            cutoff_iso = d_minus_8.strftime('%Y-%m-%dT23:59:59')
+            cutoff_iso = d_minus_8.strftime('%Y-%m-%dT00:00:00')
             url = f"{writer._rest_url(table)}?scraped_at=lt.{cutoff_iso}"
             resp = requests.delete(url, headers=writer._headers(), timeout=30)
             if resp.status_code in [200, 204]:
