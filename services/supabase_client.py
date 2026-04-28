@@ -2148,6 +2148,7 @@ class SupabaseClient:
             ('underdog_signals', 'match_date'),
             ('fake_sharp_signals', 'match_date'),
             ('confirmed_money_v2_signals', 'match_date'),
+            ('early_money_lock_signals', 'match_date'),
         ]
         for sig_table, date_col in signal_tables:
             try:
@@ -2170,6 +2171,48 @@ class SupabaseClient:
                         pass
             except Exception as e:
                 print(f"[Cleanup] Exception for {sig_table}: {e}")
+
+        try:
+            from datetime import datetime as _dt, timedelta as _td
+            cutoff_dt = _dt.strptime(cutoff_date, '%Y-%m-%d')
+            scraper_signal_cutoff = cutoff_dt.strftime('%Y-%m-%dT00:00:00')
+            headers_del = self._headers()
+            headers_del['Prefer'] = 'return=representation'
+            del_url = f"{self._rest_url('scraper_signal')}?created_at=lt.{scraper_signal_cutoff}"
+            del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
+            if del_resp.status_code == 200:
+                try:
+                    count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                    if count > 0:
+                        deleted['scraper_signal'] = count
+                        print(f"[Cleanup] Deleted {count} old records from scraper_signal")
+                except:
+                    pass
+            elif del_resp.status_code not in [204, 404]:
+                print(f"[Cleanup] Error deleting scraper_signal: {del_resp.status_code}")
+        except Exception as e:
+            print(f"[Cleanup] Exception for scraper_signal: {e}")
+
+        try:
+            from datetime import datetime as _dt, timedelta as _td
+            today_dt = _dt.strptime(cutoff_date, '%Y-%m-%d') + _td(days=8)
+            telegram_cutoff = (today_dt - _td(days=30)).strftime('%Y-%m-%dT00:00:00')
+            headers_del = self._headers()
+            headers_del['Prefer'] = 'return=representation'
+            del_url = f"{self._rest_url('telegram_sent_log')}?last_sent_at=lt.{telegram_cutoff}"
+            del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
+            if del_resp.status_code == 200:
+                try:
+                    count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
+                    if count > 0:
+                        deleted['telegram_sent_log'] = count
+                        print(f"[Cleanup] Deleted {count} old records from telegram_sent_log (>30d)")
+                except:
+                    pass
+            elif del_resp.status_code not in [204, 404]:
+                print(f"[Cleanup] Error deleting telegram_sent_log: {del_resp.status_code}")
+        except Exception as e:
+            print(f"[Cleanup] Exception for telegram_sent_log: {e}")
 
         return deleted
     
