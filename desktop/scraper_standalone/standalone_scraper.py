@@ -559,15 +559,16 @@ def extract_moneyway_ou25(data: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     for rec in data:
         if not rec.get("home") or not rec.get("away"):
             continue
-        # JSON convention: coef_1 = Over, coef_2 = Under (matches site column order)
-        v_over = float(rec.get("volume_1") or 0)
-        v_under = float(rec.get("volume_2") or 0)
+        # JSON convention: coef_1 = UNDER, coef_2 = OVER
+        # (matches Arbworld site column order: Under | Over)
+        v_under = float(rec.get("volume_1") or 0)
+        v_over = float(rec.get("volume_2") or 0)
         total = v_over + v_under
         row = _row_common(rec)
         row.update({
-            "over": _coef(rec.get("coef_1_new")),
+            "over": _coef(rec.get("coef_2_new")),
             "line": "2.5",
-            "under": _coef(rec.get("coef_2_new")),
+            "under": _coef(rec.get("coef_1_new")),
             "pctover": _vol_pct(v_over, total),
             "amtover": _vol_amt(v_over),
             "pctunder": _vol_pct(v_under, total),
@@ -634,11 +635,13 @@ def extract_dropping_ou25(data: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     for rec in data:
         if not rec.get("home") or not rec.get("away"):
             continue
-        v_over = float(rec.get("volume_1") or 0)
-        v_under = float(rec.get("volume_2") or 0)
+        # JSON convention: coef_1 = UNDER, coef_2 = OVER
+        # (matches Arbworld site column order: Under | Over)
+        v_under = float(rec.get("volume_1") or 0)
+        v_over = float(rec.get("volume_2") or 0)
         total = v_over + v_under
-        c_over_cur, c_over_prev = rec.get("coef_1_new"), rec.get("coef_1")
-        c_under_cur, c_under_prev = rec.get("coef_2_new"), rec.get("coef_2")
+        c_under_cur, c_under_prev = rec.get("coef_1_new"), rec.get("coef_1")
+        c_over_cur, c_over_prev = rec.get("coef_2_new"), rec.get("coef_2")
         row = _row_common(rec)
         row.update({
             "over": _coef(c_over_cur),

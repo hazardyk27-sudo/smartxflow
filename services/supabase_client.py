@@ -605,14 +605,25 @@ class SupabaseClient:
                     history_table = f"{market}_history"
                 print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
-                # Step 1: Get ALL today's fixtures using kickoff_utc (Türkiye saatine göre)
-                # Türkiye saati gün başlangıcı ve bitişi UTC olarak hesaplanır
+                # Step 1: Get ALL today's fixtures using kickoff_utc.
+                # Pencere = TR günü ∪ UTC günü (Arbworld ile uyumlu, geç başlayan
+                # maçlar da kapsanır). TR günü 00:00'dan UTC günü 24:00'a kadar.
                 from datetime import time as dt_time
                 from urllib.parse import quote
                 today_start_tr = tr_tz.localize(datetime.combine(today_date, dt_time.min))
                 today_end_tr = tr_tz.localize(datetime.combine(today_date + timedelta(days=1), dt_time.min))
-                today_start_utc = today_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
-                today_end_utc = today_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
+                today_start_tr_utc = today_start_tr.astimezone(pytz.UTC)
+                today_end_tr_utc = today_end_tr.astimezone(pytz.UTC)
+                # UTC takvimine göre bugünün başlangıç/bitiş (Arbworld bu takvimi kullanır)
+                utc_today_date = datetime.now(pytz.UTC).date()
+                today_start_utc_dt = pytz.UTC.localize(datetime.combine(utc_today_date, dt_time.min))
+                today_end_utc_dt = pytz.UTC.localize(datetime.combine(utc_today_date + timedelta(days=1), dt_time.min))
+                # Birleşim: pencere TR-günü ∪ UTC-günü
+                window_start = min(today_start_tr_utc, today_start_utc_dt)
+                window_end = max(today_end_tr_utc, today_end_utc_dt)
+                today_start_utc = window_start.strftime('%Y-%m-%dT%H:%M:%SZ')
+                today_end_utc = window_end.strftime('%Y-%m-%dT%H:%M:%SZ')
+                print(f"[Supabase] TODAY window (TR∪UTC): {today_start_utc} → {today_end_utc}")
                 
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(today_start_utc)}&kickoff_utc=lt.{quote(today_end_utc)}&order=kickoff_utc.desc&limit=1000"
                 fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
