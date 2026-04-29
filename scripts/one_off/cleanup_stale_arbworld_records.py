@@ -330,11 +330,17 @@ def main() -> int:
     g.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
-    if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_ANON_KEY"):
-        print("[FATAL] SUPABASE_URL veya SUPABASE_ANON_KEY env yok!")
-        return 2
+    has_url = bool(os.environ.get("SUPABASE_URL"))
+    has_key = bool(os.environ.get("SUPABASE_ANON_KEY") or os.environ.get("SUPABASE_KEY"))
+    if not (has_url and has_key):
+        print("[WARN] SUPABASE_URL veya SUPABASE_ANON_KEY/SUPABASE_KEY env eksik — "
+              "SupabaseClient embedded fallback denenecek.")
 
-    client = SupabaseClient()
+    try:
+        client = SupabaseClient()
+    except Exception as e:
+        print(f"[FATAL] SupabaseClient kurulamadı: {e}")
+        return 2
     rest = Rest(client)
 
     mode = "DRY-RUN" if args.dry_run else "EXECUTE"
