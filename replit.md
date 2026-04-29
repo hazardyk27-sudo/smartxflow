@@ -19,6 +19,7 @@ SmartXFlow Monitor is a professional betting odds tracking tool designed for col
 - SUPABASE SECRET ADI - Her zaman SUPABASE_ANON_KEY kullan
 - WEB URL: https://ea61a90d-fbe5-4a43-993a-4a7ea861590b-00-el7p3v8o3jsj.janeway.replit.dev/
 - BREAKPOINT KURALI: Kullanıcı "16:9" veya "full" veya "full size" dediğinde `@media (min-width: 1920px)` breakpoint'ini değiştir. Kullanıcı ayrıca belirtmedikçe diğer breakpoint'lere DOKUNMA.
+- WORKSPACE SCRAPER YOK: Workspace'de SADECE `SmartXFlow Web` workflow'u olmalı. `Scraper Engine` (veya benzeri scheduled_scraper/alarm_engine/live_scraper/sinyal_engine/underdog_engine içeren) workflow EKLEMEK YASAK. Tüm scraper'lar deployment'taki `run_services.sh` üzerinden 7/24 çalışır. Workspace'de scraper çalıştırmak çift yazma + çift Telegram alarmı + Supabase quota israfı yaratır.
 - ALARM CALC STATUS KURALI: Her alarm türü için AYRI CalcStatus elementi olmalı:
   - Sharp: `calcStatus`, `calcProgress` elementleri + `showCalcStatus()`, `hideCalcStatus()` fonksiyonları
   - Insider: `insiderCalcStatus`, `insiderCalcProgress` elementleri + `showInsiderCalcStatus()`, `hideInsiderCalcStatus()` fonksiyonları
