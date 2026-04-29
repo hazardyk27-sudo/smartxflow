@@ -1,37 +1,42 @@
 #!/usr/bin/env python3
 """
-Task #159 — Eski Arbworld kayıtlarını temizle
+Task #159 — Eski Arbworld kayıtlarını temizle (one-off).
 
 Arbworld JSON API'ye geçişten sonra (2026-04-29 ~18:20 UTC), eski HTML scraper'ın
 kısa-adlı (örn "Atletico Ma" vs yeni "Atletico Madrid") stale Supabase kayıtları
-duplicate satırlar oluşturuyor. Bu script eski kayıtları siler.
+6 ana market tablosunda farklı match_id_hash üreterek duplicate satırlara yol
+açtı. Bu script eski kayıtları temizler.
 
 Şema gerçeği (önemli):
   - Ana market tabloları (moneyway_*, dropping_*): id, league, date, home, away,
     odds*, pct*, amt*, volume — `scraped_at` YOK, `match_id_hash` YOK.
   - History tabloları (moneyway_*_history, dropping_*_history): yukarıdakilere
-    ek olarak `scraped_at` ve `match_id_hash` var.
+    ek olarak `scraped_at` (TR-tz string "+03:00") ve `match_id_hash` var.
   - Snapshot tabloları (moneyway_snapshots, dropping_odds_snapshots): match_id_hash,
-    market, selection, odds, volume, share, scraped_at_utc.
-  - fixtures: match_id_hash unique key + home_team/away_team/league/kickoff_utc/fixture_date.
+    market, selection, odds, volume, share, scraped_at_utc (UTC string "+00:00").
+  - fixtures: match_id_hash unique key + home_team/away_team/league/kickoff_utc.
 
-Strateji:
-  1) History tablolarından "stale_hashes" hesapla:
-       - pre_cutoff: scraped_at < CUTOFF olan hash'ler (eski HTML scraper döneminde
-         yazılmış)
-       - post_cutoff: scraped_at >= CUTOFF olan hash'ler (yeni JSON scraper aktif)
-       - stale_hashes = pre_cutoff - post_cutoff
-       (Yeni JSON aynı maçı farklı isimle yazdığı için, eski hash artık yeni
-       scraper turlarında görünmüyor.)
-  2) Ana market tablolarını sayfalı tara, her satır için (home, away, league) →
-     match_id_hash hesapla. Stale ise id'sini topla.
-  3) Snapshot tablolarından stale_hashes'a ait kayıtları sil
-     (defansif: scraped_at_utc < CUTOFF).
-  4) History tablolarından stale_hashes'a ait kayıtları sil
-     (defansif: scraped_at < CUTOFF).
-  5) Ana market tablolarından id batch ile sil.
-  6) Fixtures'tan stale_hashes'a ait kayıtları sil (tanım gereği post-cutoff
-     hiç yazılmadığı için yetim).
+PostgREST text kolonlar üzerinde lex (string) karşılaştırması yapar — cutoff
+string'i kolonun tz formatına uymalı:
+  - history.scraped_at → TR-tz cutoff (20:45 TR = 17:45 UTC)
+  - snapshot.scraped_at_utc → UTC cutoff (17:45 UTC)
+
+Strateji (KONSERVATİF — over-deletion'ı önler):
+  1) Pre-cutoff history hash'lerini topla (sadece hash + home + away + league + date).
+  2) Post-cutoff history hash'lerini topla (aynı şekilde).
+  3) "Narrowed stale": pre_cutoff'ta var, post_cutoff'ta YOK olan hash'lerden
+     SADECE replacement adayı bulunanlar. Replacement testi: (away_norm[:8],
+     league_norm[:8], kickoff_yyyymmdd) tuple'ı post_cutoff'ta farklı bir hash
+     ile mevcut. Bu, "isim değişti, hash değişti, ama aynı maç" durumunu yakalar.
+     Bu testin amacı: cutoff öncesi sadece tek sefer yazılmış geçmiş/test maçlarını
+     STALE OLARAK İŞARETLEMEMEK (over-deletion önlenir).
+  4) Sırasıyla sil:
+       a) snapshots (scraped_at_utc < CUTOFF_SNAPSHOT)
+       b) history (scraped_at < CUTOFF_HISTORY)
+       c) ana market tabloları (id batch — taranıp hash'i stale olanların id'si)
+       d) fixtures (match_id_hash in stale_set)
+  5) Her DELETE için PostgREST `Prefer: count=exact` ile gerçek silinen satır
+     sayısı Content-Range header'dan okunur ve raporlanır.
 
 Kullanım:
   python scripts/one_off/cleanup_stale_arbworld_records.py --dry-run
@@ -40,97 +45,237 @@ Kullanım:
 
 import argparse
 import os
+import re
 import sys
-from typing import Dict, List, Set
-
-import requests
+from typing import Dict, List, Set, Tuple
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from core.hash_utils import make_match_id_hash  # noqa: E402
+from core.hash_utils import make_match_id_hash, normalize_field  # noqa: E402
+from services.supabase_client import SupabaseClient  # noqa: E402
 
-# History tablolarında scraped_at TR-tz string olarak saklanıyor ("...+03:00").
-# Snapshot tablolarında scraped_at_utc UTC string olarak saklanıyor ("...+00:00").
-# PostgREST text kolonlar üzerinde lex (string) karşılaştırması yapar — ikisini de
-# uygun lex-doğru formatta tutmamız gerek.
-# Yeni JSON scraper 18:20 UTC = 21:20 TR civarı çalışmaya başladı.
-# Eski HTML scraper son yazma 17:47 TR = 14:47 UTC.
-CUTOFF_HISTORY_TR = "2026-04-29T20:45:00"  # 20:45 TR = 17:45 UTC (lex-doğru, history için)
-CUTOFF_SNAPSHOT_UTC = "2026-04-29T17:45:00"  # 17:45 UTC (lex-doğru, snapshot_utc için)
+CUTOFF_HISTORY_TR = "2026-04-29T20:45:00"   # 20:45 TR = 17:45 UTC (lex-doğru, history)
+CUTOFF_SNAPSHOT_UTC = "2026-04-29T17:45:00"  # 17:45 UTC (lex-doğru, snapshot_utc)
 
 MARKET_TABLES = [
-    "moneyway_1x2",
-    "moneyway_ou25",
-    "moneyway_btts",
-    "dropping_1x2",
-    "dropping_ou25",
-    "dropping_btts",
+    "moneyway_1x2", "moneyway_ou25", "moneyway_btts",
+    "dropping_1x2", "dropping_ou25", "dropping_btts",
 ]
-
-HISTORY_TABLES = [
-    "moneyway_1x2_history",
-    "moneyway_ou25_history",
-    "moneyway_btts_history",
-    "dropping_1x2_history",
-    "dropping_ou25_history",
-    "dropping_btts_history",
-]
-
+HISTORY_TABLES = [t + "_history" for t in MARKET_TABLES]
 SNAPSHOT_TABLES = ["moneyway_snapshots", "dropping_odds_snapshots"]
 
 PAGE_SIZE = 10000
-DELETE_BATCH = 80  # PostgREST URL uzunluğu sınırı için güvenli
+DELETE_BATCH = 80
+SAMPLE_LIMIT = 20
 
 
-def _h(key: str) -> Dict[str, str]:
-    return {"apikey": key, "Authorization": f"Bearer {key}"}
+# ---------- HTTP helpers (SupabaseClient REST primitives) ----------
+
+class Rest:
+    def __init__(self, client: SupabaseClient):
+        self.client = client
+        self.http = client._get_http_client()
+        self.base_headers = client._headers()
+
+    def url(self, table: str) -> str:
+        return self.client._rest_url(table)
+
+    def get(self, table: str, params: Dict[str, str], extra_headers: Dict[str, str] | None = None):
+        h = dict(self.base_headers)
+        if extra_headers:
+            h.update(extra_headers)
+        return self.http.get(self.url(table), headers=h, params=params, timeout=60)
+
+    def delete_with_count(self, table: str, params: Dict[str, str]) -> Tuple[int, int, str]:
+        """DELETE + Prefer: count=exact. Returns (status, deleted_count, body)."""
+        h = dict(self.base_headers)
+        h["Prefer"] = "count=exact"
+        r = self.http.delete(self.url(table), headers=h, params=params, timeout=60)
+        cr = r.headers.get("content-range", "")
+        deleted = 0
+        m = re.match(r"\*?/?(\d+)$|^(\d+)-(\d+)/(\d+)$", cr)
+        if m:
+            if m.group(4):
+                deleted = int(m.group(3)) - int(m.group(2)) + 1
+            elif m.group(1):
+                deleted = int(m.group(1))
+        return r.status_code, deleted, (r.text or "")[:200]
 
 
-def _rest(base: str, table: str) -> str:
-    return f"{base.rstrip('/')}/rest/v1/{table}"
+# ---------- Data collection ----------
 
-
-def collect_history_hashes(
-    base: str, key: str, table: str, op: str
-) -> Set[str]:
-    """History tablosundaki hash'leri sayfalı çek.
-
-    op: 'lt' (pre_cutoff) veya 'gte' (post_cutoff)
-    """
-    out: Set[str] = set()
+def collect_history_rows(rest: Rest, table: str, op: str, cutoff: str
+                          ) -> List[Dict[str, str]]:
+    """History rows {match_id_hash, home, away, league, date} for op in {lt, gte}."""
+    rows: List[Dict[str, str]] = []
     offset = 0
     while True:
         params = {
-            "select": "match_id_hash",
-            "scraped_at": f"{op}.{CUTOFF_HISTORY_TR}",
+            "select": "match_id_hash,home,away,league,date,scraped_at",
+            "scraped_at": f"{op}.{cutoff}",
             "order": "match_id_hash.asc",
             "limit": str(PAGE_SIZE),
             "offset": str(offset),
         }
-        r = requests.get(_rest(base, table), headers=_h(key), params=params, timeout=60)
+        r = rest.get(table, params)
         if r.status_code != 200:
             print(f"  [WARN] {table} {op} GET HTTP {r.status_code}: {r.text[:200]}")
-            return out
+            return rows
         page = r.json()
         if not page:
             break
-        for row in page:
-            h = row.get("match_id_hash")
-            if h:
-                out.add(h)
+        rows.extend(page)
         if len(page) < PAGE_SIZE:
             break
         offset += PAGE_SIZE
-    return out
+    return rows
 
 
-def scan_market_table_for_stale_ids(
-    base: str, key: str, table: str, stale_hashes: Set[str]
-) -> List[int]:
-    """Ana market tablosunu tara, hash'i stale_hashes'ta olan satırların id'sini topla."""
+def parse_kickoff_yyyymmdd(date_str: str) -> str:
+    """History `date` formats:
+       - 'YYYY-MM-DDTHH:MM:SS+00:00' (newer JSON)
+       - '29.Apr 19:00:00' (old HTML)
+    Returns 'YYYY-MM-DD' or '' if unparseable. Year defaults to current year for old format.
+    """
+    if not date_str:
+        return ""
+    s = date_str.strip()
+    # ISO
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    # DD.Mon
+    m = re.match(r"^(\d{1,2})\.([A-Za-z]{3})", s)
+    if m:
+        months = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,
+                  "jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
+        mo = months.get(m.group(2).lower())
+        if mo:
+            from datetime import datetime as _dt
+            yr = _dt.utcnow().year
+            return f"{yr:04d}-{mo:02d}-{int(m.group(1)):02d}"
+    return ""
+
+
+def fingerprint(row: Dict[str, str]) -> Tuple[str, str, str]:
+    """Replacement detection key: (away_norm[:8], league_norm[:8], kickoff_yyyymmdd)."""
+    a = normalize_field(str(row.get("away") or ""))[:8]
+    l = normalize_field(str(row.get("league") or ""))[:8]
+    d = parse_kickoff_yyyymmdd(str(row.get("date") or ""))
+    return (a, l, d)
+
+
+def narrow_stale_hashes(pre_rows: List[Dict[str, str]],
+                         post_rows: List[Dict[str, str]]
+                         ) -> Tuple[Set[str], Set[str], Dict[str, Dict[str, str]]]:
+    """Return (narrowed_stale, broad_stale, sample_by_hash).
+
+    - broad_stale = pre_hashes - post_hashes (eski mantık; raporlama için)
+    - narrowed_stale ⊆ broad_stale: replacement adayı olan hash'ler. Replacement
+      testi: post_rows'da aynı fingerprint var ama hash farklı → confirmed
+      isim-değişikliği duplicate. Bu, sadece-pre'de var olan ama post'ta hiç
+      replacement adayı bulunmayan eski tek-seferlik kayıtları KORUR.
+    - sample_by_hash: dry-run sample print için her hash için 1 örnek satır.
+    """
+    pre_hashes = set()
+    post_hashes = set()
+    sample: Dict[str, Dict[str, str]] = {}
+    post_fp_to_hashes: Dict[Tuple[str, str, str], Set[str]] = {}
+
+    for row in pre_rows:
+        h = row.get("match_id_hash")
+        if not h:
+            continue
+        pre_hashes.add(h)
+        if h not in sample:
+            sample[h] = row
+    for row in post_rows:
+        h = row.get("match_id_hash")
+        if not h:
+            continue
+        post_hashes.add(h)
+        fp = fingerprint(row)
+        if fp[2]:  # only count fingerprints with valid date
+            post_fp_to_hashes.setdefault(fp, set()).add(h)
+
+    broad_stale = pre_hashes - post_hashes
+    narrowed: Set[str] = set()
+    for h in broad_stale:
+        row = sample.get(h)
+        if not row:
+            continue
+        fp = fingerprint(row)
+        if not fp[2]:
+            continue
+        post_hash_set = post_fp_to_hashes.get(fp, set())
+        # confirmed replacement: same fingerprint exists in post with different hash
+        if post_hash_set - {h}:
+            narrowed.add(h)
+    return narrowed, broad_stale, sample
+
+
+# ---------- Delete helpers ----------
+
+def chunk(seq: List, size: int):
+    for i in range(0, len(seq), size):
+        yield seq[i:i + size]
+
+
+def delete_by_hashes(rest: Rest, table: str, hashes: List[str],
+                      extra: Dict[str, str] | None, dry_run: bool) -> int:
+    if not hashes:
+        return 0
+    if dry_run:
+        # Use GET with same filter to count
+        total = 0
+        for batch in chunk(hashes, DELETE_BATCH):
+            params = {
+                "select": "match_id_hash",
+                "match_id_hash": f"in.({','.join(batch)})",
+                "limit": str(PAGE_SIZE * 2),
+            }
+            if extra:
+                params.update(extra)
+            r = rest.get(table, params)
+            if r.status_code == 200:
+                try:
+                    total += len(r.json())
+                except Exception:
+                    pass
+        return total
+    total = 0
+    for batch in chunk(hashes, DELETE_BATCH):
+        params = {"match_id_hash": f"in.({','.join(batch)})"}
+        if extra:
+            params.update(extra)
+        status, n, body = rest.delete_with_count(table, params)
+        if status not in (200, 204):
+            print(f"  [WARN] {table} DELETE HTTP {status}: {body}")
+            continue
+        total += n
+    return total
+
+
+def delete_by_ids(rest: Rest, table: str, ids: List[int], dry_run: bool) -> int:
+    if not ids:
+        return 0
+    if dry_run:
+        return len(ids)
+    total = 0
+    for batch in chunk(ids, DELETE_BATCH):
+        params = {"id": f"in.({','.join(str(x) for x in batch)})"}
+        status, n, body = rest.delete_with_count(table, params)
+        if status not in (200, 204):
+            print(f"  [WARN] {table} id-DELETE HTTP {status}: {body}")
+            continue
+        total += n
+    return total
+
+
+def scan_market_for_stale_ids(rest: Rest, table: str, stale_hashes: Set[str]) -> List[int]:
     ids: List[int] = []
     offset = 0
     while True:
@@ -140,9 +285,9 @@ def scan_market_table_for_stale_ids(
             "limit": str(PAGE_SIZE),
             "offset": str(offset),
         }
-        r = requests.get(_rest(base, table), headers=_h(key), params=params, timeout=60)
+        r = rest.get(table, params)
         if r.status_code != 200:
-            print(f"  [WARN] {table} scan GET HTTP {r.status_code}: {r.text[:200]}")
+            print(f"  [WARN] {table} scan HTTP {r.status_code}: {r.text[:200]}")
             return ids
         page = r.json()
         if not page:
@@ -164,83 +309,19 @@ def scan_market_table_for_stale_ids(
     return ids
 
 
-def delete_by_ids(
-    base: str, key: str, table: str, ids: List[int], dry_run: bool
-) -> int:
-    if not ids:
-        return 0
-    if dry_run:
-        return len(ids)
-    deleted = 0
-    for i in range(0, len(ids), DELETE_BATCH):
-        batch = ids[i : i + DELETE_BATCH]
-        ids_str = ",".join(str(x) for x in batch)
-        url = f"{_rest(base, table)}?id=in.({ids_str})"
-        r = requests.delete(url, headers=_h(key), timeout=60)
-        if r.status_code not in (200, 204):
-            print(
-                f"  [WARN] {table} id-batch DELETE HTTP {r.status_code}: {r.text[:200]}"
-            )
-            continue
-        deleted += len(batch)
-    return deleted
+def print_sample(label: str, hashes: List[str], sample: Dict[str, Dict[str, str]],
+                  limit: int = SAMPLE_LIMIT) -> None:
+    print(f"  [SAMPLE] {label} (ilk {min(limit, len(hashes))} / {len(hashes)}):")
+    for h in sorted(hashes)[:limit]:
+        row = sample.get(h, {})
+        print(
+            f"    hash={h}  scraped_at={row.get('scraped_at','?')}  "
+            f"home={(row.get('home') or '')!r}  away={(row.get('away') or '')!r}  "
+            f"league={(row.get('league') or '')!r}  date={(row.get('date') or '')!r}"
+        )
 
 
-def count_by_hashes(
-    base: str,
-    key: str,
-    table: str,
-    hashes: List[str],
-    extra_params: Dict[str, str] | None = None,
-) -> int:
-    """DRY-RUN için: hash listesine uyan satır sayısını döner."""
-    if not hashes:
-        return 0
-    total = 0
-    for i in range(0, len(hashes), DELETE_BATCH):
-        batch = hashes[i : i + DELETE_BATCH]
-        params = {
-            "select": "match_id_hash",
-            "match_id_hash": f"in.({','.join(batch)})",
-            "limit": str(PAGE_SIZE * 10),
-        }
-        if extra_params:
-            params.update(extra_params)
-        r = requests.get(_rest(base, table), headers=_h(key), params=params, timeout=60)
-        if r.status_code != 200:
-            print(f"  [WARN] {table} count GET HTTP {r.status_code}: {r.text[:200]}")
-            continue
-        try:
-            total += len(r.json())
-        except Exception:
-            pass
-    return total
-
-
-def delete_by_hashes(
-    base: str,
-    key: str,
-    table: str,
-    hashes: List[str],
-    extra_params: Dict[str, str] | None = None,
-) -> int:
-    if not hashes:
-        return 0
-    deleted = 0
-    for i in range(0, len(hashes), DELETE_BATCH):
-        batch = hashes[i : i + DELETE_BATCH]
-        params = {"match_id_hash": f"in.({','.join(batch)})"}
-        if extra_params:
-            params.update(extra_params)
-        r = requests.delete(_rest(base, table), headers=_h(key), params=params, timeout=60)
-        if r.status_code not in (200, 204):
-            print(
-                f"  [WARN] {table} hash-batch DELETE HTTP {r.status_code}: {r.text[:200]}"
-            )
-            continue
-        deleted += len(batch)
-    return deleted
-
+# ---------- Main ----------
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -249,47 +330,65 @@ def main() -> int:
     g.add_argument("--execute", action="store_true")
     args = parser.parse_args()
 
-    base = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_ANON_KEY")
-    if not base or not key:
+    if not os.environ.get("SUPABASE_URL") or not os.environ.get("SUPABASE_ANON_KEY"):
         print("[FATAL] SUPABASE_URL veya SUPABASE_ANON_KEY env yok!")
         return 2
 
+    client = SupabaseClient()
+    rest = Rest(client)
+
     mode = "DRY-RUN" if args.dry_run else "EXECUTE"
     print(f"=== Cleanup Stale Arbworld Records — {mode} ===")
-    print(f"Cutoff (history TR): {CUTOFF_HISTORY_TR}  |  Cutoff (snapshot UTC): {CUTOFF_SNAPSHOT_UTC}")
-    print(f"Supabase: {base}")
+    print(f"Cutoff (history TR): {CUTOFF_HISTORY_TR}  |  "
+          f"Cutoff (snapshot UTC): {CUTOFF_SNAPSHOT_UTC}")
+    print(f"Supabase: {os.environ['SUPABASE_URL']}")
     print()
 
-    # 1) Stale hash'leri history tablolarından hesapla
-    print("[1/5] History'den stale_hashes hesaplanıyor...")
-    pre_cutoff: Set[str] = set()
-    post_cutoff: Set[str] = set()
+    # 1) History pre/post rows topla
+    print("[1/5] History tablolarından pre/post satırlar toplanıyor...")
+    pre_rows: List[Dict[str, str]] = []
+    post_rows: List[Dict[str, str]] = []
     for table in HISTORY_TABLES:
-        pre = collect_history_hashes(base, key, table, "lt")
-        post = collect_history_hashes(base, key, table, "gte")
-        pre_cutoff |= pre
-        post_cutoff |= post
-        print(f"  {table}: pre={len(pre)}, post={len(post)}")
-    stale_hashes = pre_cutoff - post_cutoff
-    print(f"  TOPLAM: pre={len(pre_cutoff)}, post={len(post_cutoff)}, "
-          f"stale={len(stale_hashes)}")
+        pre = collect_history_rows(rest, table, "lt", CUTOFF_HISTORY_TR)
+        post = collect_history_rows(rest, table, "gte", CUTOFF_HISTORY_TR)
+        pre_rows.extend(pre)
+        post_rows.extend(post)
+        pre_h = {r.get("match_id_hash") for r in pre if r.get("match_id_hash")}
+        post_h = {r.get("match_id_hash") for r in post if r.get("match_id_hash")}
+        print(f"  {table}: pre_rows={len(pre)} (uniq_hash={len(pre_h)}), "
+              f"post_rows={len(post)} (uniq_hash={len(post_h)})")
+
+    narrowed_stale, broad_stale, sample_by_hash = narrow_stale_hashes(pre_rows, post_rows)
+    print(f"  TOPLAM: broad_stale={len(broad_stale)} "
+          f"(pre - post; eski mantık)  |  narrowed_stale={len(narrowed_stale)} "
+          f"(replacement-confirmed; KULLANILACAK)")
+    skipped = broad_stale - narrowed_stale
+    if skipped:
+        print(f"  [SAFE] {len(skipped)} hash 'broad ama replacement yok' → KORUNDU "
+              f"(over-deletion önlendi)")
     print()
 
-    if not stale_hashes:
+    if not narrowed_stale:
         print("[OK] Stale hash yok, hiçbir şey yapılmadı.")
         return 0
 
-    sorted_stale = sorted(stale_hashes)
+    # Sample print (always, both for safety review)
+    print_sample("STALE silinecek", sorted(narrowed_stale), sample_by_hash)
+    if skipped:
+        print_sample("KORUNAN broad-only", sorted(skipped), sample_by_hash)
+    print()
 
-    # 2) Ana market tablolarını tara, stale id'leri topla
+    sorted_stale = sorted(narrowed_stale)
+
+    # 2) Ana market tablolarını tara → stale id'ler
     print("[2/5] Ana market tablolarında stale id'ler taranıyor...")
     market_stale_ids: Dict[str, List[int]] = {}
+    total_market_ids = 0
     for table in MARKET_TABLES:
-        ids = scan_market_table_for_stale_ids(base, key, table, stale_hashes)
+        ids = scan_market_for_stale_ids(rest, table, narrowed_stale)
         market_stale_ids[table] = ids
+        total_market_ids += len(ids)
         print(f"  {table}: {len(ids)} stale id")
-    total_market_ids = sum(len(v) for v in market_stale_ids.values())
     print(f"  TOPLAM: {total_market_ids} satır")
     print()
 
@@ -297,44 +396,34 @@ def main() -> int:
     print("[3/5] Snapshot tabloları (scraped_at_utc < cutoff & stale hash)...")
     snap_extra = {"scraped_at_utc": f"lt.{CUTOFF_SNAPSHOT_UTC}"}
     for table in SNAPSHOT_TABLES:
-        if args.dry_run:
-            n = count_by_hashes(base, key, table, sorted_stale, snap_extra)
-            print(f"  {table}: {n} satır silinecek")
-        else:
-            n = delete_by_hashes(base, key, table, sorted_stale, snap_extra)
-            print(f"  {table}: ~{n} satır silindi (batch sayısı * batch size)")
+        n = delete_by_hashes(rest, table, sorted_stale, snap_extra, args.dry_run)
+        verb = "matched" if args.dry_run else "deleted"
+        print(f"  {table}: {n} satır {verb}")
     print()
 
     # 4) History tablolarından sil
     print("[4/5] History tabloları (scraped_at < cutoff & stale hash)...")
     hist_extra = {"scraped_at": f"lt.{CUTOFF_HISTORY_TR}"}
     for table in HISTORY_TABLES:
-        if args.dry_run:
-            n = count_by_hashes(base, key, table, sorted_stale, hist_extra)
-            print(f"  {table}: {n} satır silinecek")
-        else:
-            n = delete_by_hashes(base, key, table, sorted_stale, hist_extra)
-            print(f"  {table}: ~{n} satır silindi")
+        n = delete_by_hashes(rest, table, sorted_stale, hist_extra, args.dry_run)
+        verb = "matched" if args.dry_run else "deleted"
+        print(f"  {table}: {n} satır {verb}")
     print()
 
-    # 5) Ana market tablolarından id ile sil + fixtures
-    print("[5/5] Ana market tabloları (id batch)...")
+    # 5) Ana market id batch + fixtures
+    print("[5/5] Ana market tablolarından id ile sil...")
     for table in MARKET_TABLES:
         ids = market_stale_ids[table]
-        n = delete_by_ids(base, key, table, ids, args.dry_run)
-        verb = "silinecek" if args.dry_run else "silindi"
+        n = delete_by_ids(rest, table, ids, args.dry_run)
+        verb = "matched" if args.dry_run else "deleted"
         print(f"  {table}: {n} satır {verb}")
-
     print()
     print("[5b] Fixtures (yetim stale hash)...")
-    if args.dry_run:
-        n_fix = count_by_hashes(base, key, "fixtures", sorted_stale)
-        print(f"  fixtures: {n_fix} satır silinecek")
-    else:
-        n_fix = delete_by_hashes(base, key, "fixtures", sorted_stale)
-        print(f"  fixtures: ~{n_fix} satır silindi")
-
+    n_fix = delete_by_hashes(rest, "fixtures", sorted_stale, None, args.dry_run)
+    verb = "matched" if args.dry_run else "deleted"
+    print(f"  fixtures: {n_fix} satır {verb}")
     print()
+
     print("=== TAMAMLANDI ===")
     if args.dry_run:
         print("DRY-RUN: hiçbir kayıt silinmedi. Gerçek silme için --execute kullan.")
