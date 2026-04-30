@@ -223,24 +223,101 @@
             .nav-links { display: none; }
             .hamburger { display: flex; }
             .navbar-inner { padding: 0 16px; }
-            .page-content { padding: 96px 16px 60px; }
-            .page-title { font-size: 22px; }
-            .analyst-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-            .analyst-card { padding: 18px 14px; }
-            .analyst-avatar, .analyst-avatar-placeholder { width: 48px; height: 48px; font-size: 18px; }
-            .analyst-name { font-size: 14px; }
-            .analyst-bio { font-size: 11px; }
-            .analyst-stat-value { font-size: 14px; }
-            .profile-header { flex-direction: column; text-align: center; padding: 24px 18px; gap: 16px; }
-            .profile-stats { justify-content: center; }
-            .profile-name { font-size: 20px; }
-            .analysis-item { padding: 14px 16px; }
-            .analysis-item-title { font-size: 14px; }
+            .page-content { padding: 96px 14px 56px; }
+            .page-title { font-size: 22px; margin-bottom: 4px; }
+            .page-subtitle { font-size: 13px; margin-bottom: 22px; line-height: 1.5; }
+            .page-back { font-size: 12px; padding: 5px 10px; margin-bottom: 18px; }
+
+            /* Analist & sinyal kart grid'i — 2 kolon, kompakt */
+            .analyst-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .analyst-card { padding: 16px 12px; border-radius: 12px; }
+            .analyst-avatar, .analyst-avatar-placeholder {
+                width: 52px; height: 52px; font-size: 20px; margin-bottom: 10px;
+            }
+            .analyst-name { font-size: 13px; margin-bottom: 4px; line-height: 1.25; }
+            .analyst-bio {
+                font-size: 11px; line-height: 1.45; margin-bottom: 10px; max-width: 100%;
+                display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+                overflow: hidden; text-overflow: ellipsis; min-height: 32px;
+            }
+            .analyst-stats-row { gap: 6px; width: 100%; justify-content: space-around; }
+            .analyst-stat-value { font-size: 13px; }
+            .analyst-stat-label { font-size: 9px; letter-spacing: 0.4px; margin-top: 1px; }
+
+            /* Otomatik sinyal kartı (sarı vurgu) */
+            .signal-badge { font-size: 9px; padding: 2px 7px; margin-bottom: 8px; letter-spacing: 0.5px; }
+            .signal-avatar-placeholder { width: 52px; height: 52px; font-size: 22px; margin-bottom: 8px; }
+            .signal-avatar-lg { width: 64px; height: 64px; font-size: 28px; border-width: 2px; }
+
+            /* Profil sayfası başlığı — dikey düzen */
+            .profile-header { flex-direction: column; text-align: center; padding: 22px 16px; gap: 14px; border-radius: 14px; }
+            .profile-avatar, .profile-avatar-placeholder { width: 72px; height: 72px; font-size: 24px; border-width: 2px; }
+            .profile-name { font-size: 19px; margin-bottom: 4px; }
+            .profile-bio { font-size: 12px; line-height: 1.55; margin-bottom: 12px; }
+            .profile-stats { gap: 8px; width: 100%; justify-content: center; }
+            .profile-stat-box { padding: 8px 10px; min-width: 0; flex: 1 1 calc(50% - 4px); max-width: 140px; }
+            .profile-stat-num { font-size: 16px; }
+            .profile-stat-lbl { font-size: 9px; letter-spacing: 0.4px; margin-top: 1px; }
+
+            /* TARİH GRUP BAŞLIĞI — sade, minimal, düzenli */
+            .date-group { margin-bottom: 18px; }
+            .date-group-header {
+                font-size: 11px; letter-spacing: 0.6px; padding: 6px 0;
+                margin-bottom: 8px; gap: 6px;
+            }
+            .date-group-header svg { width: 12px; height: 12px; flex-shrink: 0; }
+            .date-group-count {
+                font-size: 10px; padding: 1px 7px; margin-left: auto;
+                white-space: nowrap; flex-shrink: 0;
+            }
+
+            /* Analiz item — başlık ve sonuç badge'i dikey hizalı */
+            .analysis-item { padding: 14px; margin-bottom: 8px; border-radius: 10px; }
+            .analysis-item-header { flex-wrap: wrap; gap: 8px; margin-bottom: 8px; align-items: center; }
+            .analysis-item-title { font-size: 14px; flex: 1 1 auto; min-width: 0; line-height: 1.35; }
+            .analysis-result-badge { font-size: 10px; padding: 3px 8px; flex-shrink: 0; }
+            .analysis-meta { gap: 6px; margin-bottom: 8px; }
+            .analysis-meta .meta-tag { font-size: 10px; padding: 3px 8px; }
+            .analysis-content { font-size: 12px; line-height: 1.65; }
+            .analysis-time { font-size: 10px; margin-top: 8px; }
+
+            /* Sinyal item — kompakt, etiketler küçük */
+            .signal-item { padding: 14px; margin-bottom: 8px; border-radius: 10px; }
+            .signal-item-top { flex-wrap: wrap; gap: 6px; margin-bottom: 6px; align-items: flex-start; }
+            .signal-match-title { font-size: 14px; line-height: 1.35; }
+            .signal-league { font-size: 10px; margin-top: 1px; }
+            .signal-meta { gap: 5px; margin-top: 6px; }
+            .signal-sel-badge,
+            .signal-odds-tag,
+            .signal-pct-tag,
+            .signal-vol-tag { font-size: 10px; padding: 3px 7px; }
+            .signal-date-tag { font-size: 10px; margin-top: 2px; }
+
+            /* Boş durumlar */
+            .empty-day { padding: 16px 12px; font-size: 12px; border-radius: 8px; }
+            .signal-no-data { padding: 18px 14px; font-size: 12px; }
+            .empty-state { padding: 50px 20px; }
+            .empty-state h3 { font-size: 17px; }
+            .empty-state p { font-size: 13px; }
+            .loading-state { padding: 60px 20px; }
+
             .footer { padding: 30px 16px; }
             .footer-contact { flex-wrap: wrap; }
         }
-        @media (max-width: 400px) {
-            .analyst-grid { grid-template-columns: 1fr; }
+
+        /* Çok küçük telefonlar — tek kolon, kart genişler */
+        @media (max-width: 380px) {
+            .analyst-grid { grid-template-columns: 1fr; gap: 10px; }
+            .analyst-card { padding: 18px 16px; }
+            .analyst-bio {
+                -webkit-line-clamp: 3; min-height: auto;
+                font-size: 12px; max-width: 280px;
+            }
+            .analyst-avatar, .analyst-avatar-placeholder,
+            .signal-avatar-placeholder { width: 56px; height: 56px; font-size: 22px; }
+            .analyst-name { font-size: 15px; }
+            .analyst-stat-value { font-size: 15px; }
+            .profile-stat-box { flex: 1 1 calc(50% - 4px); max-width: none; }
         }
 
         .analyst-card.signal-card {
