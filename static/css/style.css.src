@@ -14309,3 +14309,26 @@ table.desktop-only {
         text-align: center;
     }
 }
+
+@media (max-width: 768px) {
+    .ud-time-row {
+        padding: 10px 6px 8px !important;
+        border-top: 1px solid rgba(255,255,255,0.04);
+        margin-top: 6px;
+    }
+    .ud-time-lbl {
+        font-size: 13px !important;
+        color: #c9d1d9 !important;
+        font-weight: 700 !important;
+        letter-spacing: 0 !important;
+    }
+    .ud-time-cnt {
+        font-size: 11px !important;
+        color: #7d848c !important;
+        font-weight: 600;
+        padding: 3px 10px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 12px;
+        white-space: nowrap;
+    }
+}

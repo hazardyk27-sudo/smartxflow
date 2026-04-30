@@ -637,9 +637,9 @@ function renderUnderdogPressureView(data) {
             var items = timeGrouped[tk];
             var _tkM = String(tk || '').match(/(\d{1,2}):(\d{2})/);
             var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
-            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
-            html += '<div style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
-            html += '<span style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
+            html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
             html += '</div>';
             items.forEach(function(sig) {
                 var selLabel = sig.selection_code === '1' ? 'Ev Sahibi' : sig.selection_code === '2' ? 'Deplasman' : 'Beraberlik';
