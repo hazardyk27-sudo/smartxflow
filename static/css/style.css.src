@@ -14338,15 +14338,20 @@ table.desktop-only {
         padding: 6px !important;
         gap: 4px !important;
         min-height: 58px;
-        scrollbar-width: thin;
+        scrollbar-width: thin !important;
         -webkit-overflow-scrolling: touch;
     }
     [id$="DateStrip"]::-webkit-scrollbar {
-        height: 4px;
+        display: block !important;
+        width: auto !important;
+        height: 4px !important;
     }
     [id$="DateStrip"]::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.12);
-        border-radius: 2px;
+        background: rgba(255,255,255,0.18) !important;
+        border-radius: 2px !important;
+    }
+    [id$="DateStrip"]::-webkit-scrollbar-track {
+        background: transparent !important;
     }
     [id$="DateStrip"] > div {
         min-width: 46px !important;
