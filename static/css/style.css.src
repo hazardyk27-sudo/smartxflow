@@ -14334,6 +14334,37 @@ table.desktop-only {
 }
 
 @media (max-width: 768px) {
+    .analyst-cards-strip {
+        position: relative;
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(255,255,255,0.25) transparent !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 6px;
+        mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+        -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+    }
+    .analyst-cards-strip::-webkit-scrollbar {
+        display: block !important;
+        width: auto !important;
+        height: 5px !important;
+    }
+    .analyst-cards-strip::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.25) !important;
+        border-radius: 3px !important;
+    }
+    .analyst-cards-strip::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.04) !important;
+        border-radius: 3px !important;
+    }
+    .analyst-cards-strip > .analyst-card {
+        flex: 0 0 auto !important;
+        min-width: 72px !important;
+        scroll-snap-align: start;
+    }
+}
+
+@media (max-width: 768px) {
     [id$="DateStrip"] {
         padding: 6px !important;
         gap: 4px !important;
