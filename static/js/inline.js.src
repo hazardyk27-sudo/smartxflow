@@ -161,6 +161,12 @@ var _viewingConfirmedMoney = false;
 var _viewingConfirmedMoneyV2 = false;
 var _confirmedMoneyV2SelectedDate = null;
 var _confirmedMoneyV2LastData = null;
+var _viewingEarlyMoneyLock = false;
+var _earlyMoneyLockSelectedDate = null;
+var _earlyMoneyLockLastData = null;
+var _viewingFakeSharp = false;
+var _fakeSharpSelectedDate = null;
+var _fakeSharpLastData = null;
 
 function renderAnalysisList(data) {
     var sidebar = document.getElementById('trendsSidebar');
@@ -182,7 +188,7 @@ function renderAnalysisList(data) {
 function buildAnalystCards() {
     if (!_analystsCache || _analystsCache.length === 0) return '';
     var html = '<div class="analyst-cards-strip">';
-    html += '<div class="analyst-card' + (!_selectedAnalystId && !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 ? ' active' : '') + '" onclick="filterByAnalyst(null)">';
+    html += '<div class="analyst-card' + (!_selectedAnalystId && !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 && !_viewingEarlyMoneyLock && !_viewingFakeSharp ? ' active' : '') + '" onclick="filterByAnalyst(null)">';
     html += '<div class="analyst-card-avatar-placeholder" style="font-size:14px;">All</div>';
     html += '<div class="analyst-card-name">Tümü</div>';
     html += '</div>';
@@ -203,6 +209,18 @@ function buildAnalystCards() {
     html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);color:#6366f1;">💎</div>';
     html += '<div class="analyst-card-name">Confirmed</div>';
     html += '<div class="analyst-card-pct" style="color:#6366f1;">Money V2</div>';
+    html += '</div>';
+    html += '<div class="analyst-card' + (_viewingEarlyMoneyLock ? ' active' : '') + '" onclick="showEarlyMoneyLock()" style="border-color:rgba(88,166,255,0.4);position:relative;">';
+    html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#58a6ff;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(88,166,255,0.08);border:1.5px solid rgba(88,166,255,0.3);color:#58a6ff;">🔒</div>';
+    html += '<div class="analyst-card-name">Early Money</div>';
+    html += '<div class="analyst-card-pct" style="color:#58a6ff;">Lock</div>';
+    html += '</div>';
+    html += '<div class="analyst-card' + (_viewingFakeSharp ? ' active' : '') + '" onclick="showFakeSharp()" style="border-color:rgba(248,81,73,0.4);position:relative;">';
+    html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
+    html += '<div class="analyst-card-avatar-placeholder" style="font-size:18px;background:rgba(248,81,73,0.08);border:1.5px solid rgba(248,81,73,0.3);color:#f85149;">⚠️</div>';
+    html += '<div class="analyst-card-name">Fake</div>';
+    html += '<div class="analyst-card-pct" style="color:#f85149;">Sharp</div>';
     html += '</div>';
     _analystsCache.forEach(function(a) {
         var isActive = _selectedAnalystId == a.id;
@@ -274,6 +292,8 @@ function filterByAnalyst(analystId) {
     _viewingUnderdogPressure = false;
     _viewingConfirmedMoney = false;
     _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = false;
     if (analystId === null) {
         _selectedAnalystId = null;
         if (_fullAnalysisData) {
@@ -499,6 +519,8 @@ function backToAnalystList() {
     _viewingUnderdogPressure = false;
     _viewingConfirmedMoney = false;
     _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = false;
     if (_fullAnalysisData) {
         renderAnalysisList(_fullAnalysisData);
     } else {
@@ -511,6 +533,8 @@ function showUnderdogPressure() {
     _viewingUnderdogPressure = true;
     _viewingConfirmedMoney = false;
     _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = false;
     var contentArea = document.getElementById('trendsContentArea');
     contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
@@ -737,6 +761,8 @@ function showConfirmedMoney() {
     _viewingUnderdogPressure = false;
     _viewingConfirmedMoney = true;
     _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = false;
     var contentArea = document.getElementById('trendsContentArea');
     contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
@@ -929,6 +955,8 @@ function showConfirmedMoneyV2() {
     _viewingUnderdogPressure = false;
     _viewingConfirmedMoney = false;
     _viewingConfirmedMoneyV2 = true;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = false;
     var contentArea = document.getElementById('trendsContentArea');
     contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
@@ -1104,6 +1132,440 @@ function renderConfirmedMoneyV2View(data) {
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
     var stripEl = document.getElementById('cmV2DateStrip');
+    if (stripEl) {
+        var selEl = stripEl.querySelector('.ds-sel');
+        if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function selectEarlyMoneyLockDate(dateKey) {
+    _earlyMoneyLockSelectedDate = dateKey;
+    if (_earlyMoneyLockLastData) renderEarlyMoneyLockView(_earlyMoneyLockLastData);
+}
+
+function showEarlyMoneyLock() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = true;
+    _viewingFakeSharp = false;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
+    var headers = licKey ? {'X-License-Key': licKey} : {};
+    fetch('/api/early-money-lock', {headers: headers})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#58a6ff;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                return;
+            }
+            renderEarlyMoneyLockView(data);
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderEarlyMoneyLockView(data) {
+    _earlyMoneyLockLastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
+    var contentArea = document.getElementById('trendsContentArea');
+    var signals = data.signals || [];
+    var count = data.count || 0;
+    var avgPct = data.avg_pct ? parseFloat(data.avg_pct).toFixed(0) : '-';
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div style="background:rgba(88,166,255,0.04);border:1px solid rgba(88,166,255,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(88,166,255,0.08);border:1.5px solid rgba(88,166,255,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔒</div>';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Early Money Lock</div>';
+    html += '<div style="font-size:9px;color:#58a6ff;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '</div></div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı erken kilitlenmiş ve birbirini izleyen anlık görüntülerde sabit kalan maçları tespit eder.</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#58a6ff;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '</div></div>';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
+    var emlDateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = todayStr;
+        if (!emlDateGroupMap[iso]) emlDateGroupMap[iso] = [];
+        emlDateGroupMap[iso].push(s);
+    });
+    var emlDatesWithData = Object.keys(emlDateGroupMap).sort();
+    var emlFirstDate = emlDatesWithData[0] || todayStr;
+    if (emlFirstDate > yesterdayStr) emlFirstDate = yesterdayStr;
+    var emlLastDate = emlDatesWithData[emlDatesWithData.length - 1] || todayStr;
+    if (emlLastDate < todayStr) emlLastDate = todayStr;
+    var emlAllDates = [];
+    var emlCur = new Date(emlFirstDate + 'T00:00:00');
+    var emlEnd = new Date(emlLastDate + 'T00:00:00');
+    while (emlCur <= emlEnd) {
+        emlAllDates.push(emlCur.getFullYear() + '-' + String(emlCur.getMonth()+1).padStart(2,'0') + '-' + String(emlCur.getDate()).padStart(2,'0'));
+        emlCur.setDate(emlCur.getDate() + 1);
+    }
+    if (!_earlyMoneyLockSelectedDate || !emlDateGroupMap[_earlyMoneyLockSelectedDate]) {
+        _earlyMoneyLockSelectedDate = emlDateGroupMap[todayStr] ? todayStr : (emlDatesWithData[0] || todayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="emlDateStrip">';
+    emlAllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _earlyMoneyLockSelectedDate;
+        var hasData = !!emlDateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectEarlyMoneyLockDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#58a6ff;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        } else {
+            html += '<div onclick="selectEarlyMoneyLockDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
+            html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#58a6ff;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selDaySignals = emlDateGroupMap[_earlyMoneyLockSelectedDate] || [];
+    if (selDaySignals.length === 0) {
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+    } else {
+        var selDp = _earlyMoneyLockSelectedDate.split('-');
+        var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
+        var selDateLabel = selDObj.getDate() + ' ' + TR_MONTHS_UPPER[selDObj.getMonth()] + ' ' + selDObj.getFullYear() + ', ' + TR_DAYS_FULL[selDObj.getDay()];
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 8px;margin-bottom:4px;">';
+        html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
+        html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+        html += selDateLabel + '</div>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '</div>';
+        var timeGrouped = {};
+        var timeOrder = [];
+        selDaySignals.forEach(function(s) {
+            var tk = s.match_date || s.date || '';
+            if (!timeGrouped[tk]) { timeGrouped[tk] = []; timeOrder.push(tk); }
+            timeGrouped[tk].push(s);
+        });
+        timeOrder.forEach(function(tk) {
+            var items = timeGrouped[tk];
+            var _tkM = String(tk || '').match(/(\d{1,2}):(\d{2})/);
+            var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
+            html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
+            html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '</div>';
+            items.forEach(function(sig) {
+                var selCode = sig.selection_code || '';
+                var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : (sig.selection_label || selCode);
+                var pN = parseFloat(String(sig.pct_now || '').replace(/[^0-9.]/g,''));
+                var vN = parseFloat(String(sig.volume_now || '').replace(/[^0-9.]/g,''));
+                var cpN = parseFloat(String(sig.current_pct || '').replace(/[^0-9.]/g,''));
+                var cvN = parseFloat(String(sig.current_volume || '').replace(/[^0-9.]/g,''));
+                var amtFmt = (pN > 0 && vN > 0) ? ('\u00a3\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB')) : '';
+                var curAmtFmt = (cpN > 0 && cvN > 0) ? ('\u00a3\u00a0' + Math.round(cpN/100*cvN).toLocaleString('en-GB')) : '';
+                var pctFmt = pN > 0 ? pN.toFixed(0) + '%' : '';
+                var curPctFmt = cpN > 0 ? cpN.toFixed(0) + '%' : '';
+                var volFmt = vN > 0 ? ('\u00a3\u00a0' + Math.round(vN).toLocaleString('en-GB')) : '';
+                var curVolFmt = cvN > 0 ? ('\u00a3\u00a0' + Math.round(cvN).toLocaleString('en-GB')) : '';
+                var snapshots = sig.consecutive_snapshots || '';
+                var hoursBeforeHtml = '';
+                if (sig.created_at && sig.match_date) {
+                    try {
+                        var matchDt = new Date(sig.match_date);
+                        var createdDt = new Date(sig.created_at);
+                        var diffH = Math.round((matchDt - createdDt) / 3600000);
+                        if (diffH > 0 && diffH <= 240) {
+                            hoursBeforeHtml = '<span style="background:rgba(88,166,255,0.08);color:#4a8fd9;border:1px solid rgba(88,166,255,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                        }
+                    } catch(e) {}
+                }
+                function _cmpCell(label, orig, cur) {
+                    if (!orig) return '';
+                    var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
+                    var cNum = parseFloat(String(cur).replace(/[^0-9.]/g,''));
+                    var arrow = '', aColor = '#7d848c';
+                    if (cur && cur !== orig && !isNaN(oNum) && !isNaN(cNum)) {
+                        if (cNum > oNum)      { arrow = '\u2191'; aColor = '#34d399'; }
+                        else if (cNum < oNum) { arrow = '\u2193'; aColor = '#f87171'; }
+                    }
+                    var out = '<div style="display:flex;align-items:center;gap:3px;">';
+                    out += '<span style="color:#3a3f45;font-size:9px;font-weight:500;">' + label + '</span>';
+                    out += '<span style="color:#7d848c;font-size:10px;">' + orig + '</span>';
+                    if (cur && cur !== orig) {
+                        if (arrow) out += '<span style="color:' + aColor + ';font-size:10px;font-weight:700;">' + arrow + '</span>';
+                        out += '<span style="color:' + aColor + ';font-size:10px;font-weight:600;">' + cur + '</span>';
+                    }
+                    out += '</div>';
+                    return out;
+                }
+                html += '<div style="background:#1c1f23;border:1px solid rgba(88,166,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
+                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+                if (hoursBeforeHtml) html += hoursBeforeHtml;
+                html += '</div>';
+                html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
+                html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+                html += _cmpCell('Para:', amtFmt, curAmtFmt);
+                html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
+                html += _cmpCell('Hacim:', volFmt, curVolFmt);
+                html += '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
+                html += '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">';
+                html += '<span style="background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                if (pctFmt) html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
+                if (snapshots) html += '<span style="background:rgba(255,255,255,0.04);color:#7d848c;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:0.3px;">\ud83d\udd12 ' + snapshots + '</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div></div>';
+            });
+        });
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var stripEl = document.getElementById('emlDateStrip');
+    if (stripEl) {
+        var selEl = stripEl.querySelector('.ds-sel');
+        if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
+}
+
+function selectFakeSharpDate(dateKey) {
+    _fakeSharpSelectedDate = dateKey;
+    if (_fakeSharpLastData) renderFakeSharpView(_fakeSharpLastData);
+}
+
+function showFakeSharp() {
+    _selectedAnalystId = null;
+    _viewingUnderdogPressure = false;
+    _viewingConfirmedMoney = false;
+    _viewingConfirmedMoneyV2 = false;
+    _viewingEarlyMoneyLock = false;
+    _viewingFakeSharp = true;
+    var contentArea = document.getElementById('trendsContentArea');
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
+    var headers = licKey ? {'X-License-Key': licKey} : {};
+    fetch('/api/fake-sharp', {headers: headers})
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) {
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                return;
+            }
+            renderFakeSharpView(data);
+        })
+        .catch(function() {
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+        });
+}
+
+function renderFakeSharpView(data) {
+    _fakeSharpLastData = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
+    var contentArea = document.getElementById('trendsContentArea');
+    var signals = data.signals || [];
+    var count = data.count || 0;
+    var avgRise = data.avg_rise_pct ? parseFloat(data.avg_rise_pct).toFixed(1) : '-';
+    var avgPct = data.avg_pct ? parseFloat(data.avg_pct).toFixed(0) : '-';
+    var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
+    var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
+    var labelStyle = 'font-size:7px;color:#3a3f45;text-transform:uppercase;letter-spacing:0.5px;margin-top:3px;font-weight:600;';
+    var html = '';
+    html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
+    html += 'Tüm Analizciler</div>';
+    html += '<div style="background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(248,81,73,0.08);border:1.5px solid rgba(248,81,73,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚠️</div>';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Fake Sharp</div>';
+    html += '<div style="font-size:9px;color:#f85149;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '</div></div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışına rağmen oran yükselen — yani sharp olmayan, halk parası olduğu anlaşılan maçları tespit eder.</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">+%' + avgRise + '</div><div style="' + labelStyle + '">Ort. Yükseliş</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '</div></div>';
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+    var yest = new Date(today); yest.setDate(yest.getDate() - 1);
+    var yesterdayStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
+    var fsDateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = todayStr;
+        if (!fsDateGroupMap[iso]) fsDateGroupMap[iso] = [];
+        fsDateGroupMap[iso].push(s);
+    });
+    var fsDatesWithData = Object.keys(fsDateGroupMap).sort();
+    var fsFirstDate = fsDatesWithData[0] || todayStr;
+    if (fsFirstDate > yesterdayStr) fsFirstDate = yesterdayStr;
+    var fsLastDate = fsDatesWithData[fsDatesWithData.length - 1] || todayStr;
+    if (fsLastDate < todayStr) fsLastDate = todayStr;
+    var fsAllDates = [];
+    var fsCur = new Date(fsFirstDate + 'T00:00:00');
+    var fsEnd = new Date(fsLastDate + 'T00:00:00');
+    while (fsCur <= fsEnd) {
+        fsAllDates.push(fsCur.getFullYear() + '-' + String(fsCur.getMonth()+1).padStart(2,'0') + '-' + String(fsCur.getDate()).padStart(2,'0'));
+        fsCur.setDate(fsCur.getDate() + 1);
+    }
+    if (!_fakeSharpSelectedDate || !fsDateGroupMap[_fakeSharpSelectedDate]) {
+        _fakeSharpSelectedDate = fsDateGroupMap[todayStr] ? todayStr : (fsDatesWithData[0] || todayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="fsDateStrip">';
+    fsAllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === todayStr;
+        var isSelected = dateKey === _fakeSharpSelectedDate;
+        var hasData = !!fsDateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectFakeSharpDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#f85149;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        } else {
+            html += '<div onclick="selectFakeSharpDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
+            html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#f85149;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+    var selDaySignals = fsDateGroupMap[_fakeSharpSelectedDate] || [];
+    if (selDaySignals.length === 0) {
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+    } else {
+        var selDp = _fakeSharpSelectedDate.split('-');
+        var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
+        var selDateLabel = selDObj.getDate() + ' ' + TR_MONTHS_UPPER[selDObj.getMonth()] + ' ' + selDObj.getFullYear() + ', ' + TR_DAYS_FULL[selDObj.getDay()];
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 8px;margin-bottom:4px;">';
+        html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
+        html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+        html += selDateLabel + '</div>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '</div>';
+        var timeGrouped = {};
+        var timeOrder = [];
+        selDaySignals.forEach(function(s) {
+            var tk = s.match_date || s.date || '';
+            if (!timeGrouped[tk]) { timeGrouped[tk] = []; timeOrder.push(tk); }
+            timeGrouped[tk].push(s);
+        });
+        timeOrder.forEach(function(tk) {
+            var items = timeGrouped[tk];
+            var _tkM = String(tk || '').match(/(\d{1,2}):(\d{2})/);
+            var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
+            html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
+            html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '</div>';
+            items.forEach(function(sig) {
+                var selCode = sig.selection_code || '';
+                var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : (sig.selection_label || selCode);
+                var initOdds = sig.odds_16h || sig.odds_now || '-';
+                var curOdds = sig.current_odds || sig.odds_now || '';
+                var risePct = sig.odds_rise_pct ? parseFloat(sig.odds_rise_pct).toFixed(1) : '';
+                var pN = parseFloat(String(sig.pct_now || '').replace(/[^0-9.]/g,''));
+                var vN = parseFloat(String(sig.volume_now || '').replace(/[^0-9.]/g,''));
+                var cpN = parseFloat(String(sig.current_pct || '').replace(/[^0-9.]/g,''));
+                var cvN = parseFloat(String(sig.current_volume || '').replace(/[^0-9.]/g,''));
+                var amtFmt = (pN > 0 && vN > 0) ? ('\u00a3\u00a0' + Math.round(pN/100*vN).toLocaleString('en-GB')) : '';
+                var curAmtFmt = (cpN > 0 && cvN > 0) ? ('\u00a3\u00a0' + Math.round(cpN/100*cvN).toLocaleString('en-GB')) : '';
+                var pctFmt = pN > 0 ? pN.toFixed(0) + '%' : '';
+                var curPctFmt = cpN > 0 ? cpN.toFixed(0) + '%' : '';
+                var volFmt = vN > 0 ? ('\u00a3\u00a0' + Math.round(vN).toLocaleString('en-GB')) : '';
+                var curVolFmt = cvN > 0 ? ('\u00a3\u00a0' + Math.round(cvN).toLocaleString('en-GB')) : '';
+                var hoursBeforeHtml = '';
+                if (sig.created_at && sig.match_date) {
+                    try {
+                        var matchDt = new Date(sig.match_date);
+                        var createdDt = new Date(sig.created_at);
+                        var diffH = Math.round((matchDt - createdDt) / 3600000);
+                        if (diffH > 0 && diffH <= 240) {
+                            hoursBeforeHtml = '<span style="background:rgba(248,81,73,0.08);color:#c0413c;border:1px solid rgba(248,81,73,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                        }
+                    } catch(e) {}
+                }
+                function _cmpCell(label, orig, cur) {
+                    if (!orig) return '';
+                    var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
+                    var cNum = parseFloat(String(cur).replace(/[^0-9.]/g,''));
+                    var arrow = '', aColor = '#7d848c';
+                    if (cur && cur !== orig && !isNaN(oNum) && !isNaN(cNum)) {
+                        if (cNum > oNum)      { arrow = '\u2191'; aColor = '#34d399'; }
+                        else if (cNum < oNum) { arrow = '\u2193'; aColor = '#f87171'; }
+                    }
+                    var out = '<div style="display:flex;align-items:center;gap:3px;">';
+                    out += '<span style="color:#3a3f45;font-size:9px;font-weight:500;">' + label + '</span>';
+                    out += '<span style="color:#7d848c;font-size:10px;">' + orig + '</span>';
+                    if (cur && cur !== orig) {
+                        if (arrow) out += '<span style="color:' + aColor + ';font-size:10px;font-weight:700;">' + arrow + '</span>';
+                        out += '<span style="color:' + aColor + ';font-size:10px;font-weight:600;">' + cur + '</span>';
+                    }
+                    out += '</div>';
+                    return out;
+                }
+                html += '<div style="background:#1c1f23;border:1px solid rgba(248,81,73,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
+                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
+                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + '</div>';
+                if (hoursBeforeHtml) html += hoursBeforeHtml;
+                html += '</div>';
+                html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
+                html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+                html += _cmpCell('Para:', amtFmt, curAmtFmt);
+                html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
+                html += _cmpCell('Hacim:', volFmt, curVolFmt);
+                html += '</div>';
+                html += '</div>';
+                html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
+                html += '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">';
+                html += '<span style="background:rgba(248,81,73,0.1);color:#f85149;border:1px solid rgba(248,81,73,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
+                html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + (curOdds && curOdds !== initOdds ? ' \u2192 ' + curOdds : '') + '</span>';
+                if (risePct) html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">+' + risePct + '%</span>';
+                html += '</div>';
+                html += '</div>';
+                html += '</div></div>';
+            });
+        });
+    }
+    contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
+    var stripEl = document.getElementById('fsDateStrip');
     if (stripEl) {
         var selEl = stripEl.querySelector('.ds-sel');
         if (selEl) selEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
