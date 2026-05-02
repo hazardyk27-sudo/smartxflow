@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "QE_YpKdVtRQBiJM0gTuqS"
+uri = "file://exports/apifootball_all_leagues.csv"
+type = "table"
+title = "APIFOOTBALL - Tüm Aktif Ligler (1223 lig, current sezon)"
+
+[[outputs]]
+id = "QY_EC3tQ6wwHH3WgBmCb_"
+uri = "file://exports/smartxflow_all_leagues.csv"
+type = "table"
+title = "SMARTXFLOW - Tüm Ligler (195 lig, fixtures tablosu)"
