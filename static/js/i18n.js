@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var SUPPORTED = ['tr', 'en', 'nl', 'it', 'es'];
+  var SUPPORTED = ['tr', 'en', 'de', 'fr', 'nl', 'it', 'es'];
   var DEFAULT_LANG = 'tr';
   var STORAGE_KEY = 'sxf_lang';
   var BASE_PATH = '/static/i18n/';
@@ -66,7 +66,7 @@
     document.documentElement.setAttribute('lang', currentLang);
     var ogLocale = document.querySelector('meta[property="og:locale"]');
     if (ogLocale) {
-      var map = { tr: 'tr_TR', en: 'en_US', nl: 'nl_NL', it: 'it_IT', es: 'es_ES' };
+      var map = { tr: 'tr_TR', en: 'en_US', de: 'de_DE', fr: 'fr_FR', nl: 'nl_NL', it: 'it_IT', es: 'es_ES' };
       ogLocale.setAttribute('content', map[currentLang] || 'tr_TR');
     }
   }
@@ -83,6 +83,7 @@
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
         applyDOM();
         listeners.forEach(function (fn) { try { fn(lang); } catch (e) {} });
+        try { window.dispatchEvent(new CustomEvent('i18n:change', { detail: { lang: lang } })); } catch (e) {}
       });
   }
 
