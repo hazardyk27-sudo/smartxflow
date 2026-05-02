@@ -1941,6 +1941,7 @@
 
         fetchLandingAlarms();
         setInterval(fetchLandingAlarms, REFRESH_INTERVAL);
+        window.addEventListener('i18n:change', function () { try { fetchLandingAlarms(); } catch (e) {} });
     })();
     </script>
     <script>
