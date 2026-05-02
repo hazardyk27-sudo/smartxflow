@@ -1173,7 +1173,7 @@ def delete_invalid_cm_v2_signals(invalid_signals):
 
 
 def backfill_odds_16h_to_first_snap(table, existing, snapshot_lookup, first_snaps,
-                                    code_map, drop_pct_threshold, scan_label):
+                                    code_map, scan_label):
     """Mevcut CM/CMv2 sinyallerinde odds_16h değerini gerçek ilk snapshot'a hizala.
 
     Eski sinyaller fetch_first_snapshots düzeltilmeden önce oluşmuştu (24h cutoff
@@ -1187,7 +1187,6 @@ def backfill_odds_16h_to_first_snap(table, existing, snapshot_lookup, first_snap
 
     table: 'confirmed_money_signals' veya 'confirmed_money_v2_signals'
     code_map: {'1': 'odds1', '2': 'odds2', ...}
-    drop_pct_threshold: log için (CM=0.04, CMv2=0.07)
     scan_label: log etiketi ('CM' / 'CMv2')
     """
     if not first_snaps or not existing:
@@ -1326,7 +1325,7 @@ def run_cm_scan(snapshots, snapshot_lookup, active_keys=None, history=None, firs
         cm_code_map = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
         backfill_odds_16h_to_first_snap(
             'confirmed_money_signals', existing_cm, snapshot_lookup, first_snaps,
-            cm_code_map, CM_ODDS_DROP_PCT, 'CM'
+            cm_code_map, 'CM'
         )
 
         # (home_team, away_team, selection_code) üçlüsüne göre var olanları belirle
@@ -1406,7 +1405,7 @@ def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None, history=None, f
         code_map_v2 = {'1': 'odds1', '2': 'odds2'}
         backfill_odds_16h_to_first_snap(
             'confirmed_money_v2_signals', existing_v2, snapshot_lookup, first_snaps,
-            code_map_v2, CMV2_ODDS_DROP_PCT, 'CMv2'
+            code_map_v2, 'CMv2'
         )
 
         existing_keys = {
