@@ -7692,15 +7692,15 @@ def _cm_in_odds_range(s):
 
 
 def _cm_still_valid(s):
-    """Endpoint güvenlik filtresi: current_odds ile odds_now arasındaki düşüş
-    CM_ODDS_DROP_PCT (%4) eşiğinin altındaysa sinyal geçersizdir.
-    Veri eksikse sinyali göster (fail-open, mevcut helper stiliyle tutarlı)."""
+    """Endpoint güvenlik filtresi: ilk snap (odds_16h) ile current_odds arasındaki
+    düşüş CM_ODDS_DROP_PCT (%4) eşiğinin altındaysa sinyal artık geçersizdir.
+    Veri eksikse sinyali göster (fail-open)."""
     try:
-        odds_now = float(str(s.get('odds_now') or '').strip())
-        odds_cur = float(str(s.get('current_odds') or '').strip())
-        if odds_now <= 0 or odds_cur <= 0:
+        ref = float(str(s.get('odds_16h') or '').strip())
+        cur = float(str(s.get('current_odds') or '').strip())
+        if ref <= 0 or cur <= 0:
             return True
-        drop_pct = (odds_now - odds_cur) / odds_now
+        drop_pct = (ref - cur) / ref
         return drop_pct >= CM_ODDS_DROP_PCT
     except Exception:
         return True
@@ -7713,6 +7713,24 @@ def _cm_v2_in_odds_range(s):
         return 1.55 <= v <= 2.20
     except Exception:
         return False
+
+
+CMV2_ODDS_DROP_PCT_LOCAL = 0.07  # %7 düşüş eşiği — sinyal_engine.py ile aynı
+EML_PCT_THRESHOLD_LOCAL = 85.0   # %85 yüzde eşiği — sinyal_engine.py ile aynı
+
+
+def _cm_v2_still_valid(s):
+    """CMv2 güvenlik filtresi: ilk snap (odds_16h) ile current_odds arasındaki
+    düşüş CMV2_ODDS_DROP_PCT (%7) eşiğinin altındaysa sinyal artık geçersizdir."""
+    try:
+        ref = float(str(s.get('odds_16h') or '').strip())
+        cur = float(str(s.get('current_odds') or '').strip())
+        if ref <= 0 or cur <= 0:
+            return True
+        drop_pct = (ref - cur) / ref
+        return drop_pct >= CMV2_ODDS_DROP_PCT_LOCAL
+    except Exception:
+        return True
 
 
 @app.route('/api/confirmed-money', methods=['GET'])
@@ -7754,11 +7772,20 @@ def confirmed_money_endpoint():
                     ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
                     ex['last_updated_at'] = s.get('last_updated_at') or ''
         deduped = list(_cm_seen.values())
-        # Tersine dönen oranları ve aralık dışındakileri filtrele
-        # NOT: _cm_still_valid() burada kullanılmıyor çünkü odds_now zaten düşmüş referans noktasıdır;
-        # current_odds ≈ odds_now olduğunda drop_pct ≈ 0 → yanlış filtreleme yapardı.
-        # 10h karşılaştırması engine tarafında (delete_invalid_cm_signals) doğru şekilde yapılıyor.
-        all_signals = [s for s in deduped if not _cm_odds_reversed(s) and _cm_in_odds_range(s)]
+        # Geçmiş maçlar (sig_date < bugün) tarih kaydı olarak kalır.
+        # Aktif maçlar için: oran ters dönmüşse, aralık dışıysa veya
+        # ilk snap'a göre düşüş %4 altına düştüyse sinyal listeden kalkar.
+        today_str = str(_date.today())
+        all_signals = []
+        for s in deduped:
+            sig_date = str(s.get('date') or s.get('match_date') or '')
+            is_past = sig_date and sig_date < today_str
+            if is_past:
+                all_signals.append(s)
+            elif (not _cm_odds_reversed(s)
+                  and _cm_in_odds_range(s)
+                  and _cm_still_valid(s)):
+                all_signals.append(s)
         _cm_signals_cache = all_signals
         _cm_signals_cache_time = now
 
@@ -7858,7 +7885,9 @@ def confirmed_money_v2_endpoint():
             is_past = sig_date and sig_date < today_str
             if is_past:
                 all_signals.append(s)
-            elif not _cm_odds_reversed(s) and _cm_v2_in_odds_range(s):
+            elif (not _cm_odds_reversed(s)
+                  and _cm_v2_in_odds_range(s)
+                  and _cm_v2_still_valid(s)):
                 all_signals.append(s)
         _cm_v2_signals_cache = all_signals
         _cm_v2_signals_cache_time = now
@@ -8296,7 +8325,47 @@ def early_money_lock_endpoint():
             key = (s.get('home_team', ''), s.get('away_team', ''), s.get('selection_code', ''))
             if key not in _seen:
                 _seen[key] = s
-        all_signals = list(_seen.values())
+        deduped = list(_seen.values())
+
+        # Aktif maçlar için canlı pct lookup'ı (moneyway latest cache)
+        matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
+        cache_lookup = {}
+        for m in matches_data:
+            h = (m.get('home_team', '') or '').lower().strip()
+            a = (m.get('away_team', '') or '').lower().strip()
+            odds_obj = m.get('odds') or {}
+            for code, raw_pct in [
+                ('1', odds_obj.get('Pct1', '')),
+                ('2', odds_obj.get('Pct2', '')),
+                ('X', odds_obj.get('PctX', '')),
+            ]:
+                if h and a:
+                    cache_lookup[(h, a, code)] = str(raw_pct) if raw_pct else ''
+
+        # Geçmiş maçlar olduğu gibi; aktif maçlarda canlı pct EML eşiğinin altına
+        # düştüyse sinyal listeden kalkar (canlı veri yoksa fail-open).
+        today_str = str(_date.today())
+        all_signals = []
+        for s in deduped:
+            sig_date = str(s.get('date') or s.get('match_date') or '')
+            is_past = sig_date and sig_date < today_str
+            if is_past:
+                all_signals.append(s)
+                continue
+            h = (s.get('home_team', '') or '').lower().strip()
+            a = (s.get('away_team', '') or '').lower().strip()
+            code = s.get('selection_code', '')
+            cur_pct_raw = cache_lookup.get((h, a, code), '')
+            if not cur_pct_raw:
+                all_signals.append(s)
+                continue
+            try:
+                cur_pct_val = float(str(cur_pct_raw).replace('%', '').strip())
+                if cur_pct_val >= EML_PCT_THRESHOLD_LOCAL:
+                    all_signals.append(s)
+            except Exception:
+                all_signals.append(s)
+
         _eml_signals_cache = all_signals
         _eml_signals_cache_time = now
 
