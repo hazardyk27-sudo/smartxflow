@@ -12,6 +12,7 @@ import json
 import os
 import hashlib
 import time
+import urllib.parse
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Callable
 
@@ -3001,7 +3002,21 @@ class AlarmCalculator:
                     
                     # Legacy şema: odds1, oddsx, odds2, over, under vb. kolonları kullan
                     opening_odds = parse_float(history[0].get(odds_key, 0))
-                    current_odds = parse_float(history[-1].get(odds_key, 0))
+                    
+                    # OUTLIER GUARD: history[-1] körü körüne kullanılmaz.
+                    # Son 3 snapshot'ın MEDİANI alınır → tek bir bozuk snapshot (glitch) bastırılır.
+                    # Önceki current (flicker-guard için) son 3-1 snapshot medianı.
+                    n_hist = len(history)
+                    last3 = [parse_float(history[i].get(odds_key, 0)) for i in range(max(0, n_hist - 3), n_hist)]
+                    last3 = [v for v in last3 if v > 0]
+                    if not last3:
+                        continue
+                    current_odds = sorted(last3)[len(last3) // 2]  # median (1, 2 veya 3 eleman için ortadaki)
+                    
+                    # Önceki (bir snapshot eski) median — recovery'nin titreme korumalı doğrulaması için
+                    prev3 = [parse_float(history[i].get(odds_key, 0)) for i in range(max(0, n_hist - 4), max(1, n_hist - 1))]
+                    prev3 = [v for v in prev3 if v > 0]
+                    prev_current = sorted(prev3)[len(prev3) // 2] if prev3 else current_odds
                     
                     if current_odds <= 0 or opening_odds <= 0:
                         continue
@@ -3011,6 +3026,12 @@ class AlarmCalculator:
                         continue
                     
                     if current_odds >= opening_odds:
+                        # Oran toparlanmış (current >= opening) → recovery candidate
+                        _chk_id = generate_match_id_hash(home, away, match.get('league', ''), match.get('date', ''))
+                        _chk_key = f"{_chk_id}|{market_names.get(market, market)}|{selection}"
+                        # Flicker-guard: önceki snapshot da toparlanmış olmalı
+                        if prev_current >= opening_odds or ((opening_odds - prev_current) / opening_odds) * 100 < l1_min:
+                            recovered_keys.add(_chk_key)
                         continue
                     
                     drop_pct = ((opening_odds - current_odds) / opening_odds) * 100
@@ -3019,7 +3040,12 @@ class AlarmCalculator:
                     _chk_key = f"{_chk_id}|{market_names.get(market, market)}|{selection}"
                     
                     if drop_pct < l1_min:
-                        recovered_keys.add(_chk_key)
+                        # Mevcut tur düşük drop → recovery candidate. FLICKER-GUARD:
+                        # Önceki snapshot da L1'in altındaysa kesin toparlanma → recovered_keys'e ekle.
+                        # Aksi halde (önceki snapshot hâlâ L1+) titreme olabilir → silmeye gitme.
+                        prev_drop_pct = ((opening_odds - prev_current) / opening_odds) * 100 if prev_current < opening_odds else 0
+                        if prev_drop_pct < l1_min:
+                            recovered_keys.add(_chk_key)
                         continue
                     
                     # Level belirleme
@@ -3068,8 +3094,34 @@ class AlarmCalculator:
         else:
             log("Dropping: 0 yeni alarm (mevcut alarmlar korunuyor)")
 
-        # RECOVERY CLEANUP DEVRE DIŞI: Alarmlar expiry cleanup (D-2 cutoff) ile temizleniyor.
-        # Snapshot titremesi nedeniyle valid alarmlar yanlışlıkla siliniyordu.
+        # RECOVERY CLEANUP — FLICKER-GUARDED + OUTLIER-GUARDED:
+        # recovered_keys: Hem son snapshot hem de önceki snapshot drop_pct < L1 olan alarmlar.
+        # Outlier guard (median-of-3) sayesinde tek bozuk snapshot bu set'e ekleyemez.
+        # Flicker guard: ardışık 2 temiz snapshot toparlanma göstermedikçe silinmez.
+        if recovered_keys:
+            try:
+                # Mevcut DB satırlarını çek (sadece valid_keys'te olmayanları sileceğiz)
+                existing = self._get('dropping_alarms', 'select=match_id_hash,market,selection') or []
+                deleted_count = 0
+                for row in existing:
+                    mid = row.get('match_id_hash', '')
+                    mkt = row.get('market', '')
+                    sel = row.get('selection', '')
+                    if not mid or not mkt or not sel:
+                        continue
+                    row_key = f"{mid}|{mkt}|{sel}"
+                    # Sadece bu turda recovery onayı almış VE yeni alarm listesinde olmayan satırları sil
+                    if row_key in recovered_keys and row_key not in valid_keys:
+                        ok = self._delete(
+                            'dropping_alarms',
+                            f"match_id_hash=eq.{mid}&market=eq.{urllib.parse.quote(mkt)}&selection=eq.{urllib.parse.quote(sel)}"
+                        )
+                        if ok:
+                            deleted_count += 1
+                if deleted_count > 0:
+                    log(f"[Dropping Recovery] Deleted {deleted_count} recovered alarms (flicker-guarded)")
+            except Exception as e:
+                log(f"[Dropping Recovery] Cleanup failed: {e}")
         
         return len(alarms)
     
