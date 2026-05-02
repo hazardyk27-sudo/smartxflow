@@ -700,15 +700,16 @@ def fetch_first_snapshots(active_keys=None):
     total_rows = 0
     skipped = 0
     t0 = _time.time()
-    max_pages = 500
     pages = 0
+    warn_threshold_pages = 1000  # uyarı; tarama yine de devam eder
     target_count = len(active_keys) if active_keys is not None else None
-    cap_hit = False
     early_exit = False
+    warned = False
     while True:
-        if pages >= max_pages:
-            cap_hit = True
-            break
+        if pages >= warn_threshold_pages and not warned:
+            log(f"[FirstSnap] UYARI: {warn_threshold_pages} sayfa tarandı (≈{warn_threshold_pages*page_size} satır), "
+                f"history büyümüş — RPC/helper tablo yaklaşımını değerlendirin.")
+            warned = True
         pages += 1
         url = (
             f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
@@ -753,12 +754,9 @@ def fetch_first_snapshots(active_keys=None):
             early_exit = True
             break
     elapsed = _time.time() - t0
-    if cap_hit:
-        log(f"[FirstSnap] UYARI: max_pages={max_pages} cap'ine ulaşıldı, tarama erken kesildi. "
-            f"İlk snap eksik olabilir; cap'i artırmayı veya RPC/helper tablo yaklaşımını değerlendirin.")
     suffix = " (erken çıkış: tüm aktif maçlar bulundu)" if early_exit else ""
     log(f"[FirstSnap] {len(first_snaps)} aktif maç için gerçek ilk snapshot çekildi "
-        f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {elapsed:.1f}s){suffix}")
+        f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {pages} sayfa, {elapsed:.1f}s){suffix}")
     return first_snaps
 
 
@@ -1220,14 +1218,17 @@ def update_cm_current_values(existing_cm, snapshot_lookup):
     return updated, not_found
 
 
-def run_cm_scan(snapshots, snapshot_lookup, active_keys=None):
-    """Confirmed Money taraması."""
+def run_cm_scan(snapshots, snapshot_lookup, active_keys=None, history=None, first_snaps=None):
+    """Confirmed Money taraması.
+    history / first_snaps: çağıran cycle başına 1x fetch edip paylaşabilir (CM/CMv2/FS arasında)."""
     if not check_cm_table_exists():
         log(f"[ConfirmedMoney] Tablo yok — migrations/create_confirmed_money_signals.sql çalıştırın")
         return
     try:
-        history = fetch_recent_history(active_keys)
-        first_snaps = fetch_first_snapshots(active_keys)
+        if history is None:
+            history = fetch_recent_history(active_keys)
+        if first_snaps is None:
+            first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set = fetch_cm_recent_cooldowns()
         signals = find_confirmed_money(snapshots, history, cooldown_set, first_snaps)
 
@@ -1289,14 +1290,17 @@ def run_cm_scan(snapshots, snapshot_lookup, active_keys=None):
         traceback.print_exc()
 
 
-def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None):
-    """Confirmed Money V2 taraması (araştırma tabanlı, sıkılaştırılmış kriterler)."""
+def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None, history=None, first_snaps=None):
+    """Confirmed Money V2 taraması (araştırma tabanlı, sıkılaştırılmış kriterler).
+    history / first_snaps: çağıran cycle başına 1x fetch edip paylaşabilir (CM/CMv2/FS arasında)."""
     if not check_cm_v2_table_exists():
         log(f"[CMv2] Tablo yok — CMV2_MIGRATION_SQL çalıştırın")
         return
     try:
-        history = fetch_recent_history(active_keys)
-        first_snaps = fetch_first_snapshots(active_keys)
+        if history is None:
+            history = fetch_recent_history(active_keys)
+        if first_snaps is None:
+            first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set_v2 = fetch_cm_v2_recent_cooldowns()
         signals = find_confirmed_money_v2(snapshots, history, cooldown_set_v2, first_snaps)
 
@@ -1596,14 +1600,17 @@ def update_fs_current_odds(existing_fs, snapshot_lookup):
     return updated, not_found
 
 
-def run_fs_scan(snapshots, snapshot_lookup, active_keys=None):
-    """Fake Sharp taraması."""
+def run_fs_scan(snapshots, snapshot_lookup, active_keys=None, history=None, first_snaps=None):
+    """Fake Sharp taraması.
+    history / first_snaps: çağıran cycle başına 1x fetch edip paylaşabilir (CM/CMv2/FS arasında)."""
     if not check_fs_table_exists():
         log("[FakeSharp] Tablo yok — migrations/create_fake_sharp_signals.sql çalıştırın")
         return
     try:
-        history = fetch_recent_history(active_keys)
-        first_snaps = fetch_first_snapshots(active_keys)
+        if history is None:
+            history = fetch_recent_history(active_keys)
+        if first_snaps is None:
+            first_snaps = fetch_first_snapshots(active_keys)
         cooldown_set = fetch_fs_cooldown()
         signals = find_fake_sharp(snapshots, history, cooldown_set, first_snaps)
 
@@ -2050,10 +2057,13 @@ def run_scan():
         return
     snapshot_lookup = build_snapshot_lookup(snapshots)
     active_keys = fetch_live_active_keys()
+    # Cycle başına 1x fetch — CM/CMv2/FS arasında paylaşılır (3x tarama önlenir).
+    history = fetch_recent_history(active_keys)
+    first_snaps = fetch_first_snapshots(active_keys)
     run_underdog_scan(snapshots, snapshot_lookup, active_keys)
-    run_cm_scan(snapshots, snapshot_lookup, active_keys)
-    run_cm_v2_scan(snapshots, snapshot_lookup, active_keys)
-    run_fs_scan(snapshots, snapshot_lookup, active_keys)
+    run_cm_scan(snapshots, snapshot_lookup, active_keys, history=history, first_snaps=first_snaps)
+    run_cm_v2_scan(snapshots, snapshot_lookup, active_keys, history=history, first_snaps=first_snaps)
+    run_fs_scan(snapshots, snapshot_lookup, active_keys, history=history, first_snaps=first_snaps)
     run_eml_scan(snapshots, active_keys)
 
 
