@@ -12,22 +12,23 @@
       gtag('config', 'G-NN1FFSFF2N');
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>Paketler ve Fiyatlandırma | SmartXFlow</title>
-    <meta name="description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin.">
+    <title data-i18n="pricing.meta.title">Paketler ve Fiyatlandırma | SmartXFlow</title>
+    <meta name="description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin." data-i18n-attr="content:pricing.meta.description">
     <meta name="keywords" content="SmartXFlow fiyat, oran takip paketi, bahis analiz üyelik, para akışı takip, canlı oran takip planı">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://smartxflow.com/pricing">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Paketler ve Fiyatlandırma | SmartXFlow">
-    <meta property="og:description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin.">
+    <meta property="og:title" content="Paketler ve Fiyatlandırma | SmartXFlow" data-i18n-attr="content:pricing.meta.title">
+    <meta property="og:description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin." data-i18n-attr="content:pricing.meta.description">
     <meta property="og:url" content="https://smartxflow.com/pricing">
     <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <meta property="og:locale" content="tr_TR">
     <meta property="og:site_name" content="SmartXFlow">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Paketler ve Fiyatlandırma | SmartXFlow">
-    <meta name="twitter:description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin.">
+    <meta name="twitter:title" content="Paketler ve Fiyatlandırma | SmartXFlow" data-i18n-attr="content:pricing.meta.title">
+    <meta name="twitter:description" content="SmartXFlow Core ve Pro planlarıyla canlı para akışı, oran takibi, akıllı alarm sinyalleri ve canlı maç verilerine erişin." data-i18n-attr="content:pricing.meta.description">
     <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
+    <script src="/static/js/i18n.js?v=2"></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -150,6 +151,82 @@
         .mobile-menu a:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
         .mobile-menu a.active { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.06); }
         .mobile-menu a.nav-cta { background: #2BFF88; color: #06110B; text-align: center; font-weight: 700; margin-top: 8px; border-radius: 999px; }
+
+        .lang-picker { position: relative; margin-left: 4px; }
+        .lang-picker-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 12px; border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.85);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+            cursor: pointer; transition: all 160ms ease;
+            backdrop-filter: blur(10px);
+        }
+        .lang-picker-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .lang-picker-btn svg { stroke: currentColor; opacity: 0.7; transition: transform 200ms ease; }
+        .lang-picker.open .lang-picker-btn svg { transform: rotate(180deg); }
+        .lang-picker-globe { width: 13px; height: 13px; opacity: 0.7; }
+        .lang-picker-current { letter-spacing: 0.6px; }
+        .lang-picker-menu {
+            position: absolute; top: calc(100% + 6px); right: 0;
+            min-width: 168px;
+            background: rgba(15, 20, 28, 0.92);
+            backdrop-filter: blur(22px) saturate(1.4);
+            -webkit-backdrop-filter: blur(22px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1100;
+        }
+        .lang-picker.open .lang-picker-menu { display: block; }
+        .lang-picker-menu button {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 9px 12px;
+            background: transparent; border: none;
+            color: rgba(255,255,255,0.78);
+            font-size: 13px; font-weight: 500;
+            text-align: left; border-radius: 9px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .lang-picker-menu button.active { background: rgba(43,255,136,0.10); color: #2BFF88; }
+        .lang-picker-menu .lp-code {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+            min-width: 22px; padding: 2px 6px; border-radius: 5px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+        }
+        .lang-picker-menu button.active .lp-code { background: rgba(43,255,136,0.15); color: #2BFF88; }
+
+        .mobile-lang-picker {
+            display: none;
+            gap: 6px; flex-wrap: wrap;
+            padding: 12px 8px 4px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .mobile-lang-picker button {
+            flex: 1 1 calc(33% - 6px);
+            min-width: 60px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.7);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .mobile-lang-picker button.active {
+            background: rgba(43,255,136,0.12);
+            border-color: rgba(43,255,136,0.3);
+            color: #2BFF88;
+        }
+        @media (max-width: 900px) { .lang-picker { display: none; } }
+        @media (max-width: 768px) { .mobile-lang-picker { display: flex; } }
 
         .page-header {
             padding: 120px 24px 20px;
@@ -897,12 +974,28 @@
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
         <div class="nav-links">
-            <a href="/">Ana Sayfa</a>
-            <a href="/nedir">Nedir?</a>
-            <a href="/#features">Özellikler</a>
-            <a href="/pricing" class="active">Paketler</a>
-            <a href="/rehber">Rehber</a>
-            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+            <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+            <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+            <a href="/#features" data-i18n="nav.features">Özellikler</a>
+            <a href="/pricing" class="active" data-i18n="nav.packages">Paketler</a>
+            <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+            <div class="lang-picker" id="langPicker">
+                <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-picker-current">TR</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="lang-picker-menu" role="listbox">
+                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
+                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
+                    <button data-lang="de" type="button"><span class="lp-code">DE</span><span data-i18n="lang.de">Deutsch</span></button>
+                    <button data-lang="fr" type="button"><span class="lp-code">FR</span><span data-i18n="lang.fr">Français</span></button>
+                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
+                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
+                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
+                </div>
+            </div>
+            <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
             <span></span><span></span><span></span>
@@ -910,17 +1003,26 @@
       </div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/">Ana Sayfa</a>
-        <a href="/nedir">Nedir?</a>
-        <a href="/#features">Özellikler</a>
-        <a href="/pricing" class="active">Paketler</a>
-        <a href="/rehber">Rehber</a>
-        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+        <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+        <a href="/#features" data-i18n="nav.features">Özellikler</a>
+        <a href="/pricing" class="active" data-i18n="nav.packages">Paketler</a>
+        <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+        <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
+        <div class="mobile-lang-picker">
+            <button data-lang="tr" type="button">TR</button>
+            <button data-lang="en" type="button">EN</button>
+            <button data-lang="de" type="button">DE</button>
+            <button data-lang="fr" type="button">FR</button>
+            <button data-lang="nl" type="button">NL</button>
+            <button data-lang="it" type="button">IT</button>
+            <button data-lang="es" type="button">ES</button>
+        </div>
     </div>
 
     <section class="page-header">
-        <h1>Paketler & Fiyatlandırma</h1>
-        <p>İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
+        <h1 data-i18n="pricing.header.title">Paketler & Fiyatlandırma</h1>
+        <p data-i18n="pricing.header.sub">İhtiyacınıza uygun paketi seçin, hemen başlayın.</p>
     </section>
 
     <section class="pricing-section">
@@ -930,100 +1032,100 @@
         <div class="pricing-grid">
             <div class="pricing-card">
                 <span class="tier-badge tier-badge--core">CORE</span>
-                <h3>Core – Aylık</h3>
-                <div class="card-desc">Temel yazılım erişimi</div>
+                <h3 data-i18n="pricing.core.title">Core – Aylık</h3>
+                <div class="card-desc" data-i18n="pricing.core.desc">Temel yazılım erişimi</div>
                 <div class="price-old">₺999,90</div>
-                <div class="price">₺599,90<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
-                <div class="advantage-note" style="margin-top:8px;margin-bottom:0;">🏷️ Özel indirimli fiyat</div>
+                <div class="price">₺599,90<span data-i18n="pricing.per_month">/ay</span></div>
+                <div class="period" data-i18n="pricing.billing_monthly">Aylık faturalandırma</div>
+                <div class="advantage-note" style="margin-top:8px;margin-bottom:0;" data-i18n="pricing.discount_note">🏷️ Özel indirimli fiyat</div>
                 <ul class="features">
-                    <li>7/24 para akışı (Moneyway)</li>
-                    <li>7/24 Oran takibi</li>
-                    <li>Tüm alarm türleri</li>
-                    <li>Mobil + masaüstü kullanım</li>
-                    <li>1 Cihaz Kullanımı</li>
+                    <li data-i18n="pricing.feat.money">7/24 para akışı (Moneyway)</li>
+                    <li data-i18n="pricing.feat.odds">7/24 Oran takibi</li>
+                    <li data-i18n="pricing.feat.alarms">Tüm alarm türleri</li>
+                    <li data-i18n="pricing.feat.mobile_desktop">Mobil + masaüstü kullanım</li>
+                    <li data-i18n="pricing.feat.dev_1">1 Cihaz Kullanımı</li>
                 </ul>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-aylik" data-plan-name="CORE – Aylık" data-price="599,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-outline" data-plan-id="core-aylik" data-plan-name="CORE – Aylık" data-price="599,90" onclick="openPaymentModal(this);return false;" data-i18n="pricing.buy">Satın Al</a></div>
             </div>
 
             <div class="pricing-card featured">
-                <div class="popular-badge">En Popüler</div>
+                <div class="popular-badge" data-i18n="pricing.popular">En Popüler</div>
                 <span class="tier-badge tier-badge--pro">PRO</span>
-                <h3>Pro – Aylık</h3>
-                <div class="card-desc">Canlı maç verisine tam erişim</div>
+                <h3 data-i18n="pricing.pro.title">Pro – Aylık</h3>
+                <div class="card-desc" data-i18n="pricing.pro.desc">Canlı maç verisine tam erişim</div>
                 <div class="price-old">₺1.499,90</div>
-                <div class="price">₺799,90<span>/ay</span></div>
-                <div class="period">Aylık faturalandırma</div>
-                <div class="advantage-note" style="margin-top:8px;margin-bottom:0;">🏷️ Özel indirimli fiyat</div>
+                <div class="price">₺799,90<span data-i18n="pricing.per_month">/ay</span></div>
+                <div class="period" data-i18n="pricing.billing_monthly">Aylık faturalandırma</div>
+                <div class="advantage-note" style="margin-top:8px;margin-bottom:0;" data-i18n="pricing.discount_note">🏷️ Özel indirimli fiyat</div>
                 <ul class="features">
-                    <li>7/24 para akışı (Moneyway)</li>
-                    <li>7/24 Oran takibi</li>
-                    <li>Tüm alarm türleri</li>
-                    <li>Mobil + masaüstü kullanım</li>
-                    <li style="color:#2BFF88;font-weight:600;">2 Cihaz Kullanımı</li>
-                    <li style="color:#2BFF88;font-weight:600;">Canlı maç verisi</li>
-                    <li style="color:#2BFF88;font-weight:600;">Dakika Dakika veri takibi</li>
-                    <li style="color:#2BFF88;font-weight:600;">Dikkat çeken maçlar</li>
+                    <li data-i18n="pricing.feat.money">7/24 para akışı (Moneyway)</li>
+                    <li data-i18n="pricing.feat.odds">7/24 Oran takibi</li>
+                    <li data-i18n="pricing.feat.alarms">Tüm alarm türleri</li>
+                    <li data-i18n="pricing.feat.mobile_desktop">Mobil + masaüstü kullanım</li>
+                    <li style="color:#2BFF88;font-weight:600;" data-i18n="pricing.feat.dev_2">2 Cihaz Kullanımı</li>
+                    <li style="color:#2BFF88;font-weight:600;" data-i18n="pricing.feat.live_data">Canlı maç verisi</li>
+                    <li style="color:#2BFF88;font-weight:600;" data-i18n="pricing.feat.minute_data">Dakika Dakika veri takibi</li>
+                    <li style="color:#2BFF88;font-weight:600;" data-i18n="pricing.feat.notable">Dikkat çeken maçlar</li>
                 </ul>
-                <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="core-live-aylik" data-plan-name="PRO – Aylık" data-price="799,90" onclick="openPaymentModal(this);return false;">Satın Al</a></div>
+                <div class="cta"><a href="#" class="btn-buy btn-buy-primary" data-plan-id="core-live-aylik" data-plan-name="PRO – Aylık" data-price="799,90" onclick="openPaymentModal(this);return false;" data-i18n="pricing.buy">Satın Al</a></div>
             </div>
         </div>
     </section>
 
     <section class="faq-section">
-        <h2 class="faq-title">Sıkça Sorulan Sorular</h2>
+        <h2 class="faq-title" data-i18n="pricing.faq.title">Sıkça Sorulan Sorular</h2>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>Lisansımı kaç cihazda kullanabilirim?</span>
+                <span data-i18n="pricing.faq.q1">Lisansımı kaç cihazda kullanabilirim?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Her iki pakette de tek bir cihaz üzerinden kullanım yapılabilir. Cihaz değişikliği talebiniz için bizimle iletişime geçebilirsiniz.</div>
+                <div class="faq-answer-inner" data-i18n="pricing.faq.a1">Her iki pakette de tek bir cihaz üzerinden kullanım yapılabilir. Cihaz değişikliği talebiniz için bizimle iletişime geçebilirsiniz.</div>
             </div>
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>Ödeme yöntemleri nelerdir?</span>
+                <span data-i18n="pricing.faq.q2">Ödeme yöntemleri nelerdir?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Şu an sadece banka havalesi ile ödeme alıyoruz. İlerleyen günlerde entegrasyon yapılarak banka/kredi kartı ile ödeme seçeneği de eklenecektir.</div>
+                <div class="faq-answer-inner" data-i18n="pricing.faq.a2">Şu an sadece banka havalesi ile ödeme alıyoruz. İlerleyen günlerde entegrasyon yapılarak banka/kredi kartı ile ödeme seçeneği de eklenecektir.</div>
             </div>
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>İstediğim zaman iptal edebilir miyim?</span>
+                <span data-i18n="pricing.faq.q3">İstediğim zaman iptal edebilir miyim?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Bu bir dijital üründür, iadesi veya üyelik iptali yoktur. Fakat sıradışı veya olağandışı işlemlerde yardımcı olunmaktadır.</div>
+                <div class="faq-answer-inner" data-i18n="pricing.faq.a3">Bu bir dijital üründür, iadesi veya üyelik iptali yoktur. Fakat sıradışı veya olağandışı işlemlerde yardımcı olunmaktadır.</div>
             </div>
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>Telegram bildirimleri nasıl çalışıyor?</span>
+                <span data-i18n="pricing.faq.q4">Telegram bildirimleri nasıl çalışıyor?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Tüm paketlerde Telegram bot üzerinden anlık alarm bildirimleri alırsınız. Alarm türlerini ve eşik değerlerini kendiniz yapılandırabilirsiniz. Telegram botu ile alarmları erkenden görebilirsiniz.<br><br><em style="color: #d29922;">Not: Bu özellik çok yakında eklenecektir.</em></div>
+                <div class="faq-answer-inner" data-i18n-html="pricing.faq.a4">Tüm paketlerde Telegram bot üzerinden anlık alarm bildirimleri alırsınız. Alarm türlerini ve eşik değerlerini kendiniz yapılandırabilirsiniz. Telegram botu ile alarmları erkenden görebilirsiniz.<br><br><em style="color: #d29922;">Not: Bu özellik çok yakında eklenecektir.</em></div>
             </div>
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>Paketler arasında geçiş yapabilir miyim?</span>
+                <span data-i18n="pricing.faq.q5">Paketler arasında geçiş yapabilir miyim?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">Evet, istediğiniz zaman üst pakete geçiş yapabilirsiniz. Fark ücreti gün bazında hesaplanır. Alt pakete geçiş ise mevcut dönem sonunda uygulanır.</div>
+                <div class="faq-answer-inner" data-i18n="pricing.faq.a5">Evet, istediğiniz zaman üst pakete geçiş yapabilirsiniz. Fark ücreti gün bazında hesaplanır. Alt pakete geçiş ise mevcut dönem sonunda uygulanır.</div>
             </div>
         </div>
         <div class="faq-item">
             <div class="faq-question" onclick="toggleFaq(this)">
-                <span>CORE ve CORE + LIVE arasındaki fark nedir?</span>
+                <span data-i18n="pricing.faq.q6">CORE ve CORE + LIVE arasındaki fark nedir?</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="faq-answer">
-                <div class="faq-answer-inner">CORE paketi canlı para akışı, oran takibi ve alarm gibi temel yazılım özelliklerini içerir. CORE + LIVE paketi ise tüm CORE özelliklerine ek olarak canlı maç verisine tam erişim sunar.</div>
+                <div class="faq-answer-inner" data-i18n="pricing.faq.a6">CORE paketi canlı para akışı, oran takibi ve alarm gibi temel yazılım özelliklerini içerir. CORE + LIVE paketi ise tüm CORE özelliklerine ek olarak canlı maç verisine tam erişim sunar.</div>
             </div>
         </div>
     </section>
@@ -1092,17 +1194,17 @@
                     <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
                 </div>
                 <div class="footer-row-divider"></div>
-                <a href="/">Ana Sayfa</a>
-                <a href="/nedir">Nedir?</a>
-                <a href="/pricing">Paketler</a>
-                <a href="/rehber">Rehber</a>
-                <a href="/app">Uygulama</a>
+                <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+                <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+                <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+                <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+                <a href="/app" data-i18n="footer.app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
-                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
-                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;" data-i18n="footer.terms">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;" data-i18n="footer.privacy">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;" data-i18n="footer.cookies">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;" data-i18n="footer.disclaimer">Sorumluluk Reddi</a>
             </div>
             <div class="footer-contact">
                 <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
@@ -1118,7 +1220,7 @@
                     smartxflow29@gmail.com
                 </a>
             </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy" data-i18n="footer.copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
         </div>
     </footer>
 
@@ -1143,9 +1245,9 @@
         <div class="pay-modal" style="max-width: 440px; text-align: center; padding: 40px 32px;">
             <button class="pay-modal-close" onclick="closeTimeWarning();">✕</button>
             <div style="font-size: 48px; margin-bottom: 16px;">🕐</div>
-            <h3 style="color: #f0f6fc; font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.4;">Satın Alma Saatleri</h3>
-            <p style="color: #c9d1d9; font-size: 15px; line-height: 1.7; margin-bottom: 24px;">Size anında hizmet verebilmek için satın alma işlemleri yalnızca <strong style="color: #3cffaa;">10:00 – 19:00</strong> (Türkiye saati) arasında yapılabilir. Lütfen bu saatler arasında tekrar deneyiniz.</p>
-            <button onclick="closeTimeWarning();" style="background: linear-gradient(135deg, #3cffaa, #00d68f); color: #0d1117; border: none; border-radius: 8px; padding: 12px 32px; font-size: 15px; font-weight: 700; cursor: pointer;">Tamam</button>
+            <h3 style="color: #f0f6fc; font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.4;" data-i18n="pricing.time.title">Satın Alma Saatleri</h3>
+            <p style="color: #c9d1d9; font-size: 15px; line-height: 1.7; margin-bottom: 24px;" data-i18n-html="pricing.time.msg">Size anında hizmet verebilmek için satın alma işlemleri yalnızca <strong style="color: #3cffaa;">10:00 – 19:00</strong> (Türkiye saati) arasında yapılabilir. Lütfen bu saatler arasında tekrar deneyiniz.</p>
+            <button onclick="closeTimeWarning();" style="background: linear-gradient(135deg, #3cffaa, #00d68f); color: #0d1117; border: none; border-radius: 8px; padding: 12px 32px; font-size: 15px; font-weight: 700; cursor: pointer;" data-i18n="pricing.time.ok">Tamam</button>
         </div>
     </div>
 
@@ -1153,54 +1255,54 @@
         <div class="pay-modal">
             <button class="pay-modal-close" onclick="closePaymentModal();">✕</button>
             <div id="payFormSection">
-                <div class="pay-modal-title">Banka Havalesi ile Satın Al</div>
-                <div class="pay-modal-subtitle">Seçilen Paket: <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong><br class="mobile-br"> Sipariş No: <strong id="payOrderNo"></strong></div>
+                <div class="pay-modal-title" data-i18n="pricing.pay.title">Banka Havalesi ile Satın Al</div>
+                <div class="pay-modal-subtitle"><span data-i18n="pricing.pay.selected">Seçilen Paket:</span> <strong id="payPlanLabel"></strong> • <strong id="payPriceLabel"></strong><br class="mobile-br"> <span data-i18n="pricing.pay.order_no">Sipariş No:</span> <strong id="payOrderNo"></strong></div>
 
-                <div class="pay-section-label">Banka Bilgileri</div>
+                <div class="pay-section-label" data-i18n="pricing.pay.bank_info">Banka Bilgileri</div>
                 <div class="pay-bank-box">
                     <div class="pay-bank-row">
-                        <span class="label">Banka</span>
+                        <span class="label" data-i18n="pricing.pay.bank">Banka</span>
                         <span class="value">Garanti Bankası</span>
                     </div>
                     <div class="pay-bank-row">
-                        <span class="label">Alıcı</span>
+                        <span class="label" data-i18n="pricing.pay.recipient">Alıcı</span>
                         <span class="value">
                             <span id="payAlici">Kerimcan Öztoprak</span>
-                            <button class="pay-copy-btn" onclick="copyToClipboard('payAlici',this);">Kopyala</button>
+                            <button class="pay-copy-btn" onclick="copyToClipboard('payAlici',this);" data-i18n="pricing.pay.copy">Kopyala</button>
                         </span>
                     </div>
                     <div class="pay-bank-row">
                         <span class="label">IBAN</span>
                         <span class="value">
                             <span id="payIban">TR54 0006 2001 1260 0006 6486 10</span>
-                            <button class="pay-copy-btn" onclick="copyToClipboard('payIban',this);">Kopyala</button>
+                            <button class="pay-copy-btn" onclick="copyToClipboard('payIban',this);" data-i18n="pricing.pay.copy">Kopyala</button>
                         </span>
                     </div>
                 </div>
-                <p style="color: #d29922; font-size: 13px; margin-top: 8px; margin-bottom: 0;">⚠ Havale/EFT açıklama kısmını boş bırakınız.</p>
+                <p style="color: #d29922; font-size: 13px; margin-top: 8px; margin-bottom: 0;" data-i18n="pricing.pay.warn">⚠ Havale/EFT açıklama kısmını boş bırakınız.</p>
 
                 <div class="pay-form">
-                    <div class="pay-section-label" style="margin-top:20px;">Bilgileriniz</div>
+                    <div class="pay-section-label" style="margin-top:20px;" data-i18n="pricing.pay.your_info">Bilgileriniz</div>
                     <div class="pay-input-group">
-                        <label for="payName">Ad Soyad</label>
-                        <input type="text" id="payName" placeholder="Ad Soyad" oninput="validatePayForm();">
+                        <label for="payName" data-i18n="pricing.pay.name">Ad Soyad</label>
+                        <input type="text" id="payName" placeholder="Ad Soyad" oninput="validatePayForm();" data-i18n-attr="placeholder:pricing.pay.name">
                     </div>
                     <div class="pay-input-group">
-                        <label for="payEmail">E-posta</label>
-                        <input type="email" id="payEmail" placeholder="ornek@email.com" oninput="validatePayForm();">
-                        <div class="pay-input-error-msg" id="payEmailError">Geçerli bir e-posta adresi giriniz.</div>
+                        <label for="payEmail" data-i18n="pricing.pay.email">E-posta</label>
+                        <input type="email" id="payEmail" placeholder="ornek@email.com" oninput="validatePayForm();" data-i18n-attr="placeholder:pricing.pay.email_placeholder">
+                        <div class="pay-input-error-msg" id="payEmailError" data-i18n="pricing.pay.email_err">Geçerli bir e-posta adresi giriniz.</div>
                     </div>
                     <div class="pay-checkbox-group">
                         <input type="checkbox" id="payConfirm" onchange="validatePayForm();">
-                        <label for="payConfirm">Ödemeyi yaptım.</label>
+                        <label for="payConfirm" data-i18n="pricing.pay.confirm">Ödemeyi yaptım.</label>
                     </div>
-                    <button class="pay-submit-btn" id="paySubmitBtn" disabled onclick="submitPayment();">Ödeme Yaptım</button>
+                    <button class="pay-submit-btn" id="paySubmitBtn" disabled onclick="submitPayment();" data-i18n="pricing.pay.submit">Ödeme Yaptım</button>
                 </div>
             </div>
             <div class="pay-success-msg" id="paySuccessSection">
                 <div class="pay-success-icon">✓</div>
-                <h3>Talebiniz Alındı</h3>
-                <p>Ödemeniz kontrol edildikten sonra kayıtlı e-posta (<strong id="successEmail" style="color: #2BFF88;"></strong>) adresinize en kısa zamanda dönüş yapılacaktır. Teşekkür ederiz.</p>
+                <h3 data-i18n="pricing.pay.success_title">Talebiniz Alındı</h3>
+                <p data-i18n-html="pricing.pay.success_msg">Ödemeniz kontrol edildikten sonra kayıtlı e-posta (<strong id="successEmail" style="color: #2BFF88;"></strong>) adresinize en kısa zamanda dönüş yapılacaktır. Teşekkür ederiz.</p>
             </div>
         </div>
     </div>
@@ -1267,7 +1369,7 @@
             document.getElementById('payConfirm').checked = false;
             document.getElementById('paySubmitBtn').disabled = true;
             document.getElementById('paySubmitBtn').classList.remove('active');
-            document.getElementById('paySubmitBtn').textContent = 'Ödeme Yaptım';
+            document.getElementById('paySubmitBtn').textContent = _t('pricing.pay.submit', 'Ödeme Yaptım');
             document.getElementById('payEmailError').style.display = 'none';
             document.getElementById('payEmail').classList.remove('input-error');
 
@@ -1280,15 +1382,17 @@
             document.body.style.overflow = '';
         }
 
+        function _t(key, fb) { try { return (window.SXFI18n && window.SXFI18n.t) ? (window.SXFI18n.t(key) || fb) : fb; } catch (e) { return fb; } }
+
         function copyToClipboard(elId, btn) {
             var text = document.getElementById(elId).textContent.replace(/\s+/g, '');
             if (elId === 'payIban') text = document.getElementById(elId).textContent.trim();
             navigator.clipboard.writeText(text).then(function() {
                 var orig = btn.textContent;
-                btn.textContent = 'Kopyalandı';
+                btn.textContent = _t('pricing.pay.copied', 'Kopyalandı');
                 btn.classList.add('copied');
                 setTimeout(function() {
-                    btn.textContent = orig;
+                    btn.textContent = _t('pricing.pay.copy', orig);
                     btn.classList.remove('copied');
                 }, 1500);
             });
@@ -1333,12 +1437,12 @@
             var now = Date.now();
 
             if (spamKey === _lastSubmitKey && (now - _lastSubmitTime) < 60000) {
-                alert('Bu talep zaten gönderildi. Lütfen 1 dakika bekleyiniz.');
+                alert(_t('pricing.pay.alert_dup', 'Bu talep zaten gönderildi. Lütfen 1 dakika bekleyiniz.'));
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = 'Gönderiliyor...';
+            btn.textContent = _t('pricing.pay.sending', 'Gönderiliyor...');
 
             fetch('/api/payment-request', {
                 method: 'POST',
@@ -1361,22 +1465,67 @@
                     document.getElementById('payFormSection').style.display = 'none';
                     document.getElementById('paySuccessSection').style.display = 'block';
                 } else {
-                    alert(data.message || 'Bir hata oluştu. Lütfen tekrar deneyiniz.');
+                    alert(data.message || _t('pricing.pay.alert_err', 'Bir hata oluştu. Lütfen tekrar deneyiniz.'));
                     btn.disabled = false;
                     btn.classList.add('active');
-                    btn.textContent = 'Ödeme Yaptım';
+                    btn.textContent = _t('pricing.pay.submit', 'Ödeme Yaptım');
                 }
             }).catch(function() {
-                alert('Bağlantı hatası. Lütfen tekrar deneyiniz.');
+                alert(_t('pricing.pay.alert_conn', 'Bağlantı hatası. Lütfen tekrar deneyiniz.'));
                 btn.disabled = false;
                 btn.classList.add('active');
-                btn.textContent = 'Ödeme Yaptım';
+                btn.textContent = _t('pricing.pay.submit', 'Ödeme Yaptım');
             });
         }
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') { closePaymentModal(); closeTimeWarning(); }
         });
+    </script>
+
+    <script>
+    (function () {
+        function syncPicker(lang) {
+            var code = (lang || 'tr').toUpperCase();
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
+            document.querySelectorAll('[data-lang]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+            var picker = document.getElementById('langPicker');
+            if (picker) {
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            }
+        }
+        document.addEventListener('click', function (e) {
+            var langBtn = e.target.closest('[data-lang]');
+            if (langBtn && window.SXFI18n) {
+                e.preventDefault();
+                var lang = langBtn.getAttribute('data-lang');
+                window.SXFI18n.set(lang).then(function () {
+                    syncPicker(lang);
+                    var p = document.getElementById('langPicker');
+                    if (p) p.classList.remove('open');
+                }).catch(function () {});
+                return;
+            }
+            var picker = document.getElementById('langPicker');
+            if (!picker) return;
+            if (e.target.closest('.lang-picker-btn')) {
+                picker.classList.toggle('open');
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            } else if (!e.target.closest('#langPicker')) {
+                picker.classList.remove('open');
+            }
+        });
+        function init() {
+            if (!window.SXFI18n) { setTimeout(init, 80); return; }
+            window.SXFI18n.onChange(syncPicker);
+            syncPicker(window.SXFI18n.current());
+        }
+        init();
+    })();
     </script>
 </body>
 </html>
