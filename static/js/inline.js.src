@@ -617,6 +617,122 @@ function showUnderdogPressure() {
         });
 }
 
+function _buildEditorialMatchCard(opts) {
+    var COLORS = {
+        underdog:     { color:'#d29922', bg:'rgba(210,153,34,0.10)', border:'rgba(210,153,34,0.28)' },
+        confirmed:    { color:'#34d399', bg:'rgba(52,211,153,0.10)', border:'rgba(52,211,153,0.28)' },
+        confirmed_v2: { color:'#6366f1', bg:'rgba(99,102,241,0.12)', border:'rgba(99,102,241,0.32)' },
+        early:        { color:'#58a6ff', bg:'rgba(88,166,255,0.10)', border:'rgba(88,166,255,0.28)' },
+        fake:         { color:'#f85149', bg:'rgba(248,81,73,0.10)',  border:'rgba(248,81,73,0.28)' }
+    };
+    var p = COLORS[opts.kind] || COLORS.underdog;
+    var isStale = !!opts.isStale;
+    var op = isStale ? '0.6' : '1';
+    function statCell(label, orig, cur) {
+        if (!orig) return '<div></div>';
+        var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
+        var cNum = cur ? parseFloat(String(cur).replace(/[^0-9.]/g,'')) : NaN;
+        var arrow = '', arrowColor = '#5c636b';
+        var changed = cur && cur !== orig && !isNaN(oNum) && !isNaN(cNum) && oNum !== cNum;
+        if (changed) {
+            if (cNum > oNum) { arrow = '\u2191'; arrowColor = '#34d399'; }
+            else             { arrow = '\u2193'; arrowColor = '#f87171'; }
+        }
+        var h = '<div style="display:flex;flex-direction:column;gap:5px;min-width:0;">';
+        h += '<div style="font-size:9px;text-transform:uppercase;letter-spacing:0.9px;color:#5c636b;font-weight:700;">' + label + '</div>';
+        h += '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-family:\'JetBrains Mono\',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1;">';
+        if (changed) {
+            h += '<span style="color:#5c636b;text-decoration:line-through;font-size:10.5px;">' + orig + '</span>';
+            h += '<span style="color:' + arrowColor + ';font-weight:800;font-size:11px;">' + arrow + '</span>';
+            h += '<span style="color:#e0e4e8;font-weight:700;">' + cur + '</span>';
+        } else {
+            h += '<span style="color:#e0e4e8;font-weight:700;">' + orig + '</span>';
+        }
+        h += '</div></div>';
+        return h;
+    }
+    var amtFmt    = opts.amt    || '';
+    var curAmtFmt = opts.curAmt || '';
+    var pctFmt    = opts.pct    || '';
+    var curPctFmt = opts.curPct || '';
+    var volFmt    = opts.vol    || '';
+    var curVolFmt = opts.curVol || '';
+    var html = '<div style="position:relative;background:#13151a;border:1px solid rgba(255,255,255,0.04);border-radius:12px;overflow:hidden;margin-bottom:10px;opacity:' + op + ';">';
+    html += '<div style="height:3px;background:' + p.color + ';"></div>';
+    html += '<div style="padding:14px 16px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;">';
+    html += '<span style="font-size:10px;text-transform:uppercase;letter-spacing:1.1px;color:#7d848c;font-weight:700;">' + (opts.league || '') + '</span>';
+    if (opts.hoursBefore) html += '<span style="font-size:10px;background:rgba(255,255,255,0.04);color:#9ca3af;padding:2px 8px;border-radius:3px;font-weight:600;">\u23f1 ' + opts.hoursBefore + '</span>';
+    if (isStale) html += '<span style="font-size:10px;background:rgba(248,81,73,0.10);color:#f85149;border:1px solid rgba(248,81,73,0.25);padding:2px 8px;border-radius:3px;font-weight:700;letter-spacing:0.5px;">\u2193 ZAYIFLADI</span>';
+    html += '</div>';
+    if (opts.inceleHandler) {
+        html += '<button onclick="' + opts.inceleHandler + '" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#9ca3af;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:5px 10px;border-radius:4px;cursor:pointer;font-family:inherit;flex-shrink:0;">\u0130NCELE \u2197</button>';
+    }
+    html += '</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap;">';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;font-size:21px;font-weight:700;color:#e0e4e8;line-height:1.18;letter-spacing:-0.2px;">' + (opts.home_team || '') + '</div>';
+    html += '<div style="font-family:\'Playfair Display\',Georgia,\'Times New Roman\',serif;font-size:14px;color:#5c636b;font-style:italic;font-weight:400;margin-top:3px;">vs <span style="font-family:inherit;color:#e0e4e8;font-style:normal;font-weight:700;font-size:21px;letter-spacing:-0.2px;">' + (opts.away_team || '') + '</span></div>';
+    html += '</div>';
+    html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">';
+    html += '<div style="display:flex;gap:6px;align-items:stretch;">';
+    if (opts.score) {
+        html += '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:5px 10px;border-radius:6px;min-width:48px;">';
+        html += '<span style="font-size:8px;text-transform:uppercase;letter-spacing:0.5px;color:#5c636b;font-weight:700;">Skor</span>';
+        html += '<span style="font-family:\'JetBrains Mono\',ui-monospace,monospace;font-size:13px;font-weight:700;color:#c9d1d9;line-height:1.2;">' + opts.score + '</span>';
+        html += '</div>';
+    }
+    html += '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid ' + p.border + ';background:' + p.bg + ';padding:5px 12px;border-radius:6px;min-width:64px;">';
+    html += '<span style="font-size:8px;text-transform:uppercase;letter-spacing:0.5px;color:' + p.color + ';opacity:0.85;font-weight:700;">Se\u00e7im</span>';
+    html += '<span style="font-size:14px;font-weight:700;color:' + p.color + ';line-height:1.2;">' + (opts.selLabel || '-') + '</span>';
+    html += '</div>';
+    html += '</div>';
+    if (opts.badges && opts.badges.length) {
+        html += '<div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">';
+        opts.badges.forEach(function(b) {
+            if (!b || (!b.value && !b.label)) return;
+            var bg = b.bg || 'rgba(255,255,255,0.03)';
+            var bd = b.border || 'rgba(255,255,255,0.05)';
+            var lc = b.labelColor || '#5c636b';
+            var vc = b.valueColor || '#c9d1d9';
+            html += '<div style="display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:' + bg + ';border:1px solid ' + bd + ';border-radius:5px;">';
+            if (b.label) html += '<span style="font-size:9px;text-transform:uppercase;letter-spacing:0.4px;color:' + lc + ';font-weight:700;">' + b.label + '</span>';
+            if (b.value) html += '<span style="font-family:\'JetBrains Mono\',ui-monospace,monospace;font-size:11px;font-weight:700;color:' + vc + ';">' + b.value + '</span>';
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+    if (amtFmt || pctFmt || volFmt) {
+        html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);">';
+        html += statCell('Para', amtFmt, curAmtFmt);
+        html += statCell('% Para', pctFmt, curPctFmt);
+        html += statCell('Hacim', volFmt, curVolFmt);
+        html += '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+    return html;
+}
+
+function _hoursBeforeText(sig) {
+    if (!sig.created_at || !sig.match_date) return '';
+    try {
+        var matchDt = new Date(sig.match_date);
+        var createdDt = new Date(sig.created_at);
+        var diffH = Math.round((matchDt - createdDt) / 3600000);
+        if (diffH > 0 && diffH <= 240) return diffH + ' saat \u00f6nce';
+    } catch(e) {}
+    return '';
+}
+
+function _inceleHandlerJS(sig) {
+    var esc = function(s) { return String(s || '').replace(/'/g,"\\'"); };
+    return "event.stopPropagation();openMatchModalFromAPI('" + esc(sig.home_team) + "','" + esc(sig.away_team) + "','" + esc(sig.league) + "','" + esc(sig.match_date) + "');";
+}
+
 function renderUnderdogPressureView(data) {
     _underdogLastData = data;
     var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
@@ -777,33 +893,21 @@ function renderUnderdogPressureView(data) {
                     out += '</div>';
                     return out;
                 }
-                var isStale = sig.is_stale === true;
-                var cardBorder = isStale ? 'rgba(120,120,120,0.18)' : 'rgba(210,153,34,0.15)';
-                var cardOpacity = isStale ? '0.55' : '1';
-                html += '<div style="background:#1c1f23;border:1px solid ' + cardBorder + ';border-radius:10px;padding:12px 16px;margin-bottom:8px;opacity:' + cardOpacity + ';">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
-                html += '<div style="flex:1;min-width:0;">';
-                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
-                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + ' <span style="display:inline-block;font-size:9px;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:0.3px;cursor:pointer;vertical-align:middle;" onclick="event.stopPropagation();openMatchModalFromAPI(\'' + ((sig.home_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.away_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.league || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.match_date || '').replace(/'/g,"\\'")) + '\');" title="Maç detayını incele">İNCELE \u2197</span></div>';
-                if (isStale) html += '<span style="background:rgba(180,83,9,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:700;letter-spacing:0.3px;">\u2193 ZAYIFLADI</span>';
-                if (hoursBeforeHtml) html += hoursBeforeHtml;
-                html += '</div>';
-                html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
-                html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-                html += _cmpCell('Para:', amtFmt, curAmtFmt);
-                html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
-                html += _cmpCell('Hacim:', volFmt, curVolFmt);
-                html += '</div>';
-                html += '</div>';
-                html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
-                html += '<div style="display:flex;gap:4px;">';
-                html += '<span style="background:rgba(210,153,34,0.1);color:#d29922;border:1px solid rgba(210,153,34,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-                html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + (sig.odds || '-') + '</span>';
-                html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + (pctFmt || '-') + '</span>';
-                if (sig.score) html += '<span style="background:rgba(255,255,255,0.04);color:#7d848c;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:0.5px;">' + sig.score + '</span>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div></div>';
+                html += _buildEditorialMatchCard({
+                    kind: 'underdog',
+                    home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
+                    selLabel: selLabel, score: sig.score,
+                    amt: amtFmt, curAmt: curAmtFmt,
+                    pct: pctFmt, curPct: curPctFmt,
+                    vol: volFmt, curVol: curVolFmt,
+                    isStale: sig.is_stale === true,
+                    hoursBefore: _hoursBeforeText(sig),
+                    inceleHandler: _inceleHandlerJS(sig),
+                    badges: [
+                        { label:'Oran', value: (sig.odds || '-') },
+                        (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null)
+                    ].filter(Boolean)
+                });
             });
         });
     }
@@ -977,29 +1081,21 @@ function renderConfirmedMoneyView(data) {
                 out += '</div>';
                 return out;
             }
-            html += '<div style="background:#1c1f23;border:1px solid rgba(52,211,153,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
-            html += '<div style="flex:1;min-width:0;">';
-            html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
-            html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + ' <span style="display:inline-block;font-size:9px;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:0.3px;cursor:pointer;vertical-align:middle;" onclick="event.stopPropagation();openMatchModalFromAPI(\'' + ((sig.home_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.away_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.league || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.match_date || '').replace(/'/g,"\\'")) + '\');" title="Maç detayını incele">İNCELE \u2197</span></div>';
-            if (hoursBeforeHtml) html += hoursBeforeHtml;
-            html += '</div>';
-            html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
-            html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-            if (amtFmt) html += _cmpCell('Para:', amtFmt, curAmtFmt);
-            if (pctFmt) html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
-            if (volFmt) html += _cmpCell('Hacim:', volFmt, curVolFmt);
-            html += '</div>';
-            html += '</div>';
-            html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
-            html += '<div style="display:flex;gap:4px;">';
-            html += '<span style="background:rgba(52,211,153,0.1);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
-            if (pctFmt) html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
-            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
-            html += '</div>';
-            html += '</div>';
-            html += '</div></div>';
+            html += _buildEditorialMatchCard({
+                kind: 'confirmed',
+                home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
+                selLabel: selLabel,
+                amt: amtFmt, curAmt: curAmtFmt,
+                pct: pctFmt, curPct: curPctFmt,
+                vol: volFmt, curVol: curVolFmt,
+                hoursBefore: _hoursBeforeText(sig),
+                inceleHandler: _inceleHandlerJS(sig),
+                badges: [
+                    { label:'Oran', value: initOdds },
+                    (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
+                    (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
+                ].filter(Boolean)
+            });
         });
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
@@ -1171,29 +1267,21 @@ function renderConfirmedMoneyV2View(data) {
                 out += '</div>';
                 return out;
             }
-            html += '<div style="background:#1c1f23;border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
-            html += '<div style="flex:1;min-width:0;">';
-            html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
-            html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + ' <span style="display:inline-block;font-size:9px;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:0.3px;cursor:pointer;vertical-align:middle;" onclick="event.stopPropagation();openMatchModalFromAPI(\'' + ((sig.home_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.away_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.league || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.match_date || '').replace(/'/g,"\\'")) + '\');" title="Maç detayını incele">İNCELE \u2197</span></div>';
-            if (hoursBeforeHtml) html += hoursBeforeHtml;
-            html += '</div>';
-            html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
-            html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-            if (amtFmt) html += _cmpCell('Para:', amtFmt, curAmtFmt);
-            if (pctFmt) html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
-            if (volFmt) html += _cmpCell('Hacim:', volFmt, curVolFmt);
-            html += '</div>';
-            html += '</div>';
-            html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
-            html += '<div style="display:flex;gap:4px;">';
-            html += '<span style="background:rgba(99,102,241,0.1);color:#6366f1;border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-            html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + '</span>';
-            if (pctFmt) html += '<span style="background:rgba(99,102,241,0.06);color:#6366f1;border:1px solid rgba(99,102,241,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
-            if (dropPct !== '-') html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">-' + dropPct + '%</span>';
-            html += '</div>';
-            html += '</div>';
-            html += '</div></div>';
+            html += _buildEditorialMatchCard({
+                kind: 'confirmed_v2',
+                home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
+                selLabel: selLabel,
+                amt: amtFmt, curAmt: curAmtFmt,
+                pct: pctFmt, curPct: curPctFmt,
+                vol: volFmt, curVol: curVolFmt,
+                hoursBefore: _hoursBeforeText(sig),
+                inceleHandler: _inceleHandlerJS(sig),
+                badges: [
+                    { label:'Oran', value: initOdds },
+                    (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#8587e0', bg:'rgba(99,102,241,0.06)', border:'rgba(99,102,241,0.20)' } : null),
+                    (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
+                ].filter(Boolean)
+            });
         });
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
@@ -1387,28 +1475,20 @@ function renderEarlyMoneyLockView(data) {
                     out += '</div>';
                     return out;
                 }
-                html += '<div style="background:#1c1f23;border:1px solid rgba(88,166,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
-                html += '<div style="flex:1;min-width:0;">';
-                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
-                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + ' <span style="display:inline-block;font-size:9px;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:0.3px;cursor:pointer;vertical-align:middle;" onclick="event.stopPropagation();openMatchModalFromAPI(\'' + ((sig.home_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.away_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.league || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.match_date || '').replace(/'/g,"\\'")) + '\');" title="Maç detayını incele">İNCELE \u2197</span></div>';
-                if (hoursBeforeHtml) html += hoursBeforeHtml;
-                html += '</div>';
-                html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
-                html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-                html += _cmpCell('Para:', amtFmt, curAmtFmt);
-                html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
-                html += _cmpCell('Hacim:', volFmt, curVolFmt);
-                html += '</div>';
-                html += '</div>';
-                html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
-                html += '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">';
-                html += '<span style="background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-                if (pctFmt) html += '<span style="background:rgba(52,211,153,0.06);color:#34d399;border:1px solid rgba(52,211,153,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + pctFmt + '</span>';
-                if (snapshots) html += '<span style="background:rgba(255,255,255,0.04);color:#7d848c;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;letter-spacing:0.3px;">\ud83d\udd12 ' + snapshots + '</span>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div></div>';
+                html += _buildEditorialMatchCard({
+                    kind: 'early',
+                    home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
+                    selLabel: selLabel,
+                    amt: amtFmt, curAmt: curAmtFmt,
+                    pct: pctFmt, curPct: curPctFmt,
+                    vol: volFmt, curVol: curVolFmt,
+                    hoursBefore: _hoursBeforeText(sig),
+                    inceleHandler: _inceleHandlerJS(sig),
+                    badges: [
+                        (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
+                        (snapshots ? { label:'\ud83d\udd12', value: String(snapshots) } : null)
+                    ].filter(Boolean)
+                });
             });
         });
     }
@@ -1728,28 +1808,21 @@ function renderFakeSharpView(data) {
                     out += '</div>';
                     return out;
                 }
-                html += '<div style="background:#1c1f23;border:1px solid rgba(248,81,73,0.15);border-radius:10px;padding:12px 16px;margin-bottom:8px;">';
-                html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">';
-                html += '<div style="flex:1;min-width:0;">';
-                html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">';
-                html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (sig.home_team || '') + ' - ' + (sig.away_team || '') + ' <span style="display:inline-block;font-size:9px;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px solid rgba(88,166,255,0.25);border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:0.3px;cursor:pointer;vertical-align:middle;" onclick="event.stopPropagation();openMatchModalFromAPI(\'' + ((sig.home_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.away_team || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.league || '').replace(/'/g,"\\'")) + '\',\'' + ((sig.match_date || '').replace(/'/g,"\\'")) + '\');" title="Maç detayını incele">İNCELE \u2197</span></div>';
-                if (hoursBeforeHtml) html += hoursBeforeHtml;
-                html += '</div>';
-                html += '<div style="font-size:10px;color:#484f58;margin-bottom:5px;">' + (sig.league || '') + '</div>';
-                html += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
-                html += _cmpCell('Para:', amtFmt, curAmtFmt);
-                html += _cmpCell('%\u00a0Para:', pctFmt, curPctFmt);
-                html += _cmpCell('Hacim:', volFmt, curVolFmt);
-                html += '</div>';
-                html += '</div>';
-                html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
-                html += '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">';
-                html += '<span style="background:rgba(248,81,73,0.1);color:#f85149;border:1px solid rgba(248,81,73,0.25);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;">' + selLabel + '</span>';
-                html += '<span style="background:rgba(88,166,255,0.06);color:#93c5fd;border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">' + initOdds + (curOdds && curOdds !== initOdds ? ' \u2192 ' + curOdds : '') + '</span>';
-                if (risePct) html += '<span style="background:rgba(248,81,73,0.06);color:#f87171;border:1px solid rgba(248,81,73,0.12);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;">+' + risePct + '%</span>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div></div>';
+                var oranVal = initOdds + (curOdds && curOdds !== initOdds ? ' \u2192 ' + curOdds : '');
+                html += _buildEditorialMatchCard({
+                    kind: 'fake',
+                    home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
+                    selLabel: selLabel,
+                    amt: amtFmt, curAmt: curAmtFmt,
+                    pct: pctFmt, curPct: curPctFmt,
+                    vol: volFmt, curVol: curVolFmt,
+                    hoursBefore: _hoursBeforeText(sig),
+                    inceleHandler: _inceleHandlerJS(sig),
+                    badges: [
+                        { label:'Oran', value: oranVal },
+                        (risePct ? { label:'\u0394', value:'+' + risePct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
+                    ].filter(Boolean)
+                });
             });
         });
     }
