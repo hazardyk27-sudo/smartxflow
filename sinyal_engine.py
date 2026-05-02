@@ -652,7 +652,7 @@ def fetch_recent_history(active_keys=None):
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=10, minutes=5)).isoformat()
     url = (
         f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
-        f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,volume,scraped_at"
+        f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,volume,scraped_at,match_id_hash"
         f"&scraped_at=gte.{cutoff}"
         f"&order=scraped_at.desc&limit=50000"
     )
@@ -669,13 +669,19 @@ def fetch_recent_history(active_keys=None):
         date = row.get('date', '')
         if not home or not away:
             continue
-        h = f"{home}|{away}|{date}"
-        if active_keys is not None and h not in active_keys:
+        composite = f"{home}|{away}|{date}"
+        if active_keys is not None and composite not in active_keys:
             skipped += 1
             continue
-        if h not in history:
-            history[h] = []
-        history[h].append(row)
+        # latest_snapshots ile aynı key formatı: match_id_hash varsa onu kullan,
+        # yoksa home|away|date. Her iki formata da alias ekle (lookup tutarlılığı).
+        real_hash = row.get('match_id_hash', '') or ''
+        primary = real_hash if real_hash else composite
+        if primary not in history:
+            history[primary] = []
+        history[primary].append(row)
+        if real_hash and composite != primary and composite not in history:
+            history[composite] = history[primary]
     log(f"[CM-Fetch] {len(history)} aktif maç için son geçmiş çekildi ({len(rows)} satır, {skipped} biten atlandı)")
     return history
 
@@ -706,7 +712,7 @@ def fetch_first_snapshots(active_keys=None):
         pages += 1
         url = (
             f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
-            f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
+            f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at,match_id_hash"
             f"&order=scraped_at.asc&limit={page_size}&offset={offset}"
         )
         try:
@@ -728,15 +734,22 @@ def fetch_first_snapshots(active_keys=None):
             date = row.get('date', '')
             if not home or not away:
                 continue
-            h = f"{home}|{away}|{date}"
-            if active_keys is not None and h not in active_keys:
+            composite = f"{home}|{away}|{date}"
+            if active_keys is not None and composite not in active_keys:
                 skipped += 1
                 continue
-            if h not in first_snaps:
-                first_snaps[h] = row
+            # latest_snapshots ile aynı key formatı: match_id_hash varsa onu kullan,
+            # yoksa home|away|date. Her iki formata da alias ekle (lookup tutarlılığı).
+            real_hash = row.get('match_id_hash', '') or ''
+            primary = real_hash if real_hash else composite
+            if primary not in first_snaps:
+                first_snaps[primary] = row
+                if real_hash and composite != primary and composite not in first_snaps:
+                    first_snaps[composite] = row
         offset += n
         # Tüm aktif maçların ilk snap'ı bulunduysa erken çık (taramayı kısalt)
-        if target_count is not None and len(first_snaps) >= target_count:
+        # NOT: alias key'ler (composite + hash) sayıyı şişirebilir, en kötü %2x.
+        if target_count is not None and len(first_snaps) >= target_count * 2:
             early_exit = True
             break
     elapsed = _time.time() - t0
