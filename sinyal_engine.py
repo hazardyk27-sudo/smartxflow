@@ -696,7 +696,13 @@ def fetch_first_snapshots(active_keys=None):
     t0 = _time.time()
     max_pages = 500
     pages = 0
-    while pages < max_pages:
+    target_count = len(active_keys) if active_keys is not None else None
+    cap_hit = False
+    early_exit = False
+    while True:
+        if pages >= max_pages:
+            cap_hit = True
+            break
         pages += 1
         url = (
             f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
@@ -729,9 +735,17 @@ def fetch_first_snapshots(active_keys=None):
             if h not in first_snaps:
                 first_snaps[h] = row
         offset += n
+        # Tüm aktif maçların ilk snap'ı bulunduysa erken çık (taramayı kısalt)
+        if target_count is not None and len(first_snaps) >= target_count:
+            early_exit = True
+            break
     elapsed = _time.time() - t0
+    if cap_hit:
+        log(f"[FirstSnap] UYARI: max_pages={max_pages} cap'ine ulaşıldı, tarama erken kesildi. "
+            f"İlk snap eksik olabilir; cap'i artırmayı veya RPC/helper tablo yaklaşımını değerlendirin.")
+    suffix = " (erken çıkış: tüm aktif maçlar bulundu)" if early_exit else ""
     log(f"[FirstSnap] {len(first_snaps)} aktif maç için gerçek ilk snapshot çekildi "
-        f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {elapsed:.1f}s)")
+        f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {elapsed:.1f}s){suffix}")
     return first_snaps
 
 
