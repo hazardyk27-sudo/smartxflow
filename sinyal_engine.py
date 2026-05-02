@@ -683,21 +683,25 @@ def fetch_recent_history(active_keys=None):
 def fetch_first_snapshots(active_keys=None):
     """Her maç için DB'deki gerçek ilk (en eski) snapshot'ı çek.
     Zaman filtresi yoktur — moneyway_1x2_history tablosunun tamamı scraped_at ASC sıralı taranır.
-    Supabase REST tek istekte en fazla 20000 satır döndürdüğünden offset tabanlı pagination kullanılır.
+    Supabase REST'in default satır cap'i (genellikle 1000) bilinmediği için her sayfada
+    gerçek dönen satır sayısı kadar offset ilerletilir; loop boş sayfa gelince biter.
     active_keys: moneyway_1x2 canlı tablosundan gelen başlamamış maç key seti.
     Bu set verilirse yalnızca o maçların snapshot'ı saklanır, biten maçlar atlanır."""
     import time as _time
-    chunk_size = 20000
+    page_size = 1000
     offset = 0
     first_snaps = {}
     total_rows = 0
     skipped = 0
     t0 = _time.time()
-    while True:
+    max_pages = 500
+    pages = 0
+    while pages < max_pages:
+        pages += 1
         url = (
             f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
             f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
-            f"&order=scraped_at.asc&limit={chunk_size}&offset={offset}"
+            f"&order=scraped_at.asc&limit={page_size}&offset={offset}"
         )
         try:
             r = requests.get(url, headers=_headers_read(), timeout=30)
@@ -708,9 +712,10 @@ def fetch_first_snapshots(active_keys=None):
             log(f"[FirstSnap] HTTP {r.status_code} @ offset={offset}: {r.text[:200]}")
             break
         rows = r.json()
-        if not rows:
+        n = len(rows) if rows else 0
+        if n == 0:
             break
-        total_rows += len(rows)
+        total_rows += n
         for row in rows:
             home = row.get('home', '')
             away = row.get('away', '')
@@ -723,9 +728,7 @@ def fetch_first_snapshots(active_keys=None):
                 continue
             if h not in first_snaps:
                 first_snaps[h] = row
-        if len(rows) < chunk_size:
-            break
-        offset += chunk_size
+        offset += n
     elapsed = _time.time() - t0
     log(f"[FirstSnap] {len(first_snaps)} aktif maç için gerçek ilk snapshot çekildi "
         f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {elapsed:.1f}s)")
