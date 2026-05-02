@@ -1046,6 +1046,7 @@ function renderConfirmedMoneyView(data) {
             var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : selCode;
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
             var initOdds = sig.odds_16h || sig.odds_now || '-';
+            var curOdds = sig.current_odds || sig.odds_now || '';
             var initPct = sig.pct_now || '-';
             var initVol = sig.volume_now || '';
             var curPct = sig.current_pct || '';
@@ -1071,6 +1072,7 @@ function renderConfirmedMoneyView(data) {
                     }
                 } catch(e) {}
             }
+            var oranVal = initOdds + (curOdds && curOdds !== initOdds ? ' \u2192 ' + curOdds : '');
             function _cmpCell(label, orig, cur) {
                 if (!orig) return '';
                 var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
@@ -1100,7 +1102,7 @@ function renderConfirmedMoneyView(data) {
                 hoursBefore: _hoursBeforeText(sig),
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
-                    { label:'Oran', value: initOdds },
+                    { label:'Oran', value: oranVal },
                     (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
@@ -1232,6 +1234,7 @@ function renderConfirmedMoneyV2View(data) {
             var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode;
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
             var initOdds = sig.odds_16h || sig.odds_now || '-';
+            var curOdds = sig.current_odds || sig.odds_now || '';
             var initPct = sig.pct_now || '-';
             var initVol = sig.volume_now || '';
             var curPct = sig.current_pct || '';
@@ -1257,6 +1260,7 @@ function renderConfirmedMoneyV2View(data) {
                     }
                 } catch(e) {}
             }
+            var oranVal = initOdds + (curOdds && curOdds !== initOdds ? ' \u2192 ' + curOdds : '');
             function _cmpCell(label, orig, cur) {
                 if (!orig) return '';
                 var oNum = parseFloat(String(orig).replace(/[^0-9.]/g,''));
@@ -1286,7 +1290,7 @@ function renderConfirmedMoneyV2View(data) {
                 hoursBefore: _hoursBeforeText(sig),
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
-                    { label:'Oran', value: initOdds },
+                    { label:'Oran', value: oranVal },
                     (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#8587e0', bg:'rgba(99,102,241,0.06)', border:'rgba(99,102,241,0.20)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
