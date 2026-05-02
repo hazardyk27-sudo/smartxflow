@@ -681,37 +681,54 @@ def fetch_recent_history(active_keys=None):
 
 
 def fetch_first_snapshots(active_keys=None):
-    """Her maç için ilk (en eski) snapshot'ı çek.
-    scraped_at >= (now - 24h) filtresi: Şubat'tan beri birikmiş eski verileri dışarıda bırakır.
+    """Her maç için DB'deki gerçek ilk (en eski) snapshot'ı çek.
+    Zaman filtresi yoktur — moneyway_1x2_history tablosunun tamamı scraped_at ASC sıralı taranır.
+    Supabase REST tek istekte en fazla 20000 satır döndürdüğünden offset tabanlı pagination kullanılır.
     active_keys: moneyway_1x2 canlı tablosundan gelen başlamamış maç key seti.
-    Bu set verilirse yalnızca o maçların snapshot'ı işlenir, biten maçlar atlanır."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
-    url = (
-        f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
-        f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
-        f"&scraped_at=gte.{cutoff}"
-        f"&order=scraped_at.asc&limit=50000"
-    )
-    r = requests.get(url, headers=_headers_read(), timeout=30)
-    if r.status_code != 200:
-        log(f"[FirstSnap] HTTP {r.status_code}: {r.text[:200]}")
-        return {}
-    rows = r.json()
+    Bu set verilirse yalnızca o maçların snapshot'ı saklanır, biten maçlar atlanır."""
+    import time as _time
+    chunk_size = 20000
+    offset = 0
     first_snaps = {}
+    total_rows = 0
     skipped = 0
-    for row in rows:
-        home = row.get('home', '')
-        away = row.get('away', '')
-        date = row.get('date', '')
-        if not home or not away:
-            continue
-        h = f"{home}|{away}|{date}"
-        if active_keys is not None and h not in active_keys:
-            skipped += 1
-            continue
-        if h not in first_snaps:
-            first_snaps[h] = row
-    log(f"[CM-Fetch] {len(first_snaps)} aktif maç için referans snapshot çekildi ({len(rows)} satır, {skipped} biten atlandı)")
+    t0 = _time.time()
+    while True:
+        url = (
+            f"{SUPABASE_URL}/rest/v1/moneyway_1x2_history"
+            f"?select=home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at"
+            f"&order=scraped_at.asc&limit={chunk_size}&offset={offset}"
+        )
+        try:
+            r = requests.get(url, headers=_headers_read(), timeout=30)
+        except Exception as e:
+            log(f"[FirstSnap] HTTP exception @ offset={offset}: {e}")
+            break
+        if r.status_code != 200:
+            log(f"[FirstSnap] HTTP {r.status_code} @ offset={offset}: {r.text[:200]}")
+            break
+        rows = r.json()
+        if not rows:
+            break
+        total_rows += len(rows)
+        for row in rows:
+            home = row.get('home', '')
+            away = row.get('away', '')
+            date = row.get('date', '')
+            if not home or not away:
+                continue
+            h = f"{home}|{away}|{date}"
+            if active_keys is not None and h not in active_keys:
+                skipped += 1
+                continue
+            if h not in first_snaps:
+                first_snaps[h] = row
+        if len(rows) < chunk_size:
+            break
+        offset += chunk_size
+    elapsed = _time.time() - t0
+    log(f"[FirstSnap] {len(first_snaps)} aktif maç için gerçek ilk snapshot çekildi "
+        f"({total_rows} satır taranan, {skipped} pasif/biten atlandı, {elapsed:.1f}s)")
     return first_snaps
 
 
