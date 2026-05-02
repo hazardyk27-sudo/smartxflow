@@ -1172,6 +1172,91 @@ def delete_invalid_cm_v2_signals(invalid_signals):
     return deleted
 
 
+def backfill_odds_16h_to_first_snap(table, existing, snapshot_lookup, first_snaps,
+                                    code_map, drop_pct_threshold, scan_label):
+    """Mevcut CM/CMv2 sinyallerinde odds_16h değerini gerçek ilk snapshot'a hizala.
+
+    Eski sinyaller fetch_first_snapshots düzeltilmeden önce oluşmuştu (24h cutoff
+    bug'ı) — odds_16h yanlış kaldı ve dedup nedeniyle bir daha düzelmiyor. Bu
+    helper her cycle'da çalışır, idempotenttir: değer zaten doğruysa (tolerans
+    0.005) DB'ye yazma.
+
+    Düzeltirken odds_drop_pct de current_odds'a göre yeniden hesaplanır;
+    böylece invalidation mantığı (sinyali silme/koruma) aynı cycle'da doğru
+    referansla karar verir.
+
+    table: 'confirmed_money_signals' veya 'confirmed_money_v2_signals'
+    code_map: {'1': 'odds1', '2': 'odds2', ...}
+    drop_pct_threshold: log için (CM=0.04, CMv2=0.07)
+    scan_label: log etiketi ('CM' / 'CMv2')
+    """
+    if not first_snaps or not existing:
+        return 0, 0
+    fixed = 0
+    checked = 0
+    examples = []
+    wh = _headers_write()
+    for sig in existing:
+        mk = sig.get('match_key', '')
+        sc = sig.get('selection_code', '')
+        o_field = code_map.get(sc)
+        if not o_field:
+            continue
+        row = snapshot_lookup.get(mk)
+        if not row:
+            continue
+        # latest_snapshots ile aynı key formatı: önce match_id_hash, sonra composite
+        h = row.get('match_id_hash', '') or ''
+        first = first_snaps.get(h) if h else None
+        if not first:
+            home = row.get('home', '')
+            away = row.get('away', '')
+            date = row.get('date', '')
+            first = first_snaps.get(f"{home}|{away}|{date}")
+        if not first:
+            continue
+        try:
+            true_ref = parse_odds_pct(first.get(o_field))
+            stored_ref = parse_odds_pct(sig.get('odds_16h'))
+            if true_ref <= 0:
+                continue
+            checked += 1
+            # Idempotent: değer zaten doğruysa atla
+            if abs(true_ref - stored_ref) < 0.005:
+                continue
+            # current_odds'a göre drop_pct'yi yeniden hesapla (yoksa odds_now)
+            cur_str = sig.get('current_odds') or sig.get('odds_now') or ''
+            cur_val = parse_odds_pct(cur_str)
+            payload = {'odds_16h': str(round(true_ref, 4))}
+            if cur_val > 0:
+                drop_pct = (true_ref - cur_val) / true_ref
+                payload['odds_drop_pct'] = round(drop_pct * 100, 2)
+            mk_enc = url_quote(mk, safe='')
+            sc_enc = url_quote(sc, safe='')
+            patch_url = f"{SUPABASE_URL}/rest/v1/{table}?match_key=eq.{mk_enc}&selection_code=eq.{sc_enc}"
+            r = requests.patch(patch_url, headers=wh, json=payload, timeout=10)
+            if r.status_code in (200, 204):
+                fixed += 1
+                # Local kopyada da güncelle ki aynı cycle'daki invalidation
+                # düzeltilmiş referansla karar versin
+                sig['odds_16h'] = payload['odds_16h']
+                if 'odds_drop_pct' in payload:
+                    sig['odds_drop_pct'] = payload['odds_drop_pct']
+                if len(examples) < 5:
+                    examples.append(
+                        f"{sig.get('home_team')} vs {sig.get('away_team')} ({sc}): "
+                        f"{stored_ref}→{round(true_ref, 4)}"
+                    )
+        except Exception as e:
+            log(f"[{scan_label}-Backfill] Hata: {e}")
+            continue
+    if fixed:
+        log(f"[{scan_label}-Backfill] Düzeltildi {fixed}/{checked}: {'; '.join(examples)}")
+    elif checked:
+        log(f"[{scan_label}-Backfill] {checked} sinyal kontrol edildi, hepsi doğru")
+    return fixed, checked
+
+
 def update_cm_current_values(existing_cm, snapshot_lookup):
     """
     DB'deki tüm CM sinyallerinin current_* değerlerini güncelle.
@@ -1234,6 +1319,15 @@ def run_cm_scan(snapshots, snapshot_lookup, active_keys=None, history=None, firs
 
         # Önce DB'deki mevcut kayıtları çek
         existing_cm = fetch_existing_cm_signals()
+
+        # Eski sinyallerde odds_16h gerçek ilk snap'e hizalı mı? Hizalı değilse düzelt.
+        # (Idempotent — değer zaten doğruysa DB'ye yazılmaz.) Aşağıdaki invalidation
+        # mantığının düzgün karar verebilmesi için update_current_values'tan ÖNCE çalışır.
+        cm_code_map = {'1': 'odds1', 'X': 'oddsx', '2': 'odds2'}
+        backfill_odds_16h_to_first_snap(
+            'confirmed_money_signals', existing_cm, snapshot_lookup, first_snaps,
+            cm_code_map, CM_ODDS_DROP_PCT, 'CM'
+        )
 
         # (home_team, away_team, selection_code) üçlüsüne göre var olanları belirle
         existing_keys = {
@@ -1306,6 +1400,15 @@ def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None, history=None, f
 
         existing_v2 = fetch_existing_cm_v2_signals()
 
+        # Eski sinyallerde odds_16h gerçek ilk snap'e hizalı mı? Hizalı değilse düzelt.
+        # (Idempotent.) Aşağıdaki invalidation mantığının düzgün karar verebilmesi için
+        # silme bloğundan ÖNCE çalışır.
+        code_map_v2 = {'1': 'odds1', '2': 'odds2'}
+        backfill_odds_16h_to_first_snap(
+            'confirmed_money_v2_signals', existing_v2, snapshot_lookup, first_snaps,
+            code_map_v2, CMV2_ODDS_DROP_PCT, 'CMv2'
+        )
+
         existing_keys = {
             (r.get('home_team', '').strip().lower(),
              r.get('away_team', '').strip().lower(),
@@ -1325,7 +1428,6 @@ def run_cm_v2_scan(snapshots, snapshot_lookup, active_keys=None, history=None, f
         # Geçersizleşen CMv2 sinyallerini tespit et ve sil:
         # Sinyal oluşturulduğundaki referans oran (odds_16h) ile şimdiki oran karşılaştırılır.
         # Artık yeterli düşüş yoksa → sil
-        code_map_v2 = {'1': 'odds1', '2': 'odds2'}
         invalid_v2 = []
         for sig in existing_v2:
             mk = sig.get('match_key', '')
