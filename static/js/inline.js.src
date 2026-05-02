@@ -224,9 +224,21 @@ function buildMagazineLayout() {
     });
     html += '</div>';
 
-    html += '<div class="amg-empty"><div class="amg-empty-icon">📊</div>';
-    html += '<p class="amg-empty-text">Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin</p>';
-    html += '<p class="amg-empty-sub">Profesyonel piyasa analizleri</p></div>';
+    var data = _fullAnalysisData || [];
+    var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
+    if (filtered && filtered.length > 0) {
+        html += '<div class="amg-published-section">';
+        html += '<div class="amg-section-head">';
+        html += '<span class="amg-section-title">Yayınlanan Analizler</span>';
+        html += '<span class="amg-section-count">' + filtered.length + '</span>';
+        html += '</div>';
+        html += '<div class="amg-published-list">' + buildAnalysisCards(filtered) + '</div>';
+        html += '</div>';
+    } else {
+        html += '<div class="amg-empty"><div class="amg-empty-icon">📊</div>';
+        html += '<p class="amg-empty-text">Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin</p>';
+        html += '<p class="amg-empty-sub">Profesyonel piyasa analizleri</p></div>';
+    }
 
     html += '</div>';
     return html;
