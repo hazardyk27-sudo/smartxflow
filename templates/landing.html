@@ -12,22 +12,23 @@
       gtag('config', 'G-NN1FFSFF2N');
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi</title>
-    <meta name="description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
+    <title data-i18n="meta.title">SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi</title>
+    <meta name="description" data-i18n-attr="content:meta.description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
     <meta name="keywords" content="oran takibi, para akışı, bahis analiz, odds movement, dropping odds, akıllı para, moneyway, canlı oran, piyasa analizi, SmartXFlow">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://smartxflow.com/">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi">
-    <meta property="og:description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
+    <meta property="og:title" data-i18n-attr="content:meta.title" content="SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi">
+    <meta property="og:description" data-i18n-attr="content:meta.description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
     <meta property="og:url" content="https://smartxflow.com/">
     <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <meta property="og:locale" content="tr_TR">
     <meta property="og:site_name" content="SmartXFlow">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi">
-    <meta name="twitter:description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
+    <meta name="twitter:title" data-i18n-attr="content:meta.title" content="SmartXFlow | Para, Oran Analizi ve Canlı Piyasa Takibi">
+    <meta name="twitter:description" data-i18n-attr="content:meta.description" content="Maçlarda oran değişimi, para hareketi, canlı oran takibi ve dikkat çeken sinyalleri tek ekranda inceleyin. SmartXFlow ile piyasa hareketlerini daha net okuyun.">
     <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
+    <script src="/static/js/i18n.js?v=1" defer></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -1266,6 +1267,79 @@
             .navbar-inner { padding: 0 16px; }
         }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* ===== Language Picker ===== */
+        .lang-picker { position: relative; display: inline-flex; align-items: center; margin-right: 8px; }
+        .lang-picker-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #e6edf3; padding: 7px 12px; border-radius: 999px;
+            font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+            display: inline-flex; align-items: center; gap: 6px;
+            cursor: pointer; transition: all 180ms ease;
+            font-family: inherit; line-height: 1;
+        }
+        .lang-picker-btn:hover { background: rgba(43,255,136,0.06); border-color: rgba(43,255,136,0.22); color: #2BFF88; }
+        .lang-picker-btn svg { opacity: 0.65; }
+        .lang-picker-btn:hover svg { opacity: 1; }
+        .lang-picker-caret { transition: transform 200ms ease; }
+        .lang-picker.open .lang-picker-caret { transform: rotate(180deg); }
+        .lang-picker-menu {
+            position: absolute; top: calc(100% + 10px); right: 0;
+            min-width: 178px;
+            background: rgba(13,17,23,0.96);
+            -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 6px;
+            display: none; flex-direction: column; gap: 2px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+            z-index: 1100;
+        }
+        .lang-picker.open .lang-picker-menu { display: flex; }
+        .lang-picker-menu button {
+            background: transparent; border: 0; color: #e6edf3;
+            font-family: inherit; font-size: 13px;
+            padding: 9px 12px; border-radius: 9px;
+            cursor: pointer; display: flex; align-items: center;
+            gap: 10px; text-align: left; width: 100%;
+            transition: background 150ms ease;
+        }
+        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); }
+        .lang-picker-menu button.active { background: rgba(43,255,136,0.08); color: #2BFF88; }
+        .lang-picker-menu button > .lp-code {
+            font-size: 10.5px; font-weight: 700; min-width: 22px;
+            opacity: 0.55; letter-spacing: 0.5px;
+            padding: 3px 5px; border-radius: 5px;
+            background: rgba(255,255,255,0.05);
+            text-align: center;
+        }
+        .lang-picker-menu button.active > .lp-code { opacity: 1; background: rgba(43,255,136,0.15); }
+
+        /* Mobile lang picker (inside mobile menu) */
+        .mobile-lang-picker {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            padding: 16px 0 4px;
+            margin-top: 6px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .mobile-lang-picker button {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #e6edf3; padding: 7px 13px; border-radius: 999px;
+            font-size: 11.5px; font-weight: 700; cursor: pointer;
+            font-family: inherit; letter-spacing: 0.5px; line-height: 1;
+        }
+        .mobile-lang-picker button.active {
+            background: rgba(43,255,136,0.10);
+            border-color: rgba(43,255,136,0.32);
+            color: #2BFF88;
+        }
+        @media (max-width: 900px) {
+            .lang-picker { display: none; }
+        }
+        @media (min-width: 901px) {
+            .mobile-lang-picker { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -1275,12 +1349,26 @@
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
         <div class="nav-links">
-            <a href="/" class="active">Ana Sayfa</a>
-            <a href="/nedir">Nedir?</a>
-            <a href="#features">Özellikler</a>
-            <a href="/pricing">Paketler</a>
-            <a href="/rehber">Rehber</a>
-            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+            <a href="/" class="active" data-i18n="nav.home">Ana Sayfa</a>
+            <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+            <a href="#features" data-i18n="nav.features">Özellikler</a>
+            <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+            <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+            <div class="lang-picker" id="langPicker">
+                <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-picker-current">TR</span>
+                    <svg class="lang-picker-caret" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="lang-picker-menu" role="listbox">
+                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
+                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
+                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
+                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
+                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
+                </div>
+            </div>
+            <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
             <span></span><span></span><span></span>
@@ -1290,64 +1378,71 @@
     <div class="alert-band landing-alert-band" id="landingAlertBand">
         <div class="alert-band-track" id="landingAlertBandTrack">
             <div class="alert-band-track-inner">
-                <span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> Canlı piyasa akışı yükleniyor</span>
+                <span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> <span data-i18n="alert.loading">Canlı piyasa akışı yükleniyor</span></span>
             </div>
         </div>
     </div>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/" class="active">Ana Sayfa</a>
-        <a href="/nedir">Nedir?</a>
-        <a href="#features" onclick="toggleMenu()">Özellikler</a>
-        <a href="/pricing">Paketler</a>
-        <a href="/rehber">Rehber</a>
-        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        <a href="/" class="active" data-i18n="nav.home">Ana Sayfa</a>
+        <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+        <a href="#features" onclick="toggleMenu()" data-i18n="nav.features">Özellikler</a>
+        <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+        <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+        <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
+        <div class="mobile-lang-picker">
+            <button data-lang="tr" type="button">TR</button>
+            <button data-lang="en" type="button">EN</button>
+            <button data-lang="nl" type="button">NL</button>
+            <button data-lang="it" type="button">IT</button>
+            <button data-lang="es" type="button">ES</button>
+        </div>
     </div>
 
     <main>
     <section class="hero">
         <div class="hero-text">
-            <h1 class="hero-title-desktop"><span class="accent">Sizi profesyoneller gibi</span><br>bahis yapmaya teşvik ediyoruz.</h1>
-            <p class="hero-title-mobile" role="presentation"><span class="accent">Piyasayı Okuyan</span><br>Sinyaller.</p>
+            <h1 class="hero-title-desktop" data-i18n-html="hero.title_desktop"><span class="accent">Sizi profesyoneller gibi</span><br>bahis yapmaya teşvik ediyoruz.</h1>
+            <p class="hero-title-mobile" role="presentation" data-i18n-html="hero.title_mobile"><span class="accent">Piyasayı Okuyan</span><br>Sinyaller.</p>
             <div class="hero-pill-badge">
-                <span class="hero-pill-dot"></span> Canlı Sinyaller
+                <span class="hero-pill-dot"></span> <span data-i18n="hero.pill">Canlı Sinyaller</span>
             </div>
-            <p class="subtitle subtitle-desktop">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle.<br>Erken fark et, doğru anı yakala.</p>
-            <p class="subtitle subtitle-mobile">Para akışı + oran hareketi + akıllı alarmlar.</p>
+            <p class="subtitle subtitle-desktop" data-i18n-html="hero.subtitle_desktop">Piyasadaki para akışını, oran hareketlerini ve sıradışı sinyalleri tek ekranda izle.<br>Erken fark et, doğru anı yakala.</p>
+            <p class="subtitle subtitle-mobile" data-i18n="hero.subtitle_mobile">Para akışı + oran hareketi + akıllı alarmlar.</p>
             <div class="hero-cta-group">
-                <a href="/app" class="hero-cta hero-cta-mobile">Ücretsiz Dene <span class="icon">→</span></a>
-                <a href="/app" class="hero-cta hero-cta-desktop">Ücretsiz Dene <span class="icon">→</span></a>
-                <a href="/pricing" class="hero-cta-secondary">Paketleri Gör</a>
+                <a href="/app" class="hero-cta hero-cta-mobile"><span data-i18n="hero.cta_primary">Ücretsiz Dene</span> <span class="icon">→</span></a>
+                <a href="/app" class="hero-cta hero-cta-desktop"><span data-i18n="hero.cta_primary">Ücretsiz Dene</span> <span class="icon">→</span></a>
+                <a href="/pricing" class="hero-cta-secondary" data-i18n="hero.cta_secondary">Paketleri Gör</a>
             </div>
             <div class="hero-feature-strip">
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    Canlı para akışı
+                    <span data-i18n="hero.feat_1">Canlı para akışı</span>
                 </div>
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><rect x="2" y="12" width="4" height="8"/><rect x="9" y="7" width="4" height="13"/><rect x="16" y="3" width="4" height="17"/></svg>
-                    Oran hareketleri
+                    <span data-i18n="hero.feat_2">Oran hareketleri</span>
                 </div>
                 <div class="hero-feature-item">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></svg>
-                    Canlı Maç Verileri
+                    <span data-i18n="hero.feat_3">Canlı Maç Verileri</span>
                 </div>
             </div>
             <div class="hero-mini-grid">
                 <div class="hero-mini-card">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    <span>Canlı Para</span>
+                    <span data-i18n="hero.mini_1">Canlı Para</span>
                 </div>
                 <div class="hero-mini-card">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                    <span>Oran Düşüşleri</span>
+                    <span data-i18n="hero.mini_2">Oran Düşüşleri</span>
                 </div>
                 <div class="hero-mini-card">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <span>Alarmlar</span>
+                    <span data-i18n="hero.mini_3">Alarmlar</span>
                 </div>
                 <div class="hero-mini-card">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2BFF88" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    <span>Telegram</span>
+                    <span data-i18n="hero.mini_4">Telegram</span>
                 </div>
             </div>
         </div>
@@ -1405,7 +1500,7 @@
                         </div>
                     </div>
                     <div class="mockup-chart">
-                        <div class="mockup-chart-label">Oran Hareketi</div>
+                        <div class="mockup-chart-label" data-i18n="mockup.chart_label">Oran Hareketi</div>
                         <svg viewBox="0 0 460 60" preserveAspectRatio="none">
                             <defs>
                                 <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1427,205 +1522,205 @@
     </section>
 
     <section class="features-hero" id="features">
-        <h2><span>Piyasa Hareketlerini</span> Okumak<br>İçin Geliştirildi.</h2>
-        <p>Tahmin değil. Banko değil.<br><strong>Gerçek zamanlı veri, akıllı sinyaller.</strong></p>
+        <h2 data-i18n-html="feath.title"><span>Piyasa Hareketlerini</span> Okumak<br>İçin Geliştirildi.</h2>
+        <p data-i18n-html="feath.sub">Tahmin değil. Banko değil.<br><strong>Gerçek zamanlı veri, akıllı sinyaller.</strong></p>
         <div class="mobile-shortcut-nav">
             <a href="#cekirdek-ozellikler" class="shortcut-btn">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                Özellikler
+                <span data-i18n="feath.short_features">Özellikler</span>
             </a>
             <a href="#alarms" class="shortcut-btn">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                Alarmlar
+                <span data-i18n="feath.short_alarms">Alarmlar</span>
             </a>
         </div>
         <div class="statsBar" style="margin-top: 40px;">
             <div class="statItem">
                 <div class="statNum">6</div>
-                <div class="statTitle">Alarm Türü</div>
-                <div class="statSub">Sharp · Big Money · Dropping…</div>
+                <div class="statTitle" data-i18n="stats.alarm_types_title">Alarm Türü</div>
+                <div class="statSub" data-i18n="stats.alarm_types_sub">Sharp · Big Money · Dropping…</div>
             </div>
             <div class="statItem">
                 <div class="statNum">6</div>
-                <div class="statTitle">Market</div>
-                <div class="statSub">1X2 · ALT/ÜST · KG</div>
+                <div class="statTitle" data-i18n="stats.market_title">Market</div>
+                <div class="statSub" data-i18n="stats.market_sub">1X2 · ALT/ÜST · KG</div>
             </div>
             <div class="statItem">
                 <div class="statNum">24/7</div>
-                <div class="statTitle">Canlı Takip</div>
-                <div class="statSub">Anlık güncelleme ve alarm akışı</div>
+                <div class="statTitle" data-i18n="stats.live_title">Canlı Takip</div>
+                <div class="statSub" data-i18n="stats.live_sub">Anlık güncelleme ve alarm akışı</div>
             </div>
             <div class="statItem">
-                <div class="statNum">CANLI</div>
-                <div class="statTitle">Maç Takibi</div>
-                <div class="statSub">Maç esnasında oran & para akışı</div>
+                <div class="statNum" data-i18n="stats.live_label">CANLI</div>
+                <div class="statTitle" data-i18n="stats.match_title">Maç Takibi</div>
+                <div class="statSub" data-i18n="stats.match_sub">Maç esnasında oran & para akışı</div>
             </div>
         </div>
     </section>
 
     <section class="section" id="cekirdek-ozellikler">
-        <h2 class="section-title">Çekirdek Özellikler</h2>
-        <p class="section-subtitle">Piyasayı okumanız için tasarlanmış profesyonel araçlar.</p>
+        <h2 class="section-title" data-i18n="core.title">Çekirdek Özellikler</h2>
+        <p class="section-subtitle" data-i18n="core.subtitle">Piyasayı okumanız için tasarlanmış profesyonel araçlar.</p>
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </div>
-                <h3>Para Akışı Takibi</h3>
-                <p class="feat-desc">Maçlara giren olağan dışı parayı anında gör. Sessiz ama etkili hamleleri kaçırma.</p>
-                <p class="feat-why">Neden önemli? Büyük para genellikle sonucu belirler.</p>
+                <h3 data-i18n="feat.money_title">Para Akışı Takibi</h3>
+                <p class="feat-desc" data-i18n="feat.money_desc">Maçlara giren olağan dışı parayı anında gör. Sessiz ama etkili hamleleri kaçırma.</p>
+                <p class="feat-why" data-i18n="feat.money_why">Neden önemli? Büyük para genellikle sonucu belirler.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
-                <h3>Oran Hareket Analizi</h3>
-                <p class="feat-desc">Oran neden düştü? Ne zaman değişti? Rastgele değil, iz bırakan hareketler.</p>
-                <p class="feat-why">Neden önemli? Her düşüşün arkasında bir neden var.</p>
+                <h3 data-i18n="feat.odds_title">Oran Hareket Analizi</h3>
+                <p class="feat-desc" data-i18n="feat.odds_desc">Oran neden düştü? Ne zaman değişti? Rastgele değil, iz bırakan hareketler.</p>
+                <p class="feat-why" data-i18n="feat.odds_why">Neden önemli? Her düşüşün arkasında bir neden var.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 </div>
-                <h3>Akıllı Alarmlar</h3>
-                <p class="feat-desc">Big Money, Dropping Odds, Sharp. Piyasa hareket ettiğinde sen de fark et.</p>
-                <p class="feat-why">Neden önemli? Doğru anı yakalamak her şeyi değiştirir.</p>
+                <h3 data-i18n="feat.alarm_title">Akıllı Alarmlar</h3>
+                <p class="feat-desc" data-i18n="feat.alarm_desc">Big Money, Dropping Odds, Sharp. Piyasa hareket ettiğinde sen de fark et.</p>
+                <p class="feat-why" data-i18n="feat.alarm_why">Neden önemli? Doğru anı yakalamak her şeyi değiştirir.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                 </div>
-                <h3>Market Paylaşımı</h3>
-                <p class="feat-desc">Para hangi tarafa kayıyor? Kalabalık mı, azınlık mı oynuyor?</p>
-                <p class="feat-why">Neden önemli? Paranın aktığı yönü bilmek avantaj sağlar.</p>
+                <h3 data-i18n="feat.market_title">Market Paylaşımı</h3>
+                <p class="feat-desc" data-i18n="feat.market_desc">Para hangi tarafa kayıyor? Kalabalık mı, azınlık mı oynuyor?</p>
+                <p class="feat-why" data-i18n="feat.market_why">Neden önemli? Paranın aktığı yönü bilmek avantaj sağlar.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </div>
-                <h3>Zaman Çizelgesi</h3>
-                <p class="feat-desc">Her hareket dakikasıyla kayıt altında. Sonradan değil, anında gör.</p>
-                <p class="feat-why">Neden önemli? Zamanlama, verinin kendisi kadar kritik.</p>
+                <h3 data-i18n="feat.time_title">Zaman Çizelgesi</h3>
+                <p class="feat-desc" data-i18n="feat.time_desc">Her hareket dakikasıyla kayıt altında. Sonradan değil, anında gör.</p>
+                <p class="feat-why" data-i18n="feat.time_why">Neden önemli? Zamanlama, verinin kendisi kadar kritik.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
                 </div>
-                <h3>Canlı Maç Takibi</h3>
-                <p class="feat-desc">Maç devam ederken anlık oran değişimlerini ve para akışını gerçek zamanlı izle.</p>
-                <p class="feat-why">Neden önemli? Canlı piyasa, maç öncesinden farklı hareket eder.</p>
+                <h3 data-i18n="feat.live_title">Canlı Maç Takibi</h3>
+                <p class="feat-desc" data-i18n="feat.live_desc">Maç devam ederken anlık oran değişimlerini ve para akışını gerçek zamanlı izle.</p>
+                <p class="feat-why" data-i18n="feat.live_why">Neden önemli? Canlı piyasa, maç öncesinden farklı hareket eder.</p>
             </div>
         </div>
     </section>
 
     <section class="alarm-section" id="alarms">
-        <h2>Alarm Sistemi</h2>
-        <p class="alarm-sub">Piyasa hareket ettiğinde sistem seni uyarır. 6 farklı alarm türü, her biri farklı bir sinyali yakalar.</p>
+        <h2 data-i18n="alarm.section_title">Alarm Sistemi</h2>
+        <p class="alarm-sub" data-i18n="alarm.section_sub">Piyasa hareket ettiğinde sistem seni uyarır. 6 farklı alarm türü, her biri farklı bir sinyali yakalar.</p>
         <div class="alarm-grid">
             <div class="alarm-card card-sharp">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 </div>
                 <div class="alarm-card-label">SHARP</div>
-                <h3>Sharp Nedir?</h3>
-                <p class="alarm-desc">Piyasada "akıllı para" olarak görülen tarafın harekete geçtiği sinyaldir.</p>
-                <p class="alarm-why">Neden önemli? Sharp hareketler genellikle fiyatı yönlendirir.</p>
+                <h3 data-i18n="alarm.sharp_title">Sharp Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.sharp_desc">Piyasada "akıllı para" olarak görülen tarafın harekete geçtiği sinyaldir.</p>
+                <p class="alarm-why" data-i18n="alarm.sharp_why">Neden önemli? Sharp hareketler genellikle fiyatı yönlendirir.</p>
             </div>
             <div class="alarm-card card-bigmoney">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                 </div>
                 <div class="alarm-card-label">BIG MONEY</div>
-                <h3>Big Money Nedir?</h3>
-                <p class="alarm-desc">Tek seferde veya kısa sürede gelen olağan dışı yüksek para girişini yakalar.</p>
-                <p class="alarm-why">Neden önemli? Büyük para girişleri çoğu zaman piyasayı zorlar.</p>
+                <h3 data-i18n="alarm.bigmoney_title">Big Money Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.bigmoney_desc">Tek seferde veya kısa sürede gelen olağan dışı yüksek para girişini yakalar.</p>
+                <p class="alarm-why" data-i18n="alarm.bigmoney_why">Neden önemli? Büyük para girişleri çoğu zaman piyasayı zorlar.</p>
             </div>
             <div class="alarm-card card-hacimsoku">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 </div>
-                <div class="alarm-card-label">HACİM ŞOKU</div>
-                <h3>Hacim Şoku Nedir?</h3>
-                <p class="alarm-desc">Normal hacme göre aniden katlanan para akışı olduğunda tetiklenir.</p>
-                <p class="alarm-why">Neden önemli? Ani hacim artışı, sıradışı bir ilgi veya bilgi akışı göstergesidir.</p>
+                <div class="alarm-card-label" data-i18n="alarm.volume_label">HACİM ŞOKU</div>
+                <h3 data-i18n="alarm.volume_title">Hacim Şoku Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.volume_desc">Normal hacme göre aniden katlanan para akışı olduğunda tetiklenir.</p>
+                <p class="alarm-why" data-i18n="alarm.volume_why">Neden önemli? Ani hacim artışı, sıradışı bir ilgi veya bilgi akışı göstergesidir.</p>
             </div>
             <div class="alarm-card card-orandususu">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
                 </div>
-                <div class="alarm-card-label">ORAN DÜŞÜŞÜ</div>
-                <h3>Oran Düşüşü Nedir?</h3>
-                <p class="alarm-desc">Kısa sürede sert oran düşüşünü tespit eder (Dropping Odds).</p>
-                <p class="alarm-why">Neden önemli? Düşüş, piyasanın beklentiyi yeniden fiyatladığını gösterir.</p>
+                <div class="alarm-card-label" data-i18n="alarm.drop_label">ORAN DÜŞÜŞÜ</div>
+                <h3 data-i18n="alarm.drop_title">Oran Düşüşü Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.drop_desc">Kısa sürede sert oran düşüşünü tespit eder (Dropping Odds).</p>
+                <p class="alarm-why" data-i18n="alarm.drop_why">Neden önemli? Düşüş, piyasanın beklentiyi yeniden fiyatladığını gösterir.</p>
             </div>
             <div class="alarm-card card-liderdegisti">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
                 </div>
-                <div class="alarm-card-label">LİDER DEĞİŞTİ</div>
-                <h3>Lider Değişti Nedir?</h3>
-                <p class="alarm-desc">En çok para alan tarafın değiştiği anı yakalar (market leader flip).</p>
-                <p class="alarm-why">Neden önemli? Para yön değiştiriyorsa, algı veya bilgi değişmiş olabilir.</p>
+                <div class="alarm-card-label" data-i18n="alarm.leader_label">LİDER DEĞİŞTİ</div>
+                <h3 data-i18n="alarm.leader_title">Lider Değişti Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.leader_desc">En çok para alan tarafın değiştiği anı yakalar (market leader flip).</p>
+                <p class="alarm-why" data-i18n="alarm.leader_why">Neden önemli? Para yön değiştiriyorsa, algı veya bilgi değişmiş olabilir.</p>
             </div>
             <div class="alarm-card card-mim">
                 <div class="alarm-card-icon">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 </div>
                 <div class="alarm-card-label">MIM</div>
-                <h3>MIM Nedir?</h3>
-                <p class="alarm-desc">Market etkisi / momentum temelli karma sinyaldir; hareketin "etki gücünü" özetler.</p>
-                <p class="alarm-why">Neden önemli? Tek bir metrik yerine, etkinin büyüklüğünü tek ekranda görürsün.</p>
+                <h3 data-i18n="alarm.mim_title">MIM Nedir?</h3>
+                <p class="alarm-desc" data-i18n="alarm.mim_desc">Market etkisi / momentum temelli karma sinyaldir; hareketin "etki gücünü" özetler.</p>
+                <p class="alarm-why" data-i18n="alarm.mim_why">Neden önemli? Tek bir metrik yerine, etkinin büyüklüğünü tek ekranda görürsün.</p>
             </div>
         </div>
     </section>
 
     <div class="duo-section" id="features-end">
         <div class="duo-panel">
-            <h2>Nasıl Kullanılır?</h2>
+            <h2 data-i18n="howto.title">Nasıl Kullanılır?</h2>
             <div class="howto-steps">
                 <div class="howto-step">
                     <div class="howto-num">1</div>
                     <div>
-                        <h4>Platforma giriş yap</h4>
-                        <p>Hesabını oluştur ve panele eriş.</p>
+                        <h4 data-i18n="howto.s1_title">Platforma giriş yap</h4>
+                        <p data-i18n="howto.s1_desc">Hesabını oluştur ve panele eriş.</p>
                     </div>
                 </div>
                 <div class="howto-step">
                     <div class="howto-num">2</div>
                     <div>
-                        <h4>Alarmları takip et</h4>
-                        <p>Sistem otomatik çalışır. Sen sadece sinyalleri izle.</p>
+                        <h4 data-i18n="howto.s2_title">Alarmları takip et</h4>
+                        <p data-i18n="howto.s2_desc">Sistem otomatik çalışır. Sen sadece sinyalleri izle.</p>
                     </div>
                 </div>
                 <div class="howto-step">
                     <div class="howto-num">3</div>
                     <div>
-                        <h4>Detaylara in</h4>
-                        <p>Maça tıkla, grafiklerle analiz et, kararını ver.</p>
+                        <h4 data-i18n="howto.s3_title">Detaylara in</h4>
+                        <p data-i18n="howto.s3_desc">Maça tıkla, grafiklerle analiz et, kararını ver.</p>
                     </div>
                 </div>
             </div>
         </div>
         <div class="duo-panel">
-            <h2>Biz Ne Değiliz?</h2>
+            <h2 data-i18n="not.title">Biz Ne Değiliz?</h2>
             <div style="display:grid;grid-template-columns:1fr;gap:14px;">
                 <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
                     <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Tahmin sitesi değiliz. Banko vermiyoruz.</p>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;" data-i18n="not.l1">Tahmin sitesi değiliz. Banko vermiyoruz.</p>
                 </div>
                 <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
                     <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Yapay zeka ile skor tahmini yapmıyoruz.</p>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;" data-i18n="not.l2">Yapay zeka ile skor tahmini yapmıyoruz.</p>
                 </div>
                 <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-radius:14px;background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.10);">
                     <div style="width:40px;height:40px;border-radius:10px;background:rgba(248,81,73,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
-                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;">Garantili kazanç vaat etmiyoruz.</p>
+                    <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.4;margin:0;" data-i18n="not.l3">Garantili kazanç vaat etmiyoruz.</p>
                 </div>
             </div>
         </div>
@@ -1635,9 +1730,9 @@
     <section style="max-width:900px;margin:0 auto;padding:0 24px 60px;">
         <a href="/rehber" style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:28px 36px;border-radius:16px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.06);transition:all 220ms ease;text-decoration:none;">
             <div>
-                <div style="font-size:12px;font-weight:600;color:#2BFF88;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Rehber</div>
-                <div style="font-size:18px;font-weight:700;color:#e6edf3;margin-bottom:4px;">Oran analizi ve para hareketi nasıl okunur?</div>
-                <div style="font-size:14px;color:#8b949e;">Oran değişimi, Moneyway, canlı oran takibi ve alarm sistemini sade bir dille öğrenin.</div>
+                <div style="font-size:12px;font-weight:600;color:#2BFF88;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;" data-i18n="guidecta.label">Rehber</div>
+                <div style="font-size:18px;font-weight:700;color:#e6edf3;margin-bottom:4px;" data-i18n="guidecta.title">Oran analizi ve para hareketi nasıl okunur?</div>
+                <div style="font-size:14px;color:#8b949e;" data-i18n="guidecta.desc">Oran değişimi, Moneyway, canlı oran takibi ve alarm sistemini sade bir dille öğrenin.</div>
             </div>
             <div style="width:36px;height:36px;border-radius:10px;background:rgba(43,255,136,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2BFF88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -1646,9 +1741,9 @@
     </section>
 
     <section class="cta-section">
-        <h2>Hemen Başlayın</h2>
-        <p>Akıllı para hareketlerini takip etmeye bugün başlayın.</p>
-        <a href="/app" class="hero-cta">Uygulamayı Aç <span class="icon">→</span></a>
+        <h2 data-i18n="cta.title">Hemen Başlayın</h2>
+        <p data-i18n="cta.desc">Akıllı para hareketlerini takip etmeye bugün başlayın.</p>
+        <a href="/app" class="hero-cta"><span data-i18n="cta.button">Uygulamayı Aç</span> <span class="icon">→</span></a>
     </section>
     </main>
 
@@ -1659,17 +1754,17 @@
                     <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
                 </div>
                 <div class="footer-row-divider"></div>
-                <a href="/">Ana Sayfa</a>
-                <a href="/nedir">Nedir?</a>
-                <a href="/pricing">Paketler</a>
-                <a href="/rehber">Rehber</a>
-                <a href="/app">Uygulama</a>
+                <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+                <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+                <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+                <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+                <a href="/app" data-i18n="footer.app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
-                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
-                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;" data-i18n="footer.terms">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;" data-i18n="footer.privacy">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;" data-i18n="footer.cookies">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;" data-i18n="footer.disclaimer">Sorumluluk Reddi</a>
             </div>
             <div class="footer-contact">
                 <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
@@ -1685,7 +1780,7 @@
                     smartxflow29@gmail.com
                 </a>
             </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy" data-i18n="footer.copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
         </div>
     </footer>
 
@@ -1775,7 +1870,8 @@
             var track = document.getElementById('landingAlertBandTrack');
             if (!track) return;
             if (!alarms || alarms.length === 0) {
-                track.innerHTML = '<div class="alert-band-track-inner"><span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> Canlı piyasa akışı yükleniyor</span></div>';
+                var loadingTxt = (window.SXFI18n && window.SXFI18n.t) ? window.SXFI18n.t('alert.loading') : 'Canlı piyasa akışı yükleniyor';
+                track.innerHTML = '<div class="alert-band-track-inner"><span class="alert-band-empty" style="display:flex;align-items:center;gap:8px;color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.5px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(43,255,136,0.4);animation:pulse 1.5s infinite;"></span> ' + loadingTxt + '</span></div>';
                 return;
             }
             var top = alarms.slice(0, 10);
@@ -1841,6 +1937,51 @@
 
         fetchLandingAlarms();
         setInterval(fetchLandingAlarms, REFRESH_INTERVAL);
+    })();
+    </script>
+    <script>
+    (function () {
+        function syncPicker(lang) {
+            var code = (lang || 'tr').toUpperCase();
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
+            document.querySelectorAll('[data-lang]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+            var picker = document.getElementById('langPicker');
+            if (picker) {
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            }
+        }
+        document.addEventListener('click', function (e) {
+            var langBtn = e.target.closest('[data-lang]');
+            if (langBtn && window.SXFI18n) {
+                e.preventDefault();
+                var lang = langBtn.getAttribute('data-lang');
+                window.SXFI18n.set(lang).then(function () {
+                    syncPicker(lang);
+                    var p = document.getElementById('langPicker');
+                    if (p) p.classList.remove('open');
+                    if (typeof fetchLandingAlarms === 'function') { try { fetchLandingAlarms(); } catch (e) {} }
+                }).catch(function () {});
+                return;
+            }
+            var picker = document.getElementById('langPicker');
+            if (!picker) return;
+            if (e.target.closest('.lang-picker-btn')) {
+                picker.classList.toggle('open');
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            } else if (!e.target.closest('#langPicker')) {
+                picker.classList.remove('open');
+            }
+        });
+        function init() {
+            if (!window.SXFI18n) { setTimeout(init, 80); return; }
+            window.SXFI18n.onChange(syncPicker);
+            syncPicker(window.SXFI18n.current());
+        }
+        init();
     })();
     </script>
 </body>
