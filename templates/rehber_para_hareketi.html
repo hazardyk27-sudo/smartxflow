@@ -12,7 +12,7 @@
       gtag('config', 'G-NN1FFSFF2N');
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>Para Hareketi Nedir? Moneyway Nasıl Okunur? | SmartXFlow</title>
+    <title data-i18n="rehber_para.meta.title">Para Hareketi Nedir? Moneyway Nasıl Okunur? | SmartXFlow</title>
     <meta name="description" content="Maçlarda para hareketi nedir, oran ve para birlikte nasıl okunur? Piyasa yönünü anlamak için bilmeniz gerekenleri öğrenin.">
     <meta name="keywords" content="para hareketi, moneyway, para akışı, oran ve para okuma, bahis para hareketi, piyasa yönü, SmartXFlow">
     <meta name="robots" content="index, follow">
@@ -62,6 +62,7 @@
         }
     }
     </script>
+    <script src="/static/js/i18n.js?v=2"></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -186,6 +187,80 @@
             .info-card, .warning-card, .scenario-box { padding: 16px 18px; }
             .related-topics { padding: 20px; } .related-topics-grid { grid-template-columns: 1fr; }
         }
+        .lang-picker { position: relative; margin-left: 4px; }
+        .lang-picker-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 12px; border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.85);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+            cursor: pointer; transition: all 160ms ease;
+            backdrop-filter: blur(10px);
+        }
+        .lang-picker-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .lang-picker-btn svg { stroke: currentColor; opacity: 0.7; transition: transform 200ms ease; }
+        .lang-picker.open .lang-picker-btn svg { transform: rotate(180deg); }
+        .lang-picker-globe { width: 13px; height: 13px; opacity: 0.7; }
+        .lang-picker-current { letter-spacing: 0.6px; }
+        .lang-picker-menu {
+            position: absolute; top: calc(100% + 6px); right: 0;
+            min-width: 168px;
+            background: rgba(15, 20, 28, 0.92);
+            backdrop-filter: blur(22px) saturate(1.4);
+            -webkit-backdrop-filter: blur(22px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1100;
+        }
+        .lang-picker.open .lang-picker-menu { display: block; }
+        .lang-picker-menu button {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 9px 12px;
+            background: transparent; border: none;
+            color: rgba(255,255,255,0.78);
+            font-size: 13px; font-weight: 500;
+            text-align: left; border-radius: 9px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .lang-picker-menu button.active { background: rgba(43,255,136,0.10); color: #2BFF88; }
+        .lang-picker-menu .lp-code {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+            min-width: 22px; padding: 2px 6px; border-radius: 5px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+        }
+        .lang-picker-menu button.active .lp-code { background: rgba(43,255,136,0.15); color: #2BFF88; }
+        .mobile-lang-picker {
+            display: none;
+            gap: 6px; flex-wrap: wrap;
+            padding: 12px 8px 4px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .mobile-lang-picker button {
+            flex: 1 1 calc(33% - 6px);
+            min-width: 60px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.7);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .mobile-lang-picker button.active {
+            background: rgba(43,255,136,0.12);
+            border-color: rgba(43,255,136,0.3);
+            color: #2BFF88;
+        }
+        @media (max-width: 900px) { .lang-picker { display: none; } }
+        @media (max-width: 768px) { .mobile-lang-picker { display: flex; } }
     </style>
 </head>
 <body>
@@ -193,18 +268,44 @@
       <div class="navbar-inner">
         <a href="/" class="nav-brand"><span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span></a>
         <div class="nav-links">
-            <a href="/">Ana Sayfa</a><a href="/nedir">Nedir?</a><a href="/#features">Özellikler</a><a href="/pricing">Paketler</a><a href="/rehber" class="active">Rehber</a><a href="/app" class="nav-cta">Uygulamaya Git</a>
+            <a href="/" data-i18n="nav.home">Ana Sayfa</a><a href="/nedir" data-i18n="nav.what">Nedir?</a><a href="/#features" data-i18n="nav.features">Özellikler</a><a href="/pricing" data-i18n="nav.packages">Paketler</a><a href="/rehber" class="active" data-i18n="nav.guide">Rehber</a><div class="lang-picker" id="langPicker">
+                <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-picker-current">TR</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="lang-picker-menu" role="listbox">
+                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
+                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
+                    <button data-lang="de" type="button"><span class="lp-code">DE</span><span data-i18n="lang.de">Deutsch</span></button>
+                    <button data-lang="fr" type="button"><span class="lp-code">FR</span><span data-i18n="lang.fr">Français</span></button>
+                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
+                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
+                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
+                </div>
+            </div>
+            <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
       </div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/">Ana Sayfa</a><a href="/nedir">Nedir?</a><a href="/#features">Özellikler</a><a href="/pricing">Paketler</a><a href="/rehber" class="active">Rehber</a><a href="/app" class="nav-cta">Uygulamaya Git</a>
+        <a href="/" data-i18n="nav.home">Ana Sayfa</a><a href="/nedir" data-i18n="nav.what">Nedir?</a><a href="/#features" data-i18n="nav.features">Özellikler</a><a href="/pricing" data-i18n="nav.packages">Paketler</a><a href="/rehber" class="active" data-i18n="nav.guide">Rehber</a><a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
+        <div class="mobile-lang-picker">
+            <button data-lang="tr" type="button">TR</button>
+            <button data-lang="en" type="button">EN</button>
+            <button data-lang="de" type="button">DE</button>
+            <button data-lang="fr" type="button">FR</button>
+            <button data-lang="nl" type="button">NL</button>
+            <button data-lang="it" type="button">IT</button>
+            <button data-lang="es" type="button">ES</button>
+        </div>
+    
     </div>
 
     <section class="page-hero">
-        <h1><span>Para Hareketi</span> Nasıl Okunur?</h1>
-        <p class="hero-desc">Oranlar piyasanın fiyatını gösterirken, para hareketi piyasanın gerçek pozisyonunu ortaya koyar. Bu sayfada Moneyway verilerinin nasıl okunacağını ve oran ile para akışının birlikte nasıl değerlendirileceğini öğreneceksiniz.</p>
+        <h1><span data-i18n="rehber_para.hero.title_brand">Para Hareketi</span><span data-i18n="rehber_para.hero.title_post"> Nasıl Okunur?</span></h1>
+        <p class="hero-desc" data-i18n="rehber_para.hero.desc">Oranlar piyasanın fiyatını gösterirken, para hareketi piyasanın gerçek pozisyonunu ortaya koyar. Bu sayfada Moneyway verilerinin nasıl okunacağını ve oran ile para akışının birlikte nasıl değerlendirileceğini öğreneceksiniz.</p>
     </section>
 
     <div class="guide-content">
@@ -336,13 +437,13 @@
 
         <div class="cta-strip">
             <div class="cta-strip-left">
-                <div class="cta-strip-badge"><span class="dot"></span> Hemen Başlayın</div>
-                <h3>Para akışını gerçek zamanlı takip edin</h3>
-                <p>SmartXFlow ile Moneyway verilerini ve oran hareketlerini tek ekranda izleyin. Piyasanın gerçek yönünü görün.</p>
+                <div class="cta-strip-badge"><span class="dot"></span> <span data-i18n="rehber_para.cta_b">Hemen Başlayın</span></div>
+                <h3 data-i18n="rehber_para.cta_t">Para akışını gerçek zamanlı takip edin</h3>
+                <p data-i18n="rehber_para.cta_d">SmartXFlow ile Moneyway verilerini ve oran hareketlerini tek ekranda izleyin. Piyasanın gerçek yönünü görün.</p>
             </div>
             <div class="cta-strip-right">
-                <a href="/pricing" class="cta-btn">Paketleri İncele <span>→</span></a>
-                <span class="cta-trust">Core & Pro planlar · Anında erişim</span>
+                <a href="/pricing" class="cta-btn"><span data-i18n="rehber_para.cta_btn">Paketleri İncele</span> <span>→</span></a>
+                <span class="cta-trust" data-i18n="rehber_para.cta_trust">Core & Pro planlar · Anında erişim</span>
             </div>
         </div>
     </div>
@@ -352,25 +453,69 @@
             <div class="footer-row">
                 <div class="footer-brand"><span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span></div>
                 <div class="footer-row-divider"></div>
-                <a href="/">Ana Sayfa</a><a href="/nedir">Nedir?</a><a href="/pricing">Paketler</a><a href="/rehber">Rehber</a><a href="/app">Uygulama</a>
+                <a href="/" data-i18n="nav.home">Ana Sayfa</a><a href="/nedir" data-i18n="nav.what">Nedir?</a><a href="/pricing" data-i18n="nav.packages">Paketler</a><a href="/rehber" data-i18n="nav.guide">Rehber</a><a href="/app" data-i18n="footer.app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
-                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
-                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;" data-i18n="footer.terms">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;" data-i18n="footer.privacy">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;" data-i18n="footer.cookies">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;" data-i18n="footer.disclaimer">Sorumluluk Reddi</a>
             </div>
             <div class="footer-contact">
                 <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg> smartxflow</a>
                 <a href="https://t.me/smartxflow" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12.056 0h-.112zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg> @smartxflow</a>
                 <a href="mailto:smartxflow29@gmail.com"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg> smartxflow29@gmail.com</a>
             </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy" data-i18n="footer.copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
         </div>
     </footer>
     <script>
         function toggleMenu() { document.getElementById('mobileMenu').classList.toggle('open'); }
         window.addEventListener('scroll', function() { var n = document.querySelector('.navbar'); if (window.scrollY > 40) n.classList.add('scrolled'); else n.classList.remove('scrolled'); });
+    </script>
+    <script>
+    (function () {
+        function syncPicker(lang) {
+            var code = (lang || 'tr').toUpperCase();
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
+            document.querySelectorAll('[data-lang]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+            var picker = document.getElementById('langPicker');
+            if (picker) {
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            }
+        }
+        document.addEventListener('click', function (e) {
+            var langBtn = e.target.closest('[data-lang]');
+            if (langBtn && window.SXFI18n) {
+                e.preventDefault();
+                var lang = langBtn.getAttribute('data-lang');
+                window.SXFI18n.set(lang).then(function () {
+                    syncPicker(lang);
+                    var p = document.getElementById('langPicker');
+                    if (p) p.classList.remove('open');
+                }).catch(function () {});
+                return;
+            }
+            var picker = document.getElementById('langPicker');
+            if (!picker) return;
+            if (e.target.closest('.lang-picker-btn')) {
+                picker.classList.toggle('open');
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            } else if (!e.target.closest('#langPicker')) {
+                picker.classList.remove('open');
+            }
+        });
+        function init() {
+            if (!window.SXFI18n) { setTimeout(init, 80); return; }
+            window.SXFI18n.onChange(syncPicker);
+            syncPicker(window.SXFI18n.current());
+        }
+        init();
+    })();
     </script>
 </body>
 </html>

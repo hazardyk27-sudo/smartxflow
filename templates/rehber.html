@@ -12,7 +12,7 @@
       gtag('config', 'G-NN1FFSFF2N');
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>Maç Oran Analizi ve Para Hareketi Rehberi | SmartXFlow</title>
+    <title data-i18n="rehber.meta.title">Maç Oran Analizi ve Para Hareketi Rehberi | SmartXFlow</title>
     <meta name="description" content="Maçlarda oran değişimi, para hareketi ve canlı oran takibi rehberi. Piyasa sinyallerini doğru okumayı SmartXFlow ile öğrenin.">
     <meta name="keywords" content="oran analizi, maç analizi, oran değişimi, para hareketi, canlı oran takibi, dropping odds, moneyway, oran alarmı, SmartXFlow rehber">
     <meta name="robots" content="index, follow">
@@ -86,6 +86,7 @@
         }
     }
     </script>
+    <script src="/static/js/i18n.js?v=2"></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -292,6 +293,80 @@
             .footer { padding: 30px 16px; }
             .footer-contact { flex-wrap: wrap; }
         }
+        .lang-picker { position: relative; margin-left: 4px; }
+        .lang-picker-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 12px; border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.85);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+            cursor: pointer; transition: all 160ms ease;
+            backdrop-filter: blur(10px);
+        }
+        .lang-picker-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .lang-picker-btn svg { stroke: currentColor; opacity: 0.7; transition: transform 200ms ease; }
+        .lang-picker.open .lang-picker-btn svg { transform: rotate(180deg); }
+        .lang-picker-globe { width: 13px; height: 13px; opacity: 0.7; }
+        .lang-picker-current { letter-spacing: 0.6px; }
+        .lang-picker-menu {
+            position: absolute; top: calc(100% + 6px); right: 0;
+            min-width: 168px;
+            background: rgba(15, 20, 28, 0.92);
+            backdrop-filter: blur(22px) saturate(1.4);
+            -webkit-backdrop-filter: blur(22px) saturate(1.4);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1100;
+        }
+        .lang-picker.open .lang-picker-menu { display: block; }
+        .lang-picker-menu button {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 9px 12px;
+            background: transparent; border: none;
+            color: rgba(255,255,255,0.78);
+            font-size: 13px; font-weight: 500;
+            text-align: left; border-radius: 9px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .lang-picker-menu button.active { background: rgba(43,255,136,0.10); color: #2BFF88; }
+        .lang-picker-menu .lp-code {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+            min-width: 22px; padding: 2px 6px; border-radius: 5px;
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+        }
+        .lang-picker-menu button.active .lp-code { background: rgba(43,255,136,0.15); color: #2BFF88; }
+        .mobile-lang-picker {
+            display: none;
+            gap: 6px; flex-wrap: wrap;
+            padding: 12px 8px 4px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .mobile-lang-picker button {
+            flex: 1 1 calc(33% - 6px);
+            min-width: 60px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.7);
+            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
+            cursor: pointer; transition: all 140ms ease;
+        }
+        .mobile-lang-picker button.active {
+            background: rgba(43,255,136,0.12);
+            border-color: rgba(43,255,136,0.3);
+            color: #2BFF88;
+        }
+        @media (max-width: 900px) { .lang-picker { display: none; } }
+        @media (max-width: 768px) { .mobile-lang-picker { display: flex; } }
     </style>
 </head>
 <body>
@@ -301,12 +376,28 @@
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
         <div class="nav-links">
-            <a href="/">Ana Sayfa</a>
-            <a href="/nedir">Nedir?</a>
-            <a href="/#features">Özellikler</a>
-            <a href="/pricing">Paketler</a>
-            <a href="/rehber" class="active">Rehber</a>
-            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+            <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+            <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+            <a href="/#features" data-i18n="nav.features">Özellikler</a>
+            <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+            <a href="/rehber" class="active" data-i18n="nav.guide">Rehber</a>
+            <div class="lang-picker" id="langPicker">
+                <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                    <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-picker-current">TR</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="lang-picker-menu" role="listbox">
+                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
+                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
+                    <button data-lang="de" type="button"><span class="lp-code">DE</span><span data-i18n="lang.de">Deutsch</span></button>
+                    <button data-lang="fr" type="button"><span class="lp-code">FR</span><span data-i18n="lang.fr">Français</span></button>
+                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
+                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
+                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
+                </div>
+            </div>
+            <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
             <span></span><span></span><span></span>
@@ -314,17 +405,26 @@
       </div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/">Ana Sayfa</a>
-        <a href="/nedir">Nedir?</a>
-        <a href="/#features">Özellikler</a>
-        <a href="/pricing">Paketler</a>
-        <a href="/rehber" class="active">Rehber</a>
-        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+        <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+        <a href="/#features" data-i18n="nav.features">Özellikler</a>
+        <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+        <a href="/rehber" class="active" data-i18n="nav.guide">Rehber</a>
+        <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
+        <div class="mobile-lang-picker">
+            <button data-lang="tr" type="button">TR</button>
+            <button data-lang="en" type="button">EN</button>
+            <button data-lang="de" type="button">DE</button>
+            <button data-lang="fr" type="button">FR</button>
+            <button data-lang="nl" type="button">NL</button>
+            <button data-lang="it" type="button">IT</button>
+            <button data-lang="es" type="button">ES</button>
+        </div>
     </div>
 
     <section class="page-hero">
-        <h1><span>Maç Oran Analizi</span> ve Para Hareketi Rehberi</h1>
-        <p class="hero-desc">Maç analizi yaparken oran değişimlerini ve para hareketlerini doğru okumak büyük fark yaratır. Bu rehberde oran analizi, canlı oran takibi, para akışı yorumlama ve alarm sistemlerini sade bir dille öğreneceksiniz.</p>
+        <h1><span data-i18n="rehber.hero.title_brand">Maç Oran Analizi</span><span data-i18n="rehber.hero.title_post"> ve Para Hareketi Rehberi</span></h1>
+        <p class="hero-desc" data-i18n="rehber.hero.desc">Maç analizi yaparken oran değişimlerini ve para hareketlerini doğru okumak büyük fark yaratır. Bu rehberde oran analizi, canlı oran takibi, para akışı yorumlama ve alarm sistemlerini sade bir dille öğreneceksiniz.</p>
     </section>
 
     <div class="hub-content">
@@ -425,17 +525,17 @@
                     <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
                 </div>
                 <div class="footer-row-divider"></div>
-                <a href="/">Ana Sayfa</a>
-                <a href="/nedir">Nedir?</a>
-                <a href="/pricing">Paketler</a>
-                <a href="/rehber">Rehber</a>
-                <a href="/app">Uygulama</a>
+                <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+                <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+                <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+                <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+                <a href="/app" data-i18n="footer.app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
-                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
-                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;" data-i18n="footer.terms">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;" data-i18n="footer.privacy">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;" data-i18n="footer.cookies">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;" data-i18n="footer.disclaimer">Sorumluluk Reddi</a>
             </div>
             <div class="footer-contact">
                 <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
@@ -451,7 +551,7 @@
                     smartxflow29@gmail.com
                 </a>
             </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy" data-i18n="footer.copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
         </div>
     </footer>
 
@@ -467,6 +567,50 @@
                 navbar.classList.remove('scrolled');
             }
         });
+    </script>
+    <script>
+    (function () {
+        function syncPicker(lang) {
+            var code = (lang || 'tr').toUpperCase();
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
+            document.querySelectorAll('[data-lang]').forEach(function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+            });
+            var picker = document.getElementById('langPicker');
+            if (picker) {
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            }
+        }
+        document.addEventListener('click', function (e) {
+            var langBtn = e.target.closest('[data-lang]');
+            if (langBtn && window.SXFI18n) {
+                e.preventDefault();
+                var lang = langBtn.getAttribute('data-lang');
+                window.SXFI18n.set(lang).then(function () {
+                    syncPicker(lang);
+                    var p = document.getElementById('langPicker');
+                    if (p) p.classList.remove('open');
+                }).catch(function () {});
+                return;
+            }
+            var picker = document.getElementById('langPicker');
+            if (!picker) return;
+            if (e.target.closest('.lang-picker-btn')) {
+                picker.classList.toggle('open');
+                var btn = picker.querySelector('.lang-picker-btn');
+                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+            } else if (!e.target.closest('#langPicker')) {
+                picker.classList.remove('open');
+            }
+        });
+        function init() {
+            if (!window.SXFI18n) { setTimeout(init, 80); return; }
+            window.SXFI18n.onChange(syncPicker);
+            syncPicker(window.SXFI18n.current());
+        }
+        init();
+    })();
     </script>
 </body>
 </html>
