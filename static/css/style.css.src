@@ -1548,12 +1548,18 @@ h1, h2, h3, h4, h5, h6,
 .amg-filter-row {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 2px;
     padding: 2px 0 16px 0;
     border-bottom: 1px solid rgba(46, 50, 56, 0.45);
     margin-bottom: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
 }
+.amg-filter-row::-webkit-scrollbar { display: none; }
 .amg-pill {
     flex-shrink: 0;
     padding: 6px 12px;
