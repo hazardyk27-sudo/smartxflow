@@ -1549,31 +1549,35 @@ h1, h2, h3, h4, h5, h6,
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
-    padding: 4px 0 14px 0;
-    border-bottom: 1px solid #2e3238;
-    margin-bottom: 16px;
+    gap: 2px;
+    padding: 2px 0 16px 0;
+    border-bottom: 1px solid rgba(46, 50, 56, 0.45);
+    margin-bottom: 18px;
 }
 .amg-pill {
     flex-shrink: 0;
-    padding: 5px 11px;
-    border-radius: 999px;
+    padding: 6px 12px;
+    border-radius: 7px;
     font-size: 12px;
     font-weight: 500;
-    background: #1c1f23;
+    background: transparent;
     color: #7d848c;
-    border: 1px solid #2e3238;
+    border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: color 0.18s ease, background 0.18s ease;
     white-space: nowrap;
     font-family: inherit;
     line-height: 1.3;
+    letter-spacing: 0.1px;
 }
-.amg-pill:hover { color: #e0e4e8; }
+.amg-pill:hover {
+    color: #e0e4e8;
+    background: rgba(255, 255, 255, 0.025);
+}
 .amg-pill.amg-pill-all-active {
     background: #e0e4e8;
     color: #0d1117;
-    border-color: #e0e4e8;
+    font-weight: 600;
 }
 .amg-cards {
     display: flex;

@@ -196,13 +196,13 @@ function buildMagazineLayout() {
     html += '<button class="amg-pill' + (noneSel ? ' amg-pill-all-active' : '') + '" onclick="filterByAnalyst(null)">Tümü</button>';
     SIGNALS.forEach(function(s) {
         var act = window[s.flag] === true;
-        var styleStr = act ? 'background:rgba(' + s.rgb + ',0.13);border-color:' + s.color + ';color:' + s.color + ';' : '';
+        var styleStr = act ? 'background:rgba(' + s.rgb + ',0.10);color:' + s.color + ';font-weight:600;' : '';
         html += '<button class="amg-pill" style="' + styleStr + '" onclick="' + s.handler + '">' + s.title + '</button>';
     });
     if (_analystsCache && _analystsCache.length > 0) {
         _analystsCache.forEach(function(a) {
             var isAct = _selectedAnalystId == a.id;
-            var st = isAct ? 'background:rgba(125,132,140,0.18);border-color:#7d848c;color:#e0e4e8;' : '';
+            var st = isAct ? 'background:rgba(125,132,140,0.14);color:#e0e4e8;font-weight:600;' : '';
             html += '<button class="amg-pill" style="' + st + '" onclick="filterByAnalyst(' + a.id + ')">' + (a.name || 'Analist') + '</button>';
         });
     }
