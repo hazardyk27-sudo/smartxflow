@@ -171,18 +171,65 @@ var _fakeSharpLastData = null;
 function renderAnalysisList(data) {
     var sidebar = document.getElementById('trendsSidebar');
     var contentArea = document.getElementById('trendsContentArea');
-    if (!data || data.length === 0) {
-        contentArea.innerHTML = '<div class="trends-placeholder"><div style="font-size:32px;margin-bottom:12px;">📊</div><div>Henüz içerik yok</div></div>';
-        sidebar.innerHTML = '';
-        return;
-    }
+    if (!data) data = [];
     sidebar.innerHTML = '';
     _fullAnalysisData = data;
-    var cardsHtml = buildAnalystCards();
-    var filtered = _selectedAnalystId ? data.filter(function(item) { return item.analyst_id == _selectedAnalystId; }) : data;
-    var listHtml = buildAnalysisCards(filtered);
     contentArea.scrollTop = 0;
-    contentArea.innerHTML = '<div style="padding-bottom:20px;">' + cardsHtml + '<div style="display:flex;flex-direction:column;gap:12px;">' + listHtml + '</div></div>';
+    contentArea.innerHTML = buildMagazineLayout();
+}
+
+function buildMagazineLayout() {
+    var SIGNALS = [
+        { id:'underdog', title:'Underdog Pressure', color:'#d29922', rgb:'210,153,34', icon:'⚡', desc:'Beklenmedik hacim artışları ve oran düşüşleriyle desteklenen sürpriz takımları tespit eder. Piyasanın gözden kaçırdığı potansiyel değerleri bulur.', handler:'showUnderdogPressure()', flag:'_viewingUnderdogPressure' },
+        { id:'confirmed', title:'Confirmed Money', color:'#34d399', rgb:'52,211,153', icon:'💰', desc:'Büyük bahis sendikalarının ve akıllı paranın girdiği maçları doğrular. Asya handikap ve taraf bahislerindeki hacim yoğunlaşmalarını gösterir.', handler:'showConfirmedMoney()', flag:'_viewingConfirmedMoney' },
+        { id:'confirmed-v2', title:'Confirmed Money V2', color:'#6366f1', rgb:'99,102,241', icon:'💎', desc:'Geliştirilmiş algoritmasıyla profesyonel oyuncuların son dakika bahislerini yakalar. Daha az fakat daha yüksek güvenilirliğe sahip sinyaller üretir.', handler:'showConfirmedMoneyV2()', flag:'_viewingConfirmedMoneyV2' },
+        { id:'early', title:'Early Money Lock', color:'#58a6ff', rgb:'88,166,255', icon:'🔒', desc:'Piyasa açılışından hemen sonra oluşan erken pozisyonları kilitler. Oranlar düşmeden önce değerli bahisleri yakalamanızı sağlar.', handler:'showEarlyMoneyLock()', flag:'_viewingEarlyMoneyLock' },
+        { id:'fake', title:'Fake Sharp', color:'#f85149', rgb:'248,81,73', icon:'⚠️', desc:'Suni hacim yaratılarak bahisçileri yanıltmaya çalışan hareketleri deşifre eder. Tuzak oranlara düşmenizi engeller.', handler:'showFakeSharp()', flag:'_viewingFakeSharp' }
+    ];
+    var noneSel = !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 && !_viewingEarlyMoneyLock && !_viewingFakeSharp && !_selectedAnalystId;
+
+    var html = '<div class="analyzer-magazine">';
+
+    html += '<div class="amg-filter-row">';
+    html += '<button class="amg-pill' + (noneSel ? ' amg-pill-all-active' : '') + '" onclick="filterByAnalyst(null)">Tümü</button>';
+    SIGNALS.forEach(function(s) {
+        var act = window[s.flag] === true;
+        var styleStr = act ? 'background:rgba(' + s.rgb + ',0.13);border-color:' + s.color + ';color:' + s.color + ';' : '';
+        html += '<button class="amg-pill" style="' + styleStr + '" onclick="' + s.handler + '">' + s.title + '</button>';
+    });
+    if (_analystsCache && _analystsCache.length > 0) {
+        _analystsCache.forEach(function(a) {
+            var isAct = _selectedAnalystId == a.id;
+            var st = isAct ? 'background:rgba(125,132,140,0.18);border-color:#7d848c;color:#e0e4e8;' : '';
+            html += '<button class="amg-pill" style="' + st + '" onclick="filterByAnalyst(' + a.id + ')">' + (a.name || 'Analist') + '</button>';
+        });
+    }
+    html += '</div>';
+
+    html += '<div class="amg-cards">';
+    SIGNALS.forEach(function(s) {
+        html += '<div class="amg-card" onclick="' + s.handler + '" style="--sig-color:' + s.color + ';">';
+        html += '<div class="amg-card-icon" style="background:linear-gradient(135deg,rgba(' + s.rgb + ',0.13),rgba(' + s.rgb + ',0.02));border:1px solid rgba(' + s.rgb + ',0.2);">';
+        html += '<span style="filter:drop-shadow(0 4px 12px rgba(' + s.rgb + ',0.27));">' + s.icon + '</span>';
+        html += '</div>';
+        html += '<div class="amg-card-content">';
+        html += '<div><div class="amg-card-head"><h3 class="amg-card-title">' + s.title + '</h3>';
+        html += '<span class="amg-card-badge" style="color:' + s.color + ';background:rgba(' + s.rgb + ',0.08);border:1px solid rgba(' + s.rgb + ',0.2);">AUTO</span></div>';
+        html += '<p class="amg-card-desc">' + s.desc + '</p></div>';
+        html += '<div class="amg-card-meta">';
+        html += '<div class="amg-meta-item" style="color:' + s.color + ';"><span class="amg-meta-dot" style="background:' + s.color + ';"></span>Detaylar için tıklayın</div>';
+        html += '<div class="amg-meta-sep"></div>';
+        html += '<div class="amg-meta-item amg-meta-muted"><svg class="amg-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Canlı sinyal akışı</div>';
+        html += '</div></div></div>';
+    });
+    html += '</div>';
+
+    html += '<div class="amg-empty"><div class="amg-empty-icon">📊</div>';
+    html += '<p class="amg-empty-text">Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin</p>';
+    html += '<p class="amg-empty-sub">Profesyonel piyasa analizleri</p></div>';
+
+    html += '</div>';
+    return html;
 }
 
 function buildAnalystCards() {
