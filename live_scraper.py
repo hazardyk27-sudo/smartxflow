@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import re
+import json
 import hashlib
 import requests
 import traceback
@@ -126,6 +127,61 @@ _ss_session_ts = 0
 _apifootball_cache: Dict[str, Dict] = {}
 _apifootball_cache_ts: float = 0.0
 APIFOOTBALL_CACHE_TTL = 15 * 60
+
+
+def _load_league_mapping() -> Dict[str, Dict]:
+    """SX lig adı (normalize edilmiş) → {af_ids, af_names, country} lookup."""
+    try:
+        path = os.path.join(os.path.dirname(__file__), 'data', 'league_mapping.json')
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        leagues = data.get('leagues', {}) or {}
+        log(f"  [LeagueMap] {len(leagues)} SX↔AF eşleşme yüklendi")
+        return leagues
+    except FileNotFoundError:
+        log("  [LeagueMap] data/league_mapping.json bulunamadı — fuzzy fallback")
+        return {}
+    except Exception as e:
+        log(f"  [LeagueMap] Yükleme hatası: {e} — fuzzy fallback")
+        return {}
+
+
+_LEAGUE_MAPPING: Dict[str, Dict] = _load_league_mapping()
+
+
+def _league_lookup_key(s: str) -> str:
+    if not s:
+        return ''
+    return re.sub(r'\s+', ' ', s.strip().lower())
+
+
+def _league_match_score(sx_league: str, ss_league: str) -> float:
+    """SX ↔ Sofascore/APIFootball lig adı eşleşme skoru (0..1).
+
+    1) Mapping'de SX adı varsa ve af_names'ten biri ss_league ile eşleşiyorsa 1.0.
+    2) Mapping'de SX adı varsa ama hiçbir af_name eşleşmiyorsa 0.0 (kesin reddet).
+    3) Mapping'de SX adı yoksa eski fuzzy davranışı (geri uyumluluk).
+    """
+    if not sx_league or not ss_league:
+        return -1.0
+    sx_key = _league_lookup_key(sx_league)
+    entry = _LEAGUE_MAPPING.get(sx_key)
+    ss_norm = _normalize_team(ss_league)
+    if entry:
+        for af_name in entry.get('af_names', []):
+            af_norm = _normalize_team(af_name)
+            if not af_norm:
+                continue
+            if af_norm == ss_norm:
+                return 1.0
+            sc = _team_match_score(af_norm, ss_norm)
+            if sc >= 0.85:
+                return sc
+        return 0.0
+    sx_norm = _normalize_team(sx_league)
+    if not sx_norm or not ss_norm:
+        return -1.0
+    return _team_match_score(sx_norm, ss_norm)
 
 
 _TEAM_ABBREVS = {
@@ -348,7 +404,7 @@ def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, D
             ko_diff = _kickoff_diff_seconds(bw_ko, ss_ko)
             ss_league = ssd_tmp.get('league', '')
             ss_league_norm = _normalize_team(ss_league) if ss_league else ''
-            league_sc = _team_match_score(bw_league_norm, ss_league_norm) if bw_league_norm and ss_league_norm else -1.0
+            league_sc = _league_match_score(bw_league, ss_league)
             if combined > 0.20:
                 top_candidates.append((combined, h_score, a_score, ss_full_key,
                                        ssd_tmp.get('home', ''), ssd_tmp.get('away', ''),
@@ -1182,7 +1238,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                         continue
                     ss_league = sv.get('league', '')
                     ss_league_norm = _normalize_team(ss_league) if ss_league else ''
-                    league_sc = _team_match_score(db_league_norm, ss_league_norm) if db_league_norm and ss_league_norm else -1.0
+                    league_sc = _league_match_score(db_league, ss_league)
                     if league_sc >= 0 and league_sc < 0.50:
                         continue
                     if combined > best_score:
