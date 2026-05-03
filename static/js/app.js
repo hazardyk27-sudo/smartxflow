@@ -585,7 +585,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${c1}">${formatVolumeCompact(d.Amt1)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -601,7 +601,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${cX}">${formatVolumeCompact(d.AmtX)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -617,7 +617,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${c2}">${formatVolumeCompact(d.Amt2)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -668,7 +668,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${cU}">${formatVolumeCompact(d.AmtUnder)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -684,7 +684,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${cO}">${formatVolumeCompact(d.AmtOver)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -728,7 +728,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${cY}">${formatVolumeCompact(d.AmtYes)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -744,7 +744,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">'+_t('app.mod.amount','Miktar')+'</span>
                             <span class="row-value money ${cN}">${formatVolumeCompact(d.AmtNo)}</span>
                         </div>
                         <div class="column-row row-pct">

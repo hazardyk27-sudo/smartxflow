@@ -581,6 +581,7 @@
 "app.meta.og_title","","SmartXFlow Monitor - Piyasa Takip Paneli","SmartXFlow Monitor - Market Tracking Panel","SmartXFlow Monitor - Marktüberwachungspanel","SmartXFlow Monitor - Panneau de Suivi du Marché","SmartXFlow Monitor - Markttrackingpaneel","SmartXFlow Monitor - Pannello di Monitoraggio del Mercato","SmartXFlow Monitor - Panel de Seguimiento del Mercado"
 "app.meta.title","","SmartXFlow - Bahis Oranı Monitörü","SmartXFlow - Betting Odds Monitor","SmartXFlow - Wetten-Quoten-Monitor","SmartXFlow - Moniteur de Cotes","SmartXFlow - Wedden Odds Monitor","SmartXFlow - Monitor Quote Scommesse","SmartXFlow - Monitor de Cuotas"
 "app.meta.tw_title","","SmartXFlow Monitor","SmartXFlow Monitor","SmartXFlow Monitor","SmartXFlow Monitor","SmartXFlow Monitor","SmartXFlow Monitor","SmartXFlow Monitor"
+"app.mod.amount","","Miktar","Amount","Betrag","Montant","Bedrag","Importo","Importe"
 "app.mod.chart","","Grafik","Chart","Diagramm","Graphique","Grafiek","Grafico","Gráfico"
 "app.mod.chart_loading","","Grafik yukleniyor...","Loading chart...","Diagramm wird geladen...","Chargement du graphique...","Grafiek laden...","Caricamento grafico...","Cargando gráfico..."
 "app.mod.match_detail","","Maç Detayları","Match Details","Spieldetails","Détails du Match","Wedstrijddetails","Dettagli Partita","Detalles del Partido"
