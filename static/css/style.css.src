@@ -13108,6 +13108,31 @@ table.desktop-only {
 .license-days-badge svg {
     stroke: currentColor;
 }
+.lang-picker-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: #e6edf3;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+.lang-picker-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.20);
+}
+.lang-picker-btn .lang-picker-icon {
+    flex-shrink: 0;
+    stroke: currentColor;
+}
 @media (max-width: 768px) {
     .license-days-badge {
         padding: 4px 8px;
@@ -13115,6 +13140,15 @@ table.desktop-only {
         gap: 4px;
     }
     .license-days-badge svg {
+        width: 10px;
+        height: 10px;
+    }
+    .lang-picker-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+        gap: 4px;
+    }
+    .lang-picker-btn .lang-picker-icon {
         width: 10px;
         height: 10px;
     }

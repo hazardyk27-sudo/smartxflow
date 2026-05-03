@@ -149,8 +149,8 @@
                 <span id="licenseDaysText" data-i18n="idx.gun">-- gun</span>
             </div>
             <div class="lang-picker" style="position:relative;display:inline-flex;align-items:center;margin-right:8px;">
-    <button id="langPickerBtn" type="button" onclick="(function(e){var m=document.getElementById('langPickerMenu');m.style.display=m.style.display==='block'?'none':'block';e.stopPropagation();})(event)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e6edf3;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+    <button id="langPickerBtn" class="lang-picker-btn" type="button" onclick="(function(e){var m=document.getElementById('langPickerMenu');m.style.display=m.style.display==='block'?'none':'block';e.stopPropagation();})(event)">
+        <svg class="lang-picker-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
         <span id="langPickerLabel">TR</span>
     </button>
     <div id="langPickerMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1c1f23;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;min-width:120px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
