@@ -17,20 +17,20 @@
       gtag('js', new Date());
       gtag('config', 'G-NN1FFSFF2N');
     </script>
-    <title>SmartXFlow - Betting Odds Monitor</title>
-    <meta name="description" content="SmartXFlow Monitor - Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
+    <title data-i18n="app.meta.title">SmartXFlow - Betting Odds Monitor</title>
+    <meta name="description" data-i18n-attr="content:app.meta.desc" content="SmartXFlow Monitor - Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://smartxflow.com/app">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SmartXFlow Monitor - Piyasa Takip Paneli">
-    <meta property="og:description" content="Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
+    <meta property="og:title" data-i18n-attr="content:app.meta.og_title" content="SmartXFlow Monitor - Piyasa Takip Paneli">
+    <meta property="og:description" data-i18n-attr="content:app.meta.desc" content="Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
     <meta property="og:url" content="https://smartxflow.com/app">
     <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <meta property="og:locale" content="tr_TR">
     <meta property="og:site_name" content="SmartXFlow">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="SmartXFlow Monitor">
-    <meta name="twitter:description" content="Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
+    <meta name="twitter:description" data-i18n-attr="content:app.meta.desc" content="Canlı para akışı, oran hareketleri ve akıllı alarm sinyalleri ile profesyonel piyasa takip paneli.">
     <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
@@ -47,14 +47,15 @@
     <script defer src="/static/js/vendor/dayjs-customParseFormat.js"></script>
     <script defer src="/static/js/app.js?v=1777747900"></script>
     <script defer src="/static/js/ui.js?v=1777746800"></script>
-</head>
+<script defer src="/static/js/i18n.js?v=4"></script>
+    </head>
 <body>
     <!-- License Gate - Birebir Desktop Aynisi -->
     <div id="licenseGate" class="license-gate">
         <div class="license-container">
             <img src="/static/images/smartxflow_logo.png" alt="SmartXFlow" class="license-logo">
             <h1 class="license-title">SmartXFlow Monitor</h1>
-            <p class="license-subtitle"><span class="green">Akıllı Para</span> <span class="muted">&</span> <span class="red">Oran Takibi</span></p>
+            <p class="license-subtitle"><span class="green" data-i18n="app.lic.subtitle_smart">Akıllı Para</span> <span class="muted">&</span> <span class="red" data-i18n="app.lic.subtitle_odds">Oran Takibi</span></p>
             
             <div id="licenseProgressBar" class="license-progress-bar">
                 <div class="license-progress-fill" id="licenseProgressFill"></div>
@@ -64,29 +65,29 @@
             <div id="licenseSuccess" class="license-success"></div>
             
             <div class="license-form-group">
-                <label>Lisans Anahtari</label>
+                <label data-i18n="app.lic.key_label">Lisans Anahtari</label>
                 <input type="text" id="licenseKeyInput" placeholder="SXF-XXXX-XXXX-XXXX" maxlength="18" autocomplete="off" spellcheck="false">
             </div>
             
             <button class="license-btn" id="licenseSubmitBtn" onclick="validateWebLicense()">
-                <span class="license-btn-text">Lisansi Aktif Et</span>
+                <span class="license-btn-text" data-i18n="app.lic.activate">Lisansi Aktif Et</span>
                 <div class="license-btn-loading" id="licenseBtnLoading"><div class="license-spinner"></div></div>
             </button>
-            <div class="license-btn-hint">Lisans dogrulamasi birkac saniye surebilir</div>
+            <div class="license-btn-hint" data-i18n="app.lic.verify_msg">Lisans dogrulamasi birkac saniye surebilir</div>
             
             <button class="license-btn license-test-btn" id="testModeBtn" onclick="activateTestMode()">
-                <span class="license-btn-text">Ücretsiz Test Et</span>
+                <span class="license-btn-text" data-i18n="app.lic.test_btn">Ücretsiz Test Et</span>
             </button>
-            <div class="license-btn-hint">Kayit gerektirmez • Sınırlı Erişim</div>
+            <div class="license-btn-hint" data-i18n="app.lic.test_hint">Kayit gerektirmez • Sınırlı Erişim</div>
             
             <a href="/pricing" class="license-shopier-btn">
                 <span class="license-shopier-icon">🛒</span>
-                <span>Lisans Satin Al</span>
+                <span data-i18n="app.lic.buy_btn">Lisans Satin Al</span>
             </a>
-            <div class="license-shopier-hint">Paketleri incele • Hemen basla</div>
+            <div class="license-shopier-hint" data-i18n="app.lic.buy_hint">Paketleri incele • Hemen basla</div>
             
             <div class="license-social-section">
-                <div class="license-social-title">Bize Ulasin</div>
+                <div class="license-social-title" data-i18n="app.lic.contact">Bize Ulasin</div>
                 <div class="license-social-icons">
                     <a href="https://www.instagram.com/smartxflow/" target="_blank" rel="noopener noreferrer" class="license-social-link instagram">
                         <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
@@ -103,7 +104,7 @@
                 </div>
             </div>
             
-            <a href="/" class="license-back-btn">← Ana Sayfaya Don</a>
+            <a href="/" class="license-back-btn" data-i18n="app.lic.back">← Ana Sayfaya Don</a>
         </div>
     </div>
     
@@ -115,7 +116,7 @@
                     <img src="/static/images/smartxflow_logo.png" alt="SmartFlow" class="logo-icon">
                     <span class="logo-flow">FLOW</span>
                 </div>
-                <div class="logo-subtitle">Para ve Oran Takip Monitörü</div>
+                <div class="logo-subtitle" data-i18n="app.hdr.subtitle">Para ve Oran Takip Monitörü</div>
             </div>
         </div>
         <div class="header-right">
@@ -130,14 +131,14 @@
                     <path d="M3 22v-6h6"/>
                     <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
                 </svg>
-                <span>Yenile</span>
+                <span data-i18n="app.hdr.refresh">Yenile</span>
             </button>
             <div class="last-update-info" id="lastUpdateInfo">
-                <span class="last-update-label">Son Guncelleme:</span>
+                <span class="last-update-label" data-i18n="app.hdr.last_update">Son Guncelleme:</span>
                 <span class="last-update-time" id="lastUpdateTime">--:--</span>
                 <span class="last-update-tz">(TR)</span>
             </div>
-            <span class="mobile-last-update" id="mobileLastUpdate">Son: <span id="mobileLastUpdateTime">--:--</span></span>
+            <span class="mobile-last-update" id="mobileLastUpdate"><span data-i18n="app.hdr.last_short">Son:</span> <span id="mobileLastUpdateTime">--:--</span></span>
             <div class="license-days-badge" id="licenseDaysBadge" style="display: none;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -147,13 +148,51 @@
                 </svg>
                 <span id="licenseDaysText">-- gun</span>
             </div>
-            <button class="logout-btn" id="logoutBtn" onclick="logoutWebLicense()" title="Çıkış Yap">
+            <div class="lang-picker" style="position:relative;display:inline-flex;align-items:center;margin-right:8px;">
+    <button id="langPickerBtn" type="button" onclick="(function(e){var m=document.getElementById('langPickerMenu');m.style.display=m.style.display==='block'?'none':'block';e.stopPropagation();})(event)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e6edf3;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+        <span id="langPickerLabel">TR</span>
+    </button>
+    <div id="langPickerMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1c1f23;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;min-width:120px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <button type="button" data-lang="tr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇹🇷 Türkçe</button>
+        <button type="button" data-lang="en" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇬🇧 English</button>
+        <button type="button" data-lang="de" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇩🇪 Deutsch</button>
+        <button type="button" data-lang="fr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇫🇷 Français</button>
+        <button type="button" data-lang="nl" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇳🇱 Nederlands</button>
+        <button type="button" data-lang="it" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇮🇹 Italiano</button>
+        <button type="button" data-lang="es" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇪🇸 Español</button>
+    </div>
+</div>
+<script>
+(function(){
+    function applyLP(){
+        var lbl=document.getElementById('langPickerLabel');
+        if(lbl && window.SXFI18n){lbl.textContent=window.SXFI18n.current().toUpperCase();}
+    }
+    document.addEventListener('click',function(e){
+        var m=document.getElementById('langPickerMenu');
+        if(!m)return;
+        if(e.target.classList && e.target.classList.contains('lp-opt')){
+            var l=e.target.getAttribute('data-lang');
+            if(window.SXFI18n){window.SXFI18n.set(l).then(applyLP);}
+            m.style.display='none';
+        }else if(!e.target.closest && !e.target.closest('.lang-picker')){
+            m.style.display='none';
+        }else if(e.target.closest && !e.target.closest('.lang-picker')){
+            m.style.display='none';
+        }
+    });
+    if(window.SXFI18n){window.SXFI18n.onChange(applyLP);applyLP();}
+    else{window.addEventListener('load',function(){setTimeout(applyLP,300);});}
+})();
+</script>
+            <button class="logout-btn" id="logoutBtn" onclick="logoutWebLicense()" title="Çıkış Yap" data-i18n-attr="title:app.hdr.logout_title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16 17 21 12 16 7"/>
                     <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
-                <span class="logout-text">Çıkış</span>
+                <span class="logout-text" data-i18n="app.hdr.logout">Çıkış</span>
             </button>
         </div>
     </header>
@@ -161,14 +200,14 @@
     <!-- Alert Band -->
     <div class="alert-band" id="alertBand">
         <div class="alert-band-track" id="alertBandTrack">
-            <span class="alert-band-empty">Alarm bekleniyor...</span>
+            <span class="alert-band-empty" data-i18n="app.alm.waiting">Alarm bekleniyor...</span>
         </div>
         <button class="btn-alarms" id="alarmsBtn" onclick="toggleAlarmsSidebar()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            <span>Alarmlar</span>
+            <span data-i18n="app.alm.btn">Alarmlar</span>
             <span class="alarms-badge" id="alarmsBadge">0</span>
         </button>
     </div>
@@ -198,25 +237,25 @@
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Oran 1X2
+            <span data-i18n="app.tab.odds_1x2">Oran 1X2</span>
         </button>
         <button class="tab" data-market="dropping_ou25">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Oran 2.5
+            <span data-i18n="app.tab.odds_25">Oran 2.5</span>
         </button>
         <button class="tab" data-market="dropping_btts">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/>
                 <polyline points="17 18 23 18 23 12"/>
             </svg>
-            Oran KG
+            <span data-i18n="app.tab.odds_btts">Oran KG</span>
         </button>
         <button class="tab tab-live" data-market="live" onclick="switchToLive()">
             <span class="live-dot"></span>
-            Canlı
+            <span data-i18n="app.tab.live">Canlı</span>
         </button>
     </nav>
     
@@ -224,7 +263,7 @@
     <div class="mobile-tab-system mobile-only" style="display:none !important;">
         <div class="mobile-tab-row group-row">
             <button class="mobile-tab-btn active" data-group="moneyway" onclick="setMobileGroup('moneyway')">Moneyway</button>
-            <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')">Oran</button>
+            <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')" data-i18n="app.tab.odds_drop">Oran</button>
             <button class="mobile-tab-btn mobile-live-btn" data-group="live" onclick="switchToLive()"><span class="live-dot"></span> Canlı</button>
         </div>
         <div class="mobile-tab-row market-row">
@@ -238,7 +277,7 @@
     <div class="mob-ctrl mobile-only">
         <div class="mob-ctrl-row mob-cat-row" id="mobCatRow">
             <button class="mob-tab active" data-cat="moneyway" onclick="selectMobCat('moneyway')">Moneyway</button>
-            <button class="mob-tab" data-cat="dropping" onclick="selectMobCat('dropping')">Oran</button>
+            <button class="mob-tab" data-cat="dropping" onclick="selectMobCat('dropping')" data-i18n="app.tab.odds_drop">Oran</button>
             <button class="mob-tab" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> Canlı</button>
         </div>
         <div class="mob-ctrl-row mob-mkt-row" id="mobMktRow">
@@ -285,13 +324,13 @@
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                         </svg>
-                        Kılavuz
+                        <span data-i18n="app.flt.guide">Kılavuz</span>
                     </button>
                     <button onclick="_testGuardAnalysis(this); closeMobileOverflow();">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
-                        Analizler
+                        <span data-i18n="app.flt.analysts">Analizler</span>
                         <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
                 </div>
@@ -354,7 +393,7 @@
                 
                 <!-- Desktop: Match count -->
                 <div class="match-count desktop-only">
-                    <span class="mc-label" id="matchCountLabel"></span><span class="mc-num" id="matchCount">0</span><span class="mc-label" id="matchCountSuffix"> Maç</span>
+                    <span class="mc-label" id="matchCountLabel"></span><span class="mc-num" id="matchCount">0</span><span class="mc-label" id="matchCountSuffix" data-i18n="app.flt.match_count"> Maç</span>
                 </div>
             </div>
             
@@ -375,20 +414,20 @@
                     </colgroup>
                     <thead>
                         <tr>
-                            <th class="col-date sortable" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow"></span></th>
-                            <th class="col-league sortable" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow"></span></th>
-                            <th class="col-match sortable" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow"></span></th>
+                            <th class="col-date sortable" data-sort="date" onclick="sortByColumn('date')"><span data-i18n="app.tbl.date">TARİH</span> <span class="sort-arrow"></span></th>
+                            <th class="col-league sortable" data-sort="league" onclick="sortByColumn('league')"><span data-i18n="app.tbl.league">LİG</span> <span class="sort-arrow"></span></th>
+                            <th class="col-match sortable" data-sort="match" onclick="sortByColumn('match')"><span data-i18n="app.tbl.match">MAÇ</span> <span class="sort-arrow"></span></th>
                             <th class="col-selection sortable" data-sort="sel1" onclick="sortByColumn('sel1')">1 <span class="sort-arrow"></span></th>
                             <th class="col-selection sortable" data-sort="selX" onclick="sortByColumn('selX')">X <span class="sort-arrow"></span></th>
                             <th class="col-selection sortable" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow"></span></th>
-                            <th class="col-volume sortable" data-sort="volume" onclick="sortByColumn('volume')">MİKTAR <span class="sort-arrow"></span></th>
+                            <th class="col-volume sortable" data-sort="volume" onclick="sortByColumn('volume')"><span data-i18n="app.tbl.amount">MİKTAR</span> <span class="sort-arrow"></span></th>
                         </tr>
                     </thead>
                     <tbody id="matchesTableBody">
                         <tr class="loading-row">
                             <td colspan="7">
                                 <div class="loading-spinner"></div>
-                                Yükleniyor...
+                                <span data-i18n="app.tbl.loading">Yükleniyor...</span>
                             </td>
                         </tr>
                     </tbody>

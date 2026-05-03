@@ -17,7 +17,8 @@
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-</head>
+<script defer src="/static/js/i18n.js?v=4"></script>
+    </head>
 <body class="match-detail-page">
     <header class="header">
         <div class="header-left">
@@ -32,8 +33,48 @@
                     <img src="/static/images/smartxflow_logo.png" alt="SmartFlow" class="logo-icon">
                     <span class="logo-flow">FLOW</span>
                 </div>
-                <div class="logo-subtitle">Match Detail</div>
+                <div class="logo-subtitle" data-i18n="app.md.subtitle">Match Detail</div>
             </div>
+        </div>
+    <div class="header-right" style="margin-left:auto;display:flex;align-items:center;padding-right:16px;">
+            <div class="lang-picker" style="position:relative;display:inline-flex;align-items:center;margin-right:8px;">
+    <button id="langPickerBtn" type="button" onclick="(function(e){var m=document.getElementById('langPickerMenu');m.style.display=m.style.display==='block'?'none':'block';e.stopPropagation();})(event)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e6edf3;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
+        <span id="langPickerLabel">TR</span>
+    </button>
+    <div id="langPickerMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1c1f23;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;min-width:120px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <button type="button" data-lang="tr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇹🇷 Türkçe</button>
+        <button type="button" data-lang="en" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇬🇧 English</button>
+        <button type="button" data-lang="de" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇩🇪 Deutsch</button>
+        <button type="button" data-lang="fr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇫🇷 Français</button>
+        <button type="button" data-lang="nl" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇳🇱 Nederlands</button>
+        <button type="button" data-lang="it" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇮🇹 Italiano</button>
+        <button type="button" data-lang="es" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇪🇸 Español</button>
+    </div>
+</div>
+<script>
+(function(){
+    function applyLP(){
+        var lbl=document.getElementById('langPickerLabel');
+        if(lbl && window.SXFI18n){lbl.textContent=window.SXFI18n.current().toUpperCase();}
+    }
+    document.addEventListener('click',function(e){
+        var m=document.getElementById('langPickerMenu');
+        if(!m)return;
+        if(e.target.classList && e.target.classList.contains('lp-opt')){
+            var l=e.target.getAttribute('data-lang');
+            if(window.SXFI18n){window.SXFI18n.set(l).then(applyLP);}
+            m.style.display='none';
+        }else if(!e.target.closest && !e.target.closest('.lang-picker')){
+            m.style.display='none';
+        }else if(e.target.closest && !e.target.closest('.lang-picker')){
+            m.style.display='none';
+        }
+    });
+    if(window.SXFI18n){window.SXFI18n.onChange(applyLP);applyLP();}
+    else{window.addEventListener('load',function(){setTimeout(applyLP,300);});}
+})();
+</script>
         </div>
     </header>
 
