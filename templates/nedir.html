@@ -11,10 +11,11 @@
       gtag('js', new Date());
       gtag('config', 'G-NN1FFSFF2N');
     </script>
+    <script src="/static/js/i18n.js?v=1" defer></script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title data-i18n="nedir.meta.title">SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow</title>
-    <meta name="description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur." data-i18n-attr="content:nedir.meta.desc">
-    <meta name="keywords" content="SmartXFlow nedir, oran hareketi analiz, para akışı takip, bahis piyasa analizi, dropping odds nedir, moneyway nedir" data-i18n-attr="content:nedir.smartxflow_nedir_oran_hareketi_analiz_para_akisi">
+    <title data-i18n="nedir.meta_title">SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow</title>
+    <meta name="description" data-i18n-attr="content:nedir.meta_description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur.">
+    <meta name="keywords" content="SmartXFlow nedir, oran hareketi analiz, para akışı takip, bahis piyasa analizi, dropping odds nedir, moneyway nedir">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://smartxflow.com/nedir">
     <script type="application/ld+json">
@@ -40,17 +41,16 @@
     }
     </script>
     <meta property="og:type" content="article">
-    <meta property="og:title" content="SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow" data-i18n-attr="content:nedir.meta.title">
-    <meta property="og:description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur." data-i18n-attr="content:nedir.meta.desc">
+    <meta property="og:title" data-i18n-attr="content:nedir.meta_title" content="SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow">
+    <meta property="og:description" data-i18n-attr="content:nedir.meta_description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur.">
     <meta property="og:url" content="https://smartxflow.com/nedir">
     <meta property="og:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
     <meta property="og:locale" content="tr_TR">
     <meta property="og:site_name" content="SmartXFlow">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow" data-i18n-attr="content:nedir.meta.title">
-    <meta name="twitter:description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur." data-i18n-attr="content:nedir.meta.desc">
+    <meta name="twitter:title" data-i18n-attr="content:nedir.meta_title" content="SmartXFlow Nedir? Akıllı Para ve Oran Takip Platformu | SmartXFlow">
+    <meta name="twitter:description" data-i18n-attr="content:nedir.meta_description" content="SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz eden profesyonel bir piyasa analiz ve sinyal platformudur.">
     <meta name="twitter:image" content="https://smartxflow.com/static/images/smartxflow_logo.png">
-    <script src="/static/js/i18n.js?v={{ asset_v("js/i18n.js") }}"></script>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -451,80 +451,6 @@
             .cta-btn { width: 100%; justify-content: center; }
             .footer-contact { flex-wrap: wrap; }
         }
-        .lang-picker { position: relative; margin-left: 4px; }
-        .lang-picker-btn {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 12px; border-radius: 999px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.85);
-            font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
-            cursor: pointer; transition: all 160ms ease;
-            backdrop-filter: blur(10px);
-        }
-        .lang-picker-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
-        .lang-picker-btn svg { stroke: currentColor; opacity: 0.7; transition: transform 200ms ease; }
-        .lang-picker.open .lang-picker-btn svg { transform: rotate(180deg); }
-        .lang-picker-globe { width: 13px; height: 13px; opacity: 0.7; }
-        .lang-picker-current { letter-spacing: 0.6px; }
-        .lang-picker-menu {
-            position: absolute; top: calc(100% + 6px); right: 0;
-            min-width: 168px;
-            background: rgba(15, 20, 28, 0.92);
-            backdrop-filter: blur(22px) saturate(1.4);
-            -webkit-backdrop-filter: blur(22px) saturate(1.4);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
-            padding: 6px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 1100;
-        }
-        .lang-picker.open .lang-picker-menu { display: block; }
-        .lang-picker-menu button {
-            display: flex; align-items: center; gap: 10px;
-            width: 100%; padding: 9px 12px;
-            background: transparent; border: none;
-            color: rgba(255,255,255,0.78);
-            font-size: 13px; font-weight: 500;
-            text-align: left; border-radius: 9px;
-            cursor: pointer; transition: all 140ms ease;
-        }
-        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .lang-picker-menu button.active { background: rgba(43,255,136,0.10); color: #2BFF88; }
-        .lang-picker-menu .lp-code {
-            font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
-            min-width: 22px; padding: 2px 6px; border-radius: 5px;
-            background: rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.7);
-            text-align: center;
-        }
-        .lang-picker-menu button.active .lp-code { background: rgba(43,255,136,0.15); color: #2BFF88; }
-        .mobile-lang-picker {
-            display: none;
-            gap: 6px; flex-wrap: wrap;
-            padding: 12px 8px 4px;
-            margin-top: 8px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-        }
-        .mobile-lang-picker button {
-            flex: 1 1 calc(33% - 6px);
-            min-width: 60px;
-            padding: 8px 10px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.07);
-            color: rgba(255,255,255,0.7);
-            font-size: 12px; font-weight: 600; letter-spacing: 0.5px;
-            cursor: pointer; transition: all 140ms ease;
-        }
-        .mobile-lang-picker button.active {
-            background: rgba(43,255,136,0.12);
-            border-color: rgba(43,255,136,0.3);
-            color: #2BFF88;
-        }
-        @media (max-width: 900px) { .lang-picker { display: none; } }
-        @media (max-width: 768px) { .mobile-lang-picker { display: flex; } }
     </style>
 </head>
 <body>
@@ -539,22 +465,6 @@
             <a href="/#features" data-i18n="nav.features">Özellikler</a>
             <a href="/pricing" data-i18n="nav.packages">Paketler</a>
             <a href="/rehber" data-i18n="nav.guide">Rehber</a>
-            <div class="lang-picker" id="langPicker">
-                <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
-                    <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    <span class="lang-picker-current">TR</span>
-                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="lang-picker-menu" role="listbox">
-                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
-                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
-                    <button data-lang="de" type="button"><span class="lp-code">DE</span><span data-i18n="lang.de">Deutsch</span></button>
-                    <button data-lang="fr" type="button"><span class="lp-code">FR</span><span data-i18n="lang.fr">Français</span></button>
-                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
-                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
-                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
-                </div>
-            </div>
             <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
@@ -569,23 +479,14 @@
         <a href="/pricing" data-i18n="nav.packages">Paketler</a>
         <a href="/rehber" data-i18n="nav.guide">Rehber</a>
         <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
-        <div class="mobile-lang-picker">
-            <button data-lang="tr" type="button">TR</button>
-            <button data-lang="en" type="button">EN</button>
-            <button data-lang="de" type="button">DE</button>
-            <button data-lang="fr" type="button">FR</button>
-            <button data-lang="nl" type="button">NL</button>
-            <button data-lang="it" type="button">IT</button>
-            <button data-lang="es" type="button">ES</button>
-        </div>
     </div>
 
     <section class="page-hero">
-        <h1><span data-i18n="nedir.hero.title_brand">SmartXFlow</span><span data-i18n="nedir.hero.title_post"> Nedir?</span></h1>
-        <p class="hero-desc" data-i18n-html="nedir.hero.desc1">
-            SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz ederek piyasalardaki önemli değişimleri erken fark etmenizi sağlayan bir <strong data-i18n="nedir.piyasa_analiz_ve_sinyal_platformudur">piyasa analiz ve sinyal platformudur.</strong>
+        <h1 data-i18n-html="nedir.hero_title"><span>SmartXFlow</span> Nedir?</h1>
+        <p class="hero-desc" data-i18n-html="nedir.hero_desc1">
+            SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz ederek piyasalardaki önemli değişimleri erken fark etmenizi sağlayan bir <strong>piyasa analiz ve sinyal platformudur.</strong>
         </p>
-        <p class="hero-desc" style="margin-top: 20px;" data-i18n="nedir.hero.desc2">
+        <p class="hero-desc" style="margin-top: 20px;" data-i18n="nedir.hero_desc2">
             Platform, farklı veri kaynaklarından gelen piyasa hareketlerini tek ekranda toplayarak, karmaşık verileri anlaşılır sinyallere dönüştürür. Böylece kullanıcılar piyasada oluşan sıra dışı hareketleri hızlı şekilde görebilir ve veriye dayalı kararlar alabilir.
         </p>
     </section>
@@ -593,8 +494,8 @@
     <section class="content-section">
         <div class="why-section">
             <div class="why-left">
-                <h2><span data-i18n="nedir.why.l1">Neden</span><br><span data-i18n="nedir.why.l2">SmartXFlow?</span></h2>
-                <p data-i18n="nedir.why.desc">Piyasa hareketlerini erken görmek, veriye dayalı analiz yapmak ve akıllı sinyallerle karar sürecini hızlandırmak için geliştirildi.</p>
+                <h2 data-i18n-html="nedir.why_title">Neden<br><span>SmartXFlow?</span></h2>
+                <p data-i18n="nedir.why_intro">Piyasa hareketlerini erken görmek, veriye dayalı analiz yapmak ve akıllı sinyallerle karar sürecini hızlandırmak için geliştirildi.</p>
             </div>
             <div class="why-features">
                 <div class="why-feature">
@@ -602,8 +503,8 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
                     <div class="why-f-text">
-                        <h4 data-i18n="nedir.why.f1h">Piyasayı Daha Erken Görün</h4>
-                        <p data-i18n="nedir.why.f1p">Ani para girişleri ve hızlı oran değişimleri otomatik olarak tespit edilir, önemli hareketleri kaçırmazsınız.</p>
+                        <h4 data-i18n="nedir.why_f1_title">Piyasayı Daha Erken Görün</h4>
+                        <p data-i18n="nedir.why_f1_desc">Ani para girişleri ve hızlı oran değişimleri otomatik olarak tespit edilir, önemli hareketleri kaçırmazsınız.</p>
                     </div>
                 </div>
                 <div class="why-feature">
@@ -611,8 +512,8 @@
                         <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </div>
                     <div class="why-f-text">
-                        <h4 data-i18n="nedir.why.f2h">Gerçek Veriye Dayalı Analiz</h4>
-                        <p data-i18n="nedir.why.f2p">Kararlarınızı tahminlere değil, gerçek zamanlı piyasa verilerine dayanarak alırsınız.</p>
+                        <h4 data-i18n="nedir.why_f2_title">Gerçek Veriye Dayalı Analiz</h4>
+                        <p data-i18n="nedir.why_f2_desc">Kararlarınızı tahminlere değil, gerçek zamanlı piyasa verilerine dayanarak alırsınız.</p>
                     </div>
                 </div>
                 <div class="why-feature">
@@ -620,8 +521,8 @@
                         <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                     </div>
                     <div class="why-f-text">
-                        <h4 data-i18n="nedir.why.f3h">Akıllı Alarm Sistemi</h4>
-                        <p data-i18n="nedir.why.f3p">Sistem, dikkat edilmesi gereken piyasa hareketlerini otomatik olarak işaretler ve bildirimlerle size ulaştırır.</p>
+                        <h4 data-i18n="nedir.why_f3_title">Akıllı Alarm Sistemi</h4>
+                        <p data-i18n="nedir.why_f3_desc">Sistem, dikkat edilmesi gereken piyasa hareketlerini otomatik olarak işaretler ve bildirimlerle size ulaştırır.</p>
                     </div>
                 </div>
                 <div class="why-feature">
@@ -629,8 +530,8 @@
                         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                     </div>
                     <div class="why-f-text">
-                        <h4 data-i18n="nedir.why.f4h">Tek Panelde Tüm Market Görünümü</h4>
-                        <p data-i18n="nedir.why.f4p">Farklı market verileri tek ekranda sunulur, analiz süreci hızlanır ve karmaşıklık ortadan kalkar.</p>
+                        <h4 data-i18n="nedir.why_f4_title">Tek Panelde Tüm Market Görünümü</h4>
+                        <p data-i18n="nedir.why_f4_desc">Farklı market verileri tek ekranda sunulur, analiz süreci hızlanır ve karmaşıklık ortadan kalkar.</p>
                     </div>
                 </div>
                 <div class="why-feature">
@@ -638,57 +539,57 @@
                         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
                     </div>
                     <div class="why-f-text">
-                        <h4 data-i18n="nedir.why.f5h">Canlı Maç Verisi</h4>
-                        <p data-i18n="nedir.why.f5p">Maç devam ederken anlık oran değişimleri ve para akışı takip edilir; canlı piyasayı gerçek zamanlı izlersiniz.</p>
+                        <h4 data-i18n="nedir.why_f5_title">Canlı Maç Verisi</h4>
+                        <p data-i18n="nedir.why_f5_desc">Maç devam ederken anlık oran değişimleri ve para akışı takip edilir; canlı piyasayı gerçek zamanlı izlersiniz.</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="section-heading">
-            <h2 data-i18n="nedir.adv.heading">SmartXFlow Size Nasıl Avantaj Sağlar?</h2>
+            <h2 data-i18n="nedir.adv_title">SmartXFlow Size Nasıl Avantaj Sağlar?</h2>
         </div>
         <div class="adv-flow">
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f1h">Daha erken hareket edin</h4>
-                    <p data-i18n="nedir.adv.f1p">Kritik piyasa değişimlerini erken görerek fırsatları kaçırmazsınız.</p>
+                    <h4 data-i18n="nedir.adv_1_title">Daha erken hareket edin</h4>
+                    <p data-i18n="nedir.adv_1_desc">Kritik piyasa değişimlerini erken görerek fırsatları kaçırmazsınız.</p>
                 </div>
             </div>
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f2h">Riskleri daha net görün</h4>
-                    <p data-i18n="nedir.adv.f2p">Piyasa yönünü veriye dayalı analizlerle değerlendirebilirsiniz.</p>
+                    <h4 data-i18n="nedir.adv_2_title">Riskleri daha net görün</h4>
+                    <p data-i18n="nedir.adv_2_desc">Piyasa yönünü veriye dayalı analizlerle değerlendirebilirsiniz.</p>
                 </div>
             </div>
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f3h">Karar süresini kısaltın</h4>
-                    <p data-i18n="nedir.adv.f3p">Karmaşık veri akışını tek panelde görerek analiz sürecini hızlandırırsınız.</p>
+                    <h4 data-i18n="nedir.adv_3_title">Karar süresini kısaltın</h4>
+                    <p data-i18n="nedir.adv_3_desc">Karmaşık veri akışını tek panelde görerek analiz sürecini hızlandırırsınız.</p>
                 </div>
             </div>
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f4h">Daha disiplinli işlem yaklaşımı oluşturun</h4>
-                    <p data-i18n="nedir.adv.f4p">Sistematik veri takibi, daha kontrollü ve planlı kararlar almanıza yardımcı olur.</p>
+                    <h4 data-i18n="nedir.adv_4_title">Daha disiplinli işlem yaklaşımı oluşturun</h4>
+                    <p data-i18n="nedir.adv_4_desc">Sistematik veri takibi, daha kontrollü ve planlı kararlar almanıza yardımcı olur.</p>
                 </div>
             </div>
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f5h">Piyasa okuma becerinizi geliştirin</h4>
-                    <p data-i18n="nedir.adv.f5p">Zamanla piyasa hareketlerini daha doğru yorumlama alışkanlığı kazanırsınız.</p>
+                    <h4 data-i18n="nedir.adv_5_title">Piyasa okuma becerinizi geliştirin</h4>
+                    <p data-i18n="nedir.adv_5_desc">Zamanla piyasa hareketlerini daha doğru yorumlama alışkanlığı kazanırsınız.</p>
                 </div>
             </div>
             <div class="adv-flow-item">
                 <span class="adv-flow-dot"></span>
                 <div class="adv-flow-text">
-                    <h4 data-i18n="nedir.adv.f6h">Maç sırasında bile avantajlı kalın</h4>
-                    <p data-i18n="nedir.adv.f6p">Canlı maç verileriyle oran ve para akışı değişimlerini anlık takip ederek maç esnasında da bilinçli kararlar alırsınız.</p>
+                    <h4 data-i18n="nedir.adv_6_title">Maç sırasında bile avantajlı kalın</h4>
+                    <p data-i18n="nedir.adv_6_desc">Canlı maç verileriyle oran ve para akışı değişimlerini anlık takip ederek maç esnasında da bilinçli kararlar alırsınız.</p>
                 </div>
             </div>
         </div>
@@ -696,9 +597,9 @@
         <div style="margin-bottom:40px;padding:28px 32px;border-radius:16px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.06);">
             <a href="/rehber" style="display:flex;align-items:center;justify-content:space-between;gap:20px;text-decoration:none;">
                 <div>
-                    <div style="font-size:12px;font-weight:600;color:#2BFF88;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;" data-i18n="nedir.glink.label">Rehber</div>
-                    <div style="font-size:17px;font-weight:700;color:#e6edf3;margin-bottom:4px;" data-i18n="nedir.glink.title">Oran analizi ve para hareketi nasıl okunur?</div>
-                    <div style="font-size:14px;color:#8b949e;" data-i18n="nedir.glink.desc">Dropping odds, Moneyway, canlı oran takibi ve alarm sistemini detaylı öğrenin.</div>
+                    <div style="font-size:12px;font-weight:600;color:#2BFF88;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;" data-i18n="nedir.guide_label">Rehber</div>
+                    <div style="font-size:17px;font-weight:700;color:#e6edf3;margin-bottom:4px;" data-i18n="nedir.guide_title">Oran analizi ve para hareketi nasıl okunur?</div>
+                    <div style="font-size:14px;color:#8b949e;" data-i18n="nedir.guide_desc">Dropping odds, Moneyway, canlı oran takibi ve alarm sistemini detaylı öğrenin.</div>
                 </div>
                 <div style="width:36px;height:36px;border-radius:10px;background:rgba(43,255,136,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2BFF88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -708,13 +609,13 @@
 
         <div class="cta-strip">
             <div class="cta-strip-left">
-                <div class="cta-strip-badge"><span class="dot"></span> <span data-i18n="nedir.cta.badge">Hızlı Başlangıç</span></div>
-                <h3 data-i18n="nedir.cta.title">SmartXFlow ile piyasayı daha net gör.</h3>
-                <p data-i18n="nedir.cta.desc">Gerçek zamanlı para akışı ve oran hareketlerini tek ekranda takip et. Önemli sinyalleri kaçırma.</p>
+                <div class="cta-strip-badge"><span class="dot"></span> <span data-i18n="nedir.cta_badge">Hızlı Başlangıç</span></div>
+                <h3 data-i18n="nedir.cta_title">SmartXFlow ile piyasayı daha net gör.</h3>
+                <p data-i18n="nedir.cta_desc">Gerçek zamanlı para akışı ve oran hareketlerini tek ekranda takip et. Önemli sinyalleri kaçırma.</p>
             </div>
             <div class="cta-strip-right">
-                <a href="/#features" class="cta-btn"><span data-i18n="nedir.cta.btn">Platformu Keşfet</span> <span>→</span></a>
-                <span class="cta-trust" data-i18n="nedir.cta.trust">Web + Mobil uyumlu · Anında erişim</span>
+                <a href="/#features" class="cta-btn"><span data-i18n="nedir.cta_btn">Platformu Keşfet</span> <span>→</span></a>
+                <span class="cta-trust" data-i18n="nedir.cta_trust">Web + Mobil uyumlu · Anında erişim</span>
             </div>
         </div>
     </section>
@@ -768,50 +669,6 @@
                 navbar.classList.remove('scrolled');
             }
         });
-    </script>
-    <script>
-    (function () {
-        function syncPicker(lang) {
-            var code = (lang || 'tr').toUpperCase();
-            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
-            document.querySelectorAll('[data-lang]').forEach(function (btn) {
-                btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
-            });
-            var picker = document.getElementById('langPicker');
-            if (picker) {
-                var btn = picker.querySelector('.lang-picker-btn');
-                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
-            }
-        }
-        document.addEventListener('click', function (e) {
-            var langBtn = e.target.closest('[data-lang]');
-            if (langBtn && window.SXFI18n) {
-                e.preventDefault();
-                var lang = langBtn.getAttribute('data-lang');
-                window.SXFI18n.set(lang).then(function () {
-                    syncPicker(lang);
-                    var p = document.getElementById('langPicker');
-                    if (p) p.classList.remove('open');
-                }).catch(function () {});
-                return;
-            }
-            var picker = document.getElementById('langPicker');
-            if (!picker) return;
-            if (e.target.closest('.lang-picker-btn')) {
-                picker.classList.toggle('open');
-                var btn = picker.querySelector('.lang-picker-btn');
-                if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
-            } else if (!e.target.closest('#langPicker')) {
-                picker.classList.remove('open');
-            }
-        });
-        function init() {
-            if (!window.SXFI18n) { setTimeout(init, 80); return; }
-            window.SXFI18n.onChange(syncPicker);
-            syncPicker(window.SXFI18n.current());
-        }
-        init();
-    })();
     </script>
 </body>
 </html>
