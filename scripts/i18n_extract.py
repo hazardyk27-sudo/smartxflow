@@ -116,10 +116,70 @@ def _mask_blocks(src: str) -> str:
     return SCRIPT_BLOCK.sub(lambda m: re.sub(r'[^\n]', ' ', m.group(0)), src)
 
 
+# DOM-aware text-node finder.  Uses html.parser to walk the tree and yield
+# (line_number, text) for every text node whose nearest ancestor element does
+# NOT carry a data-i18n / data-i18n-html attribute (i.e. still untranslated).
+# Skips <script>/<style>/<svg> contents and Jinja `{{ ... }}` / `{% ... %}`.
+from html.parser import HTMLParser as _HTMLParser
+
+class _TextNodeFinder(_HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.stack: list[tuple[str, bool]] = []  # (tag, has_i18n)
+        self.skip_depth = 0
+        self.results: list[tuple[int, str]] = []
+
+    def _has_i18n(self, attrs):
+        for k, _v in attrs:
+            if k in ('data-i18n', 'data-i18n-html'):
+                return True
+        return False
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style', 'svg'):
+            self.skip_depth += 1
+        has = self._has_i18n(attrs) or any(p[1] for p in self.stack)
+        self.stack.append((tag, has))
+
+    def handle_startendtag(self, tag, attrs):
+        pass
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style', 'svg') and self.skip_depth > 0:
+            self.skip_depth -= 1
+        # pop matching tag
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]
+                break
+
+    def handle_data(self, data):
+        if self.skip_depth > 0:
+            return
+        if not data.strip():
+            return
+        # ancestor i18n?
+        if any(p[1] for p in self.stack):
+            return
+        ln, _col = self.getpos()
+        self.results.append((ln, data))
+
+
+def _dom_text_nodes(src: str):
+    p = _TextNodeFinder()
+    try:
+        p.feed(src)
+        p.close()
+    except Exception:
+        pass
+    return p.results
+
+
 def scan_html(path: str) -> list[dict]:
     src = open(path, encoding='utf-8').read()
     masked = _mask_blocks(src)
     findings = []
+    seen_keys = set()  # (line, text) — dedup between regex + DOM scanner
     # text-content slots — only flag when open tag lacks data-i18n
     for m in TAG_TEXT_RE.finditer(masked):
         open_tag = m.group(1)
@@ -134,8 +194,25 @@ def scan_html(path: str) -> list[dict]:
         if stripped in BRANDS:
             continue
         ln = masked.count('\n', 0, m.start(4)) + 1
+        key = (ln, stripped[:120])
+        if key in seen_keys: continue
+        seen_keys.add(key)
         findings.append({
             'file': path, 'line': ln, 'kind': 'html-text',
+            'text': stripped[:200],
+        })
+    # DOM-aware scanner: catches text nodes inside elements with nested children
+    # (e.g. `<a><svg>...</svg>TEXT</a>`) that the regex above misses.
+    for ln, text in _dom_text_nodes(masked):
+        stripped = text.strip()
+        if not stripped or not needs_translation(stripped): continue
+        if stripped in BRANDS: continue
+        if '{{' in stripped or '{%' in stripped: continue
+        key = (ln, stripped[:120])
+        if key in seen_keys: continue
+        seen_keys.add(key)
+        findings.append({
+            'file': path, 'line': ln, 'kind': 'html-text-nested',
             'text': stripped[:200],
         })
     # attribute slots
