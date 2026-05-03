@@ -133,6 +133,7 @@
 "app.dyn.hesaplama_baslatiliyor","static/js/app.js:1610","Hesaplama başlatılıyor...","Calculation starting...","Berechnung wird gestartet...","Démarrage du calcul...","Berekening start...","Avvio calcolo...","Iniciando cálculo..."
 "app.dyn.hesaplama_hatasi","static/js/app.js:1705;static/js/app.js:1611","Hesaplama hatası","Calculation error","Berechnungsfehler","Erreur de calcul","Berekeningsfout","Errore di calcolo","Error de cálculo"
 "app.dyn.kalan_pre","","Kalan ","Remaining ","Verbleibend ","Restant ","Resterend ","Rimanenti ","Restante "
+"app.dyn.kalan_suf","static/js/app.js"," gün"," days"," Tage"," jours"," dagen"," giorni"," días"
 "app.dyn.kaydetme_hatasi","static/js/app.js:1762;static/js/app.js:1703;static/js/app.js:1609","Kaydetme hatası","Save error","Speicherfehler","Erreur d'enregistrement","Opslagfout","Errore di salvataggio","Error al guardar"
 "app.dyn.kg_hayir","static/js/app.js:919","KG Hayır","BTTS No","BTTS Nein","BTTS Non","BTTS Nee","GG/NG No","BTTS No"
 "app.dyn.kisi","static/js/app.js:26"," kişi"," people"," Personen"," personnes"," personen"," persone"," personas"
