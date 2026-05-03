@@ -331,6 +331,15 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 app.secret_key = os.environ.get('SESSION_SECRET', 'smartxflow-secret-key')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
+@app.context_processor
+def inject_asset_version():
+    def asset_v(rel_path):
+        try:
+            return str(int(os.path.getmtime(os.path.join(static_dir, rel_path))))
+        except Exception:
+            return '1'
+    return {'asset_v': asset_v}
+
 # Gzip/Brotli compression - only for web mode (not desktop)
 if Compress is not None:
     app.config['COMPRESS_MIMETYPES'] = ['text/html', 'text/css', 'text/javascript', 'application/json', 'application/javascript']
