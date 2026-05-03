@@ -22,6 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 I18N_DIR = os.path.join(ROOT, 'static/i18n')
 MASTER = os.path.join(I18N_DIR, '_master.csv')
 LANGS = ['tr', 'en', 'de', 'fr', 'nl', 'it', 'es']
+FIELDS = ['key', 'file_refs'] + LANGS
 
 
 def _flatten(obj, prefix='') -> dict[str, str]:
@@ -64,12 +65,24 @@ def cmd_sync():
     for lang in LANGS:
         all_keys.update(flats[lang].keys())
 
+    # Preserve existing file_refs from current master (if any)
+    existing_refs: dict[str, str] = {}
+    if os.path.exists(MASTER):
+        with open(MASTER, encoding='utf-8') as fh:
+            for r in csv.DictReader(fh):
+                k = (r.get('key') or '').strip()
+                if k:
+                    existing_refs[k] = r.get('file_refs', '') or ''
+
     rows = []
     for key in sorted(all_keys):
-        rows.append({lang: flats[lang].get(key, '') for lang in LANGS} | {'key': key})
+        row = {lang: flats[lang].get(key, '') for lang in LANGS}
+        row['key'] = key
+        row['file_refs'] = existing_refs.get(key, '')
+        rows.append(row)
 
     with open(MASTER, 'w', encoding='utf-8', newline='') as fh:
-        w = csv.DictWriter(fh, fieldnames=['key'] + LANGS, quoting=csv.QUOTE_ALL)
+        w = csv.DictWriter(fh, fieldnames=FIELDS, quoting=csv.QUOTE_ALL)
         w.writeheader()
         for r in rows:
             w.writerow(r)

@@ -251,7 +251,7 @@
 
     <div class="container">
         <h1 class="page-title">Sistem Durumu</h1>
-        <p class="page-subtitle">Scraper, Alarm Engine ve veri toplama servislerinin anlık durumu</p>
+        <p class="page-subtitle" data-i18n="sta.scraper_alarm_engine_ve_veri_toplama_servislerin">Scraper, Alarm Engine ve veri toplama servislerinin anlık durumu</p>
 
         <div class="status-card">
             <h2>
@@ -267,47 +267,47 @@
                     <div class="info-value small" id="lastScrape">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-label" data-i18n="sta.aktif_mac_bugun">Aktif Maç (Bugün+)</div>
                     <div class="info-value" id="scraperActiveMatches">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Son Snapshot Sayısı</div>
+                    <div class="info-label" data-i18n="sta.son_snapshot_sayisi">Son Snapshot Sayısı</div>
                     <div class="info-value" id="lastSnapshotCount">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Çalışma Aralığı</div>
+                    <div class="info-label" data-i18n="sta.calisma_araligi">Çalışma Aralığı</div>
                     <div class="info-value">9 dakika</div>
                 </div>
             </div>
         </div>
 
         <div class="status-card">
-            <h2>Son 24 Saat Özeti</h2>
+            <h2 data-i18n="sta.son_24_saat_ozeti">Son 24 Saat Özeti</h2>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Toplam Çalışma</div>
+                    <div class="info-label" data-i18n="sta.toplam_calisma">Toplam Çalışma</div>
                     <div class="info-value big-number" id="totalRuns">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-label" data-i18n="sta.aktif_mac_bugun">Aktif Maç (Bugün+)</div>
                     <div class="info-value big-number" id="scraperActiveMatches2">-</div>
                 </div>
             </div>
         </div>
 
         <div class="status-card">
-            <h2>Son Çalışma Geçmişi</h2>
+            <h2 data-i18n="sta.son_calisma_gecmisi">Son Çalışma Geçmişi</h2>
             <table class="history-table">
                 <thead>
                     <tr>
                         <th>Zaman (TR)</th>
-                        <th>Maç</th>
+                        <th data-i18n="app.flt.match_count">Maç</th>
                         <th>Snapshot</th>
                         <th>Durum</th>
                     </tr>
                 </thead>
                 <tbody id="historyBody">
-                    <tr><td colspan="4" style="text-align:center; color:#484f58;">Yükleniyor...</td></tr>
+                    <tr><td colspan="4" style="text-align:center; color:#484f58;" data-i18n="app.tbl.loading">Yükleniyor...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -334,7 +334,7 @@
                     <div class="info-value small" id="engineState">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Aktif Alarm (Bugün+)</div>
+                    <div class="info-label" data-i18n="sta.aktif_alarm_bugun">Aktif Alarm (Bugün+)</div>
                     <div class="info-value" id="engineAlarmCount">-</div>
                 </div>
                 <div class="info-item">
@@ -345,7 +345,7 @@
         </div>
 
         <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
-            <h2>Aktif Alarm İstatistikleri</h2>
+            <h2 data-i18n="sta.aktif_alarm_i_statistikleri">Aktif Alarm İstatistikleri</h2>
             <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
                 <div style="text-align:center;">
                     <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;">Toplam Aktif</div>
@@ -381,28 +381,28 @@
         </div>
 
         <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
-            <h2>Alarm Engine - İşlenen Sinyaller (Son 24 Saat)</h2>
+            <h2 data-i18n="sta.alarm_engine_i_slenen_sinyaller_son_24_saat">Alarm Engine - İşlenen Sinyaller (Son 24 Saat)</h2>
             <div class="info-grid" style="margin-bottom:16px;">
                 <div class="info-item">
-                    <div class="info-label">Toplam İşlenen</div>
+                    <div class="info-label" data-i18n="sta.toplam_i_slenen">Toplam İşlenen</div>
                     <div class="info-value big-number" id="engineTotalProcessed" style="color:#2BFF88;">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Aktif Maç (Bugün+)</div>
+                    <div class="info-label" data-i18n="sta.aktif_mac_bugun">Aktif Maç (Bugün+)</div>
                     <div class="info-value big-number" id="engineActiveMatches" style="color:#2BFF88;">-</div>
                 </div>
             </div>
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th>Sinyal Zamanı</th>
-                        <th>İşlenme Zamanı</th>
-                        <th>Maç</th>
+                        <th data-i18n="sta.sinyal_zamani">Sinyal Zamanı</th>
+                        <th data-i18n="sta.i_slenme_zamani">İşlenme Zamanı</th>
+                        <th data-i18n="app.flt.match_count">Maç</th>
                         <th>Durum</th>
                     </tr>
                 </thead>
                 <tbody id="engineHistoryBody">
-                    <tr><td colspan="4" style="text-align:center; color:#484f58;">Yükleniyor...</td></tr>
+                    <tr><td colspan="4" style="text-align:center; color:#484f58;" data-i18n="app.tbl.loading">Yükleniyor...</td></tr>
                 </tbody>
             </table>
         </div>

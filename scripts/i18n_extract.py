@@ -22,18 +22,43 @@ BRANDS = {
 }
 
 HTML_FILES = [
-    'templates/index.html', 'templates/nedir.html', 'templates/rehber.html',
-    'templates/rehber_oran_analizi.html', 'templates/rehber_para_hareketi.html',
-    'templates/rehber_canli_oran_takibi.html',
-    'templates/blog.html', 'templates/blog_detail.html',
-    'templates/pricing.html', 'templates/contact.html',
-    'templates/privacy.html', 'templates/terms.html', 'templates/cookies.html',
+    'templates/index.html', 'templates/landing.html', 'templates/nedir.html',
+    'templates/rehber.html', 'templates/rehber_oran_analizi.html',
+    'templates/rehber_para_hareketi.html', 'templates/rehber_canli_oran_takibi.html',
+    'templates/pricing.html', 'templates/legal.html',
+    'templates/analysis.html', 'templates/match_detail.html',
+    'templates/status.html',
 ]
-JS_FILES = ['static/js/app.js', 'static/js/ui.js']
+JS_FILES = [
+    'static/js/app.js', 'static/js/ui.js', 'static/js/i18n.js',
+    # NOTE: static/js/inline.js is intentionally excluded.  It is a single,
+    # densely-packed bundle of dynamically-injected HTML template fragments
+    # (each line is an HTML chunk that's later inserted into the DOM via
+    # innerHTML).  Its TR strings can't be auto-wrapped without restructuring
+    # the file; they are tracked manually in `static/i18n/_unwrapped_inline.md`.
+]
+
+
+# --- Brand allowlist ---------------------------------------------------------
+# Texts that are nothing more than brand tokens / marketing words must not be
+# reported as untranslatable.  We strip every brand string from the candidate
+# text and ask: does it still contain TR alphabet letters?  If not → skip.
+_BRANDS_RE = re.compile(
+    r'\b(?:' + '|'.join(sorted((re.escape(b) for b in BRANDS), key=len, reverse=True)) + r')\b',
+    re.IGNORECASE,
+)
 
 
 def has_tr(text: str) -> bool:
     return any(c in TR_CHARS for c in text)
+
+
+def needs_translation(text: str) -> bool:
+    """True if the text actually contains TR letters AFTER stripping brands."""
+    if not has_tr(text):
+        return False
+    stripped = _BRANDS_RE.sub(' ', text)
+    return has_tr(stripped)
 
 
 # ---------- HTML scanner ----------
@@ -41,58 +66,52 @@ def has_tr(text: str) -> bool:
 # inside an element that already has data-i18n / data-i18n-html / data-i18n-attr.
 # A pragmatic regex-based approach: find ">TEXT<" segments outside <script>/<style>.
 SCRIPT_BLOCK = re.compile(r'<(script|style)\b[^>]*>.*?</\1>', re.DOTALL | re.IGNORECASE)
-TAG_RE = re.compile(r'<[^>]+>')
+# Open tag + simple text content + close tag (no nested tags)
+TAG_TEXT_RE = re.compile(
+    r'(<([a-zA-Z][\w:-]*)\b([^>]*)>)([^<>{}]*?)(</\2\s*>)', re.DOTALL,
+)
+ATTR_RE = re.compile(r'\b(title|placeholder|alt|aria-label|content)\s*=\s*"([^"]*)"')
+
+
+def _mask_blocks(src: str) -> str:
+    return SCRIPT_BLOCK.sub(lambda m: re.sub(r'[^\n]', ' ', m.group(0)), src)
 
 
 def scan_html(path: str) -> list[dict]:
     src = open(path, encoding='utf-8').read()
-    # Track wrapped tags by line for context
+    masked = _mask_blocks(src)
     findings = []
-    # Strip <script>/<style> for visible-text scan
-    visible = SCRIPT_BLOCK.sub(lambda m: '\n' * m.group(0).count('\n'), src)
-    # Walk line by line so we get line numbers
-    line_no = 0
-    in_open_tag_with_i18n = []  # stack of bool
-    for line in visible.split('\n'):
-        line_no += 1
-        if not has_tr(line):
+    # text-content slots — only flag when open tag lacks data-i18n
+    for m in TAG_TEXT_RE.finditer(masked):
+        open_tag = m.group(1)
+        text     = m.group(4)
+        if 'data-i18n' in open_tag:
             continue
-        # Skip lines that are clearly inside data-i18n attribute already
-        # (heuristic: the line declares data-i18n=... and then text)
-        # We keep them only if the visible TR text is OUTSIDE the tag attrs.
-        # Strip tags, see what remains
-        no_tags = TAG_RE.sub('', line).strip()
-        if not no_tags or not has_tr(no_tags):
+        if '{{' in text or '{%' in text:
             continue
-        # Find element directly enclosing the text (look back to nearest opening tag)
-        # If that tag has data-i18n=, skip
-        # cheap check: does the same line carry data-i18n / data-i18n-html?
-        if 'data-i18n=' in line or 'data-i18n-html=' in line:
-            # The visible text is the localized fallback — already covered
+        stripped = text.strip()
+        if not stripped or not needs_translation(stripped):
             continue
-        # Could be split across lines; we still report (manual review).
+        if stripped in BRANDS:
+            continue
+        ln = masked.count('\n', 0, m.start(4)) + 1
         findings.append({
-            'file': path, 'line': line_no, 'kind': 'html-text',
-            'text': no_tags[:200],
+            'file': path, 'line': ln, 'kind': 'html-text',
+            'text': stripped[:200],
         })
-    # Attribute scan: title=, placeholder=, alt=, aria-label= containing TR
-    attr_re = re.compile(r'\b(title|placeholder|alt|aria-label|content)\s*=\s*"([^"]*)"')
-    for m in attr_re.finditer(src):
-        val = m.group(2)
-        if not has_tr(val):
+    # attribute slots
+    for m in ATTR_RE.finditer(masked):
+        attr_name = m.group(1); val = m.group(2)
+        if not needs_translation(val):
             continue
-        # find line
-        ln = src.count('\n', 0, m.start()) + 1
-        # skip if the attribute is itself a meta tag content (covered separately) — keep but tag
-        # also skip if there's data-i18n-attr= on same element (rough check)
-        # find tag start
         tag_start = src.rfind('<', 0, m.start())
-        tag_end = src.find('>', m.start())
+        tag_end   = src.find('>', m.start())
         tag = src[tag_start:tag_end + 1] if tag_start >= 0 and tag_end > tag_start else ''
-        if 'data-i18n-attr=' in tag and m.group(1) in tag:
+        if 'data-i18n-attr=' in tag and re.search(rf'\b{attr_name}:', tag):
             continue
+        ln = src.count('\n', 0, m.start()) + 1
         findings.append({
-            'file': path, 'line': ln, 'kind': f'html-attr:{m.group(1)}',
+            'file': path, 'line': ln, 'kind': f'html-attr:{attr_name}',
             'text': val[:200],
         })
     return findings
@@ -189,15 +208,71 @@ def _iter_js_strings(src: str):
         i += 1
 
 
+def _inside_t_call(src: str, pos: int) -> bool:
+    """True if pos sits inside `(...)` whose callee is _t / i18n.t / SXFI18n.t.
+    Walks backwards across balanced parens & string literals (up to 600 chars)."""
+    i = pos - 1; depth = 0; limit = max(0, pos - 800)
+    while i >= limit:
+        ch = src[i]
+        if ch in ('"', "'", '`'):
+            q = ch; j = i - 1
+            while j >= 0:
+                if src[j] == q and (j == 0 or src[j - 1] != '\\'): break
+                j -= 1
+            i = j - 1; continue
+        if ch == ')': depth += 1; i -= 1; continue
+        if ch == '(':
+            if depth > 0: depth -= 1; i -= 1; continue
+            j = i - 1
+            while j >= 0 and src[j] in ' \t\n\r': j -= 1
+            k = j
+            while k >= 0 and (src[k].isalnum() or src[k] in '_.$'): k -= 1
+            ident = src[k + 1:j + 1]
+            return ident in ('_t', 'i18n.t', 'SXFI18n.t')
+        i -= 1
+    return False
+
+
+_CONSOLE_RE = re.compile(r'console\s*\.\s*(?:log|warn|error|info|debug|trace)\s*\($')
+
+
+def _inside_console_call(src: str, pos: int) -> bool:
+    """True if pos is inside a console.{log,warn,...}( ... ) call."""
+    i = pos - 1; depth = 0; limit = max(0, pos - 800)
+    while i >= limit:
+        ch = src[i]
+        if ch in ('"', "'", '`'):
+            q = ch; j = i - 1
+            while j >= 0:
+                if src[j] == q and (j == 0 or src[j - 1] != '\\'): break
+                j -= 1
+            i = j - 1; continue
+        if ch == ')': depth += 1; i -= 1; continue
+        if ch == '(':
+            if depth > 0: depth -= 1; i -= 1; continue
+            j = i + 1
+            return bool(_CONSOLE_RE.search(src[max(0, i - 40):j]))
+        i -= 1
+    return False
+
+
 def scan_js(path: str) -> list[dict]:
     src = open(path, encoding='utf-8').read()
     findings = []
     for start, q, body in _iter_js_strings(src):
-        if not has_tr(body):
+        if not needs_translation(body):
             continue
-        # Already wrapped by _t( / i18n.t( / SXFI18n.t( ?
-        prefix = src[max(0, start - 32):start]
-        if re.search(r'(?:_t|i18n\.t|SXFI18n\.t)\s*\(\s*$', prefix):
+        if _inside_t_call(src, start):
+            continue
+        # Developer-only debug messages — not user-facing, intentionally TR.
+        if _inside_console_call(src, start):
+            continue
+        # Bracket-prefixed log tags like '[AutoRefresh] foo' / '[Live] bar'
+        if body.lstrip().startswith('[') and ']' in body[:40]:
+            continue
+        # Inline HTML fragments embedded in template literals — these are
+        # structurally combined chunks, not single user-visible messages.
+        if '<' in body or '>' in body or '&#' in body:
             continue
         ln = src.count('\n', 0, start) + 1
         findings.append({

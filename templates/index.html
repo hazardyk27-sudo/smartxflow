@@ -154,10 +154,10 @@
         <span id="langPickerLabel">TR</span>
     </button>
     <div id="langPickerMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1c1f23;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;min-width:120px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-        <button type="button" data-lang="tr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇹🇷 Türkçe</button>
+        <button type="button" data-lang="tr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;" data-i18n="idx.turkce">🇹🇷 Türkçe</button>
         <button type="button" data-lang="en" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇬🇧 English</button>
         <button type="button" data-lang="de" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇩🇪 Deutsch</button>
-        <button type="button" data-lang="fr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇫🇷 Français</button>
+        <button type="button" data-lang="fr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;" data-i18n="idx.francais">🇫🇷 Français</button>
         <button type="button" data-lang="nl" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇳🇱 Nederlands</button>
         <button type="button" data-lang="it" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇮🇹 Italiano</button>
         <button type="button" data-lang="es" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;">🇪🇸 Español</button>
@@ -689,7 +689,7 @@
                             <span>Yukleniyor...</span>
                         </div>
                         <div class="smart-money-grid" id="smartMoneyGrid"></div>
-                        <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;">
+                        <div class="smart-money-empty" id="smartMoneyEmpty" style="display:none;" data-i18n="idx.bu_mac_icin_alarm_hareketi_yok">
                             Bu maç için alarm hareketi yok.
                         </div>
                     </div>
@@ -781,7 +781,7 @@
                 <div class="mf-chips">
                     <button class="mf-chip active" data-group="date" data-value="all" onclick="mfSelect(this)" data-i18n="app.flt.all">Tümü</button>
                     <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)" data-i18n="app.flt.today">Bugün</button>
-                    <button class="mf-chip mf-past-toggle" data-group="date" data-value="past" onclick="mfSelectPast(this)">Geçmiş ▾</button>
+                    <button class="mf-chip mf-past-toggle" data-group="date" data-value="past" onclick="mfSelectPast(this)" data-i18n="app.j.history_short">Geçmiş ▾</button>
                     <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)">Gelecek</button>
                 </div>
                 <div class="mf-past-dropdown" id="mfPastDropdown" style="display:none;"></div>
@@ -806,7 +806,7 @@
                         <div class="mf-sw" data-group="filter" data-value="hideLive"><div class="mf-sw-knob"></div></div>
                     </div>
                     <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="onlyLive">
-                        <span class="mf-switch-text">Sadece canlı maçlar</span>
+                        <span class="mf-switch-text" data-i18n="app.flt.live_only">Sadece canlı maçlar</span>
                         <div class="mf-sw" data-group="filter" data-value="onlyLive"><div class="mf-sw-knob"></div></div>
                     </div>
                 </div>
