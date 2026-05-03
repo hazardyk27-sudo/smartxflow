@@ -57,3 +57,7 @@ attached_assets/
 # Replit
 .replit
 .upm/
+
+# Archive (kept in git history, but new additions should be reviewed before commit)
+# archive/  # NOTE: existing archive/ is tracked; new files added here will still be tracked
+#           # unless this line is uncommented after a planned bulk archive-purge.

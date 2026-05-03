@@ -84,7 +84,7 @@ Pre-existing minor warning (unrelated): `[Fav] Error loading past favorites` —
 ## Notes for future
 - `SUPABASE_SCHEMA_FINAL.md` references `create_alarm_tables_v3.sql` and `supabase_cleanup.sql` (now in `archive/sql_legacy/`). Doc references are stale but don't break runtime; update when next editing the doc.
 - `archive/manual_review/` is ~93 MB. Recommend reviewing logs for tokens, then deciding whether to git-history-purge (separate operation, not done here).
-- Consider adding `archive/` to `.dockerignore` / build excludes so 90+ MB doesn't ship to deploy.
+- ~~Consider adding `archive/` to `.dockerignore` / build excludes so 90+ MB doesn't ship to deploy.~~ **DONE (Task #179, 2026-05-03):** `build.sh` now removes `archive/` during deploy build (Replit VM deployment). Dev workspace unaffected (doesn't run build.sh).
 
 ## Rollback procedure if regression found later
 ```
