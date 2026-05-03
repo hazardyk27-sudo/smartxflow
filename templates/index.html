@@ -194,6 +194,46 @@
     text-align: center;
 }
 .lang-picker-menu button.active > .lp-code { opacity: 1; background: rgba(43,255,136,0.15); }
+
+/* Mobile header optimization (≤480px) */
+@media (max-width: 480px) {
+    .header { padding: 6px 8px !important; gap: 4px !important; }
+    .header-right { gap: 4px !important; }
+    .logo-subtitle { display: none !important; }
+    .logo-smart, .logo-flow { font-size: 14px !important; letter-spacing: 0.3px !important; }
+    .logo-icon { width: 16px !important; height: 16px !important; }
+    .license-days-badge {
+        padding: 3px 6px !important;
+        font-size: 9px !important;
+        gap: 3px !important;
+        white-space: nowrap;
+    }
+    .license-days-badge svg { width: 9px !important; height: 9px !important; }
+    .lang-picker { margin-right: 0 !important; }
+    .lang-picker-btn {
+        padding: 4px 7px !important;
+        font-size: 10px !important;
+        gap: 4px !important;
+        border-radius: 999px !important;
+    }
+    .lang-picker-btn .flag-icon { width: 14px !important; height: 10px !important; }
+    .lang-picker-btn .lang-picker-code { font-size: 10px !important; }
+    .lang-picker-caret { width: 8px !important; height: 8px !important; }
+    .lang-picker-menu { min-width: 150px !important; }
+    .logout-btn { padding: 2px 4px !important; margin-left: 2px !important; gap: 0 !important; }
+    .logout-btn .logout-text { display: none !important; }
+    .logout-btn svg { width: 14px !important; height: 14px !important; }
+}
+
+/* Extra-narrow optimization (≤360px) */
+@media (max-width: 360px) {
+    .logo-smart, .logo-flow { font-size: 12px !important; }
+    .logo-icon { width: 14px !important; height: 14px !important; }
+    .license-days-badge { padding: 2px 5px !important; font-size: 8.5px !important; }
+    .lang-picker-btn { padding: 3px 6px !important; font-size: 9px !important; }
+    .lang-picker-btn .flag-icon { width: 12px !important; height: 9px !important; }
+    .lang-picker-btn .lang-picker-code { font-size: 9px !important; }
+}
 </style>
 <div class="lang-picker" id="langPicker">
     <button id="langPickerBtn" class="lang-picker-btn" type="button" aria-haspopup="true" aria-expanded="false">
