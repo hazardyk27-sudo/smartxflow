@@ -1,3 +1,12 @@
+if (typeof window._t !== 'function') {
+    window._t = function (k, fb) {
+        try {
+            var v = (window.SXFI18n && window.SXFI18n.t) ? window.SXFI18n.t(k) : null;
+            return (v && v !== k) ? v : fb;
+        } catch (e) { return fb; }
+    };
+}
+var _t = window._t;
 if (typeof dayjs !== 'undefined') {
     if (typeof dayjs_plugin_utc !== 'undefined') dayjs.extend(dayjs_plugin_utc);
     if (typeof dayjs_plugin_timezone !== 'undefined') dayjs.extend(dayjs_plugin_timezone);

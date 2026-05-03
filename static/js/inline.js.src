@@ -1,3 +1,12 @@
+if (typeof window._t !== 'function') {
+    window._t = function (k, fb) {
+        try {
+            var v = (window.SXFI18n && window.SXFI18n.t) ? window.SXFI18n.t(k) : null;
+            return (v && v !== k) ? v : fb;
+        } catch (e) { return fb; }
+    };
+}
+var _t = window._t;
 var currentTrendTab = 'analysis';
 var trendsDataCache = {};
 var _isPro = null;
@@ -172,11 +181,13 @@ var _fakeSharpLastData = null;
 function renderAnalysisList(data) {
     var sidebar = document.getElementById('trendsSidebar');
     var contentArea = document.getElementById('trendsContentArea');
-    if (!data) data = [];
-    sidebar.innerHTML = '';
+    if (!Array.isArray(data)) data = [];
+    if (sidebar) sidebar.innerHTML = '';
     _fullAnalysisData = data;
-    contentArea.scrollTop = 0;
-    contentArea.innerHTML = buildMagazineLayout();
+    if (contentArea) {
+        contentArea.scrollTop = 0;
+        contentArea.innerHTML = buildMagazineLayout();
+    }
 }
 
 function buildMagazineLayout() {
@@ -1897,9 +1908,10 @@ function loadTrends(category) {
                 _trendsRawCache[category] = data;
                 _trendsRawCacheTs[category] = Date.now();
             }
-            renderAnalysisList(data || []);
-        }).catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            renderAnalysisList(Array.isArray(data) ? data : []);
+        }).catch(function(e) {
+            try { console.error('[Analizler] load/render hatası:', e); } catch(_){}
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi' + (e && e.message ? ': ' + e.message : '') + '</div></div>';
         });
         return;
     }
