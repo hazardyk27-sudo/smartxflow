@@ -148,41 +148,106 @@
                 </svg>
                 <span id="licenseDaysText" data-i18n="idx.gun">-- gun</span>
             </div>
-            <div class="lang-picker" style="position:relative;display:inline-flex;align-items:center;margin-right:8px;">
-    <button id="langPickerBtn" type="button" onclick="(function(e){var m=document.getElementById('langPickerMenu');m.style.display=m.style.display==='block'?'none':'block';e.stopPropagation();})(event)" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e6edf3;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:4px;">
+<style>
+.lang-picker { position: relative; display: inline-flex; align-items: center; margin-right: 8px; }
+.lang-picker-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e6edf3; padding: 7px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer; transition: all 180ms ease;
+    font-family: inherit; line-height: 1;
+}
+.lang-picker-btn:hover { background: rgba(43,255,136,0.06); border-color: rgba(43,255,136,0.22); color: #2BFF88; }
+.lang-picker-btn svg { opacity: 0.65; }
+.lang-picker-btn:hover svg { opacity: 1; }
+.lang-picker-caret { transition: transform 200ms ease; }
+.lang-picker.open .lang-picker-caret { transform: rotate(180deg); }
+.lang-picker-menu {
+    position: absolute; top: calc(100% + 10px); right: 0;
+    min-width: 178px;
+    background: rgba(13,17,23,0.96);
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 6px;
+    display: none; flex-direction: column; gap: 2px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    z-index: 1100;
+}
+.lang-picker.open .lang-picker-menu { display: flex; }
+.lang-picker-menu button {
+    background: transparent; border: 0; color: #e6edf3;
+    font-family: inherit; font-size: 13px;
+    padding: 9px 12px; border-radius: 9px;
+    cursor: pointer; display: flex; align-items: center;
+    gap: 10px; text-align: left; width: 100%;
+    transition: background 150ms ease;
+}
+.lang-picker-menu button:hover { background: rgba(255,255,255,0.05); }
+.lang-picker-menu button.active { background: rgba(43,255,136,0.08); color: #2BFF88; }
+.lang-picker-menu button > .lp-code {
+    font-size: 10.5px; font-weight: 700; min-width: 22px;
+    opacity: 0.55; letter-spacing: 0.5px;
+    padding: 3px 5px; border-radius: 5px;
+    background: rgba(255,255,255,0.05);
+    text-align: center;
+}
+.lang-picker-menu button.active > .lp-code { opacity: 1; background: rgba(43,255,136,0.15); }
+</style>
+<div class="lang-picker" id="langPicker">
+    <button id="langPickerBtn" class="lang-picker-btn" type="button" aria-haspopup="true" aria-expanded="false">
         <span id="langPickerLabel" class="lang-picker-current"><img class="flag-icon" src="/static/flags/gb.svg" alt=""> <span class="lang-picker-code">EN</span></span>
+        <svg class="lang-picker-caret" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
-    <div id="langPickerMenu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:#1c1f23;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;min-width:120px;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-        <button type="button" data-lang="en" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;"><img class="flag-icon" src="/static/flags/gb.svg" alt=""> English</button>
-        <button type="button" data-lang="de" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;"><img class="flag-icon" src="/static/flags/de.svg" alt=""> Deutsch</button>
-        <button type="button" data-lang="fr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;" data-i18n="idx.francais"><img class="flag-icon" src="/static/flags/fr.svg" alt=""> Français</button>
-        <button type="button" data-lang="nl" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;"><img class="flag-icon" src="/static/flags/nl.svg" alt=""> Nederlands</button>
-        <button type="button" data-lang="it" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;"><img class="flag-icon" src="/static/flags/it.svg" alt=""> Italiano</button>
-        <button type="button" data-lang="es" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;"><img class="flag-icon" src="/static/flags/es.svg" alt=""> Español</button>
-        <button type="button" data-lang="tr" class="lp-opt" style="display:block;width:100%;background:none;border:0;color:#e6edf3;font-size:12px;text-align:left;padding:7px 10px;cursor:pointer;border-radius:5px;" data-i18n="idx.turkce"><img class="flag-icon" src="/static/flags/tr.svg" alt=""> Türkçe</button>
+    <div id="langPickerMenu" class="lang-picker-menu">
+        <button type="button" data-lang="en"><span class="lp-code"><img class="flag-icon" src="/static/flags/gb.svg" alt=""></span><span>English</span></button>
+        <button type="button" data-lang="de"><span class="lp-code"><img class="flag-icon" src="/static/flags/de.svg" alt=""></span><span>Deutsch</span></button>
+        <button type="button" data-lang="fr"><span class="lp-code"><img class="flag-icon" src="/static/flags/fr.svg" alt=""></span><span data-i18n="idx.francais">Français</span></button>
+        <button type="button" data-lang="nl"><span class="lp-code"><img class="flag-icon" src="/static/flags/nl.svg" alt=""></span><span>Nederlands</span></button>
+        <button type="button" data-lang="it"><span class="lp-code"><img class="flag-icon" src="/static/flags/it.svg" alt=""></span><span>Italiano</span></button>
+        <button type="button" data-lang="es"><span class="lp-code"><img class="flag-icon" src="/static/flags/es.svg" alt=""></span><span>Español</span></button>
+        <button type="button" data-lang="tr"><span class="lp-code"><img class="flag-icon" src="/static/flags/tr.svg" alt=""></span><span data-i18n="idx.turkce">Türkçe</span></button>
     </div>
 </div>
 <script>
-(function(){
-    function applyLP(){
-        var lbl=document.getElementById('langPickerLabel');
-        if(window.SXFI18n && window.SXFI18n.apply){window.SXFI18n.apply();}
+(function () {
+    function syncPicker(lang) {
+        var code = (lang || 'en').toUpperCase();
+        var map = {tr:'<img class="flag-icon" src="/static/flags/tr.svg" alt=""> <span class="lang-picker-code">TR</span>',en:'<img class="flag-icon" src="/static/flags/gb.svg" alt=""> <span class="lang-picker-code">EN</span>',de:'<img class="flag-icon" src="/static/flags/de.svg" alt=""> <span class="lang-picker-code">DE</span>',fr:'<img class="flag-icon" src="/static/flags/fr.svg" alt=""> <span class="lang-picker-code">FR</span>',nl:'<img class="flag-icon" src="/static/flags/nl.svg" alt=""> <span class="lang-picker-code">NL</span>',it:'<img class="flag-icon" src="/static/flags/it.svg" alt=""> <span class="lang-picker-code">IT</span>',es:'<img class="flag-icon" src="/static/flags/es.svg" alt=""> <span class="lang-picker-code">ES</span>'};
+        document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.innerHTML = map[lang] || code; });
+        document.querySelectorAll('#langPickerMenu [data-lang]').forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
     }
-    document.addEventListener('click',function(e){
-        var m=document.getElementById('langPickerMenu');
-        if(!m)return;
-        if(e.target.classList && e.target.classList.contains('lp-opt')){
-            var l=e.target.getAttribute('data-lang');
-            if(window.SXFI18n){window.SXFI18n.set(l).then(applyLP);}
-            m.style.display='none';
-        }else if(!e.target.closest && !e.target.closest('.lang-picker')){
-            m.style.display='none';
-        }else if(e.target.closest && !e.target.closest('.lang-picker')){
-            m.style.display='none';
+    document.addEventListener('click', function (e) {
+        var langBtn = e.target.closest('#langPickerMenu [data-lang]');
+        if (langBtn && window.SXFI18n) {
+            e.preventDefault();
+            var lang = langBtn.getAttribute('data-lang');
+            window.SXFI18n.set(lang).then(function () {
+                syncPicker(lang);
+                var p = document.getElementById('langPicker');
+                if (p) p.classList.remove('open');
+            }).catch(function () {});
+            return;
+        }
+        var picker = document.getElementById('langPicker');
+        if (!picker) return;
+        if (e.target.closest('.lang-picker-btn')) {
+            picker.classList.toggle('open');
+            var btn = picker.querySelector('.lang-picker-btn');
+            if (btn) btn.setAttribute('aria-expanded', picker.classList.contains('open') ? 'true' : 'false');
+        } else if (!e.target.closest('#langPicker')) {
+            picker.classList.remove('open');
         }
     });
-    if(window.SXFI18n){window.SXFI18n.onChange(applyLP);applyLP();}
-    else{window.addEventListener('load',function(){setTimeout(applyLP,300);});}
+    function init() {
+        if (!window.SXFI18n) { setTimeout(init, 80); return; }
+        window.SXFI18n.onChange(syncPicker);
+        syncPicker(window.SXFI18n.current());
+    }
+    init();
 })();
 </script>
             <button class="logout-btn" id="logoutBtn" onclick="logoutWebLicense()" title="Çıkış Yap" data-i18n-attr="title:app.hdr.logout_title">
