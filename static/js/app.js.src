@@ -3823,11 +3823,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="1">
                         <div class="column-header">1</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${c1}">${formatVolumeCompact(d.Amt1)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -3839,11 +3839,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="X">
                         <div class="column-header">X</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${cX}">${formatVolumeCompact(d.AmtX)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -3855,11 +3855,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="2">
                         <div class="column-header">2</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${c2}">${formatVolumeCompact(d.Amt2)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -3870,7 +3870,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOPLAM HACİM</span>
+                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -3880,21 +3880,21 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">1</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">X</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">2</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
                         </div>
                     </div>
@@ -3919,11 +3919,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Alt">
                         <div class="column-header">Alt</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${cU}">${formatVolumeCompact(d.AmtUnder)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -3935,11 +3935,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Üst">
                         <div class="column-header">Üst</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${cO}">${formatVolumeCompact(d.AmtOver)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -3950,7 +3950,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOPLAM HACİM</span>
+                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -3960,14 +3960,14 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">Alt</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Üst</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
                         </div>
                     </div>
@@ -3992,11 +3992,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Evet">
                         <div class="column-header">Evet</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${cY}">${formatVolumeCompact(d.AmtYes)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -4008,11 +4008,11 @@ function updateMatchInfoCard() {
                     <div class="info-column" data-selection="Hayır">
                         <div class="column-header">Hayır</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
                         </div>
                         <div class="column-row">
-                            <span class="row-label">Miktar</span>
+                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
                             <span class="row-value money ${cN}">${formatVolumeCompact(d.AmtNo)}</span>
                         </div>
                         <div class="column-row row-pct">
@@ -4023,7 +4023,7 @@ function updateMatchInfoCard() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">TOPLAM HACİM</span>
+                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;
@@ -4033,14 +4033,14 @@ function updateMatchInfoCard() {
                     <div class="info-column">
                         <div class="column-header">Evet</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
                         <div class="column-header">Hayır</div>
                         <div class="column-row">
-                            <span class="row-label">Oran</span>
+                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
                         </div>
                     </div>
@@ -4154,7 +4154,7 @@ function setMobileTimeRange(range) {
     };
     chartTimeRange = rangeMap[range] || '1day';
     
-    const labels = { 'all': 'Tümü', '10': '10 dk', '30': '30 dk', '60': '1 saat', '360': '6 saat', '720': '12 saat', '1440': '1 gün' };
+    const labels = { 'all': _t('app.dyn.tumu','Tümü'), '10': _t('app.dyn.10_dakika','10 dk'), '30': _t('app.dyn.30_dakika','30 dk'), '60': _t('app.dyn.1_saat','1 saat'), '360': _t('app.dyn.6_saat','6 saat'), '720': _t('app.dyn.12_saat','12 saat'), '1440': _t('app.dyn.1_gun','1 gün') };
     
     // Update dropdown menu (legacy)
     const mobTimeLabel = document.getElementById('mobTimeLabel');
@@ -5941,12 +5941,12 @@ function renderChartLegendFilters(datasets, market) {
     const items = legendLabels[market] || [];
     
     const timeRanges = [
-        { key: '10min', label: '10 dk' },
-        { key: '30min', label: '30 dk' },
-        { key: '1hour', label: '1 saat' },
-        { key: '6hour', label: '6 saat' },
-        { key: '12hour', label: '12 saat' },
-        { key: '1day', label: '1 gün' }
+        { key: '10min', label: _t('app.dyn.10_dakika','10 dk') },
+        { key: '30min', label: _t('app.dyn.30_dakika','30 dk') },
+        { key: '1hour', label: _t('app.dyn.1_saat','1 saat') },
+        { key: '6hour', label: _t('app.dyn.6_saat','6 saat') },
+        { key: '12hour', label: _t('app.dyn.12_saat','12 saat') },
+        { key: '1day', label: _t('app.dyn.1_gun','1 gün') }
     ];
     
     const seriesButtons = items.map(item => {
@@ -6400,14 +6400,14 @@ function exportChartCSV() {
     const visibleSeriesNames = visibleDatasets.map(ds => ds.label).join(', ');
     
     const timeRangeLabels = {
-        '10min': '10 dakika',
-        '30min': '30 dakika',
-        '1hour': '1 saat',
-        '6hour': '6 saat',
-        '12hour': '12 saat',
-        '1day': '1 gün'
+        '10min': _t('app.dyn.10_dakika','10 dakika'),
+        '30min': _t('app.dyn.30_dakika','30 dakika'),
+        '1hour': _t('app.dyn.1_saat','1 saat'),
+        '6hour': _t('app.dyn.6_saat','6 saat'),
+        '12hour': _t('app.dyn.12_saat','12 saat'),
+        '1day': _t('app.dyn.1_gun','1 gün')
     };
-    const timeRangeLabel = timeRangeLabels[chartTimeRange] || '1 gün';
+    const timeRangeLabel = timeRangeLabels[chartTimeRange] || _t('app.dyn.1_gun','1 gün');
     
     const marketLabels = {
         'moneyway_1x2': 'Moneyway 1X2',
@@ -7567,15 +7567,15 @@ function getAlertType(alarm) {
         }
         return { label: 'BIG MONEY', color: 'orange', pillClass: 'bigmoney' };
     }
-    if (type === 'volumeshock') return { label: 'HACIM SOKU', color: 'gold', pillClass: 'volumeshock' };
+    if (type === 'volumeshock') return { label: _t('app.j.alarm_volume_shock','HACIM SOKU'), color: 'gold', pillClass: 'volumeshock' };
     if (type === 'dropping') {
         const level = alarm.level || 'L1';
-        if (level === 'L3') return { label: 'DÜŞÜŞ L3', color: 'red', pillClass: 'dropping-l3' };
-        if (level === 'L2') return { label: 'DÜŞÜŞ L2', color: 'red', pillClass: 'dropping-l2' };
-        return { label: 'DÜŞÜŞ L1', color: 'red', pillClass: 'dropping-l1' };
+        if (level === 'L3') return { label: _t('app.j.alarm_drop_l3','DÜŞÜŞ L3'), color: 'red', pillClass: 'dropping-l3' };
+        if (level === 'L2') return { label: _t('app.j.alarm_drop_l2','DÜŞÜŞ L2'), color: 'red', pillClass: 'dropping-l2' };
+        return { label: _t('app.j.alarm_drop_l1','DÜŞÜŞ L1'), color: 'red', pillClass: 'dropping-l1' };
     }
     if (type === 'publicmove') return { label: 'PUBLIC MOVE', color: 'gold', pillClass: 'publicmove' };
-    if (type === 'volumeleader') return { label: 'LIDER DEGISTI', color: 'cyan', pillClass: 'volumeleader' };
+    if (type === 'volumeleader') return { label: _t('app.j.alarm_leader_changed','LIDER DEGISTI'), color: 'cyan', pillClass: 'volumeleader' };
     if (type === 'mim') {
         const impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
         const impactPct = (impact * 100).toFixed(0);
@@ -8439,7 +8439,7 @@ function renderAlarmsList(filterType) {
     
     const displayGroups = groups.slice(0, alarmsDisplayCount);
     const hasMore = groups.length > alarmsDisplayCount;
-    const typeLabels = { sharp: 'SHARP', bigmoney: 'BIG MONEY', volumeshock: 'HACIM SOKU', dropping: 'ORAN DÜŞÜŞÜ', publicmove: 'PUBLIC MOVE', volumeleader: 'LİDER DEĞİŞTİ', mim: 'MIM' };
+    const typeLabels = { sharp: 'SHARP', bigmoney: 'BIG MONEY', volumeshock: _t('app.j.alarm_volume_shock','HACIM SOKU'), dropping: _t('app.j.alarm_odds_drop','ORAN DÜŞÜŞÜ'), publicmove: 'PUBLIC MOVE', volumeleader: _t('app.j.alarm_leader_changed','LİDER DEĞİŞTİ'), mim: 'MIM' };
     const typeColors = { sharp: '#4ade80', bigmoney: '#F08A24', volumeshock: '#F6C343', dropping: '#f85149', publicmove: '#FFCC00', volumeleader: '#06b6d4', mim: '#3B82F6' };
     
     let html = displayGroups.map((group, idx) => {
@@ -8680,7 +8680,7 @@ function renderAlarmsList(filterType) {
             historyLine = historyCount > 0 ? `×${historyCount + 1}` : `${triggerTime}`;
         } else if (type === 'dropping') {
             const level = alarm.level || 'L1';
-            badgeLabel = `ORAN DÜŞÜŞÜ ${level}`;
+            badgeLabel = `${_t('app.j.alarm_odds_drop','ORAN DÜŞÜŞÜ')} ${level}`;
             const openOdds = (alarm.opening_odds || 0).toFixed(2);
             const currOdds = (alarm.current_odds || 0).toFixed(2);
             const dropPct = (alarm.drop_pct || 0).toFixed(1);
@@ -8713,7 +8713,7 @@ function renderAlarmsList(filterType) {
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeleader') {
-            badgeLabel = 'LİDER DEĞİŞTİ';
+            badgeLabel = _t('app.j.alarm_leader_changed','LİDER DEĞİŞTİ');
             const oldLeader = alarm.old_leader || '-';
             const newLeader = alarm.new_leader || '-';
             const oldShare = (alarm.old_leader_share || 0).toFixed(0);
@@ -9499,7 +9499,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
                 : '';
             row2Left = `${selection} (${marketTr})`;
             row2Right = `${oddsPart}Sharp: ${score.toFixed(0)} | ▼${dropPct.toFixed(1)}%`;
-            row3Left = `<span class="sm-sharp-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">yeni para</span>`;
+            row3Left = `<span class="sm-sharp-money-hero">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-money-label">${_t("app.dyn.yeni_para","yeni para")}</span>`;
             row3Right = selTotal > 0 ? `<span class="sm-total-muted">Sonrası: £${Number(selTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Bu seçenekte 10 dk içinde yüksek hacimli para + oran düşüşü tespit edildi.`;
         } else if (type === 'bigmoney') {
@@ -9526,8 +9526,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
             const selTotal = latest.total_selection || latest.selection_total || latest.volume || 0;
             row2Left = `${selection} (${marketTr})`;
             row2Right = '';
-            row3Left = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> <span class="sm-shock-label">hacim şoku</span>`;
-            row3Right = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">yeni para</span>`;
+            row3Left = `<span class="sm-shock-badge">X${shockValue.toFixed(0)}</span> <span class="sm-shock-label">${_t("app.dyn.hacim_soku","hacim şoku")}</span>`;
+            row3Right = `<span class="sm-shock-money">£${Number(incomingMoney).toLocaleString('en-GB')}</span> <span class="sm-shock-money-label">${_t("app.dyn.yeni_para","yeni para")}</span>`;
             row4 = `Son 10 giriş ortalamasına göre X${shockValue.toFixed(0)} kat yüksek para akışı tespit edildi.`;
         } else if (type === 'dropping') {
             const openOdds = (latest.opening_odds || 0).toFixed(2);
