@@ -387,17 +387,17 @@
             <div class="lang-picker" id="langPicker">
                 <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
                     <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    <span class="lang-picker-current">TR</span>
+                    <span class="lang-picker-current">🇬🇧</span>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="lang-picker-menu" role="listbox">
-                    <button data-lang="tr" type="button"><span class="lp-code">TR</span><span data-i18n="lang.tr">Türkçe</span></button>
-                    <button data-lang="en" type="button"><span class="lp-code">EN</span><span data-i18n="lang.en">English</span></button>
-                    <button data-lang="de" type="button"><span class="lp-code">DE</span><span data-i18n="lang.de">Deutsch</span></button>
-                    <button data-lang="fr" type="button"><span class="lp-code">FR</span><span data-i18n="lang.fr">Français</span></button>
-                    <button data-lang="nl" type="button"><span class="lp-code">NL</span><span data-i18n="lang.nl">Nederlands</span></button>
-                    <button data-lang="it" type="button"><span class="lp-code">IT</span><span data-i18n="lang.it">Italiano</span></button>
-                    <button data-lang="es" type="button"><span class="lp-code">ES</span><span data-i18n="lang.es">Español</span></button>
+                    <button data-lang="tr" type="button"><span class="lp-code">🇹🇷</span><span data-i18n="lang.tr">Türkçe</span></button>
+                    <button data-lang="en" type="button"><span class="lp-code">🇬🇧</span><span data-i18n="lang.en">English</span></button>
+                    <button data-lang="de" type="button"><span class="lp-code">🇩🇪</span><span data-i18n="lang.de">Deutsch</span></button>
+                    <button data-lang="fr" type="button"><span class="lp-code">🇫🇷</span><span data-i18n="lang.fr">Français</span></button>
+                    <button data-lang="nl" type="button"><span class="lp-code">🇳🇱</span><span data-i18n="lang.nl">Nederlands</span></button>
+                    <button data-lang="it" type="button"><span class="lp-code">🇮🇹</span><span data-i18n="lang.it">Italiano</span></button>
+                    <button data-lang="es" type="button"><span class="lp-code">🇪🇸</span><span data-i18n="lang.es">Español</span></button>
                 </div>
             </div>
             <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
@@ -415,13 +415,13 @@
         <a href="/rehber" class="active" data-i18n="nav.guide">Rehber</a>
         <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         <div class="mobile-lang-picker">
-            <button data-lang="tr" type="button">TR</button>
-            <button data-lang="en" type="button">EN</button>
-            <button data-lang="de" type="button">DE</button>
-            <button data-lang="fr" type="button">FR</button>
-            <button data-lang="nl" type="button">NL</button>
-            <button data-lang="it" type="button">IT</button>
-            <button data-lang="es" type="button">ES</button>
+            <button data-lang="tr" type="button">🇹🇷</button>
+            <button data-lang="en" type="button">🇬🇧</button>
+            <button data-lang="de" type="button">🇩🇪</button>
+            <button data-lang="fr" type="button">🇫🇷</button>
+            <button data-lang="nl" type="button">🇳🇱</button>
+            <button data-lang="it" type="button">🇮🇹</button>
+            <button data-lang="es" type="button">🇪🇸</button>
         </div>
     </div>
 
@@ -608,7 +608,7 @@
     (function () {
         function syncPicker(lang) {
             var code = (lang || 'tr').toUpperCase();
-            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = code; });
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.textContent = ({tr:'🇹🇷',en:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',nl:'🇳🇱',it:'🇮🇹',es:'🇪🇸'})[lang] || code; });
             document.querySelectorAll('[data-lang]').forEach(function (btn) {
                 btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
             });

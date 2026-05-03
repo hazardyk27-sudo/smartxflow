@@ -2,9 +2,10 @@
   'use strict';
 
   var SUPPORTED = ['tr', 'en', 'de', 'fr', 'nl', 'it', 'es'];
-  var DEFAULT_LANG = 'tr';
+  var DEFAULT_LANG = 'en';
   var STORAGE_KEY = 'sxf_lang';
   var BASE_PATH = '/static/i18n/';
+  var FLAGS = { tr: '🇹🇷', en: '🇬🇧', de: '🇩🇪', fr: '🇫🇷', nl: '🇳🇱', it: '🇮🇹', es: '🇪🇸' };
 
   var dict = {};
   var currentLang = DEFAULT_LANG;
@@ -15,9 +16,6 @@
       var stored = localStorage.getItem(STORAGE_KEY);
       if (stored && SUPPORTED.indexOf(stored) !== -1) return stored;
     } catch (e) {}
-    var nav = (navigator.language || navigator.userLanguage || '').toLowerCase();
-    var short = nav.split('-')[0];
-    if (SUPPORTED.indexOf(short) !== -1) return short;
     return DEFAULT_LANG;
   }
 
@@ -64,6 +62,9 @@
       if (tv !== null) document.title = tv;
     }
     document.documentElement.setAttribute('lang', currentLang);
+    document.querySelectorAll('.lang-picker-current').forEach(function (el) {
+      el.textContent = FLAGS[currentLang] || currentLang.toUpperCase();
+    });
     var ogLocale = document.querySelector('meta[property="og:locale"]');
     if (ogLocale) {
       var map = { tr: 'tr_TR', en: 'en_US', de: 'de_DE', fr: 'fr_FR', nl: 'nl_NL', it: 'it_IT', es: 'es_ES' };
