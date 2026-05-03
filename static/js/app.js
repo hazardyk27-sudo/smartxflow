@@ -1921,4 +1921,5 @@ html+='</div>';body.innerHTML=html;}window.addEventListener('i18n:change',functi
   try{if(typeof renderAlarmsList==='function'&&document.getElementById('alarmsList'))renderAlarmsList();}catch(e){}
   try{if(typeof _updateFavCountsInDOM==='function')_updateFavCountsInDOM();}catch(e){}
   try{if(typeof buildMagazineLayout==='function'){var ca=document.getElementById('trendsContentArea');if(ca&&ca.innerHTML&&ca.querySelector('.analyzer-magazine')&&!window._viewingUnderdogPressure&&!window._viewingConfirmedMoney&&!window._viewingConfirmedMoneyV2&&!window._viewingEarlyMoneyLock&&!window._viewingFakeSharp&&!window._viewingApprovedSignals)ca.innerHTML=buildMagazineLayout();}}catch(e){}
+  try{if(typeof renderAlertBand==='function'&&typeof alertBandData!=='undefined'&&alertBandData&&alertBandData.length){lastAlertBandHash='';renderAlertBand();}}catch(e){}
 });

@@ -1828,6 +1828,7 @@
     <script>
     (function() {
         var REFRESH_INTERVAL = 60000;
+        function _t(k, f) { var v = window.SXFI18n && window.SXFI18n.t && window.SXFI18n.t(k); return (v && v !== k) ? v : f; }
 
         function getAlertInfo(alarm) {
             var type = alarm._type;
@@ -1837,15 +1838,15 @@
                 if (stake >= 50000) return { label: 'HUGE MONEY', pillClass: 'hugemoney' };
                 return { label: 'BIG MONEY', pillClass: 'bigmoney' };
             }
-            if (type === 'volumeshock') return { label: 'HACIM SOKU', pillClass: 'volumeshock' };
+            if (type === 'volumeshock') return { label: _t('app.j.alarm_volume_shock','HACIM SOKU'), pillClass: 'volumeshock' };
             if (type === 'dropping') {
                 var level = alarm.level || 'L1';
-                if (level === 'L3') return { label: 'DÜŞÜŞ L3', pillClass: 'dropping-l3' };
-                if (level === 'L2') return { label: 'DÜŞÜŞ L2', pillClass: 'dropping-l2' };
-                return { label: 'DÜŞÜŞ L1', pillClass: 'dropping-l1' };
+                if (level === 'L3') return { label: _t('app.j.alarm_drop_l3','DÜŞÜŞ L3'), pillClass: 'dropping-l3' };
+                if (level === 'L2') return { label: _t('app.j.alarm_drop_l2','DÜŞÜŞ L2'), pillClass: 'dropping-l2' };
+                return { label: _t('app.j.alarm_drop_l1','DÜŞÜŞ L1'), pillClass: 'dropping-l1' };
             }
             if (type === 'publicmove') return { label: 'PUBLIC MOVE', pillClass: 'publicmove' };
-            if (type === 'volumeleader') return { label: 'LIDER DEGISTI', pillClass: 'volumeleader' };
+            if (type === 'volumeleader') return { label: _t('app.j.alarm_leader_changed','LIDER DEGISTI'), pillClass: 'volumeleader' };
             if (type === 'mim') {
                 var impact = alarm.impact || alarm.impact_score || alarm.money_impact || 0;
                 return { label: 'MIM ' + (impact * 100).toFixed(0) + '%', pillClass: 'mim' };
@@ -1880,7 +1881,8 @@
             }
             var top = alarms.slice(0, 10);
             var isMobile = window.innerWidth <= 768;
-            var selMap = {'U':'Alt','O':'Üst','Y':'Evet','N':'Hayır','1':'1','X':'X','2':'2','UNDER':'Alt','OVER':'Üst','YES':'Evet','NO':'Hayır'};
+            var _alt=_t('app.j.sel_alt','Alt'),_ust=_t('app.j.sel_ust','Üst'),_evet=_t('app.j.sel_evet','Evet'),_hayir=_t('app.j.sel_hayir','Hayır');
+            var selMap = {'U':_alt,'O':_ust,'Y':_evet,'N':_hayir,'1':'1','X':'X','2':'2','UNDER':_alt,'OVER':_ust,'YES':_evet,'NO':_hayir};
 
             var pills = top.map(function(alarm) {
                 var info = getAlertInfo(alarm);
