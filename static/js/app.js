@@ -1925,4 +1925,10 @@ var prevVol=0;if(prevDataGroup){prevVol=(prevDataGroup[sel]||{}).volume||0;}
 var volDiff=vol-prevVol;var volDeltaHtml='';if(prevS&&volDiff!==0){var vCls=volDiff>0?'ch-up':'ch-down';volDeltaHtml='<span class="mc-d '+vCls+'">'+formatLiveVol(volDiff)+'</span>';}
 var gd='<span class="mc-dash">-</span>';html+='<div class="mlive-card">';html+='<div class="mlive-card-lbl">'+selLabels[j]+'</div>';html+='<div class="mc-line mc-odds"><span class="mc-v">'+(odds!==null?oddsStr:gd)+'</span>'+(oddsDelta||gd)+'</div>';html+='<div class="mc-line mc-vol"><span class="mc-v">'+(vol?formatLiveVol(vol):gd)+'</span>'+(volDeltaHtml||gd)+'</div>';html+='<div class="mc-line mc-pct"><span class="mc-v">'+(pct?pctStr:gd)+'</span>'+(pctDeltaHtml||gd)+'</div>';html+='</div>';}
 html+='</div></div>';}
-html+='</div>';body.innerHTML=html;}
+html+='</div>';body.innerHTML=html;}window.addEventListener('i18n:change',function(){
+  try{if(typeof updateTableHeaders==='function')updateTableHeaders();}catch(e){}
+  try{if(typeof renderMatches==='function'&&typeof filteredMatches!=='undefined'&&filteredMatches&&filteredMatches.length)renderMatches(filteredMatches);}catch(e){}
+  try{if(typeof renderAlarmsList==='function'&&document.getElementById('alarmsList'))renderAlarmsList();}catch(e){}
+  try{if(typeof _updateFavCountsInDOM==='function')_updateFavCountsInDOM();}catch(e){}
+  try{if(typeof buildMagazineLayout==='function'){var ca=document.getElementById('trendsContentArea');if(ca&&ca.innerHTML&&ca.querySelector('.analyzer-magazine')&&!window._viewingUnderdogPressure&&!window._viewingConfirmedMoney&&!window._viewingConfirmedMoneyV2&&!window._viewingEarlyMoneyLock&&!window._viewingFakeSharp&&!window._viewingApprovedSignals)ca.innerHTML=buildMagazineLayout();}}catch(e){}
+});
