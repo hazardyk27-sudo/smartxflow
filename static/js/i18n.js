@@ -1,11 +1,21 @@
 (function () {
   'use strict';
 
+  // Inject flag-icon styles once (works on Windows where emoji flags don't render)
+  try {
+    if (!document.getElementById('sxf-flag-icon-style')) {
+      var st = document.createElement('style');
+      st.id = 'sxf-flag-icon-style';
+      st.textContent = '.flag-icon{display:inline-block;width:18px;height:13px;vertical-align:middle;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,0.12);}';
+      (document.head || document.documentElement).appendChild(st);
+    }
+  } catch (e) {}
+
   var SUPPORTED = ['tr', 'en', 'de', 'fr', 'nl', 'it', 'es'];
   var DEFAULT_LANG = 'en';
   var STORAGE_KEY = 'sxf_lang';
   var BASE_PATH = '/static/i18n/';
-  var FLAGS = { tr: '🇹🇷', en: '🇬🇧', de: '🇩🇪', fr: '🇫🇷', nl: '🇳🇱', it: '🇮🇹', es: '🇪🇸' };
+  var FLAGS = { tr: '<img class="flag-icon" src="/static/flags/tr.svg" alt="">', en: '<img class="flag-icon" src="/static/flags/gb.svg" alt="">', de: '<img class="flag-icon" src="/static/flags/de.svg" alt="">', fr: '<img class="flag-icon" src="/static/flags/fr.svg" alt="">', nl: '<img class="flag-icon" src="/static/flags/nl.svg" alt="">', it: '<img class="flag-icon" src="/static/flags/it.svg" alt="">', es: '<img class="flag-icon" src="/static/flags/es.svg" alt="">' };
 
   var dict = {};
   var currentLang = DEFAULT_LANG;
@@ -63,7 +73,7 @@
     }
     document.documentElement.setAttribute('lang', currentLang);
     document.querySelectorAll('.lang-picker-current').forEach(function (el) {
-      el.textContent = FLAGS[currentLang] || currentLang.toUpperCase();
+      el.innerHTML = FLAGS[currentLang] || currentLang.toUpperCase();
     });
     var ogLocale = document.querySelector('meta[property="og:locale"]');
     if (ogLocale) {
