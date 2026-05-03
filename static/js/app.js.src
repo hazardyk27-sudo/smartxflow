@@ -504,26 +504,26 @@ function translateSelection(sel, market) {
     
     // O/U market için
     if (m.includes('OU') || m.includes('O/U') || m.includes('2.5')) {
-        if (s === 'O' || s === 'Over' || s.toLowerCase() === 'over') return 'Üst';
-        if (s === 'U' || s === 'Under' || s.toLowerCase() === 'under') return 'Alt';
+        if (s === 'O' || s === 'Over' || s.toLowerCase() === 'over') return _t('app.dyn.ust','Üst');
+        if (s === 'U' || s === 'Under' || s.toLowerCase() === 'under') return _t('app.dyn.alt','Alt');
     }
     // BTTS market için
     if (m.includes('BTTS') || m.includes('KG')) {
-        if (s === 'Y' || s === 'Yes' || s.toLowerCase() === 'yes') return 'Evet';
-        if (s === 'N' || s === 'No' || s.toLowerCase() === 'no') return 'Hayır';
+        if (s === 'Y' || s === 'Yes' || s.toLowerCase() === 'yes') return _t('app.dyn.evet','Evet');
+        if (s === 'N' || s === 'No' || s.toLowerCase() === 'no') return _t('app.dyn.hayir','Hayır');
     }
     // Genel çeviri
-    if (s === 'Over' || s.toLowerCase() === 'over') return 'Üst';
-    if (s === 'Under' || s.toLowerCase() === 'under') return 'Alt';
-    if (s === 'Yes' || s.toLowerCase() === 'yes') return 'Evet';
-    if (s === 'No' || s.toLowerCase() === 'no') return 'Hayır';
+    if (s === 'Over' || s.toLowerCase() === 'over') return _t('app.dyn.ust','Üst');
+    if (s === 'Under' || s.toLowerCase() === 'under') return _t('app.dyn.alt','Alt');
+    if (s === 'Yes' || s.toLowerCase() === 'yes') return _t('app.dyn.evet','Evet');
+    if (s === 'No' || s.toLowerCase() === 'no') return _t('app.dyn.hayir','Hayır');
     return s;
 }
 
 function translateMarket(market) {
     if (!market) return '';
     const m = String(market).toUpperCase();
-    if (m === 'OU25' || m === 'O/U 2.5' || m === 'OU 2.5') return 'Ü/A 2.5';
+    if (m === 'OU25' || m === 'O/U 2.5' || m === 'OU 2.5') return _t('app.dyn.ou25_label','Ü/A 2.5');
     if (m === 'BTTS') return _t('app.j.btts', 'KG');
     if (m === '1X2') return '1X2';
     return market;
@@ -1760,8 +1760,8 @@ function _renderMatchRow(match, idx) {
         }
     } else if (currentMarket.includes('ou25')) {
         if (isMoneyway) {
-            const blockUnder = renderMoneywayBlock('Alt', d.PctUnder, d.Under, d.AmtUnder);
-            const blockOver = renderMoneywayBlock('Üst', d.PctOver, d.Over, d.AmtOver);
+            const blockUnder = renderMoneywayBlock(_t('app.dyn.alt','Alt'), d.PctUnder, d.Under, d.AmtUnder);
+            const blockOver = renderMoneywayBlock(_t('app.dyn.ust','Üst'), d.PctOver, d.Over, d.AmtOver);
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
@@ -1800,8 +1800,8 @@ function _renderMatchRow(match, idx) {
         }
     } else {
         if (isMoneyway) {
-            const blockYes = renderMoneywayBlock('Evet', d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
-            const blockNo = renderMoneywayBlock('Hayır', d.PctNo, d.OddsNo || d.No, d.AmtNo);
+            const blockYes = renderMoneywayBlock(_t('app.dyn.evet','Evet'), d.PctYes, d.OddsYes || d.Yes, d.AmtYes);
+            const blockNo = renderMoneywayBlock(_t('app.dyn.hayir','Hayır'), d.PctNo, d.OddsNo || d.No, d.AmtNo);
             const matchStatus = getMatchStatus(match.date);
             const deskCapsule = getMatchLiveCapsuleDT(match.date, match.home_team, match.away_team, match.match_id);
             return `
@@ -2094,13 +2094,13 @@ function renderMobileMoneywayCard(match, idx, d, volume, dateStr, starHtml) {
         `;
     } else if (currentMarket.includes('ou25')) {
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('Alt', d.Under, d.PctUnder, tv)}
-            ${renderMobileMoneywayBlock('Üst', d.Over, d.PctOver, tv)}
+            ${renderMobileMoneywayBlock(_t('app.dyn.alt','Alt'), d.Under, d.PctUnder, tv)}
+            ${renderMobileMoneywayBlock(_t('app.dyn.ust','Üst'), d.Over, d.PctOver, tv)}
         `;
     } else {
         oddsBlocks = `
-            ${renderMobileMoneywayBlock('Evet', d.OddsYes || d.Yes, d.PctYes, tv)}
-            ${renderMobileMoneywayBlock('Hayır', d.OddsNo || d.No, d.PctNo, tv)}
+            ${renderMobileMoneywayBlock(_t('app.dyn.evet','Evet'), d.OddsYes || d.Yes, d.PctYes, tv)}
+            ${renderMobileMoneywayBlock(_t('app.dyn.hayir','Hayır'), d.OddsNo || d.No, d.PctNo, tv)}
         `;
     }
     
@@ -2153,7 +2153,7 @@ function buildCardInsight(d, market) {
         var pOver = parseFloat(String(d.PctYes || d.PctOver || '0').replace('%',''));
         var pUnder = parseFloat(String(d.PctNo || d.PctUnder || '0').replace('%',''));
         if (pOver > 0 || pUnder > 0) {
-            var lbl = pOver > pUnder ? 'Üst' : 'Alt';
+            var lbl = pOver > pUnder ? _t('app.dyn.ust','Üst') : _t('app.dyn.alt','Alt');
             var pct = Math.max(pOver, pUnder);
             parts.push('<span class="insight-tag">Lider: <span class="insight-val">' + lbl + '</span></span>');
             parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">' + pct.toFixed(0) + '%</span></span>');
@@ -2162,7 +2162,7 @@ function buildCardInsight(d, market) {
         var pY = parseFloat(String(d.PctYes || '0').replace('%',''));
         var pN = parseFloat(String(d.PctNo || '0').replace('%',''));
         if (pY > 0 || pN > 0) {
-            var lbl = pY > pN ? 'Evet' : 'Hayır';
+            var lbl = pY > pN ? _t('app.dyn.evet','Evet') : _t('app.dyn.hayir','Hayır');
             var pct = Math.max(pY, pN);
             parts.push('<span class="insight-tag">KG: <span class="insight-val">' + lbl + '</span></span>');
             parts.push('<span class="insight-tag">Pay: <span class="insight-val positive">' + pct.toFixed(0) + '%</span></span>');
@@ -2228,16 +2228,16 @@ function renderMobileOddsCard(match, idx, d, volume, dateStr, starHtml) {
         const trendOver = buildTrendDataFromMatch(d.Over, d.PrevOver || d.Over_prev, d.TrendOver, d.DropPctOver);
         
         oddsBlocks = `
-            ${renderMobileOddsBlock('Alt', d.Under, trendUnder)}
-            ${renderMobileOddsBlock('Üst', d.Over, trendOver)}
+            ${renderMobileOddsBlock(_t('app.dyn.alt','Alt'), d.Under, trendUnder)}
+            ${renderMobileOddsBlock(_t('app.dyn.ust','Üst'), d.Over, trendOver)}
         `;
     } else {
         const trendYes = buildTrendDataFromMatch(d.OddsYes || d.Yes, d.PrevYes || d.OddsYes_prev || d.Yes_prev, d.TrendYes, d.DropPctYes);
         const trendNo = buildTrendDataFromMatch(d.OddsNo || d.No, d.PrevNo || d.OddsNo_prev || d.No_prev, d.TrendNo, d.DropPctNo);
         
         oddsBlocks = `
-            ${renderMobileOddsBlock('Evet', d.OddsYes || d.Yes, trendYes)}
-            ${renderMobileOddsBlock('Hayır', d.OddsNo || d.No, trendNo)}
+            ${renderMobileOddsBlock(_t('app.dyn.evet','Evet'), d.OddsYes || d.Yes, trendYes)}
+            ${renderMobileOddsBlock(_t('app.dyn.hayir','Hayır'), d.OddsNo || d.No, trendNo)}
         `;
     }
     
@@ -3917,7 +3917,7 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column" data-selection="Alt">
-                        <div class="column-header">Alt</div>
+                        <div class="column-header">${_t('app.dyn.alt','Alt')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Under)}</span>
@@ -3933,7 +3933,7 @@ function updateMatchInfoCard() {
                         <div class="mobile-progress" style="width: ${pctU}%"></div>
                     </div>
                     <div class="info-column" data-selection="Üst">
-                        <div class="column-header">Üst</div>
+                        <div class="column-header">${_t('app.dyn.ust','Üst')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Over)}</span>
@@ -3958,14 +3958,14 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Alt</div>
+                        <div class="column-header">${_t('app.dyn.alt','Alt')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">Üst</div>
+                        <div class="column-header">${_t('app.dyn.ust','Üst')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
@@ -3990,7 +3990,7 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column" data-selection="Evet">
-                        <div class="column-header">Evet</div>
+                        <div class="column-header">${_t('app.dyn.evet','Evet')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
@@ -4006,7 +4006,7 @@ function updateMatchInfoCard() {
                         <div class="mobile-progress" style="width: ${pctY}%"></div>
                     </div>
                     <div class="info-column" data-selection="Hayır">
-                        <div class="column-header">Hayır</div>
+                        <div class="column-header">${_t('app.dyn.hayir','Hayır')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
@@ -4031,14 +4031,14 @@ function updateMatchInfoCard() {
             html = `
                 <div class="info-columns">
                     <div class="info-column">
-                        <div class="column-header">Evet</div>
+                        <div class="column-header">${_t('app.dyn.evet','Evet')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
                         </div>
                     </div>
                     <div class="info-column">
-                        <div class="column-header">Hayır</div>
+                        <div class="column-header">${_t('app.dyn.hayir','Hayır')}</div>
                         <div class="column-row">
                             <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
                             <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
@@ -4603,14 +4603,14 @@ function updateMobileSelectionButtons(market) {
         validSelections = ['1', 'X', '2'];
     } else if (market.includes('ou25')) {
         buttons = [
-            { sel: 'Under', label: 'Alt' },
-            { sel: 'Over', label: 'Üst' }
+            { sel: 'Under', label: _t('app.dyn.alt','Alt') },
+            { sel: 'Over', label: _t('app.dyn.ust','Üst') }
         ];
         validSelections = ['Under', 'Over'];
     } else if (market.includes('btts')) {
         buttons = [
-            { sel: 'Yes', label: 'Evet' },
-            { sel: 'No', label: 'Hayır' }
+            { sel: 'Yes', label: _t('app.dyn.evet','Evet') },
+            { sel: 'No', label: _t('app.dyn.hayir','Hayır') }
         ];
         validSelections = ['Yes', 'No'];
     }
@@ -5211,9 +5211,9 @@ async function loadChart(home, away, market, league = '') {
                                             }
                                         } else if (market.includes('ou25')) {
                                             if (datasetLabel.toLowerCase().includes('under')) {
-                                                label = 'Alt'; odds = h.Under || '-'; amt = h.AmtUnder || ''; pct = h.PctUnder || '';
+                                                label = _t('app.dyn.alt','Alt'); odds = h.Under || '-'; amt = h.AmtUnder || ''; pct = h.PctUnder || '';
                                             } else {
-                                                label = 'Üst'; odds = h.Over || '-'; amt = h.AmtOver || ''; pct = h.PctOver || '';
+                                                label = _t('app.dyn.ust','Üst'); odds = h.Over || '-'; amt = h.AmtOver || ''; pct = h.PctOver || '';
                                             }
                                         } else if (market.includes('btts')) {
                                             if (datasetLabel.toLowerCase().includes('yes')) {
@@ -5916,12 +5916,12 @@ function renderChartLegendFilters(datasets, market) {
             { key: '2', label: '2', color: '#eab308' }
         ],
         'moneyway_ou25': [
-            { key: 'Under', label: 'Alt 2.5', color: '#3b82f6' },
-            { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
+            { key: 'Under', label: _t('app.dyn.alt','Alt')+' 2.5', color: '#3b82f6' },
+            { key: 'Over', label: _t('app.dyn.ust','Üst')+' 2.5', color: '#22c55e' }
         ],
         'moneyway_btts': [
-            { key: 'Yes', label: 'KG Evet', color: '#22c55e' },
-            { key: 'No', label: 'KG Hayır', color: '#ef4444' }
+            { key: 'Yes', label: _t('app.j.btts','KG')+' '+_t('app.dyn.evet','Evet'), color: '#22c55e' },
+            { key: 'No', label: _t('app.j.btts','KG')+' '+_t('app.dyn.hayir','Hayır'), color: '#ef4444' }
         ],
         'dropping_1x2': [
             { key: '1', label: '1', color: '#3b82f6' },
@@ -5929,12 +5929,12 @@ function renderChartLegendFilters(datasets, market) {
             { key: '2', label: '2', color: '#eab308' }
         ],
         'dropping_ou25': [
-            { key: 'Under', label: 'Alt 2.5', color: '#3b82f6' },
-            { key: 'Over', label: 'Üst 2.5', color: '#22c55e' }
+            { key: 'Under', label: _t('app.dyn.alt','Alt')+' 2.5', color: '#3b82f6' },
+            { key: 'Over', label: _t('app.dyn.ust','Üst')+' 2.5', color: '#22c55e' }
         ],
         'dropping_btts': [
-            { key: 'Yes', label: 'KG Evet', color: '#22c55e' },
-            { key: 'No', label: 'KG Hayır', color: '#ef4444' }
+            { key: 'Yes', label: _t('app.j.btts','KG')+' '+_t('app.dyn.evet','Evet'), color: '#22c55e' },
+            { key: 'No', label: _t('app.j.btts','KG')+' '+_t('app.dyn.hayir','Hayır'), color: '#ef4444' }
         ]
     };
     
@@ -7176,7 +7176,7 @@ function highlightNewAlarm(alarm) {
     const home = alarm.home || alarm.home_team || '?';
     const away = alarm.away || alarm.away_team || '?';
     const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
-    const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
+    const selMap = {'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), '1': '1', 'X': 'X', '2': '2', 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')};
     const selection = selMap[rawSel] || rawSel;
     const alarmType = alarm._type || 'sharp';
     
@@ -7634,7 +7634,7 @@ function renderAlertBand() {
         const home = alarm.home || alarm.home_team || '?';
         const away = alarm.away || alarm.away_team || '?';
         const rawSel = (alarm.selection || alarm.side || '').toUpperCase();
-        const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
+        const selMap = {'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), '1': '1', 'X': 'X', '2': '2', 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')};
         const selection = selMap[rawSel] || rawSel;
         
         // Minimal value format
@@ -7795,7 +7795,7 @@ function showAlertBandDetail(index) {
                         ${home} vs ${away}
                     </div>
                     <div style="text-align: center; color: #7d848c; font-size: 13px;">
-                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
+                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
                     </div>
                 </div>
                 ${detailsHtml}
@@ -8888,7 +8888,7 @@ function formatMarketChip(market, selection) {
     
     // Selection mapping
     const rawSel = (selection || '').toUpperCase();
-    const selMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
+    const selMap = {'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), '1': '1', 'X': 'X', '2': '2', 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')};
     const mappedSel = selMap[rawSel] || rawSel;
     
     return `${marketShort} · ${mappedSel}`;
@@ -9579,7 +9579,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
             const rawSelection = (latest.selection || latest.side || '-').toUpperCase();
             const rawMarket = (latest.market || '').toUpperCase();
             // Selection mapping: U->Under, O->Over, Y->Yes, N->No
-            const selectionMap = {'U': 'Alt', 'O': 'Üst', 'Y': 'Evet', 'N': 'Hayır', '1': '1', 'X': 'X', '2': '2', 'UNDER': 'Alt', 'OVER': 'Üst', 'YES': 'Evet', 'NO': 'Hayır'};
+            const selectionMap = {'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), '1': '1', 'X': 'X', '2': '2', 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')};
             const selection = selectionMap[rawSelection] || rawSelection;
             // Market formatting: OU25->A/Ü 2.5, 1X2->1X2, BTTS->BTTS
             const marketMap = {'OU25': 'A/Ü 2.5', 'O/U 2.5': 'A/Ü 2.5', '1X2': '1X2', 'BTTS': 'KG'};
@@ -11376,7 +11376,7 @@ function renderLiveMatches(matches, goalHashes) {
         } else {
             var ou = _liveGetOu(m, ouLine);
             var volOU = _liveCalcVolOU(ou);
-            var bU = _liveMwBlock('Alt', ou['U']);
+            var bU = _liveMwBlock(_t('app.dyn.alt','Alt'), ou['U']);
             var bO = _liveMwBlock('Ust', ou['O']);
             var capGoalClsOU = goalSide ? ' lc-goal' : '';
             var capMinTextOU = goalSide ? 'GOL!' : escLiveHtml(matchMin);
@@ -11576,7 +11576,7 @@ function _liveMobileCard(m, marketOrLine, onclickAttr, goalSide) {
         if (_isTestLc) {
             html += _lcLock + _lcLock;
         } else {
-            html += _liveMobileBlock('Alt', ouD['U'], ouVol);
+            html += _liveMobileBlock(_t('app.dyn.alt','Alt'), ouD['U'], ouVol);
             html += _liveMobileBlock('Ust', ouD['O'], ouVol);
         }
         html += '</div>';
