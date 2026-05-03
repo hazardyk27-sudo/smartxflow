@@ -515,7 +515,7 @@ function translateMarket(market) {
     if (!market) return '';
     const m = String(market).toUpperCase();
     if (m === 'OU25' || m === 'O/U 2.5' || m === 'OU 2.5') return 'Ü/A 2.5';
-    if (m === 'BTTS') return 'KG';
+    if (m === 'BTTS') return _t('app.j.btts', 'KG');
     if (m === '1X2') return '1X2';
     return market;
 }
