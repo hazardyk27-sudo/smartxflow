@@ -3458,7 +3458,8 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         apiHome = prematchFound.home_team || homeTeam;
         apiAway = prematchFound.away_team || awayTeam;
         if (!league && prematchFound.league) apiLeague = prematchFound.league;
-        if (!kickoff && prematchFound.date) apiKickoff = prematchFound.date;
+        var _kHasTime = /T\d{2}:\d{2}|\s\d{2}:\d{2}/.test(String(kickoff || ''));
+        if ((!kickoff || !_kHasTime) && prematchFound.date) apiKickoff = prematchFound.date;
         console.log('[ModalFromAPI] Prematch found:', apiHome, 'vs', apiAway, 'league:', apiLeague);
     } else {
         console.log('[ModalFromAPI] No prematch match for', homeTeam, 'vs', awayTeam, 'in filtered:', fArr2.length, 'all:', mArr2.length);

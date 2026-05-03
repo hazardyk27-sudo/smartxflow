@@ -914,7 +914,7 @@ function renderUnderdogPressureView(data) {
                     inceleHandler: _inceleHandlerJS(sig),
                     badges: [
                         { label:'Oran', value: (sig.odds || '-') },
-                        (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null)
+                        ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null)
                     ].filter(Boolean)
                 });
             });
@@ -1103,7 +1103,7 @@ function renderConfirmedMoneyView(data) {
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
                     { label:'Oran', value: oranVal },
-                    (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
+                    ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
             });
@@ -1291,7 +1291,7 @@ function renderConfirmedMoneyV2View(data) {
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
                     { label:'Oran', value: oranVal },
-                    (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#8587e0', bg:'rgba(99,102,241,0.06)', border:'rgba(99,102,241,0.20)' } : null),
+                    ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#8587e0', bg:'rgba(99,102,241,0.06)', border:'rgba(99,102,241,0.20)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
             });
@@ -1498,7 +1498,7 @@ function renderEarlyMoneyLockView(data) {
                     hoursBefore: _hoursBeforeText(sig),
                     inceleHandler: _inceleHandlerJS(sig),
                     badges: [
-                        (pctFmt ? { label:'G\u00fcven', value: pctFmt, valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
+                        ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
                         (snapshots ? { label:'\ud83d\udd12', value: String(snapshots) } : null)
                     ].filter(Boolean)
                 });
