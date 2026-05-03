@@ -264,7 +264,7 @@
         <div class="mobile-tab-row group-row">
             <button class="mobile-tab-btn active" data-group="moneyway" onclick="setMobileGroup('moneyway')">Moneyway</button>
             <button class="mobile-tab-btn" data-group="dropping" onclick="setMobileGroup('dropping')" data-i18n="app.tab.odds_drop">Oran</button>
-            <button class="mobile-tab-btn mobile-live-btn" data-group="live" onclick="switchToLive()"><span class="live-dot"></span> Canlı</button>
+            <button class="mobile-tab-btn mobile-live-btn" data-group="live" onclick="switchToLive()"><span class="live-dot"></span> <span data-i18n="app.tab.live">Canlı</span></button>
         </div>
         <div class="mobile-tab-row market-row">
             <button class="mobile-tab-btn active" data-market-type="1x2" onclick="setMobileMarket('1x2')">1X2</button>
@@ -278,7 +278,7 @@
         <div class="mob-ctrl-row mob-cat-row" id="mobCatRow">
             <button class="mob-tab active" data-cat="moneyway" onclick="selectMobCat('moneyway')">Moneyway</button>
             <button class="mob-tab" data-cat="dropping" onclick="selectMobCat('dropping')" data-i18n="app.tab.odds_drop">Oran</button>
-            <button class="mob-tab" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> Canlı</button>
+            <button class="mob-tab" data-cat="live" onclick="selectMobCat('live')"><span class="live-dot"></span> <span data-i18n="app.tab.live">Canlı</span></button>
         </div>
         <div class="mob-ctrl-row mob-mkt-row" id="mobMktRow">
             <button class="mob-tab active" data-mkt="1x2" onclick="selectMobMkt('1x2')">1X2</button>
@@ -295,7 +295,7 @@
                     <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
                     <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
                 </svg>
-                <span>Filtrele</span>
+                <span data-i18n="app.flt.filter">Filtrele</span>
             </button>
             <button class="mob-act-btn mob-act-alarm" onclick="toggleAlarmsSidebar()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -354,7 +354,7 @@
                             <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
                             <circle cx="8" cy="6" r="2" fill="currentColor"/><circle cx="16" cy="12" r="2" fill="currentColor"/><circle cx="10" cy="18" r="2" fill="currentColor"/>
                         </svg>
-                        Filtrele
+                        <span data-i18n="app.flt.filter">Filtrele</span>
                     </button>
                     <button class="btn btn-today btn-favorites desktop-only" id="favoritesBtn" onclick="toggleFavoritesFilter()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -505,17 +505,17 @@
                             </div>
                             <div class="alarm-filter-option" data-value="volumeshock" onclick="selectAlarmFilter('volumeshock')">
                                 <span class="filter-dot" style="background:#F6C343"></span>
-                                <span class="filter-label">Hacim Soku</span>
+                                <span class="filter-label" data-i18n="app.flt.volume_shock">Hacim Şoku</span>
                                 <span class="filter-count" id="countVolumeshock">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="dropping" onclick="selectAlarmFilter('dropping')">
                                 <span class="filter-dot" style="background:#f85149"></span>
-                                <span class="filter-label">Oran Düşüşü</span>
+                                <span class="filter-label" data-i18n="app.flt.dropping_odds">Oran Düşüşü</span>
                                 <span class="filter-count" id="countDropping">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="volumeleader" onclick="selectAlarmFilter('volumeleader')">
                                 <span class="filter-dot" style="background:#06b6d4"></span>
-                                <span class="filter-label">Lider Degisti</span>
+                                <span class="filter-label" data-i18n="app.flt.leader_changed">Lider Değişti</span>
                                 <span class="filter-count" id="countVolumeleader">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="mim" onclick="selectAlarmFilter('mim')">
@@ -527,32 +527,32 @@
                     </div>
                 </div>
                 <div class="alarms-sidebar-field">
-                    <label>TARİH:</label>
+                    <label data-i18n="app.flt.date_label">TARİH:</label>
                     <div class="alarm-filter-dropdown" id="alarmDateDropdown">
                         <div class="alarm-filter-selected" onclick="toggleDateFilterDropdown()">
                             <span class="filter-dot" id="dateDotDisplay" style="background:#ffffff"></span>
-                            <span id="dateLabelDisplay">Tümü</span>
+                            <span id="dateLabelDisplay" data-i18n="app.flt.all">Tümü</span>
                             <svg class="dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                         </div>
                         <div class="alarm-filter-options" id="alarmDateOptions">
                             <div class="alarm-filter-option" data-value="all" onclick="selectDateFilter('all')">
                                 <span class="filter-dot" style="background:#ffffff"></span>
-                                <span class="filter-label">Tümü</span>
+                                <span class="filter-label" data-i18n="app.flt.all">Tümü</span>
                                 <span class="date-count-badge" id="dateCountAll">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="today" onclick="selectDateFilter('today')">
                                 <span class="filter-dot" style="background:#4ade80"></span>
-                                <span class="filter-label">Bugün</span>
+                                <span class="filter-label" data-i18n="app.flt.today">Bugün</span>
                                 <span class="date-count-badge" id="dateCountToday">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="yesterday" onclick="selectDateFilter('yesterday')">
                                 <span class="filter-dot" style="background:#f85149"></span>
-                                <span class="filter-label">Dün</span>
+                                <span class="filter-label" data-i18n="app.flt.yesterday">Dün</span>
                                 <span class="date-count-badge" id="dateCountYesterday">0</span>
                             </div>
                             <div class="alarm-filter-option" data-value="future" onclick="selectDateFilter('future')">
                                 <span class="filter-dot" style="background:#3B82F6"></span>
-                                <span class="filter-label">Gelecek</span>
+                                <span class="filter-label" data-i18n="app.flt.future">Gelecek</span>
                                 <span class="date-count-badge" id="dateCountFuture">0</span>
                             </div>
                         </div>
@@ -573,7 +573,7 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">
-                    <h2 id="modalMatchTitle">Maç Detayları</h2>
+                    <h2 id="modalMatchTitle" data-i18n="app.mod.match_detail">Maç Detayları</h2>
                     <span class="modal-subtitle" id="modalLeague">Lig</span>
                 </div>
                 <div class="modal-header-actions">
@@ -626,12 +626,12 @@
                     <div class="mobile-value-header" id="mobileValueHeader">
                         <div class="mvh-main">
                             <span class="mvh-big-value" id="mvhBigValue">--%</span>
-                            <span class="mvh-change" id="mvhChange">Son değer</span>
+                            <span class="mvh-change" id="mvhChange" data-i18n="app.mvh.last_value">Son değer</span>
                         </div>
                         <div class="mvh-details">
-                            <span class="mvh-item"><span id="mvhOddsLabel">Oran</span>: <strong id="mvhOdds">--</strong></span>
+                            <span class="mvh-item"><span id="mvhOddsLabel" data-i18n="app.mvh.odds">Oran</span>: <strong id="mvhOdds">--</strong></span>
                             <span class="mvh-sep">•</span>
-                            <span class="mvh-item"><span id="mvhStakeLabel">Para</span>: <strong id="mvhStake">--</strong></span>
+                            <span class="mvh-item"><span id="mvhStakeLabel" data-i18n="app.mvh.money">Para</span>: <strong id="mvhStake">--</strong></span>
                             <span class="mvh-sep">•</span>
                             <span class="mvh-item"><strong id="mvhTime">--:--</strong></span>
                         </div>
@@ -722,8 +722,8 @@
                 <button class="admin-panel-close" onclick="closeAdminPanel()">✕</button>
             </div>
             <div class="admin-tabs">
-                <button class="admin-tab active" data-tab="volumeleader" onclick="switchAdminTab('volumeleader')">Hacim Lideri</button>
-                <button class="admin-tab" data-tab="dropping" onclick="switchAdminTab('dropping')">Oran Düşüşü</button>
+                <button class="admin-tab active" data-tab="volumeleader" onclick="switchAdminTab('volumeleader')" data-i18n="app.adm.volumeleader">Hacim Lideri</button>
+                <button class="admin-tab" data-tab="dropping" onclick="switchAdminTab('dropping')" data-i18n="app.adm.dropping">Oran Düşüşü</button>
                 <button class="admin-tab" data-tab="mim" onclick="switchAdminTab('mim')">MIM</button>
             </div>
             <div class="admin-panel-body" id="adminPanelBody">
@@ -737,11 +737,11 @@
         <div class="modal-content trends-modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">
-                    <h2 id="trendsModalTitle">Kılavuz</h2>
-                    <span class="modal-subtitle" id="trendsModalSubtitle">Kullanım tavsiyeleri</span>
+                    <h2 id="trendsModalTitle" data-i18n="app.flt.guide">Kılavuz</h2>
+                    <span class="modal-subtitle" id="trendsModalSubtitle" data-i18n="app.flt.guide_tips">Kullanım tavsiyeleri</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="closeTrendsModal();setTimeout(function(){localStorage.removeItem('sxf_tutorial_done');startTutorial();},350);" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#6e7681;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;backdrop-filter:blur(4px);transition:all 0.2s;" onmouseover="this.style.color='#34d399';this.style.borderColor='rgba(52,211,153,0.25)';this.style.background='rgba(52,211,153,0.06)'" onmouseout="this.style.color='#6e7681';this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='rgba(255,255,255,0.03)'">Öğreticiyi Göster</button>
+                    <button onclick="closeTrendsModal();setTimeout(function(){localStorage.removeItem('sxf_tutorial_done');startTutorial();},350);" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#6e7681;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;backdrop-filter:blur(4px);transition:all 0.2s;" onmouseover="this.style.color='#34d399';this.style.borderColor='rgba(52,211,153,0.25)';this.style.background='rgba(52,211,153,0.06)'" onmouseout="this.style.color='#6e7681';this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='rgba(255,255,255,0.03)'" data-i18n="app.flt.show_tutorial">Öğreticiyi Göster</button>
                     <button class="modal-close" onclick="closeTrendsModal()">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -752,7 +752,7 @@
             </div>
             <div class="modal-body trends-modal-body">
                 <div class="trends-sidebar" id="trendsSidebar">
-                    <div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;">Yükleniyor...</div>
+                    <div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;" data-i18n="app.tbl.loading">Yükleniyor...</div>
                 </div>
                 <div class="trends-content-area" id="trendsContentArea">
                     <div class="trends-placeholder">
@@ -760,7 +760,7 @@
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                         </svg>
-                        <div>Sol menüden bir konu seçin</div>
+                        <div data-i18n="app.flt.select_topic">Sol menüden bir konu seçin</div>
                     </div>
                 </div>
             </div>
@@ -770,7 +770,7 @@
     <div class="mf-overlay" id="mobileFilterOverlay" onclick="closeMobileFilterModal()" style="display:none;">
         <div class="mf-modal" onclick="event.stopPropagation()">
             <div class="mf-header">
-                <span class="mf-title">Filtrele & Sırala</span>
+                <span class="mf-title" data-i18n="app.flt.filter_sort">Filtrele &amp; Sırala</span>
                 <button class="mf-close" onclick="closeMobileFilterModal()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
@@ -779,8 +779,8 @@
             <div class="mf-section">
                 <div class="mf-label">Tarih</div>
                 <div class="mf-chips">
-                    <button class="mf-chip active" data-group="date" data-value="all" onclick="mfSelect(this)">Tümü</button>
-                    <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)">Bugün</button>
+                    <button class="mf-chip active" data-group="date" data-value="all" onclick="mfSelect(this)" data-i18n="app.flt.all">Tümü</button>
+                    <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)" data-i18n="app.flt.today">Bugün</button>
                     <button class="mf-chip mf-past-toggle" data-group="date" data-value="past" onclick="mfSelectPast(this)">Geçmiş ▾</button>
                     <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)">Gelecek</button>
                 </div>
@@ -788,21 +788,21 @@
                 <input type="hidden" id="mfPastSelectedValue" value="">
             </div>
             <div class="mf-section">
-                <div class="mf-label">Sırala</div>
+                <div class="mf-label" data-i18n="app.flt.sort">Sırala</div>
                 <div class="mf-chips">
-                    <button class="mf-chip active" data-group="sort" data-value="date" onclick="mfSelect(this)">Tarihe göre</button>
-                    <button class="mf-chip" data-group="sort" data-value="volume" onclick="mfSelect(this)">Hacmine göre</button>
+                    <button class="mf-chip active" data-group="sort" data-value="date" onclick="mfSelect(this)" data-i18n="app.flt.by_date">Tarihe göre</button>
+                    <button class="mf-chip" data-group="sort" data-value="volume" onclick="mfSelect(this)" data-i18n="app.flt.by_volume">Hacmine göre</button>
                 </div>
             </div>
             <div class="mf-section">
-                <div class="mf-label">Filtrele</div>
+                <div class="mf-label" data-i18n="app.flt.filter">Filtrele</div>
                 <div class="mf-switch-list">
                     <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="hideEnded">
-                        <span class="mf-switch-text">Biten maçları gizle</span>
+                        <span class="mf-switch-text" data-i18n="app.flt.hide_finished">Biten maçları gizle</span>
                         <div class="mf-sw" data-group="filter" data-value="hideEnded"><div class="mf-sw-knob"></div></div>
                     </div>
                     <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="hideLive">
-                        <span class="mf-switch-text">Canlı maçları gizle</span>
+                        <span class="mf-switch-text" data-i18n="app.flt.hide_live">Canlı maçları gizle</span>
                         <div class="mf-sw" data-group="filter" data-value="hideLive"><div class="mf-sw-knob"></div></div>
                     </div>
                     <div class="mf-switch-row" onclick="mfToggle(this.querySelector('.mf-sw'))" data-group="filter" data-value="onlyLive">
