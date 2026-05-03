@@ -243,9 +243,9 @@
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
         <div class="nav-links">
-            <a href="/">Ana Sayfa</a>
+            <a href="/" data-i18n="nav.home">Ana Sayfa</a>
             <a href="/app">Uygulama</a>
-            <a href="/status" class="active">Durum</a>
+            <a href="/status" class="active" data-i18n="status.nav">Durum</a>
         </div>
     </nav>
 
@@ -303,7 +303,7 @@
                         <th>Zaman (TR)</th>
                         <th data-i18n="app.flt.match_count">Maç</th>
                         <th data-i18n="sta.snapshot">Snapshot</th>
-                        <th>Durum</th>
+                        <th data-i18n="status.col_durum">Durum</th>
                     </tr>
                 </thead>
                 <tbody id="historyBody">
@@ -313,7 +313,7 @@
         </div>
 
         <div class="status-card" style="border-color: rgba(43,255,136,0.2);">
-            <h2>
+            <h2 data-i18n="status.alarm_engine">
                 Alarm Engine
                 <span id="engineStatus" class="status-indicator status-offline">
                     <span class="status-dot"></span>
@@ -330,7 +330,7 @@
                     <div class="info-value small" id="engineLastBeat">-</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Durum</div>
+                    <div class="info-label" data-i18n="status.col_durum">Durum</div>
                     <div class="info-value small" id="engineState">-</div>
                 </div>
                 <div class="info-item">
@@ -398,7 +398,7 @@
                         <th data-i18n="sta.sinyal_zamani">Sinyal Zamanı</th>
                         <th data-i18n="sta.i_slenme_zamani">İşlenme Zamanı</th>
                         <th data-i18n="app.flt.match_count">Maç</th>
-                        <th>Durum</th>
+                        <th data-i18n="status.col_durum">Durum</th>
                     </tr>
                 </thead>
                 <tbody id="engineHistoryBody">
@@ -407,7 +407,7 @@
             </table>
         </div>
 
-        <p class="refresh-note">Sayfa her 60 saniyede otomatik yenilenir</p>
+        <p class="refresh-note" data-i18n="status.refresh_note">Sayfa her 60 saniyede otomatik yenilenir</p>
     </div>
 
     <script>

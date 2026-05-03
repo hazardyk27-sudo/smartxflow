@@ -18,6 +18,7 @@ TR_CHARS = set('ığşöüçĞŞÖÜÇİ')
 # ASCII-Turkish words (no diacritics) commonly used in this codebase.
 # Reviewer-required: catch literals like 'Toplam', 'Kaybetti', 'Tumu'.
 ASCII_TR_WORDS = {
+    # Existing
     'toplam', 'kazanan', 'kaybeden', 'kaybetti', 'kazandi', 'analizci',
     'analist', 'oran', 'para', 'akis', 'tumu', 'buyuk', 'hacim', 'soku',
     'lider', 'degisti', 'yukleniyor', 'kisi', 'takip', 'ediyor', 'mac',
@@ -25,11 +26,61 @@ ASCII_TR_WORDS = {
     'gelen', 'sonuc', 'guven', 'iade', 'iptal', 'ortalama', 'esik', 'yok',
     'aktif', 'sinyal', 'onceki', 'sonraki', 'goster', 'gizle', 'yeni',
     'eski', 'sonra', 'once', 'saat', 'dakika', 'gun', 'hafta', 'ay', 'yil',
+    # UI vocabulary expansion (rev6)
+    'ara', 'arama', 'aranan', 'alarm', 'alarmlar', 'favori', 'favoriler',
+    'kaydet', 'kaydedildi', 'sil', 'silindi', 'ayar', 'ayarlar', 'bildirim',
+    'bildirimler', 'hesap', 'profil', 'cikis', 'giris', 'gonder', 'gonderildi',
+    'yardim', 'hakkinda', 'tarihce', 'gecmis', 'paylas', 'indir', 'yukle',
+    'kapat', 'baslat', 'bitir', 'devam', 'geri', 'ileri', 'bul', 'listele',
+    'filtrele', 'filtreler', 'sirala', 'sec', 'secili', 'temizle', 'yenile',
+    'guncelle', 'guncellendi', 'ekle', 'eklendi', 'kaldir', 'kaldirildi',
+    'duzenle', 'goruntule', 'aciklama', 'baslik', 'olustur', 'olusturuldu',
+    'yorum', 'yorumlar', 'begeni', 'begeniler', 'mesaj', 'mesajlar',
+    'bildiri', 'duyuru', 'duyurular', 'haber', 'haberler', 'rapor', 'raporlar',
+    'istatistik', 'istatistikler', 'detay', 'detaylar', 'ozet', 'ozetler',
+    'liste', 'listeler', 'kategori', 'kategoriler', 'paket', 'paketler',
+    'urun', 'urunler', 'fiyat', 'fiyatlar', 'odeme', 'odemeler', 'fatura',
+    'faturalar', 'siparis', 'siparisler', 'sepet', 'kullanici', 'kullanicilar',
+    'uye', 'uyelik', 'uyelikler', 'kayit', 'kayitlar', 'oturum', 'parola',
+    'sifre', 'eposta', 'telefon', 'adres', 'sehir', 'ulke', 'tum', 'bos',
+    'hata', 'hatalar', 'basarili', 'basarisiz', 'bekleniyor', 'tamamlandi',
+    'islem', 'islemler', 'durum', 'turu', 'tur', 'sayfa', 'sayfalar',
+    'oncelik', 'oncelikli', 'yuksek', 'dusuk', 'orta', 'normal', 'kritik',
+    'tehlikeli', 'guvenli', 'belirsiz', 'tahmin', 'tahminler', 'sonuclar',
+    'baglanti', 'bagli', 'baglaniyor', 'koparildi', 'tekrar', 'tekrarla',
+    'kapali', 'acik', 'cevrimici', 'cevrimdisi', 'erisim', 'engellendi',
+    'izinli', 'reddedildi', 'onaylandi', 'beklemede', 'tamamlanan',
+    'kalan', 'gecen', 'kalmis', 'gecmiyor', 'doldur', 'dolu', 'mevcut',
+    'mevcutlar', 'mevcutsuz', 'baska', 'diger', 'digerleri', 'oran', 'orani',
+    'oranlar', 'oranlari', 'oransal', 'orandaki',
 }
 ASCII_TR_RE = re.compile(
     r'\b(?:' + '|'.join(sorted(ASCII_TR_WORDS, key=len, reverse=True)) + r')\b',
     re.IGNORECASE,
 )
+# Heuristic: standalone Title-cased words ending in distinctive TR suffixes.
+# Catches inflected forms not in the static word list (e.g. "Maçlar", "Periyot").
+# Only flags when full text is short label-like (<=40 chars, no obvious English).
+_TR_SUFFIX_RE = re.compile(
+    r'^\s*[A-ZÇĞİÖŞÜ][a-zçğıöşü]{1,20}'
+    r'(?:lar|ler|ları|leri|larım|lerim|ım|im|um|üm|sın|sin|sun|sün'
+    r'|dı|di|du|dü|tı|ti|tu|tü|mış|miş|muş|müş'
+    r'|ıyor|iyor|uyor|üyor|acak|ecek|mak|mek|nın|nin|nun|nün'
+    r'|dan|den|tan|ten|nda|nde|ndan|nden)\s*$',
+)
+_EN_COMMON = {  # words that look TR-suffixed but are English
+    'order', 'under', 'over', 'header', 'footer', 'leader', 'banner',
+    'tracker', 'manager', 'filter', 'counter', 'pointer', 'partner',
+    'after', 'before', 'enter', 'render', 'border', 'corner', 'matter',
+    'monster', 'silver', 'better', 'master', 'monitor', 'iframe',
+    'live', 'time', 'data', 'team', 'home', 'away', 'name', 'date',
+    'cancel', 'panel', 'level', 'goal', 'final', 'total', 'normal',
+}
+def _looks_turkish_suffix(text: str) -> bool:
+    s = text.strip()
+    if not (3 <= len(s) <= 40): return False
+    if s.lower() in _EN_COMMON: return False
+    return bool(_TR_SUFFIX_RE.match(s))
 BRANDS = {
     'SmartXFlow', 'MIM', 'Sharp', 'Big Money', 'BigMoney', 'Moneyway',
     'MW', 'Underdog Pressure', 'Confirmed Money', 'Early Money Lock',
@@ -65,15 +116,21 @@ _BRANDS_RE = re.compile(
 
 
 def has_tr(text: str) -> bool:
-    """TR-diacritic OR ASCII-TR-word detection."""
+    """TR-diacritic OR ASCII-TR-word OR TR-suffix heuristic."""
     if any(c in TR_CHARS for c in text):
         return True
-    return bool(ASCII_TR_RE.search(text))
+    if ASCII_TR_RE.search(text):
+        return True
+    if _looks_turkish_suffix(text):
+        return True
+    return False
 
 
 _CSS_IDENT_RE = re.compile(r'^[a-z][a-z0-9_-]*$')
 _URL_RE = re.compile(r'^https?://|^/api/|^/static/')
 _ESCAPE_LEFTOVER_RE = re.compile(r'u[0-9a-f]{4}')  # broken \u escapes after str scan
+_CSS_SELECTOR_RE = re.compile(r'^\s*[.#\[][\w\-\[\]"\'*=:>+~,\s.#]+$')  # CSS selectors
+_CAMEL_IDENT_RE = re.compile(r'^[a-z][a-zA-Z0-9_]*$')  # JS identifiers like 'countMim'
 
 def needs_translation(text: str) -> bool:
     """True if the text actually contains TR letters AFTER stripping brands."""
@@ -86,6 +143,12 @@ def needs_translation(text: str) -> bool:
     if _URL_RE.match(s):  # API paths, full URLs
         return False
     if _ESCAPE_LEFTOVER_RE.search(s):  # 'saat u00f6nce' = broken \u00f6 fragment
+        return False
+    if _CSS_SELECTOR_RE.match(s):  # '.mobile-alarm-btn[onclick*="moves"]'
+        return False
+    if _CAMEL_IDENT_RE.match(s):  # 'countMim' — JS identifier, not user text
+        return False
+    if "_t('" in s or '_t("' in s:  # already-wrapped fragment leaking through
         return False
     stripped = _BRANDS_RE.sub(' ', text)
     return has_tr(stripped)
@@ -350,6 +413,16 @@ def _inside_t_call(src: str, pos: int) -> bool:
 
 
 _CONSOLE_RE = re.compile(r'console\s*\.\s*(?:log|warn|error|info|debug|trace)\s*\($')
+_INDEXOF_RE = re.compile(r'\.\s*indexOf\s*\($')
+
+
+def _inside_indexof_call(src: str, pos: int) -> bool:
+    """Skip strings used as .indexOf('...') arguments — backwards-compat lookups."""
+    i = pos - 1
+    while i >= 0 and src[i] in ' \t':
+        i -= 1
+    j = i + 1
+    return bool(_INDEXOF_RE.search(src[max(0, i - 40):j]))
 
 
 def _inside_console_call(src: str, pos: int) -> bool:
@@ -382,6 +455,8 @@ def scan_js(path: str) -> list[dict]:
             continue
         # Developer-only debug messages — not user-facing, intentionally TR.
         if _inside_console_call(src, start):
+            continue
+        if _inside_indexof_call(src, start):
             continue
         # Bracket-prefixed log tags like '[AutoRefresh] foo' / '[Live] bar'
         if body.lstrip().startswith('[') and ']' in body[:40]:

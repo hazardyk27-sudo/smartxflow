@@ -288,7 +288,7 @@
         <div class="mob-ctrl-row mob-action-row">
             <div class="mob-search-inline">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="text" id="mobSearchInput" placeholder="Ara..." oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
+                <input type="text" id="mobSearchInput" placeholder="Ara..." data-i18n-attr="placeholder:idx.search_placeholder" oninput="document.getElementById('searchInput').value=this.value; document.getElementById('searchInput').dispatchEvent(new Event('input'));">
             </div>
             <button class="mob-act-btn mob-act-filter" id="mobileFilterBtn" onclick="openMobileFilterModal()">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -302,7 +302,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span>Alarmlar</span>
+                <span data-i18n="idx.alarmlar">Alarmlar</span>
                 <span class="mob-act-badge" id="mobileAlarmBadge">0</span>
             </button>
             <div class="mobile-overflow-wrap">
@@ -317,7 +317,7 @@
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
-                        Favoriler
+                        <span data-i18n="idx.favoriler">Favoriler</span>
                     </button>
                     <button onclick="openTrendsModal('moves'); closeMobileOverflow();">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -360,7 +360,7 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
                         </svg>
-                        Favoriler
+                        <span data-i18n="idx.favoriler">Favoriler</span>
                     </button>
                     <button class="btn btn-today desktop-only" onclick="openTrendsModal('moves')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -373,7 +373,7 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                         </svg>
-                        Analizler
+                        <span data-i18n="idx.analizler">Analizler</span>
                         <span class="analysis-active-badge" style="display:none;">0</span>
                     </button>
                     <div class="live-market-dropdown desktop-only" id="liveMarketTabs" style="display:none;">
@@ -468,7 +468,7 @@
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                Alarm Listesi
+                <span data-i18n="idx.alarm_listesi">Alarm Listesi</span>
             </div>
             <button class="alarms-sidebar-close" onclick="closeAlarmsSidebar()">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -560,7 +560,7 @@
                 </div>
             </div>
             <div class="alarms-sidebar-search">
-                <input type="text" id="alarmSearchInput" placeholder="Takim ara Orn: Chelsea, Galatasaray" oninput="searchAlarms(this.value)">
+                <input type="text" id="alarmSearchInput" placeholder="Takim ara Orn: Chelsea, Galatasaray" data-i18n-attr="placeholder:idx.alarm_search_placeholder" oninput="searchAlarms(this.value)">
             </div>
         </div>
         <div class="alarms-sidebar-list" id="alarmsList">
@@ -577,7 +577,7 @@
                     <span class="modal-subtitle" id="modalLeague" data-i18n="app.flt.league">Lig</span>
                 </div>
                 <div class="modal-header-actions">
-                    <button id="modalFavBtn" class="modal-fav-btn" onclick="toggleModalFavorite()" title="Favorilere ekle">
+                    <button id="modalFavBtn" class="modal-fav-btn" onclick="toggleModalFavorite()" title="Favorilere ekle" data-i18n-attr="title:idx.fav_add">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                         </svg>
@@ -596,7 +596,7 @@
                 
                 <div class="mobile-tab-bar" id="mobileTabBar">
                     <button class="mob-tab active" data-tab="chart" onclick="switchMobileTab('chart')">Grafik</button>
-                    <button class="mob-tab" data-tab="events" onclick="switchMobileTab('events')">Alarmlar</button>
+                    <button class="mob-tab" data-tab="events" onclick="switchMobileTab('events')" data-i18n="idx.alarmlar">Alarmlar</button>
                     <button class="mob-tab" data-tab="live" onclick="switchMobileTab('live')" id="modalLiveTab" style="display:none;" data-i18n="idx.canli">Canl&#305;</button>
                 </div>
                 
@@ -782,7 +782,7 @@
                     <button class="mf-chip active" data-group="date" data-value="all" onclick="mfSelect(this)" data-i18n="app.flt.all">Tümü</button>
                     <button class="mf-chip" data-group="date" data-value="today" onclick="mfSelect(this)" data-i18n="app.flt.today">Bugün</button>
                     <button class="mf-chip mf-past-toggle" data-group="date" data-value="past" onclick="mfSelectPast(this)" data-i18n="app.j.history_short">Geçmiş ▾</button>
-                    <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)">Gelecek</button>
+                    <button class="mf-chip" data-group="date" data-value="future" onclick="mfSelect(this)" data-i18n="idx.gelecek">Gelecek</button>
                 </div>
                 <div class="mf-past-dropdown" id="mfPastDropdown" style="display:none;"></div>
                 <input type="hidden" id="mfPastSelectedValue" value="">
