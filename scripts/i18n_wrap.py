@@ -115,6 +115,34 @@ def html_tokenize(body: str) -> list[tuple]:
     return out
 
 
+_LEADING_STRUCT_RE  = re.compile(
+    r'^\s*'
+    r'(?:'
+    r'["\']\s*'
+    r'(?:[a-zA-Z-]+(?:\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+))?\s*)*'
+    r'>'
+    r'|["\']?>'
+    r')\s*'
+)
+_TRAILING_STRUCT_RE = re.compile(r'\s*<[a-zA-Z/!][^>]*$')
+
+
+def split_structural(t: str) -> tuple[str, str, str]:
+    """Peel orphan HTML attribute-closer prefixes (`">`, `'>`, `>`) and orphan
+    partial open-tag suffixes (`<div class="X` with no `>`) from a text segment
+    that originated from a multi-string-concat HTML fragment. Returns
+    (prefix_struct, core_user_text, suffix_struct)."""
+    pre = ''
+    m = _LEADING_STRUCT_RE.match(t)
+    if m:
+        pre = t[:m.end()]; t = t[m.end():]
+    suf = ''
+    m = _TRAILING_STRUCT_RE.search(t)
+    if m:
+        suf = t[m.start():]; t = t[:m.start()]
+    return pre, t, suf
+
+
 def _slug(text: str) -> str:
     s = text.lower()
     s = re.sub(r'\$\{\.\.\.\}', '_', s)
@@ -186,7 +214,25 @@ def iter_js_strings(src: str):
             while i < n:
                 ch = src[i]
                 if ch == '\\' and i + 1 < n:
-                    buf.append(src[i + 1]); i += 2; continue
+                    nxt = src[i + 1]
+                    if nxt == 'u' and i + 5 < n:
+                        if src[i+2] == '{':
+                            j = src.find('}', i+3)
+                            if j > 0:
+                                try: buf.append(chr(int(src[i+3:j], 16)))
+                                except ValueError: buf.append(src[i:j+1])
+                                i = j + 1; continue
+                        try: buf.append(chr(int(src[i+2:i+6], 16)))
+                        except ValueError: buf.append(src[i+2:i+6])
+                        i += 6; continue
+                    if nxt == 'x' and i + 3 < n:
+                        try: buf.append(chr(int(src[i+2:i+4], 16)))
+                        except ValueError: buf.append(src[i+2:i+4])
+                        i += 4; continue
+                    decoded = {'n':'\n','r':'\r','t':'\t','b':'\b','f':'\f',
+                               'v':'\v','0':'\0',"'":"'",'"':'"','`':'`',
+                               '\\':'\\','/':'/','$':'$'}.get(nxt, nxt)
+                    buf.append(decoded); i += 2; continue
                 if ch == q:
                     i += 1
                     yield (start, i, q, ''.join(buf), has_interp, interps); break
@@ -434,13 +480,18 @@ def main():
                     parts_out = []
                     for k, t in tokens:
                         if k == 'text' and needs_translation(t):
-                            row = _ensure_key(t, prefix, by_tr_text, by_key,
+                            pre, core, suf = split_structural(t)
+                            if not needs_translation(core):
+                                parts_out.append(_restore(t)); continue
+                            if pre: parts_out.append(_restore(pre))
+                            row = _ensure_key(core, prefix, by_tr_text, by_key,
                                               used_keys, fields, new_rows)
                             if row in new_rows: new_for_file += 1
                             _add_ref(row, f'{rel}:{ln}')
                             esc_k = js_escape(row['key'], "'")
-                            esc_t = js_escape(t, "'")
+                            esc_t = js_escape(core, "'")
                             parts_out.append("${_t('" + esc_k + "', '" + esc_t + "')}")
+                            if suf: parts_out.append(_restore(suf))
                         elif k == 'interp':
                             parts_out.append(next(interp_iter, '${null}'))
                         else:
@@ -456,12 +507,17 @@ def main():
                             cur.clear()
                     for k, t in tokens:
                         if k == 'text' and needs_translation(t):
+                            pre, core, suf = split_structural(t)
+                            if not needs_translation(core):
+                                cur.append(t); continue
+                            if pre: cur.append(pre)
                             _flush()
-                            row = _ensure_key(t, prefix, by_tr_text, by_key,
+                            row = _ensure_key(core, prefix, by_tr_text, by_key,
                                               used_keys, fields, new_rows)
                             if row in new_rows: new_for_file += 1
                             _add_ref(row, f'{rel}:{ln}')
-                            chunks.append(('call', row['key'], t))
+                            chunks.append(('call', row['key'], core))
+                            if suf: cur.append(suf)
                         else:
                             cur.append(t)
                     _flush()
