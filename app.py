@@ -811,7 +811,7 @@ def terms_page():
     </ul>
     <p>SmartXFlow, hizmette yapılacak güncellemeler, değişiklikler ve teknik kesintiler nedeniyle oluşabilecek durumlardan sorumlu tutulamaz.</p>
     """
-    return render_template('legal.html', title='Kullanım Şartları', content=content)
+    return render_template('legal.html', title='Kullanım Şartları', content=content, page_key='terms')
 
 @app.route('/privacy')
 def privacy_page():
@@ -832,7 +832,7 @@ def privacy_page():
     </ul>
     <p>amaçlarıyla kullanılır ve üçüncü kişilerle paylaşılmaz.</p>
     """
-    return render_template('legal.html', title='Gizlilik Politikası', content=content)
+    return render_template('legal.html', title='Gizlilik Politikası', content=content, page_key='privacy')
 
 @app.route('/cookies')
 def cookies_page():
@@ -846,7 +846,7 @@ def cookies_page():
     </ul>
     <p>amaçlarıyla kullanılmaktadır. Kullanıcılar tarayıcı ayarlarından çerezleri devre dışı bırakabilir.</p>
     """
-    resp = make_response(render_template('legal.html', title='Çerez Politikası', content=content))
+    resp = make_response(render_template('legal.html', title='Çerez Politikası', content=content, page_key='cookies'))
     resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
     return resp
 
@@ -856,7 +856,7 @@ def disclaimer_page():
     <p>SmartXFlow, piyasa verilerini analiz eden bir veri platformudur. Platformda yer alan analizler, sinyaller ve içerikler yatırım veya bahis tavsiyesi niteliği taşımaz.</p>
     <p>Kullanıcılar platform verilerini kendi sorumlulukları dahilinde değerlendirir. SmartXFlow, kullanıcıların aldığı finansal veya piyasa kararlarından sorumlu değildir.</p>
     """
-    return render_template('legal.html', title='Sorumluluk Reddi', content=content)
+    return render_template('legal.html', title='Sorumluluk Reddi', content=content, page_key='disclaimer')
 
 @app.route('/status')
 def status_page():

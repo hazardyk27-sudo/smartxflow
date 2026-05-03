@@ -12,7 +12,7 @@
       gtag('config', 'G-NN1FFSFF2N');
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
-    <title>{{ title }} | SmartXFlow</title>
+    <title data-i18n="legal.{{ page_key }}.title_full">{{ title }} | SmartXFlow</title>
     <meta name="description" content="SmartXFlow {{ title }}. Platform kullanım koşulları ve yasal bilgiler.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="canonical" href="https://smartxflow.com{{ request.path }}">
@@ -93,7 +93,29 @@
             .footer { padding: 30px 16px; }
             .footer-contact { flex-wrap: wrap; }
         }
+
+        .lang-picker { position: relative; margin-left: 4px; }
+        .lang-picker-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; cursor: pointer; transition: all 160ms ease; backdrop-filter: blur(10px); }
+        .lang-picker-btn:hover { background: rgba(255,255,255,0.07); color: #fff; }
+        .lang-picker-btn svg { stroke: currentColor; opacity: 0.7; transition: transform 200ms ease; }
+        .lang-picker.open .lang-picker-btn svg { transform: rotate(180deg); }
+        .lang-picker-globe { width: 13px; height: 13px; opacity: 0.7; }
+        .lang-picker-current { letter-spacing: 0.6px; }
+        .lang-picker-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 168px; background: rgba(15, 20, 28, 0.92); backdrop-filter: blur(22px) saturate(1.4); -webkit-backdrop-filter: blur(22px) saturate(1.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 6px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); display: none; z-index: 1100; }
+        .lang-picker.open .lang-picker-menu { display: block; }
+        .lang-picker-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; background: transparent; border: none; color: rgba(255,255,255,0.78); font-size: 13px; font-weight: 500; text-align: left; border-radius: 9px; cursor: pointer; transition: all 140ms ease; }
+        .lang-picker-menu button:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .lang-picker-menu button.active { background: rgba(43,255,136,0.10); color: #2BFF88; }
+        .lang-picker-menu .lp-code { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; min-width: 22px; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); text-align: center; }
+        .lang-picker-menu button.active .lp-code { background: rgba(43,255,136,0.15); color: #2BFF88; }
+        .mobile-lang-picker { display: none; flex-wrap: wrap; gap: 6px; padding: 8px 16px 4px; }
+        .mobile-lang-picker button { flex: 1 1 calc(25% - 6px); padding: 8px 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: rgba(255,255,255,0.7); font-size: 11px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; transition: all 140ms ease; }
+        .mobile-lang-picker button.active { background: rgba(43,255,136,0.10); color: #2BFF88; border-color: rgba(43,255,136,0.3); }
+        @media (max-width: 900px) { .lang-picker { display: none; } }
+        @media (max-width: 768px) { .mobile-lang-picker { display: flex; } }
+
     </style>
+    <script src="/static/js/i18n.js?v=2" defer></script>
 </head>
 <body>
     <nav class="navbar">
@@ -102,12 +124,28 @@
             <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
         </a>
         <div class="nav-links">
-            <a href="/">Ana Sayfa</a>
-            <a href="/nedir">Nedir?</a>
-            <a href="/#features">Özellikler</a>
-            <a href="/pricing">Paketler</a>
-            <a href="/rehber">Rehber</a>
-            <a href="/app" class="nav-cta">Uygulamaya Git</a>
+            <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+            <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+            <a href="/#features" data-i18n="nav.features">Özellikler</a>
+            <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+            <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+            <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
+        <div class="lang-picker" id="langPicker">
+            <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
+                <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span class="lang-picker-current">TR</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="lang-picker-menu" role="listbox">
+                <button data-lang="tr"><span class="lp-code">TR</span><span>Türkçe</span></button>
+                <button data-lang="en"><span class="lp-code">EN</span><span>English</span></button>
+                <button data-lang="de"><span class="lp-code">DE</span><span>Deutsch</span></button>
+                <button data-lang="fr"><span class="lp-code">FR</span><span>Français</span></button>
+                <button data-lang="nl"><span class="lp-code">NL</span><span>Nederlands</span></button>
+                <button data-lang="it"><span class="lp-code">IT</span><span>Italiano</span></button>
+                <button data-lang="es"><span class="lp-code">ES</span><span>Español</span></button>
+            </div>
+        </div>
         </div>
         <div class="hamburger" onclick="toggleMenu()">
             <span></span><span></span><span></span>
@@ -115,18 +153,18 @@
       </div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="/">Ana Sayfa</a>
-        <a href="/nedir">Nedir?</a>
-        <a href="/#features">Özellikler</a>
-        <a href="/pricing">Paketler</a>
-        <a href="/rehber">Rehber</a>
-        <a href="/app" class="nav-cta">Uygulamaya Git</a>
+        <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+        <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+        <a href="/#features" data-i18n="nav.features">Özellikler</a>
+        <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+        <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+        <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
     </div>
 
     <div class="legal-container">
-        <h1>{{ title }}</h1>
-        <div class="legal-date">Son güncelleme: Şubat 2026</div>
-        {{ content | safe }}
+        <h1 data-i18n="legal.{{ page_key }}.title">{{ title }}</h1>
+        <div class="legal-date" data-i18n="legal.last_updated">Son güncelleme: Şubat 2026</div>
+        <div data-i18n-html="legal.{{ page_key }}.body">{{ content | safe }}</div>
     </div>
 
     <footer class="footer">
@@ -136,17 +174,17 @@
                     <span>Smart</span><img src="/static/images/smartxflow_logo.png" alt="X"><span>Flow</span>
                 </div>
                 <div class="footer-row-divider"></div>
-                <a href="/">Ana Sayfa</a>
-                <a href="/nedir">Nedir?</a>
-                <a href="/pricing">Paketler</a>
-                <a href="/rehber">Rehber</a>
-                <a href="/app">Uygulama</a>
+                <a href="/" data-i18n="nav.home">Ana Sayfa</a>
+                <a href="/nedir" data-i18n="nav.what">Nedir?</a>
+                <a href="/pricing" data-i18n="nav.packages">Paketler</a>
+                <a href="/rehber" data-i18n="nav.guide">Rehber</a>
+                <a href="/app" data-i18n="footer.app">Uygulama</a>
             </div>
             <div class="footer-row">
-                <a href="/terms" style="font-size:12px;color:#484f58;">Kullanım Şartları</a>
-                <a href="/privacy" style="font-size:12px;color:#484f58;">Gizlilik</a>
-                <a href="/cookies" style="font-size:12px;color:#484f58;">Çerezler</a>
-                <a href="/disclaimer" style="font-size:12px;color:#484f58;">Sorumluluk Reddi</a>
+                <a href="/terms" style="font-size:12px;color:#484f58;" data-i18n="footer.terms">Kullanım Şartları</a>
+                <a href="/privacy" style="font-size:12px;color:#484f58;" data-i18n="footer.privacy">Gizlilik</a>
+                <a href="/cookies" style="font-size:12px;color:#484f58;" data-i18n="footer.cookies">Çerezler</a>
+                <a href="/disclaimer" style="font-size:12px;color:#484f58;" data-i18n="footer.disclaimer">Sorumluluk Reddi</a>
             </div>
             <div class="footer-contact">
                 <a href="https://instagram.com/smartxflow" target="_blank" rel="noopener">
@@ -162,11 +200,33 @@
                     smartxflow29@gmail.com
                 </a>
             </div>
-            <div class="footer-copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
+            <div class="footer-copy" data-i18n="footer.copy">© 2025 SmartXFlow. Tüm hakları saklıdır.</div>
         </div>
     </footer>
 
     <script>
+
+        (function(){
+            var picker=document.getElementById('langPicker');
+            function syncCurrent(code){
+                document.querySelectorAll('.lang-picker-current').forEach(function(el){el.textContent=(code||'tr').toUpperCase();});
+                document.querySelectorAll('.lang-picker-menu button, .mobile-lang-picker button').forEach(function(btn){
+                    btn.classList.toggle('active', btn.getAttribute('data-lang')===code);
+                });
+            }
+            if(window.SXFI18n){syncCurrent(window.SXFI18n.current());}
+            window.addEventListener('i18n:change', function(e){syncCurrent(e.detail.lang);});
+            document.addEventListener('click', function(e){
+                if(picker && e.target.closest('.lang-picker-btn')){picker.classList.toggle('open'); e.stopPropagation(); return;}
+                if(picker && !e.target.closest('.lang-picker')){picker.classList.remove('open');}
+                var langBtn=e.target.closest('[data-lang]');
+                if(langBtn){
+                    var code=langBtn.getAttribute('data-lang');
+                    if(window.SXFI18n){window.SXFI18n.set(code).catch(function(){});}
+                    if(picker){picker.classList.remove('open');}
+                }
+            });
+        })();
         function toggleMenu() {
             document.getElementById('mobileMenu').classList.toggle('open');
         }
