@@ -981,8 +981,7 @@
             <a href="/rehber" data-i18n="nav.guide">Rehber</a>
             <div class="lang-picker" id="langPicker">
                 <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
-                    <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    <span class="lang-picker-current"><img class="flag-icon" src="/static/flags/gb.svg" alt=""></span>
+                    <span class="lang-picker-current"><img class="flag-icon" src="/static/flags/gb.svg" alt=""> <span class="lang-picker-code">EN</span></span>
                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 <div class="lang-picker-menu" role="listbox">
@@ -1487,7 +1486,7 @@
     (function () {
         function syncPicker(lang) {
             var code = (lang || 'tr').toUpperCase();
-            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.innerHTML = ({tr:'<img class="flag-icon" src="/static/flags/tr.svg" alt="">',en:'<img class="flag-icon" src="/static/flags/gb.svg" alt="">',de:'<img class="flag-icon" src="/static/flags/de.svg" alt="">',fr:'<img class="flag-icon" src="/static/flags/fr.svg" alt="">',nl:'<img class="flag-icon" src="/static/flags/nl.svg" alt="">',it:'<img class="flag-icon" src="/static/flags/it.svg" alt="">',es:'<img class="flag-icon" src="/static/flags/es.svg" alt="">'})[lang] || code; });
+            document.querySelectorAll('.lang-picker-current').forEach(function (el) { el.innerHTML = ({tr:'<img class="flag-icon" src="/static/flags/tr.svg" alt=""> <span class="lang-picker-code">TR</span>',en:'<img class="flag-icon" src="/static/flags/gb.svg" alt=""> <span class="lang-picker-code">EN</span>',de:'<img class="flag-icon" src="/static/flags/de.svg" alt=""> <span class="lang-picker-code">DE</span>',fr:'<img class="flag-icon" src="/static/flags/fr.svg" alt=""> <span class="lang-picker-code">FR</span>',nl:'<img class="flag-icon" src="/static/flags/nl.svg" alt=""> <span class="lang-picker-code">NL</span>',it:'<img class="flag-icon" src="/static/flags/it.svg" alt=""> <span class="lang-picker-code">IT</span>',es:'<img class="flag-icon" src="/static/flags/es.svg" alt=""> <span class="lang-picker-code">ES</span>'})[lang] || code; });
             document.querySelectorAll('[data-lang]').forEach(function (btn) {
                 btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
             });

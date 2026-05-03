@@ -6,7 +6,7 @@
     if (!document.getElementById('sxf-flag-icon-style')) {
       var st = document.createElement('style');
       st.id = 'sxf-flag-icon-style';
-      st.textContent = '.flag-icon{display:inline-block;width:18px;height:13px;vertical-align:middle;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,0.12);}';
+      st.textContent = '.flag-icon{display:inline-block;width:18px;height:13px;vertical-align:middle;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,0.12);}.lang-picker-code{font-size:11px;font-weight:600;letter-spacing:0.5px;margin-left:4px;vertical-align:middle;}';
       (document.head || document.documentElement).appendChild(st);
     }
   } catch (e) {}
@@ -73,7 +73,9 @@
     }
     document.documentElement.setAttribute('lang', currentLang);
     document.querySelectorAll('.lang-picker-current').forEach(function (el) {
-      el.innerHTML = FLAGS[currentLang] || currentLang.toUpperCase();
+      var flag = FLAGS[currentLang] || '';
+      var code = (currentLang === 'en') ? 'EN' : currentLang.toUpperCase();
+      el.innerHTML = flag + ' <span class="lang-picker-code">' + code + '</span>';
     });
     var ogLocale = document.querySelector('meta[property="og:locale"]');
     if (ogLocale) {

@@ -132,8 +132,7 @@
             <a href="/app" class="nav-cta" data-i18n="nav.cta_app">Uygulamaya Git</a>
         <div class="lang-picker" id="langPicker">
             <button class="lang-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language">
-                <svg class="lang-picker-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                <span class="lang-picker-current">TR</span>
+                <span class="lang-picker-current"><img class="flag-icon" src="/static/flags/gb.svg" alt=""> <span class="lang-picker-code">EN</span></span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="lang-picker-menu" role="listbox">
@@ -209,7 +208,7 @@
         (function(){
             var picker=document.getElementById('langPicker');
             function syncCurrent(code){
-                document.querySelectorAll('.lang-picker-current').forEach(function(el){el.textContent=(code||'tr').toUpperCase();});
+                document.querySelectorAll('.lang-picker-current').forEach(function(el){var f=({tr:'tr',en:'gb',de:'de',fr:'fr',nl:'nl',it:'it',es:'es'})[code]||'gb';var c=(code==='en'?'EN':code.toUpperCase());el.innerHTML='<img class="flag-icon" src="/static/flags/'+f+'.svg" alt=""> <span class="lang-picker-code">'+c+'</span>';});
                 document.querySelectorAll('.lang-picker-menu button, .mobile-lang-picker button').forEach(function(btn){
                     btn.classList.toggle('active', btn.getAttribute('data-lang')===code);
                 });
