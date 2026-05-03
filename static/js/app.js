@@ -10453,6 +10453,14 @@ function updateLicenseDaysBadge(days) {
     badge.style.display = 'flex';
 }
 
+window.addEventListener('i18n:change', function() {
+    var savedDays = localStorage.getItem('license_days_remaining');
+    if (savedDays !== null) updateLicenseDaysBadge(parseInt(savedDays, 10));
+    if (typeof _updateFavCountsInDOM === 'function') _updateFavCountsInDOM();
+    var si = document.getElementById('searchInput');
+    if (si && window.SXFI18n) si.placeholder = window.SXFI18n.t('idx.takim_veya_lig_ara') || si.placeholder;
+});
+
 async function validateWebLicense() {
     const input = document.getElementById('licenseKeyInput');
     const errorDiv = document.getElementById('licenseError');
