@@ -15,6 +15,21 @@ import os, re, sys, json, csv, html
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TR_CHARS = set('ığşöüçĞŞÖÜÇİ')
+# ASCII-Turkish words (no diacritics) commonly used in this codebase.
+# Reviewer-required: catch literals like 'Toplam', 'Kaybetti', 'Tumu'.
+ASCII_TR_WORDS = {
+    'toplam', 'kazanan', 'kaybeden', 'kaybetti', 'kazandi', 'analizci',
+    'analist', 'oran', 'para', 'akis', 'tumu', 'buyuk', 'hacim', 'soku',
+    'lider', 'degisti', 'yukleniyor', 'kisi', 'takip', 'ediyor', 'mac',
+    'lig', 'tarih', 'snapshot', 'ev', 'sahibi', 'deplasman', 'beraberlik',
+    'gelen', 'sonuc', 'guven', 'iade', 'iptal', 'ortalama', 'esik', 'yok',
+    'aktif', 'sinyal', 'onceki', 'sonraki', 'goster', 'gizle', 'yeni',
+    'eski', 'sonra', 'once', 'saat', 'dakika', 'gun', 'hafta', 'ay', 'yil',
+}
+ASCII_TR_RE = re.compile(
+    r'\b(?:' + '|'.join(sorted(ASCII_TR_WORDS, key=len, reverse=True)) + r')\b',
+    re.IGNORECASE,
+)
 BRANDS = {
     'SmartXFlow', 'MIM', 'Sharp', 'Big Money', 'BigMoney', 'Moneyway',
     'MW', 'Underdog Pressure', 'Confirmed Money', 'Early Money Lock',
@@ -50,15 +65,39 @@ _BRANDS_RE = re.compile(
 
 
 def has_tr(text: str) -> bool:
-    return any(c in TR_CHARS for c in text)
+    """TR-diacritic OR ASCII-TR-word detection."""
+    if any(c in TR_CHARS for c in text):
+        return True
+    return bool(ASCII_TR_RE.search(text))
 
+
+_CSS_IDENT_RE = re.compile(r'^[a-z][a-z0-9_-]*$')
+_URL_RE = re.compile(r'^https?://|^/api/|^/static/')
+_ESCAPE_LEFTOVER_RE = re.compile(r'u[0-9a-f]{4}')  # broken \u escapes after str scan
 
 def needs_translation(text: str) -> bool:
     """True if the text actually contains TR letters AFTER stripping brands."""
     if not has_tr(text):
         return False
+    s = text.strip()
+    # Filter false positives
+    if _CSS_IDENT_RE.match(s):  # 'moneyway-oran', 'dropping-para'
+        return False
+    if _URL_RE.match(s):  # API paths, full URLs
+        return False
+    if _ESCAPE_LEFTOVER_RE.search(s):  # 'saat u00f6nce' = broken \u00f6 fragment
+        return False
     stripped = _BRANDS_RE.sub(' ', text)
     return has_tr(stripped)
+
+
+# Extract user-visible text segments from an HTML-fragment string literal
+# (e.g. `'<span>X</span>kişi takip ediyor'`).  Returns list of segment strings.
+_TAG_RE = re.compile(r'<[^>]*>|&[a-zA-Z#0-9]+;|\$\{\.\.\.\}')
+
+def _html_text_segments(body: str) -> list[str]:
+    parts = _TAG_RE.split(body)
+    return [p.strip() for p in parts if p and p.strip()]
 
 
 # ---------- HTML scanner ----------
@@ -270,11 +309,16 @@ def scan_js(path: str) -> list[dict]:
         # Bracket-prefixed log tags like '[AutoRefresh] foo' / '[Live] bar'
         if body.lstrip().startswith('[') and ']' in body[:40]:
             continue
-        # Inline HTML fragments embedded in template literals — these are
-        # structurally combined chunks, not single user-visible messages.
-        if '<' in body or '>' in body or '&#' in body:
-            continue
         ln = src.count('\n', 0, start) + 1
+        # Inline HTML fragments — extract user-visible text segments.
+        if '<' in body or '>' in body or '&#' in body:
+            for seg in _html_text_segments(body):
+                if needs_translation(seg) and seg not in BRANDS:
+                    findings.append({
+                        'file': path, 'line': ln, 'kind': f'js-{q}-frag',
+                        'text': seg[:200],
+                    })
+            continue
         findings.append({
             'file': path, 'line': ln, 'kind': f'js-{q}',
             'text': body[:200],

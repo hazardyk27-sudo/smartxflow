@@ -1,328 +1,190 @@
 file,line,kind,text
-/home/runner/workspace/templates/index.html,370,html-text,Kılavuz
-/home/runner/workspace/templates/index.html,693,html-text,Bu maç için alarm hareketi yok.
-/home/runner/workspace/templates/nedir.html,586,html-text,"SmartXFlow, spor karşılaşmalarındaki para akışı ve oran hareketlerini gerçek zamanlı analiz ederek piyasalardaki önemli değişimleri erken fark etmenizi sağlayan bir piyasa analiz ve sinyal platformudu"
-/home/runner/workspace/templates/nedir.html,589,html-text,"Platform, farklı veri kaynaklarından gelen piyasa hareketlerini tek ekranda toplayarak, karmaşık verileri anlaşılır sinyallere dönüştürür. Böylece kullanıcılar piyasada oluşan sıra dışı hareketleri hı"
-/home/runner/workspace/templates/nedir.html,711,html-text,Hızlı Başlangıç
-/home/runner/workspace/templates/nedir.html,716,html-text,Platformu Keşfet →
-/home/runner/workspace/templates/rehber.html,510,html-text,Hemen Başlayın
-/home/runner/workspace/templates/rehber.html,515,html-text,Paketleri İncele →
-/home/runner/workspace/templates/rehber_oran_analizi.html,530,html-text,Para Hareketi Nasıl Okunur?
-/home/runner/workspace/templates/rehber_oran_analizi.html,534,html-text,Canlı Oran Takibi ve Alarm Sistemi
-/home/runner/workspace/templates/rehber_oran_analizi.html,538,html-text,Tüm Rehber Konuları
-/home/runner/workspace/templates/rehber_para_hareketi.html,349,html-text,&#8595; Düşüyor
-/home/runner/workspace/templates/rehber_para_hareketi.html,353,html-text,&#8593; Aynı yöne
-/home/runner/workspace/templates/rehber_para_hareketi.html,363,html-text,&#8595; Düşüyor
-/home/runner/workspace/templates/rehber_para_hareketi.html,367,html-text,&#8595; Ters yöne
-/home/runner/workspace/templates/rehber_para_hareketi.html,377,html-text,&#8593; Yükseliyor
-/home/runner/workspace/templates/rehber_para_hareketi.html,381,html-text,&#8593; O yöne
-/home/runner/workspace/templates/rehber_para_hareketi.html,391,html-text,&#8593; Yükseliyor
-/home/runner/workspace/templates/rehber_para_hareketi.html,395,html-text,&#8595; Uzaklaşıyor
-/home/runner/workspace/templates/rehber_para_hareketi.html,429,html-text,Canlı Oran Takibi ve Alarm Sistemi
-/home/runner/workspace/templates/rehber_para_hareketi.html,433,html-text,Tüm Rehber Konuları
-/home/runner/workspace/templates/rehber_canli_oran_takibi.html,393,html-text,Para Hareketi Nasıl Okunur?
-/home/runner/workspace/templates/rehber_canli_oran_takibi.html,397,html-text,Tüm Rehber Konuları
-/home/runner/workspace/templates/match_detail.html,225,html-attr:title,Tüm market ve alarm verilerini indir
-/home/runner/workspace/static/js/app.js,26,js-', kişi</span>takip ediyor
-/home/runner/workspace/static/js/app.js,118,js-`,Son güncelleme: ${...} (TR)
-/home/runner/workspace/static/js/app.js,120,js-',"[AutoRefresh] 10 dakika doldu, maçlar yenileniyor..."
-/home/runner/workspace/static/js/app.js,121,js-',"[AutoRefresh] Zaten yükleme var, atlanıyor"
-/home/runner/workspace/static/js/app.js,123,js-',[AutoRefresh] Maçlar güncellendi
-/home/runner/workspace/static/js/app.js,124,js-`,[AutoRefresh] Tab aktif - interval yeniden başlatıldı (jitter: ${...}s)
-/home/runner/workspace/static/js/app.js,124,js-',"[AutoRefresh] 10 dakika doldu, maçlar yenileniyor..."
-/home/runner/workspace/static/js/app.js,126,js-',"[AutoRefresh] Sekmeye dönüldü, veri eski - yenileniyor..."
-/home/runner/workspace/static/js/app.js,126,js-',"[AutoRefresh] Sekmeye dönüldü, veri güncel"
-/home/runner/workspace/static/js/app.js,141,js-`,"
-            <tr class=""loading-row"">
-                <td colspan=""${...}"">
-                    <div class=""loading-spinner""></div>
-                    Yükleniyor...
-                </td>
-            "
-/home/runner/workspace/static/js/app.js,148,js-`,"
-                <div class=""match-card"" style=""justify-content: center; padding: 40px 20px;"">
-                    <div style=""text-align: center; color: #7d848c;"">
-                        <div class="
-/home/runner/workspace/static/js/app.js,249,js-',"<span class=""analysis-star"" title=""Bu maç ile ilgili analiz mevcut"" onclick=""event.stopPropagation(); openTrendsModal('analysis');"">★</span>"
-/home/runner/workspace/static/js/app.js,660,js-`,"
-                <div class=""info-columns"">
-                    <div class=""info-column"" data-selection=""Alt"">
-                        <div class=""column-header"">Alt</div>
-                        <div"
-/home/runner/workspace/static/js/app.js,699,js-`,"
-                <div class=""info-columns"">
-                    <div class=""info-column"">
-                        <div class=""column-header"">Alt</div>
-                        <div class=""column-row"">
-"
-/home/runner/workspace/static/js/app.js,720,js-`,"
-                <div class=""info-columns"">
-                    <div class=""info-column"" data-selection=""Evet"">
-                        <div class=""column-header"">Evet</div>
-                        <d"
-/home/runner/workspace/static/js/app.js,759,js-`,"
-                <div class=""info-columns"">
-                    <div class=""info-column"">
-                        <div class=""column-header"">Evet</div>
-                        <div class=""column-row"">"
-/home/runner/workspace/static/js/app.js,932,js-`,"
-        <div class=""chart-filter-group view-mode-filters"">
-            <button class=""chart-view-btn ${...}"" 
-                    data-mode=""percent""
-                    onclick=""setChartViewMode('pe"
-/home/runner/workspace/static/js/app.js,946,js-`,"
-        ${...}
-        <div class=""chart-filter-group series-filters"">
-            ${...}
-        </div>
-        <div class=""chart-filter-divider""></div>
-        <div class=""chart-filter-group time-f"
-/home/runner/workspace/static/js/app.js,1349,js-`,"<div class=""acd-grid cols-2"">
-                <div class=""acd-stat"">
-                    <div class=""acd-stat-val volumeshock"">${...}x</div>
-                    <div class=""acd-stat-lbl"">${...}</div>
-"
-/home/runner/workspace/static/js/app.js,1372,js-`,"<div class=""acd-grid cols-2"">
-                <div class=""acd-stat"">
-                    <div class=""acd-stat-val dropping"">${...} → ${...}</div>
-                    <div class=""acd-stat-lbl"">Oran Değ"
-/home/runner/workspace/static/js/app.js,1403,js-`,"<div class=""acd-grid cols-3"">
-                <div class=""acd-stat"">
-                    <div class=""acd-stat-val mim"">${...}%</div>
-                    <div class=""acd-stat-lbl"">Impact</div>
-        "
-/home/runner/workspace/static/js/app.js,1510,js-`,"<span class=""sm-total-muted"">Sonrası: £${...}</span>"
-/home/runner/workspace/static/js/app.js,1510,js-`,"<span class=""sm-total-muted"">Olay sonrası: £${...}</span>"
-/home/runner/workspace/static/js/app.js,1510,js-`,"<span class=""sm-shock-badge"">X${...}</span> <span class=""sm-shock-label"">hacim şoku</span>"
-/home/runner/workspace/static/js/app.js,1510,js-`,Son 10 giriş ortalamasına göre X${...} kat yüksek para akışı tespit edildi.
-/home/runner/workspace/static/js/app.js,1511,js-`,Sonrası: £${...}
-/home/runner/workspace/static/js/app.js,1511,js-`,"<div class=""smc-tooltip-item""><span class=""tt-time"">${...}</span><span class=""tt-money"">£${...}</span><span class=""tt-pill pill-volumeshock"">X${...}</span><span class=""tt-total"">Son 10 ort: £${...} — "
-/home/runner/workspace/static/js/app.js,1511,js-`,"<div class=""smc-tooltip-item""><span class=""tt-time"">${...}</span><span class=""tt-money"">£${...}</span><span class=""tt-pill pill-publicmove"">%${...}→%${...}</span><span class=""tt-total"">Public yükseldi"
-/home/runner/workspace/static/js/app.js,1547,js-',"<div style=""text-align:center; padding:40px; color:#94a3b8;"">Yükleniyor...</div>"
-/home/runner/workspace/static/js/app.js,1547,js-`,"
-            <div class=""admin-section"">
-                <h3 style=""color:#06b6d4; margin-bottom:16px;"">⚡ Hacim Lideri Değişti - Ayarlar</h3>
-                
-                <div class=""admin-config-"
-/home/runner/workspace/static/js/app.js,1585,js-',"<div class=""admin-no-data"">Henüz alarm yok. ""Hesapla"" butonuna tıklayın.</div>"
-/home/runner/workspace/static/js/app.js,1585,js-`,"
-                <table class=""admin-table"">
-                    <thead>
-                        <tr>
-                            <th>Maç</th>
-                            <th>Market</th>
-             "
-/home/runner/workspace/static/js/app.js,1608,js-',"<div class=""admin-no-data"">Veri yüklenirken hata oluştu.</div>"
-/home/runner/workspace/static/js/app.js,1613,js-',"<div style=""text-align:center; padding:40px; color:#94a3b8;"">Yükleniyor...</div>"
-/home/runner/workspace/static/js/app.js,1613,js-`,"
-            <div class=""admin-section"">
-                <h3 style=""color:#f85149; margin-bottom:16px;"">📉 Dropping Alarm - Max Oran Eşiği</h3>
-                <p style=""color:#7d848c; font-size:12px; "
-/home/runner/workspace/static/js/app.js,1681,js-',"<div class=""admin-no-data"">Henüz alarm yok.</div>"
-/home/runner/workspace/static/js/app.js,1681,js-`,"
-                <table class=""admin-table"">
-                    <thead>
-                        <tr>
-                            <th>Maç</th>
-                            <th>Market</th>
-             "
-/home/runner/workspace/static/js/app.js,1702,js-',"<div class=""admin-no-data"">Veri yüklenirken hata oluştu.</div>"
-/home/runner/workspace/static/js/app.js,1707,js-',"<div style=""text-align:center; padding:40px; color:#94a3b8;"">Yükleniyor...</div>"
-/home/runner/workspace/static/js/app.js,1707,js-`,"
-            <div class=""admin-section"">
-                <h3 style=""color:#3B82F6; margin-bottom:16px;"">💰 MIM (Market Impact Money) - Ayarlar</h3>
-                <p style=""color:#7d848c; font-size:12"
-/home/runner/workspace/static/js/app.js,1736,js-',"<div class=""admin-no-data"">Henüz MIM alarmı yok.</div>"
-/home/runner/workspace/static/js/app.js,1736,js-`,"
-                <table class=""admin-table"">
-                    <thead>
-                        <tr>
-                            <th>Maç</th>
-                            <th>Market</th>
-             "
-/home/runner/workspace/static/js/app.js,1761,js-',"<div class=""admin-no-data"">Veri yüklenirken hata oluştu.</div>"
-/home/runner/workspace/static/js/app.js,1827,js-',[GOL] İlk yükleme - 
-/home/runner/workspace/static/js/ui.js,44,js-',"<div style=""position:absolute;top:2px;right:3px;cursor:help;"" title=""1 birimlik sabit bahis varsayımıyla toplam yatırım getirisi.""><svg width=""8"" height=""8"" viewBox=""0 0 24 24"" fill=""none"" stroke=""#3a"
-/home/runner/workspace/static/js/ui.js,44,js-',"<div style=""position:absolute;top:2px;right:3px;cursor:help;"" title=""Tüm analizler 1 unit kabul edildiğinde oluşan toplam kâr/zarar.""><svg width=""8"" height=""8"" viewBox=""0 0 24 24"" fill=""none"" stroke="""
-/home/runner/workspace/static/js/ui.js,46,js-', ANALİZ</span>
-/home/runner/workspace/static/js/inline.js,3,js-',Kılavuz
-/home/runner/workspace/static/js/inline.js,3,js-',Kullanım tavsiyeleri
-/home/runner/workspace/static/js/inline.js,4,js-',"<div class=""trends-placeholder""><svg width=""48"" height=""48"" viewBox=""0 0 24 24"" fill=""none"" stroke=""#2e3238"" stroke-width=""1.5""><path d=""M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z""/><path d=""M22 3h-6a4 "
-/home/runner/workspace/static/js/inline.js,9,js-',"<div style=""text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;"">Henüz içerik yok</div>"
-/home/runner/workspace/static/js/inline.js,22,js-',Beklenmedik hacim artışları ve oran düşüşleriyle desteklenen sürpriz takımları tespit eder. Piyasanın gözden kaçırdığı potansiyel değerleri bulur.
-/home/runner/workspace/static/js/inline.js,22,js-',Büyük bahis sendikalarının ve akıllı paranın girdiği maçları doğrular. Asya handikap ve taraf bahislerindeki hacim yoğunlaşmalarını gösterir.
-/home/runner/workspace/static/js/inline.js,22,js-',Geliştirilmiş algoritmasıyla profesyonel oyuncuların son dakika bahislerini yakalar. Daha az fakat daha yüksek güvenilirliğe sahip sinyaller üretir.
-/home/runner/workspace/static/js/inline.js,22,js-',Piyasa açılışından hemen sonra oluşan erken pozisyonları kilitler. Oranlar düşmeden önce değerli bahisleri yakalamanızı sağlar.
-/home/runner/workspace/static/js/inline.js,22,js-',Suni hacim yaratılarak bahisçileri yanıltmaya çalışan hareketleri deşifre eder. Tuzak oranlara düşmenizi engeller.
-/home/runner/workspace/static/js/inline.js,22,js-',Onaylı Sinyaller
-/home/runner/workspace/static/js/inline.js,22,js-',Editör tarafından onaylanmış geçmiş sinyaller ve sonuçları. Track record üzerinden doğruluk takibi yapın.
-/home/runner/workspace/static/js/inline.js,22,js-',""" onclick=""filterByAnalyst(null)"">Tümü</button>"
-/home/runner/workspace/static/js/inline.js,23,js-',";""></span>Detaylar için tıklayın</div>"
-/home/runner/workspace/static/js/inline.js,23,js-',"<div class=""amg-meta-item amg-meta-muted""><svg class=""amg-meta-icon"" viewBox=""0 0 24 24"" fill=""none"" stroke=""currentColor"" stroke-width=""2""><circle cx=""12"" cy=""12"" r=""10""/><polyline points=""12 6 12 12"
-/home/runner/workspace/static/js/inline.js,23,js-',"<span class=""amg-section-title"">Yayınlanan Analizler</span>"
-/home/runner/workspace/static/js/inline.js,23,js-',"<p class=""amg-empty-text"">Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin</p>"
-/home/runner/workspace/static/js/inline.js,25,js-',"<div class=""analyst-card-name"">Tümü</div>"
-/home/runner/workspace/static/js/inline.js,27,js-',"<div class=""trends-placeholder""><div>Bu analizci için henüz analiz yok</div></div>"
-/home/runner/workspace/static/js/inline.js,28,js-',Kazandı
-/home/runner/workspace/static/js/inline.js,28,js-',İade
-/home/runner/workspace/static/js/inline.js,28,js-',İptal
-/home/runner/workspace/static/js/inline.js,30,js-',";font-weight:600;white-space:nowrap;"">Güven: "
-/home/runner/workspace/static/js/inline.js,40,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,41,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,42,js-',Çar
-/home/runner/workspace/static/js/inline.js,42,js-',ŞUBAT
-/home/runner/workspace/static/js/inline.js,42,js-',NİSAN
-/home/runner/workspace/static/js/inline.js,42,js-',HAZİRAN
-/home/runner/workspace/static/js/inline.js,42,js-',AĞUSTOS
-/home/runner/workspace/static/js/inline.js,42,js-',EYLÜL
-/home/runner/workspace/static/js/inline.js,42,js-',EKİM
-/home/runner/workspace/static/js/inline.js,42,js-',PAZARTESİ
-/home/runner/workspace/static/js/inline.js,42,js-',ÇARŞAMBA
-/home/runner/workspace/static/js/inline.js,42,js-',PERŞEMBE
-/home/runner/workspace/static/js/inline.js,42,js-',CUMARTESİ
-/home/runner/workspace/static/js/inline.js,42,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,43,js-',"<div style=""font-size:9px;color:#3a3f45;letter-spacing:0.8px;font-weight:500;margin-top:2px;"">ANALİST PROFİLİ</div>"
-/home/runner/workspace/static/js/inline.js,43,js-',""">Başarı</div></div>"
-/home/runner/workspace/static/js/inline.js,43,js-',""">Yatırım Getirisi</div>"
-/home/runner/workspace/static/js/inline.js,43,js-',"<div style=""position:absolute;top:2px;right:3px;cursor:help;"" title=""1 birimlik sabit bahis varsayımıyla toplam yatırım getirisi.""><svg width=""8"" height=""8"" viewBox=""0 0 24 24"" fill=""none"" stroke=""#3a"
-/home/runner/workspace/static/js/inline.js,43,js-',"<div style=""position:absolute;top:2px;right:3px;cursor:help;"" title=""Tüm analizler 1 unit kabul edildiğinde oluşan toplam kâr/zarar.""><svg width=""8"" height=""8"" viewBox=""0 0 24 24"" fill=""none"" stroke="""
-/home/runner/workspace/static/js/inline.js,44,js-',Bugün
-/home/runner/workspace/static/js/inline.js,44,js-',Bugün
-/home/runner/workspace/static/js/inline.js,45,js-', ANALİZ</span>
-/home/runner/workspace/static/js/inline.js,45,js-',Kazandı
-/home/runner/workspace/static/js/inline.js,45,js-',İade
-/home/runner/workspace/static/js/inline.js,45,js-',İptal
-/home/runner/workspace/static/js/inline.js,46,js-',";font-weight:600;white-space:nowrap;"">Güven: "
-/home/runner/workspace/static/js/inline.js,50,js-',"<div style=""border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;"">Henüz analiz mevcut değil</div>"
-/home/runner/workspace/static/js/inline.js,55,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,55,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,56,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,71,js-',Çar
-/home/runner/workspace/static/js/inline.js,71,js-',ŞUBAT
-/home/runner/workspace/static/js/inline.js,71,js-',NİSAN
-/home/runner/workspace/static/js/inline.js,71,js-',HAZİRAN
-/home/runner/workspace/static/js/inline.js,71,js-',AĞUSTOS
-/home/runner/workspace/static/js/inline.js,71,js-',EYLÜL
-/home/runner/workspace/static/js/inline.js,71,js-',EKİM
-/home/runner/workspace/static/js/inline.js,71,js-',PAZARTESİ
-/home/runner/workspace/static/js/inline.js,71,js-',ÇARŞAMBA
-/home/runner/workspace/static/js/inline.js,71,js-',PERŞEMBE
-/home/runner/workspace/static/js/inline.js,71,js-',CUMARTESİ
-/home/runner/workspace/static/js/inline.js,71,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,71,js-',"<div style=""font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">OTOMATİK SİNYAL</div>"
-/home/runner/workspace/static/js/inline.js,71,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Oran ≥ 3.00 olan underdog tarafa para akışının ≥ %50 olduğu bugün/gelecek maçları tespit eder.</div>"
-/home/runner/workspace/static/js/inline.js,73,js-',Bugün
-/home/runner/workspace/static/js/inline.js,73,js-',Bugün
-/home/runner/workspace/static/js/inline.js,74,js-', SİNYAL</span>
-/home/runner/workspace/static/js/inline.js,75,js-', maç</span>
-/home/runner/workspace/static/js/inline.js,85,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,85,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,86,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,87,js-',Çar
-/home/runner/workspace/static/js/inline.js,87,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,87,js-',"<div style=""font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">OTOMATİK SİNYAL</div>"
-/home/runner/workspace/static/js/inline.js,87,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Para akışı ≥%80, oran 16 saat içinde monoton düşen (≥%4), hacim ≥£2,000 olan maçları tespit eder.</div>"
-/home/runner/workspace/static/js/inline.js,87,js-',""">Ort. Düşüş</div></div>"
-/home/runner/workspace/static/js/inline.js,89,js-',Bugün
-/home/runner/workspace/static/js/inline.js,89,js-',Bugün
-/home/runner/workspace/static/js/inline.js,90,js-',"<div style=""text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;"">Bu tarih için sinyal bulunamadı</div>"
-/home/runner/workspace/static/js/inline.js,98,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,98,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,99,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,100,js-',Çar
-/home/runner/workspace/static/js/inline.js,100,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,100,js-',"<div style=""font-size:9px;color:#6366f1;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">OTOMATİK SİNYAL</div>"
-/home/runner/workspace/static/js/inline.js,100,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Para akışı ≥%88, oran 1.55-2.20, ≥%7 düşüş — 3 günlük araştırmada sıfır kayıp. Sadece 1/2 seçimleri.</div>"
-/home/runner/workspace/static/js/inline.js,100,js-',""">Ort. Düşüş</div></div>"
-/home/runner/workspace/static/js/inline.js,100,js-',""">Para Eşiği</div></div>"
-/home/runner/workspace/static/js/inline.js,102,js-',Bugün
-/home/runner/workspace/static/js/inline.js,102,js-',Bugün
-/home/runner/workspace/static/js/inline.js,103,js-',"<div style=""text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;"">Bu tarih için sinyal bulunamadı</div>"
-/home/runner/workspace/static/js/inline.js,111,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,111,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,112,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,113,js-',Çar
-/home/runner/workspace/static/js/inline.js,113,js-',ŞUBAT
-/home/runner/workspace/static/js/inline.js,113,js-',NİSAN
-/home/runner/workspace/static/js/inline.js,113,js-',HAZİRAN
-/home/runner/workspace/static/js/inline.js,113,js-',AĞUSTOS
-/home/runner/workspace/static/js/inline.js,113,js-',EYLÜL
-/home/runner/workspace/static/js/inline.js,113,js-',EKİM
-/home/runner/workspace/static/js/inline.js,113,js-',PAZARTESİ
-/home/runner/workspace/static/js/inline.js,113,js-',ÇARŞAMBA
-/home/runner/workspace/static/js/inline.js,113,js-',PERŞEMBE
-/home/runner/workspace/static/js/inline.js,113,js-',CUMARTESİ
-/home/runner/workspace/static/js/inline.js,113,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,113,js-',"<div style=""font-size:9px;color:#58a6ff;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">OTOMATİK SİNYAL</div>"
-/home/runner/workspace/static/js/inline.js,113,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Para akışı erken kilitlenmiş ve birbirini izleyen anlık görüntülerde sabit kalan maçları tespit eder.</div>"
-/home/runner/workspace/static/js/inline.js,115,js-',Bugün
-/home/runner/workspace/static/js/inline.js,115,js-',Bugün
-/home/runner/workspace/static/js/inline.js,116,js-', SİNYAL</span>
-/home/runner/workspace/static/js/inline.js,117,js-', maç</span>
-/home/runner/workspace/static/js/inline.js,125,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,125,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,126,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,127,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,127,js-',Bu özellik PRO lisans gerektirir.
-/home/runner/workspace/static/js/inline.js,128,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,129,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,129,js-',"<div style=""font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;"">Onaylı Sinyaller</div>"
-/home/runner/workspace/static/js/inline.js,129,js-',"<div style=""font-size:9px;color:#facc15;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">EDİTÖR ONAYLI</div>"
-/home/runner/workspace/static/js/inline.js,129,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Editör tarafından onaylanmış geçmiş sinyaller ve kayıtlı sonuçları. Track record üzerinden doğruluk takibi yapın.</div>"
-/home/runner/workspace/static/js/inline.js,129,js-',""">İsabet</div></div>"
-/home/runner/workspace/static/js/inline.js,130,js-',"<div style=""border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;"">Henüz onaylı sinyal yok</div>"
-/home/runner/workspace/static/js/inline.js,130,js-',"<span style=""font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(248,81,73,0.12);color:#f85149;border:1px solid rgba(248,81,73,0.3);"">✗ KAYBETTİ</span>"
-/home/runner/workspace/static/js/inline.js,130,js-',"<span style=""font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(125,132,140,0.1);color:#7d848c;border:1px solid rgba(125,132,140,0.2);"">⏳ BEKLİYOR</span>"
-/home/runner/workspace/static/js/inline.js,132,js-',"<span><span style=""color:#5c636b;"">Seçim:</span> <span style=""color:#c9d1d9;font-weight:600;"">"
-/home/runner/workspace/static/js/inline.js,134,js-',Çar
-/home/runner/workspace/static/js/inline.js,134,js-',ŞUBAT
-/home/runner/workspace/static/js/inline.js,134,js-',NİSAN
-/home/runner/workspace/static/js/inline.js,134,js-',HAZİRAN
-/home/runner/workspace/static/js/inline.js,134,js-',AĞUSTOS
-/home/runner/workspace/static/js/inline.js,134,js-',EYLÜL
-/home/runner/workspace/static/js/inline.js,134,js-',EKİM
-/home/runner/workspace/static/js/inline.js,134,js-',PAZARTESİ
-/home/runner/workspace/static/js/inline.js,134,js-',ÇARŞAMBA
-/home/runner/workspace/static/js/inline.js,134,js-',PERŞEMBE
-/home/runner/workspace/static/js/inline.js,134,js-',CUMARTESİ
-/home/runner/workspace/static/js/inline.js,134,js-',Tüm Analizciler</div>
-/home/runner/workspace/static/js/inline.js,134,js-',"<div style=""font-size:9px;color:#f85149;letter-spacing:0.8px;font-weight:600;margin-top:2px;"">OTOMATİK SİNYAL</div>"
-/home/runner/workspace/static/js/inline.js,134,js-',"<div style=""font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;"">Para akışına rağmen oran yükselen — yani sharp olmayan, halk parası olduğu anlaşılan maçları tespit eder.</div>"
-/home/runner/workspace/static/js/inline.js,134,js-',""">Ort. Yükseliş</div></div>"
-/home/runner/workspace/static/js/inline.js,136,js-',Bugün
-/home/runner/workspace/static/js/inline.js,136,js-',Bugün
-/home/runner/workspace/static/js/inline.js,137,js-', SİNYAL</span>
-/home/runner/workspace/static/js/inline.js,138,js-', maç</span>
-/home/runner/workspace/static/js/inline.js,149,js-',"<div class=""trends-placeholder""><div style=""color:#3a3f45;font-size:14px;"">Yükleniyor...</div></div>"
-/home/runner/workspace/static/js/inline.js,150,js-',Erişim reddedildi
-/home/runner/workspace/static/js/inline.js,152,js-',"<div class=""trends-placeholder""><div style=""color:#f85149;font-size:14px;"">Veriler yüklenemedi</div></div>"
-/home/runner/workspace/static/js/inline.js,154,js-',"<div style=""text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;"">Yükleniyor...</div>"
-/home/runner/workspace/static/js/inline.js,155,js-',"<div style=""text-align:center;padding:30px 10px;color:#f85149;font-size:13px;"">Yüklenemedi</div>"
-/home/runner/workspace/static/js/inline.js,157,js-',Alarm Bandı
-/home/runner/workspace/static/js/inline.js,157,js-',Canlı alarm bandı — yeni tespit edilen son 10 alarm burada gösterilir.
-/home/runner/workspace/static/js/inline.js,157,js-',"Moneyway ve Oran sayfaları arasında geçiş yapın. 1X2, 2.5 ve KG marketlerini görüntüleyin."
-/home/runner/workspace/static/js/inline.js,157,js-',Günün Maçları
-/home/runner/workspace/static/js/inline.js,157,js-',Sadece bugünkü maçları filtrelemek için bu butonu kullanın. Tekrar tıklayınca filtre kalkar.
-/home/runner/workspace/static/js/inline.js,157,js-',Oran Sütunları
-/home/runner/workspace/static/js/inline.js,157,js-',"Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin."
-/home/runner/workspace/static/js/inline.js,157,js-',Miktar Sütunu
-/home/runner/workspace/static/js/inline.js,157,js-',Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.
-/home/runner/workspace/static/js/inline.js,157,js-',Oranların son 24 saatte ne kadar düştüğünü takip edin.
-/home/runner/workspace/static/js/inline.js,157,js-',"Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın."
-/home/runner/workspace/static/js/inline.js,157,js-',Kılavuz
-/home/runner/workspace/static/js/inline.js,157,js-',Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.
-/home/runner/workspace/static/js/inline.js,157,js-',Profesyonel analizlere buradan ulaşın. Maç öncesi değerlendirmeler ve piyasa yorumları burada paylaşılır (PRO üyelere özel).
-/home/runner/workspace/static/js/inline.js,157,js-',Alarm Bandı
-/home/runner/workspace/static/js/inline.js,157,js-',Canlı alarm bandı — yeni sinyaller burada akar.
-/home/runner/workspace/static/js/inline.js,157,js-',Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.
-/home/runner/workspace/static/js/inline.js,157,js-',Gün Filtresi
-/home/runner/workspace/static/js/inline.js,157,js-',Bugünkü veya dünkü maçları filtreleyin.
-/home/runner/workspace/static/js/inline.js,157,js-',Oran Sütunları
-/home/runner/workspace/static/js/inline.js,157,js-',"Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin."
-/home/runner/workspace/static/js/inline.js,157,js-',Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.
-/home/runner/workspace/static/js/inline.js,157,js-',Kılavuz
-/home/runner/workspace/static/js/inline.js,157,js-',Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.
-/home/runner/workspace/static/js/inline.js,157,js-',Profesyonel maç analizleri ve piyasa yorumları (PRO üyelere özel).
-/home/runner/workspace/static/js/inline.js,157,js-',Tüm alarm türlerini görüntüleyin ve filtreleyin.
-/home/runner/workspace/static/js/inline.js,167,js-',Başla!
-/home/runner/workspace/static/js/inline.js,167,js-',İleri →
+/home/runner/workspace/templates/index.html,149,html-text,-- gun
+/home/runner/workspace/templates/index.html,487,html-text,Tumu
+/home/runner/workspace/templates/index.html,493,html-text,Tumu
+/home/runner/workspace/templates/index.html,503,html-text,Buyuk Para
+/home/runner/workspace/templates/index.html,567,html-text,Aktif alarm yok
+/home/runner/workspace/templates/index.html,577,html-text,Lig
+/home/runner/workspace/templates/index.html,618,html-text,Oran 1X2
+/home/runner/workspace/templates/index.html,618,html-text,Oran 1X2
+/home/runner/workspace/templates/index.html,619,html-text,Oran 2.5
+/home/runner/workspace/templates/index.html,619,html-text,Oran 2.5
+/home/runner/workspace/templates/index.html,620,html-text,Oran KG
+/home/runner/workspace/templates/index.html,620,html-text,Oran KG
+/home/runner/workspace/templates/index.html,643,html-text,Grafik yukleniyor...
+/home/runner/workspace/templates/index.html,689,html-text,Yukleniyor...
+/home/runner/workspace/templates/index.html,780,html-text,Tarih
+/home/runner/workspace/templates/index.html,350,html-attr:placeholder,Takim veya Lig ara...
+/home/runner/workspace/templates/nedir.html,586,html-text,piyasa analiz ve sinyal platformudur.
+/home/runner/workspace/templates/rehber_oran_analizi.html,499,html-text,"""Oran 1X2"", ""Oran 2.5"" ve ""Oran KG"""
+/home/runner/workspace/templates/rehber_para_hareketi.html,348,html-text,Oran
+/home/runner/workspace/templates/rehber_para_hareketi.html,362,html-text,Oran
+/home/runner/workspace/templates/rehber_para_hareketi.html,376,html-text,Oran
+/home/runner/workspace/templates/rehber_para_hareketi.html,390,html-text,Oran
+/home/runner/workspace/templates/match_detail.html,94,html-text,Oran 1X2
+/home/runner/workspace/templates/match_detail.html,95,html-text,Oran 2.5
+/home/runner/workspace/templates/match_detail.html,96,html-text,Oran KG
+/home/runner/workspace/templates/status.html,279,html-text,9 dakika
+/home/runner/workspace/templates/status.html,305,html-text,Snapshot
+/home/runner/workspace/templates/status.html,341,html-text,Bekleyen Sinyal
+/home/runner/workspace/templates/status.html,351,html-text,Toplam Aktif
+/home/runner/workspace/static/js/app.js,26,js-'-frag,kişi
+/home/runner/workspace/static/js/app.js,26,js-'-frag,takip ediyor
+/home/runner/workspace/static/js/app.js,141,js-`-frag,Yükleniyor...
+/home/runner/workspace/static/js/app.js,148,js-`-frag,Yükleniyor...
+/home/runner/workspace/static/js/app.js,577,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,577,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,577,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,632,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,632,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,632,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,660,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,660,js-`-frag,Üst
+/home/runner/workspace/static/js/app.js,660,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,699,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,699,js-`-frag,Üst
+/home/runner/workspace/static/js/app.js,699,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,720,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,720,js-`-frag,Hayır
+/home/runner/workspace/static/js/app.js,720,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,759,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,759,js-`-frag,Hayır
+/home/runner/workspace/static/js/app.js,759,js-`-frag,Oran
+/home/runner/workspace/static/js/app.js,791,js-',1 saat
+/home/runner/workspace/static/js/app.js,791,js-',6 saat
+/home/runner/workspace/static/js/app.js,791,js-',12 saat
+/home/runner/workspace/static/js/app.js,919,js-',1 saat
+/home/runner/workspace/static/js/app.js,919,js-',6 saat
+/home/runner/workspace/static/js/app.js,919,js-',12 saat
+/home/runner/workspace/static/js/app.js,932,js-`-frag,% Yüzde
+/home/runner/workspace/static/js/app.js,932,js-`-frag,£ Para
+/home/runner/workspace/static/js/app.js,1032,js-',10 dakika
+/home/runner/workspace/static/js/app.js,1032,js-',30 dakika
+/home/runner/workspace/static/js/app.js,1032,js-',1 saat
+/home/runner/workspace/static/js/app.js,1032,js-',6 saat
+/home/runner/workspace/static/js/app.js,1032,js-',12 saat
+/home/runner/workspace/static/js/app.js,1032,js-',Oran 1X2
+/home/runner/workspace/static/js/app.js,1032,js-',Oran KG
+/home/runner/workspace/static/js/app.js,1039,js-',Mac: 
+/home/runner/workspace/static/js/app.js,1039,js-',Lig: 
+/home/runner/workspace/static/js/app.js,1039,js-',Mac Tarihi: 
+/home/runner/workspace/static/js/app.js,1039,js-',Mac ID: 
+/home/runner/workspace/static/js/app.js,1039,js-',Toplam Snapshot: 
+/home/runner/workspace/static/js/app.js,1039,js-',===== SNAPSHOT VERILERI =====nn
+/home/runner/workspace/static/js/app.js,1039,js-', snapshot) ---n
+/home/runner/workspace/static/js/app.js,1039,js-',  (veri yok)n
+/home/runner/workspace/static/js/app.js,1040,js-',  Bu mac icin alarm verisi bulunamadi.n
+/home/runner/workspace/static/js/app.js,1193,js-',HACIM SOKU
+/home/runner/workspace/static/js/app.js,1194,js-',LIDER DEGISTI
+/home/runner/workspace/static/js/app.js,1299,js-'-frag,Alarmlar yukleniyor...
+/home/runner/workspace/static/js/app.js,1318,js-',Tumu
+/home/runner/workspace/static/js/app.js,1318,js-',Buyuk Para
+/home/runner/workspace/static/js/app.js,1318,js-',Hacim Soku
+/home/runner/workspace/static/js/app.js,1318,js-',Lider Degisti
+/home/runner/workspace/static/js/app.js,1319,js-',Tumu
+/home/runner/workspace/static/js/app.js,1331,js-',HACIM SOKU
+/home/runner/workspace/static/js/app.js,1333,js-`-frag,Hacim Puan
+/home/runner/workspace/static/js/app.js,1333,js-`-frag,Oran Puan
+/home/runner/workspace/static/js/app.js,1333,js-`-frag,Oran:
+/home/runner/workspace/static/js/app.js,1349,js-`-frag,Maça
+/home/runner/workspace/static/js/app.js,1372,js-`-frag,Oran Değişimi
+/home/runner/workspace/static/js/app.js,1372,js-`-frag,Düşüş (
+/home/runner/workspace/static/js/app.js,1382,js-`-frag,Hacim
+/home/runner/workspace/static/js/app.js,1391,js-`-frag,Eski Lider
+/home/runner/workspace/static/js/app.js,1391,js-`-frag,Yeni Lider
+/home/runner/workspace/static/js/app.js,1391,js-`-frag,Toplam Hacim: £
+/home/runner/workspace/static/js/app.js,1403,js-`-frag,Seçenek: £
+/home/runner/workspace/static/js/app.js,1465,js-`,${...}dk once
+/home/runner/workspace/static/js/app.js,1465,js-`,${...}sa once
+/home/runner/workspace/static/js/app.js,1465,js-`,${...}g once
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,yeni para
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,Sonrası: £
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,gelen para
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,Olay sonrası: £
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,hacim şoku
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,yeni para
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,public para
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,gelen para
+/home/runner/workspace/static/js/app.js,1510,js-`-frag,Toplam: £
+/home/runner/workspace/static/js/app.js,1511,js-`-frag,— Sonrası: £
+/home/runner/workspace/static/js/app.js,1511,js-`-frag,Public yükseldi
+/home/runner/workspace/static/js/app.js,1547,js-'-frag,Yükleniyor...
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,⚡ Hacim Lideri Değişti - Ayarlar
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,Lider Eşiği (%)
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,Minimum pay oranı (varsayılan: %50)
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,Min. Hacim 1X2 (£)
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,Min. Hacim O/U (£)
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,Min. Hacim BTTS (£)
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,💾 Ayarları Kaydet
+/home/runner/workspace/static/js/app.js,1547,js-`-frag,🗑️ Alarmları Sil
+/home/runner/workspace/static/js/app.js,1585,js-'-frag,"Henüz alarm yok. ""Hesapla"" butonuna tıklayın."
+/home/runner/workspace/static/js/app.js,1585,js-`-frag,Maç
+/home/runner/workspace/static/js/app.js,1585,js-`-frag,Eski Lider
+/home/runner/workspace/static/js/app.js,1585,js-`-frag,Yeni Lider
+/home/runner/workspace/static/js/app.js,1585,js-`-frag,Toplam Hacim
+/home/runner/workspace/static/js/app.js,1585,js-`-frag,Alarm Zamanı
+/home/runner/workspace/static/js/app.js,1608,js-'-frag,Veri yüklenirken hata oluştu.
+/home/runner/workspace/static/js/app.js,1611,js-`,${...} yeni alarm bulundu!
+/home/runner/workspace/static/js/app.js,1613,js-'-frag,Yükleniyor...
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,📉 Dropping Alarm - Max Oran Eşiği
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,Açılış oranı bu eşiklerin üzerindeyse dropping alarmı tetiklenmez.
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,Max Oran 1X2
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,1X2 için max açılış oranı (varsayılan: 5.0)
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,Max Oran O/U 2.5
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,Alt/Üst için max açılış oranı (varsayılan: 3.0)
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,Max Oran BTTS
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,BTTS için max açılış oranı (varsayılan: 3.0)
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,📊 Düşüş Yüzde Eşikleri
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,L3 ve üzeri düşüşler
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,💾 Ayarları Kaydet
+/home/runner/workspace/static/js/app.js,1613,js-`-frag,🗑️ Alarmları Sil
+/home/runner/workspace/static/js/app.js,1681,js-'-frag,Henüz alarm yok.
+/home/runner/workspace/static/js/app.js,1681,js-`-frag,Maç
+/home/runner/workspace/static/js/app.js,1681,js-`-frag,Açılış → Güncel
+/home/runner/workspace/static/js/app.js,1681,js-`-frag,Düşüş %
+/home/runner/workspace/static/js/app.js,1702,js-'-frag,Veri yüklenirken hata oluştu.
+/home/runner/workspace/static/js/app.js,1707,js-'-frag,Yükleniyor...
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,"MIM alarmı, piyasa etkisini ölçer. Impact değeri ne kadar yüksekse, o seçim için para akışı o kadar güçlüdür."
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,Min. Impact Eşiği
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,Minimum impact değeri (varsayılan: 0.10)
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,Min. Hacim (£)
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,Minimum toplam hacim
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,💾 Ayarları Kaydet
+/home/runner/workspace/static/js/app.js,1707,js-`-frag,🗑️ Alarmları Sil
+/home/runner/workspace/static/js/app.js,1736,js-'-frag,Henüz MIM alarmı yok.
+/home/runner/workspace/static/js/app.js,1736,js-`-frag,Maç
+/home/runner/workspace/static/js/app.js,1736,js-`-frag,Seçim
+/home/runner/workspace/static/js/app.js,1736,js-`-frag,Hacim
+/home/runner/workspace/static/js/app.js,1736,js-`-frag,Alarm Zamanı
+/home/runner/workspace/static/js/app.js,1761,js-'-frag,Veri yüklenirken hata oluştu.
+/home/runner/workspace/static/js/app.js,1773,js-'-frag,Lisans aktif! Kalan gun:
+/home/runner/workspace/static/js/app.js,1815,js-'-frag,Canli maclar yukleniyor...
+/home/runner/workspace/static/js/app.js,1815,js-'-frag,Canli maclar yukleniyor...
+/home/runner/workspace/static/js/app.js,1836,js-'-frag,Su an canli mac bulunamadi
+/home/runner/workspace/static/js/app.js,1836,js-'-frag,Canli mac bulunamadi
+/home/runner/workspace/static/js/app.js,1887,js-'-frag,Henuz periyot verisi yok
+/home/runner/workspace/static/js/app.js,1889,js-'-frag,Gelen para
+/home/runner/workspace/static/js/app.js,1910,js-'-frag,Gelen para
+/home/runner/workspace/static/js/ui.js,29,js-',Kaybetti
+/home/runner/workspace/static/js/ui.js,30,js-'-frag,Oran:
+/home/runner/workspace/static/js/ui.js,34,js-'-frag,Analizci:
+/home/runner/workspace/static/js/ui.js,44,js-'-frag,""">Toplam"
+/home/runner/workspace/static/js/ui.js,44,js-'-frag,""">Kazanan"
+/home/runner/workspace/static/js/ui.js,44,js-'-frag,""">Kaybeden"
+/home/runner/workspace/static/js/ui.js,46,js-'-frag,ANALİZ
+/home/runner/workspace/static/js/ui.js,46,js-',Kaybetti
+/home/runner/workspace/static/js/ui.js,47,js-'-frag,Oran:
+/home/runner/workspace/static/js/ui.js,67,js-',Para
+/home/runner/workspace/static/js/ui.js,67,js-',% Para
+/home/runner/workspace/static/js/ui.js,67,js-',Hacim
+/home/runner/workspace/static/js/ui.js,76,js-',Ev Sahibi
+/home/runner/workspace/static/js/ui.js,76,js-',Deplasman
+/home/runner/workspace/static/js/ui.js,76,js-',Beraberlik
+/home/runner/workspace/static/js/ui.js,83,js-',Oran
+/home/runner/workspace/static/js/ui.js,96,js-',Oran
+/home/runner/workspace/static/js/ui.js,109,js-',Oran
+/home/runner/workspace/static/js/ui.js,130,js-'-frag,""">Toplam"
+/home/runner/workspace/static/js/ui.js,130,js-'-frag,""">Kazanan"
+/home/runner/workspace/static/js/ui.js,130,js-'-frag,""">Kaybeden"
+/home/runner/workspace/static/js/ui.js,131,js-',Sinyal
+/home/runner/workspace/static/js/ui.js,144,js-',Oran

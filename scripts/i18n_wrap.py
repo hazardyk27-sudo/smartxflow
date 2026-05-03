@@ -49,6 +49,22 @@ HTML_TARGETS = [
 ]
 
 TR_CHARS = set('ığşöüçĞŞÖÜÇİ')
+ASCII_TR_WORDS = {
+    'toplam', 'kazanan', 'kaybeden', 'kaybetti', 'kazandi', 'analizci',
+    'analist', 'oran', 'para', 'akis', 'tumu', 'buyuk', 'hacim', 'soku',
+    'lider', 'degisti', 'yukleniyor', 'kisi', 'takip', 'ediyor', 'mac',
+    'lig', 'tarih', 'snapshot', 'ev', 'sahibi', 'deplasman', 'beraberlik',
+    'gelen', 'sonuc', 'guven', 'iade', 'iptal', 'ortalama', 'esik', 'yok',
+    'aktif', 'sinyal', 'onceki', 'sonraki', 'goster', 'gizle', 'yeni',
+    'eski', 'sonra', 'once', 'saat', 'dakika', 'gun', 'hafta', 'ay', 'yil',
+    'bekleyen', 'alarm', 'puan', 'olay',
+}
+ASCII_TR_RE = re.compile(
+    r'\b(?:' + '|'.join(sorted(ASCII_TR_WORDS, key=len, reverse=True)) + r')\b',
+    re.IGNORECASE,
+)
+_CSS_IDENT_RE = re.compile(r'^[a-z][a-z0-9_-]*$')
+_URL_RE = re.compile(r'^https?://|^/api/|^/static/')
 
 BRANDS = {
     'SmartXFlow', 'MIM', 'Sharp', 'Big Money', 'BigMoney', 'Moneyway',
@@ -64,13 +80,39 @@ _BRANDS_RE = re.compile(
 SKIP_EXACT = {'TR', 'EN', 'DE', 'FR', 'NL', 'IT', 'ES'}
 
 
-def has_tr(t: str) -> bool: return any(c in TR_CHARS for c in t)
+def has_tr(t: str) -> bool:
+    if any(c in TR_CHARS for c in t):
+        return True
+    return bool(ASCII_TR_RE.search(t))
 
 
 def needs_translation(t: str) -> bool:
     if not has_tr(t):
         return False
+    s = t.strip()
+    if _CSS_IDENT_RE.match(s) or _URL_RE.match(s):
+        return False
     return has_tr(_BRANDS_RE.sub(' ', t))
+
+
+# Tokenize an HTML-fragment string body into list of (kind, text) where
+# kind in {'tag','text','interp','entity'}.  Used for surgical wrapping
+# of user-text segments inside HTML literals.
+_HTML_TOKEN_RE = re.compile(
+    r'(<[^>]*>)|(\$\{\.\.\.\})|(&[a-zA-Z#0-9]+;)',
+)
+def html_tokenize(body: str) -> list[tuple]:
+    out, last = [], 0
+    for m in _HTML_TOKEN_RE.finditer(body):
+        if m.start() > last:
+            out.append(('text', body[last:m.start()]))
+        if m.group(1):     out.append(('tag',    m.group(1)))
+        elif m.group(2):   out.append(('interp', m.group(2)))
+        else:              out.append(('entity', m.group(3)))
+        last = m.end()
+    if last < len(body):
+        out.append(('text', body[last:]))
+    return out
 
 
 def _slug(text: str) -> str:
@@ -123,6 +165,10 @@ def _skip_regex(src: str, i: int) -> int:
 
 
 def iter_js_strings(src: str):
+    """Yield (start, end, q, body, has_interp, interps) where:
+        body  = string with each ${...} collapsed to placeholder '${...}'
+        interps = list of actual ${...EXPR...} substrings, in order.
+    """
     i, n = 0, len(src)
     while i < n:
         c = src[i]
@@ -136,20 +182,21 @@ def iter_js_strings(src: str):
                 i = _skip_regex(src, i); continue
         if c in ('"', "'", '`'):
             q = c; start = i; i += 1
-            buf, has_interp = [], False
+            buf, has_interp, interps = [], False, []
             while i < n:
                 ch = src[i]
                 if ch == '\\' and i + 1 < n:
                     buf.append(src[i + 1]); i += 2; continue
                 if ch == q:
                     i += 1
-                    yield (start, i, q, ''.join(buf), has_interp); break
+                    yield (start, i, q, ''.join(buf), has_interp, interps); break
                 if q == '`' and ch == '$' and i + 1 < n and src[i + 1] == '{':
-                    has_interp = True; depth = 1; i += 2
+                    has_interp = True; depth = 1; ip_start = i; i += 2
                     while i < n and depth:
                         if src[i] == '{': depth += 1
                         elif src[i] == '}': depth -= 1
                         i += 1
+                    interps.append(src[ip_start:i])
                     buf.append('${...}'); continue
                 buf.append(ch); i += 1
             else: break
@@ -189,19 +236,33 @@ def _inside_t_call(src: str, pos: int) -> bool:
 
 
 def find_unwrapped_in_js(src: str):
-    for start, end, q, body, has_interp in iter_js_strings(src):
-        if not needs_translation(body):     continue
+    """Yield (start, end, body, q, has_interp, is_frag).
+    is_frag=True when body contains HTML tags / entities — caller must use
+    surgical segment splitting instead of single-_t() wrap.
+    """
+    for start, end, q, body, has_interp, interps in iter_js_strings(src):
         if body.strip() in SKIP_EXACT:      continue
-        if has_interp:                       continue
-        if len(body) > 180 or len(body) < 2: continue
-        if any(bad in body for bad in ('\n', '\r', '<', '>', '&#', '&amp;', '${')):
+        if len(body) > 50000 or len(body) < 2: continue
+        if _inside_t_call(src, start):       continue
+        is_frag = bool(re.search(r'<[^>]*>|&[a-zA-Z#0-9]+;', body))
+        # Template literals with real ${EXPR} but no HTML — also need
+        # surgical splitting around interpolations.
+        if not is_frag and q == '`' and has_interp and needs_translation(body):
+            yield start, end, body, q, has_interp, interps, True
             continue
+        if is_frag:
+            segs = [t for k, t in html_tokenize(body) if k == 'text']
+            if not any(needs_translation(s) for s in segs):
+                continue
+            yield start, end, body, q, has_interp, interps, True
+            continue
+        if has_interp:                       continue
+        if not needs_translation(body):     continue
         head = body.lstrip()
         if not head or not (head[0].isalpha() or head[0].isdigit()
-                            or head[0] in '"\'(¡¿“„«…→•·'):
+                            or head[0] in '"\'(¡¿“„«…→•·£$%'):
             continue
-        if _inside_t_call(src, start):       continue
-        yield start, end, body
+        yield start, end, body, q, False, [], False
 
 
 # ============================================================================
@@ -356,15 +417,73 @@ def main():
         if not finds:
             file_summaries.append((rel, 0, 0)); continue
         new_src = src; replaced = 0; new_for_file = 0
-        for start, end, body in sorted(finds, key=lambda x: x[0], reverse=True):
-            row = _ensure_key(body, prefix, by_tr_text, by_key,
-                              used_keys, fields, new_rows)
-            if row in new_rows: new_for_file += 1
-            _add_ref(row, f'{rel}:{src.count(chr(10), 0, start) + 1}')
-            esc_key  = js_escape(row['key'], "'")
-            esc_body = js_escape(body, "'")
-            replacement = f"_t('{esc_key}', '{esc_body}')"
-            # Add leading space if previous char would otherwise glue to _t
+        # Re-read body from new_src is unsafe under right-to-left ordering;
+        # we work on the original src offsets.
+        for start, end, body, q, has_interp, interps, is_frag in sorted(
+                finds, key=lambda x: x[0], reverse=True):
+            ln = src.count(chr(10), 0, start) + 1
+            if is_frag:
+                tokens = html_tokenize(body)
+                # Restore real ${EXPR} into any token that contained a
+                # ${...} placeholder (interps may live inside tag attrs too).
+                interp_iter = iter(interps)
+                def _restore(s):
+                    return re.sub(r'\$\{\.\.\.\}',
+                                  lambda _m: next(interp_iter, '${null}'), s)
+                if q == '`':
+                    parts_out = []
+                    for k, t in tokens:
+                        if k == 'text' and needs_translation(t):
+                            row = _ensure_key(t, prefix, by_tr_text, by_key,
+                                              used_keys, fields, new_rows)
+                            if row in new_rows: new_for_file += 1
+                            _add_ref(row, f'{rel}:{ln}')
+                            esc_k = js_escape(row['key'], "'")
+                            esc_t = js_escape(t, "'")
+                            parts_out.append("${_t('" + esc_k + "', '" + esc_t + "')}")
+                        elif k == 'interp':
+                            parts_out.append(next(interp_iter, '${null}'))
+                        else:
+                            parts_out.append(_restore(t))
+                    replacement = '`' + ''.join(parts_out) + '`'
+                else:
+                    # single/double quote: rebuild as 'A'+_t('k','TR')+'B'+...
+                    chunks = []  # list of ('lit', text) or ('call', key, tr)
+                    cur = []
+                    def _flush():
+                        if cur:
+                            chunks.append(('lit', ''.join(cur)))
+                            cur.clear()
+                    for k, t in tokens:
+                        if k == 'text' and needs_translation(t):
+                            _flush()
+                            row = _ensure_key(t, prefix, by_tr_text, by_key,
+                                              used_keys, fields, new_rows)
+                            if row in new_rows: new_for_file += 1
+                            _add_ref(row, f'{rel}:{ln}')
+                            chunks.append(('call', row['key'], t))
+                        else:
+                            cur.append(t)
+                    _flush()
+                    parts = []
+                    for ch in chunks:
+                        if ch[0] == 'lit':
+                            parts.append(q + js_escape(ch[1], q) + q)
+                        else:
+                            parts.append("_t('" + js_escape(ch[1], "'")
+                                         + "', '" + js_escape(ch[2], "'") + "')")
+                    if not parts:
+                        continue
+                    replacement = '+'.join(parts)
+            else:
+                row = _ensure_key(body, prefix, by_tr_text, by_key,
+                                  used_keys, fields, new_rows)
+                if row in new_rows: new_for_file += 1
+                _add_ref(row, f'{rel}:{ln}')
+                esc_key  = js_escape(row['key'], "'")
+                esc_body = js_escape(body, "'")
+                replacement = f"_t('{esc_key}', '{esc_body}')"
+            # Add leading space if previous char would otherwise glue
             prev_ch = new_src[start - 1] if start > 0 else ''
             if _IDENT_TAIL.match(prev_ch):
                 replacement = ' ' + replacement
