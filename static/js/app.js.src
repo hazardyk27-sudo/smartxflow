@@ -144,7 +144,7 @@ function _updateFavCountsInDOM() {
         var mk = el.getAttribute('data-matchkey');
         if (mk) {
             var c = _favCounts[mk] || 0;
-            el.textContent = c + ' kişi takip ediyor';
+            el.textContent = c + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') + ' ' + window.SXFI18n.t('app.dyn.takip_ediyor') : ' kişi takip ediyor');
         }
     });
 }
@@ -187,7 +187,7 @@ function toggleFavorite(el) {
         });
         document.querySelectorAll('.mobile-fav-count').forEach(function(mc) {
             if (mc.getAttribute('data-matchkey') === mk) {
-                mc.textContent = (displayCount > 0 ? displayCount : 0) + ' kişi takip ediyor';
+                mc.textContent = (displayCount > 0 ? displayCount : 0) + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') + ' ' + window.SXFI18n.t('app.dyn.takip_ediyor') : ' kişi takip ediyor');
             }
         });
         if (_favFilterActive && !data.favorited) {
@@ -310,7 +310,7 @@ function _clearFavoritesFilter() {
 
 function _favCountHtml(count) {
     if (!count || count <= 0) return '';
-    return '<span class="fav-count-num">' + count + ' kişi</span>takip ediyor';
+    return '<span class="fav-count-num">' + count + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') : ' kişi') + '</span>' + (window.SXFI18n ? window.SXFI18n.t('app.dyn.takip_ediyor') : 'takip ediyor');
 }
 
 var _heartSvg = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
@@ -2076,7 +2076,7 @@ function renderMobileMatchCards(data) {
 
 // Mobile Moneyway Card - Shows odds with betting percentages
 function _mobileFavLine(mk, isFav, count) {
-    var txt = (count > 0 ? count : 0) + ' kişi takip ediyor';
+    var txt = (count > 0 ? count : 0) + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') + ' ' + window.SXFI18n.t('app.dyn.takip_ediyor') : ' kişi takip ediyor');
     return '<div class="mobile-fav-line"><span class="fav-heart ' + (isFav ? 'fav-active' : '') + '" data-matchkey="' + mk.replace(/"/g, '&quot;') + '" onclick="event.stopPropagation(); toggleFavorite(this);">' + _heartSvg + '</span><span class="mobile-fav-count" data-matchkey="' + mk.replace(/"/g, '&quot;') + '">' + txt + '</span></div>';
 }
 
@@ -10440,10 +10440,10 @@ function updateLicenseDaysBadge(days) {
     if (days >= 36500) {
         text.textContent = 'Lifetime';
     } else if (days <= 0) {
-        text.textContent = 'Suresi doldu';
+        text.textContent = window.SXFI18n ? window.SXFI18n.t('app.dyn.suresi_doldu') : 'Süresi doldu';
         badge.classList.add('danger');
     } else {
-        text.textContent = 'Kalan ' + days + ' gun';
+        text.textContent = (window.SXFI18n ? window.SXFI18n.t('app.dyn.kalan_pre') : 'Kalan ') + days + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kalan_suf') : ' gün');
         if (days <= 3) {
             badge.classList.add('danger');
         } else if (days <= 7) {
@@ -10514,7 +10514,7 @@ async function validateWebLicense() {
             localStorage.setItem('license_days_remaining', daysRemaining);
             updateLicenseDaysBadge(daysRemaining);
             
-            successDiv.innerHTML = '<div style="font-size:24px;margin-bottom:8px;">✓</div>Lisans aktif! Kalan gun: ' + daysRemaining;
+            successDiv.innerHTML = '<div style="font-size:24px;margin-bottom:8px;">✓</div>' + (window.SXFI18n ? window.SXFI18n.t('app.dyn.lisans_aktif_kalan_gun') : 'Lisans aktif! Kalan gün: ') + daysRemaining;
             successDiv.style.display = 'block';
             progressBar.style.display = 'none';
             
