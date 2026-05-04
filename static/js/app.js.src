@@ -10996,7 +10996,7 @@ async function _renderLiveProLock() {
     }
 
     if (filtered.length === 0) {
-        rowsHtml += '<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7280;">\u015eu an canl\u0131 ma\u00e7 bulunamad\u0131</td></tr>';
+        rowsHtml += '<tr><td colspan="8" style="text-align:center;padding:30px;color:#6b7280;">' + _t('app.live.bos','Şu an canlı maç bulunamadı') + '</td></tr>';
     }
 
     if (tbody) tbody.innerHTML = rowsHtml;
@@ -11740,7 +11740,7 @@ function renderLiveDetail(snapshots, market) {
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ALT', escLiveHtml(ouLine) + ' \u00dcST'];
+    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ' + _t('app.tbl.alt','ALT'), escLiveHtml(ouLine) + ' ' + _t('app.tbl.over','ÜST')];
 
     var colsPerSel = 3;
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
@@ -11930,7 +11930,7 @@ function renderModalLiveDetail(snapshots, market) {
     var body = document.getElementById('modalLiveBody');
     if (!body) return;
     if (!snapshots || snapshots.length === 0) {
-        body.innerHTML = '<div class="live-loading">Canl\u0131 veri bulunamad\u0131</div>';
+        body.innerHTML = '<div class="live-loading">' + _t('app.live.bos_tablo','Canlı maç bulunamadı') + '</div>';
         return;
     }
 
@@ -11948,7 +11948,7 @@ function renderModalLiveDetail(snapshots, market) {
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ALT', escLiveHtml(ouLine) + ' \u00dcST'];
+    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ' + _t('app.tbl.alt','ALT'), escLiveHtml(ouLine) + ' ' + _t('app.tbl.over','ÜST')];
 
     var colsPerSel = 3;
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
@@ -12051,7 +12051,7 @@ function _renderModalLiveMobile(body, snapshots, market) {
     var is1x2 = (market === '1x2');
     var ouLine = is1x2 ? '' : market.replace('ou', '');
     var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : ['Alt ' + ouLine, '\u00dcst ' + ouLine];
+    var selLabels = is1x2 ? ['1', 'X', '2'] : [_t('app.tbl.alt','ALT') + ' ' + ouLine, _t('app.tbl.over','ÜST') + ' ' + ouLine];
 
     var html = '<div class="mlive-wrap">';
 
