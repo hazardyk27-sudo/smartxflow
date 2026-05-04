@@ -8336,44 +8336,7 @@ def early_money_lock_endpoint():
                 _seen[key] = s
         deduped = list(_seen.values())
 
-        # Aktif maçlar için canlı pct lookup'ı (moneyway latest cache)
-        matches_data = _server_matches_cache.get('moneyway_1x2_all') or _server_matches_cache.get('moneyway_1x2') or []
-        cache_lookup = {}
-        for m in matches_data:
-            h = (m.get('home_team', '') or '').lower().strip()
-            a = (m.get('away_team', '') or '').lower().strip()
-            odds_obj = m.get('odds') or {}
-            for code, raw_pct in [
-                ('1', odds_obj.get('Pct1', '')),
-                ('2', odds_obj.get('Pct2', '')),
-                ('X', odds_obj.get('PctX', '')),
-            ]:
-                if h and a:
-                    cache_lookup[(h, a, code)] = str(raw_pct) if raw_pct else ''
-
-        # Geçmiş maçlar olduğu gibi; aktif maçlarda canlı pct EML eşiğinin altına
-        # düştüyse sinyal listeden kalkar (canlı veri yoksa fail-open).
-        today_str = str(_date.today())
-        all_signals = []
-        for s in deduped:
-            sig_date = str(s.get('date') or s.get('match_date') or '')
-            is_past = sig_date and sig_date < today_str
-            if is_past:
-                all_signals.append(s)
-                continue
-            h = (s.get('home_team', '') or '').lower().strip()
-            a = (s.get('away_team', '') or '').lower().strip()
-            code = s.get('selection_code', '')
-            cur_pct_raw = cache_lookup.get((h, a, code), '')
-            if not cur_pct_raw:
-                all_signals.append(s)
-                continue
-            try:
-                cur_pct_val = float(str(cur_pct_raw).replace('%', '').strip())
-                if cur_pct_val >= EML_PCT_THRESHOLD_LOCAL:
-                    all_signals.append(s)
-            except Exception:
-                all_signals.append(s)
+        all_signals = deduped
 
         _eml_signals_cache = all_signals
         _eml_signals_cache_time = now
