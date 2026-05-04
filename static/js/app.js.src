@@ -1548,13 +1548,13 @@ function updateTableHeaders() {
         }
         thead.innerHTML = `
             <th class="col-fav"></th>
-            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
-            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
-            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">${_t('app.tbl.date','TARİH')} <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">${_t('app.tbl.league','LİG')} <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">${_t('app.tbl.match','MAÇ')} <span class="sort-arrow">${getArrow('match')}</span></th>
             <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">1 <span class="sort-arrow">${getArrow('sel1')}</span></th>
             <th class="col-selection sortable ${getActiveClass('selX')}" data-sort="selX" onclick="sortByColumn('selX')">X <span class="sort-arrow">${getArrow('selX')}</span></th>
             <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">2 <span class="sort-arrow">${getArrow('sel2')}</span></th>
-            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">HACİM <span class="sort-arrow">${getArrow('volume')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">${_t('app.tbl.volume','HACİM')} <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('ou25')) {
         table.setAttribute('data-selection-count', '2');
@@ -1571,12 +1571,12 @@ function updateTableHeaders() {
         }
         thead.innerHTML = `
             <th class="col-fav"></th>
-            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
-            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
-            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
-            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">ALT <span class="sort-arrow">${getArrow('sel1')}</span></th>
-            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">ÜST <span class="sort-arrow">${getArrow('sel2')}</span></th>
-            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">HACİM <span class="sort-arrow">${getArrow('volume')}</span></th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">${_t('app.tbl.date','TARİH')} <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">${_t('app.tbl.league','LİG')} <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">${_t('app.tbl.match','MAÇ')} <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">${_t('app.j.sel_alt','ALT')} <span class="sort-arrow">${getArrow('sel1')}</span></th>
+            <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">${_t('app.j.sel_ust','ÜST')} <span class="sort-arrow">${getArrow('sel2')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">${_t('app.tbl.volume','HACİM')} <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     } else if (currentMarket.includes('btts')) {
         table.setAttribute('data-selection-count', '2');
@@ -1593,12 +1593,12 @@ function updateTableHeaders() {
         }
         thead.innerHTML = `
             <th class="col-fav"></th>
-            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">TARİH <span class="sort-arrow">${getArrow('date')}</span></th>
-            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">LİG <span class="sort-arrow">${getArrow('league')}</span></th>
-            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">MAÇ <span class="sort-arrow">${getArrow('match')}</span></th>
+            <th class="col-date sortable ${getActiveClass('date')}" data-sort="date" onclick="sortByColumn('date')">${_t('app.tbl.date','TARİH')} <span class="sort-arrow">${getArrow('date')}</span></th>
+            <th class="col-league sortable ${getActiveClass('league')}" data-sort="league" onclick="sortByColumn('league')">${_t('app.tbl.league','LİG')} <span class="sort-arrow">${getArrow('league')}</span></th>
+            <th class="col-match sortable ${getActiveClass('match')}" data-sort="match" onclick="sortByColumn('match')">${_t('app.tbl.match','MAÇ')} <span class="sort-arrow">${getArrow('match')}</span></th>
             <th class="col-selection sortable ${getActiveClass('sel1')}" data-sort="sel1" onclick="sortByColumn('sel1')">YES <span class="sort-arrow">${getArrow('sel1')}</span></th>
             <th class="col-selection sortable ${getActiveClass('sel2')}" data-sort="sel2" onclick="sortByColumn('sel2')">NO <span class="sort-arrow">${getArrow('sel2')}</span></th>
-            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">HACİM <span class="sort-arrow">${getArrow('volume')}</span></th>
+            <th class="col-volume sortable ${getActiveClass('volume')}" data-sort="volume" onclick="sortByColumn('volume')">${_t('app.tbl.volume','HACİM')} <span class="sort-arrow">${getArrow('volume')}</span></th>
         `;
     }
 }
@@ -2501,7 +2501,7 @@ function _buildMfPastDropdown(container) {
     container.innerHTML = '';
     for (var i = 1; i <= 7; i++) {
         var d = nowTR.subtract(i, 'day');
-        var label = i === 1 ? 'Dün' : (d.date() + ' ' + months[d.month()]);
+        var label = i === 1 ? _t('app.flt.yesterday','Dün') : (d.date() + ' ' + months[d.month()]);
         var val = 'd-' + i;
         var btn = document.createElement('button');
         btn.className = 'mf-past-day-btn' + (selectedVal === val ? ' active' : '');
@@ -2600,10 +2600,10 @@ function applyMobileFilter() {
 }
 
 function _getDayFilterLabel(dateVal) {
-    if (!dateVal || dateVal === 'all') return 'Tümü';
-    if (dateVal === 'today') return 'Bugün';
-    if (dateVal === 'yesterday' || dateVal === 'd-1') return 'Dün';
-    if (dateVal === 'future') return 'Gelecek';
+    if (!dateVal || dateVal === 'all') return _t('app.flt.all','Tümü');
+    if (dateVal === 'today') return _t('app.flt.today','Bugün');
+    if (dateVal === 'yesterday' || dateVal === 'd-1') return _t('app.flt.yesterday','Dün');
+    if (dateVal === 'future') return _t('app.flt.future','Gelecek');
     if (dateVal.startsWith('d-')) {
         var n = parseInt(dateVal.slice(2));
         if (!isNaN(n)) {
@@ -2613,7 +2613,7 @@ function _getDayFilterLabel(dateVal) {
             return d.date() + ' ' + months[d.month()];
         }
     }
-    return 'Tümü';
+    return _t('app.flt.all','Tümü');
 }
 
 const originalRenderMatches = renderMatches;
@@ -4158,7 +4158,7 @@ function setMobileTimeRange(range) {
     
     // Update dropdown menu (legacy)
     const mobTimeLabel = document.getElementById('mobTimeLabel');
-    if (mobTimeLabel) mobTimeLabel.textContent = labels[range] || 'Tümü';
+    if (mobTimeLabel) mobTimeLabel.textContent = labels[range] || _t('app.flt.all','Tümü');
     
     document.querySelectorAll('.mob-time-option').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.range === range);
@@ -5981,12 +5981,12 @@ function renderChartLegendFilters(datasets, market) {
             <button class="chart-view-btn ${chartViewMode === 'percent' ? 'active' : ''}" 
                     data-mode="percent"
                     onclick="setChartViewMode('percent')">
-                % Yüzde
+                ${_t('app.j.pct_view','% Yüzde')}
             </button>
             <button class="chart-view-btn ${chartViewMode === 'money' ? 'active' : ''}" 
                     data-mode="money"
                     onclick="setChartViewMode('money')">
-                £ Para
+                ${_t('app.j.money_view','£ Para')}
             </button>
         </div>
         <div class="chart-filter-divider"></div>
@@ -7994,7 +7994,7 @@ async function loadAllAlarms(forceRefresh = false) {
         
         const labelEl = document.getElementById('dateLabelDisplay');
         if (labelEl) {
-            labelEl.textContent = dateFilterLabels[currentAlarmDateFilter] || 'Tümü';
+            labelEl.textContent = dateFilterLabels[currentAlarmDateFilter] || _t('app.flt.all','Tümü');
         }
         
         renderAlarmsList(currentAlarmFilter);
@@ -8116,10 +8116,10 @@ function updateAlarmCounts() {
 let currentAlarmDateFilter = 'all'; // all, today, yesterday, future
 
 const dateFilterLabels = {
-    all: 'Tümü',
-    today: 'Bugün',
-    yesterday: 'Dün',
-    future: 'Gelecek'
+    get all() { return _t('app.flt.all','Tümü'); },
+    get today() { return _t('app.flt.today','Bugün'); },
+    get yesterday() { return _t('app.flt.yesterday','Dün'); },
+    get future() { return _t('app.flt.future','Gelecek'); }
 };
 
 const dateFilterColors = {
@@ -8145,7 +8145,7 @@ function selectDateFilter(dateFilter) {
     // Label'ı güncelle
     const labelEl = document.getElementById('dateLabelDisplay');
     if (labelEl) {
-        labelEl.textContent = dateFilterLabels[dateFilter] || 'Tümü';
+        labelEl.textContent = dateFilterLabels[dateFilter] || _t('app.flt.all','Tümü');
     }
     
     // Dot rengini güncelle
@@ -8288,7 +8288,7 @@ const alarmFilterColors = {
 };
 
 const alarmFilterLabels = {
-    all: 'Tumu',
+    get all() { return _t('app.flt.all','Tümü'); },
     sharp: 'Sharp',
     bigmoney: 'Buyuk Para',
     volumeshock: 'Hacim Soku',
@@ -8314,7 +8314,7 @@ function selectAlarmFilter(type) {
         opt.classList.toggle('selected', opt.dataset.value === type);
     });
     
-    labelDisplay.textContent = alarmFilterLabels[type] || 'Tumu';
+    labelDisplay.textContent = _t('app.flt.all','Tümü');
     
     if (type === 'all') {
         dotDisplay.className = 'filter-dot-display show';
@@ -8477,7 +8477,7 @@ function renderAlarmsList(filterType) {
         } else if (type === 'volumeshock') {
             const shockValue = alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0;
             const hoursToKickoff = calculateHoursToKickoff(alarm);
-            mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)} saat kala</span>`;
+            mainValue = `<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)} ${_t('app.j.saat_kala','saat kala')}</span>`;
         } else if (type === 'dropping') {
             const openingOdds = alarm.opening_odds || 0;
             const currentOdds = alarm.current_odds || 0;
@@ -8593,22 +8593,22 @@ function renderAlarmsList(filterType) {
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'volumeshock') {
-            badgeLabel = 'HACİM ŞOKU';
+            badgeLabel = _t('app.j.alarm_volume_shock','HACİM ŞOKU');
             const newMoney = alarm.incoming_money || 0;
             const shockVal = (alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1);
             const hoursToKickoff = calculateHoursToKickoff(alarm);
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeshock">${shockVal}x</div>
-                    <div class="acd-stat-lbl">Hacim Şoku</div>
+                    <div class="acd-stat-lbl">${_t('app.j.acd_volume_shock','Hacim Şoku')}</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Number(newMoney).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Gelen Para</div>
+                    <div class="acd-stat-lbl">${_t('app.j.acd_incoming_money','Gelen Para')}</div>
                 </div>
             </div>
             <div class="acd-info-row">
-                <span>Maça ${hoursToKickoff.toFixed(1)} saat kala</span>
+                <span>${_t('app.j.maca_once','Maça')} ${hoursToKickoff.toFixed(1)} ${_t('app.j.saat_kala','saat kala')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'bigmoney') {
@@ -8722,15 +8722,15 @@ function renderAlarmsList(filterType) {
             metricContent = `<div class="acd-grid cols-2">
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeleader">${oldLeader} %${oldShare}</div>
-                    <div class="acd-stat-lbl">Eski Lider</div>
+                    <div class="acd-stat-lbl">${_t('app.j.eski_lider','Eski Lider')}</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val volumeleader-new">${newLeader} %${newShare}</div>
-                    <div class="acd-stat-lbl">Yeni Lider</div>
+                    <div class="acd-stat-lbl">${_t('app.j.yeni_lider','Yeni Lider')}</div>
                 </div>
             </div>
             <div class="acd-info-row">
-                <span>Toplam Hacim: £${Number(totalVol).toLocaleString('en-GB')}</span>
+                <span>${_t('app.j.toplam_hacim_lbl','Toplam Hacim')}: £${Number(totalVol).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         } else if (type === 'mim') {
@@ -8748,15 +8748,15 @@ function renderAlarmsList(filterType) {
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val" style="color: #22c55e;">+£${Math.round(Number(incomingMoney)).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Gelen Para</div>
+                    <div class="acd-stat-lbl">${_t('app.j.acd_incoming_money','Gelen Para')}</div>
                 </div>
                 <div class="acd-stat">
                     <div class="acd-stat-val">£${Math.round(Number(totalMarketVol)).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Market Hacmi</div>
+                    <div class="acd-stat-lbl">${_t('app.j.market_hacmi','Market Hacmi')}</div>
                 </div>
             </div>
             <div class="acd-info-row">
-                <span>Seçenek: £${Math.round(Number(prevVol)).toLocaleString('en-GB')} → £${Math.round(Number(currVol)).toLocaleString('en-GB')}</span>
+                <span>${_t('app.j.secenek','Seçenek')}: £${Math.round(Number(prevVol)).toLocaleString('en-GB')} → £${Math.round(Number(currVol)).toLocaleString('en-GB')}</span>
             </div>`;
             historyLine = `${triggerTime}`;
         }
@@ -8841,7 +8841,7 @@ function renderAlarmsList(filterType) {
                             ${metricContent}
                             <div class="acd-history">${historyLine}</div>
                             ${historySection}
-                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}')">Maç Sayfasını Aç</button>
+                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}')">${_t('app.j.acd_open_match','Maç Sayfasını Aç')}</button>
                         </div>
                     </div>
                 </div>
@@ -9512,7 +9512,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
             
             row2Left = `${selection} (${marketTr})`;
             row2Right = '';
-            row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
+            row3Left = `<span class="sm-money-hero">£${Number(money).toLocaleString('en-GB')}</span> <span class="sm-money-label">${_t('app.j.acd_incoming_money','gelen para')}</span>`;
             row3Right = selectionTotal > 0 ? `<span class="sm-total-muted">Olay sonrası: £${Number(selectionTotal).toLocaleString('en-GB')}</span>` : '';
             row4 = `Seçeneğe 10 dakika içinde büyük para girişi tespit edildi.`;
         } else if (type === 'volumeshock') {
@@ -9590,8 +9590,8 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
             const totalMarketVol = latest.total_market_volume || currVol;
             row2Left = `${selection} (${market})`;
             row2Right = `<span class="sm-mim-impact-badge">${impactPct}%</span> <span class="sm-mim-impact-label">impact</span>`;
-            row3Left = `<span class="sm-mim-money">+£${Math.round(Number(incomingVol)).toLocaleString('en-GB')}</span> <span class="sm-money-label">gelen para</span>`;
-            row3Right = `<span class="sm-mim-total">Toplam: £${Math.round(Number(totalMarketVol)).toLocaleString('en-GB')}</span>`;
+            row3Left = `<span class="sm-mim-money">+£${Math.round(Number(incomingVol)).toLocaleString('en-GB')}</span> <span class="sm-money-label">${_t('app.j.acd_incoming_money','gelen para')}</span>`;
+            row3Right = `<span class="sm-mim-total">${_t('app.j.acd_total','Toplam')}: £${Math.round(Number(totalMarketVol)).toLocaleString('en-GB')}</span>`;
             row4 = `Tek bir seçeneğe gelen ani paranın, ilgili marketin toplam hacmine oranla yarattığı etkiyi gösterir.`;
         }
         
