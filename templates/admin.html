@@ -8,6 +8,8 @@
         e.preventDefault();
         console.warn('[SmartXFlow] Unhandled rejection suppressed:', e.reason && e.reason.message || e.reason);
     });
+    var _pendingShowPage = null;
+    function showPage(p) { _pendingShowPage = p; }
     </script>
     <title>SmartXFlow Admin Panel</title>
     <style>
@@ -10370,6 +10372,8 @@ var dateGroups = {};
                 showToast('Bağlantı hatası: ' + e.message, 'error');
             }
         }
+
+        if (_pendingShowPage) { var _p = _pendingShowPage; _pendingShowPage = null; showPage(_p); }
 
     </script>
 </body>
