@@ -8314,7 +8314,7 @@ function selectAlarmFilter(type) {
         opt.classList.toggle('selected', opt.dataset.value === type);
     });
     
-    labelDisplay.textContent = _t('app.flt.all','Tümü');
+    labelDisplay.textContent = alarmFilterLabels[type] || _t('app.flt.all','Tümü');
     
     if (type === 'all') {
         dotDisplay.className = 'filter-dot-display show';
