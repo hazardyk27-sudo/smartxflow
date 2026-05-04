@@ -14,7 +14,7 @@ function openTrendsModal(tab) {
     var t = tab || 'analysis';
     if (t === 'analysis' && _isPro === null) _isPro = (window.userPlan === 'pro');
     if (t === 'analysis' && !_isPro) {
-        if (confirm('Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?')) {
+        if (confirm(_t('app.j.pro_confirm','Analizler PRO uyelikte aktif. PRO paketine yukseltmek ister misiniz?'))) {
             window.location.href = '/pricing';
         }
         return;
@@ -24,14 +24,14 @@ function openTrendsModal(tab) {
     var subtitleEl = document.getElementById('trendsModalSubtitle');
     var contentArea = document.getElementById('trendsContentArea');
     if (t === 'moves') {
-        if (titleEl) titleEl.textContent = 'Kılavuz';
-        if (subtitleEl) subtitleEl.textContent = 'Kullanım tavsiyeleri';
+        if (titleEl) titleEl.textContent = _t('app.j.guide','Kılavuz');
+        if (subtitleEl) subtitleEl.textContent = _t('app.j.guide_sub','Kullanım tavsiyeleri');
     } else {
-        if (titleEl) titleEl.textContent = 'Analizler';
-        if (subtitleEl) subtitleEl.textContent = 'Profesyonel piyasa analizleri';
+        if (titleEl) titleEl.textContent = _t('app.j.analyses','Analizler');
+        if (subtitleEl) subtitleEl.textContent = _t('app.j.analyses_sub','Profesyonel piyasa analizleri');
     }
     if (t === 'moves') {
-        contentArea.innerHTML = '<div class="trends-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2e3238" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div>Sol menüden bir konu seçin</div></div>';
+        contentArea.innerHTML = '<div class="trends-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2e3238" stroke-width="1.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><div>' + _t('app.j.pick_topic','Sol menüden bir konu seçin') + '</div></div>';
         document.querySelector('.trends-modal-body').classList.add('sidebar-mode');
     } else {
         document.querySelector('.trends-modal-body').classList.remove('sidebar-mode');
@@ -72,7 +72,7 @@ function parseTrendsHierarchy(data) {
 function renderSidebar(hierarchy) {
     var sidebar = document.getElementById('trendsSidebar');
     if (hierarchy.order.length === 0) {
-        sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Henüz içerik yok</div>';
+        sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">' + _t('app.j.no_content','Henüz içerik yok') + '</div>';
         return;
     }
     var html = '';
@@ -89,7 +89,7 @@ function renderSidebar(hierarchy) {
         if (hasSubItems) {
             html += '<div class="sidebar-sub-list" style="display:none;">';
             items.forEach(function(sub, si) {
-                var label = sub.subTitle || 'Genel';
+                var label = sub.subTitle || _t('app.j.general','Genel');
                 html += '<div class="sidebar-sub-item" data-group="' + gi + '" data-sub="' + si + '" onclick="selectSubItem(' + gi + ',' + si + ')">' + label + '</div>';
             });
             html += '</div>';
@@ -133,7 +133,7 @@ function selectSubItem(gi, si) {
     if (isMobileView()) {
         html += '<div class="trends-mobile-back" onclick="mobileBackToList()">';
         html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>';
-        html += '<span>Geri</span>';
+        html += '<span>' + _t('app.j.back','Geri') + '</span>';
         html += '</div>';
         html += '<div class="trends-mobile-content-wrap">';
     }
@@ -192,19 +192,19 @@ function renderAnalysisList(data) {
 
 function buildMagazineLayout() {
     var SIGNALS = [
-        { id:'underdog', title:'Underdog Pressure', color:'#d29922', rgb:'210,153,34', icon:'⚡', desc:'Beklenmedik hacim artışları ve oran düşüşleriyle desteklenen sürpriz takımları tespit eder. Piyasanın gözden kaçırdığı potansiyel değerleri bulur.', handler:'showUnderdogPressure()', flag:'_viewingUnderdogPressure' },
-        { id:'confirmed', title:'Confirmed Money', color:'#34d399', rgb:'52,211,153', icon:'💰', desc:'Büyük bahis sendikalarının ve akıllı paranın girdiği maçları doğrular. Asya handikap ve taraf bahislerindeki hacim yoğunlaşmalarını gösterir.', handler:'showConfirmedMoney()', flag:'_viewingConfirmedMoney' },
-        { id:'confirmed-v2', title:'Confirmed Money V2', color:'#6366f1', rgb:'99,102,241', icon:'💎', desc:'Geliştirilmiş algoritmasıyla profesyonel oyuncuların son dakika bahislerini yakalar. Daha az fakat daha yüksek güvenilirliğe sahip sinyaller üretir.', handler:'showConfirmedMoneyV2()', flag:'_viewingConfirmedMoneyV2' },
-        { id:'early', title:'Early Money Lock', color:'#58a6ff', rgb:'88,166,255', icon:'🔒', desc:'Piyasa açılışından hemen sonra oluşan erken pozisyonları kilitler. Oranlar düşmeden önce değerli bahisleri yakalamanızı sağlar.', handler:'showEarlyMoneyLock()', flag:'_viewingEarlyMoneyLock' },
-        { id:'fake', title:'Fake Sharp', color:'#f85149', rgb:'248,81,73', icon:'⚠️', desc:'Suni hacim yaratılarak bahisçileri yanıltmaya çalışan hareketleri deşifre eder. Tuzak oranlara düşmenizi engeller.', handler:'showFakeSharp()', flag:'_viewingFakeSharp' },
-        { id:'approved', title:'Onaylı Sinyaller', color:'#facc15', rgb:'250,204,21', icon:'⭐', desc:'Editör tarafından onaylanmış geçmiş sinyaller ve sonuçları. Track record üzerinden doğruluk takibi yapın.', handler:'showApprovedSignals()', flag:'_viewingApprovedSignals' }
+        { id:'underdog', title:'Underdog Pressure', color:'#d29922', rgb:'210,153,34', icon:'⚡', desc:_t('app.j.rv_underdog_desc','Beklenmedik hacim artışları ve oran düşüşleriyle desteklenen sürpriz takımları tespit eder. Piyasanın gözden kaçırdığı potansiyel değerleri bulur.'), handler:'showUnderdogPressure()', flag:'_viewingUnderdogPressure' },
+        { id:'confirmed', title:'Confirmed Money', color:'#34d399', rgb:'52,211,153', icon:'💰', desc:_t('app.j.rv_confirmed_desc','Büyük bahis sendikalarının ve akıllı paranın girdiği maçları doğrular. Asya handikap ve taraf bahislerindeki hacim yoğunlaşmalarını gösterir.'), handler:'showConfirmedMoney()', flag:'_viewingConfirmedMoney' },
+        { id:'confirmed-v2', title:'Confirmed Money V2', color:'#6366f1', rgb:'99,102,241', icon:'💎', desc:_t('app.j.rv_confirmed_v2_desc','Geliştirilmiş algoritmasıyla profesyonel oyuncuların son dakika bahislerini yakalar. Daha az fakat daha yüksek güvenilirliğe sahip sinyaller üretir.'), handler:'showConfirmedMoneyV2()', flag:'_viewingConfirmedMoneyV2' },
+        { id:'early', title:'Early Money Lock', color:'#58a6ff', rgb:'88,166,255', icon:'🔒', desc:_t('app.j.rv_early_desc','Piyasa açılışından hemen sonra oluşan erken pozisyonları kilitler. Oranlar düşmeden önce değerli bahisleri yakalamanızı sağlar.'), handler:'showEarlyMoneyLock()', flag:'_viewingEarlyMoneyLock' },
+        { id:'fake', title:'Fake Sharp', color:'#f85149', rgb:'248,81,73', icon:'⚠️', desc:_t('app.j.rv_fake_desc','Suni hacim yaratılarak bahisçileri yanıltmaya çalışan hareketleri deşifre eder. Tuzak oranlara düşmenizi engeller.'), handler:'showFakeSharp()', flag:'_viewingFakeSharp' },
+        { id:'approved', title:_t('app.j.sig_approved_title','Onaylı Sinyaller'), color:'#facc15', rgb:'250,204,21', icon:'⭐', desc:_t('app.j.rv_approved_desc','Editör tarafından onaylanmış geçmiş sinyaller ve sonuçları. Track record üzerinden doğruluk takibi yapın.'), handler:'showApprovedSignals()', flag:'_viewingApprovedSignals' }
     ];
     var noneSel = !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 && !_viewingEarlyMoneyLock && !_viewingFakeSharp && !_viewingApprovedSignals && !_selectedAnalystId;
 
     var html = '<div class="analyzer-magazine">';
 
     html += '<div class="amg-filter-row">';
-    html += '<button class="amg-pill' + (noneSel ? ' amg-pill-all-active' : '') + '" onclick="filterByAnalyst(null)">Tümü</button>';
+    html += '<button class="amg-pill' + (noneSel ? ' amg-pill-all-active' : '') + '" onclick="filterByAnalyst(null)">' + _t('app.j.all','Tümü') + '</button>';
     SIGNALS.forEach(function(s) {
         var act = window[s.flag] === true;
         var styleStr = act ? 'background:rgba(' + s.rgb + ',0.10);color:' + s.color + ';' : '';
@@ -214,7 +214,7 @@ function buildMagazineLayout() {
         _analystsCache.forEach(function(a) {
             var isAct = _selectedAnalystId == a.id;
             var st = isAct ? 'background:rgba(125,132,140,0.14);color:#e0e4e8;' : '';
-            html += '<button class="amg-pill" style="' + st + '" onclick="filterByAnalyst(' + a.id + ')">' + (a.name || 'Analist') + '</button>';
+            html += '<button class="amg-pill" style="' + st + '" onclick="filterByAnalyst(' + a.id + ')">' + (a.name || _t('app.j.analyst','Analist')) + '</button>';
         });
     }
     html += '</div>';
@@ -230,9 +230,9 @@ function buildMagazineLayout() {
         html += '<span class="amg-card-badge" style="color:' + s.color + ';background:rgba(' + s.rgb + ',0.08);border:1px solid rgba(' + s.rgb + ',0.2);">AUTO</span></div>';
         html += '<p class="amg-card-desc">' + s.desc + '</p></div>';
         html += '<div class="amg-card-meta">';
-        html += '<div class="amg-meta-item" style="color:' + s.color + ';"><span class="amg-meta-dot" style="background:' + s.color + ';"></span>Detaylar için tıklayın</div>';
+        html += '<div class="amg-meta-item" style="color:' + s.color + ';"><span class="amg-meta-dot" style="background:' + s.color + ';"></span>' + _t('app.j.click_for_details','Detaylar için tıklayın') + '</div>';
         html += '<div class="amg-meta-sep"></div>';
-        html += '<div class="amg-meta-item amg-meta-muted"><svg class="amg-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Canlı sinyal akışı</div>';
+        html += '<div class="amg-meta-item amg-meta-muted"><svg class="amg-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' + _t('app.j.live_signal_feed','Canlı sinyal akışı') + '</div>';
         html += '</div></div></div>';
     });
     html += '</div>';
@@ -242,15 +242,15 @@ function buildMagazineLayout() {
     if (filtered && filtered.length > 0) {
         html += '<div class="amg-published-section">';
         html += '<div class="amg-section-head">';
-        html += '<span class="amg-section-title">Yayınlanan Analizler</span>';
+        html += '<span class="amg-section-title">' + _t('app.j.published','Yayınlanan Analizler') + '</span>';
         html += '<span class="amg-section-count">' + filtered.length + '</span>';
         html += '</div>';
         html += '<div class="amg-published-list">' + buildAnalysisCards(filtered) + '</div>';
         html += '</div>';
     } else {
         html += '<div class="amg-empty"><div class="amg-empty-icon">📊</div>';
-        html += '<p class="amg-empty-text">Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin</p>';
-        html += '<p class="amg-empty-sub">Profesyonel piyasa analizleri</p></div>';
+        html += '<p class="amg-empty-text">' + _t('app.j.pick_signal_type','Yukarıdan bir sinyal türü seçin ve detayları görüntüleyin') + '</p>';
+        html += '<p class="amg-empty-sub">' + _t('app.j.analyses_sub','Profesyonel piyasa analizleri') + '</p></div>';
     }
 
     html += '</div>';
@@ -262,7 +262,7 @@ function buildAnalystCards() {
     var html = '<div class="analyst-cards-strip">';
     html += '<div class="analyst-card' + (!_selectedAnalystId && !_viewingUnderdogPressure && !_viewingConfirmedMoney && !_viewingConfirmedMoneyV2 && !_viewingEarlyMoneyLock && !_viewingFakeSharp ? ' active' : '') + '" onclick="filterByAnalyst(null)">';
     html += '<div class="analyst-card-avatar-placeholder" style="font-size:14px;">All</div>';
-    html += '<div class="analyst-card-name">Tümü</div>';
+    html += '<div class="analyst-card-name">' + _t('app.j.all','Tümü') + '</div>';
     html += '</div>';
     html += '<div class="analyst-card' + (_viewingUnderdogPressure ? ' active' : '') + '" onclick="showUnderdogPressure()" style="border-color:rgba(210,153,34,0.4);position:relative;">';
     html += '<span style="position:absolute;top:4px;right:4px;font-size:7px;font-weight:700;color:#d29922;background:rgba(210,153,34,0.1);border:1px solid rgba(210,153,34,0.2);border-radius:4px;padding:1px 5px;letter-spacing:0.3px;white-space:nowrap;">AUTO</span>';
@@ -314,7 +314,7 @@ function buildAnalystCards() {
 }
 
 function buildAnalysisCards(items) {
-    if (!items || items.length === 0) return '<div class="trends-placeholder"><div>Bu analizci için henüz analiz yok</div></div>';
+    if (!items || items.length === 0) return '<div class="trends-placeholder"><div>' + _t('app.j.no_analysis_for_analyst','Bu analizci için henüz analiz yok') + '</div></div>';
     var html = '';
     items.forEach(function(item) {
         var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
@@ -329,7 +329,7 @@ function buildAnalysisCards(items) {
         html += '<div style="font-size:15px;font-weight:600;color:#e0e4e8;">' + (item.title || '') + '</div>';
         if (item.result) {
             var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};
-            var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
+            var rLabels = {won:_t('app.j.result_won','Kazandı'),lost:_t('app.j.result_lost','Kaybetti'),push:_t('app.j.result_push','İade'),'void':_t('app.j.result_void','İptal')};
             html += '<span style="background:' + (rColors[item.result]||'#3a3f45') + '18;color:' + (rColors[item.result]||'#3a3f45') + ';border:1px solid ' + (rColors[item.result]||'#3a3f45') + '30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
         }
         html += '</div>';
@@ -337,11 +337,11 @@ function buildAnalysisCards(items) {
             html += '<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';
             if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
             if (item.odds) {
-                html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: ' + item.odds + '</span>';
+                html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">' + _t('app.j.odds_lbl','Oran:') + ' ' + item.odds + '</span>';
             }
             if (item.confidence) {
                 var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
-                html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">Güven: ' + item.confidence + '/10</span>';
+                html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">' + _t('app.j.confidence','Güven') + ': ' + item.confidence + '/10</span>';
             }
             html += '</div>';
         }
@@ -352,7 +352,7 @@ function buildAnalysisCards(items) {
         html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
         html += '<div style="font-size:11px;color:#3a3f45;">' + date + '</div>';
         if (analystName) {
-            html += '<div style="font-size:11px;color:#58a6ff;">Analizci: ' + analystName + '</div>';
+            html += '<div style="font-size:11px;color:#58a6ff;">' + _t('app.j.analyst_lbl','Analizci:') + ' ' + analystName + '</div>';
         }
         html += '</div>';
         html += '</div>';
@@ -402,7 +402,7 @@ function _parseSignalDateToISO(dateStr) {
 function showAnalystProfile(analystId) {
     _selectedAnalystId = analystId;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     fetch('/api/analysts/' + analystId + '/analyses')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -416,7 +416,7 @@ function showAnalystProfile(analystId) {
             renderAnalystProfileView();
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -436,7 +436,7 @@ function renderAnalystProfileView() {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div class="ap-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     var roiVal = s.roi_pct !== undefined ? parseFloat(s.roi_pct) : 0;
     var netVal = s.net_profit !== undefined ? parseFloat(s.net_profit) : 0;
@@ -460,18 +460,18 @@ function renderAnalystProfileView() {
     }
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">' + (a.name || '') + '</div>';
-    html += '<div style="font-size:9px;color:#3a3f45;letter-spacing:0.8px;font-weight:500;margin-top:2px;">ANALİST PROFİLİ</div>';
+    html += '<div style="font-size:9px;color:#3a3f45;letter-spacing:0.8px;font-weight:500;margin-top:2px;">' + _t('app.j.analyst_profile','ANALİST PROFİLİ') + '</div>';
     html += '</div></div>';
     html += '<div class="ap-profile-stats" style="flex:1;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:14px;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">Başarı</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#5c636b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">Toplam</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.won || 0) + '</div><div style="' + labelStyle + '">Kazanan</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.lost || 0) + '</div><div style="' + labelStyle + '">Kaybeden</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#fbbf24,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
-    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + roiColor1 + ',' + roiColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + roiStr + '</div><div style="' + labelStyle + '">Yatırım Getirisi</div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + pctColor + ',' + pctColor + 'aa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + pct + '</div><div style="' + labelStyle + '">' + _t('app.j.success','Başarı') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#c9d1d9,#5c636b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.total || 0) + '</div><div style="' + labelStyle + '">' + _t('app.j.acd_total','Toplam') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#4ade80,#16a34a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.won || 0) + '</div><div style="' + labelStyle + '">' + _t('app.j.winner','Kazanan') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#f87171,#dc2626);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + (s.lost || 0) + '</div><div style="' + labelStyle + '">' + _t('app.j.loser','Kaybeden') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'background:linear-gradient(180deg,#fbbf24,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + avgOdds + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_odds','Ort. Oran') + '</div></div>';
+    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + roiColor1 + ',' + roiColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">%' + roiStr + '</div><div style="' + labelStyle + '">' + _t('app.j.roi','Yatırım Getirisi') + '</div>';
     html += '<div style="position:absolute;top:2px;right:3px;cursor:help;" title="1 birimlik sabit bahis varsayımıyla toplam yatırım getirisi."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';
     html += '</div>';
-    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + netColor1 + ',' + netColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + netStr + '</div><div style="' + labelStyle + '">Net Kâr</div>';
+    html += '<div style="' + statBoxRel + '"><div style="' + numStyle + 'background:linear-gradient(180deg,' + netColor1 + ',' + netColor2 + ');-webkit-background-clip:text;-webkit-text-fill-color:transparent;">' + netStr + '</div><div style="' + labelStyle + '">' + _t('app.j.net_profit','Net Kâr') + '</div>';
     html += '<div style="position:absolute;top:2px;right:3px;cursor:help;" title="Tüm analizler 1 unit kabul edildiğinde oluşan toplam kâr/zarar."><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>';
     html += '</div>';
     html += '</div></div></div>';
@@ -509,13 +509,13 @@ function renderAnalystProfileView() {
         if (isSelected) {
             html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         } else {
             html += '<div onclick="selectAnalystDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
             html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         }
@@ -531,7 +531,7 @@ function renderAnalystProfileView() {
         html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
         html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
         html += selDateLabel + '</div>';
-        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selectedGroup.items.length + ' ANALİZ</span>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selectedGroup.items.length + ' ' + _t('app.j.analysis_word','ANALİZ') + '</span>';
         html += '</div>';
         selectedGroup.items.forEach(function(item) {
             var date = item.created_at ? new Date(item.created_at).toLocaleString('tr-TR', {timeZone:'Europe/Istanbul'}) : '';
@@ -540,19 +540,19 @@ function renderAnalystProfileView() {
             html += '<div style="font-size:15px;font-weight:600;color:#e0e4e8;">' + (item.title || '') + '</div>';
             if (item.result) {
                 var rColors = {won:'#34d399',lost:'#f87171',push:'#fbbf24','void':'#5c636b'};
-                var rLabels = {won:'Kazandı',lost:'Kaybetti',push:'İade','void':'İptal'};
+                var rLabels = {won:_t('app.j.result_won','Kazandı'),lost:_t('app.j.result_lost','Kaybetti'),push:_t('app.j.result_push','İade'),'void':_t('app.j.result_void','İptal')};
                 html += '<span style="background:' + (rColors[item.result]||'#3a3f45') + '18;color:' + (rColors[item.result]||'#3a3f45') + ';border:1px solid ' + (rColors[item.result]||'#3a3f45') + '30;padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + (rLabels[item.result]||item.result) + '</span>';
             } else {
-                html += '<span style="background:rgba(88,166,255,0.06);color:#58a6ff;border:1px solid rgba(88,166,255,0.12);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">Beklemede</span>';
+                html += '<span style="background:rgba(88,166,255,0.06);color:#58a6ff;border:1px solid rgba(88,166,255,0.12);padding:3px 10px;border-radius:8px;font-size:11px;font-weight:700;">' + _t('app.j.awaiting','Beklemede') + '</span>';
             }
             html += '</div>';
             if (item.preference || item.odds || item.confidence) {
                 html += '<div style="display:flex;gap:5px;flex-wrap:nowrap;margin-bottom:10px;">';
                 if (item.preference) html += '<span style="background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:6px;padding:3px 8px;font-size:11px;color:#a78bfa;font-weight:700;white-space:nowrap;">🎯 ' + (item.preference||'').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-                if (item.odds) html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">Oran: ' + item.odds + '</span>';
+                if (item.odds) html += '<span style="background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.12);border-radius:6px;padding:3px 8px;font-size:11px;color:#93c5fd;font-weight:600;white-space:nowrap;">' + _t('app.j.odds_lbl','Oran:') + ' ' + item.odds + '</span>';
                 if (item.confidence) {
                     var confColor = item.confidence >= 7 ? '#34d399' : item.confidence >= 4 ? '#fbbf24' : '#f87171';
-                    html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">Güven: ' + item.confidence + '/10</span>';
+                    html += '<span style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;color:' + confColor + ';font-weight:600;white-space:nowrap;">' + _t('app.j.confidence','Güven') + ': ' + item.confidence + '/10</span>';
                 }
                 html += '</div>';
             }
@@ -567,7 +567,7 @@ function renderAnalystProfileView() {
             html += '</div>';
         });
     } else {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Henüz analiz mevcut değil</div>';
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_analysis_yet','Henüz analiz mevcut değil') + '</div>';
     }
     contentArea.innerHTML = '<div style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;padding-bottom:20px;">' + html + '</div>';
     var strip = document.getElementById('analystDateStrip');
@@ -611,20 +611,20 @@ function showUnderdogPressure() {
     _viewingFakeSharp = false;
     _viewingApprovedSignals = false;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/underdog-pressure', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#d29922;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#d29922;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderUnderdogPressureView(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -727,9 +727,9 @@ function _buildGlassMatchCard(opts) {
     if (amtFmt || pctFmt || volFmt) {
         html += '<div style="width:100%;height:1px;background:linear-gradient(to right,rgba(255,255,255,0.08),rgba(255,255,255,0.03),transparent);"></div>';
         html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">';
-        html += metricCell('Para', amtFmt, curAmtFmt);
-        html += metricCell('% Para', pctFmt, curPctFmt);
-        html += metricCell('Hacim', volFmt, curVolFmt);
+        html += metricCell(_t('app.mvh.money','Para'), amtFmt, curAmtFmt);
+        html += metricCell(_t('app.j.money_pct','% Para'), pctFmt, curPctFmt);
+        html += metricCell(_t('app.j.th_volume','Hacim'), volFmt, curVolFmt);
         html += '</div>';
     }
     html += '</div>';
@@ -743,7 +743,7 @@ function _hoursBeforeText(sig) {
         var matchDt = new Date(sig.match_date);
         var createdDt = new Date(sig.created_at);
         var diffH = Math.round((matchDt - createdDt) / 3600000);
-        if (diffH > 0 && diffH <= 240) return diffH + ' saat \u00f6nce';
+        if (diffH > 0 && diffH <= 240) return diffH + ' ' + _t('app.j.hours_ago','saat önce');
     } catch(e) {}
     return '';
 }
@@ -769,20 +769,20 @@ function renderUnderdogPressureView(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div style="background:rgba(210,153,34,0.04);border:1px solid rgba(210,153,34,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(210,153,34,0.08);border:1.5px solid rgba(210,153,34,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Underdog Pressure</div>';
-    html += '<div style="font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '<div style="font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Oran ≥ 3.00 olan underdog tarafa para akışının ≥ %50 olduğu bugün/gelecek maçları tespit eder.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#d29922;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#d29922;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_odds','Ort. Oran') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_money_pct','Ort. Para %') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">' + _t('app.j.market','Piyasa') + '</div></div>';
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
@@ -824,13 +824,13 @@ function renderUnderdogPressureView(data) {
         if (isSelected) {
             html += '<div onclick="selectUnderdogDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         } else {
             html += '<div onclick="selectUnderdogDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
             html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#d29922;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         }
@@ -839,7 +839,7 @@ function renderUnderdogPressureView(data) {
     html += '</div>';
     var selDaySignals = udDateGroupMap[_underdogSelectedDate] || [];
     if (selDaySignals.length === 0) {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_active_sig_date','Bu tarihte aktif sinyal bulunmuyor') + '</div>';
     } else {
         var selDp = _underdogSelectedDate.split('-');
         var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
@@ -848,7 +848,7 @@ function renderUnderdogPressureView(data) {
         html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
         html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
         html += selDateLabel + '</div>';
-        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' ' + _t('app.j.signal_word','SİNYAL') + '</span>';
         html += '</div>';
         var timeGrouped = {};
         var timeOrder = [];
@@ -863,10 +863,10 @@ function renderUnderdogPressureView(data) {
             var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
             html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
             html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
-            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' ' + _t('app.j.match_word','maç') + '</span>';
             html += '</div>';
             items.forEach(function(sig) {
-                var selLabel = sig.selection_code === '1' ? 'Ev Sahibi' : sig.selection_code === '2' ? 'Deplasman' : 'Beraberlik';
+                var selLabel = sig.selection_code === '1' ? _t('app.j.home_team','Ev Sahibi') : sig.selection_code === '2' ? _t('app.j.away_team','Deplasman') : _t('app.j.draw','Beraberlik');
                 function _fmtAmt(v) {
                     if (!v) return '';
                     var n = parseFloat(String(v).replace(/[^0-9.]/g,''));
@@ -890,7 +890,7 @@ function renderUnderdogPressureView(data) {
                         var createdDt = new Date(sig.created_at);
                         var diffH = Math.round((matchDt - createdDt) / 3600000);
                         if (diffH > 0 && diffH <= 240) {
-                            hoursBeforeHtml = '<span style="background:rgba(210,153,34,0.08);color:#a07820;border:1px solid rgba(210,153,34,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                            hoursBeforeHtml = '<span style="background:rgba(210,153,34,0.08);color:#a07820;border:1px solid rgba(210,153,34,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' ' + _t('app.j.hours_ago','saat önce') + '</span>';
                         }
                     } catch(e) {}
                 }
@@ -924,7 +924,7 @@ function renderUnderdogPressureView(data) {
                     hoursBefore: _hoursBeforeText(sig),
                     inceleHandler: _inceleHandlerJS(sig),
                     badges: [
-                        { label:'Oran', value: (sig.odds || '-') },
+                        { label:_t('app.j.odds_short','Oran'), value: (sig.odds || '-') },
                         ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null)
                     ].filter(Boolean)
                 });
@@ -953,20 +953,20 @@ function showConfirmedMoney() {
     _viewingFakeSharp = false;
     _viewingApprovedSignals = false;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/confirmed-money', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#34d399;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#34d399;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderConfirmedMoneyView(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -984,20 +984,20 @@ function renderConfirmedMoneyView(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div style="background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(52,211,153,0.08);border:1.5px solid rgba(52,211,153,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💰</div>';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money</div>';
-    html += '<div style="font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '<div style="font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%80, oran 16 saat içinde monoton düşen (≥%4), hacim ≥£2,000 olan maçları tespit eder.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">Ort. Oran</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">Ort. Düşüş</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_odds','Ort. Oran') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_drop','Ort. Düşüş') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">' + _t('app.j.market','Piyasa') + '</div></div>';
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
@@ -1037,12 +1037,12 @@ function renderConfirmedMoneyView(data) {
         if (isSelected) {
             html += '<div onclick="selectConfirmedMoneyDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
         } else {
             html += '<div onclick="selectConfirmedMoneyDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';
         }
         html += '</div>';
@@ -1050,11 +1050,11 @@ function renderConfirmedMoneyView(data) {
     html += '</div>';
     var selDaySignals = cmDateGroupMap[_confirmedMoneySelectedDate] || [];
     if (selDaySignals.length === 0) {
-        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';
+        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">' + _t('app.j.no_sig_for_date','Bu tarih için sinyal bulunamadı') + '</div>';
     } else {
         selDaySignals.forEach(function(sig) {
             var selCode = sig.selection_code || '';
-            var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : selCode;
+            var selLabel = selCode === '1' ? _t('app.j.home_team','Ev Sahibi') : selCode === '2' ? _t('app.j.away_team','Deplasman') : selCode === 'X' ? _t('app.j.draw','Beraberlik') : selCode;
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
             var initOdds = sig.odds_16h || sig.odds_now || '-';
             var curOdds = sig.current_odds || sig.odds_now || '';
@@ -1113,7 +1113,7 @@ function renderConfirmedMoneyView(data) {
                 hoursBefore: _hoursBeforeText(sig),
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
-                    { label:'Oran', value: oranVal },
+                    { label:_t('app.j.odds_short','Oran'), value: oranVal },
                     ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#34d399', bg:'rgba(52,211,153,0.06)', border:'rgba(52,211,153,0.18)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
@@ -1142,20 +1142,20 @@ function showConfirmedMoneyV2() {
     _viewingFakeSharp = false;
     _viewingApprovedSignals = false;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/confirmed-money-v2', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#6366f1;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#6366f1;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderConfirmedMoneyV2View(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -1172,20 +1172,20 @@ function renderConfirmedMoneyV2View(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div style="background:rgba(99,102,241,0.04);border:1px solid rgba(99,102,241,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(99,102,241,0.08);border:1.5px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💎</div>';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money V2</div>';
-    html += '<div style="font-size:9px;color:#6366f1;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '<div style="font-size:9px;color:#6366f1;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%88, oran 1.55-2.20, ≥%7 düşüş — 3 günlük araştırmada sıfır kayıp. Sadece 1/2 seçimleri.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#6366f1;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">Ort. Düşüş</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">88%+</div><div style="' + labelStyle + '">Para Eşiği</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1/2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#6366f1;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_drop','Ort. Düşüş') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">88%+</div><div style="' + labelStyle + '">' + _t('app.j.money_threshold','Para Eşiği') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1/2</div><div style="' + labelStyle + '">' + _t('app.j.market','Piyasa') + '</div></div>';
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
@@ -1225,12 +1225,12 @@ function renderConfirmedMoneyV2View(data) {
         if (isSelected) {
             html += '<div onclick="selectConfirmedMoneyV2Date(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#6366f1;border-radius:50%;margin:4px auto 0;"></div>';
         } else {
             html += '<div onclick="selectConfirmedMoneyV2Date(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#484f58;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#3a3f45') + ';font-weight:' + (isToday ? '600' : '400') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#6366f1;border-radius:50%;margin:4px auto 0;opacity:0.4;"></div>';
         }
         html += '</div>';
@@ -1238,11 +1238,11 @@ function renderConfirmedMoneyV2View(data) {
     html += '</div>';
     var selDaySignals = v2DateGroupMap[_confirmedMoneyV2SelectedDate] || [];
     if (selDaySignals.length === 0) {
-        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">Bu tarih için sinyal bulunamadı</div>';
+        html += '<div style="text-align:center;padding:40px 20px;color:#3a3f45;font-size:13px;">' + _t('app.j.no_sig_for_date','Bu tarih için sinyal bulunamadı') + '</div>';
     } else {
         selDaySignals.forEach(function(sig) {
             var selCode = sig.selection_code || '';
-            var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode;
+            var selLabel = selCode === '1' ? _t('app.j.home_team','Ev Sahibi') : selCode === '2' ? _t('app.j.away_team','Deplasman') : selCode;
             var dropPct = sig.odds_drop_pct ? parseFloat(sig.odds_drop_pct).toFixed(1) : '-';
             var initOdds = sig.odds_16h || sig.odds_now || '-';
             var curOdds = sig.current_odds || sig.odds_now || '';
@@ -1267,7 +1267,7 @@ function renderConfirmedMoneyV2View(data) {
                     var createdDt = new Date(sig.created_at);
                     var diffH = Math.round((matchDt - createdDt) / 3600000);
                     if (diffH > 0 && diffH <= 240) {
-                        hoursBeforeHtml = '<span style="background:rgba(99,102,241,0.08);color:#8587e0;border:1px solid rgba(99,102,241,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                        hoursBeforeHtml = '<span style="background:rgba(99,102,241,0.08);color:#8587e0;border:1px solid rgba(99,102,241,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' ' + _t('app.j.hours_ago','saat önce') + '</span>';
                     }
                 } catch(e) {}
             }
@@ -1301,7 +1301,7 @@ function renderConfirmedMoneyV2View(data) {
                 hoursBefore: _hoursBeforeText(sig),
                 inceleHandler: _inceleHandlerJS(sig),
                 badges: [
-                    { label:'Oran', value: oranVal },
+                    { label:_t('app.j.odds_short','Oran'), value: oranVal },
                     ((curPctFmt||pctFmt) ? { label:_t('app.mvh.money','Para'), value: (curPctFmt||pctFmt), valueColor:'#8587e0', bg:'rgba(99,102,241,0.06)', border:'rgba(99,102,241,0.20)' } : null),
                     (dropPct !== '-' ? { label:'\u0394', value:'-' + dropPct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                 ].filter(Boolean)
@@ -1330,20 +1330,20 @@ function showEarlyMoneyLock() {
     _viewingFakeSharp = false;
     _viewingApprovedSignals = false;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/early-money-lock', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#58a6ff;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#58a6ff;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderEarlyMoneyLockView(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -1362,19 +1362,19 @@ function renderEarlyMoneyLockView(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div style="background:rgba(88,166,255,0.04);border:1px solid rgba(88,166,255,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(88,166,255,0.08);border:1.5px solid rgba(88,166,255,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🔒</div>';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Early Money Lock</div>';
-    html += '<div style="font-size:9px;color:#58a6ff;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '<div style="font-size:9px;color:#58a6ff;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı erken kilitlenmiş ve birbirini izleyen anlık görüntülerde sabit kalan maçları tespit eder.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#58a6ff;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#58a6ff;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_money_pct','Ort. Para %') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">' + _t('app.j.market','Piyasa') + '</div></div>';
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
@@ -1414,13 +1414,13 @@ function renderEarlyMoneyLockView(data) {
         if (isSelected) {
             html += '<div onclick="selectEarlyMoneyLockDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#58a6ff;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         } else {
             html += '<div onclick="selectEarlyMoneyLockDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
             html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#58a6ff;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         }
@@ -1429,7 +1429,7 @@ function renderEarlyMoneyLockView(data) {
     html += '</div>';
     var selDaySignals = emlDateGroupMap[_earlyMoneyLockSelectedDate] || [];
     if (selDaySignals.length === 0) {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_active_sig_date','Bu tarihte aktif sinyal bulunmuyor') + '</div>';
     } else {
         var selDp = _earlyMoneyLockSelectedDate.split('-');
         var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
@@ -1438,7 +1438,7 @@ function renderEarlyMoneyLockView(data) {
         html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
         html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
         html += selDateLabel + '</div>';
-        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' ' + _t('app.j.signal_word','SİNYAL') + '</span>';
         html += '</div>';
         var timeGrouped = {};
         var timeOrder = [];
@@ -1453,11 +1453,11 @@ function renderEarlyMoneyLockView(data) {
             var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
             html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
             html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
-            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' ' + _t('app.j.match_word','maç') + '</span>';
             html += '</div>';
             items.forEach(function(sig) {
                 var selCode = sig.selection_code || '';
-                var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : (sig.selection_label || selCode);
+                var selLabel = selCode === '1' ? _t('app.j.home_team','Ev Sahibi') : selCode === '2' ? _t('app.j.away_team','Deplasman') : selCode === 'X' ? _t('app.j.draw','Beraberlik') : (sig.selection_label || selCode);
                 var pN = parseFloat(String(sig.pct_now || '').replace(/[^0-9.]/g,''));
                 var vN = parseFloat(String(sig.volume_now || '').replace(/[^0-9.]/g,''));
                 var cpN = parseFloat(String(sig.current_pct || '').replace(/[^0-9.]/g,''));
@@ -1537,20 +1537,20 @@ function showFakeSharp() {
     _viewingEarlyMoneyLock = false;
     _viewingFakeSharp = true;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/fake-sharp', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderFakeSharpView(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -1563,20 +1563,20 @@ function showApprovedSignals() {
     _viewingFakeSharp = false;
     _viewingApprovedSignals = true;
     var contentArea = document.getElementById('trendsContentArea');
-    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+    contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
     var licKey = (typeof window.userLicenseKey !== 'undefined' && window.userLicenseKey) ? window.userLicenseKey : (localStorage.getItem('smartxflow_web_license') || '');
     var headers = licKey ? {'X-License-Key': licKey} : {};
     fetch('/api/approved-signals', {headers: headers})
         .then(function(r) { return r.json(); })
         .then(function(data) {
             if (data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#facc15;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || 'Bu özellik PRO lisans gerektirir.') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#facc15;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
             renderApprovedSignalsView(data);
         })
         .catch(function() {
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + '</div></div>';
         });
 }
 
@@ -1608,7 +1608,7 @@ function renderApprovedSignalsView(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
 
     var statBox = 'border-radius:7px;padding:7px 15px;text-align:center;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);';
     var numStyle = 'font-size:17px;font-weight:800;letter-spacing:-0.4px;line-height:1;';
@@ -1617,22 +1617,22 @@ function renderApprovedSignalsView(data) {
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(250,204,21,0.08);border:1.5px solid rgba(250,204,21,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⭐</div>';
     html += '<div>';
-    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Onaylı Sinyaller</div>';
-    html += '<div style="font-size:9px;color:#facc15;letter-spacing:0.8px;font-weight:600;margin-top:2px;">EDİTÖR ONAYLI</div>';
+    html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">' + _t('app.j.sig_approved_title','Onaylı Sinyaller') + '</div>';
+    html += '<div style="font-size:9px;color:#facc15;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.editor_approved','EDİTÖR ONAYLI') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Editör tarafından onaylanmış geçmiş sinyaller ve kayıtlı sonuçları. Track record üzerinden doğruluk takibi yapın.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#facc15;">' + totalCount + '</div><div style="' + labelStyle + '">Toplam</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + winCount + '</div><div style="' + labelStyle + '">Kazanan</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + lossCount + '</div><div style="' + labelStyle + '">Kaybeden</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#7d848c;">' + pendingCount + '</div><div style="' + labelStyle + '">Bekleyen</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#facc15;">' + totalCount + '</div><div style="' + labelStyle + '">' + _t('app.j.total','Toplam') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + winCount + '</div><div style="' + labelStyle + '">' + _t('app.j.winner','Kazanan') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + lossCount + '</div><div style="' + labelStyle + '">' + _t('app.j.loser','Kaybeden') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#7d848c;">' + pendingCount + '</div><div style="' + labelStyle + '">' + _t('app.j.pending_lbl','Bekleyen') + '</div></div>';
     if (winRate !== null) {
-        html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">%' + winRate + '</div><div style="' + labelStyle + '">İsabet</div></div>';
+        html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">%' + winRate + '</div><div style="' + labelStyle + '">' + _t('app.j.hit_rate','İsabet') + '</div></div>';
     }
     html += '</div></div>';
 
     if (signals.length === 0) {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Henüz onaylı sinyal yok</div>';
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_approved_signals','Henüz onaylı sinyal yok') + '</div>';
     } else {
         html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">';
         signals.forEach(function(s) {
@@ -1640,11 +1640,11 @@ function renderApprovedSignalsView(data) {
             var result = (s.result || '').toLowerCase();
             var resultBadge = '';
             if (result === 'win') {
-                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);">✓ KAZANDI</span>';
+                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(52,211,153,0.12);color:#34d399;border:1px solid rgba(52,211,153,0.3);">✓ ' + _t('app.j.won_badge','KAZANDI') + '</span>';
             } else if (result === 'loss') {
-                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(248,81,73,0.12);color:#f85149;border:1px solid rgba(248,81,73,0.3);">✗ KAYBETTİ</span>';
+                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(248,81,73,0.12);color:#f85149;border:1px solid rgba(248,81,73,0.3);">✗ ' + _t('app.j.lost_badge','KAYBETTİ') + '</span>';
             } else {
-                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(125,132,140,0.1);color:#7d848c;border:1px solid rgba(125,132,140,0.2);">⏳ BEKLİYOR</span>';
+                resultBadge = '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;background:rgba(125,132,140,0.1);color:#7d848c;border:1px solid rgba(125,132,140,0.2);">⏳ ' + _t('app.j.pending_badge','BEKLİYOR') + '</span>';
             }
             var matchStr = (s.home_team || '') + ' - ' + (s.away_team || '');
             var dateStr = '';
@@ -1663,10 +1663,10 @@ function renderApprovedSignalsView(data) {
             html += '<div style="font-size:13px;font-weight:600;color:#e0e4e8;margin-bottom:6px;">' + matchStr + '</div>';
             if (s.league) html += '<div style="font-size:11px;color:#7d848c;margin-bottom:6px;">' + s.league + '</div>';
             html += '<div style="display:flex;gap:8px;font-size:11px;color:#7d848c;flex-wrap:wrap;">';
-            if (s.selection_code) html += '<span><span style="color:#5c636b;">Seçim:</span> <span style="color:#c9d1d9;font-weight:600;">' + s.selection_code + '</span></span>';
-            if (s.odds) html += '<span><span style="color:#5c636b;">Oran:</span> <span style="color:#c9d1d9;font-weight:600;">' + s.odds + '</span></span>';
-            if (s.pct) html += '<span><span style="color:#5c636b;">Para %:</span> <span style="color:#c9d1d9;font-weight:600;">' + s.pct + '</span></span>';
-            if (s.volume) html += '<span><span style="color:#5c636b;">Hacim:</span> <span style="color:#c9d1d9;font-weight:600;">' + s.volume + '</span></span>';
+            if (s.selection_code) html += '<span><span style="color:#5c636b;">' + _t('app.j.selection_lbl','Seçim:') + '</span> <span style="color:#c9d1d9;font-weight:600;">' + s.selection_code + '</span></span>';
+            if (s.odds) html += '<span><span style="color:#5c636b;">' + _t('app.j.odds_lbl','Oran:') + '</span> <span style="color:#c9d1d9;font-weight:600;">' + s.odds + '</span></span>';
+            if (s.pct) html += '<span><span style="color:#5c636b;">' + _t('app.j.money_pct_lbl','Para %:') + '</span> <span style="color:#c9d1d9;font-weight:600;">' + s.pct + '</span></span>';
+            if (s.volume) html += '<span><span style="color:#5c636b;">' + _t('app.j.volume_lbl','Hacim:') + '</span> <span style="color:#c9d1d9;font-weight:600;">' + s.volume + '</span></span>';
             html += '</div>';
             html += '</div>';
         });
@@ -1692,20 +1692,20 @@ function renderFakeSharpView(data) {
     var html = '';
     html += '<div onclick="backToAnalystList()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#5c636b;cursor:pointer;padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);margin-bottom:12px;transition:all 0.2s;font-weight:500;" onmouseover="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.background=\'rgba(255,255,255,0.04)\';this.style.color=\'#c9d1d9\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.06)\';this.style.background=\'rgba(255,255,255,0.02)\';this.style.color=\'#5c636b\'">';
     html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>';
-    html += 'Tüm Analizciler</div>';
+    html += _t('app.j.all_analysts','Tüm Analizciler') + '</div>';
     html += '<div style="background:rgba(248,81,73,0.04);border:1px solid rgba(248,81,73,0.15);border-radius:12px;padding:18px 20px;margin-bottom:12px;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">';
     html += '<div style="width:40px;height:40px;border-radius:50%;background:rgba(248,81,73,0.08);border:1.5px solid rgba(248,81,73,0.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚠️</div>';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Fake Sharp</div>';
-    html += '<div style="font-size:9px;color:#f85149;letter-spacing:0.8px;font-weight:600;margin-top:2px;">OTOMATİK SİNYAL</div>';
+    html += '<div style="font-size:9px;color:#f85149;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
     html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışına rağmen oran yükselen — yani sharp olmayan, halk parası olduğu anlaşılan maçları tespit eder.</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + count + '</div><div style="' + labelStyle + '">Aktif Sinyal</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">+%' + avgRise + '</div><div style="' + labelStyle + '">Ort. Yükseliş</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">%' + avgPct + '</div><div style="' + labelStyle + '">Ort. Para %</div></div>';
-    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">Piyasa</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">+%' + avgRise + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_rise','Ort. Yükseliş') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">%' + avgPct + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_money_pct','Ort. Para %') + '</div></div>';
+    html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#c9d1d9;">1X2</div><div style="' + labelStyle + '">' + _t('app.j.market','Piyasa') + '</div></div>';
     html += '</div></div>';
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
@@ -1745,13 +1745,13 @@ function renderFakeSharpView(data) {
         if (isSelected) {
             html += '<div onclick="selectFakeSharpDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#f85149;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         } else {
             html += '<div onclick="selectFakeSharpDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
             html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
-            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? 'Bugün' : dateNum) + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
             if (hasData) html += '<div style="width:4px;height:4px;background:#f85149;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         }
@@ -1760,7 +1760,7 @@ function renderFakeSharpView(data) {
     html += '</div>';
     var selDaySignals = fsDateGroupMap[_fakeSharpSelectedDate] || [];
     if (selDaySignals.length === 0) {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">Bu tarihte aktif sinyal bulunmuyor</div>';
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_active_sig_date','Bu tarihte aktif sinyal bulunmuyor') + '</div>';
     } else {
         var selDp = _fakeSharpSelectedDate.split('-');
         var selDObj = new Date(parseInt(selDp[0]), parseInt(selDp[1])-1, parseInt(selDp[2]));
@@ -1769,7 +1769,7 @@ function renderFakeSharpView(data) {
         html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
         html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
         html += selDateLabel + '</div>';
-        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' SİNYAL</span>';
+        html += '<span style="font-size:10px;font-weight:600;color:#3a3f45;background:rgba(255,255,255,0.03);padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.05);">' + selDaySignals.length + ' ' + _t('app.j.signal_word','SİNYAL') + '</span>';
         html += '</div>';
         var timeGrouped = {};
         var timeOrder = [];
@@ -1784,11 +1784,11 @@ function renderFakeSharpView(data) {
             var tkLabel = _tkM ? (_tkM[1].length === 1 ? '0' + _tkM[1] : _tkM[1]) + ':' + _tkM[2] : (tk || '-');
             html += '<div class="ud-time-row" style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px 4px;">';
             html += '<div class="ud-time-lbl" style="font-size:10px;font-weight:600;color:#484f58;letter-spacing:0.3px;">' + tkLabel + '</div>';
-            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' maç</span>';
+            html += '<span class="ud-time-cnt" style="font-size:9px;color:#3a3f45;">' + items.length + ' ' + _t('app.j.match_word','maç') + '</span>';
             html += '</div>';
             items.forEach(function(sig) {
                 var selCode = sig.selection_code || '';
-                var selLabel = selCode === '1' ? 'Ev Sahibi' : selCode === '2' ? 'Deplasman' : selCode === 'X' ? 'Beraberlik' : (sig.selection_label || selCode);
+                var selLabel = selCode === '1' ? _t('app.j.home_team','Ev Sahibi') : selCode === '2' ? _t('app.j.away_team','Deplasman') : selCode === 'X' ? _t('app.j.draw','Beraberlik') : (sig.selection_label || selCode);
                 var initOdds = sig.odds_16h || sig.odds_now || '-';
                 var curOdds = sig.current_odds || sig.odds_now || '';
                 var risePct = sig.odds_rise_pct ? parseFloat(sig.odds_rise_pct).toFixed(1) : '';
@@ -1809,7 +1809,7 @@ function renderFakeSharpView(data) {
                         var createdDt = new Date(sig.created_at);
                         var diffH = Math.round((matchDt - createdDt) / 3600000);
                         if (diffH > 0 && diffH <= 240) {
-                            hoursBeforeHtml = '<span style="background:rgba(248,81,73,0.08);color:#c0413c;border:1px solid rgba(248,81,73,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' saat \u00f6nce</span>';
+                            hoursBeforeHtml = '<span style="background:rgba(248,81,73,0.08);color:#c0413c;border:1px solid rgba(248,81,73,0.18);border-radius:4px;padding:2px 6px;font-size:9px;font-weight:600;white-space:nowrap;">\u23f1 ' + diffH + ' ' + _t('app.j.hours_ago','saat önce') + '</span>';
                         }
                     } catch(e) {}
                 }
@@ -1843,7 +1843,7 @@ function renderFakeSharpView(data) {
                     hoursBefore: _hoursBeforeText(sig),
                     inceleHandler: _inceleHandlerJS(sig),
                     badges: [
-                        { label:'Oran', value: oranVal },
+                        { label:_t('app.j.odds_short','Oran'), value: oranVal },
                         (risePct ? { label:'\u0394', value:'+' + risePct + '%', valueColor:'#f87171', bg:'rgba(248,81,73,0.06)', border:'rgba(248,81,73,0.18)' } : null)
                     ].filter(Boolean)
                 });
@@ -1889,7 +1889,7 @@ function loadTrends(category) {
             renderAnalysisList(cachedData);
             return;
         }
-        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">Yükleniyor...</div></div>';
+        contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#3a3f45;font-size:14px;">' + _t('app.j.loading','Yükleniyor...') + '</div></div>';
         var analystsPromise = cachedAnalysts ? Promise.resolve(null) : fetch('/api/analysts?active=true').then(function(r) { return r.json(); });
         var dataPromise = cachedData ? Promise.resolve(cachedData) : fetch('/api/analyses?category=' + category, {
             headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
@@ -1901,7 +1901,7 @@ function loadTrends(category) {
             }
             var data = results[1];
             if (data && data.error) {
-                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + (data.message || 'Erişim reddedildi') + '</div></div>';
+                contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + (data.message || _t('app.j.access_denied','Erişim reddedildi')) + '</div></div>';
                 return;
             }
             if (data && !data.error) {
@@ -1911,7 +1911,7 @@ function loadTrends(category) {
             renderAnalysisList(Array.isArray(data) ? data : []);
         }).catch(function(e) {
             try { console.error('[Analizler] load/render hatası:', e); } catch(_){}
-            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">Veriler yüklenemedi' + (e && e.message ? ': ' + e.message : '') + '</div></div>';
+            contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + _t('app.j.load_failed','Veriler yüklenemedi') + (e && e.message ? ': ' + e.message : '') + '</div></div>';
         });
         return;
     }
@@ -1919,7 +1919,7 @@ function loadTrends(category) {
         _renderMovesData(_trendsRawCache[category]);
         return;
     }
-    sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">Yükleniyor...</div>';
+    sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#3a3f45;font-size:13px;">' + _t('app.j.loading','Yükleniyor...') + '</div>';
     fetch('/api/analyses?category=' + category, {
         headers: window.userLicenseKey ? {'X-License-Key': window.userLicenseKey} : {}
     })
@@ -1932,7 +1932,7 @@ function loadTrends(category) {
             _renderMovesData(data);
         })
         .catch(function() {
-            sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">Yüklenemedi</div>';
+            sidebar.innerHTML = '<div style="text-align:center;padding:30px 10px;color:#f85149;font-size:13px;">' + _t('app.j.load_failed_short','Yüklenemedi') + '</div>';
         });
 }
 function _renderMovesData(data) {
@@ -2054,8 +2054,8 @@ function showTutorialStep(index) {
     var isLast = (findNextVisibleStep(index + 1, 1) === -1);
     var isFirst = (findNextVisibleStep(index - 1, -1) === -1);
 
-    var prevBtn = isFirst ? '' : '<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← Geri</button>';
-    var nextLabel = isLast ? 'Başla!' : 'İleri →';
+    var prevBtn = isFirst ? '' : '<button class="tutorial-btn tutorial-btn-prev" onclick="prevTutorialStep()">← ' + _t('app.j.tut_back','Geri') + '</button>';
+    var nextLabel = isLast ? _t('app.j.tut_start','Başla!') : _t('app.j.tut_next','İleri') + ' →';
     var nextAction = isLast ? 'endTutorial()' : 'nextTutorialStep()';
 
     var visibleCount = 0;
@@ -2073,7 +2073,7 @@ function showTutorialStep(index) {
         '<div class="tutorial-arrow" id="tutorialArrow"></div>' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">' +
             '<div class="tutorial-tooltip-title">' + step.title + '</div>' +
-            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">Atla</button>' +
+            '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + _t('app.j.tut_skip','Atla') + '</button>' +
         '</div>' +
         '<div class="tutorial-tooltip-desc">' + step.desc + '</div>' +
         '<div class="tutorial-tooltip-footer">' +
