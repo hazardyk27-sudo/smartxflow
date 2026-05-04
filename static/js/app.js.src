@@ -11727,7 +11727,7 @@ function _minuteToNum(m) {
 function renderLiveDetail(snapshots, market) {
     var body = document.getElementById('liveDetailBody');
     if (!snapshots || snapshots.length === 0) {
-        body.innerHTML = '<div class="live-loading">Henuz periyot verisi yok</div>';
+        body.innerHTML = '<div class="live-loading">' + _t('app.live.henuz_periyot','Henüz periyot verisi yok') + '</div>';
         return;
     }
 
