@@ -50,6 +50,7 @@ Thumbs.db
 # Data (scraped data)
 data/
 *.json
+!static/i18n/*.json
 
 # Attached assets (uploaded files with potential secrets)
 attached_assets/
