@@ -808,7 +808,7 @@ function getMatchStatus(dateStr) {
     if (diffMinutes < 0) {
         return '';
     } else if (diffMinutes <= 113) {
-        return '<span class="match-status live">CANLI</span>';
+        return '<span class="match-status live">' + _t('app.live.badge','CANLI') + '</span>';
     } else {
         return '<span class="match-status ended">BİTTİ</span>';
     }
@@ -10847,14 +10847,14 @@ var _prevLiveScores = {};
 var _finishedScores = {};
 
 function proLockPanelHtml() {
-    return '<div class="smart-money-empty" style="display:block">Canl\u0131 periyot verileri i\u00e7in Pro \u00fcyelik gerektirir.</div>';
+    return '<div class="smart-money-empty" style="display:block">' + _t('app.live.pro_periyot','Canlı periyot verileri için Pro üyelik gerektirir.') + '</div>';
 }
 
 function _liveProBanner() {
     return '<div class="live-pro-banner">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
-        ' Canl\u0131 veriler i\u00e7in <strong>Pro</strong> \u00fcyelik gerekmektedir' +
-        ' <a href="/pricing" class="live-pro-banner-btn">Pro\'ya Ge\u00e7 \u2192</a>' +
+        ' ' + _t('app.live.pro_gerekli','Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir') +
+        ' <a href="/pricing" class="live-pro-banner-btn">' + _t('app.live.proya_gec',"Pro'ya Geç →") + '</a>' +
         '</div>';
 }
 
@@ -10867,7 +10867,7 @@ async function _renderLiveProLock() {
     var mobileLive = document.querySelector('.mobile-live-btn');
     if (mobileLive) mobileLive.classList.add('active');
     var mcLabel = document.getElementById('matchCountLabel');
-    if (mcLabel) mcLabel.textContent = 'Canl\u0131 Ma\u00e7lar ';
+    if (mcLabel) mcLabel.textContent = _t('app.live.canli_maclar','Canlı Maçlar') + ' ';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = '';
     var mcWrap = document.querySelector('.match-count');
@@ -10889,13 +10889,13 @@ async function _renderLiveProLock() {
         '<col class="col-selection"><col class="col-selection"><col class="col-selection"><col class="col-volume">';
     if (thead) thead.innerHTML = '<tr>' +
         '<th class="col-fav"></th>' +
-        '<th class="col-date">DK</th>' +
-        '<th class="col-league">L\u0130G</th>' +
-        '<th class="col-match">MA\u00c7</th>' +
+        '<th class="col-date">' + _t('app.live.dk','DK') + '</th>' +
+        '<th class="col-league">' + _t('app.tbl.league','LİG') + '</th>' +
+        '<th class="col-match">' + _t('app.tbl.match','MAÇ') + '</th>' +
         '<th class="col-selection">1</th>' +
         '<th class="col-selection">X</th>' +
         '<th class="col-selection">2</th>' +
-        '<th class="col-volume">HAC\u0130M</th>' +
+        '<th class="col-volume">' + _t('app.tbl.volume','HACİM') + '</th>' +
         '</tr>';
 
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;"><div class="loading-spinner"></div></td></tr>';
@@ -11024,7 +11024,7 @@ function switchToLive() {
     var mobileLive = document.querySelector('.mobile-live-btn');
     if (mobileLive) mobileLive.classList.add('active');
     var mcLabel = document.getElementById('matchCountLabel');
-    if (mcLabel) mcLabel.textContent = 'Canl\u0131 Ma\u00e7lar ';
+    if (mcLabel) mcLabel.textContent = _t('app.live.canli_maclar','Canlı Maçlar') + ' ';
     var mcSuffix = document.getElementById('matchCountSuffix');
     if (mcSuffix) mcSuffix.textContent = '';
     var mcWrap = document.querySelector('.match-count');
@@ -11034,9 +11034,9 @@ function switchToLive() {
     var marketRow = document.querySelector('.mobile-tab-row.market-row');
     if (marketRow) marketRow.style.display = 'none';
     var tbody = document.getElementById('matchesTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading-spinner"></div> ' + _t('app.live.yukleniyor','Canlı maçlar yükleniyor...') + '</td></tr>';
     var cardList = document.getElementById('matchCardList');
-    if (cardList) cardList.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div> Canli maclar yukleniyor...</div>';
+    if (cardList) cardList.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div> ' + _t('app.live.yukleniyor','Canlı maçlar yükleniyor...') + '</div>';
     loadLiveMatches();
     if (_liveInterval) clearInterval(_liveInterval);
     _liveInterval = setInterval(loadLiveMatches, 30000);
@@ -11049,7 +11049,7 @@ function switchFromLive() {
     var mcLabel = document.getElementById('matchCountLabel');
     if (mcLabel) mcLabel.textContent = '';
     var mcSuffix = document.getElementById('matchCountSuffix');
-    if (mcSuffix) mcSuffix.textContent = ' Ma\u00e7';
+    if (mcSuffix) mcSuffix.textContent = ' ' + _t('app.flt.match_count','Maç');
     var mcWrap = document.querySelector('.match-count');
     if (mcWrap) mcWrap.classList.remove('mc-live');
     var lmt = document.getElementById('liveMarketTabs');
@@ -11218,12 +11218,12 @@ function renderLiveMatches(matches, goalHashes) {
     var cardList = document.getElementById('matchCardList');
     var emptyHtml = '<div class="live-empty">' +
         '<div class="live-empty-icon">\u26BD</div>' +
-        '<div class="live-empty-text">Su an canli mac bulunamadi</div>' +
-        '<div class="live-empty-sub">Canli maclar basladiginda burada gorunecek</div>' +
+        '<div class="live-empty-text">' + _t('app.live.bos','Şu an canlı maç bulunamadı') + '</div>' +
+        '<div class="live-empty-sub">' + _t('app.live.bos_sub','Canlı maçlar başladığında burada görünecek') + '</div>' +
         '</div>';
     if (!matches || matches.length === 0) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;">' + emptyHtml + '</td></tr>';
-        if (thead) thead.innerHTML = '<tr><th colspan="8" style="text-align:center;">Canli mac bulunamadi</th></tr>';
+        if (thead) thead.innerHTML = '<tr><th colspan="8" style="text-align:center;">' + _t('app.live.bos_tablo','Canlı maç bulunamadı') + '</th></tr>';
         if (cardList) cardList.innerHTML = emptyHtml;
         var mc = document.getElementById('matchCount');
         if (mc) mc.textContent = '0';
@@ -11238,13 +11238,13 @@ function renderLiveMatches(matches, goalHashes) {
             '<col class="col-selection"><col class="col-selection"><col class="col-selection"><col class="col-volume">';
         if (thead) thead.innerHTML = '<tr>' +
             '<th class="col-fav"></th>' +
-            '<th class="col-date">DK</th>' +
-            '<th class="col-league">LİG</th>' +
-            '<th class="col-match">MAÇ</th>' +
+            '<th class="col-date">' + _t('app.live.dk','DK') + '</th>' +
+            '<th class="col-league">' + _t('app.tbl.league','LİG') + '</th>' +
+            '<th class="col-match">' + _t('app.tbl.match','MAÇ') + '</th>' +
             '<th class="col-selection">1</th>' +
             '<th class="col-selection">X</th>' +
             '<th class="col-selection">2</th>' +
-            '<th class="col-volume">HACİM</th>' +
+            '<th class="col-volume">' + _t('app.tbl.volume','HACİM') + '</th>' +
             '</tr>';
     } else {
         if (table) table.setAttribute('data-selection-count', '2');
@@ -11253,12 +11253,12 @@ function renderLiveMatches(matches, goalHashes) {
             '<col class="col-selection"><col class="col-selection"><col class="col-volume">';
         if (thead) thead.innerHTML = '<tr>' +
             '<th class="col-fav"></th>' +
-            '<th class="col-date">DK</th>' +
-            '<th class="col-league">LİG</th>' +
-            '<th class="col-match">MAÇ</th>' +
-            '<th class="col-selection">ALT</th>' +
-            '<th class="col-selection">ÜST</th>' +
-            '<th class="col-volume">HACİM</th>' +
+            '<th class="col-date">' + _t('app.live.dk','DK') + '</th>' +
+            '<th class="col-league">' + _t('app.tbl.league','LİG') + '</th>' +
+            '<th class="col-match">' + _t('app.tbl.match','MAÇ') + '</th>' +
+            '<th class="col-selection">' + _t('app.tbl.alt','ALT') + '</th>' +
+            '<th class="col-selection">' + _t('app.tbl.over','ÜST') + '</th>' +
+            '<th class="col-volume">' + _t('app.tbl.volume','HACİM') + '</th>' +
             '</tr>';
     }
     var nowMs = Date.now();
@@ -11746,16 +11746,16 @@ function renderLiveDetail(snapshots, market) {
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
     html += '<thead>';
     html += '<tr class="lpt-group-row">';
-    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
+    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">' + _t('app.live.dk','DK') + '</span><span class="lpt-th-sub">' + _t('app.live.skor','SKOR') + '</span></th>';
     for (var g = 0; g < sels.length; g++) {
         html += '<th colspan="' + colsPerSel + '" class="lpt-group-th">' + selLabels[g] + '</th>';
     }
     html += '</tr>';
     html += '<tr class="lpt-col-row">';
     for (var h = 0; h < sels.length; h++) {
-        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">Gelen para</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">Y\u00dcZDE</span><span class="lpt-th-sub">%de\u011fi\u015fimi</span></th>';
+        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">' + _t('app.live.oran','ORAN') + '</span><span class="lpt-th-sub">' + _t('app.live.oran_degisim','Oran değişim') + '</span></th>';
+        html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">' + _t('app.live.gelen_para','Gelen para') + '</span></th>';
+        html += '<th class="lpt-dual-th"><span class="lpt-th-main">' + _t('app.live.yuzde','YÜZDE') + '</span><span class="lpt-th-sub">' + _t('app.live.pct_degisimi','%değişimi') + '</span></th>';
     }
     html += '</tr>';
     html += '</thead><tbody>';
@@ -11954,16 +11954,16 @@ function renderModalLiveDetail(snapshots, market) {
     var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
     html += '<thead>';
     html += '<tr class="lpt-group-row">';
-    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">DK</span><span class="lpt-th-sub">SKOR</span></th>';
+    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">' + _t('app.live.dk','DK') + '</span><span class="lpt-th-sub">' + _t('app.live.skor','SKOR') + '</span></th>';
     for (var g = 0; g < sels.length; g++) {
         html += '<th colspan="' + colsPerSel + '" class="lpt-group-th">' + selLabels[g] + '</th>';
     }
     html += '</tr>';
     html += '<tr class="lpt-col-row">';
     for (var h = 0; h < sels.length; h++) {
-        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">ORAN</span><span class="lpt-th-sub">Oran de\u011fi\u015fim</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">Gelen para</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">Y\u00dcZDE</span><span class="lpt-th-sub">%de\u011fi\u015fimi</span></th>';
+        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">' + _t('app.live.oran','ORAN') + '</span><span class="lpt-th-sub">' + _t('app.live.oran_degisim','Oran değişim') + '</span></th>';
+        html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">' + _t('app.live.gelen_para','Gelen para') + '</span></th>';
+        html += '<th class="lpt-dual-th"><span class="lpt-th-main">' + _t('app.live.yuzde','YÜZDE') + '</span><span class="lpt-th-sub">' + _t('app.live.pct_degisimi','%değişimi') + '</span></th>';
     }
     html += '</tr>';
     html += '</thead><tbody>';
