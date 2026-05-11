@@ -2166,38 +2166,8 @@ class SupabaseClient:
                 deleted[fix_table] = fix_count
                 print(f"[Cleanup] Deleted {fix_count} old records from {fix_table}")
         
-        signal_tables = [
-            ('confirmed_money_signals', 'match_date'),
-            ('underdog_signals', 'match_date'),
-            ('fake_sharp_signals', 'match_date'),
-            ('confirmed_money_v2_signals', 'match_date'),
-            ('early_money_lock_signals', 'match_date'),
-        ]
-        for sig_table, date_col in signal_tables:
-            sig_count = 0
-            try:
-                headers_sig = self._headers()
-                check_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{signal_cutoff_d1}&select=id&limit=1"
-                check_resp = self._get_http_client().get(check_url, headers=headers_sig, timeout=15)
-                if check_resp.status_code == 404:
-                    print(f"[Cleanup] {sig_table}: tablo bulunamadi (atlandi)")
-                    continue
-                headers_del = self._headers()
-                headers_del['Prefer'] = 'return=representation'
-                del_url = f"{self._rest_url(sig_table)}?{date_col}=lt.{signal_cutoff_d1}"
-                del_resp = httpx.delete(del_url, headers=headers_del, timeout=60)
-                if del_resp.status_code == 200:
-                    try:
-                        sig_count = len(del_resp.json()) if isinstance(del_resp.json(), list) else 0
-                        if sig_count > 0:
-                            deleted[sig_table] = sig_count
-                    except:
-                        pass
-                elif del_resp.status_code not in [204, 404]:
-                    print(f"[Cleanup] Error deleting {sig_table}: {del_resp.status_code}")
-                print(f"[Cleanup] {sig_table}: {sig_count} satir silindi (kickoff < {signal_cutoff_d1})")
-            except Exception as e:
-                print(f"[Cleanup] Exception for {sig_table}: {e}")
+        # Sinyal tablolari (confirmed_money, underdog, fake_sharp, confirmed_money_v2, early_money_lock)
+        # tarih bazli silinmiyor — tum gecmis sinyaller korunur.
 
         ss_count = 0
         try:
