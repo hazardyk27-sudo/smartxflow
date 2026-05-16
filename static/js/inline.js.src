@@ -383,6 +383,8 @@ var _underdogSelectedDate = null;
 var _underdogLastData = null;
 var _confirmedMoneySelectedDate = null;
 var _confirmedMoneyLastData = null;
+var _approvedSelectedDate = null;
+var _approvedSignalsCache = null;
 
 var _MONTH_ABBR_MAP = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
 function _parseSignalDateToISO(dateStr) {
@@ -585,6 +587,11 @@ function selectAnalystDate(dateKey) {
 function selectUnderdogDate(dateKey) {
     _underdogSelectedDate = dateKey;
     if (_underdogLastData) renderUnderdogPressureView(_underdogLastData);
+}
+
+function selectApprovedDate(dateKey) {
+    _approvedSelectedDate = dateKey;
+    if (_approvedSignalsCache) renderApprovedSignalsView(_approvedSignalsCache);
 }
 
 function backToAnalystList() {
@@ -1573,6 +1580,8 @@ function showApprovedSignals() {
                 contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#facc15;font-size:14px;max-width:260px;text-align:center;line-height:1.6;">' + (data.message || _t('app.j.pro_required','Bu özellik PRO lisans gerektirir.')) + '</div></div>';
                 return;
             }
+            _approvedSignalsCache = data;
+            _approvedSelectedDate = null;
             renderApprovedSignalsView(data);
         })
         .catch(function() {
@@ -1581,6 +1590,10 @@ function showApprovedSignals() {
 }
 
 function renderApprovedSignalsView(data) {
+    _approvedSignalsCache = data;
+    var TR_DAYS_SHORT = ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+    var TR_MONTHS_UPPER = ['OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN','TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'];
+    var TR_DAYS_FULL = ['PAZAR','PAZARTESİ','SALI','ÇARŞAMBA','PERŞEMBE','CUMA','CUMARTESİ'];
     var contentArea = document.getElementById('trendsContentArea');
     var signals = data.signals || [];
     var count = data.count || signals.length;
@@ -1633,9 +1646,78 @@ function renderApprovedSignalsView(data) {
 
     if (signals.length === 0) {
         html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_approved_signals','Henüz onaylı sinyal yok') + '</div>';
+        contentArea.innerHTML = html;
+        return;
+    }
+
+    var apToday = new Date();
+    var apTodayStr = apToday.getFullYear() + '-' + String(apToday.getMonth()+1).padStart(2,'0') + '-' + String(apToday.getDate()).padStart(2,'0');
+    var apYest = new Date(apToday); apYest.setDate(apYest.getDate() - 1);
+    var apYesterdayStr = apYest.getFullYear() + '-' + String(apYest.getMonth()+1).padStart(2,'0') + '-' + String(apYest.getDate()).padStart(2,'0');
+    var apDateGroupMap = {};
+    signals.forEach(function(s) {
+        var iso = _parseSignalDateToISO(s.match_date || s.date);
+        if (!iso) iso = apTodayStr;
+        if (!apDateGroupMap[iso]) apDateGroupMap[iso] = [];
+        apDateGroupMap[iso].push(s);
+    });
+    var apDatesWithData = Object.keys(apDateGroupMap).sort();
+    var apFirstDate = apDatesWithData[0] || apTodayStr;
+    if (apFirstDate > apYesterdayStr) apFirstDate = apYesterdayStr;
+    var apLastDate = apDatesWithData[apDatesWithData.length - 1] || apTodayStr;
+    if (apLastDate < apTodayStr) apLastDate = apTodayStr;
+    var apAllDates = [];
+    var apCur = new Date(apFirstDate + 'T00:00:00');
+    var apEnd = new Date(apLastDate + 'T00:00:00');
+    while (apCur <= apEnd) {
+        apAllDates.push(apCur.getFullYear() + '-' + String(apCur.getMonth()+1).padStart(2,'0') + '-' + String(apCur.getDate()).padStart(2,'0'));
+        apCur.setDate(apCur.getDate() + 1);
+    }
+    if (!_approvedSelectedDate || apAllDates.indexOf(_approvedSelectedDate) === -1) {
+        _approvedSelectedDate = apDateGroupMap[apTodayStr] ? apTodayStr : (apDatesWithData[apDatesWithData.length - 1] || apTodayStr);
+    }
+    html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:4px;margin-bottom:12px;display:flex;overflow-x:auto;gap:2px;" id="apDateStrip">';
+    apAllDates.forEach(function(dateKey) {
+        var dp = dateKey.split('-');
+        var dObj = new Date(parseInt(dp[0]), parseInt(dp[1])-1, parseInt(dp[2]));
+        var dayShort = TR_DAYS_SHORT[dObj.getDay()];
+        var dateNum = String(dObj.getDate()).padStart(2,'0') + '.' + String(dObj.getMonth()+1).padStart(2,'0');
+        var isToday = dateKey === apTodayStr;
+        var isSelected = dateKey === _approvedSelectedDate;
+        var hasData = !!apDateGroupMap[dateKey];
+        if (isSelected) {
+            html += '<div onclick="selectApprovedDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
+            html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#facc15;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        } else {
+            html += '<div onclick="selectApprovedDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
+            html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
+            html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#facc15;border-radius:50%;margin:4px auto 0;"></div>';
+            else html += '<div style="height:8px;"></div>';
+        }
+        html += '</div>';
+    });
+    html += '</div>';
+
+    var apSelSignals = apDateGroupMap[_approvedSelectedDate] || [];
+    var apSelDp = _approvedSelectedDate.split('-');
+    var apSelDObj = new Date(parseInt(apSelDp[0]), parseInt(apSelDp[1])-1, parseInt(apSelDp[2]));
+    var apSelDateLabel = apSelDObj.getDate() + ' ' + TR_MONTHS_UPPER[apSelDObj.getMonth()] + ' ' + apSelDObj.getFullYear() + ', ' + TR_DAYS_FULL[apSelDObj.getDay()];
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 2px 8px;margin-bottom:4px;">';
+    html += '<div style="display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#5c636b;letter-spacing:0.5px;">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3a3f45" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    html += apSelDateLabel + '</div>';
+    html += '<div style="font-size:10px;color:#facc15;background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.2);padding:3px 8px;border-radius:5px;font-weight:700;letter-spacing:0.4px;">' + apSelSignals.length + ' ' + _t('app.j.signal_word','SİNYAL') + '</div>';
+    html += '</div>';
+
+    if (apSelSignals.length === 0) {
+        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_active_sig_date','Bu tarihte aktif sinyal bulunmuyor') + '</div>';
     } else {
         html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">';
-        signals.forEach(function(s) {
+        apSelSignals.forEach(function(s) {
             var meta = TYPE_META[s.signal_type] || { label: s.signal_type || 'Sinyal', color: '#7d848c', icon: '●' };
             var result = (s.result || '').toLowerCase();
             var resultBadge = '';
