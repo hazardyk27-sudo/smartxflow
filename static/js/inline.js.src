@@ -1644,16 +1644,8 @@ function renderApprovedSignalsView(data) {
     }
     html += '</div></div>';
 
-    if (signals.length === 0) {
-        html += '<div style="border:1px dashed rgba(255,255,255,0.05);border-radius:10px;padding:28px;text-align:center;font-size:12px;color:#3a3f45;margin-top:8px;">' + _t('app.j.no_approved_signals','Henüz onaylı sinyal yok') + '</div>';
-        contentArea.innerHTML = html;
-        return;
-    }
-
     var apToday = new Date();
     var apTodayStr = apToday.getFullYear() + '-' + String(apToday.getMonth()+1).padStart(2,'0') + '-' + String(apToday.getDate()).padStart(2,'0');
-    var apYest = new Date(apToday); apYest.setDate(apYest.getDate() - 1);
-    var apYesterdayStr = apYest.getFullYear() + '-' + String(apYest.getMonth()+1).padStart(2,'0') + '-' + String(apYest.getDate()).padStart(2,'0');
     var apDateGroupMap = {};
     signals.forEach(function(s) {
         var iso = _parseSignalDateToISO(s.match_date || s.date);
@@ -1662,16 +1654,24 @@ function renderApprovedSignalsView(data) {
         apDateGroupMap[iso].push(s);
     });
     var apDatesWithData = Object.keys(apDateGroupMap).sort();
-    var apFirstDate = apDatesWithData[0] || apTodayStr;
-    if (apFirstDate > apYesterdayStr) apFirstDate = apYesterdayStr;
-    var apLastDate = apDatesWithData[apDatesWithData.length - 1] || apTodayStr;
-    if (apLastDate < apTodayStr) apLastDate = apTodayStr;
     var apAllDates = [];
-    var apCur = new Date(apFirstDate + 'T00:00:00');
-    var apEnd = new Date(apLastDate + 'T00:00:00');
-    while (apCur <= apEnd) {
-        apAllDates.push(apCur.getFullYear() + '-' + String(apCur.getMonth()+1).padStart(2,'0') + '-' + String(apCur.getDate()).padStart(2,'0'));
-        apCur.setDate(apCur.getDate() + 1);
+    if (apDatesWithData.length > 0) {
+        var oldestParts = apDatesWithData[0].split('-');
+        var apOldest = new Date(parseInt(oldestParts[0]), parseInt(oldestParts[1])-1, parseInt(oldestParts[2]));
+        var newestParts = apDatesWithData[apDatesWithData.length - 1].split('-');
+        var apNewest = new Date(parseInt(newestParts[0]), parseInt(newestParts[1])-1, parseInt(newestParts[2]));
+        if (apNewest < apToday) apNewest = apToday;
+        var apCur = new Date(apOldest);
+        while (apCur <= apNewest) {
+            apAllDates.push(apCur.getFullYear() + '-' + String(apCur.getMonth()+1).padStart(2,'0') + '-' + String(apCur.getDate()).padStart(2,'0'));
+            apCur.setDate(apCur.getDate() + 1);
+        }
+    } else {
+        for (var di = -2; di <= 2; di++) {
+            var dd = new Date(apToday);
+            dd.setDate(dd.getDate() + di);
+            apAllDates.push(dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0') + '-' + String(dd.getDate()).padStart(2,'0'));
+        }
     }
     if (!_approvedSelectedDate || apAllDates.indexOf(_approvedSelectedDate) === -1) {
         _approvedSelectedDate = apDateGroupMap[apTodayStr] ? apTodayStr : (apDatesWithData[apDatesWithData.length - 1] || apTodayStr);
@@ -1689,13 +1689,13 @@ function renderApprovedSignalsView(data) {
             html += '<div onclick="selectApprovedDate(\'' + dateKey + '\')" class="ds-sel" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;background:rgba(255,255,255,0.07);transition:all 0.15s;">';
             html += '<div style="font-size:10px;color:#c9d1d9;font-weight:600;line-height:1;">' + dayShort + '</div>';
             html += '<div style="font-size:12px;color:#f0f6fc;font-weight:700;margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
-            if (hasData) html += '<div style="width:4px;height:4px;background:#facc15;border-radius:50%;margin:4px auto 0;"></div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         } else {
             html += '<div onclick="selectApprovedDate(\'' + dateKey + '\')" style="flex:1;min-width:50px;text-align:center;cursor:pointer;padding:7px 4px;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.04)\'" onmouseout="this.style.background=\'transparent\'">';
             html += '<div style="font-size:10px;color:#3a3f45;font-weight:500;line-height:1;">' + dayShort + '</div>';
             html += '<div style="font-size:12px;color:' + (isToday ? '#7d848c' : '#5c636b') + ';font-weight:' + (isToday ? '600' : '500') + ';margin-top:3px;line-height:1;">' + (isToday ? _t('app.j.today','Bugün') : dateNum) + '</div>';
-            if (hasData) html += '<div style="width:4px;height:4px;background:#facc15;border-radius:50%;margin:4px auto 0;"></div>';
+            if (hasData) html += '<div style="width:4px;height:4px;background:#34d399;border-radius:50%;margin:4px auto 0;"></div>';
             else html += '<div style="height:8px;"></div>';
         }
         html += '</div>';
