@@ -1756,6 +1756,11 @@ function renderApprovedSignalsView(data) {
     }
 
     contentArea.innerHTML = html;
+    var apStrip = document.getElementById('apDateStrip');
+    if (apStrip) {
+        var apSelectedEl = apStrip.querySelector('.ds-sel');
+        if (apSelectedEl) apSelectedEl.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+    }
 }
 
 function renderFakeSharpView(data) {
