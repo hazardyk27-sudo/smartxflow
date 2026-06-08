@@ -1,0 +1,1 @@
+- [Supabase time-based cleanup deletes](supabase-cleanup-deletes.md) — daily D-8 cleanup must DELETE by each table's own date col via single-statement PostgREST (orphans incl.); paged-by-id over non-indexed date col hangs; main market tables have no match_id_hash, use `date`.

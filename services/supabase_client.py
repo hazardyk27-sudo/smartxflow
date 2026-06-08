@@ -6,6 +6,7 @@ Uses REST API directly for better compatibility
 
 import os
 import sqlite3
+import time
 import httpx
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
@@ -1950,52 +1951,71 @@ class SupabaseClient:
         """Delete all Sharp alarms"""
         return True
     
+    def _count_rows_before(self, table: str, date_col: str, cutoff_date: str) -> int:
+        """date_col < cutoff_date olan satir sayisini dondur. Tablo yoksa -1, kalici hata/0 ise 0.
+        Gecici ag/SSL hatalarinda (or. '[SSL] record layer failure') 3 kez dener — boylece
+        anlik bir blip yuzunden o tablonun temizligi gun boyu atlanmaz."""
+        last_err = None
+        for attempt in range(3):
+            try:
+                headers = self._headers()
+                headers['Prefer'] = 'count=exact'
+                url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}&select={date_col}&limit=1"
+                resp = self._get_http_client().get(url, headers=headers, timeout=30)
+                if resp.status_code == 404:
+                    return -1
+                cr = resp.headers.get('content-range', '')
+                if '/' in cr:
+                    total = cr.split('/')[-1]
+                    if total.isdigit():
+                        return int(total)
+                return 0
+            except Exception as e:
+                last_err = e
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+        print(f"[Cleanup] count error {table} (3 deneme): {last_err}")
+        return 0
+
+    def _delete_before_simple(self, table: str, date_col: str, cutoff_date: str) -> int:
+        """Tek-statement DELETE: date_col < cutoff_date olan TUM satirlari tek SQL ile siler.
+        match_id_hash eslestirmesi YOK — bagli fixture olsun olmasin (orphan dahil) her eski
+        satir gider. Silinen satir sayisini dondurur. Tablo yoksa 0."""
+        pre = self._count_rows_before(table, date_col, cutoff_date)
+        if pre <= 0:
+            return 0
+        try:
+            headers = self._headers()
+            headers['Prefer'] = 'count=exact'
+            url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
+            resp = httpx.delete(url, headers=headers, timeout=180)
+            if resp.status_code in (200, 204):
+                cr = resp.headers.get('content-range', '')
+                if '/' in cr:
+                    t = cr.split('/')[-1]
+                    if t.isdigit():
+                        return int(t)
+                return pre
+            print(f"[Cleanup] {table} simple delete failed: {resp.status_code}")
+        except Exception as e:
+            print(f"[Cleanup] {table} simple delete error: {e}")
+        return 0
+
     def cleanup_old_matches(self, cutoff_date: str) -> Dict[str, int]:
         """
-        Delete D-2+ matches from all tables including fixtures and snapshots.
-        cutoff_date format: YYYY-MM-DD (matches older than this date will be deleted)
-        
-        Mantık: Önce D-2+ fixture'ların match_id_hash listesini bul,
-        sonra SADECE bu hash'lere ait snapshot ve history kayıtlarını sil.
-        Böylece henüz oynanmamış maçların eski snapshot'ları korunur.
-        
+        cutoff_date (YYYY-MM-DD) tarihinden ESKI tum verileri siler.
+
+        Snapshot/history/live tablolari satirin KENDI tarih kolonuna gore silinir
+        (live_snapshots.snapshot_at, *_snapshots.scraped_at_utc, *_history.scraped_at) —
+        boylece bagli fixture'i olmayan ORPHAN satirlar da temizlenir ("ne olursa olsun").
+        Cutoff = today - 8 gun: son 7 gun + gelecek korunur. Gelecek tarihli fixture'lar silinmez.
+
         Returns count of deleted records per table.
         """
         if not self.is_available:
             return {}
         
         deleted = {}
-        
-        old_hashes = []
-        try:
-            headers = self._headers()
-            url = f"{self._rest_url('fixtures')}?fixture_date=lt.{cutoff_date}&select=match_id_hash"
-            resp = self._get_http_client().get(url, headers=headers, timeout=30)
-            if resp.status_code == 200:
-                rows = resp.json()
-                if isinstance(rows, list):
-                    old_hashes = [r['match_id_hash'] for r in rows if r.get('match_id_hash')]
-                    print(f"[Cleanup] Found {len(old_hashes)} D-2+ fixtures to clean up")
-        except Exception as e:
-            print(f"[Cleanup] Error fetching old fixture hashes: {e}")
-        
-        if not old_hashes:
-            print(f"[Cleanup] No D-2+ prematch fixtures found")
-        
-        batch_size = 50
-        
-        live_old_hashes = []
-        try:
-            headers_lf = self._headers()
-            lf_url = f"{self._rest_url('live_fixtures')}?updated_at=lt.{cutoff_date}&select=match_id_hash"
-            lf_resp = self._get_http_client().get(lf_url, headers=headers_lf, timeout=30)
-            if lf_resp.status_code == 200:
-                lf_rows = lf_resp.json()
-                if isinstance(lf_rows, list):
-                    live_old_hashes = [r['match_id_hash'] for r in lf_rows if r.get('match_id_hash')]
-                    print(f"[Cleanup] Found {len(live_old_hashes)} D-2+ live fixtures")
-        except Exception as e:
-            print(f"[Cleanup] Error fetching old live fixture hashes: {e}")
 
         from datetime import datetime as _dt, timedelta as _td
         try:
@@ -2009,162 +2029,51 @@ class SupabaseClient:
             scraper_signal_cutoff = cutoff_date + 'T00:00:00'
             telegram_cutoff = cutoff_date + 'T00:00:00'
 
+        # Snapshot tablolari: satirin KENDI tarihine (scraped_at_utc) gore D-8 oncesi
+        # her satir tek-statement SQL ile silinir — orphan dahil, fixture eslestirmesine bakilmaz.
         snapshot_tables = ['moneyway_snapshots', 'dropping_odds_snapshots']
         for table in snapshot_tables:
-            table_count = 0
-            for i in range(0, len(old_hashes), batch_size):
-                batch = old_hashes[i:i+batch_size]
-                hash_filter = ','.join(batch)
-                try:
-                    headers = self._headers()
-                    headers['Prefer'] = 'return=representation'
-                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
-                    resp = httpx.delete(url, headers=headers, timeout=120)
-                    if resp.status_code == 200:
-                        try:
-                            deleted_rows = resp.json()
-                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                            table_count += count
-                        except:
-                            pass
-                    elif resp.status_code not in [204, 404]:
-                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
-                except Exception as e:
-                    print(f"[Cleanup] Exception for {table}: {e}")
+            table_count = self._delete_before_simple(table, 'scraped_at_utc', cutoff_date)
             if table_count > 0:
                 deleted[table] = table_count
-            print(f"[Cleanup] {table}: {table_count} satir silindi")
-        
-        if live_old_hashes:
-            table_count = 0
-            for i in range(0, len(live_old_hashes), batch_size):
-                batch = live_old_hashes[i:i+batch_size]
-                hash_filter = ','.join(batch)
-                try:
-                    headers = self._headers()
-                    headers['Prefer'] = 'return=representation'
-                    url = f"{self._rest_url('live_snapshots')}?match_id_hash=in.({hash_filter})"
-                    resp = httpx.delete(url, headers=headers, timeout=120)
-                    if resp.status_code == 200:
-                        try:
-                            deleted_rows = resp.json()
-                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                            table_count += count
-                        except:
-                            pass
-                    elif resp.status_code not in [204, 404]:
-                        print(f"[Cleanup] Error deleting from live_snapshots: {resp.status_code}")
-                except Exception as e:
-                    print(f"[Cleanup] Exception for live_snapshots: {e}")
-            if table_count > 0:
-                deleted['live_snapshots'] = table_count
-            print(f"[Cleanup] live_snapshots: {table_count} satir silindi")
+            print(f"[Cleanup] {table}: {table_count} satir silindi (scraped_at_utc < {cutoff_date})")
 
-        history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history', 
+        # live_snapshots: EN BUYUK tablo. Hash eslestirmesi YOK — snapshot_at'e gore
+        # D-8 oncesi her satir tek-statement SQL ile silinir (orphan/birikinti dahil).
+        ls_count = self._delete_before_simple('live_snapshots', 'snapshot_at', cutoff_date)
+        if ls_count > 0:
+            deleted['live_snapshots'] = ls_count
+        print(f"[Cleanup] live_snapshots: {ls_count} satir silindi (snapshot_at < {cutoff_date})")
+
+        # History tablolari: scraped_at'e (Turkiye +03:00 string, lex karsilastirma) gore
+        # D-8 oncesi her satir silinir — orphan dahil. (id PK yok → tek-statement.)
+        history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
                           'dropping_1x2_history', 'dropping_ou25_history', 'dropping_btts_history']
-        
         for table in history_tables:
-            table_count = 0
-            for i in range(0, len(old_hashes), batch_size):
-                batch = old_hashes[i:i+batch_size]
-                hash_filter = ','.join(batch)
-                try:
-                    headers = self._headers()
-                    headers['Prefer'] = 'return=representation'
-                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
-                    resp = httpx.delete(url, headers=headers, timeout=120)
-                    if resp.status_code == 200:
-                        try:
-                            deleted_rows = resp.json()
-                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                            table_count += count
-                        except:
-                            pass
-                    elif resp.status_code not in [204, 404]:
-                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
-                except Exception as e:
-                    print(f"[Cleanup] Exception for {table}: {e}")
+            table_count = self._delete_before_simple(table, 'scraped_at', cutoff_date)
             if table_count > 0:
                 deleted[table] = table_count
-            print(f"[Cleanup] {table}: {table_count} satir silindi")
+            print(f"[Cleanup] {table}: {table_count} satir silindi (scraped_at < {cutoff_date})")
 
+        # Ana market tablolari (guncel-durum, upsert): match_id_hash KOLONU YOK — kendi 'date'
+        # (mac tarihi, ISO timestamp) kolonuna gore D-8 oncesi her satir tek-statement SQL ile
+        # silinir. (Eski hash-bazli silme var olmayan kolona filtre uyguluyordu, bu yuzden bu
+        # tablolar hic temizlenmiyordu.)
         main_tables = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts',
                        'dropping_1x2', 'dropping_ou25', 'dropping_btts']
         for table in main_tables:
-            table_count = 0
-            for i in range(0, len(old_hashes), batch_size):
-                batch = old_hashes[i:i+batch_size]
-                hash_filter = ','.join(batch)
-                try:
-                    headers = self._headers()
-                    headers['Prefer'] = 'return=representation'
-                    url = f"{self._rest_url(table)}?match_id_hash=in.({hash_filter})"
-                    resp = httpx.delete(url, headers=headers, timeout=120)
-                    if resp.status_code == 200:
-                        try:
-                            deleted_rows = resp.json()
-                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                            table_count += count
-                        except:
-                            pass
-                    elif resp.status_code not in [204, 404]:
-                        print(f"[Cleanup] Error deleting from {table}: {resp.status_code}")
-                except Exception as e:
-                    print(f"[Cleanup] Exception for {table}: {e}")
+            table_count = self._delete_before_simple(table, 'date', cutoff_date)
             if table_count > 0:
                 deleted[table] = table_count
-            print(f"[Cleanup] {table}: {table_count} satir silindi")
-        
+            print(f"[Cleanup] {table}: {table_count} satir silindi (date < {cutoff_date})")
+
+        # fixtures + live_fixtures: kendi 'fixture_date' kolonuna gore D-8 oncesi her satir
+        # tek-statement SQL ile silinir (match_id_hash null olsa bile gider — orphan dahil).
         for fix_table in ['fixtures', 'live_fixtures']:
-            fix_count = 0
-            date_col = 'fixture_date'
-            try:
-                headers_check = self._headers()
-                check_url = f"{self._rest_url(fix_table)}?{date_col}=lt.{cutoff_date}&select=match_id_hash&limit=1"
-                check_resp = self._get_http_client().get(check_url, headers=headers_check, timeout=15)
-                if check_resp.status_code == 404:
-                    continue
-            except:
-                continue
-
-            fix_hashes = old_hashes if fix_table == 'fixtures' else []
-            if fix_table == 'live_fixtures':
-                try:
-                    headers_lf = self._headers()
-                    lf_url = f"{self._rest_url('live_fixtures')}?fixture_date=lt.{cutoff_date}&select=match_id_hash"
-                    lf_resp = self._get_http_client().get(lf_url, headers=headers_lf, timeout=30)
-                    if lf_resp.status_code == 200:
-                        lf_rows = lf_resp.json()
-                        if isinstance(lf_rows, list):
-                            fix_hashes = [r['match_id_hash'] for r in lf_rows if r.get('match_id_hash')]
-                except Exception as e:
-                    print(f"[Cleanup] Error fetching live fixture hashes: {e}")
-
-            if not fix_hashes:
-                continue
-
-            for i in range(0, len(fix_hashes), batch_size):
-                batch = fix_hashes[i:i+batch_size]
-                hash_filter = ','.join(batch)
-                try:
-                    headers = self._headers()
-                    headers['Prefer'] = 'return=representation'
-                    url = f"{self._rest_url(fix_table)}?match_id_hash=in.({hash_filter})"
-                    resp = httpx.delete(url, headers=headers, timeout=120)
-                    if resp.status_code == 200:
-                        try:
-                            deleted_rows = resp.json()
-                            count = len(deleted_rows) if isinstance(deleted_rows, list) else 0
-                            fix_count += count
-                        except:
-                            pass
-                    elif resp.status_code not in [204, 404]:
-                        print(f"[Cleanup] Error deleting {fix_table}: {resp.status_code}")
-                except Exception as e:
-                    print(f"[Cleanup] Exception for {fix_table}: {e}")
+            fix_count = self._delete_before_simple(fix_table, 'fixture_date', cutoff_date)
             if fix_count > 0:
                 deleted[fix_table] = fix_count
-                print(f"[Cleanup] Deleted {fix_count} old records from {fix_table}")
+            print(f"[Cleanup] {fix_table}: {fix_count} satir silindi (fixture_date < {cutoff_date})")
         
         # Sinyal tablolari (confirmed_money, underdog, fake_sharp, confirmed_money_v2, early_money_lock)
         # tarih bazli silinmiyor — tum gecmis sinyaller korunur.
