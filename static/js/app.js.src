@@ -3033,6 +3033,19 @@ function applySorting(data) {
                 || isValidOdds(obj.amt1) || isValidOdds(obj.amt2) || isValidOdds(obj.amtx)
                 || isValidOdds(obj.pct1) || isValidOdds(obj.pct2) || isValidOdds(obj.pctx);
         };
+
+        // Market bazında TÜM gerekli oran alanlarının dolu olmasını kontrol et
+        const checkCompleteOdds = (obj) => {
+            if (!obj || typeof obj !== 'object') return false;
+            if (currentMarket.includes('1x2')) {
+                return isValidOdds(obj.Odds1 || obj['1']) && isValidOdds(obj.OddsX || obj['X']) && isValidOdds(obj.Odds2 || obj['2']);
+            } else if (currentMarket.includes('ou25')) {
+                return isValidOdds(obj.OddsUnder || obj.Under) && isValidOdds(obj.OddsOver || obj.Over);
+            } else if (currentMarket.includes('btts')) {
+                return isValidOdds(obj.OddsYes || obj.Yes) && isValidOdds(obj.OddsNo || obj.No);
+            }
+            return checkOdds(obj);
+        };
         
         // Fallback: ALL mode'da odds history/snapshots array icinde olabilir
         // Snapshot JSON string olarak gelebilir - parse etmek lazim
@@ -3052,8 +3065,8 @@ function applySorting(data) {
             return checkOdds(snapshot);
         };
         
-        // En az bir geçerli oran değeri olmalı (details, match, veya history icinde)
-        let hasValidOdds = checkOdds(d) || checkOdds(m);
+        // Tüm gerekli oran alanları dolu olmalı (market bazında)
+        let hasValidOdds = checkCompleteOdds(d) || checkCompleteOdds(m);
         if (!hasValidOdds && m.history) hasValidOdds = checkHistoryArray(m.history);
         if (!hasValidOdds && m.snapshots) hasValidOdds = checkHistoryArray(m.snapshots);
         
