@@ -30,8 +30,32 @@ HEADERS = {
         'AppleWebKit/537.36 (KHTML, like Gecko) '
         'Chrome/124.0.0.0 Safari/537.36'
     ),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'max-age=0',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Referer': 'https://www.excapper.com/',
+}
+
+DETAIL_HEADERS = {
+    'User-Agent': (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/124.0.0.0 Safari/537.36'
+    ),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'max-age=0',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin',
     'Referer': 'https://www.excapper.com/',
 }
 MAX_WORKERS = 2
@@ -236,7 +260,7 @@ def fetch_match_detail(game_id: str, session: requests.Session) -> Dict[str, Any
     """
     try:
         url = f"{BASE_URL}/?action=game&id={game_id}"
-        r = session.get(url, headers=HEADERS, timeout=FETCH_TIMEOUT)
+        r = session.get(url, headers=DETAIL_HEADERS, timeout=FETCH_TIMEOUT)
         r.raise_for_status()
     except Exception:
         return {}
@@ -476,6 +500,7 @@ def run_scrape_excapper(writer, logger_callback=None) -> int:
     try:
         matches = fetch_match_list(session)
         _log(f"[Excapper]   {len(matches)} prematch maç bulundu")
+        time.sleep(3.0)
     except Exception as e:
         _log(f"[Excapper] HATA: Ana sayfa çekilemedi: {e}")
         return 0

@@ -23,7 +23,7 @@ from excapper_scraper import run_scrape_excapper
 print("[Source] Veri kaynağı: excapper.com (Betfair MoneyWay)")
 
 MAX_RETRIES = 3
-RETRY_DELAYS = [5, 10, 20]
+RETRY_DELAYS = [30, 60, 90]
 SCRAPER_SOURCE = "replit"
 
 def send_telegram(message: str, is_error: bool = False) -> bool:
