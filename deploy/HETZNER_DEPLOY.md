@@ -34,7 +34,7 @@ Script şunları otomatik yapar:
 - Python 3.11 + virtualenv + tüm bağımlılıklar
 - GitHub reposu → `/opt/smartxflow`
 - 4 adet systemd servisi
-- Nginx konfigürasyonu
+- Nginx HTTP konfigürasyonu
 
 Script `.env` dosyası oluşturur ve durur. **Değerleri gir:**
 
@@ -71,30 +71,65 @@ sudo journalctl -u smartxflow-web -f
 
 Domain yönetim panelinden **A kaydı** ekle:
 
-| Tip | Ad | Değer |
-|-----|----|-------|
-| A | @ (veya smartxflow.com) | 91.99.6.245 |
-| A | www | 91.99.6.245 |
+| Tip | Ad | Değer | TTL |
+|-----|----|-------|-----|
+| A | @ (veya smartxflow.com) | 91.99.6.245 | 300 |
+| A | www | 91.99.6.245 | 300 |
 
 DNS yayılması 1-24 saat sürebilir. Kontrol:
 
 ```bash
 dig smartxflow.com +short
 # → 91.99.6.245 görünmeli
+
+dig www.smartxflow.com +short
+# → 91.99.6.245 görünmeli
 ```
 
 ---
 
-## ADIM 4 — SSL Sertifikası (Let's Encrypt)
+## ADIM 4 — HTTPS / SSL Sertifikası (Let's Encrypt)
 
-DNS 91.99.6.245'e çözümlenince:
+> **Önkoşul:** DNS A kaydı doğru çözümlenmiş olmalı (Adım 3).
+
+DNS 91.99.6.245'e çözümlenince SSL setup scriptini çalıştır:
 
 ```bash
-sudo certbot --nginx -d smartxflow.com -d www.smartxflow.com
-# Email gir, şartları kabul et
+sudo bash /opt/smartxflow/deploy/setup_ssl.sh
 ```
 
-Artık `https://smartxflow.com` çalışıyor olacak.
+Script otomatik olarak:
+1. DNS kaydının doğru çözümlendiğini doğrular (yanlışsa hata verir)
+2. Certbot'u kontrol eder / kurar
+3. Nginx HTTP konfigürasyonunu aktif eder
+4. `certbot --nginx` ile Let's Encrypt sertifikasını alır
+5. Nginx'i HTTP → HTTPS yönlendirme + 443 SSL bloğu ile yeniden yapılandırır
+
+**Başarılı kurulum sonrası:**
+- `https://smartxflow.com` → çalışır
+- `https://www.smartxflow.com` → çalışır
+- `http://smartxflow.com` → otomatik HTTPS yönlendirmesi (301)
+
+**Doğrulama:**
+```bash
+curl -I http://smartxflow.com
+# → HTTP/1.1 301 Moved Permanently
+# → Location: https://smartxflow.com/...
+
+curl -I https://smartxflow.com
+# → HTTP/2 200
+
+# SSL sertifika detayları:
+certbot certificates
+```
+
+**Otomatik Yenileme:**
+Certbot, Let's Encrypt sertifikasını her 90 günde otomatik yeniler.
+Systemd timer aktif olduğunu kontrol et:
+```bash
+systemctl list-timers | grep certbot
+# → certbot.timer görünmeli
+```
 
 ---
 
@@ -140,6 +175,25 @@ sudo journalctl -u smartxflow-web -f
 
 ---
 
+## Nginx Konfigürasyonu
+
+SSL kurulduktan sonra aktif Nginx yapısı (`/etc/nginx/sites-available/smartxflow`):
+
+```
+HTTP :80  →  301 HTTPS yönlendirme  (Let's Encrypt challenge hariç)
+HTTPS :443 → Gunicorn :8000 proxy
+```
+
+Referans dosya: `deploy/nginx-smartxflow.conf`
+
+Nginx'i manuel test/yeniden yüklemek için:
+```bash
+nginx -t                  # Konfigürasyon test
+systemctl reload nginx    # Sıfırsız yeniden yükleme
+```
+
+---
+
 ## Log Komutları
 
 ```bash
@@ -155,7 +209,8 @@ tail -f /opt/smartxflow/logs/alarm.log
 # Live Scraper
 tail -f /opt/smartxflow/logs/live.log
 
-# Nginx
+# Nginx erişim / hata
+tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
 ```
 
