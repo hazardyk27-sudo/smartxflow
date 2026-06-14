@@ -14,6 +14,7 @@ Yöntem:
   4. Aynı Supabase tablo/alan formatını kullan (Arbworld ile uyumlu)
 """
 
+import os
 import re
 import time
 import random
@@ -24,6 +25,9 @@ from typing import Dict, List, Optional, Tuple, Any
 from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.excapper.com"
+
+_EXCAPPER_COOKIE = os.environ.get('excapper_cookie', '').strip()
+
 HEADERS = {
     'User-Agent': (
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -41,6 +45,8 @@ HEADERS = {
     'Sec-Fetch-User': '?1',
     'Referer': 'https://www.excapper.com/',
 }
+if _EXCAPPER_COOKIE:
+    HEADERS['Cookie'] = _EXCAPPER_COOKIE
 
 DETAIL_HEADERS = {
     'User-Agent': (
@@ -58,6 +64,8 @@ DETAIL_HEADERS = {
     'Sec-Fetch-Site': 'same-origin',
     'Referer': 'https://www.excapper.com/',
 }
+if _EXCAPPER_COOKIE:
+    DETAIL_HEADERS['Cookie'] = _EXCAPPER_COOKIE
 MAX_WORKERS = 2
 FETCH_TIMEOUT = 25
 
