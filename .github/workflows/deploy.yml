@@ -20,20 +20,22 @@ jobs:
             set -e
 
             # .env dosyasini GitHub Secrets'tan olustur
-            cat > /opt/smartxflow/.env << ENVEOF
-            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
-            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            PAYMENT_BOT_TOKEN=${{ secrets.PAYMENT_BOT_TOKEN }}
-            PAYMENT_CHAT_ID=${{ secrets.PAYMENT_CHAT_ID }}
-            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-            TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
-            APIFOOTBALL_KEY=${{ secrets.APIFOOTBALL_KEY }}
-            BETWATCH_COOKIE=${{ secrets.BETWATCH_COOKIE }}
-            excapper_cookie=${{ secrets.EXCAPPER_COOKIE }}
-            REPL_DEPLOYMENT=1
-            ENVEOF
+            # Heredoc quoted ('ENVEOF') — GitHub Actions onceden degerleri substitute eder,
+            # shell-level $ expansion yapilmaz (ozel karakter iceren secretlar korunur)
+            printf '%s\n' \
+              'SUPABASE_URL=${{ secrets.SUPABASE_URL }}' \
+              'SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}' \
+              'SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+              'SESSION_SECRET=${{ secrets.SESSION_SECRET }}' \
+              'PAYMENT_BOT_TOKEN=${{ secrets.PAYMENT_BOT_TOKEN }}' \
+              'PAYMENT_CHAT_ID=${{ secrets.PAYMENT_CHAT_ID }}' \
+              'TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+              'TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}' \
+              'APIFOOTBALL_KEY=${{ secrets.APIFOOTBALL_KEY }}' \
+              'BETWATCH_COOKIE=${{ secrets.BETWATCH_COOKIE }}' \
+              'excapper_cookie=${{ secrets.EXCAPPER_COOKIE }}' \
+              'REPL_DEPLOYMENT=1' \
+              > /opt/smartxflow/.env
 
             chown smartxflow:smartxflow /opt/smartxflow/.env
             chmod 600 /opt/smartxflow/.env
@@ -51,12 +53,13 @@ jobs:
             # Static dosya izinleri
             chmod -R o+rx /opt/smartxflow/static/
 
-            # Servisleri yeniden baslat
-            systemctl restart smartxflow-web smartxflow-scraper
+            # Servisleri yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
+            sudo /bin/systemctl restart smartxflow-web
+            sudo /bin/systemctl restart smartxflow-scraper
 
             # Saglik kontrolu
             sleep 3
-            systemctl is-active smartxflow-web || { echo "web servisi baslamadi!"; exit 1; }
-            systemctl is-active smartxflow-scraper || { echo "scraper servisi baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-web   || { echo "web servisi baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper servisi baslamadi!"; exit 1; }
 
             echo "Deploy tamamlandi: $(date)"
