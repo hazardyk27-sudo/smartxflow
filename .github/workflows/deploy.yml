@@ -14,8 +14,8 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HETZNER_HOST }}
-          username: root
-          password: ${{ secrets.HETZNER_PASSWORD }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
             set -e
 
@@ -53,5 +53,10 @@ jobs:
 
             # Servisleri yeniden baslat
             systemctl restart smartxflow-web smartxflow-scraper
+
+            # Saglik kontrolu
+            sleep 3
+            systemctl is-active smartxflow-web || { echo "web servisi baslamadi!"; exit 1; }
+            systemctl is-active smartxflow-scraper || { echo "scraper servisi baslamadi!"; exit 1; }
 
             echo "Deploy tamamlandi: $(date)"
