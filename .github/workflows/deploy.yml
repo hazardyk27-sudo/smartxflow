@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -13,16 +14,44 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USER }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
+          username: root
+          password: ${{ secrets.HETZNER_PASSWORD }}
           script: |
             set -e
+
+            # .env dosyasini GitHub Secrets'tan olustur
+            cat > /opt/smartxflow/.env << ENVEOF
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }}
+            SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+            PAYMENT_BOT_TOKEN=${{ secrets.PAYMENT_BOT_TOKEN }}
+            PAYMENT_CHAT_ID=${{ secrets.PAYMENT_CHAT_ID }}
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+            APIFOOTBALL_KEY=${{ secrets.APIFOOTBALL_KEY }}
+            BETWATCH_COOKIE=${{ secrets.BETWATCH_COOKIE }}
+            excapper_cookie=${{ secrets.EXCAPPER_COOKIE }}
+            REPL_DEPLOYMENT=1
+            ENVEOF
+
+            chown smartxflow:smartxflow /opt/smartxflow/.env
+            chmod 600 /opt/smartxflow/.env
+
+            # Kodu guncelle
             cd /opt/smartxflow
             git pull origin main
-            source venv/bin/activate
-            pip install -r requirements.txt -q
-            sudo systemctl restart smartxflow-web
-            sudo systemctl restart smartxflow-scraper
-            sudo systemctl restart smartxflow-alarm
-            sudo systemctl restart smartxflow-live
-            echo "Deploy tamamlandı: $(date)"
+
+            # Bagimliliklar
+            sudo -u smartxflow /opt/smartxflow/venv/bin/pip install -r requirements.txt -q
+
+            # CSS/JS minify (her deploy'da)
+            sudo -u smartxflow /opt/smartxflow/venv/bin/python minify.py
+
+            # Static dosya izinleri
+            chmod -R o+rx /opt/smartxflow/static/
+
+            # Servisleri yeniden baslat
+            systemctl restart smartxflow-web smartxflow-scraper
+
+            echo "Deploy tamamlandi: $(date)"
