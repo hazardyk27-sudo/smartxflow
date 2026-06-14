@@ -16,29 +16,33 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,SESSION_SECRET,PAYMENT_BOT_TOKEN,PAYMENT_CHAT_ID,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,APIFOOTBALL_KEY,BETWATCH_COOKIE,EXCAPPER_COOKIE
           script: |
             set -e
 
-            # .env dosyasini GitHub Secrets'tan olustur
-            # Heredoc quoted ('ENVEOF') — GitHub Actions onceden degerleri substitute eder,
-            # shell-level $ expansion yapilmaz (ozel karakter iceren secretlar korunur)
-            printf '%s\n' \
-              'SUPABASE_URL=${{ secrets.SUPABASE_URL }}' \
-              'SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}' \
-              'SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
-              'SESSION_SECRET=${{ secrets.SESSION_SECRET }}' \
-              'PAYMENT_BOT_TOKEN=${{ secrets.PAYMENT_BOT_TOKEN }}' \
-              'PAYMENT_CHAT_ID=${{ secrets.PAYMENT_CHAT_ID }}' \
-              'TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}' \
-              'TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}' \
-              'APIFOOTBALL_KEY=${{ secrets.APIFOOTBALL_KEY }}' \
-              'BETWATCH_COOKIE=${{ secrets.BETWATCH_COOKIE }}' \
-              'excapper_cookie=${{ secrets.EXCAPPER_COOKIE }}' \
-              'REPL_DEPLOYMENT=1' \
-              > /opt/smartxflow/.env
-
-            chown smartxflow:smartxflow /opt/smartxflow/.env
-            chmod 600 /opt/smartxflow/.env
+            # .env dosyasini Python ile yaz (ozel karakter guvenligi icin)
+            python3 - << 'PYEOF'
+            import os
+            lines = [
+                f"SUPABASE_URL={os.environ.get('SUPABASE_URL','')}",
+                f"SUPABASE_ANON_KEY={os.environ.get('SUPABASE_ANON_KEY','')}",
+                f"SUPABASE_SERVICE_ROLE_KEY={os.environ.get('SUPABASE_SERVICE_ROLE_KEY','')}",
+                f"SESSION_SECRET={os.environ.get('SESSION_SECRET','')}",
+                f"PAYMENT_BOT_TOKEN={os.environ.get('PAYMENT_BOT_TOKEN','')}",
+                f"PAYMENT_CHAT_ID={os.environ.get('PAYMENT_CHAT_ID','')}",
+                f"TELEGRAM_BOT_TOKEN={os.environ.get('TELEGRAM_BOT_TOKEN','')}",
+                f"TELEGRAM_CHAT_ID={os.environ.get('TELEGRAM_CHAT_ID','')}",
+                f"APIFOOTBALL_KEY={os.environ.get('APIFOOTBALL_KEY','')}",
+                f"BETWATCH_COOKIE={os.environ.get('BETWATCH_COOKIE','')}",
+                f"excapper_cookie={os.environ.get('EXCAPPER_COOKIE','')}",
+                "REPL_DEPLOYMENT=1",
+            ]
+            with open('/opt/smartxflow/.env', 'w') as f:
+                f.write('\n'.join(lines) + '\n')
+            import os as _os; _os.chmod('/opt/smartxflow/.env', 0o600)
+            import subprocess; subprocess.run(['chown','smartxflow:smartxflow','/opt/smartxflow/.env'])
+            print("env yazildi")
+            PYEOF
 
             # Kodu guncelle
             cd /opt/smartxflow
@@ -53,13 +57,29 @@ jobs:
             # Static dosya izinleri
             chmod -R o+rx /opt/smartxflow/static/
 
-            # Servisleri yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
+            # 4 servisi yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
+            sudo /bin/systemctl restart smartxflow-alarm
+            sudo /bin/systemctl restart smartxflow-live
 
-            # Saglik kontrolu
-            sleep 3
-            sudo /bin/systemctl is-active smartxflow-web   || { echo "web servisi baslamadi!"; exit 1; }
-            sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper servisi baslamadi!"; exit 1; }
+            # Saglik kontrolu — 4 servisin tumu aktif olmali
+            sleep 4
+            sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-alarm   || { echo "alarm baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
 
             echo "Deploy tamamlandi: $(date)"
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          PAYMENT_BOT_TOKEN: ${{ secrets.PAYMENT_BOT_TOKEN }}
+          PAYMENT_CHAT_ID: ${{ secrets.PAYMENT_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
+          BETWATCH_COOKIE: ${{ secrets.BETWATCH_COOKIE }}
+          EXCAPPER_COOKIE: ${{ secrets.EXCAPPER_COOKIE }}
