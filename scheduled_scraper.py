@@ -13,18 +13,14 @@ from datetime import datetime, timezone
 from typing import Optional
 import traceback
 
-# standalone_scraper modülünü import et
+# standalone_scraper + excapper_scraper modüllerini import et
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
 import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, run_scrape, cleanup_old_matches
+from excapper_scraper import run_scrape_excapper
 
-arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '').strip()
-if arbworld_cookie:
-    ss_module.HEADERS['Cookie'] = arbworld_cookie
-    print(f"[Cookie] ARBWORLD_COOKIE enjekte edildi ({len(arbworld_cookie)} karakter)")
-else:
-    print("[Cookie] ARBWORLD_COOKIE bulunamadi - cookie'siz devam ediliyor")
+print("[Source] Veri kaynağı: excapper.com (Betfair MoneyWay)")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [5, 10, 20]
@@ -162,7 +158,7 @@ def run_with_retry(writer: SupabaseWriter) -> tuple:
     for attempt in range(MAX_RETRIES):
         try:
             print(f"\n[Scrape] Deneme {attempt + 1}/{MAX_RETRIES}")
-            rows = run_scrape(writer, logger_callback=log_callback)
+            rows = run_scrape_excapper(writer, logger_callback=log_callback)
             
             if rows and rows > 0:
                 print(f"[Scrape] Başarılı: {rows} satır yazıldı")
