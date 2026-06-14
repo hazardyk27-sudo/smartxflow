@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_s
 import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, run_scrape, cleanup_old_matches
 
-arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '')
+arbworld_cookie = os.environ.get('ARBWORLD_COOKIE', '').strip()
 if arbworld_cookie:
     ss_module.HEADERS['Cookie'] = arbworld_cookie
     print(f"[Cookie] ARBWORLD_COOKIE enjekte edildi ({len(arbworld_cookie)} karakter)")
