@@ -15,6 +15,8 @@ Yöntem:
 """
 
 import re
+import time
+import random
 import requests
 import concurrent.futures
 from datetime import datetime, timezone
@@ -32,7 +34,7 @@ HEADERS = {
     'Accept-Language': 'en-US,en;q=0.9',
     'Referer': 'https://www.excapper.com/',
 }
-MAX_WORKERS = 6
+MAX_WORKERS = 2
 FETCH_TIMEOUT = 25
 
 # Tab link metni → internal market key
@@ -505,6 +507,7 @@ def run_scrape_excapper(writer, logger_callback=None) -> int:
     def _fetch_one(match):
         gid = match['game_id']
         try:
+            time.sleep(random.uniform(1.0, 2.5))
             return gid, fetch_match_detail(gid, session)
         except Exception as e:
             _log(f"[Excapper]   UYARI: game_id={gid} çekilemedi: {e}")
