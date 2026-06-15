@@ -885,8 +885,8 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     try:
         from alarm_calculator import AlarmCalculator
         alarm_calc = AlarmCalculator(
-            supabase_url=writer.supabase_url,
-            supabase_key=writer.supabase_key
+            supabase_url=writer.url,
+            supabase_key=writer.key
         )
         alarm_deleted = alarm_calc.cleanup_old_alarms(days_to_keep=7)
         total_deleted += alarm_deleted
