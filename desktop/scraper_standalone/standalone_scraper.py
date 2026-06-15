@@ -111,7 +111,11 @@ try:
     import pytz
     TURKEY_TZ = pytz.timezone('Europe/Istanbul')
 except ImportError:
-    TURKEY_TZ = None
+    try:
+        from zoneinfo import ZoneInfo
+        TURKEY_TZ = ZoneInfo('Europe/Istanbul')
+    except ImportError:
+        TURKEY_TZ = None
 
 VERSION = "1.20"
 SCRAPE_INTERVAL_MINUTES = 10
@@ -151,13 +155,18 @@ def get_turkey_now() -> str:
     """Return ISO timestamp WITH +03:00 offset for Europe/Istanbul"""
     if TURKEY_TZ:
         return datetime.now(TURKEY_TZ).strftime('%Y-%m-%dT%H:%M:%S+03:00')
-    return datetime.now().strftime('%Y-%m-%dT%H:%M:%S+03:00')
+    # Fallback: UTC + 3 saat (Turkey always UTC+3, no DST)
+    from datetime import timezone, timedelta
+    t = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3)))
+    return t.strftime('%Y-%m-%dT%H:%M:%S+03:00')
 
 
 def get_turkey_time_display() -> str:
     if TURKEY_TZ:
         return datetime.now(TURKEY_TZ).strftime('%H:%M')
-    return datetime.now().strftime('%H:%M')
+    from datetime import timezone, timedelta
+    t = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=3)))
+    return t.strftime('%H:%M')
 
 
 def log(msg: str):
