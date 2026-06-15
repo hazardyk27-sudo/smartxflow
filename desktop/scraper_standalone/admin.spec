@@ -55,6 +55,8 @@ a = Analysis(
         'pytz',
         'certifi',
         # Standard
+        'sqlite3',
+        '_sqlite3',
         'json',
         'threading',
         'socket',
