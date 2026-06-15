@@ -19,6 +19,7 @@ a = Analysis(
         ('config.json', '.'),
         ('BUILD_INFO.txt', '.'),
         ('standalone_scraper.py', '.'),
+        ('excapper_scraper.py', '.'),
         ('alarm_calculator.py', '.'),
         ('smartxflow.ico', '.'),
         (certifi_path, 'certifi'),

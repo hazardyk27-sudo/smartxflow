@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'scraper_standalone/**'
+      - 'desktop/scraper_standalone/**'
       - 'app.py'
       - 'templates/**'
       - 'static/**'
       - 'services/**'
       - 'core/**'
-      - '.github/workflows/**'
+      - '.github/workflows/build_admin.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,34 +29,34 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r scraper_standalone/requirements.txt
+          pip install -r desktop/scraper_standalone/requirements.txt
           pip install pyinstaller==6.3.0
         shell: cmd
 
       - name: Create config with secrets
         run: |
-          echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "TELEGRAM_BOT_TOKEN": "${{ secrets.TELEGRAM_BOT_TOKEN }}", "TELEGRAM_CHAT_ID": "${{ secrets.TELEGRAM_CHAT_ID }}", "SCRAPE_INTERVAL_MINUTES": 10}' > scraper_standalone/config.json
+          echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "TELEGRAM_BOT_TOKEN": "${{ secrets.TELEGRAM_BOT_TOKEN }}", "TELEGRAM_CHAT_ID": "${{ secrets.TELEGRAM_CHAT_ID }}", "SCRAPE_INTERVAL_MINUTES": 10}' > desktop/scraper_standalone/config.json
         shell: bash
 
       - name: Create BUILD_INFO.txt
         run: |
-          echo "SmartXFlow Admin Panel v1.27" > scraper_standalone/BUILD_INFO.txt
-          echo "Build Date: $(date)" >> scraper_standalone/BUILD_INFO.txt
-          echo "Python: 3.11" >> scraper_standalone/BUILD_INFO.txt
-          echo "Commit: ${{ github.sha }}" >> scraper_standalone/BUILD_INFO.txt
-          echo "Branch: ${{ github.ref_name }}" >> scraper_standalone/BUILD_INFO.txt
+          echo "SmartXFlow Admin Panel v1.27" > desktop/scraper_standalone/BUILD_INFO.txt
+          echo "Build Date: $(date)" >> desktop/scraper_standalone/BUILD_INFO.txt
+          echo "Python: 3.11" >> desktop/scraper_standalone/BUILD_INFO.txt
+          echo "Commit: ${{ github.sha }}" >> desktop/scraper_standalone/BUILD_INFO.txt
+          echo "Branch: ${{ github.ref_name }}" >> desktop/scraper_standalone/BUILD_INFO.txt
         shell: bash
 
       - name: Build Admin EXE
         run: |
-          cd scraper_standalone
+          cd desktop/scraper_standalone
           pyinstaller admin.spec
         shell: cmd
 
       - name: List output files
         run: |
           echo "=== dist folder contents ==="
-          dir scraper_standalone\dist
+          dir desktop\scraper_standalone\dist
         shell: cmd
 
       - name: Create Release
@@ -64,7 +64,7 @@ jobs:
         with:
           tag_name: admin-v1.27-${{ github.run_number }}
           name: SmartXFlow Admin v1.27 Build ${{ github.run_number }}
-          files: scraper_standalone/dist/*
+          files: desktop/scraper_standalone/dist/*
           draft: false
           prerelease: false
         env:
