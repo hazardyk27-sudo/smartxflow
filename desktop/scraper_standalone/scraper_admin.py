@@ -664,14 +664,20 @@ def wait_for_server(port, timeout=30):
 
 def run_flask(port):
     """Flask sunucusunu başlat"""
-    sys.path.insert(0, resource_path('.'))
-    
-    from app import app
-    import logging as flask_log
-    log = flask_log.getLogger('werkzeug')
-    log.setLevel(flask_log.ERROR)
-    
-    app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False, threaded=True)
+    try:
+        sys.path.insert(0, resource_path('.'))
+        
+        from app import app
+        import logging as flask_log
+        log = flask_log.getLogger('werkzeug')
+        log.setLevel(flask_log.ERROR)
+        
+        app.run(host='127.0.0.1', port=port, debug=False, use_reloader=False, threaded=True)
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        logging.error(f"Flask başlatma hatası:\n{tb}")
+        show_error_dialog("SmartXFlow Admin - Hata Detayı", f"{tb}")
 
 
 def run_scraper(config):
