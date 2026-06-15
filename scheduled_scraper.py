@@ -13,13 +13,14 @@ from datetime import datetime, timezone
 from typing import Optional
 import traceback
 
-# standalone_scraper modülünü import et (Arbworld kaynaklı)
+# standalone_scraper modülünü import et (SupabaseWriter + cleanup için)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
 import standalone_scraper as ss_module
-from standalone_scraper import SupabaseWriter, run_scrape, cleanup_old_matches
+from standalone_scraper import SupabaseWriter, cleanup_old_matches
+from betwatch_prematch import run_scrape_betwatch as run_scrape
 
-print("[Source] Veri kaynağı: arbworld.net (Betfair MoneyWay)")
+print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
