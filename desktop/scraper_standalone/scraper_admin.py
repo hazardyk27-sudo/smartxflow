@@ -20,6 +20,11 @@ import queue
 VERSION = "1.27"
 CONFIG_FILE = "config.json"
 
+# PyInstaller frozen exe'de entry point __main__ olarak yüklenir.
+# app.py içindeki `import scraper_admin` çağrılarının çalışması için
+# modülü kendi adıyla sys.modules'a register et.
+sys.modules.setdefault('scraper_admin', sys.modules[__name__])
+
 # Scraper Console - Global Log Buffer & State
 SCRAPER_LOG_BUFFER = deque(maxlen=200)
 SCRAPER_LOG_LOCK = threading.Lock()
