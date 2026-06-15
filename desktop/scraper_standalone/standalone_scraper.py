@@ -1075,9 +1075,14 @@ def run_scrape_arbworld(writer: SupabaseWriter, logger_callback=None):
 
 
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
-    """Veri toplama — Arbworld JSON API'sinden çeker (admin exe / PC modu).
-    PC IP'si Arbworld tarafından bloklanmaz; Hetzner IP'si için excapper kullanılır."""
-    return run_scrape_arbworld(writer, logger_callback=logger_callback)
+    """Veri toplama — excapper_scraper.run_scrape_excapper()'a delege eder (admin exe / PC modu).
+    Arbworld hem Hetzner hem PC IP'sini bloklar (403); excapper PC'den çalışır."""
+    import sys as _sys, os as _os
+    _dir = _os.path.dirname(_os.path.abspath(__file__))
+    if _dir not in _sys.path:
+        _sys.path.insert(0, _dir)
+    from excapper_scraper import run_scrape_excapper
+    return run_scrape_excapper(writer, logger_callback=logger_callback)
 
 
 def _parse_volume(vol_str: str) -> float:
