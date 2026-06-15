@@ -23,16 +23,17 @@ a = Analysis(
         ('alarm_calculator.py', '.'),
         ('smartxflow.ico', '.'),
         (certifi_path, 'certifi'),
-        # Flask app and dependencies
-        ('../app.py', '.'),
-        ('../templates', 'templates'),
-        ('../static', 'static'),
-        ('../services', 'services'),
-        ('../core', 'core'),
+        # Flask app and dependencies (root is two levels up from desktop/scraper_standalone/)
+        ('../../app.py', '.'),
+        ('../../templates', 'templates'),
+        ('../../static', 'static'),
+        ('../../services', 'services'),
+        ('../../core', 'core'),
     ],
     hiddenimports=[
         # Scraper modules
         'standalone_scraper',
+        'excapper_scraper',
         'alarm_calculator',
         # Flask & Web
         'flask',

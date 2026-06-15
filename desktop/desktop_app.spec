@@ -22,11 +22,12 @@ a = Analysis(
     datas=[
         ('smartxflow.ico', '.'),
         (certifi_path, 'certifi'),
-        ('app.py', '.'),
-        ('templates', 'templates'),
-        ('static', 'static'),
-        ('services', 'services'),
-        ('core', 'core'),
+        # Root-level app files (one level up from desktop/)
+        ('../app.py', '.'),
+        ('../templates', 'templates'),
+        ('../static', 'static'),
+        ('../services', 'services'),
+        ('../core', 'core'),
     ] + webview_datas,
     hiddenimports=[
         'flask',

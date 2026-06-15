@@ -4,11 +4,10 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'desktop_app.py'
-      - 'desktop_app.spec'
-      - 'desktop_app/**'
-      - 'scraper_standalone/**'
-      - 'smartxflow.ico'
+      - 'desktop/desktop_app.py'
+      - 'desktop/desktop_app.spec'
+      - 'desktop/desktop_app/**'
+      - 'desktop/scraper_standalone/**'
       - 'app.py'
       - 'templates/**'
       - 'static/**'
@@ -29,9 +28,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pywebview flask requests httpx beautifulsoup4 pytz certifi pythonnet
+        pip install pyinstaller pywebview flask flask-compress requests httpx beautifulsoup4 pytz certifi pythonnet
     
     - name: Build Desktop executable
+      working-directory: desktop
       run: |
         pyinstaller desktop_app.spec
     
@@ -39,7 +39,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SmartXFlowDesktop-V1.05
-        path: dist/SmartXFlowDesktopV1.05.exe
+        path: desktop/dist/SmartXFlowDesktopV1.05.exe
         retention-days: 30
 
   build-admin:
@@ -57,10 +57,23 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller pywebview flask requests httpx beautifulsoup4 pytz certifi pythonnet
+        pip install -r desktop/scraper_standalone/requirements.txt
+        pip install pyinstaller==6.3.0
     
+    - name: Create config with secrets
+      shell: bash
+      run: |
+        echo '{"SUPABASE_URL": "${{ secrets.SUPABASE_URL }}", "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}", "TELEGRAM_BOT_TOKEN": "${{ secrets.TELEGRAM_BOT_TOKEN }}", "TELEGRAM_CHAT_ID": "${{ secrets.TELEGRAM_CHAT_ID }}", "SCRAPE_INTERVAL_MINUTES": 10}' > desktop/scraper_standalone/config.json
+
+    - name: Create BUILD_INFO.txt
+      shell: bash
+      run: |
+        echo "SmartXFlow Admin Panel v1.27" > desktop/scraper_standalone/BUILD_INFO.txt
+        echo "Build Date: $(date)" >> desktop/scraper_standalone/BUILD_INFO.txt
+        echo "Commit: ${{ github.sha }}" >> desktop/scraper_standalone/BUILD_INFO.txt
+
     - name: Build Admin executable
-      working-directory: scraper_standalone
+      working-directory: desktop/scraper_standalone
       run: |
         pyinstaller admin.spec
     
@@ -68,5 +81,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SmartXFlowAdmin
-        path: scraper_standalone/dist/SmartXFlowAdminV1.27.exe
+        path: desktop/scraper_standalone/dist/SmartXFlowAdminV1.27.exe
         retention-days: 30
