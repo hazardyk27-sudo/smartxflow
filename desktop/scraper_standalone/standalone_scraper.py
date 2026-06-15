@@ -10,7 +10,7 @@ import re
 import time
 import requests
 import certifi
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from bs4 import BeautifulSoup
 
@@ -947,8 +947,136 @@ def parse_date_to_kickoff(date_str: str) -> str:
     return now.strftime('%Y-%m-%dT%H:%M:%S+00:00')
 
 
+def run_scrape_arbworld(writer: SupabaseWriter, logger_callback=None):
+    """Veri toplama — Arbworld JSON API'sinden çek, Supabase'e yaz.
+    NOT: Arbworld, Hetzner IP'sini (91.99.6.245) engelliyor (403). Sadece lokal/farklı IP'den çalışır."""
+    _log = logger_callback if logger_callback else log
+    _log("[Arbworld] Scrape başlıyor...")
+
+    scraped_at = get_turkey_now()
+    scraped_at_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+    session = requests.Session()
+
+    FETCH_CONFIG = [
+        ("moneyway_1x2",  {"type": "mw", "market": "MATCH_ODDS"},          extract_moneyway_1x2),
+        ("moneyway_ou25", {"type": "mw", "market": "OVER_UNDER_25"},        extract_moneyway_ou25),
+        ("moneyway_btts", {"type": "mw", "market": "BOTH_TEAMS_TO_SCORE"},  extract_moneyway_btts),
+        ("dropping_1x2",  {"type": "do", "market": "MATCH_ODDS"},           extract_dropping_1x2),
+        ("dropping_ou25", {"type": "do", "market": "OVER_UNDER_25"},        extract_dropping_ou25),
+        ("dropping_btts", {"type": "do", "market": "BOTH_TEAMS_TO_SCORE"},  extract_dropping_btts),
+    ]
+    HISTORY_MAP = {
+        "moneyway_1x2":  "moneyway_1x2_history",
+        "moneyway_ou25": "moneyway_ou25_history",
+        "moneyway_btts": "moneyway_btts_history",
+        "dropping_1x2":  "dropping_1x2_history",
+        "dropping_ou25": "dropping_ou25_history",
+        "dropping_btts": "dropping_btts_history",
+    }
+
+    fetched_data = {}
+    for tbl, params, _ in FETCH_CONFIG:
+        try:
+            data = fetch_json(params, session)
+            fetched_data[tbl] = data
+            _log(f"[Arbworld]   {tbl}: {len(data)} kayıt")
+        except Exception as e:
+            _log(f"[Arbworld]   HATA {tbl}: {e}")
+            fetched_data[tbl] = []
+
+    if not any(fetched_data.values()):
+        _log("[Arbworld] HATA: Hiç veri çekilemedi")
+        return 0
+
+    # Fixtures
+    all_fixtures = {}
+    for tbl, _, _ in FETCH_CONFIG:
+        for rec in fetched_data.get(tbl, []):
+            home   = (rec.get("home") or "").strip()
+            away   = (rec.get("away") or "").strip()
+            league = (rec.get("leage") or "").strip()
+            date_str = _normalize_json_date(rec.get("date", ""))
+            if not home or not away:
+                continue
+            kickoff_utc = parse_date_to_kickoff(date_str)
+            mhash = make_match_id_hash(home, away, league, kickoff_utc)
+            if mhash not in all_fixtures:
+                all_fixtures[mhash] = {
+                    'match_id_hash': mhash,
+                    'home_team':     home[:100],
+                    'away_team':     away[:100],
+                    'league':        league[:150],
+                    'kickoff_utc':   kickoff_utc,
+                    'fixture_date':  kickoff_utc[:10] if kickoff_utc else "",
+                }
+
+    # Snapshots (moneyway markets only)
+    all_snapshots = []
+    for data, market, sels in [
+        (fetched_data.get("moneyway_1x2",  []), '1X2',  [('1','odds1','pct1','amt1'),('X','oddsx','pctx','amtx'),('2','odds2','pct2','amt2')]),
+        (fetched_data.get("moneyway_ou25", []), 'OU25', [('O','over','pctover','amtover'),('U','under','pctunder','amtunder')]),
+        (fetched_data.get("moneyway_btts", []), 'BTTS', [('Y','yes','pctyes','amtyes'),('N','no','pctno','amtno')]),
+    ]:
+        extractor = {
+            '1X2': extract_moneyway_1x2, 'OU25': extract_moneyway_ou25, 'BTTS': extract_moneyway_btts
+        }[market]
+        for row in extractor(data):
+            home, away, league = row.get('home',''), row.get('away',''), row.get('league','')
+            kickoff_utc = parse_date_to_kickoff(row.get('date',''))
+            mhash = make_match_id_hash(home, away, league, kickoff_utc)
+            for sel, ok_key, pk_key, ak_key in sels:
+                odds_f = float(row[ok_key]) if row.get(ok_key) else None
+                vol_f  = _parse_volume(row.get(ak_key))  or None
+                shr_f  = _parse_percent_value(row.get(pk_key)) or None
+                if odds_f or vol_f or shr_f:
+                    all_snapshots.append({
+                        'match_id_hash':  mhash,
+                        'market':         market,
+                        'selection':      sel,
+                        'odds':           odds_f,
+                        'volume':         vol_f,
+                        'share':          shr_f,
+                        'scraped_at_utc': scraped_at_utc,
+                    })
+
+    # Write to Supabase
+    total_rows = 0
+    write_errors = 0
+
+    if all_fixtures:
+        ok = writer.upsert_fixtures(list(all_fixtures.values()))
+        _log(f"[Arbworld]   [{'OK' if ok else 'HATA'}] Fixtures: {len(all_fixtures)}")
+        if not ok:
+            write_errors += 1
+
+    for tbl, _, extractor in FETCH_CONFIG:
+        hist_tbl = HISTORY_MAP[tbl]
+        rows = extractor(fetched_data.get(tbl, []))
+        if not rows:
+            _log(f"[Arbworld]   [!] {tbl}: veri yok")
+            continue
+        ok1 = writer.replace_table(tbl, rows)
+        ok2 = writer.append_history(hist_tbl, rows, scraped_at)
+        if ok1 and ok2:
+            _log(f"[Arbworld]   [OK] {tbl}: {len(rows)} satır")
+            total_rows += len(rows)
+        else:
+            _log(f"[Arbworld]   [HATA] {tbl}: (main={ok1}, hist={ok2})")
+            write_errors += 1
+
+    if all_snapshots:
+        ok = writer.insert_snapshots('moneyway_snapshots', all_snapshots)
+        _log(f"[Arbworld]   [{'OK' if ok else 'HATA'}] Snapshots: {len(all_snapshots)}")
+        if not ok:
+            write_errors += 1
+
+    _log(f"[Arbworld] Tamamlandı — {total_rows} satır, {len(all_fixtures)} fixture, {len(all_snapshots)} snapshot, {write_errors} hata")
+    return total_rows
+
+
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
-    """Veri toplama — excapper_scraper.run_scrape_excapper()'a delege eder (Arbworld -> Excapper migrasyonu)."""
+    """Veri toplama — excapper_scraper.run_scrape_excapper()'a delege eder.
+    run_scrape_arbworld() Hetzner IP'sinden çalışmaz (403 block)."""
     import sys as _sys, os as _os
     _dir = _os.path.dirname(_os.path.abspath(__file__))
     if _dir not in _sys.path:
