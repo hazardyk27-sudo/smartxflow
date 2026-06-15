@@ -215,6 +215,12 @@ def load_config() -> Dict[str, str]:
             sys.exit(1)
         
         log(f"Config yuklendi basariyla!")
+        # Betwatch API key - env var olarak set et (betwatch_client.py bunu okur)
+        if config.get('Betwach_api_key'):
+            os.environ['Betwach_api_key'] = config['Betwach_api_key']
+            log("Betwatch API key yuklendi")
+        else:
+            log("UYARI: config.json'da Betwach_api_key eksik — Betwatch API calismayacak")
         return config
     except json.JSONDecodeError as e:
         log(f"ERROR: config.json okunamadi - {e}")
@@ -1074,15 +1080,325 @@ def run_scrape_arbworld(writer: SupabaseWriter, logger_callback=None):
     return total_rows
 
 
+# ── Betwatch API v1 helper functions ──────────────────────────────────────────
+
+def _bw_coef(v) -> str:
+    try:
+        f = float(v)
+        return f"{f:g}" if f > 0 else ""
+    except Exception:
+        return ""
+
+
+def _bw_vol_amt(v) -> str:
+    try:
+        f = float(v)
+        if f <= 0:
+            return ""
+        return f"£ {int(f)}" if f == int(f) else f"£ {f:g}"
+    except Exception:
+        return ""
+
+
+def _bw_vol_pct(v: float, total: float) -> str:
+    try:
+        if total <= 0 or v <= 0:
+            return ""
+        return f"{(v / total * 100):.1f}%"
+    except Exception:
+        return ""
+
+
+def _bw_trend(cur, prev) -> str:
+    try:
+        c = float(cur) if cur not in (None, "", 0) else 0.0
+        p = float(prev) if prev not in (None, "", 0) else 0.0
+        if c <= 0 or p <= 0 or abs(c - p) < 0.001:
+            return ""
+        return "up" if c > p else "down"
+    except Exception:
+        return ""
+
+
+def _bw_read_prev_dropping(writer, table: str, fields: list) -> dict:
+    """Mevcut DB değerlerini okur → prev-odds karşılaştırması için dict döndürür."""
+    sel = "home,away,league,date," + ",".join(fields)
+    try:
+        r = requests.get(
+            f"{writer._rest_url(table)}?select={sel}",
+            headers=writer._headers(),
+            timeout=30,
+            verify=certifi.where(),
+        )
+        if r.status_code == 200:
+            result = {}
+            for row in r.json():
+                key = (row.get("home", ""), row.get("away", ""), row.get("league", ""), row.get("date", ""))
+                result[key] = {f: row.get(f, "") for f in fields}
+            return result
+    except Exception as e:
+        log(f"  [WARN] {table} prev-odds okunamadi: {e}")
+    return {}
+
+
+def run_scrape_betwatch_v1(writer, logger_callback=None) -> int:
+    """
+    Betwatch API v1 prematch → Supabase.
+    6 ana tablo + 6 history + fixtures + moneyway_snapshots yazar.
+    Döndürür: toplam yazılan satır sayısı.
+    """
+    _log = logger_callback if logger_callback else log
+
+    _log("[BW-Pre] Scrape basliyor — Betwatch API v1 /football/prematch")
+
+    # betwatch_client'ı local dizinden import et
+    _bw_dir = os.path.dirname(os.path.abspath(__file__))
+    if _bw_dir not in sys.path:
+        sys.path.insert(0, _bw_dir)
+    from betwatch_client import fetch_prematch, normalize_kickoff, map_market
+
+    scraped_at = get_turkey_now()
+    scraped_at_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+
+    # 1. Fetch
+    try:
+        matches = fetch_prematch(timeout=40)
+    except Exception as e:
+        _log(f"[BW-Pre] HATA — Betwatch API: {e}")
+        return 0
+
+    if not matches:
+        _log("[BW-Pre] HATA — Betwatch API bos liste dondurdu")
+        return 0
+
+    _log(f"[BW-Pre] {len(matches)} mac alindi")
+
+    # 2. Previous dropping odds (trend hesabı)
+    _log("[BW-Pre] Dropping onceki oran okunuyor...")
+    prev_do_1x2  = _bw_read_prev_dropping(writer, "dropping_1x2",  ["odds1", "oddsx", "odds2"])
+    prev_do_ou25 = _bw_read_prev_dropping(writer, "dropping_ou25", ["over", "under"])
+    prev_do_btts = _bw_read_prev_dropping(writer, "dropping_btts", ["oddsyes", "oddsno"])
+
+    # 3. Process
+    all_fixtures = {}
+    mw_1x2_rows, mw_ou25_rows, mw_btts_rows = [], [], []
+    do_1x2_rows, do_ou25_rows, do_btts_rows = [], [], []
+    all_snapshots = []
+    skipped = 0
+
+    for match in matches:
+        home   = ((match.get("teams") or {}).get("v1") or "").strip()
+        away   = ((match.get("teams") or {}).get("v2") or "").strip()
+        league = (match.get("league") or "").strip()
+        ko_raw = match.get("kickoff") or ""
+
+        if not home or not away:
+            skipped += 1
+            continue
+
+        kickoff_utc = normalize_kickoff(ko_raw)
+        date = kickoff_utc
+
+        mhash = make_match_id_hash(home, away, league)
+
+        if mhash not in all_fixtures:
+            all_fixtures[mhash] = {
+                "match_id_hash": mhash,
+                "home_team":     home[:100],
+                "away_team":     away[:100],
+                "league":        league[:150],
+                "kickoff_utc":   kickoff_utc,
+                "fixture_date":  kickoff_utc[:10] if kickoff_utc else "",
+            }
+
+        prev_key = (home, away, league, date)
+
+        for mkt in (match.get("markets") or []):
+            mkt_name = mkt.get("name", "")
+            runners  = mkt.get("runners") or []
+            market_key, sels = map_market(mkt_name, runners)
+            if market_key is None:
+                continue
+
+            rs = {sel: runner for sel, runner in sels}
+
+            if market_key == "1X2":
+                r1, rx, r2 = rs.get("1", {}), rs.get("X", {}), rs.get("2", {})
+                v1 = float(r1.get("volume") or 0)
+                vx = float(rx.get("volume") or 0)
+                v2 = float(r2.get("volume") or 0)
+                total = v1 + vx + v2
+                mw_1x2_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "odds1": _bw_coef(r1.get("odd")), "oddsx": _bw_coef(rx.get("odd")), "odds2": _bw_coef(r2.get("odd")),
+                    "pct1": _bw_vol_pct(v1, total), "amt1": _bw_vol_amt(v1),
+                    "pctx": _bw_vol_pct(vx, total), "amtx": _bw_vol_amt(vx),
+                    "pct2": _bw_vol_pct(v2, total), "amt2": _bw_vol_amt(v2),
+                    "volume": _bw_vol_amt(total),
+                })
+                prev = prev_do_1x2.get(prev_key, {})
+                c1, cx, c2 = _bw_coef(r1.get("odd")), _bw_coef(rx.get("odd")), _bw_coef(r2.get("odd"))
+                do_1x2_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "odds1": c1, "odds1_prev": prev.get("odds1", ""),
+                    "oddsx": cx, "oddsx_prev": prev.get("oddsx", ""),
+                    "odds2": c2, "odds2_prev": prev.get("odds2", ""),
+                    "trend1": _bw_trend(c1, prev.get("odds1")),
+                    "trendx": _bw_trend(cx, prev.get("oddsx")),
+                    "trend2": _bw_trend(c2, prev.get("odds2")),
+                    "volume": _bw_vol_amt(total),
+                })
+                for sel, r, v in [("1", r1, v1), ("X", rx, vx), ("2", r2, v2)]:
+                    odd_f = float(r["odd"]) if r.get("odd") else None
+                    vol_f = v if v > 0 else None
+                    shr_f = round(v / total * 100, 1) if total > 0 and v > 0 else None
+                    if odd_f or vol_f:
+                        all_snapshots.append({
+                            "match_id_hash": mhash, "market": "1X2", "selection": sel,
+                            "odds": odd_f, "volume": vol_f, "share": shr_f,
+                            "scraped_at_utc": scraped_at_utc,
+                        })
+
+            elif market_key == "OU25":
+                ro, ru = rs.get("O", {}), rs.get("U", {})
+                vo = float(ro.get("volume") or 0)
+                vu = float(ru.get("volume") or 0)
+                total = vo + vu
+                co, cu = _bw_coef(ro.get("odd")), _bw_coef(ru.get("odd"))
+                mw_ou25_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "over": co, "under": cu, "line": "2.5",
+                    "pctover": _bw_vol_pct(vo, total), "amtover": _bw_vol_amt(vo),
+                    "pctunder": _bw_vol_pct(vu, total), "amtunder": _bw_vol_amt(vu),
+                    "volume": _bw_vol_amt(total),
+                })
+                prev = prev_do_ou25.get(prev_key, {})
+                do_ou25_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "over": co, "over_prev": prev.get("over", ""),
+                    "under": cu, "under_prev": prev.get("under", ""),
+                    "line": "2.5",
+                    "trendover": _bw_trend(co, prev.get("over")),
+                    "trendunder": _bw_trend(cu, prev.get("under")),
+                    "pctover": _bw_vol_pct(vo, total), "amtover": _bw_vol_amt(vo),
+                    "pctunder": _bw_vol_pct(vu, total), "amtunder": _bw_vol_amt(vu),
+                    "volume": _bw_vol_amt(total),
+                })
+                for sel, r, v in [("O", ro, vo), ("U", ru, vu)]:
+                    odd_f = float(r["odd"]) if r.get("odd") else None
+                    vol_f = v if v > 0 else None
+                    shr_f = round(v / total * 100, 1) if total > 0 and v > 0 else None
+                    if odd_f or vol_f:
+                        all_snapshots.append({
+                            "match_id_hash": mhash, "market": "OU25", "selection": sel,
+                            "odds": odd_f, "volume": vol_f, "share": shr_f,
+                            "scraped_at_utc": scraped_at_utc,
+                        })
+
+            elif market_key == "BTTS":
+                ry, rn = rs.get("Y", {}), rs.get("N", {})
+                vy = float(ry.get("volume") or 0)
+                vn = float(rn.get("volume") or 0)
+                total = vy + vn
+                cy, cn = _bw_coef(ry.get("odd")), _bw_coef(rn.get("odd"))
+                mw_btts_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "yes": cy, "no": cn,
+                    "pctyes": _bw_vol_pct(vy, total), "amtyes": _bw_vol_amt(vy),
+                    "pctno": _bw_vol_pct(vn, total), "amtno": _bw_vol_amt(vn),
+                    "volume": _bw_vol_amt(total),
+                })
+                prev = prev_do_btts.get(prev_key, {})
+                do_btts_rows.append({
+                    "league": league, "date": date, "home": home, "away": away,
+                    "oddsyes": cy, "oddsyes_prev": prev.get("oddsyes", ""),
+                    "oddsno": cn,  "oddsno_prev":  prev.get("oddsno", ""),
+                    "trendyes": _bw_trend(cy, prev.get("oddsyes")),
+                    "trendno":  _bw_trend(cn, prev.get("oddsno")),
+                    "pctyes": _bw_vol_pct(vy, total), "amtyes": _bw_vol_amt(vy),
+                    "pctno": _bw_vol_pct(vn, total),  "amtno": _bw_vol_amt(vn),
+                    "volume": _bw_vol_amt(total),
+                })
+                for sel, r, v in [("Y", ry, vy), ("N", rn, vn)]:
+                    odd_f = float(r["odd"]) if r.get("odd") else None
+                    vol_f = v if v > 0 else None
+                    shr_f = round(v / total * 100, 1) if total > 0 and v > 0 else None
+                    if odd_f or vol_f:
+                        all_snapshots.append({
+                            "match_id_hash": mhash, "market": "BTTS", "selection": sel,
+                            "odds": odd_f, "volume": vol_f, "share": shr_f,
+                            "scraped_at_utc": scraped_at_utc,
+                        })
+
+    if skipped:
+        _log(f"[BW-Pre] {skipped} mac skip (eksik home/away)")
+
+    _log(
+        f"[BW-Pre] Islendi: {len(all_fixtures)} fixture | "
+        f"MW 1X2={len(mw_1x2_rows)} OU25={len(mw_ou25_rows)} BTTS={len(mw_btts_rows)} | "
+        f"DO 1X2={len(do_1x2_rows)} OU25={len(do_ou25_rows)} BTTS={len(do_btts_rows)} | "
+        f"Snap={len(all_snapshots)}"
+    )
+
+    # 4. Write to Supabase
+    total_rows = 0
+    write_errors = 0
+
+    HISTORY_TABLE = {
+        "moneyway_1x2":  "moneyway_1x2_history",
+        "moneyway_ou25": "moneyway_ou25_history",
+        "moneyway_btts": "moneyway_btts_history",
+        "dropping_1x2":  "dropping_1x2_history",
+        "dropping_ou25": "dropping_ou25_history",
+        "dropping_btts": "dropping_btts_history",
+    }
+    WRITE_PLAN = [
+        ("moneyway_1x2",  mw_1x2_rows),
+        ("moneyway_ou25", mw_ou25_rows),
+        ("moneyway_btts", mw_btts_rows),
+        ("dropping_1x2",  do_1x2_rows),
+        ("dropping_ou25", do_ou25_rows),
+        ("dropping_btts", do_btts_rows),
+    ]
+
+    if all_fixtures:
+        ok = writer.upsert_fixtures(list(all_fixtures.values()))
+        _log(f"[BW-Pre]   [{'OK' if ok else 'HATA'}] Fixtures: {len(all_fixtures)}")
+        if not ok:
+            write_errors += 1
+
+    for tbl, rows in WRITE_PLAN:
+        if not rows:
+            _log(f"[BW-Pre]   [!] {tbl}: veri yok")
+            continue
+        hist_tbl = HISTORY_TABLE[tbl]
+        ok_main = writer.replace_table(tbl, rows)
+        ok_hist = writer.append_history(hist_tbl, rows, scraped_at)
+        if ok_main and ok_hist:
+            _log(f"[BW-Pre]   [OK] {tbl}: {len(rows)} satir")
+            total_rows += len(rows)
+        else:
+            _log(f"[BW-Pre]   [HATA] {tbl}: (main={ok_main}, hist={ok_hist})")
+            write_errors += 1
+
+    if all_snapshots:
+        ok = writer.insert_snapshots("moneyway_snapshots", all_snapshots)
+        _log(f"[BW-Pre]   [{'OK' if ok else 'HATA'}] moneyway_snapshots: {len(all_snapshots)}")
+        if not ok:
+            write_errors += 1
+
+    _log(
+        f"[BW-Pre] Tamamlandi — {total_rows} satir, "
+        f"{len(all_fixtures)} fixture, {len(all_snapshots)} snapshot, "
+        f"{write_errors} hata"
+    )
+    return total_rows
+
+
 def run_scrape(writer: SupabaseWriter, logger_callback=None):
-    """Veri toplama — excapper_scraper.run_scrape_excapper()'a delege eder (admin exe / PC modu).
-    Arbworld hem Hetzner hem PC IP'sini bloklar (403); excapper PC'den çalışır."""
-    import sys as _sys, os as _os
-    _dir = _os.path.dirname(_os.path.abspath(__file__))
-    if _dir not in _sys.path:
-        _sys.path.insert(0, _dir)
-    from excapper_scraper import run_scrape_excapper
-    return run_scrape_excapper(writer, logger_callback=logger_callback)
+    """Veri toplama — Betwatch API v1 kullanir.
+    Eski Arbworld ve Excapper kaynakları artık kullanılmıyor (IP engeli / PC bağımlılığı)."""
+    return run_scrape_betwatch_v1(writer, logger_callback=logger_callback)
 
 
 def _parse_volume(vol_str: str) -> float:
