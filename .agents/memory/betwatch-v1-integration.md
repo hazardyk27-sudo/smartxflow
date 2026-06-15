@@ -30,6 +30,9 @@ Each match: `{match_id, teams:{v1(home), v2(away)}, league, country, kickoff(UTC
 - `betwatch_client.py` (root) — shared client (fetch_prematch, fetch_live, map_market, normalize_kickoff, betwatch_live_minute/score)
 - `betwatch_prematch.py` (root) — server-side prematch scraper; reads prev dropping odds from DB before writing
 - `scheduled_scraper.py` — imports `run_scrape_betwatch` from betwatch_prematch (replaces Arbworld)
-- `live_scraper.py` — uses `_fetch_betwatch_v1_live` + `_process_betwatch_v1_live`; Sofascore kept only for stale match final scores
+- `live_scraper.py` — uses `_fetch_betwatch_v1_live` + `_process_betwatch_v1_live`; Sofascore/APIFootball/league_mapping REMOVED (all data from Betwatch incl. live_info score+minute)
 
-**Why:** Arbworld was 403-blocking Hetzner/Replit IPs; old betwatch used cookie auth (fragile). Betwatch v1 uses stable Token auth and provides live_info (minute+score) directly.
+**Why:** Arbworld was 403-blocking Hetzner/Replit IPs; old betwatch used cookie auth (fragile). Betwatch v1 uses stable Token auth and provides live_info (minute+score) directly. Sofascore/APIFootball cleanup done when user confirmed single-source architecture.
+
+## Single source confirmed
+Betwatch v1 is the ONLY data source for both prematch and live. Sofascore, APIFootball, and league_mapping.json are all obsolete. Do NOT re-add them.

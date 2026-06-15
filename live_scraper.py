@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 SmartXFlow Live Scraper
-Canlı maç verilerini Betwatch.fr'den çeker (Betfair exchange oranları + para).
-Skor/dakika Sofascore'dan gelir.
+Canlı maç verilerini Betwatch.fr'den çeker (Betfair exchange oranları + para + skor + dakika).
+Tüm veriler tek kaynak: Betwatch API v1 (live_info ile skor/dakika doğrudan gelir).
 Prematch scraper'dan bağımsız çalışır.
 """
 import os
@@ -13,9 +13,6 @@ import json
 import hashlib
 import requests
 import traceback
-import difflib
-import unicodedata
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
@@ -92,431 +89,6 @@ def make_live_match_hash(home: str, away: str, league: str) -> str:
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
 
 
-SOFASCORE_URL = "https://api.sofascore.com/api/v1/sport/football/events/live"
-SOFASCORE_URL_WWW = "https://www.sofascore.com/api/v1/sport/football/events/live"
-APIFOOTBALL_KEY = os.environ.get("APIFOOTBALL_KEY", "")
-APIFOOTBALL_URL = "https://v3.football.api-sports.io/fixtures"
-SOFASCORE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Origin": "https://www.sofascore.com",
-    "Referer": "https://www.sofascore.com/",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-    "Sec-Ch-Ua-Mobile": "?0",
-    "Sec-Ch-Ua-Platform": '"Windows"',
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-site",
-}
-_ss_session = None
-_ss_session_ts = 0
-_apifootball_cache: Dict[str, Dict] = {}
-_apifootball_cache_ts: float = 0.0
-APIFOOTBALL_CACHE_TTL = 15 * 60
-
-
-def _load_league_mapping() -> Dict[str, Dict]:
-    """SX lig adı (normalize edilmiş) → {af_ids, af_names, country} lookup."""
-    try:
-        path = os.path.join(os.path.dirname(__file__), 'data', 'league_mapping.json')
-        with open(path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        leagues = data.get('leagues', {}) or {}
-        log(f"  [LeagueMap] {len(leagues)} SX↔AF eşleşme yüklendi")
-        return leagues
-    except FileNotFoundError:
-        log("  [LeagueMap] data/league_mapping.json bulunamadı — fuzzy fallback")
-        return {}
-    except Exception as e:
-        log(f"  [LeagueMap] Yükleme hatası: {e} — fuzzy fallback")
-        return {}
-
-
-_LEAGUE_MAPPING: Dict[str, Dict] = _load_league_mapping()
-
-
-def _league_lookup_key(s: str) -> str:
-    if not s:
-        return ''
-    return re.sub(r'\s+', ' ', s.strip().lower())
-
-
-def _league_match_score(sx_league: str, ss_league: str) -> float:
-    """SX ↔ Sofascore/APIFootball lig adı eşleşme skoru (0..1).
-
-    1) Mapping'de SX adı varsa ve af_names'ten biri ss_league ile eşleşiyorsa 1.0.
-    2) Mapping'de SX adı varsa ama hiçbir af_name eşleşmiyorsa 0.0 (kesin reddet).
-    3) Mapping'de SX adı yoksa eski fuzzy davranışı (geri uyumluluk).
-    """
-    if not sx_league or not ss_league:
-        return -1.0
-    sx_key = _league_lookup_key(sx_league)
-    entry = _LEAGUE_MAPPING.get(sx_key)
-    ss_norm = _normalize_team(ss_league)
-    if entry:
-        for af_name in entry.get('af_names', []):
-            af_norm = _normalize_team(af_name)
-            if not af_norm:
-                continue
-            if af_norm == ss_norm:
-                return 1.0
-            sc = _team_match_score(af_norm, ss_norm)
-            if sc >= 0.85:
-                return sc
-        return 0.0
-    sx_norm = _normalize_team(sx_league)
-    if not sx_norm or not ss_norm:
-        return -1.0
-    return _team_match_score(sx_norm, ss_norm)
-
-
-_TEAM_ABBREVS = {
-    'utd': 'united',
-    'muni': 'munich',
-    'man': 'manchester',
-    'cty': 'city',
-    'wed': 'wednesday',
-    'ath': 'athletic',
-}
-
-def _normalize_team(name: str) -> str:
-    if not name:
-        return ""
-    s = unicodedata.normalize('NFKD', name)
-    s = s.encode('ascii', 'ignore').decode('ascii')
-    s = re.sub(r'[^a-z0-9 ]', '', s.lower())
-    s = re.sub(r'\s+', ' ', s).strip()
-    for suffix in [' fc', ' sc', ' fk', ' sk', ' cf', ' ac', ' as', ' bc']:
-        if s.endswith(suffix):
-            s = s[:-len(suffix)].strip()
-    words = s.split()
-    expanded = [_TEAM_ABBREVS.get(w, w) for w in words]
-    s = ' '.join(expanded)
-    if s.endswith(' w'):
-        s = s[:-2] + ' women'
-    return s
-
-
-def _calc_sofascore_minute(event: Dict) -> str:
-    status = event.get('status', {})
-    desc = status.get('description', '')
-    code = status.get('code', 0)
-    if code == 31 or desc == 'Halftime':
-        return 'HT'
-    if code == 100 or desc == 'Ended':
-        return 'FT'
-    if code == 120 or desc == 'AP':
-        return 'PEN'
-    stype = status.get('type', '')
-    if stype == 'notstarted':
-        return ''
-    time_info = event.get('time', {})
-    period_start = time_info.get('currentPeriodStartTimestamp', 0)
-    initial = time_info.get('initial', 0)
-    now_ts = int(time.time())
-    if period_start > 0:
-        elapsed_secs = max(0, now_ts - period_start)
-        base_min = initial // 60
-        current_min = base_min + elapsed_secs // 60
-        if code == 6 and current_min > 45:
-            return f"45+{current_min - 45}'"
-        if code == 7 and current_min > 90:
-            return f"90+{current_min - 90}'"
-        return f"{current_min}'"
-    return ''
-
-
-def _get_ss_session() -> requests.Session:
-    global _ss_session, _ss_session_ts
-    now = time.time()
-    if _ss_session is None or (now - _ss_session_ts) > 1800:
-        s = requests.Session()
-        try:
-            s.get("https://www.sofascore.com/", headers=SOFASCORE_HEADERS, timeout=10)
-        except Exception:
-            pass
-        _ss_session = s
-        _ss_session_ts = now
-    return _ss_session
-
-
-def _fetch_sofascore_live() -> Dict[str, Dict]:
-    try:
-        session = _get_ss_session()
-        resp = None
-        for url in [SOFASCORE_URL, SOFASCORE_URL_WWW]:
-            try:
-                resp = session.get(url, headers=SOFASCORE_HEADERS, timeout=15)
-                if resp.status_code == 200:
-                    break
-                log(f"  [Sofascore] {url.split('/')[2]} → HTTP {resp.status_code}")
-            except Exception as e:
-                log(f"  [Sofascore] {url.split('/')[2]} → hata: {e}")
-                resp = None
-        if resp is None or resp.status_code != 200:
-            return {}
-        data = resp.json()
-        events = data.get('events', [])
-        if not isinstance(events, list):
-            log(f"  [Sofascore] events beklenen list degil: {type(events)}")
-            return {}
-        result = {}
-        for ev in events:
-            home = ev.get('homeTeam', {}).get('name', '')
-            away = ev.get('awayTeam', {}).get('name', '')
-            if not home or not away:
-                continue
-            h_score = ev.get('homeScore', {}).get('current', '')
-            a_score = ev.get('awayScore', {}).get('current', '')
-            score_str = f"{h_score}-{a_score}" if h_score != '' and a_score != '' else ''
-            minute_str = _calc_sofascore_minute(ev)
-            start_ts = ev.get('startTimestamp', 0)
-            kickoff_utc = ''
-            if start_ts:
-                utc_dt = datetime.fromtimestamp(start_ts, tz=timezone.utc)
-                tr_dt = utc_dt + timedelta(hours=3)
-                kickoff_utc = tr_dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
-            tournament_name = ev.get('tournament', {}).get('name', '')
-            key = _normalize_team(home) + '|' + _normalize_team(away)
-            result[key] = {
-                'score': score_str,
-                'minute': minute_str,
-                'home': home,
-                'away': away,
-                'kickoff_utc': kickoff_utc,
-                'league': tournament_name,
-            }
-        log(f"  [Sofascore] {len(result)} canlı maç bulundu")
-        return result
-    except Exception as e:
-        log(f"  [Sofascore] Hata: {e}")
-        return {}
-
-
-def _team_match_score(arb: str, fs: str) -> float:
-    if not arb or not fs:
-        return 0.0
-    if arb == fs:
-        return 1.0
-    if fs.startswith(arb) or arb.startswith(fs):
-        shorter = min(len(arb), len(fs))
-        if shorter >= 4:
-            return 0.90
-    shorter = min(len(arb), len(fs))
-    if shorter >= 4:
-        if arb in fs or fs in arb:
-            return 0.85
-        arb_words = arb.split()
-        fs_words = fs.split()
-        if len(arb_words) == 1 and arb_words[0] in fs_words:
-            return 0.85
-        if len(fs_words) == 1 and fs_words[0] in arb_words:
-            return 0.85
-    return difflib.SequenceMatcher(None, arb, fs).ratio()
-
-
-def _kickoff_diff_seconds(ko1: str, ko2: str) -> int:
-    if not ko1 or not ko2:
-        return -1
-    try:
-        dt1 = datetime.fromisoformat(ko1)
-        dt2 = datetime.fromisoformat(ko2)
-        return abs(int((dt1 - dt2).total_seconds()))
-    except Exception:
-        return -1
-
-
-def _apply_sofascore_results(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
-    """Önceden çekilmiş Sofascore verisiyle fixture'ları zenginleştirir."""
-    if not all_fixtures or not ss_data:
-        return 0
-    return _enrich_fixtures_with_ss(all_fixtures, ss_data)
-
-
-def enrich_with_sofascore(all_fixtures: Dict[str, Dict]) -> int:
-    if not all_fixtures:
-        return 0
-    ss_data = _fetch_sofascore_live()
-    if not ss_data:
-        return 0
-    return _enrich_fixtures_with_ss(all_fixtures, ss_data)
-
-
-def _minute_to_num(m: str) -> int:
-    if not m:
-        return -1
-    s = str(m).strip().upper().replace("'", "")
-    if s == 'HT':
-        return 45
-    if s == 'FT':
-        return 90
-    if s in ('ET', 'PEN'):
-        return 105
-    plus = re.match(r'^(\d+)\+(\d+)$', s)
-    if plus:
-        return int(plus.group(1)) + int(plus.group(2))
-    if s.isdigit():
-        return int(s)
-    return -1
-
-
-def _enrich_fixtures_with_ss(all_fixtures: Dict[str, Dict], ss_data: Dict[str, Dict]) -> int:
-    enriched = 0
-    ss_entries = []
-    for sk, sv in ss_data.items():
-        parts = sk.split('|')
-        ss_entries.append((parts[0], parts[1] if len(parts) > 1 else '', sk))
-    matched_ss_keys = set()
-    bw_miss_count = 0
-    for h, fix in all_fixtures.items():
-        arb_home = _normalize_team(fix.get('home_team', ''))
-        arb_away = _normalize_team(fix.get('away_team', ''))
-        if not arb_home or not arb_away:
-            continue
-        bw_ko = fix.get('kickoff_utc', '')
-        bw_league = fix.get('league', '')
-        bw_league_norm = _normalize_team(bw_league) if bw_league else ''
-        best_combined = 0.0
-        best_key = None
-        best_ko_diff = -1
-        best_league_sc = 0.0
-        top_candidates = []
-        for ss_h, ss_a, ss_full_key in ss_entries:
-            h_score = _team_match_score(arb_home, ss_h)
-            a_score = _team_match_score(arb_away, ss_a)
-            combined = (h_score + a_score) / 2
-            ssd_tmp = ss_data[ss_full_key]
-            ss_ko = ssd_tmp.get('kickoff_utc', '')
-            ko_diff = _kickoff_diff_seconds(bw_ko, ss_ko)
-            ss_league = ssd_tmp.get('league', '')
-            ss_league_norm = _normalize_team(ss_league) if ss_league else ''
-            league_sc = _league_match_score(bw_league, ss_league)
-            if combined > 0.20:
-                top_candidates.append((combined, h_score, a_score, ss_full_key,
-                                       ssd_tmp.get('home', ''), ssd_tmp.get('away', ''),
-                                       ko_diff, league_sc, ss_league[:25]))
-            if h_score < 0.40 or a_score < 0.40:
-                continue
-            if combined < 0.50:
-                continue
-            if ko_diff >= 0 and ko_diff > 300:
-                continue
-            if combined > best_combined:
-                best_combined = combined
-                best_key = ss_full_key
-                best_ko_diff = ko_diff
-                best_league_sc = league_sc
-        top_candidates.sort(key=lambda x: x[0], reverse=True)
-        top3 = top_candidates[:3]
-        raw_home = fix.get('home_team', '?')[:25]
-        raw_away = fix.get('away_team', '?')[:25]
-        if best_key and best_combined >= 0.50:
-            ssd = ss_data[best_key]
-            arb_min_num = _minute_to_num(fix.get('minute', ''))
-            ss_min_num = _minute_to_num(ssd.get('minute', ''))
-            if arb_min_num >= 0 and ss_min_num >= 0 and abs(arb_min_num - ss_min_num) > 15:
-                continue
-            if ssd['score']:
-                fix['score'] = ssd['score']
-            ss_min = ssd['minute']
-            if ss_min:
-                fix['minute'] = ss_min
-            if ss_min == 'FT':
-                fix['status'] = 'ft'
-            if ssd.get('kickoff_utc'):
-                fix['kickoff_utc'] = ssd['kickoff_utc']
-            matched_ss_keys.add(best_key)
-            enriched += 1
-        else:
-            bw_miss_count += 1
-    ss_only_count = 0
-    for sk, sv in ss_data.items():
-        if sk not in matched_ss_keys:
-            ss_only_count += 1
-    log(f"  [MATCH ÖZET] BW: {len(all_fixtures)} | SS: {len(ss_data)} | Eşleşen: {enriched} | BW-miss: {bw_miss_count} | SS-only: {ss_only_count}")
-    return enriched
-
-
-def _fetch_sofascore_finished_events() -> Dict[str, str]:
-    """Sofascore'dan bugün (ve dün gece yarısı) biten tüm maçların skorlarını al."""
-    ss_finished = {}
-    now_utc = datetime.now(timezone.utc)
-    dates = [now_utc.strftime('%Y-%m-%d')]
-    yesterday = (now_utc - timedelta(hours=6)).strftime('%Y-%m-%d')
-    if yesterday != dates[0]:
-        dates.append(yesterday)
-    session = _get_ss_session()
-    for d in dates:
-        try:
-            resp = None
-            for base in ["https://api.sofascore.com", "https://www.sofascore.com"]:
-                try:
-                    resp = session.get(
-                        f"{base}/api/v1/sport/football/scheduled-events/{d}",
-                        headers=SOFASCORE_HEADERS, timeout=15
-                    )
-                    if resp.status_code == 200:
-                        break
-                except Exception:
-                    resp = None
-            if resp is None or resp.status_code != 200:
-                continue
-            for ev in resp.json().get('events', []):
-                st = ev.get('status', {})
-                if st.get('type') != 'finished':
-                    continue
-                home = ev.get('homeTeam', {}).get('name', '')
-                away = ev.get('awayTeam', {}).get('name', '')
-                hs = ev.get('homeScore', {}).get('current', '')
-                aws = ev.get('awayScore', {}).get('current', '')
-                if home and away and hs != '' and aws != '':
-                    key = _normalize_team(home) + '|' + _normalize_team(away)
-                    ss_finished[key] = f"{hs}-{aws}"
-        except Exception:
-            pass
-    return ss_finished
-
-
-def _fetch_final_scores(writer, stale_hashes: List[str]) -> Dict[str, str]:
-    """Stale maçların Sofascore'dan son skorlarını al."""
-    try:
-        fixtures = writer.get_fixtures_by_hashes(stale_hashes)
-        if not fixtures:
-            return {}
-        ss_finished = _fetch_sofascore_finished_events()
-        if not ss_finished:
-            return {}
-        final_scores = {}
-        for fix in fixtures:
-            h = fix['match_id_hash']
-            raw_home = fix.get('home_team', '?')[:25]
-            raw_away = fix.get('away_team', '?')[:25]
-            arb_home = _normalize_team(fix.get('home_team', ''))
-            arb_away = _normalize_team(fix.get('away_team', ''))
-            best_score = ''
-            best_combined = 0.0
-            best_ss_key = ''
-            for ss_key, score in ss_finished.items():
-                ss_h, ss_a = ss_key.split('|', 1)
-                h_s = _team_match_score(arb_home, ss_h)
-                a_s = _team_match_score(arb_away, ss_a)
-                if h_s < 0.55 or a_s < 0.55:
-                    continue
-                comb = (h_s + a_s) / 2
-                if comb > best_combined:
-                    best_combined = comb
-                    best_score = score
-                    best_ss_key = ss_key
-            if best_combined >= 0.70 and best_score:
-                final_scores[h] = best_score
-        return final_scores
-    except Exception as e:
-        log(f"  [Final Scores] Hata: {e}")
-        return {}
 
 
 class LiveSupabaseWriter:
@@ -717,119 +289,6 @@ def _betwatch_ko_to_utc(ce_val: str, fallback: str) -> str:
         return fallback
 
 
-def _apifootball_minute(status: dict) -> str:
-    """API-Football fixture.status → dakika string'e çevir."""
-    short = status.get('short', '')
-    elapsed = status.get('elapsed')
-    if short == 'HT':
-        return 'HT'
-    if short in ('FT', 'AET'):
-        return 'FT'
-    if short in ('P', 'PEN'):
-        return 'PEN'
-    if short == 'ET':
-        return 'ET'
-    if short in ('NS', 'TBD', 'PST', 'CANC', 'ABD', 'SUSP', 'INT', 'BT'):
-        return ''
-    if elapsed is None:
-        return ''
-    e = int(elapsed)
-    if short == '1H':
-        if e > 45:
-            return f"45+{e - 45}'"
-        return f"{e}'"
-    if short == '2H':
-        if e > 90:
-            return f"90+{e - 90}'"
-        return f"{e}'"
-    return f"{e}'" if e else ''
-
-
-def _fetch_apifootball_live() -> Dict[str, Dict]:
-    """API-Football v3 ile canlı skor/dakika çeker.
-    Sofascore ile aynı format döner: key=norm_home|norm_away
-    14 dakika cache — günlük 100 istek sınırında kalır."""
-    global _apifootball_cache, _apifootball_cache_ts
-    if not APIFOOTBALL_KEY:
-        return {}
-    now = time.time()
-    if _apifootball_cache and (now - _apifootball_cache_ts) < APIFOOTBALL_CACHE_TTL:
-        age_min = (now - _apifootball_cache_ts) / 60
-        log(f"  [APIFootball] Cache HIT ({age_min:.1f} dk önce çekildi, {len(_apifootball_cache)} maç)")
-        return _apifootball_cache
-    try:
-        resp = requests.get(
-            APIFOOTBALL_URL,
-            params={'live': 'all'},
-            headers={
-                'x-apisports-key': APIFOOTBALL_KEY,
-                'Accept': 'application/json',
-            },
-            timeout=15,
-        )
-        if resp.status_code != 200:
-            log(f"  [APIFootball] HTTP {resp.status_code}: {resp.text[:100]}")
-            return {}
-        data = resp.json()
-        results_left = data.get('results', 0)
-        response = data.get('response', [])
-        if not isinstance(response, list):
-            log(f"  [APIFootball] Beklenmeyen format")
-            return {}
-        result = {}
-        for item in response:
-            teams = item.get('teams', {})
-            home = teams.get('home', {}).get('name', '')
-            away = teams.get('away', {}).get('name', '')
-            if not home or not away:
-                continue
-            goals = item.get('goals', {})
-            h_score = goals.get('home')
-            a_score = goals.get('away')
-            score_str = f"{h_score}-{a_score}" if h_score is not None and a_score is not None else ''
-            fixture = item.get('fixture', {})
-            status = fixture.get('status', {})
-            minute_str = _apifootball_minute(status)
-            ts = fixture.get('timestamp', 0)
-            kickoff_utc = ''
-            if ts:
-                utc_dt = datetime.fromtimestamp(ts, tz=timezone.utc)
-                tr_dt = utc_dt + timedelta(hours=3)
-                kickoff_utc = tr_dt.strftime('%Y-%m-%dT%H:%M:%S+03:00')
-            league = item.get('league', {})
-            league_name = league.get('name', '')
-            key = _normalize_team(home) + '|' + _normalize_team(away)
-            result[key] = {
-                'score': score_str,
-                'minute': minute_str,
-                'home': home,
-                'away': away,
-                'kickoff_utc': kickoff_utc,
-                'league': league_name,
-            }
-        log(f"  [APIFootball] {len(result)} canlı maç çekildi — sonraki güncelleme ~15 dk sonra (~96/gün)")
-        _apifootball_cache = result
-        _apifootball_cache_ts = time.time()
-        return result
-    except Exception as e:
-        log(f"  [APIFootball] Hata: {e}")
-        if _apifootball_cache:
-            log(f"  [APIFootball] Hata sonrası eski cache kullanılıyor ({len(_apifootball_cache)} maç)")
-            return _apifootball_cache
-        return {}
-
-
-def _fetch_sofascore_data() -> Dict[str, Dict]:
-    """Skor/dakika kaynağı: önce Sofascore, ban varsa API-Football fallback."""
-    ss = _fetch_sofascore_live()
-    if ss:
-        return ss
-    if APIFOOTBALL_KEY:
-        log("  [Fallback] Sofascore başarısız → API-Football deneniyor...")
-        return _fetch_apifootball_live()
-    return {}
-
-
 def _get_betwatch_v1_headers() -> dict:
     api_key = os.environ.get("Betwach_api_key", "")
     return {
@@ -924,7 +383,7 @@ def _map_live_market(mkt_name: str, runners: list):
 
 def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tuple:
     """Betwatch v1 live maçları → (all_fixtures, all_snapshots, match_count).
-    live_info'dan skor ve dakika doğrudan okunur — Sofascore'a gerek yok.
+    live_info'dan skor ve dakika doğrudan okunur — tek kaynak Betwatch.
     """
     all_fixtures = {}
     all_snapshots = []
@@ -1002,7 +461,7 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
 
 def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     """Betwatch API v1'den canlı maçları çeker (oranlar + para + skor + dakika).
-    live_info sayesinde Sofascore'a artık gerek yok."""
+    Tüm veri Betwatch API v1'den gelir — live_info ile skor/dakika dahil."""
     log("CANLI SCRAPE BAŞLIYOR...")
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
     today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
@@ -1011,7 +470,6 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
     matches = _fetch_betwatch_v1_live()
 
     bw_result = {"fetch_ok": bool(matches)}
-    sofa_result = {}
 
     all_fixtures, all_snapshots, total_matches = _process_betwatch_v1_live(matches, now_utc, today_str)
 
@@ -1041,7 +499,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
         if auto_ft_count:
             log(f"  [AUTO-FT] {auto_ft_count} maç 120+ dk geçtiği için otomatik FT yapıldı")
         if auto_ft_skipped:
-            log(f"  [AUTO-FT SKIP] {auto_ft_skipped} maç 120+ dk ama Sofascore'da hâlâ aktif")
+            log(f"  [AUTO-FT SKIP] {auto_ft_skipped} maç 120+ dk ama dakika bilgisi aktif, atlandı")
         already_ft = writer.get_ft_fixture_hashes()
         ft_skipped = 0
         ft_recovered = []
@@ -1090,7 +548,7 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 odds_by_match[h]['oddsX'] = snap.get('odds', '')
             elif snap.get('market') == '1X2' and snap.get('selection') == '2':
                 odds_by_match[h]['odds2'] = snap.get('odds', '')
-        log(f"  [DEBUG] Betwatch vs Sofascore karşılaştırma:")
+        log(f"  [DEBUG] BW snapshot özet:")
         for h, fix in all_fixtures.items():
             o = odds_by_match.get(h, {})
             o1 = o.get('odds1', '-')
@@ -1113,12 +571,6 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
         now_dt = datetime.now(timezone.utc)
         stale_hashes = []
         skipped_early = []
-        ss_protected = []
-        existing_fixtures_data = {}
-        if existing_live_info:
-            db_fixes = writer.get_fixtures_by_hashes(list(existing_live_info.keys()))
-            for df in db_fixes:
-                existing_fixtures_data[df['match_id_hash']] = df
         for h, ko_str in existing_live_info.items():
             if h in current_hashes:
                 continue
@@ -1132,60 +584,15 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             if elapsed_min < 89:
                 skipped_early.append((h, elapsed_min))
                 continue
-            db_fix = existing_fixtures_data.get(h, {})
-            db_home = db_fix.get('home_team', '')
-            db_away = db_fix.get('away_team', '')
-            if db_home and db_away and sofa_result:
-                norm_h = _normalize_team(db_home)
-                norm_a = _normalize_team(db_away)
-                db_league = db_fix.get('league', '')
-                db_league_norm = _normalize_team(db_league) if db_league else ''
-                db_ko = db_fix.get('kickoff_utc', '')
-                best_score = 0
-                best_minute = ''
-                best_ss_home = ''
-                best_ss_away = ''
-                for sk, sv in sofa_result.items():
-                    parts = sk.split('|')
-                    ss_h = parts[0]
-                    ss_a = parts[1] if len(parts) > 1 else ''
-                    h_sc = _team_match_score(norm_h, ss_h)
-                    a_sc = _team_match_score(norm_a, ss_a)
-                    if h_sc < 0.40 or a_sc < 0.40:
-                        continue
-                    combined = (h_sc + a_sc) / 2
-                    if combined < 0.50:
-                        continue
-                    ss_ko = sv.get('kickoff_utc', '')
-                    ko_diff = _kickoff_diff_seconds(db_ko, ss_ko)
-                    if ko_diff >= 0 and ko_diff > 300:
-                        continue
-                    ss_league = sv.get('league', '')
-                    ss_league_norm = _normalize_team(ss_league) if ss_league else ''
-                    league_sc = _league_match_score(db_league, ss_league)
-                    if league_sc >= 0 and league_sc < 0.50:
-                        continue
-                    if combined > best_score:
-                        best_score = combined
-                        best_minute = sv.get('minute', '')
-                        best_ss_home = sv.get('home', '')[:20]
-                        best_ss_away = sv.get('away', '')[:20]
-                if best_score > 0 and best_minute and best_minute not in ('FT', 'AET', 'PEN'):
-                    ss_protected.append(h)
-                    continue
             stale_hashes.append(h)
-        if ss_protected:
-            log(f"  [SS-KORUMA] {len(ss_protected)} maç Sofascore'da hâlâ devam ediyor, FT yapılmadı")
         if skipped_early:
             log(f"  [KORUMA] {len(skipped_early)} maç erken FT'den korundu (89 dk dolmadı):")
             for h, em in skipped_early:
                 info = existing_live_info.get(h, '')
                 log(f"    hash={h} kickoff={info} elapsed={em:.0f}dk")
         if stale_hashes:
-            final_scores = _fetch_final_scores(writer, stale_hashes)
-            marked = writer.mark_fixtures_finished(stale_hashes, final_scores)
-            score_count = sum(1 for s in final_scores.values() if s)
-            log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi ({score_count} skor güncellendi)")
+            marked = writer.mark_fixtures_finished(stale_hashes)
+            log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi")
     else:
         log("  [UYARI] Betwatch verisi alınamadı, FT işaretleme atlanıyor")
 
