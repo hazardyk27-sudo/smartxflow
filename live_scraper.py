@@ -869,7 +869,7 @@ def _bw_v1_minute(live_info: dict) -> str:
     if live_info.get("is_ht"):
         return "HT"
     t = live_info.get("time", 0) or 0
-    return f"{t}'" if t > 0 else ""
+    return f"{t}'"
 
 
 def _bw_v1_score(live_info: dict) -> str:

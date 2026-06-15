@@ -109,9 +109,7 @@ def betwatch_live_minute(live_info: dict) -> str:
     if live_info.get("is_ht"):
         return "HT"
     t = live_info.get("time", 0) or 0
-    if t > 0:
-        return f"{t}'"
-    return ""
+    return f"{t}'"
 
 
 def betwatch_live_score(live_info: dict) -> str:
