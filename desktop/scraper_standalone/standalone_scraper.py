@@ -1340,6 +1340,21 @@ def run_scrape_betwatch_v1(writer, logger_callback=None) -> int:
         f"Snap={len(all_snapshots)}"
     )
 
+    # 3b. Dedup — aynı (league,home,away,date) iki kez gelirse UPSERT HTTP 500 verir
+    def _dedup(rows):
+        seen = {}
+        for row in rows:
+            k = (row.get("league",""), row.get("home",""), row.get("away",""), row.get("date",""))
+            seen[k] = row
+        return list(seen.values())
+
+    mw_1x2_rows  = _dedup(mw_1x2_rows)
+    mw_ou25_rows = _dedup(mw_ou25_rows)
+    mw_btts_rows = _dedup(mw_btts_rows)
+    do_1x2_rows  = _dedup(do_1x2_rows)
+    do_ou25_rows = _dedup(do_ou25_rows)
+    do_btts_rows = _dedup(do_btts_rows)
+
     # 4. Write to Supabase
     total_rows = 0
     write_errors = 0
