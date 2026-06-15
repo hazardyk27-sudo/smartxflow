@@ -628,6 +628,8 @@ def setup_environment():
         os.environ['TELEGRAM_BOT_TOKEN'] = config['TELEGRAM_BOT_TOKEN']
     if config.get('TELEGRAM_CHAT_ID'):
         os.environ['TELEGRAM_CHAT_ID'] = str(config['TELEGRAM_CHAT_ID'])
+    if config.get('excapper_cookie'):
+        os.environ['excapper_cookie'] = config['excapper_cookie']
     
     os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
     os.environ['SMARTX_DESKTOP'] = '1'
@@ -1045,6 +1047,8 @@ def main():
         os.environ['TELEGRAM_BOT_TOKEN'] = config['TELEGRAM_BOT_TOKEN']
     if config.get('TELEGRAM_CHAT_ID'):
         os.environ['TELEGRAM_CHAT_ID'] = str(config['TELEGRAM_CHAT_ID'])
+    if config.get('excapper_cookie'):
+        os.environ['excapper_cookie'] = config['excapper_cookie']
     os.environ['PYWEBVIEW_GUI'] = 'edgechromium'
     os.environ['SMARTX_DESKTOP'] = '1'
     os.environ['DISABLE_SCRAPER'] = 'false'

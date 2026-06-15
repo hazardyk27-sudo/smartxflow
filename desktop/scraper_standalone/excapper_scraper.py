@@ -26,46 +26,56 @@ from bs4 import BeautifulSoup
 
 BASE_URL = "https://www.excapper.com"
 
-_EXCAPPER_COOKIE = os.environ.get('excapper_cookie', '').strip()
+def _get_headers() -> dict:
+    """Cookie'yi her çağrıda env'den taze oku (import-time değil runtime)."""
+    cookie = os.environ.get('excapper_cookie', '').strip()
+    h = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/124.0.0.0 Safari/537.36'
+        ),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Referer': 'https://www.excapper.com/',
+    }
+    if cookie:
+        h['Cookie'] = cookie
+    return h
 
-HEADERS = {
-    'User-Agent': (
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/124.0.0.0 Safari/537.36'
-    ),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Referer': 'https://www.excapper.com/',
-}
-if _EXCAPPER_COOKIE:
-    HEADERS['Cookie'] = _EXCAPPER_COOKIE
+def _get_detail_headers() -> dict:
+    """Detail endpoint için cookie'yi runtime'da oku."""
+    cookie = os.environ.get('excapper_cookie', '').strip()
+    h = {
+        'User-Agent': (
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+            'AppleWebKit/537.36 (KHTML, like Gecko) '
+            'Chrome/124.0.0.0 Safari/537.36'
+        ),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'max-age=0',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Referer': 'https://www.excapper.com/',
+    }
+    if cookie:
+        h['Cookie'] = cookie
+    return h
 
-DETAIL_HEADERS = {
-    'User-Agent': (
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        'AppleWebKit/537.36 (KHTML, like Gecko) '
-        'Chrome/124.0.0.0 Safari/537.36'
-    ),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Cache-Control': 'max-age=0',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'same-origin',
-    'Referer': 'https://www.excapper.com/',
-}
-if _EXCAPPER_COOKIE:
-    DETAIL_HEADERS['Cookie'] = _EXCAPPER_COOKIE
+# Geriye dönük uyumluluk için sabit referanslar (eski kod kullanan yerler için)
+HEADERS = _get_headers()
+DETAIL_HEADERS = _get_detail_headers()
 MAX_WORKERS = 2
 FETCH_TIMEOUT = 25
 
@@ -150,7 +160,7 @@ def fetch_match_list(session: requests.Session) -> List[Dict]:
     Excapper ana sayfasından tüm prematch maçları çek.
     Returns: [{'game_id', 'date_str', 'date_iso', 'league', 'home', 'away'}, ...]
     """
-    r = session.get(BASE_URL + '/', headers=HEADERS, timeout=FETCH_TIMEOUT)
+    r = session.get(BASE_URL + '/', headers=_get_headers(), timeout=FETCH_TIMEOUT)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, 'html.parser')
 
@@ -268,7 +278,7 @@ def fetch_match_detail(game_id: str, session: requests.Session) -> Dict[str, Any
     """
     try:
         url = f"{BASE_URL}/?action=game&id={game_id}"
-        r = session.get(url, headers=DETAIL_HEADERS, timeout=FETCH_TIMEOUT)
+        r = session.get(url, headers=_get_detail_headers(), timeout=FETCH_TIMEOUT)
         r.raise_for_status()
     except Exception:
         return {}
