@@ -14635,24 +14635,19 @@ table.desktop-only {
         display: none !important;
     }
     [id$="DateStrip"] > div {
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        width: auto !important;
-        padding: 5px 2px !important;
+        flex: 1 1 44px !important;
+        min-width: 44px !important;
+        max-width: 64px !important;
+        padding: 6px 3px !important;
     }
     [id$="DateStrip"] > div > div:first-child {
         font-size: 9px !important;
         line-height: 1.1 !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     [id$="DateStrip"] > div > div:nth-child(2) {
         font-size: 11px !important;
         margin-top: 3px !important;
         line-height: 1.1 !important;
-        white-space: nowrap;
     }
     [id$="DateStrip"] > div.ds-sel {
         background: rgba(210,153,34,0.14) !important;
