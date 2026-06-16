@@ -891,7 +891,13 @@ class SupabaseClient:
                 history_table = f"{market}_history"
             
             # Step 1: Get fixtures (today+ or D-7+ depending on mode)
-            date_gte = today_str if today_only else seven_days_ago_str
+            # today_only: Istanbul bugününü al ama UTC fixture_date bir gün geride kalabilir
+            # (ör. 01:00 İstanbul = 22:00 UTC önceki gün) → bir gün buffer ekle
+            if today_only:
+                yesterday_str = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
+                date_gte = yesterday_str
+            else:
+                date_gte = seven_days_ago_str
             fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{date_gte}"
             fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
             
