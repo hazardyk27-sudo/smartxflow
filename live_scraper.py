@@ -328,6 +328,9 @@ def _bw_v1_minute(live_info: dict) -> str:
     if live_info.get("is_ht"):
         return "HT"
     t = live_info.get("time", 0) or 0
+    extra = live_info.get("extra_time", 0) or 0
+    if extra:
+        return f"{t}+{extra}'"
     return f"{t}'"
 
 
