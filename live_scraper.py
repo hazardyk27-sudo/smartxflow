@@ -388,6 +388,11 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
     all_fixtures = {}
     all_snapshots = []
     match_count = 0
+    dup_skipped = 0
+    # Deduplication: aynı maç Betwatch'ta farklı liga adlarıyla gelebilir
+    # (örn. "Primera C" ve "Argentinian Primera C"). Normalize edilmiş
+    # home|away bazlı dedup: daha yüksek hacimli/dakikalı entry kazanır.
+    seen_teams: Dict[str, Dict] = {}  # norm_home|norm_away → {h, vol, minute_num}
 
     for match in matches:
         teams = match.get("teams", {}) or {}
@@ -407,6 +412,33 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
         score = _bw_v1_score(live_info)
         status = "ft" if live_info.get("finished") else "live"
 
+        # Tüm market hacmini hesapla (dedup kalite kriteri)
+        markets = match.get("markets", []) or []
+        total_match_vol = 0.0
+        for mkt in markets:
+            for r in (mkt.get("runners", []) or []):
+                total_match_vol += float(r.get("volume") or 0)
+        minute_num = live_info.get("time", 0) or 0
+
+        # Dedup kontrolü
+        norm_key = normalize_field(home) + "|" + normalize_field(away)
+        if norm_key in seen_teams:
+            prev = seen_teams[norm_key]
+            # Mevcut entry daha iyiyse bu duplikasyonu atla
+            if total_match_vol <= prev["vol"] and minute_num <= prev["minute_num"]:
+                dup_skipped += 1
+                prev_league = prev["league"]
+                log(f"  [DEDUP] Atlandı: {home[:20]} vs {away[:20]} | league='{league}' (prev='{prev_league}')")
+                continue
+            # Bu entry daha iyiyse eskisini sil
+            old_h = prev["h"]
+            all_fixtures.pop(old_h, None)
+            all_snapshots = [s for s in all_snapshots if s["match_id_hash"] != old_h]
+            dup_skipped += 1
+            log(f"  [DEDUP] Güncellendi: {home[:20]} vs {away[:20]} | '{prev['league']}' → '{league}'")
+
+        seen_teams[norm_key] = {"h": h, "vol": total_match_vol, "minute_num": minute_num, "league": league}
+
         all_fixtures[h] = {
             "match_id_hash": h,
             "home_team": home[:100],
@@ -421,7 +453,6 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
         }
         match_count += 1
 
-        markets = match.get("markets", []) or []
         for mkt in markets:
             mkt_name = mkt.get("name", "")
             runners = mkt.get("runners", []) or []
@@ -436,13 +467,13 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
                 market_key, sels = mapped
                 ou_line = None
 
-            total_vol = sum(float(r.get("volume") or 0) for r in runners)
+            mkt_vol = sum(float(r.get("volume") or 0) for r in runners)
 
             for sel_code, runner in sels:
                 vol = float(runner.get("volume") or 0)
                 odd = runner.get("odd")
                 odd_f = float(odd) if odd is not None else None
-                share = round(vol / total_vol * 100, 1) if total_vol > 0 else 0.0
+                share = round(vol / mkt_vol * 100, 1) if mkt_vol > 0 else 0.0
 
                 all_snapshots.append({
                     "match_id_hash": h,
@@ -455,6 +486,8 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
                     "ou_line": ou_line,
                 })
 
+    if dup_skipped:
+        log(f"  [DEDUP] {dup_skipped} duplike market atlandı/güncellendi")
     log(f"  [BW-v1] {match_count} maç, {len(all_snapshots)} snapshot işlendi")
     return all_fixtures, all_snapshots, match_count
 
