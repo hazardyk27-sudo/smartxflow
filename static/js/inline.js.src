@@ -708,33 +708,38 @@ function _buildGlassMatchCard(opts) {
     // Content
     html += '<div style="position:relative;padding:' + (isMobile ? '12px 12px 12px 16px' : '14px 16px 14px 20px') + ';display:flex;flex-direction:column;gap:' + (isMobile ? '8px' : '14px') + ';">';
     if (isMobile) {
-        // MOBILE LAYOUT — kompakt, düzenli, okunabilir
-        // Compact badge + pills (mobil için küçük)
-        var mbadge = '<div style="display:inline-flex;align-items:center;justify-content:center;padding:0 8px;height:22px;border-radius:6px;font-family:\'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:11px;background:' + p.base + ';color:#000;white-space:nowrap;">' + (opts.selLabel || '-') + '</div>';
+        // MOBILE LAYOUT — masaüstüyle aynı hiyerarşi, kompakt boyutlar
+        // Compact pills (sağ kolona)
         var mpills = '';
-        if (opts.score) mpills += '<span style="padding:2px 6px;border-radius:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:10px;font-weight:600;color:rgba(255,255,255,0.60);white-space:nowrap;">' + opts.score + '</span>';
+        if (opts.score) mpills += '<span style="padding:2px 5px;border-radius:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);font-size:10px;font-weight:600;color:rgba(255,255,255,0.60);white-space:nowrap;">' + opts.score + '</span>';
         if (opts.badges && opts.badges.length) {
             opts.badges.forEach(function(b) {
                 if (!b || (!b.value && !b.label)) return;
-                mpills += '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 6px;border-radius:5px;background:' + (b.bg||'rgba(255,255,255,0.05)') + ';border:1px solid ' + (b.border||'rgba(255,255,255,0.08)') + ';font-size:10px;font-weight:600;white-space:nowrap;">';
-                if (b.label) mpills += '<span style="color:' + (b.labelColor||'rgba(255,255,255,0.42)') + ';font-weight:600;">' + b.label + '</span>';
+                mpills += '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 5px;border-radius:5px;background:' + (b.bg||'rgba(255,255,255,0.05)') + ';border:1px solid ' + (b.border||'rgba(255,255,255,0.08)') + ';font-size:10px;font-weight:600;white-space:nowrap;">';
+                if (b.label) mpills += '<span style="color:' + (b.labelColor||'rgba(255,255,255,0.40)') + ';font-weight:600;">' + b.label + '</span>';
                 if (b.value) mpills += '<span style="color:' + (b.valueColor||'rgba(255,255,255,0.82)') + ';">' + b.value + '</span>';
                 mpills += '</span>';
             });
         }
-        // Satır 1: badge (sol) + pills (sağ)
-        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">';
-        html += mbadge;
-        if (mpills) html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;justify-content:flex-end;">' + mpills + '</div>';
-        html += '</div>';
-        // Satır 2: takım adı tam genişlik
-        html += '<h3 style="font-family:\'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.90);letter-spacing:-0.2px;margin:0;line-height:1.3;">' + (opts.home_team||'') + ' <span style="color:rgba(255,255,255,0.28);font-weight:400;">\u2014</span> ' + (opts.away_team||'') + '</h3>';
-        // Satır 3: aksiyon + saat + lig tek satırda
+        // İki kolon: sol=içerik, sağ=badge+pills (desktop ile aynı mantık)
+        html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">';
+        // SOL KOLON
+        html += '<div style="display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;">';
+        // Takım adı + İNCELE + saat (aynı satır, masaüstü gibi)
         html += '<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">';
-        if (opts.inceleHandler) html += '<button onclick="' + opts.inceleHandler + '" style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.8px;color:rgba(255,255,255,0.52);background:rgba(255,255,255,0.05);text-transform:uppercase;border:none;cursor:pointer;font-family:inherit;">\u0130NCELE \u2197</button>';
-        if (isStale) html += '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.09);color:#f85149;font-size:9px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;">\u26a0 ZAYIFLADI</span>';
-        if (opts.hoursBefore) html += '<span style="display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.40);font-size:9px;font-weight:500;">\u23f1 ' + opts.hoursBefore + '</span>';
-        if (opts.league) html += '<span style="font-size:10px;color:rgba(255,255,255,0.28);margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">' + opts.league + '</span>';
+        html += '<h3 style="font-family:\'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.90);letter-spacing:-0.2px;margin:0;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:185px;">' + (opts.home_team||'') + ' \u2014 ' + (opts.away_team||'') + '</h3>';
+        if (opts.inceleHandler) html += '<button onclick="' + opts.inceleHandler + '" style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:0.8px;color:rgba(255,255,255,0.45);background:rgba(255,255,255,0.04);text-transform:uppercase;border:none;cursor:pointer;font-family:inherit;flex-shrink:0;">\u0130NCELE \u2197</button>';
+        if (isStale) html += '<span style="display:inline-flex;align-items:center;gap:1px;padding:1px 5px;border-radius:3px;background:rgba(248,81,73,0.09);color:#f85149;font-size:9px;font-weight:700;text-transform:uppercase;flex-shrink:0;">\u26a0 ZAYIFLADI</span>';
+        if (opts.hoursBefore) html += '<span style="display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.35);font-size:9px;font-weight:500;flex-shrink:0;">\u23f1 ' + opts.hoursBefore + '</span>';
+        html += '</div>';
+        // Lig adı (takım adının altında, subtle)
+        if (opts.league) html += '<p style="font-size:10px;color:rgba(255,255,255,0.28);font-weight:500;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + opts.league + '</p>';
+        html += '</div>';
+        // SAĞ KOLON: badge üstte, pills altta
+        html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">';
+        html += '<div style="display:inline-flex;align-items:center;justify-content:center;padding:0 9px;height:23px;border-radius:7px;font-family:\'Space Grotesk\',ui-sans-serif,system-ui,sans-serif;font-weight:700;font-size:11px;background:' + p.base + ';color:#000;white-space:nowrap;">' + (opts.selLabel || '-') + '</div>';
+        if (mpills) html += '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:145px;">' + mpills + '</div>';
+        html += '</div>';
         html += '</div>';
     } else {
         // DESKTOP LAYOUT: orijinal yatay düzen
