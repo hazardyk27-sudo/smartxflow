@@ -2760,8 +2760,9 @@ class AlarmCalculator:
                     best_shock_value = 0
                     
                     for i in range(5, len(history)):
-                        curr_amt = parse_volume(history[i].get(amount_key, 0))
-                        prev_amt = parse_volume(history[i-1].get(amount_key, 0))
+                        # Tam sterline indir — pence-seviyesi dalgalanmaları x değerini şişiriyor
+                        curr_amt = int(parse_volume(history[i].get(amount_key, 0)))
+                        prev_amt = int(parse_volume(history[i-1].get(amount_key, 0)))
                         incoming = curr_amt - prev_amt
                         
                         if incoming <= 0:
@@ -2771,18 +2772,17 @@ class AlarmCalculator:
                         if incoming < min_incoming:
                             continue
                         
-                        # Önceki 4 snapshot'ın ortalaması
+                        # Önceki 4 snapshot'ın ortalaması (tam sterlin bazlı)
                         prev_amts = []
                         for j in range(max(1, i-4), i):
-                            diff = parse_volume(history[j].get(amount_key, 0)) - parse_volume(history[j-1].get(amount_key, 0))
+                            diff = int(parse_volume(history[j].get(amount_key, 0))) - int(parse_volume(history[j-1].get(amount_key, 0)))
                             if diff > 0:
                                 prev_amts.append(diff)
                         
-                        if not prev_amts:
-                            continue
-                        
-                        avg_prev = sum(prev_amts) / len(prev_amts)
-                        shock_value = incoming / avg_prev if avg_prev > 0 else 0
+                        # avg_prev < 1 ise 1.0 kullan — sıfır/pence böleni engeller
+                        avg_prev = sum(prev_amts) / len(prev_amts) if prev_amts else 1.0
+                        avg_prev = max(1.0, avg_prev)
+                        shock_value = incoming / avg_prev
                         
                         if shock_value >= shock_mult and shock_value > best_shock_value:
                             best_shock_value = shock_value
