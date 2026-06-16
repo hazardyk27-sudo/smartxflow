@@ -44,10 +44,11 @@ jobs:
             print("env yazildi")
             PYEOF
 
-            # Kodu guncelle (git safe.directory root olarak pull icin gerekli)
+            # Kodu guncelle (force-push uyumlu: diverge durumunda reset --hard)
             git config --global --add safe.directory /opt/smartxflow
             cd /opt/smartxflow
-            sudo -u smartxflow git pull origin main
+            sudo -u smartxflow git fetch origin main
+            sudo -u smartxflow git reset --hard origin/main
 
             # Bagimliliklar (lxml sistem paketinden gelir, pip'ten build edilemez)
             grep -v '^lxml' /opt/smartxflow/requirements.txt > /tmp/req_nolxml.txt
