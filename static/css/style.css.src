@@ -14624,40 +14624,35 @@ table.desktop-only {
         font-size: 14px !important;
     }
     [id$="DateStrip"] {
-        padding: 4px 4px 4px 4px !important;
-        padding-right: 12px !important;
-        gap: 3px !important;
-        min-height: 56px;
-        scrollbar-width: thin !important;
+        padding: 3px !important;
+        gap: 2px !important;
+        min-height: 52px;
+        scrollbar-width: none !important;
         -webkit-overflow-scrolling: touch;
+        overflow-x: auto !important;
     }
     [id$="DateStrip"]::-webkit-scrollbar {
-        display: block !important;
-        width: auto !important;
-        height: 4px !important;
-    }
-    [id$="DateStrip"]::-webkit-scrollbar-thumb {
-        background: rgba(255,255,255,0.18) !important;
-        border-radius: 2px !important;
-    }
-    [id$="DateStrip"]::-webkit-scrollbar-track {
-        background: transparent !important;
+        display: none !important;
     }
     [id$="DateStrip"] > div {
-        flex: 0 0 auto !important;
-        min-width: 44px !important;
-        padding: 7px 4px !important;
-        flex-shrink: 0 !important;
-        flex-grow: 0 !important;
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        padding: 5px 2px !important;
     }
     [id$="DateStrip"] > div > div:first-child {
-        font-size: 11px !important;
+        font-size: 9px !important;
         line-height: 1.1 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     [id$="DateStrip"] > div > div:nth-child(2) {
-        font-size: 13px !important;
-        margin-top: 4px !important;
+        font-size: 11px !important;
+        margin-top: 3px !important;
         line-height: 1.1 !important;
+        white-space: nowrap;
     }
     [id$="DateStrip"] > div.ds-sel {
         background: rgba(210,153,34,0.14) !important;
