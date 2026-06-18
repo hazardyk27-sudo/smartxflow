@@ -381,6 +381,14 @@ def _refresh_license_from_supabase(key):
     try:
         lic_data = license_select('licenses', 'expires_at,status', {'key': key})
         print(f"[LicenseRefresh] key={key[:8]}..., response={lic_data}")
+        if lic_data is None:
+            # Network error — license_select couldn't reach Supabase
+            if key in _validated_licenses:
+                _validated_licenses[key]['cached_at'] = time.time()
+                print(f"[LicenseRefresh] Network error, extending cache for {key[:8]}... (grace)")
+                return None
+            print(f"[LicenseRefresh] Network error, no prior cache for {key[:8]}... -> REQUIRED")
+            return 'LICENSE_REQUIRED'
         if lic_data and len(lic_data) > 0:
             lic = lic_data[0] if isinstance(lic_data, list) else lic_data
             status = lic.get('status', '')
@@ -9294,7 +9302,7 @@ def license_select(table, columns='*', filters=None, order_by=None, desc=False):
         return []
     except Exception as e:
         license_logging.error(f"license_select exception: {e}")
-        return []
+        return None  # None = network error ([] = genuinely empty result)
 
 def license_insert(table, data):
     """INSERT into license tables"""
