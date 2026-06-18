@@ -1,2 +1,3 @@
 - [Supabase time-based cleanup deletes](supabase-cleanup-deletes.md) — daily D-8 cleanup must DELETE by each table's own date col via single-statement PostgREST (orphans incl.); paged-by-id over non-indexed date col hangs; main market tables have no match_id_hash, use `date`.
 - [Betwatch API v1 integration](betwatch-v1-integration.md) — scraper migrated to v1; secret name typo, runner name mapping, live_info fields documented.
+- [History table fetch strategy](history-fetch-strategy.md) — two-phase hash-based fetch in get_matches_paginated; composite index required on all 6 history tables.
