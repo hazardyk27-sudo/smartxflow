@@ -9763,6 +9763,18 @@ def validate_license():
         
         # Get license
         lic = license_select('licenses', '*', {'key': key})
+        if lic is None:
+            # Network error (timeout) — check memory/disk cache before blocking
+            _load_license_cache()
+            cached = _validated_licenses.get(key)
+            if cached:
+                exp_time = cached.get('expires')
+                now_dt = datetime.utcnow()
+                if not exp_time or exp_time > now_dt:
+                    days_left = (exp_time - now_dt).days if exp_time else 9999
+                    print(f"[ValidateLic] Supabase timeout, serving from cache for {key[:8]}...")
+                    return jsonify({'valid': True, 'days_left': days_left, 'expires_at': cached.get('expires_str', ''), 'plan': cached.get('plan', 'core')})
+            return jsonify({'valid': False, 'error': 'Supabase baglantisi gecici olarak kullanilamiyor, lutfen tekrar deneyin'})
         if not lic:
             return jsonify({'valid': False, 'error': 'Gecersiz lisans anahtari'})
         
@@ -9896,6 +9908,19 @@ def license_status():
             return jsonify({'valid': False, 'error': 'DB_UNAVAILABLE'}), 500
         
         lic = license_select('licenses', 'expires_at,status,max_devices', {'key': key})
+        if lic is None:
+            # Network error (timeout) — check memory/disk cache before blocking
+            _load_license_cache()
+            cached = _validated_licenses.get(key)
+            if cached:
+                exp_time = cached.get('expires')
+                now_dt = datetime.utcnow()
+                if not exp_time or exp_time > now_dt:
+                    days_left = (exp_time - now_dt).days if exp_time else 9999
+                    exp_str = exp_time.isoformat() if exp_time else ''
+                    print(f"[LicenseStatus] Supabase timeout, serving from cache for {key[:8]}...")
+                    return jsonify({'valid': True, 'days_left': days_left, 'expires_at': exp_str})
+            return jsonify({'valid': False, 'error': 'DB_UNAVAILABLE'}), 503
         if not lic:
             return jsonify({'valid': False, 'error': 'LICENSE_NOT_FOUND', 'days_left': 0}), 404
         
