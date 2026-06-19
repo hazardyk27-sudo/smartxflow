@@ -28,8 +28,8 @@ class SupabaseClient:
     def _get_http_client(self):
         if self._http_client is None or self._http_client.is_closed:
             self._http_client = httpx.Client(
-                timeout=httpx.Timeout(30, connect=10, pool=10),
-                limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+                timeout=httpx.Timeout(8, connect=5, pool=5),
+                limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
                 http2=False,
             )
         return self._http_client
@@ -1997,22 +1997,23 @@ class SupabaseClient:
     def _delete_before_simple(self, table: str, date_col: str, cutoff_date: str) -> int:
         """Tek-statement DELETE: date_col < cutoff_date olan TUM satirlari tek SQL ile siler.
         match_id_hash eslestirmesi YOK — bagli fixture olsun olmasin (orphan dahil) her eski
-        satir gider. Silinen satir sayisini dondurur. Tablo yoksa 0."""
-        pre = self._count_rows_before(table, date_col, cutoff_date)
-        if pre <= 0:
-            return 0
+        satir gider. Silinen satir sayisini dondurur. Tablo yoksa 0.
+        NOT: Onceki COUNT(*) pre-check kaldirildi — buyuk tablolarda sequential scan yapiyordu
+        ve CPU'yu spike'a sokuyordu. DELETE zaten no-op olur silinecek satir yoksa."""
         try:
             headers = self._headers()
             headers['Prefer'] = 'count=exact'
             url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
-            resp = httpx.delete(url, headers=headers, timeout=180)
+            resp = httpx.delete(url, headers=headers, timeout=60)
             if resp.status_code in (200, 204):
                 cr = resp.headers.get('content-range', '')
                 if '/' in cr:
                     t = cr.split('/')[-1]
                     if t.isdigit():
                         return int(t)
-                return pre
+                return 0
+            if resp.status_code == 404:
+                return 0
             print(f"[Cleanup] {table} simple delete failed: {resp.status_code}")
         except Exception as e:
             print(f"[Cleanup] {table} simple delete error: {e}")
