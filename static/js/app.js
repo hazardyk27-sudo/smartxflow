@@ -893,27 +893,21 @@ let brushStartIndex=0;let brushEndIndex=100;let brushDataLength=0;function creat
             <div class="range-slider-container">
                 <div class="range-slider-track"></div>
                 <div class="range-slider-highlight" id="brushHighlight"></div>
-                <canvas id="brushMiniChart" class="chart-brush-mini" height="40"></canvas>
                 <input type="range" class="range-slider-input" id="brushStart" min="0" max="100" value="0">
                 <input type="range" class="range-slider-input" id="brushEnd" min="0" max="100" value="100">
             </div>
             <div class="brush-info">
-                <span class="brush-info-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/>
-                    </svg>
-                    Drag handles to zoom
-                </span>
-                <span id="brushRange">Showing all data</span>
+                <span class="brush-info-label">Yakınlaştır</span>
+                <span id="brushRange">Tüm veri</span>
             </div>
         `;container.parentElement.appendChild(brushContainer);}
-const brushStart=brushContainer.querySelector('#brushStart');const brushEnd=brushContainer.querySelector('#brushEnd');const brushHighlight=brushContainer.querySelector('#brushHighlight');const brushRangeInfo=brushContainer.querySelector('#brushRange');brushStart.max=brushDataLength-1;brushEnd.max=brushDataLength-1;brushStart.value=0;brushEnd.value=brushDataLength-1;drawMiniChart(brushContainer.querySelector('#brushMiniChart'),historyData);updateBrushHighlight();function updateBrushHighlight(){const startPct=(parseInt(brushStart.value)/(brushDataLength-1))*100;const endPct=(parseInt(brushEnd.value)/(brushDataLength-1))*100;brushHighlight.style.left=`${startPct}%`;brushHighlight.style.width=`${endPct - startPct}%`;const startIdx=parseInt(brushStart.value);const endIdx=parseInt(brushEnd.value);const showing=endIdx-startIdx+1;brushRangeInfo.textContent=showing===brushDataLength?'Showing all data':`Showing ${showing} of ${brushDataLength} points`;}
+const brushStart=brushContainer.querySelector('#brushStart');const brushEnd=brushContainer.querySelector('#brushEnd');const brushHighlight=brushContainer.querySelector('#brushHighlight');const brushRangeInfo=brushContainer.querySelector('#brushRange');brushStart.max=brushDataLength-1;brushEnd.max=brushDataLength-1;brushStart.value=0;brushEnd.value=brushDataLength-1;drawMiniChart(brushContainer.querySelector('#brushMiniChart'),historyData);updateBrushHighlight();function updateBrushHighlight(){const startPct=(parseInt(brushStart.value)/(brushDataLength-1))*100;const endPct=(parseInt(brushEnd.value)/(brushDataLength-1))*100;brushHighlight.style.left=`${startPct}%`;brushHighlight.style.width=`${endPct - startPct}%`;const startIdx=parseInt(brushStart.value);const endIdx=parseInt(brushEnd.value);const showing=endIdx-startIdx+1;brushRangeInfo.textContent=showing===brushDataLength?'Tüm veri':`${showing} / ${brushDataLength} nokta`;}
 function applyZoom(){const startIdx=parseInt(brushStart.value);const endIdx=parseInt(brushEnd.value);if(startIdx>=endIdx)return;const labels=mainChart.data.labels;if(!labels||labels.length===0)return;const minLabel=labels[startIdx];const maxLabel=labels[endIdx];mainChart.options.scales.x.min=minLabel;mainChart.options.scales.x.max=maxLabel;mainChart.update('none');updateBrushHighlight();}
 brushStart.addEventListener('input',function(){if(parseInt(brushStart.value)>=parseInt(brushEnd.value)-1){brushStart.value=parseInt(brushEnd.value)-1;}
 applyZoom();});brushEnd.addEventListener('input',function(){if(parseInt(brushEnd.value)<=parseInt(brushStart.value)+1){brushEnd.value=parseInt(brushStart.value)+1;}
 applyZoom();});}
 function resetBrushSlider(){const brushStart=document.querySelector('#brushStart');const brushEnd=document.querySelector('#brushEnd');if(brushStart&&brushEnd){brushStart.value=0;brushEnd.value=brushDataLength-1;const brushHighlight=document.querySelector('#brushHighlight');if(brushHighlight){brushHighlight.style.left='0%';brushHighlight.style.width='100%';}
-const brushRangeInfo=document.querySelector('#brushRange');if(brushRangeInfo){brushRangeInfo.textContent='Showing all data';}}}
+const brushRangeInfo=document.querySelector('#brushRange');if(brushRangeInfo){brushRangeInfo.textContent='Tüm veri';}}}
 function resetChartZoom(){if(chart){chart.resetZoom();chart.options.scales.x.min=undefined;chart.options.scales.x.max=undefined;chart.update('none');}
 resetBrushSlider();}
 function drawMiniChart(canvas,historyData){if(!canvas||!historyData||historyData.length===0)return;const ctx=canvas.getContext('2d');const width=canvas.parentElement.offsetWidth||400;const height=38;canvas.width=width;canvas.height=height;ctx.clearRect(0,0,width,height);let raw=[];historyData.forEach(h=>{const vol=h.Volume||h.volume;const volNum=parseFloat(String(vol||'').replace(/[^0-9.]/g,''));if(!isNaN(volNum)&&volNum>0){raw.push(volNum);return;}

@@ -5750,18 +5750,12 @@ function createBrushSlider(container, historyData, mainChart) {
             <div class="range-slider-container">
                 <div class="range-slider-track"></div>
                 <div class="range-slider-highlight" id="brushHighlight"></div>
-                <canvas id="brushMiniChart" class="chart-brush-mini" height="40"></canvas>
                 <input type="range" class="range-slider-input" id="brushStart" min="0" max="100" value="0">
                 <input type="range" class="range-slider-input" id="brushEnd" min="0" max="100" value="100">
             </div>
             <div class="brush-info">
-                <span class="brush-info-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/>
-                    </svg>
-                    Drag handles to zoom
-                </span>
-                <span id="brushRange">Showing all data</span>
+                <span class="brush-info-label">Yakınlaştır</span>
+                <span id="brushRange">Tüm veri</span>
             </div>
         `;
         container.parentElement.appendChild(brushContainer);
@@ -5789,9 +5783,9 @@ function createBrushSlider(container, historyData, mainChart) {
         const startIdx = parseInt(brushStart.value);
         const endIdx = parseInt(brushEnd.value);
         const showing = endIdx - startIdx + 1;
-        brushRangeInfo.textContent = showing === brushDataLength 
-            ? 'Showing all data' 
-            : `Showing ${showing} of ${brushDataLength} points`;
+        brushRangeInfo.textContent = showing === brushDataLength
+            ? 'Tüm veri'
+            : `${showing} / ${brushDataLength} nokta`;
     }
     
     function applyZoom() {
@@ -5841,7 +5835,7 @@ function resetBrushSlider() {
         }
         const brushRangeInfo = document.querySelector('#brushRange');
         if (brushRangeInfo) {
-            brushRangeInfo.textContent = 'Showing all data';
+            brushRangeInfo.textContent = 'Tüm veri';
         }
     }
 }
