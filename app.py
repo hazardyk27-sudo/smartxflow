@@ -9367,7 +9367,12 @@ def license_select(table, columns='*', filters=None, order_by=None, desc=False):
         resp = httpx.get(url, headers=cfg['headers'], timeout=10)
         if resp.status_code == 200:
             return resp.json()
-        license_logging.error(f"license_select error: {resp.status_code} - {resp.text}")
+        # 5xx veya Cloudflare hataları (521 vb.) → None döndür ki grace cache devreye girsin
+        # 4xx (400, 401, 403, 404) → [] döndür (gerçek boş sonuç / hatalı istek)
+        if resp.status_code >= 500:
+            license_logging.error(f"license_select server error: {resp.status_code} - treating as network error")
+            return None
+        license_logging.error(f"license_select error: {resp.status_code} - {resp.text[:200]}")
         return []
     except Exception as e:
         license_logging.error(f"license_select exception: {e}")
