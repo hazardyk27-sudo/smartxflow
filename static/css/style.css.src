@@ -4054,17 +4054,17 @@ td.volume,
 
 /* Chart Brush Slider (Recharts style zoom bar) */
 .chart-brush-container {
-    margin-top: 12px;
-    padding: 8px 12px;
-    background: #0B1017;
+    margin-top: 10px;
+    padding: 6px 10px 4px;
+    background: rgba(13,18,24,0.7);
     border-radius: 8px;
-    border: 1px solid #2a2e33;
+    border: 1px solid rgba(255,255,255,0.06);
 }
 
 .chart-brush-wrapper {
     position: relative;
-    height: 40px;
-    background: #1a1d21;
+    height: 38px;
+    background: #0d1218;
     border-radius: 6px;
     overflow: hidden;
 }
@@ -4156,8 +4156,8 @@ td.volume,
 
 .range-slider-container {
     position: relative;
-    height: 40px;
-    background: #0d1218;
+    height: 38px;
+    background: transparent;
     border-radius: 8px;
     padding: 0 6px;
 }

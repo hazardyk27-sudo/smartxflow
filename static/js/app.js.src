@@ -5858,63 +5858,79 @@ function resetChartZoom() {
 
 function drawMiniChart(canvas, historyData) {
     if (!canvas || !historyData || historyData.length === 0) return;
-    
+
     const ctx = canvas.getContext('2d');
     const width = canvas.parentElement.offsetWidth || 400;
-    const height = 40;
-    
+    const height = 38;
+
     canvas.width = width;
     canvas.height = height;
-    
+
     ctx.clearRect(0, 0, width, height);
-    
-    let values = [];
+
+    // Volume'ü birincil değer olarak kullan, yoksa odds'a bak
+    let raw = [];
     historyData.forEach(h => {
-        const val = h.Odds1 || h['1'] || h.Over || h.Yes || h.Pct1 || h.Amt1 || 0;
-        const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
-        if (!isNaN(num)) values.push(num);
+        const vol = h.Volume || h.volume;
+        const volNum = parseFloat(String(vol || '').replace(/[^0-9.]/g, ''));
+        if (!isNaN(volNum) && volNum > 0) { raw.push(volNum); return; }
+        const odds = h.Odds1 || h['1'] || h.Over || h.Yes || h.odds1 || 0;
+        const oddsNum = parseFloat(String(odds).replace(/[^0-9.]/g, ''));
+        if (!isNaN(oddsNum) && oddsNum > 0) raw.push(oddsNum);
     });
-    
-    if (values.length < 2) return;
-    
+
+    if (raw.length < 2) return;
+
+    // Downsample: max 80 nokta — gürültüyü azaltır
+    const MAX_PTS = 80;
+    let values = raw;
+    if (raw.length > MAX_PTS) {
+        const step = raw.length / MAX_PTS;
+        values = [];
+        for (let i = 0; i < MAX_PTS; i++) {
+            const start = Math.floor(i * step);
+            const end = Math.min(Math.floor((i + 1) * step), raw.length);
+            const chunk = raw.slice(start, end);
+            values.push(chunk.reduce((a, b) => a + b, 0) / chunk.length);
+        }
+    }
+
     const minVal = Math.min(...values);
     const maxVal = Math.max(...values);
     const range = maxVal - minVal || 1;
-    
+
+    const pad = 4;
+    const pts = values.map((val, i) => ({
+        x: (i / (values.length - 1)) * width,
+        y: height - pad - ((val - minVal) / range) * (height - pad * 2)
+    }));
+
+    // Fill gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
-    gradient.addColorStop(0, 'rgba(76, 139, 245, 0.4)');
-    gradient.addColorStop(1, 'rgba(76, 139, 245, 0.05)');
-    
+    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
+
     ctx.beginPath();
-    ctx.moveTo(0, height);
-    
-    values.forEach((val, i) => {
-        const x = (i / (values.length - 1)) * width;
-        const y = height - ((val - minVal) / range) * (height - 8) - 4;
-        if (i === 0) {
-            ctx.lineTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    });
-    
-    ctx.lineTo(width, height);
+    ctx.moveTo(pts[0].x, height);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+        const cp1x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * 0.5;
+        ctx.bezierCurveTo(cp1x, pts[i - 1].y, cp1x, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.lineTo(pts[pts.length - 1].x, height);
     ctx.closePath();
     ctx.fillStyle = gradient;
     ctx.fill();
-    
+
+    // Smooth line
     ctx.beginPath();
-    values.forEach((val, i) => {
-        const x = (i / (values.length - 1)) * width;
-        const y = height - ((val - minVal) / range) * (height - 8) - 4;
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
-    });
-    ctx.strokeStyle = '#4C8BF5';
-    ctx.lineWidth = 2;
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) {
+        const cp1x = pts[i - 1].x + (pts[i].x - pts[i - 1].x) * 0.5;
+        ctx.bezierCurveTo(cp1x, pts[i - 1].y, cp1x, pts[i].y, pts[i].x, pts[i].y);
+    }
+    ctx.strokeStyle = 'rgba(99, 152, 255, 0.7)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
 }
 
