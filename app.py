@@ -9785,7 +9785,6 @@ def validate_license():
             return jsonify({'valid': False, 'error': 'Bu lisans iptal edilmis'})
         
         # Check expiry
-        from datetime import datetime
         now = datetime.utcnow()
         expires_at = license_data.get('expires_at')
         
@@ -9929,7 +9928,6 @@ def license_status():
         if license_data.get('status') == 'revoked':
             return jsonify({'valid': False, 'error': 'LICENSE_REVOKED', 'days_left': 0})
         
-        from datetime import datetime
         now = datetime.utcnow()
         expires_at = license_data.get('expires_at')
         days_left = 9999
