@@ -356,6 +356,49 @@ db.ensure_analyses_table()
 _validated_licenses = {}
 _LICENSE_CACHE_TTL = 300
 _LICENSE_MAX_ENTRIES = 100
+_LICENSE_DISK_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.license_cache_local.json')
+
+def _save_license_cache():
+    """Persist validated licenses to disk so they survive restarts."""
+    try:
+        data = {}
+        for k, v in _validated_licenses.items():
+            exp = v.get('expires')
+            if exp and exp > datetime.utcnow():
+                data[k] = {
+                    'expires': exp.isoformat(),
+                    'plan': v.get('plan', 'core'),
+                }
+        with open(_LICENSE_DISK_CACHE, 'w') as fh:
+            json.dump(data, fh)
+    except Exception:
+        pass
+
+def _load_license_cache():
+    """Load persisted license cache on startup (pre-populates in-memory dict)."""
+    try:
+        if not os.path.exists(_LICENSE_DISK_CACHE):
+            return
+        with open(_LICENSE_DISK_CACHE, 'r') as fh:
+            data = json.load(fh)
+        now = datetime.utcnow()
+        loaded = 0
+        for k, v in data.items():
+            try:
+                exp_dt = datetime.fromisoformat(v['expires'])
+                if exp_dt > now:
+                    _validated_licenses[k] = {
+                        'expires': exp_dt,
+                        'plan': v.get('plan', 'core'),
+                        'cached_at': 0,  # force re-validation on next TTL check
+                    }
+                    loaded += 1
+            except Exception:
+                pass
+        if loaded:
+            print(f"[License Cache] Loaded {loaded} entries from disk cache")
+    except Exception:
+        pass
 
 def _purge_license_cache():
     """Remove expired or stale entries from license cache"""
@@ -410,6 +453,7 @@ def _refresh_license_from_supabase(key):
                         'plan': _validated_licenses.get(key, {}).get('plan', 'core'),
                         'cached_at': time.time()
                     }
+                    _save_license_cache()
                     return None
         return 'LICENSE_REQUIRED'
     except Exception as e:
@@ -448,6 +492,27 @@ def license_required(f):
                 print(f"[LicenseCheck] SESSION: TTL expired (age={age:.0f}s), refreshing from Supabase...")
                 err = _refresh_license_from_supabase(session_key)
                 if err:
+                    # If it's a network error (LICENSE_REQUIRED from None response) and session has
+                    # a future expiry, trust the session and extend TTL — don't block user
+                    if err == 'LICENSE_REQUIRED':
+                        session_exp = session.get('license_expires', '')
+                        if session_exp:
+                            try:
+                                exp_dt = _parse_expires_naive(session_exp)
+                                if exp_dt and exp_dt > datetime.utcnow():
+                                    session['license_last_check'] = time.time()
+                                    # Populate HEADER cache so API calls (X-License-Key) also work
+                                    plan = session.get('license_plan', 'core')
+                                    _validated_licenses[session_key] = {
+                                        'expires': exp_dt,
+                                        'plan': plan,
+                                        'cached_at': time.time(),
+                                    }
+                                    _save_license_cache()
+                                    print(f"[LicenseCheck] SESSION: Supabase unreachable, session grace active (expires={exp_dt}), HEADER cache populated")
+                                    return f(*args, **kwargs)
+                            except Exception:
+                                pass
                     print(f"[LicenseCheck] SESSION: refresh returned {err}, blocking user")
                     session.pop('license_valid', None)
                     session.pop('license_expires', None)
@@ -462,6 +527,10 @@ def license_required(f):
         if header_key:
             cached = _validated_licenses.get(header_key)
             print(f"[LicenseCheck] HEADER path: key={header_key[:8]}... cached={'YES' if cached else 'NO'}")
+            if not cached:
+                # Try disk cache first (populated by another worker or previous run)
+                _load_license_cache()
+                cached = _validated_licenses.get(header_key)
             if not cached:
                 print(f"[LicenseCheck] HEADER: not cached, validating from Supabase...")
                 err = _refresh_license_from_supabase(header_key)
@@ -10988,6 +11057,8 @@ def _initialize_server():
     print(f"Templates exist: {os.path.exists(template_dir)}", flush=True)
     print(f"Static exist: {os.path.exists(static_dir)}", flush=True)
     print("=" * 50, flush=True)
+
+    _load_license_cache()
 
     if is_server_mode():
         start_server_scheduler()
