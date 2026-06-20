@@ -730,7 +730,7 @@ class SupabaseClient:
                 
                 # Fetch all batches in parallel for speed
                 offsets = list(range(0, max_rows, batch_size))
-                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                     results = list(executor.map(fetch_batch, offsets))
                 
                 for batch in results:
@@ -750,7 +750,7 @@ class SupabaseClient:
                 
                 # Step 2: Get fixtures metadata for kickoff times (son 7 gün)
                 fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
-                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=10)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 
                 fixtures_by_hash = {}
                 if fix_resp.status_code == 200:
@@ -816,7 +816,7 @@ class SupabaseClient:
                     # Batch fetch all fixture details at once (son 7 gün)
                     batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
                     try:
-                        batch_fix_resp = self._get_http_client().get(batch_fix_url, headers=self._headers(), timeout=10)
+                        batch_fix_resp = self._get_http_client().get(batch_fix_url, headers=self._headers(), timeout=30)
                         if batch_fix_resp.status_code == 200:
                             all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
                             
@@ -948,7 +948,7 @@ class SupabaseClient:
 
             # Phase 1: batch queries
             batches = [all_hashes[i:i+hash_batch_size] for i in range(0, len(all_hashes), hash_batch_size)]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 futures = [executor.submit(fetch_history_by_hashes, b) for b in batches]
                 for future in concurrent.futures.as_completed(futures):
                     try:
@@ -1468,7 +1468,7 @@ class SupabaseClient:
             # Split into batches and fetch in parallel
             batches = [missing_hashes[i:i+batch_size] for i in range(0, len(missing_hashes), batch_size)]
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 results = list(executor.map(fetch_batch, batches))
             
             for batch_result in results:
@@ -1575,7 +1575,7 @@ class SupabaseClient:
             batches = [match_hashes[i:i+batch_size] for i in range(0, len(match_hashes), batch_size)]
             
             all_window_rows = []
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 results = list(executor.map(fetch_24h_batch, batches))
             for batch_result in results:
                 all_window_rows.extend(batch_result)
@@ -1601,7 +1601,7 @@ class SupabaseClient:
             if missing:
                 missing_batches = [missing[i:i+batch_size] for i in range(0, len(missing), batch_size)]
                 all_oldest = []
-                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                     results = list(executor.map(fetch_oldest_batch, missing_batches))
                 for batch_result in results:
                     all_oldest.extend(batch_result)
