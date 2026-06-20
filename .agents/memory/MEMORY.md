@@ -1,3 +1,5 @@
 - [Supabase time-based cleanup deletes](supabase-cleanup-deletes.md) — daily D-8 cleanup must DELETE by each table's own date col via single-statement PostgREST (orphans incl.); paged-by-id over non-indexed date col hangs; main market tables have no match_id_hash, use `date`.
 - [Betwatch API v1 integration](betwatch-v1-integration.md) — scraper migrated to v1; secret name typo, runner name mapping, live_info fields documented.
 - [History table fetch strategy](history-fetch-strategy.md) — two-phase hash-based fetch in get_matches_paginated; composite index required on all 6 history tables.
+- [Supabase plan and timeout root cause](supabase-plan.md) — Supabase PRO hesap; timeout (57014) = Phase 2'nin 268 eşzamanlı sorgusu; Phase 2 kaldırıldı 2026-06-20.
+- [Deployment architecture](deployment-architecture.md) — smartxflow.com → Replit Deployment (GCP); scrapers Hetzner'de; deployment run komutu REPL_DEPLOYMENT=1 python app.py olmalı (scraper olmamalı).

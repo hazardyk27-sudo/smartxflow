@@ -380,7 +380,7 @@ class SupabaseClient:
                 yesterday_end_utc = yesterday_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(yesterday_start_utc)}&kickoff_utc=lt.{quote(yesterday_end_utc)}&order=kickoff_utc.desc&limit=500"
-                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] YESTERDAY fixtures fetch error: {fix_resp.status_code}")
@@ -456,7 +456,7 @@ class SupabaseClient:
                 target_start_utc = target_start_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 target_end_utc = target_end_tr.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%SZ')
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(target_start_utc)}&kickoff_utc=lt.{quote(target_end_utc)}&order=kickoff_utc.desc&limit=500"
-                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] PAST({date_filter}) fixtures fetch error: {fix_resp.status_code}")
                     return []
@@ -627,7 +627,7 @@ class SupabaseClient:
                 print(f"[Supabase] TODAY window (TR∪UTC): {today_start_utc} → {today_end_utc}")
                 
                 fix_url = f"{self._rest_url('fixtures')}?select=*&kickoff_utc=gte.{quote(today_start_utc)}&kickoff_utc=lt.{quote(today_end_utc)}&order=kickoff_utc.desc&limit=1000"
-                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+                fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] TODAY fixtures fetch error: {fix_resp.status_code}")
@@ -899,7 +899,7 @@ class SupabaseClient:
             else:
                 date_gte = seven_days_ago_str
             fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{date_gte}"
-            fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=15)
+            fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
             
             fixtures_list = []
             fixtures_by_hash = {}
@@ -960,20 +960,8 @@ class SupabaseClient:
                         if match_hash and match_hash not in odds_by_hash:
                             odds_by_hash[match_hash] = row
 
-            # Phase 2: individual queries for hashes not found in phase 1
-            remaining_hashes = [h for h in all_hashes if h not in odds_by_hash]
-            if remaining_hashes:
-                print(f"[Paginated] Phase 2: fetching {len(remaining_hashes)} remaining hashes individually")
-                with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-                    future_map = {executor.submit(fetch_history_single, h): h for h in remaining_hashes}
-                    for future in concurrent.futures.as_completed(future_map):
-                        match_hash = future_map[future]
-                        try:
-                            row = future.result()
-                            if row:
-                                odds_by_hash[match_hash] = row
-                        except Exception:
-                            pass
+            # Phase 2: kaldırıldı — 268 eşzamanlı sorgu Supabase'i aşırı yüklüyordu (statement timeout 57014)
+            # Phase 1'de bulunamayan maçlar boş odds ile gösterilir, bu kabul edilebilir.
 
             print(f"[Paginated] Got history for {len(odds_by_hash)}/{len(all_hashes)} matches")
             
