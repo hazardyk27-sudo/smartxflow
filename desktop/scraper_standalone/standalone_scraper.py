@@ -817,7 +817,40 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
             total_deleted += 1
     except Exception as e:
         _log(f"  [Cleanup] fixtures: Hata - {e}")
-    
+
+    # 4. Snapshot tablolari (scraped_at_utc bazli)
+    snapshot_cutoff = d_minus_8.strftime('%Y-%m-%d')
+    for snap_table, snap_col in [
+        ('moneyway_snapshots', 'scraped_at_utc'),
+    ]:
+        try:
+            url = f"{writer._rest_url(snap_table)}?{snap_col}=lt.{snapshot_cutoff}"
+            resp = requests.delete(url, headers=writer._headers(), timeout=60)
+            if resp.status_code in [200, 204]:
+                _log(f"  [Cleanup] {snap_table}: D-8+ kayitlar silindi")
+                total_deleted += 1
+        except Exception as e:
+            _log(f"  [Cleanup] {snap_table}: Hata - {e}")
+
+    # 5. Live tablolari
+    try:
+        url = f"{writer._rest_url('live_snapshots')}?snapshot_at=lt.{snapshot_cutoff}"
+        resp = requests.delete(url, headers=writer._headers(), timeout=60)
+        if resp.status_code in [200, 204]:
+            _log(f"  [Cleanup] live_snapshots: D-8+ kayitlar silindi")
+            total_deleted += 1
+    except Exception as e:
+        _log(f"  [Cleanup] live_snapshots: Hata - {e}")
+
+    try:
+        url = f"{writer._rest_url('live_fixtures')}?fixture_date=lt.{snapshot_cutoff}"
+        resp = requests.delete(url, headers=writer._headers(), timeout=60)
+        if resp.status_code in [200, 204]:
+            _log(f"  [Cleanup] live_fixtures: D-8+ kayitlar silindi")
+            total_deleted += 1
+    except Exception as e:
+        _log(f"  [Cleanup] live_fixtures: Hata - {e}")
+
     if total_deleted > 0:
         _log(f"[Cleanup] Tamamlandi - {total_deleted} islem")
     
