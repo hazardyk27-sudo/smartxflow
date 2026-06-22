@@ -983,7 +983,7 @@ function renderChartLegendFilters(datasets,market){const container=document.getE
     `;}
 function setChartTimeRange(range){chartTimeRange=range;document.querySelectorAll('.chart-time-btn').forEach(btn=>{btn.classList.remove('active');if(btn.dataset.range===range){btn.classList.add('active');}});if(selectedMatch){loadChart(selectedMatch.home_team,selectedMatch.away_team,selectedChartMarket,selectedMatch.league||'');}}
 function setChartViewMode(mode){chartViewMode=mode;document.querySelectorAll('.chart-view-btn').forEach(btn=>{btn.classList.remove('active');if(btn.dataset.mode===mode){btn.classList.add('active');}});if(selectedMatch){loadChart(selectedMatch.home_team,selectedMatch.away_team,selectedChartMarket,selectedMatch.league||'');}}
-function filterHistoryByTimeRange(historyData){return historyData||[];}
+function filterHistoryByTimeRange(historyData){if(!historyData||historyData.length===0)return historyData||[];const rangeMap={'10min':10,'30min':30,'1hour':60,'6hour':360,'12hour':720,'1day':1440};const minutes=rangeMap[chartTimeRange];if(!minutes)return historyData;const cutoff=dayjs().tz(APP_TIMEZONE).subtract(minutes,'minute');const filtered=historyData.filter(h=>{const ts=h.ScrapedAt||'';const dt=toTurkeyTime(ts);if(!dt||!dt.isValid())return false;return dt.isAfter(cutoff);});return filtered.length>0?filtered:historyData;}
 function generateExportFilename(extension){const match=selectedMatch;if(!match)return`SmartXFlow_export.${extension}`;const now=new Date();const dateStr=now.getFullYear().toString()+
 String(now.getMonth()+1).padStart(2,'0')+
 String(now.getDate()).padStart(2,'0')+'_'+
