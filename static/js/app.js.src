@@ -3067,6 +3067,7 @@ function applySorting(data) {
         
         // Tüm gerekli oran alanları dolu olmalı (market bazında)
         let hasValidOdds = checkCompleteOdds(d) || checkCompleteOdds(m);
+        if (!hasValidOdds && m.history?.length > 0) hasValidOdds = true;
         if (!hasValidOdds && m.history) hasValidOdds = checkHistoryArray(m.history);
         if (!hasValidOdds && m.snapshots) hasValidOdds = checkHistoryArray(m.snapshots);
         
