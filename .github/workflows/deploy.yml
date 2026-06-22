@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,SESSION_SECRET,PAYMENT_BOT_TOKEN,PAYMENT_CHAT_ID,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,APIFOOTBALL_KEY,BETWATCH_COOKIE,EXCAPPER_COOKIE,Betwach_api_key
+          envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,SESSION_SECRET,PAYMENT_BOT_TOKEN,PAYMENT_CHAT_ID,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,APIFOOTBALL_KEY,BETWATCH_COOKIE,EXCAPPER_COOKIE,BETWACH_API_KEY
           script: |
             set -e
 
@@ -35,7 +35,7 @@ jobs:
                 f"APIFOOTBALL_KEY={os.environ.get('APIFOOTBALL_KEY','')}",
                 f"BETWATCH_COOKIE={os.environ.get('BETWATCH_COOKIE','')}",
                 f"excapper_cookie={os.environ.get('EXCAPPER_COOKIE','')}",
-                f"Betwach_api_key={os.environ.get('Betwach_api_key','')}",
+                f"Betwach_api_key={os.environ.get('BETWACH_API_KEY','')}",
                 "REPL_DEPLOYMENT=1",
             ]
             with open('/opt/smartxflow/.env', 'w') as f:
@@ -89,4 +89,4 @@ jobs:
           APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
           BETWATCH_COOKIE: ${{ secrets.BETWATCH_COOKIE }}
           EXCAPPER_COOKIE: ${{ secrets.EXCAPPER_COOKIE }}
-          Betwach_api_key: ${{ secrets.Betwach_api_key }}
+          BETWACH_API_KEY: ${{ secrets.BETWACH_API_KEY }}
