@@ -4852,12 +4852,14 @@ async function loadChart(home, away, market, league = '') {
             let hasOpeningOdds = false;
             let openingPoint = { ScrapedAt: '' };
             
-            const _parseOr = (v, fallbackEntry, ...keys) => {
+            const _parseOr = (v, ...keys) => {
                 const n = parseFloat(v);
                 if (!isNaN(n) && n > 0) return n;
                 for (const k of keys) {
-                    const fb = parseFloat(String(fallbackEntry[k] || '').split('\n')[0]);
-                    if (!isNaN(fb) && fb > 0) return fb;
+                    for (const entry of historyData) {
+                        const fb = parseFloat(String(entry[k] || '').split('\n')[0]);
+                        if (!isNaN(fb) && fb > 0) return fb;
+                    }
                 }
                 return null;
             };
@@ -4868,8 +4870,8 @@ async function loadChart(home, away, market, league = '') {
                 if (!isNaN(op1) && op1 > 0) {
                     hasOpeningOdds = true;
                     openingPoint.Odds1 = op1; openingPoint['1'] = op1;
-                    openingPoint.OddsX = _parseOr(opX, firstEntry, 'OddsX', 'X'); openingPoint['X'] = openingPoint.OddsX;
-                    openingPoint.Odds2 = _parseOr(op2, firstEntry, 'Odds2', '2'); openingPoint['2'] = openingPoint.Odds2;
+                    openingPoint.OddsX = _parseOr(opX, 'OddsX', 'X'); openingPoint['X'] = openingPoint.OddsX;
+                    openingPoint.Odds2 = _parseOr(op2, 'Odds2', '2'); openingPoint['2'] = openingPoint.Odds2;
                 }
             } else if (market.includes('ou25')) {
                 const opU = parseFloat(firstEntry.Under_prev || firstEntry.OddsUnder_prev);
@@ -4877,7 +4879,7 @@ async function loadChart(home, away, market, league = '') {
                 if (!isNaN(opU) && opU > 0) {
                     hasOpeningOdds = true;
                     openingPoint.Under = opU;
-                    openingPoint.Over = _parseOr(opO, firstEntry, 'Over', 'OddsOver');
+                    openingPoint.Over = _parseOr(opO, 'Over', 'OddsOver');
                     openingPoint.OddsUnder = opU; openingPoint.OddsOver = openingPoint.Over;
                 }
             } else if (market.includes('btts')) {
@@ -4886,7 +4888,7 @@ async function loadChart(home, away, market, league = '') {
                 if (!isNaN(opY) && opY > 0) {
                     hasOpeningOdds = true;
                     openingPoint.Yes = opY;
-                    openingPoint.No = _parseOr(opN, firstEntry, 'No', 'OddsNo');
+                    openingPoint.No = _parseOr(opN, 'No', 'OddsNo');
                     openingPoint.OddsYes = opY; openingPoint.OddsNo = openingPoint.No;
                 }
             }

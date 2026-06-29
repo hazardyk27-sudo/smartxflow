@@ -358,10 +358,7 @@ class SupabaseClient:
             from datetime import datetime, timedelta
             import pytz
             
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             tr_tz = pytz.timezone('Europe/Istanbul')
             now_tr = datetime.now(tr_tz)
@@ -885,10 +882,7 @@ class SupabaseClient:
             seven_days_ago_str = (today_date - timedelta(days=7)).strftime('%Y-%m-%d')
             today_str = today_date.strftime('%Y-%m-%d')
             
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             # Step 1: Get fixtures (today+ or D-7+ depending on mode)
             # today_only: Istanbul bugününü al ama UTC fixture_date bir gün geride kalabilir
@@ -1083,10 +1077,7 @@ class SupabaseClient:
                 return []
             
             fixtures = resp.json()
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             # Collect fixtures not in seen
             fixtures_to_enrich = []
@@ -1213,10 +1204,7 @@ class SupabaseClient:
                 return []
             
             fixtures = resp.json()
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             # Collect fixtures not in seen
             fixtures_to_enrich = []
@@ -1444,10 +1432,7 @@ class SupabaseClient:
                 print(f"[Opening] All {len(match_hashes)} matches from cache (0.0s)")
                 return opening_by_hash
             
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             # Process in parallel batches of 100 hashes (URL length limit)
             import concurrent.futures
@@ -1531,10 +1516,7 @@ class SupabaseClient:
             from datetime import datetime, timedelta, timezone
             start_time = t_mod.time()
             
-            if market.startswith('dropping_'):
-                history_table = market.replace('dropping_', 'moneyway_') + '_history'
-            else:
-                history_table = f"{market}_history"
+            history_table = f"{market}_history"
             
             now_utc = datetime.now(timezone.utc)
             window_start = (now_utc - timedelta(hours=28)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
