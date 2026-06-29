@@ -790,9 +790,16 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
             if r.status_code == 200:
                 rows = r.json()
                 old_ids = []
+                cutoff_iso_date = d_minus_8.strftime('%Y-%m-%d')
                 for row in rows:
                     date_str = row.get('date', '')
                     is_valid = any(date_str.startswith(vd) for vd in valid_dates)
+                    # ISO format desteği: betwatch_prematch.py "2026-06-29T..." formatında yazıyor
+                    if not is_valid and len(date_str) >= 10:
+                        try:
+                            is_valid = date_str[:10] >= cutoff_iso_date
+                        except Exception:
+                            pass
                     if not is_valid and row.get('id'):
                         old_ids.append(str(row['id']))
                 
