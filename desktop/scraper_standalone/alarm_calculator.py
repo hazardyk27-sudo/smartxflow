@@ -2934,9 +2934,8 @@ class AlarmCalculator:
                 odds_keys = ['oddsyes', 'oddsno']
                 market_max_odds = max_odds_btts
             
-            # History verilerini al
-            # dropping_1x2: moneyway_1x2_history kullan (dropping_1x2_history prematch filter nedeniyle her zaman boş)
-            fetch_market = 'moneyway_1x2' if market == 'dropping_1x2' else market
+            # History verilerini al — dropping_1x2_history artık dolu, doğrudan kullan
+            fetch_market = market
             history_table = f"{fetch_market}_history"
             self.batch_fetch_history(fetch_market)
             history_map = self._history_cache.get(history_table, {})
