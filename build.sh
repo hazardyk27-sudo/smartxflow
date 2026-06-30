@@ -1,6 +1,5 @@
 #!/bin/bash
 pip install -r requirements.txt
-python -m playwright install chromium
 
 # Deploy-only cleanup: archive/ holds ~105MB of legacy files (data dumps, old SQLs,
 # unused scripts, log/exe under manual_review/). Not needed at runtime. This script
