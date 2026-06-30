@@ -5356,9 +5356,12 @@ async function loadChart(home, away, market, league = '') {
                 })() : {
                     // Desktop: normal eksenler
                     x: {
+                        offset: false,
+                        bounds: 'data',
                         grid: {
                             color: 'rgba(255, 255, 255, 0.06)',
-                            drawBorder: false
+                            drawBorder: false,
+                            offset: false
                         },
                         border: { display: false },
                         ticks: {
