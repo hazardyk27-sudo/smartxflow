@@ -5091,6 +5091,24 @@ async function loadChart(home, away, market, league = '') {
             }
         }
         
+        // Trim leading nulls: find first index where any dataset has real data
+        if (datasets.length > 0 && labels.length > 0) {
+            let trimStart = 0;
+            const maxLen = datasets[0].data.length;
+            for (let i = 0; i < maxLen; i++) {
+                if (datasets.some(ds => ds.data[i] !== null && ds.data[i] !== undefined)) {
+                    trimStart = i;
+                    break;
+                }
+            }
+            if (trimStart > 0) {
+                labels.splice(0, trimStart);
+                datasets.forEach(ds => ds.data.splice(0, trimStart));
+                historyData.splice(0, trimStart);
+                console.log('[Chart] Trimmed', trimStart, 'leading null entries from left');
+            }
+        }
+
         const tooltipHistory = historyData;
         
         // Store history data for mobile value panel

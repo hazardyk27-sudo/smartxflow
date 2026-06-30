@@ -218,10 +218,7 @@ class SupabaseClient:
         for attempt in range(max_retries + 1):
             try:
                 import urllib.parse
-                if market.startswith('dropping_'):
-                    history_table = market.replace('dropping_', 'moneyway_') + '_history'
-                else:
-                    history_table = f"{market}_history"
+                history_table = f"{market}_history"
                 home_enc = urllib.parse.quote(home_team, safe='')
                 away_enc = urllib.parse.quote(away_team, safe='')
                 
@@ -597,10 +594,7 @@ class SupabaseClient:
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
                 today_date = now_tr.date()
                 today_str = today_date.strftime('%Y-%m-%d')
-                if market.startswith('dropping_'):
-                    history_table = market.replace('dropping_', 'moneyway_') + '_history'
-                else:
-                    history_table = f"{market}_history"
+                history_table = f"{market}_history"
                 print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
                 # Step 1: Get ALL today's fixtures using kickoff_utc.
