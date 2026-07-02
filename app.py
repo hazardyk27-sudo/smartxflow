@@ -1959,7 +1959,7 @@ def get_match_history_bulk():
 def toggle_favorite():
     data = request.get_json() or {}
     match_key = data.get('match_key', '').strip()
-    license_key = session.get('license_key', '').strip()
+    license_key = (session.get('license_key', '') or request.headers.get('X-License-Key', '')).strip()
     if not license_key:
         device_id = (data.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
         license_key = f"device:{device_id}" if device_id else ''
@@ -1971,7 +1971,7 @@ def toggle_favorite():
 @app.route('/api/favorites')
 @license_required
 def get_favorites():
-    license_key = session.get('license_key', '').strip()
+    license_key = (session.get('license_key', '') or request.headers.get('X-License-Key', '')).strip()
     if not license_key:
         device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
         license_key = f"device:{device_id}" if device_id else ''
@@ -1984,7 +1984,7 @@ def get_favorites():
 @license_required
 def get_favorites_matches():
     """Returns full match data for all favorited matches (any date)."""
-    license_key = session.get('license_key', '').strip()
+    license_key = (session.get('license_key', '') or request.headers.get('X-License-Key', '')).strip()
     if not license_key:
         device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
         license_key = f"device:{device_id}" if device_id else ''

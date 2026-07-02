@@ -3000,7 +3000,16 @@ class AlarmCalculator:
                     odds_key = odds_keys[sel_idx]
                     
                     # Legacy şema: odds1, oddsx, odds2, over, under vb. kolonları kullan
-                    opening_odds = parse_float(history[0].get(odds_key, 0))
+                    # BUG FIX: history[0] bazen boş placeholder snapshot olabilir (market/line
+                    # henüz yayınlanmadan önce kaydedilen boş satır) -> opening_odds=0 olur ve
+                    # bu seçim SONSUZA KADAR atlanır. Gerçek açılış oranı için ilk GEÇERLİ
+                    # (>0) snapshot'ı kullan.
+                    opening_odds = 0.0
+                    for h in history:
+                        v = parse_float(h.get(odds_key, 0))
+                        if v > 0:
+                            opening_odds = v
+                            break
                     
                     # OUTLIER GUARD: history[-1] körü körüne kullanılmaz.
                     # Son 3 snapshot'ın MEDİANI alınır → tek bir bozuk snapshot (glitch) bastırılır.
