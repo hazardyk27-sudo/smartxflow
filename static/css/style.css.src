@@ -10693,7 +10693,9 @@ table.desktop-only {
 
     .alarm-filter-option {
         align-items: center;
-        min-height: 34px;
+        min-height: 44px;
+        padding: 12px 14px;
+        gap: 12px;
         box-sizing: border-box;
     }
 
@@ -10701,6 +10703,8 @@ table.desktop-only {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
+        font-size: 14px;
+        font-weight: 600;
     }
 
     .alarm-filter-option .filter-dot,
@@ -10708,6 +10712,29 @@ table.desktop-only {
     .alarm-filter-option .date-count-badge {
         flex-shrink: 0;
     }
+
+    .alarm-filter-option .filter-dot {
+        width: 9px;
+        height: 9px;
+        opacity: 1;
+    }
+
+    .alarm-filter-option .filter-count,
+    .alarm-filter-option .date-count-badge {
+        font-size: 12px;
+        padding: 3px 9px;
+    }
+
+    /* Alarm filtre dropdown listesi - gorsel zenginlestirme, tarih filtresiyle esitleme (Task #235) */
+    .alarm-filter-option[data-value="sharp"] .filter-label { color: #4ade80; }
+    .alarm-filter-option[data-value="bigmoney"] .filter-label { color: #F08A24; }
+    .alarm-filter-option[data-value="volumeshock"] .filter-label { color: #F6C343; }
+    .alarm-filter-option[data-value="dropping"] .filter-label { color: #f85149; }
+    .alarm-filter-option[data-value="volumeleader"] .filter-label { color: #06b6d4; }
+    .alarm-filter-option[data-value="mim"] .filter-label { color: #3B82F6; }
+    .alarm-filter-option[data-value="today"] .filter-label { color: #4ade80; }
+    .alarm-filter-option[data-value="yesterday"] .filter-label { color: #f85149; }
+    .alarm-filter-option[data-value="future"] .filter-label { color: #3B82F6; }
 }
 
 /* Extra Small Screens */
