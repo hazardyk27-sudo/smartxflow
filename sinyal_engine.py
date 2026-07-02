@@ -1836,9 +1836,9 @@ def fetch_eml_history(match_hashes):
             f"?select=match_id_hash,scraped_at,pct1,pct2,pctx,volume,odds1,odds2"
             f"&scraped_at=gte.{cutoff}"
             f"&order=scraped_at.desc"
-            f"&limit=5000"
+            f"&limit=50000"
         )
-        r = requests.get(url, headers=_headers_read(), timeout=15)
+        r = requests.get(url, headers=_headers_read(), timeout=30)
         if r.status_code == 200:
             rows = r.json()
             by_hash = {}
@@ -1847,6 +1847,7 @@ def fetch_eml_history(match_hashes):
                 if h not in match_hashes:
                     continue
                 by_hash.setdefault(h, []).append(row)
+            log(f"[EML] History: {len(rows)} satır çekildi → {len(by_hash)} maç eşleşti")
             return by_hash
         log(f"[EML] History çekilemedi: {r.status_code}")
         return {}
@@ -2137,8 +2138,8 @@ def run_eml_scan(latest_snapshots, active_keys=None):
 
     kickoff_map = fetch_eml_kickoffs()
     if not kickoff_map:
-        log("[EML] Kickoff verisi boş, tarama atlandı")
-        return
+        log("[EML] Kickoff verisi boş (fixtures tablosu), date fallback ile devam ediliyor")
+        kickoff_map = {}
 
     existing = fetch_eml_existing()
     signals = find_early_money_lock(latest_snapshots, existing, kickoff_map, active_keys=active_keys)
