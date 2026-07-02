@@ -10647,6 +10647,10 @@ table.desktop-only {
         max-width: 100% !important;
         top: 0 !important;
         padding-top: env(safe-area-inset-top);
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
     }
     
     .alarms-sidebar-header {
@@ -10677,6 +10681,32 @@ table.desktop-only {
     
     .alarm-description {
         font-size: 10px;
+    }
+
+    /* Alarm filtre dropdown listesi - hizalama + kesilme duzeltmesi (Task #233) */
+    .alarm-filter-dropdown.open .alarm-filter-options {
+        max-height: 60vh;
+        max-height: 60dvh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .alarm-filter-option {
+        align-items: center;
+        min-height: 34px;
+        box-sizing: border-box;
+    }
+
+    .alarm-filter-option .filter-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .alarm-filter-option .filter-dot,
+    .alarm-filter-option .filter-count,
+    .alarm-filter-option .date-count-badge {
+        flex-shrink: 0;
     }
 }
 
