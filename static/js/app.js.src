@@ -9325,9 +9325,11 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
         return;
     }
     
-    if (!cachedAllAlarms || cachedAllAlarms.length === 0) {
-        await loadAllAlarmsOnce(false);
-    }
+    // Her modal açılışında en güncel alarm verisini al (cachedAllAlarms tek seferlik
+    // snapshot olduğu için, dolu olsa bile Alert Band'in arka planda tazelediği
+    // _alarmBatchCache ile senkron kalması gerekir). loadAllAlarmsOnce -> fetchAlarmsBatch
+    // zaten kendi 60sn TTL'i ile network isteğini sınırlıyor, bu yüzden koşulsuz çağrı güvenli.
+    await loadAllAlarmsOnce(false);
     if (reqId && reqId !== _modalRequestId) return;
     const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
     
