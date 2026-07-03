@@ -210,6 +210,7 @@
   <div id="listView">
     <div class="tabs">
       <button class="tab-btn active" data-mode="upcoming">Yaklaşan Maçlar</button>
+      <button class="tab-btn" data-mode="yesterday_today" id="yesterdayTodayTab">Dün &amp; Bugün</button>
       <button class="tab-btn" data-mode="search" id="searchTab" style="display:none;">Arama Sonuçları</button>
     </div>
     <div class="match-list" id="matchList">
@@ -250,6 +251,7 @@ const resultHeader = document.getElementById('resultHeader');
 const tradesBody = document.getElementById('tradesBody');
 const searchTab = document.getElementById('searchTab');
 const upcomingTabBtn = document.querySelector('.tab-btn[data-mode="upcoming"]');
+const yesterdayTodayTabBtn = document.getElementById('yesterdayTodayTab');
 
 let searchTimer = null;
 let mode = 'upcoming';
@@ -283,10 +285,11 @@ function renderMatchList(matches) {
   });
 }
 
-async function loadUpcoming() {
+async function loadUpcoming(range) {
   matchListEl.innerHTML = '<div class="loading">Yükleniyor...</div>';
   try {
-    const res = await fetch('/api/poly/matches');
+    const url = range ? `/api/poly/matches?range=${encodeURIComponent(range)}` : '/api/poly/matches';
+    const res = await fetch(url);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     renderMatchList(data.matches);
@@ -307,30 +310,41 @@ async function doSearch(q) {
   }
 }
 
+function setActiveTab(activeBtn) {
+  [upcomingTabBtn, yesterdayTodayTabBtn, searchTab].forEach(btn => btn.classList.remove('active'));
+  activeBtn.classList.add('active');
+}
+
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim();
   clearTimeout(searchTimer);
   if (q.length < 2) {
     searchTab.style.display = 'none';
-    upcomingTabBtn.classList.add('active');
+    setActiveTab(upcomingTabBtn);
     mode = 'upcoming';
     loadUpcoming();
     return;
   }
   searchTab.style.display = 'inline-block';
-  searchTab.classList.add('active');
-  upcomingTabBtn.classList.remove('active');
+  setActiveTab(searchTab);
   mode = 'search';
   searchTimer = setTimeout(() => doSearch(q), 350);
 });
 
 upcomingTabBtn.addEventListener('click', () => {
   mode = 'upcoming';
-  upcomingTabBtn.classList.add('active');
-  searchTab.classList.remove('active');
+  setActiveTab(upcomingTabBtn);
   searchInput.value = '';
   searchTab.style.display = 'none';
   loadUpcoming();
+});
+
+yesterdayTodayTabBtn.addEventListener('click', () => {
+  mode = 'yesterday_today';
+  setActiveTab(yesterdayTodayTabBtn);
+  searchInput.value = '';
+  searchTab.style.display = 'none';
+  loadUpcoming('yesterday_today');
 });
 
 let currentTrades = [];

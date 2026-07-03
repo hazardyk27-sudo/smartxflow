@@ -182,10 +182,15 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: int = 36) -> List[Dict[str, Any]]:
-    """Return real head-to-head football matches (not futures/outrights) that started
-    anytime since the beginning of yesterday (Europe/Istanbul calendar day) or will
-    start within the next `hours_ahead` hours, sorted by kickoff time ascending."""
+def get_today_matches(hours_ahead: int = 36, only_yesterday_today: bool = False) -> List[Dict[str, Any]]:
+    """Return real head-to-head football matches (not futures/outrights).
+
+    Default mode: matches that started anytime since the beginning of yesterday
+    (Europe/Istanbul calendar day) or will start within the next `hours_ahead` hours.
+
+    If `only_yesterday_today` is True, ignores `hours_ahead` and instead returns only
+    matches with kickoff between the start of yesterday and the end of today
+    (Europe/Istanbul calendar days) — used for the "Dün & Bugün" filter."""
     from datetime import datetime, timezone, timedelta
     try:
         from zoneinfo import ZoneInfo
@@ -195,11 +200,16 @@ def get_today_matches(hours_ahead: int = 36) -> List[Dict[str, Any]]:
 
     events = _fetch_soccer_events() + _fetch_closed_soccer_events()
     now = datetime.now(timezone.utc)
-    cutoff = now + timedelta(hours=hours_ahead)
 
     now_local = now.astimezone(tz)
     start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
+
+    if only_yesterday_today:
+        end_of_today_local = now_local.replace(hour=23, minute=59, second=59, microsecond=0)
+        cutoff = end_of_today_local.astimezone(timezone.utc)
+    else:
+        cutoff = now + timedelta(hours=hours_ahead)
 
     seen_ids = set()
     matches = []

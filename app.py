@@ -868,7 +868,9 @@ def api_poly_matches():
     """Yaklaşan gerçek futbol maçlarının listesi (Polymarket'te işlem gören)"""
     try:
         hours_ahead = request.args.get('hours_ahead', 36, type=int)
-        matches = poly_get_today_matches(hours_ahead=hours_ahead)
+        range_mode = request.args.get('range', '').strip()
+        only_yesterday_today = (range_mode == 'yesterday_today')
+        matches = poly_get_today_matches(hours_ahead=hours_ahead, only_yesterday_today=only_yesterday_today)
         return jsonify({'matches': matches})
     except Exception as e:
         print(f"[Poly] /api/poly/matches error: {e}")
