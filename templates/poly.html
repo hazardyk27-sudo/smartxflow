@@ -160,7 +160,7 @@
             <th>Takma Ad</th>
             <th>Seçenek</th>
             <th>Tutar (USDC)</th>
-            <th>Fiyat</th>
+            <th>Oran</th>
             <th>Tarih / Saat</th>
           </tr>
         </thead>
@@ -287,7 +287,7 @@ async function loadTrades(slug, title, kickoff) {
         <td class="pseudonym">${t.pseudonym || '—'}</td>
         <td><span class="outcome-badge">${t.outcome || '-'}</span></td>
         <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
-        <td class="price">${(t.price * 100).toFixed(1)}%</td>
+        <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
         <td>${fmtKickoff(t.timestamp_iso)}</td>
       </tr>
     `).join('');
