@@ -68,6 +68,10 @@ _events_cache = {"data": None, "time": 0}
 _events_cache_lock = threading.Lock()
 _EVENTS_CACHE_TTL = 90
 
+_closed_events_cache = {"data": None, "time": 0}
+_closed_events_cache_lock = threading.Lock()
+_CLOSED_EVENTS_CACHE_TTL = 180
+
 
 def _parse_match_title(title: str):
     if not title or ' - ' in title:
@@ -116,6 +120,52 @@ def _fetch_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
     return all_events
 
 
+def _fetch_closed_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """Fetch recently-closed (finished) soccer events from Gamma API, newest first.
+    Stops paginating once events are older than ~3 days back (we only need yesterday)."""
+    from datetime import datetime, timezone, timedelta
+
+    now = time.time()
+    with _closed_events_cache_lock:
+        if not force_refresh and _closed_events_cache["data"] is not None and (now - _closed_events_cache["time"]) < _CLOSED_EVENTS_CACHE_TTL:
+            return _closed_events_cache["data"]
+
+    stop_before = datetime.now(timezone.utc) - timedelta(days=3)
+    all_events: List[Dict[str, Any]] = []
+    page_size = 100
+    offset = 0
+    max_pages = 6  # safety cap (~600 events, newest-first so recent matches come first)
+    for _ in range(max_pages):
+        page = _get_json(f"{GAMMA_BASE}/events", {
+            "tag_id": SOCCER_TAG_ID,
+            "closed": "true",
+            "limit": page_size,
+            "offset": offset,
+            "order": "endDate",
+            "ascending": "false",
+        })
+        if not page:
+            break
+        all_events.extend(page)
+        oldest_end = page[-1].get("endDate")
+        if oldest_end:
+            try:
+                oldest_dt = datetime.fromisoformat(oldest_end.replace("Z", "+00:00"))
+                if oldest_dt < stop_before:
+                    break
+            except Exception:
+                pass
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    with _closed_events_cache_lock:
+        _closed_events_cache["data"] = all_events
+        _closed_events_cache["time"] = now
+
+    return all_events
+
+
 def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     parsed = _parse_match_title(event.get("title", ""))
     if not parsed:
@@ -132,18 +182,31 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: int = 36, hours_back: int = 24) -> List[Dict[str, Any]]:
+def get_today_matches(hours_ahead: int = 36) -> List[Dict[str, Any]]:
     """Return real head-to-head football matches (not futures/outrights) that started
-    within the last `hours_back` hours or will start within the next `hours_ahead`
-    hours (so yesterday's matches are included too), sorted by kickoff time ascending."""
+    anytime since the beginning of yesterday (Europe/Istanbul calendar day) or will
+    start within the next `hours_ahead` hours, sorted by kickoff time ascending."""
     from datetime import datetime, timezone, timedelta
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Europe/Istanbul")
+    except Exception:
+        tz = timezone(timedelta(hours=3))
 
-    events = _fetch_soccer_events()
+    events = _fetch_soccer_events() + _fetch_closed_soccer_events()
     now = datetime.now(timezone.utc)
     cutoff = now + timedelta(hours=hours_ahead)
 
+    now_local = now.astimezone(tz)
+    start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
+
+    seen_ids = set()
     matches = []
     for event in events:
+        event_id = event.get("id")
+        if event_id in seen_ids:
+            continue
         m = _event_to_match(event)
         if not m or not m["kickoff_utc"]:
             continue
@@ -152,7 +215,8 @@ def get_today_matches(hours_ahead: int = 36, hours_back: int = 24) -> List[Dict[
             kickoff_dt = datetime.fromisoformat(kickoff_str)
         except Exception:
             continue
-        if now - timedelta(hours=hours_back) <= kickoff_dt <= cutoff:
+        if back_cutoff <= kickoff_dt <= cutoff:
+            seen_ids.add(event_id)
             matches.append(m)
 
     matches.sort(key=lambda x: x["kickoff_utc"])
@@ -165,15 +229,20 @@ def search_matches(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     if not query_norm:
         return []
 
-    events = _fetch_soccer_events()
+    events = _fetch_soccer_events() + _fetch_closed_soccer_events()
+    seen_ids = set()
     results = []
     for event in events:
+        event_id = event.get("id")
+        if event_id in seen_ids:
+            continue
         m = _event_to_match(event)
         if not m:
             continue
         home_norm = _normalize(m["home"])
         away_norm = _normalize(m["away"])
         if query_norm in home_norm or query_norm in away_norm or query_norm in _normalize(m["title"]):
+            seen_ids.add(event_id)
             results.append(m)
 
     results.sort(key=lambda x: x.get("kickoff_utc") or "")
