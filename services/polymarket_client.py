@@ -388,7 +388,7 @@ def _market_selection_side(market_type: str, raw_group_title: str, raw_outcome: 
     return raw_group_title or "-", raw_outcome or "-"
 
 
-def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> Dict[str, Any]:
+def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:
     """Fetch the largest matched (executed) trades for a football match by event slug.
     Combines the main 1X2 event with its sibling "More Markets" event to also
     surface Over/Under 2.5 and Both Teams to Score sub-markets.
@@ -417,11 +417,12 @@ def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> 
                 market_specs.append((market_type, market))
 
     all_trades = []
-    # For 1x2 we trust Polymarket's own per-selection `volume` field.
-    onexone_summaries = []
-    # For ou25/btts (single market, two outcomes) we derive the per-side
-    # volume from the sampled trades themselves, since the API only exposes
-    # one combined `volume` per market, not a per-outcome breakdown.
+    # For every market type (1x2, ou25, btts) each Polymarket sub-market is a
+    # binary Yes/No market. Polymarket's own `volume` field on the market
+    # combines BOTH sides (e.g. betting "No" on a team still counts toward
+    # that team's `volume`), which misleadingly implies "No" money is backing
+    # that selection. To show accurate per-side volume, we derive Evet/Hayır
+    # (and Üst/Alt, Var/Yok) sums directly from the fully-paginated trades.
     derived_volume_sums: Dict[tuple, float] = {}
     derived_entries = []  # (market_type, selection, side) seen, in order
 
@@ -431,24 +432,9 @@ def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> 
             continue
         raw_label = market.get("groupItemTitle") or market.get("question") or ""
 
-        try:
-            market_volume = float(market.get("volume") or 0)
-        except (TypeError, ValueError):
-            market_volume = 0.0
-
-        if market_type == "1x2":
-            selection = _selection_label(raw_label)
-            onexone_summaries.append({"selection": selection, "volume": round(market_volume, 2)})
-
-        if market_type in ("ou25", "btts"):
-            # Fully paginate to get an exact (not sampled) per-outcome volume sum,
-            # since these single markets don't expose a per-outcome `volume` field.
-            trades = _fetch_all_trades(condition_id)
-        else:
-            trades = _get_json(f"{DATA_BASE}/trades", {
-                "market": condition_id,
-                "limit": trades_per_market,
-            })
+        # Fully paginate to get an exact (not sampled) per-side volume sum,
+        # since a market's single `volume` field combines both Yes and No.
+        trades = _fetch_all_trades(condition_id)
         if not trades:
             continue
 
@@ -465,11 +451,10 @@ def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> 
             raw_outcome = (t.get("outcome") or "").strip()
             selection, side = _market_selection_side(market_type, raw_label, raw_outcome)
 
-            if market_type in ("ou25", "btts"):
-                key = (market_type, selection, side)
-                derived_volume_sums[key] = derived_volume_sums.get(key, 0.0) + usdc_size
-                if key not in derived_entries:
-                    derived_entries.append(key)
+            key = (market_type, selection, side)
+            derived_volume_sums[key] = derived_volume_sums.get(key, 0.0) + usdc_size
+            if key not in derived_entries:
+                derived_entries.append(key)
 
             all_trades.append({
                 "wallet": t.get("proxyWallet", ""),
@@ -488,7 +473,9 @@ def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> 
         return items
 
     market_summaries = []
-    for i in _with_pct(onexone_summaries):
+    onexone_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
+                     for (mt, sel, side) in derived_entries if mt == "1x2"]
+    for i in _with_pct(onexone_items):
         market_summaries.append({"market_type": "1x2", "group": "1X2", **i})
 
     ou25_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
