@@ -440,13 +440,23 @@ def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:
 
         for t in trades:
             try:
-                usdc_size = float(t.get("usdcSize") or t.get("size") or 0)
-            except (TypeError, ValueError):
-                usdc_size = 0.0
-            try:
                 price = float(t.get("price") or 0)
             except (TypeError, ValueError):
                 price = 0.0
+            try:
+                # Polymarket's Data API /trades endpoint does NOT return a
+                # usdcSize field - "size" is the number of outcome SHARES
+                # traded, not a dollar amount. Real USDC value = size * price.
+                # (Using raw "size" as if it were dollars badly distorts
+                # per-side volume: cheap outcomes need many more shares per
+                # dollar than expensive/favorite outcomes, so it understates
+                # favorites and overstates underdogs.)
+                if t.get("usdcSize") is not None:
+                    usdc_size = float(t.get("usdcSize"))
+                else:
+                    usdc_size = float(t.get("size") or 0) * price
+            except (TypeError, ValueError):
+                usdc_size = 0.0
 
             raw_outcome = (t.get("outcome") or "").strip()
             selection, side = _market_selection_side(market_type, raw_label, raw_outcome)
