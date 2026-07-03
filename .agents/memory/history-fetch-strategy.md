@@ -1,7 +1,15 @@
 ---
-name: History table fetch strategy
-description: How get_matches_paginated fetches latest odds per match from history tables; pitfalls and the correct two-phase approach.
+name: History table fetch strategy (SUPERSEDED)
+description: Old two-phase history-table fetch approach for get_matches_paginated — replaced by main-table fetch. See main-table-vs-history-odds.md for the current approach.
 ---
+
+**SUPERSEDED (2026-07-03):** `get_matches_paginated` and `get_all_matches_with_latest`
+no longer fetch odds from `_history` tables at all — they read from the main market
+tables via `_fetch_main_table_odds()` instead, which eliminates the starvation
+problem described below entirely (no shared row-limit window, no missing matches).
+See `main-table-vs-history-odds.md` for the current approach. This file is kept for
+historical context only (e.g. if history-table fetching is ever needed again for a
+single-match time series).
 
 ## The Problem
 The old approach fetched the latest N rows globally (`ORDER BY scraped_at DESC LIMIT 15000`) and scanned for specific hashes. With ~552 active fixtures being scraped every 5 min, the 15k-row window only covered ~2.3 hours. Matches scraped before kickoff (e.g., matches starting 00:00–05:00 Istanbul) disappeared from the list hours after their last scrape.

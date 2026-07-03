@@ -594,7 +594,6 @@ class SupabaseClient:
                 # FIXTURES-FIRST APPROACH: Get all today's fixtures first, then batch fetch odds
                 today_date = now_tr.date()
                 today_str = today_date.strftime('%Y-%m-%d')
-                history_table = f"{market}_history"
                 print(f"[Supabase] TODAY: Fixtures-first approach for {today_str}")
                 
                 # Step 1: Get ALL today's fixtures using kickoff_utc.
@@ -630,33 +629,12 @@ class SupabaseClient:
                 if not fixtures:
                     return []
                 
-                # Step 2: Batch fetch odds from history using match_id_hash (reliable matching)
-                from urllib.parse import quote
-                odds_cache = {}
-                hashes = [fix.get('match_id_hash', '') for fix in fixtures if fix.get('match_id_hash')]
-                batch_size = 50
-                
-                for i in range(0, len(hashes), batch_size):
-                    batch_hashes = hashes[i:i+batch_size]
-                    hash_list = ','.join(batch_hashes)
-                    
-                    if not hash_list:
-                        continue
-                    
-                    try:
-                        batch_url = f"{self._rest_url(history_table)}?match_id_hash=in.({hash_list})&order=scraped_at.desc&limit=1000"
-                        batch_resp = self._get_http_client().get(batch_url, headers=self._headers(), timeout=30)
-                        
-                        if batch_resp.status_code == 200:
-                            rows = batch_resp.json()
-                            for row in rows:
-                                h = row.get('match_id_hash', '')
-                                if h and h not in odds_cache:
-                                    odds_cache[h] = row
-                    except Exception as e:
-                        print(f"[Supabase] TODAY batch {i//batch_size + 1} error: {e}")
-                
-                print(f"[Supabase] TODAY: Batch fetched odds for {len(odds_cache)}/{len(fixtures)} matches")
+                # Step 2: Fetch latest odds from the main (upserted, 1-row-per-match) table.
+                # This guarantees every fixture gets its own odds row regardless of how
+                # frequently other matches in the window are being scraped (no shared-limit
+                # starvation like the old history-batch approach had).
+                main_odds = self._fetch_main_table_odds(market, date_gte=today_str)
+                print(f"[Supabase] TODAY: Main-table odds available for {len(main_odds)} match/date keys")
                 
                 # Step 3: Build match list with odds
                 matches = []
@@ -669,18 +647,11 @@ class SupabaseClient:
                     
                     kickoff_utc = fix.get('kickoff_utc', '')
                     
-                    match_hash = fix.get('match_id_hash', '')
-                    latest_odds = {
-                        'ScrapedAt': '',
-                        'Volume': '',
-                        'Odds1': '-',
-                        'OddsX': '-',
-                        'Odds2': '-'
-                    }
-                    
-                    if match_hash in odds_cache:
-                        row = odds_cache[match_hash]
+                    row = main_odds.get((home, away, kickoff_utc))
+                    if row:
                         latest_odds = self._normalize_history_row(row, market)
+                    else:
+                        latest_odds = self._get_empty_odds(market)
                     
                     matches.append({
                         'home_team': home,
@@ -700,93 +671,50 @@ class SupabaseClient:
                 seven_days_ago_date = today_date - timedelta(days=7)
                 seven_days_ago_str = seven_days_ago_date.strftime('%Y-%m-%d')
                 
-                print(f"[Supabase] ALL: Hash-based approach (match_id_hash)")
+                print(f"[Supabase] ALL: Fixtures-first approach (main table, guaranteed per-match odds)")
                 
-                # Step 1: Get ALL unique matches from history with FULL odds data
-                # Note: Supabase has 1000 row default limit, use parallel Range requests
-                import concurrent.futures
-                
-                history_rows = []
-                batch_size = 1000
-                max_rows = 15000  # Reduced for performance balance
-                
-                def fetch_batch(offset):
-                    headers = self._headers()
-                    headers['Range'] = f'{offset}-{offset + batch_size - 1}'
-                    history_url = f"{self._rest_url(history_table)}?select=*&order=scraped_at.desc"
-                    resp = self._get_http_client().get(history_url, headers=headers, timeout=30)
-                    if resp.status_code in [200, 206]:
-                        return resp.json()
-                    return []
-                
-                # Fetch all batches in parallel for speed
-                offsets = list(range(0, max_rows, batch_size))
-                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                    results = list(executor.map(fetch_batch, offsets))
-                
-                for batch in results:
-                    if batch:
-                        history_rows.extend(batch)
-                
-                print(f"[Supabase] ALL: Got {len(history_rows)} history rows (parallel)")
-                
-                # Deduplicate by match_id_hash - keep first (latest) occurrence
-                odds_by_hash = {}
-                for row in history_rows:
-                    match_hash = row.get('match_id_hash', '')
-                    if match_hash and match_hash not in odds_by_hash:
-                        odds_by_hash[match_hash] = row
-                
-                print(f"[Supabase] ALL: {len(odds_by_hash)} unique matches by hash")
-                
-                # Step 2: Get fixtures metadata for kickoff times (son 7 gün)
+                # Step 1: Get fixtures metadata (son 7 gün)
                 fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
                 fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 
-                fixtures_by_hash = {}
-                if fix_resp.status_code == 200:
-                    for fix in fix_resp.json():
-                        match_hash = fix.get('match_id_hash', '')
-                        if match_hash:
-                            fixtures_by_hash[match_hash] = fix
-                    print(f"[Supabase] ALL: Got {len(fixtures_by_hash)} fixtures metadata")
+                fixtures_list = fix_resp.json() if fix_resp.status_code == 200 else []
+                print(f"[Supabase] ALL: Got {len(fixtures_list)} fixtures")
                 
-                # Step 3: Build match list with full odds
+                # Step 2: Fetch latest odds from the main (upserted, 1-row-per-match) table.
+                # No shared-limit starvation: every fixture gets its own row regardless of
+                # how frequently other matches were scraped (unlike the old history-batch
+                # approach which could push infrequently-updated matches out of the window).
+                main_odds = self._fetch_main_table_odds(market, date_gte=seven_days_ago_str)
+                print(f"[Supabase] ALL: Main-table odds available for {len(main_odds)} match/date keys")
+                
+                # Step 3: Build match list from fixtures, enriched with main-table odds
                 matches = []
                 tr_tz = pytz.timezone('Europe/Istanbul')
                 
-                for match_hash, row in odds_by_hash.items():
-                    # Fixtures tablosundan home/away/league al (history tablosunda bu kolonlar yok)
-                    if match_hash in fixtures_by_hash:
-                        fix = fixtures_by_hash[match_hash]
-                        home = fix.get('home_team', '') or row.get('home', '')
-                        away = fix.get('away_team', '') or row.get('away', '')
-                        league = fix.get('league', '') or row.get('league', '')
+                for fix in fixtures_list:
+                    match_hash = fix.get('match_id_hash', '')
+                    home = fix.get('home_team', '')
+                    away = fix.get('away_team', '')
+                    league = fix.get('league', '')
+                    kickoff_utc = fix.get('kickoff_utc', '')
+                    
+                    date_display = fix.get('fixture_date', '')
+                    if kickoff_utc:
+                        try:
+                            if isinstance(kickoff_utc, str):
+                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
+                            else:
+                                kickoff_dt = kickoff_utc
+                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
+                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
+                        except:
+                            pass
+                    
+                    row = main_odds.get((home, away, kickoff_utc))
+                    if row:
+                        latest_odds = self._normalize_history_row(row, market)
                     else:
-                        home = row.get('home', '')
-                        away = row.get('away', '')
-                        league = row.get('league', '')
-                    date_str = row.get('date', '')
-                    
-                    # Get kickoff from fixtures if available
-                    kickoff_utc = ''
-                    date_display = date_str
-                    if match_hash in fixtures_by_hash:
-                        fix = fixtures_by_hash[match_hash]
-                        kickoff_utc = fix.get('kickoff_utc', '')
-                        if kickoff_utc:
-                            try:
-                                if isinstance(kickoff_utc, str):
-                                    kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                                else:
-                                    kickoff_dt = kickoff_utc
-                                kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                                date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                            except:
-                                pass
-                    
-                    # Get FULL odds from history row
-                    latest_odds = self._normalize_history_row(row, market)
+                        latest_odds = self._get_empty_odds(market)
                     
                     matches.append({
                         'home_team': home,
@@ -797,51 +725,6 @@ class SupabaseClient:
                         'kickoff_utc': kickoff_utc,
                         'latest': latest_odds
                     })
-                
-                # Step 4: Add fixtures that are NOT in history (new matches without odds yet)
-                # Batch fetch all missing fixtures at once for performance
-                missing_hashes = [h for h in fixtures_by_hash.keys() if h not in odds_by_hash]
-                fixtures_only_count = 0
-                
-                if missing_hashes:
-                    # Batch fetch all fixture details at once (son 7 gün)
-                    batch_fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
-                    try:
-                        batch_fix_resp = self._get_http_client().get(batch_fix_url, headers=self._headers(), timeout=30)
-                        if batch_fix_resp.status_code == 200:
-                            all_fixtures = {f.get('match_id_hash'): f for f in batch_fix_resp.json()}
-                            
-                            for match_hash in missing_hashes:
-                                if match_hash in all_fixtures:
-                                    fd = all_fixtures[match_hash]
-                                    kickoff_utc = fd.get('kickoff_utc', '')
-                                    date_display = fd.get('fixture_date', '')
-                                    if kickoff_utc:
-                                        try:
-                                            if isinstance(kickoff_utc, str):
-                                                kickoff_dt = datetime.fromisoformat(kickoff_utc.replace('Z', '+00:00'))
-                                            else:
-                                                kickoff_dt = kickoff_utc
-                                            kickoff_tr = kickoff_dt.astimezone(tr_tz)
-                                            date_display = kickoff_tr.strftime('%d.%b %H:%M')
-                                        except:
-                                            pass
-                                    
-                                    matches.append({
-                                        'home_team': fd.get('home_team', ''),
-                                        'away_team': fd.get('away_team', ''),
-                                        'league': fd.get('league', ''),
-                                        'date': date_display,
-                                        'match_id_hash': match_hash,
-                                        'kickoff_utc': kickoff_utc,
-                                        'latest': self._get_empty_odds(market)
-                                    })
-                                    fixtures_only_count += 1
-                    except Exception as e:
-                        print(f"[Supabase] ALL: Batch fixtures fetch error: {e}")
-                
-                if fixtures_only_count > 0:
-                    print(f"[Supabase] ALL: Added {fixtures_only_count} matches from fixtures (no history yet)")
                 
                 print(f"[Supabase] ALL: Got {len(matches)} total unique matches with full odds")
                 return matches
@@ -876,8 +759,6 @@ class SupabaseClient:
             seven_days_ago_str = (today_date - timedelta(days=7)).strftime('%Y-%m-%d')
             today_str = today_date.strftime('%Y-%m-%d')
             
-            history_table = f"{market}_history"
-            
             # Step 1: Get fixtures (today+ or D-7+ depending on mode)
             # today_only: Istanbul bugününü al ama UTC fixture_date bir gün geride kalabilir
             # (ör. 01:00 İstanbul = 22:00 UTC önceki gün) → bir gün buffer ekle
@@ -904,56 +785,17 @@ class SupabaseClient:
             if not fixtures_by_hash:
                 return {'matches': [], 'total': 0, 'has_more': False}
             
-            # Step 2: Get history data - two-phase approach using composite index
-            # Phase 1: batch IN queries (fast, catches recently-scraped active matches)
-            # Phase 2: individual eq queries for matches not found in phase 1 (catches older/inactive matches)
-            all_hashes = list(fixtures_by_hash.keys())
-            odds_by_hash = {}
-            hash_batch_size = 50
-
-            def fetch_history_by_hashes(batch_hashes):
-                hash_list = ','.join(batch_hashes)
-                lim = len(batch_hashes) * 10
-                url = f"{self._rest_url(history_table)}?select=*&match_id_hash=in.({hash_list})&order=scraped_at.desc&limit={lim}"
-                try:
-                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=30)
-                    if resp.status_code == 200:
-                        return resp.json()
-                except Exception as e:
-                    print(f"[Paginated] History batch error: {e}")
-                return []
-
-            def fetch_history_single(match_hash):
-                url = f"{self._rest_url(history_table)}?select=*&match_id_hash=eq.{match_hash}&order=scraped_at.desc&limit=1"
-                try:
-                    resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
-                    if resp.status_code == 200:
-                        rows = resp.json()
-                        return rows[0] if rows else None
-                except Exception as e:
-                    print(f"[Paginated] Single history error {match_hash}: {e}")
-                return None
-
-            # Phase 1: batch queries
-            batches = [all_hashes[i:i+hash_batch_size] for i in range(0, len(all_hashes), hash_batch_size)]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                futures = [executor.submit(fetch_history_by_hashes, b) for b in batches]
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        rows = future.result()
-                    except Exception:
-                        continue
-                    for row in rows:
-                        match_hash = row.get('match_id_hash', '')
-                        if match_hash and match_hash not in odds_by_hash:
-                            odds_by_hash[match_hash] = row
-
-            # Phase 2: kaldırıldı — 268 eşzamanlı sorgu Supabase'i aşırı yüklüyordu (statement timeout 57014)
-            # Phase 1'de bulunamayan maçlar boş odds ile gösterilir, bu kabul edilebilir.
-
-            print(f"[Paginated] Got history for {len(odds_by_hash)}/{len(all_hashes)} matches")
+            # Step 2: Get latest odds from the main (upserted, 1-row-per-match) table.
+            # Replaces the old history-batch approach (which fetched "top N rows by
+            # scraped_at" per 50-match batch): an infrequently/no-longer-scraped match
+            # (e.g. one that already kicked off) could get pushed out of that shared
+            # window by other actively-scraped matches sharing its batch, and silently
+            # show up with no odds -> filtered out client-side. The main table is
+            # upserted per match, so every fixture always gets its own current row.
+            main_odds = self._fetch_main_table_odds(market, date_gte=date_gte)
+            print(f"[Paginated] Got main-table odds for {len(main_odds)} match/date keys ({len(fixtures_by_hash)} fixtures)")
             
-            # Step 3: Build match list from fixtures, enriched with history
+            # Step 3: Build match list from fixtures, enriched with main-table odds
             matches = []
             for match_hash, fix in fixtures_by_hash.items():
                 home = fix.get('home_team', '')
@@ -974,9 +816,10 @@ class SupabaseClient:
                     except:
                         pass
                 
-                # Get odds from history if available
-                if match_hash in odds_by_hash:
-                    latest_odds = self._normalize_history_row(odds_by_hash[match_hash], market)
+                # Get odds from main table if available
+                row = main_odds.get((home, away, kickoff_utc))
+                if row:
+                    latest_odds = self._normalize_history_row(row, market)
                 else:
                     latest_odds = self._get_empty_odds(market)
                 
@@ -1044,6 +887,40 @@ class SupabaseClient:
                 'AmtNo': ''
             }
         return {'ScrapedAt': '', 'Volume': ''}
+
+    def _fetch_main_table_odds(self, market: str, date_gte: str = None) -> Dict[tuple, Dict]:
+        """Fetch latest odds directly from the main (current-state) market table.
+
+        Main tables (moneyway_1x2, dropping_1x2, ...) are UPSERTED by the scraper
+        (on_conflict = home,away,date) — exactly ONE row per match, always holding
+        its current/last-known odds, regardless of how often the match is scraped.
+        This avoids the starvation bug of the history-table batch approach, where a
+        match that stops being scraped (e.g. after kickoff) could get pushed out of
+        a shared `limit=N` window by other actively-scraped matches in its batch.
+
+        Returns dict keyed by (home, away, date) -> row. `date` matches the
+        fixtures table's `kickoff_utc` string format exactly (both come from the
+        same Arbworld JSON field), so callers can match by (home_team, away_team,
+        kickoff_utc).
+        """
+        from urllib.parse import quote
+        result: Dict[tuple, Dict] = {}
+        if not self.is_available:
+            return result
+        try:
+            url = f"{self._rest_url(market)}?select=*&limit=10000"
+            if date_gte:
+                url += f"&date=gte.{quote(date_gte)}"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=30)
+            if resp.status_code == 200:
+                for row in resp.json():
+                    key = (row.get('home', ''), row.get('away', ''), row.get('date', ''))
+                    result[key] = row
+            else:
+                print(f"[Supabase] Main table fetch error ({market}): {resp.status_code}")
+        except Exception as e:
+            print(f"[Supabase] Main table fetch exception ({market}): {e}")
+        return result
     
     def _get_matches_from_fixtures(self, seen: Dict, today_date, yesterday_date, market: str = 'moneyway_1x2') -> List[Dict[str, Any]]:
         """Fetch matches from fixtures table that are not already in seen dict
