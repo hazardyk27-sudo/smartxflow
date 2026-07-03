@@ -98,6 +98,13 @@
     border-bottom: 1px solid #1e2431;
     white-space: nowrap;
   }
+  thead th.sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th.sortable:hover { color: #cfd6e4; }
+  thead th.sortable.active { color: #4c7dff; }
+  .sort-arrow { font-size: 10px; }
   tbody td {
     padding: 10px;
     border-bottom: 1px solid #171c27;
@@ -158,10 +165,10 @@
           <tr>
             <th>Cüzdan</th>
             <th>Takma Ad</th>
-            <th>Seçenek</th>
-            <th>Tutar (USDC)</th>
-            <th>Oran</th>
-            <th>Tarih / Saat</th>
+            <th class="sortable" data-sort="outcome">Seçenek <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="amount_usdc">Tutar (USDC) <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="price">Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="timestamp">Tarih / Saat <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="tradesBody"></tbody>
@@ -264,11 +271,66 @@ upcomingTabBtn.addEventListener('click', () => {
   loadUpcoming();
 });
 
+let currentTrades = [];
+let sortField = 'amount_usdc';
+let sortDir = 'desc';
+
+function renderTradesTable() {
+  if (!currentTrades || currentTrades.length === 0) {
+    tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
+    return;
+  }
+  const sorted = [...currentTrades].sort((a, b) => {
+    let va = a[sortField];
+    let vb = b[sortField];
+    if (sortField === 'outcome') {
+      va = (va || '').toString().toLowerCase();
+      vb = (vb || '').toString().toLowerCase();
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    }
+    va = Number(va) || 0;
+    vb = Number(vb) || 0;
+    return sortDir === 'asc' ? va - vb : vb - va;
+  });
+  tradesBody.innerHTML = sorted.map(t => `
+    <tr>
+      <td class="wallet">${t.wallet}</td>
+      <td class="pseudonym">${t.pseudonym || '—'}</td>
+      <td><span class="outcome-badge">${t.outcome || '-'}</span></td>
+      <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
+      <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
+      <td>${fmtKickoff(t.timestamp_iso)}</td>
+    </tr>
+  `).join('');
+}
+
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const field = th.dataset.sort;
+    if (sortField === field) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortField = field;
+      sortDir = field === 'outcome' ? 'asc' : 'desc';
+    }
+    document.querySelectorAll('th.sortable').forEach(h => {
+      h.classList.remove('active');
+      h.querySelector('.sort-arrow').textContent = '';
+    });
+    th.classList.add('active');
+    th.querySelector('.sort-arrow').textContent = sortDir === 'asc' ? '▲' : '▼';
+    renderTradesTable();
+  });
+});
+
 async function loadTrades(slug, title, kickoff) {
   listView.style.display = 'none';
   detailView.style.display = 'block';
   resultHeader.innerHTML = `<div class="title">${title}</div><div class="kickoff">${fmtKickoff(kickoff)}</div>`;
   tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Yükleniyor...</td></tr>';
+  currentTrades = [];
 
   try {
     const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));
@@ -277,20 +339,17 @@ async function loadTrades(slug, title, kickoff) {
       tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için Polymarket verisi bulunamadı.</td></tr>';
       return;
     }
-    if (!data.trades || data.trades.length === 0) {
-      tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
-      return;
-    }
-    tradesBody.innerHTML = data.trades.map(t => `
-      <tr>
-        <td class="wallet">${t.wallet}</td>
-        <td class="pseudonym">${t.pseudonym || '—'}</td>
-        <td><span class="outcome-badge">${t.outcome || '-'}</span></td>
-        <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
-        <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
-        <td>${fmtKickoff(t.timestamp_iso)}</td>
-      </tr>
-    `).join('');
+    currentTrades = data.trades || [];
+    sortField = 'amount_usdc';
+    sortDir = 'desc';
+    document.querySelectorAll('th.sortable').forEach(h => {
+      h.classList.remove('active');
+      h.querySelector('.sort-arrow').textContent = '';
+    });
+    const amountTh = document.querySelector('th.sortable[data-sort="amount_usdc"]');
+    amountTh.classList.add('active');
+    amountTh.querySelector('.sort-arrow').textContent = '▼';
+    renderTradesTable();
   } catch (e) {
     tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
   }
