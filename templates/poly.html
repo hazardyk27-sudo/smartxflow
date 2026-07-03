@@ -155,14 +155,23 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  tbody td.wallet { overflow: visible; }
   tbody tr:hover { background: #12161f; }
   .wallet {
     font-family: 'Courier New', monospace;
     font-size: 11.5px;
     color: #cfd6e4;
     white-space: nowrap;
-    overflow: visible;
+  }
+  .wallet-addr { vertical-align: middle; }
+  .wallet-badge {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+    white-space: nowrap;
   }
   .wallet-copy-btn {
     display: inline-flex;
@@ -217,12 +226,12 @@
   .amount { font-weight: 700; color: #4ade80; }
   .price { color: #e6e9ef; }
   .table-wrap { overflow-x: auto; background: #0e121a; border-radius: 10px; border: 1px solid #1e2431; }
-  th[data-col="wallet"], td.wallet { width: 18%; }
+  th[data-col="wallet"], td.wallet { width: 22%; }
   th[data-col="selection"] { width: 24%; }
   th[data-col="side"] { width: 13%; }
   th[data-col="amount"] { width: 16%; }
   th[data-col="price"] { width: 11%; }
-  th[data-col="timestamp"] { width: 18%; }
+  th[data-col="timestamp"] { width: 14%; }
   .note {
     font-size: 12px;
     color: #6d7590;
@@ -406,6 +415,16 @@ function truncWallet(w) {
   return w.slice(0, 6) + '…' + w.slice(-4);
 }
 
+const WALLET_PALETTE = ['#f59e0b', '#22d3ee', '#a78bfa', '#f472b6', '#34d399', '#fb923c', '#60a5fa', '#facc15'];
+
+function walletColor(wallet) {
+  let hash = 0;
+  for (let i = 0; i < wallet.length; i++) {
+    hash = (hash * 31 + wallet.charCodeAt(i)) >>> 0;
+  }
+  return WALLET_PALETTE[hash % WALLET_PALETTE.length];
+}
+
 let copyToastTimer = null;
 function showCopyToast(msg) {
   const el = document.getElementById('copyToast');
@@ -465,16 +484,29 @@ function renderTradesTable() {
     vb = Number(vb) || 0;
     return sortDir === 'asc' ? va - vb : vb - va;
   });
-  tradesBody.innerHTML = sorted.map(t => `
+  const walletCounts = {};
+  currentTrades.forEach(t => {
+    const w = t.wallet || '';
+    walletCounts[w] = (walletCounts[w] || 0) + 1;
+  });
+  tradesBody.innerHTML = sorted.map(t => {
+    const w = t.wallet || '';
+    const count = walletCounts[w] || 0;
+    const isDup = w && count > 1;
+    const color = isDup ? walletColor(w) : null;
+    const walletCellStyle = isDup ? ` style="background:${color}1f;border-left:2px solid ${color};"` : '';
+    const dupBadge = isDup ? `<span class="wallet-badge" style="background:${color}33;color:${color};">×${count}</span>` : '';
+    return `
     <tr>
-      <td class="wallet" title="${t.wallet}">${t.wallet || ''}<button class="wallet-copy-btn" data-wallet="${t.wallet || ''}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
+      <td class="wallet" title="${w}"${walletCellStyle}><span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
       <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}</span></td>
       <td><span class="side-badge ${sideBadgeClass(t.side)}">${t.side || '-'}</span></td>
       <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
       <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
       <td>${fmtKickoff(t.timestamp_iso)}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 document.querySelectorAll('th.sortable').forEach(th => {
