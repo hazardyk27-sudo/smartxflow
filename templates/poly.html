@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polymarket Maç Emirleri</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0b0e14;
+    color: #e6e9ef;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #8b93a7; font-size: 13px; margin-bottom: 24px; }
+  .search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  input[type=text] {
+    flex: 1;
+    background: #151a24;
+    border: 1px solid #262d3d;
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: #e6e9ef;
+    font-size: 15px;
+    outline: none;
+  }
+  input[type=text]:focus { border-color: #4c7dff; }
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    background: #151a24;
+    border: 1px solid #262d3d;
+    color: #8b93a7;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .tab-btn.active { color: #fff; border-color: #4c7dff; background: #1a2233; }
+  .match-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .match-item {
+    background: #12161f;
+    border: 1px solid #1e2431;
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .match-item:hover { border-color: #4c7dff; }
+  .match-teams { font-size: 14.5px; font-weight: 600; }
+  .match-meta { font-size: 12px; color: #8b93a7; margin-top: 2px; }
+  .empty, .loading, .error {
+    text-align: center;
+    color: #8b93a7;
+    padding: 40px 10px;
+    font-size: 14px;
+  }
+  .error { color: #ff6b6b; }
+  .result-header {
+    background: #12161f;
+    border: 1px solid #1e2431;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .result-header .title { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
+  .result-header .kickoff { font-size: 12.5px; color: #8b93a7; }
+  .back-btn {
+    background: none;
+    border: none;
+    color: #4c7dff;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    padding: 0;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    color: #8b93a7;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 1px solid #1e2431;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px;
+    border-bottom: 1px solid #171c27;
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: #12161f; }
+  .wallet {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #cfd6e4;
+  }
+  .pseudonym { font-size: 12px; color: #8b93a7; }
+  .outcome-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: #1a2233;
+    color: #7ea6ff;
+  }
+  .amount { font-weight: 700; color: #4ade80; }
+  .price { color: #e6e9ef; }
+  .table-wrap { overflow-x: auto; background: #0e121a; border-radius: 10px; border: 1px solid #1e2431; }
+  .note {
+    font-size: 12px;
+    color: #6d7590;
+    margin-top: 16px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Polymarket Maç Emirleri</h1>
+  <div class="sub">Bir futbol maçı arayın, Polymarket'teki en yüksek tutarlı gerçekleşmiş emirleri görün.</div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Takım adı yazın (örn. Portugal, Spain)...">
+  </div>
+
+  <div id="listView">
+    <div class="tabs">
+      <button class="tab-btn active" data-mode="upcoming">Yaklaşan Maçlar</button>
+      <button class="tab-btn" data-mode="search" id="searchTab" style="display:none;">Arama Sonuçları</button>
+    </div>
+    <div class="match-list" id="matchList">
+      <div class="loading">Yükleniyor...</div>
+    </div>
+  </div>
+
+  <div id="detailView" style="display:none;">
+    <button class="back-btn" id="backBtn">&larr; Maç listesine dön</button>
+    <div class="result-header" id="resultHeader"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cüzdan</th>
+            <th>Takma Ad</th>
+            <th>Seçenek</th>
+            <th>Tutar (USDC)</th>
+            <th>Fiyat</th>
+            <th>Tarih / Saat</th>
+          </tr>
+        </thead>
+        <tbody id="tradesBody"></tbody>
+      </table>
+    </div>
+    <div class="note">Cüzdan adresleri Polymarket'in herkese açık işlem verisinden birebir alınmıştır. "Takma Ad" (pseudonym) Polymarket'in otomatik veya kullanıcı tarafından belirlenen görünen adıdır, gerçek kimlik bilgisi değildir.</div>
+  </div>
+</div>
+
+<script>
+const matchListEl = document.getElementById('matchList');
+const searchInput = document.getElementById('searchInput');
+const listView = document.getElementById('listView');
+const detailView = document.getElementById('detailView');
+const backBtn = document.getElementById('backBtn');
+const resultHeader = document.getElementById('resultHeader');
+const tradesBody = document.getElementById('tradesBody');
+const searchTab = document.getElementById('searchTab');
+const upcomingTabBtn = document.querySelector('.tab-btn[data-mode="upcoming"]');
+
+let searchTimer = null;
+let mode = 'upcoming';
+
+function fmtKickoff(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' TR';
+  } catch (e) { return iso; }
+}
+
+function renderMatchList(matches) {
+  if (!matches || matches.length === 0) {
+    matchListEl.innerHTML = '<div class="empty">Bu aramaya uygun maç Polymarket\'te bulunamadı.<br>Not: Polymarket genellikle sadece büyük turnuva/liglerdeki maçları listeler.</div>';
+    return;
+  }
+  matchListEl.innerHTML = matches.map(m => `
+    <div class="match-item" data-slug="${m.slug}" data-title="${m.home} - ${m.away}" data-kickoff="${m.kickoff_utc || ''}">
+      <div>
+        <div class="match-teams">${m.home} vs ${m.away}</div>
+        <div class="match-meta">${fmtKickoff(m.kickoff_utc)}</div>
+      </div>
+    </div>
+  `).join('');
+
+  matchListEl.querySelectorAll('.match-item').forEach(item => {
+    item.addEventListener('click', () => {
+      loadTrades(item.dataset.slug, item.dataset.title, item.dataset.kickoff);
+    });
+  });
+}
+
+async function loadUpcoming() {
+  matchListEl.innerHTML = '<div class="loading">Yükleniyor...</div>';
+  try {
+    const res = await fetch('/api/poly/matches');
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderMatchList(data.matches);
+  } catch (e) {
+    matchListEl.innerHTML = '<div class="error">Polymarket verisi alınamadı. Lütfen daha sonra tekrar deneyin.</div>';
+  }
+}
+
+async function doSearch(q) {
+  matchListEl.innerHTML = '<div class="loading">Aranıyor...</div>';
+  try {
+    const res = await fetch('/api/poly/search?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderMatchList(data.matches);
+  } catch (e) {
+    matchListEl.innerHTML = '<div class="error">Polymarket verisi alınamadı. Lütfen daha sonra tekrar deneyin.</div>';
+  }
+}
+
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim();
+  clearTimeout(searchTimer);
+  if (q.length < 2) {
+    searchTab.style.display = 'none';
+    upcomingTabBtn.classList.add('active');
+    mode = 'upcoming';
+    loadUpcoming();
+    return;
+  }
+  searchTab.style.display = 'inline-block';
+  searchTab.classList.add('active');
+  upcomingTabBtn.classList.remove('active');
+  mode = 'search';
+  searchTimer = setTimeout(() => doSearch(q), 350);
+});
+
+upcomingTabBtn.addEventListener('click', () => {
+  mode = 'upcoming';
+  upcomingTabBtn.classList.add('active');
+  searchTab.classList.remove('active');
+  searchInput.value = '';
+  searchTab.style.display = 'none';
+  loadUpcoming();
+});
+
+async function loadTrades(slug, title, kickoff) {
+  listView.style.display = 'none';
+  detailView.style.display = 'block';
+  resultHeader.innerHTML = `<div class="title">${title}</div><div class="kickoff">${fmtKickoff(kickoff)}</div>`;
+  tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Yükleniyor...</td></tr>';
+
+  try {
+    const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));
+    const data = await res.json();
+    if (!data.found) {
+      tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için Polymarket verisi bulunamadı.</td></tr>';
+      return;
+    }
+    if (!data.trades || data.trades.length === 0) {
+      tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
+      return;
+    }
+    tradesBody.innerHTML = data.trades.map(t => `
+      <tr>
+        <td class="wallet">${t.wallet}</td>
+        <td class="pseudonym">${t.pseudonym || '—'}</td>
+        <td><span class="outcome-badge">${t.outcome || '-'}</span></td>
+        <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
+        <td class="price">${(t.price * 100).toFixed(1)}%</td>
+        <td>${fmtKickoff(t.timestamp_iso)}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
+  }
+}
+
+backBtn.addEventListener('click', () => {
+  detailView.style.display = 'none';
+  listView.style.display = 'block';
+});
+
+loadUpcoming();
+</script>
+</body>
+</html>

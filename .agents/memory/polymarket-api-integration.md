@@ -1,0 +1,17 @@
+---
+name: Polymarket public API integration
+description: How to query Polymarket's Gamma/Data APIs for real football match events and their executed trades, without auth.
+---
+
+Gamma API (`gamma-api.polymarket.com/events`) and Data API (`data-api.polymarket.com/trades`) require no authentication for public read access.
+
+- Soccer tag_id is `100350`.
+- `events` endpoint silently caps `limit` at 100 per page regardless of the requested value — must paginate with `offset` in increments of 100 and stop on an empty page, not on `len(page) < requested_limit`.
+- Real head-to-head match events are distinguished from variant/futures events (More Markets, Player Props, Halftime Result, Exact Score, Total Corners, etc.) purely by title pattern: a real match title has no " - " suffix (e.g. "Portugal vs. Spain"); variants append a suffix after " - ".
+- `endDate` on the event is the actual kickoff time; `startDate` is unreliable (looks like event-creation time), so always sort/filter by `endDate`.
+- Each event has `markets[]`; each market has `conditionId` (used to query `/trades?market={conditionId}` on the Data API) and `groupItemTitle`/`outcomes`/`outcomePrices`.
+- `/trades` returns `proxyWallet, timestamp, price, side, size, usdcSize, outcome, outcomeIndex` — wallet address there is authoritative/exact. `/public-profile?address=` resolves a wallet's pseudonym (display name only, not identity) but 404s for wallets with no profile — handle gracefully.
+
+**Why:** these are non-obvious API quirks (silent pagination cap, unreliable startDate, title-based real-match filtering) discovered through trial and error; getting them wrong silently drops most events or returns futures markets mixed with real matches.
+
+**How to apply:** any future work querying Polymarket for match listings or trade data (see `services/polymarket_client.py`) should reuse this filtering/pagination logic rather than re-deriving it.

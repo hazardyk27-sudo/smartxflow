@@ -227,6 +227,11 @@ from services.supabase_client import (
     write_bigmoney_alarms_to_supabase,
     write_volumeshock_alarms_to_supabase
 )
+from services.polymarket_client import (
+    get_today_matches as poly_get_today_matches,
+    search_matches as poly_search_matches,
+    get_top_trades as poly_get_top_trades,
+)
 import hashlib
 import re
 
@@ -852,6 +857,51 @@ def redirect_canli_oran():
 def nedir_page():
     """Nedir page - SmartXFlow nedir"""
     return render_template('nedir.html')
+
+@app.route('/poly')
+def poly_page():
+    """Polymarket maç emirleri sayfası - lisans/oturum gerektirmez"""
+    return render_template('poly.html')
+
+@app.route('/api/poly/matches')
+def api_poly_matches():
+    """Yaklaşan gerçek futbol maçlarının listesi (Polymarket'te işlem gören)"""
+    try:
+        hours_ahead = request.args.get('hours_ahead', 36, type=int)
+        matches = poly_get_today_matches(hours_ahead=hours_ahead)
+        return jsonify({'matches': matches})
+    except Exception as e:
+        print(f"[Poly] /api/poly/matches error: {e}")
+        return jsonify({'matches': [], 'error': 'Polymarket verisi alinamadi'}), 502
+
+@app.route('/api/poly/search')
+def api_poly_search():
+    """Takım adına göre Polymarket futbol maçı arama"""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify({'matches': []})
+    try:
+        matches = poly_search_matches(query)
+        return jsonify({'matches': matches})
+    except Exception as e:
+        print(f"[Poly] /api/poly/search error: {e}")
+        return jsonify({'matches': [], 'error': 'Polymarket verisi alinamadi'}), 502
+
+@app.route('/api/poly/trades')
+def api_poly_trades():
+    """Seçilen maça ait Polymarket'teki en büyük gerçekleşmiş emirler"""
+    slug = request.args.get('slug', '').strip()
+    if not slug:
+        return jsonify({'found': False, 'error': 'slug gerekli'}), 400
+    try:
+        top_n = request.args.get('top_n', 30, type=int)
+        result = poly_get_top_trades(slug, top_n=top_n)
+        if not result.get('found'):
+            return jsonify(result), 404
+        return jsonify(result)
+    except Exception as e:
+        print(f"[Poly] /api/poly/trades error: {e}")
+        return jsonify({'found': False, 'error': 'Polymarket verisi alinamadi'}), 502
 
 @app.route('/pricing')
 def pricing_page():
