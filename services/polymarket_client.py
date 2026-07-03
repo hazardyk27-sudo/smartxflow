@@ -42,6 +42,32 @@ def _normalize(value: str) -> str:
     return value
 
 
+_TRADES_PAGE_LIMIT = 500
+_TRADES_MAX_PAGES = 12  # cap at 6000 trades/market to bound request latency
+
+
+def _fetch_all_trades(condition_id: str, max_pages: int = _TRADES_MAX_PAGES) -> List[Dict[str, Any]]:
+    """Fully paginate the Data API /trades endpoint for a single condition (market),
+    so per-outcome volume sums reflect ALL matched trades, not a capped sample.
+    Bounded by max_pages as a latency safety net for extremely high-volume markets.
+    """
+    all_rows: List[Dict[str, Any]] = []
+    offset = 0
+    for _ in range(max_pages):
+        page = _get_json(f"{DATA_BASE}/trades", {
+            "market": condition_id,
+            "limit": _TRADES_PAGE_LIMIT,
+            "offset": offset,
+        })
+        if not page:
+            break
+        all_rows.extend(page)
+        if len(page) < _TRADES_PAGE_LIMIT:
+            break
+        offset += _TRADES_PAGE_LIMIT
+    return all_rows
+
+
 def _get_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     try:
         resp = requests.get(url, params=params, headers=_HEADERS, timeout=_HTTP_TIMEOUT)
@@ -414,10 +440,15 @@ def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> 
             selection = _selection_label(raw_label)
             onexone_summaries.append({"selection": selection, "volume": round(market_volume, 2)})
 
-        trades = _get_json(f"{DATA_BASE}/trades", {
-            "market": condition_id,
-            "limit": trades_per_market,
-        })
+        if market_type in ("ou25", "btts"):
+            # Fully paginate to get an exact (not sampled) per-outcome volume sum,
+            # since these single markets don't expose a per-outcome `volume` field.
+            trades = _fetch_all_trades(condition_id)
+        else:
+            trades = _get_json(f"{DATA_BASE}/trades", {
+                "market": condition_id,
+                "limit": trades_per_market,
+            })
         if not trades:
             continue
 
