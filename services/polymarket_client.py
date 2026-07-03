@@ -285,24 +285,46 @@ def _get_public_profile(address: str) -> Dict[str, Any]:
     return data
 
 
+def _selection_label(group_item_title: str) -> str:
+    """Turn a Polymarket sub-market's groupItemTitle into a human 1X2-style
+    selection label, e.g. 'Draw (Team A vs. Team B)' -> 'Beraberlik'."""
+    if not group_item_title:
+        return "Bilinmiyor"
+    if group_item_title.lower().startswith("draw"):
+        return "Beraberlik"
+    return group_item_title
+
+
 def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> Dict[str, Any]:
     """Fetch the largest matched (executed) trades for a football match by event slug.
 
     Returns dict:
-      {"found": bool, "event": {...}, "trades": [ {wallet, pseudonym, outcome, amount_usdc, price, timestamp_utc}, ... ]}
+      {"found": bool, "event": {..., "total_volume": float}, "markets": [ {selection, volume}, ... ],
+       "trades": [ {wallet, pseudonym, selection, side, amount_usdc, price, timestamp_utc}, ... ]}
     """
     event = get_event_by_slug(slug)
     if not event:
-        return {"found": False, "event": None, "trades": []}
+        return {"found": False, "event": None, "markets": [], "trades": []}
 
     markets = event.get("markets") or []
     all_trades = []
+    market_summaries = []
 
     for market in markets:
         condition_id = market.get("conditionId")
         if not condition_id:
             continue
-        outcome_label = market.get("groupItemTitle") or market.get("question") or ""
+        raw_label = market.get("groupItemTitle") or market.get("question") or ""
+        selection = _selection_label(raw_label)
+
+        try:
+            market_volume = float(market.get("volume") or 0)
+        except (TypeError, ValueError):
+            market_volume = 0.0
+        market_summaries.append({
+            "selection": selection,
+            "volume": round(market_volume, 2),
+        })
 
         trades = _get_json(f"{DATA_BASE}/trades", {
             "market": condition_id,
@@ -321,14 +343,17 @@ def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> 
             except (TypeError, ValueError):
                 price = 0.0
 
-            outcome_idx = t.get("outcomeIndex")
-            outcome_name = t.get("outcome") or outcome_label
-            side = t.get("side", "")
+            raw_outcome = (t.get("outcome") or "").strip()
+            if raw_outcome.lower() == "yes":
+                side = "Evet"
+            elif raw_outcome.lower() == "no":
+                side = "Hayır"
+            else:
+                side = raw_outcome or "-"
 
             all_trades.append({
                 "wallet": t.get("proxyWallet", ""),
-                "outcome": outcome_name,
-                "outcome_index": outcome_idx,
+                "selection": selection,
                 "side": side,
                 "amount_usdc": round(usdc_size, 2),
                 "price": price,
@@ -359,12 +384,19 @@ def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> 
         else:
             t["timestamp_iso"] = None
 
+    try:
+        total_volume = float(event.get("volume") or 0)
+    except (TypeError, ValueError):
+        total_volume = 0.0
+
     return {
         "found": True,
         "event": {
             "slug": event.get("slug"),
             "title": event.get("title"),
             "kickoff_utc": event.get("endDate"),
+            "total_volume": round(total_volume, 2),
         },
+        "markets": market_summaries,
         "trades": top_trades,
     }
