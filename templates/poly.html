@@ -210,7 +210,8 @@
   <div id="listView">
     <div class="tabs">
       <button class="tab-btn active" data-mode="upcoming">Yaklaşan Maçlar</button>
-      <button class="tab-btn" data-mode="yesterday_today" id="yesterdayTodayTab">Dün &amp; Bugün</button>
+      <button class="tab-btn" data-mode="yesterday" id="yesterdayTab">Dün</button>
+      <button class="tab-btn" data-mode="today" id="todayTab">Bugün</button>
       <button class="tab-btn" data-mode="search" id="searchTab" style="display:none;">Arama Sonuçları</button>
     </div>
     <div class="match-list" id="matchList">
@@ -251,7 +252,8 @@ const resultHeader = document.getElementById('resultHeader');
 const tradesBody = document.getElementById('tradesBody');
 const searchTab = document.getElementById('searchTab');
 const upcomingTabBtn = document.querySelector('.tab-btn[data-mode="upcoming"]');
-const yesterdayTodayTabBtn = document.getElementById('yesterdayTodayTab');
+const yesterdayTabBtn = document.getElementById('yesterdayTab');
+const todayTabBtn = document.getElementById('todayTab');
 
 let searchTimer = null;
 let mode = 'upcoming';
@@ -311,7 +313,7 @@ async function doSearch(q) {
 }
 
 function setActiveTab(activeBtn) {
-  [upcomingTabBtn, yesterdayTodayTabBtn, searchTab].forEach(btn => btn.classList.remove('active'));
+  [upcomingTabBtn, yesterdayTabBtn, todayTabBtn, searchTab].forEach(btn => btn.classList.remove('active'));
   activeBtn.classList.add('active');
 }
 
@@ -339,12 +341,20 @@ upcomingTabBtn.addEventListener('click', () => {
   loadUpcoming();
 });
 
-yesterdayTodayTabBtn.addEventListener('click', () => {
-  mode = 'yesterday_today';
-  setActiveTab(yesterdayTodayTabBtn);
+yesterdayTabBtn.addEventListener('click', () => {
+  mode = 'yesterday';
+  setActiveTab(yesterdayTabBtn);
   searchInput.value = '';
   searchTab.style.display = 'none';
-  loadUpcoming('yesterday_today');
+  loadUpcoming('yesterday');
+});
+
+todayTabBtn.addEventListener('click', () => {
+  mode = 'today';
+  setActiveTab(todayTabBtn);
+  searchInput.value = '';
+  searchTab.style.display = 'none';
+  loadUpcoming('today');
 });
 
 let currentTrades = [];

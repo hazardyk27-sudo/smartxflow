@@ -182,15 +182,16 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: int = 36, only_yesterday_today: bool = False) -> List[Dict[str, Any]]:
+def get_today_matches(hours_ahead: int = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """Return real head-to-head football matches (not futures/outrights).
 
-    Default mode: matches that started anytime since the beginning of yesterday
-    (Europe/Istanbul calendar day) or will start within the next `hours_ahead` hours.
+    Default mode (day_filter=None): matches that started anytime since the beginning
+    of yesterday (Europe/Istanbul calendar day) or will start within the next
+    `hours_ahead` hours.
 
-    If `only_yesterday_today` is True, ignores `hours_ahead` and instead returns only
-    matches with kickoff between the start of yesterday and the end of today
-    (Europe/Istanbul calendar days) — used for the "Dün & Bugün" filter."""
+    If `day_filter` is 'today' or 'yesterday', ignores `hours_ahead` and instead
+    returns only matches whose kickoff falls within that single Europe/Istanbul
+    calendar day — used for the "Bugün" / "Dün" filter tabs."""
     from datetime import datetime, timezone, timedelta
     try:
         from zoneinfo import ZoneInfo
@@ -200,15 +201,21 @@ def get_today_matches(hours_ahead: int = 36, only_yesterday_today: bool = False)
 
     events = _fetch_soccer_events() + _fetch_closed_soccer_events()
     now = datetime.now(timezone.utc)
-
     now_local = now.astimezone(tz)
-    start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
 
-    if only_yesterday_today:
-        end_of_today_local = now_local.replace(hour=23, minute=59, second=59, microsecond=0)
-        cutoff = end_of_today_local.astimezone(timezone.utc)
+    if day_filter == 'today':
+        start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = now_local.replace(hour=23, minute=59, second=59, microsecond=0)
+        back_cutoff = start_local.astimezone(timezone.utc)
+        cutoff = end_local.astimezone(timezone.utc)
+    elif day_filter == 'yesterday':
+        start_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_local = (now_local - timedelta(days=1)).replace(hour=23, minute=59, second=59, microsecond=0)
+        back_cutoff = start_local.astimezone(timezone.utc)
+        cutoff = end_local.astimezone(timezone.utc)
     else:
+        start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
         cutoff = now + timedelta(hours=hours_ahead)
 
     seen_ids = set()

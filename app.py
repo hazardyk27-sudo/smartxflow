@@ -869,8 +869,8 @@ def api_poly_matches():
     try:
         hours_ahead = request.args.get('hours_ahead', 36, type=int)
         range_mode = request.args.get('range', '').strip()
-        only_yesterday_today = (range_mode == 'yesterday_today')
-        matches = poly_get_today_matches(hours_ahead=hours_ahead, only_yesterday_today=only_yesterday_today)
+        day_filter = range_mode if range_mode in ('today', 'yesterday') else None
+        matches = poly_get_today_matches(hours_ahead=hours_ahead, day_filter=day_filter)
         return jsonify({'matches': matches})
     except Exception as e:
         print(f"[Poly] /api/poly/matches error: {e}")
