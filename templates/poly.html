@@ -155,11 +155,51 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  tbody td.wallet { overflow: visible; }
   tbody tr:hover { background: #12161f; }
   .wallet {
     font-family: 'Courier New', monospace;
     font-size: 11.5px;
     color: #cfd6e4;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  .wallet-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    padding: 2px 5px;
+    font-size: 11px;
+    line-height: 1;
+    background: #1a2233;
+    color: #7ea6ff;
+    border: 1px solid #2a3348;
+    border-radius: 5px;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .wallet-copy-btn:hover { background: #232d44; }
+  .wallet-copy-btn.copied { color: #4ade80; border-color: #2f5c3f; }
+  #copyToast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a2233;
+    color: #cfd6e4;
+    border: 1px solid #2a3348;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 999;
+  }
+  #copyToast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
   .pseudonym {
     font-size: 12px;
@@ -241,6 +281,8 @@
     <div class="note">Cüzdan adresleri Polymarket'in herkese açık işlem verisinden birebir alınmıştır. "Takma Ad" (pseudonym) Polymarket'in otomatik veya kullanıcı tarafından belirlenen görünen adıdır, gerçek kimlik bilgisi değildir.</div>
   </div>
 </div>
+
+<div id="copyToast"></div>
 
 <script>
 const matchListEl = document.getElementById('matchList');
@@ -372,6 +414,46 @@ function truncWallet(w) {
   return w.slice(0, 6) + '…' + w.slice(-4);
 }
 
+let copyToastTimer = null;
+function showCopyToast(msg) {
+  const el = document.getElementById('copyToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(copyToastTimer);
+  copyToastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+function copyWallet(btn) {
+  const wallet = btn.getAttribute('data-wallet') || '';
+  if (!wallet) return;
+  const done = () => {
+    showCopyToast('Cüzdan adresi kopyalandı');
+    btn.classList.add('copied');
+    btn.textContent = '✓';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = '⧉';
+    }, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(wallet).then(done).catch(() => fallbackCopy(wallet, done));
+  } else {
+    fallbackCopy(wallet, done);
+  }
+}
+
+function fallbackCopy(text, onDone) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); onDone(); } catch (e) { showCopyToast('Kopyalama başarısız'); }
+  document.body.removeChild(ta);
+}
+
 function renderTradesTable() {
   if (!currentTrades || currentTrades.length === 0) {
     tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
@@ -393,7 +475,7 @@ function renderTradesTable() {
   });
   tradesBody.innerHTML = sorted.map(t => `
     <tr>
-      <td class="wallet" title="${t.wallet}">${truncWallet(t.wallet)}</td>
+      <td class="wallet" title="${t.wallet}">${t.wallet || ''}<button class="wallet-copy-btn" data-wallet="${t.wallet || ''}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
       <td class="pseudonym" title="${t.pseudonym || ''}">${t.pseudonym || '—'}</td>
       <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}</span></td>
       <td><span class="side-badge ${sideBadgeClass(t.side)}">${t.side || '-'}</span></td>
