@@ -15,7 +15,7 @@
     min-height: 100vh;
     padding: 24px 16px 60px;
   }
-  .wrap { max-width: 900px; margin: 0 auto; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   .sub { color: #8b93a7; font-size: 13px; margin-bottom: 24px; }
   .search-box {
@@ -87,24 +87,39 @@
     gap: 8px;
     margin-top: 10px;
   }
+  .market-group { margin-top: 12px; }
+  .market-group:first-child { margin-top: 0; }
+  .market-group-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6d7590;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
   .market-chip {
     background: #151a24;
     border: 1px solid #262d3d;
     border-radius: 8px;
     padding: 6px 12px;
     font-size: 12.5px;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
   }
-  .market-chip .sel { color: #cfd6e4; font-weight: 600; margin-right: 6px; }
+  .market-chip .sel { color: #cfd6e4; font-weight: 600; }
   .market-chip .vol { color: #4ade80; font-weight: 700; }
+  .market-chip .pct { color: #8b93a7; font-size: 11px; }
   .side-badge {
     display: inline-block;
     padding: 2px 7px;
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
+    white-space: nowrap;
   }
-  .side-badge.evet { background: #14351f; color: #4ade80; }
-  .side-badge.hayir { background: #3a1a1a; color: #ff8080; }
+  .side-badge.pos { background: #14351f; color: #4ade80; }
+  .side-badge.neg { background: #3a1a1a; color: #ff8080; }
   .back-btn {
     background: none;
     border: none;
@@ -114,14 +129,16 @@
     margin-bottom: 12px;
     padding: 0;
   }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
   thead th {
     text-align: left;
     color: #8b93a7;
     font-weight: 600;
-    padding: 8px 10px;
+    padding: 8px 8px;
     border-bottom: 1px solid #1e2431;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   thead th.sortable {
     cursor: pointer;
@@ -131,29 +148,48 @@
   thead th.sortable.active { color: #4c7dff; }
   .sort-arrow { font-size: 10px; }
   tbody td {
-    padding: 10px;
+    padding: 8px;
     border-bottom: 1px solid #171c27;
     vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   tbody tr:hover { background: #12161f; }
   .wallet {
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 11.5px;
     color: #cfd6e4;
   }
-  .pseudonym { font-size: 12px; color: #8b93a7; }
+  .pseudonym {
+    font-size: 12px;
+    color: #8b93a7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .outcome-badge {
     display: inline-block;
     padding: 3px 8px;
     border-radius: 6px;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 600;
     background: #1a2233;
     color: #7ea6ff;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .amount { font-weight: 700; color: #4ade80; }
   .price { color: #e6e9ef; }
   .table-wrap { overflow-x: auto; background: #0e121a; border-radius: 10px; border: 1px solid #1e2431; }
+  th[data-col="wallet"], td.wallet { width: 15%; }
+  th[data-col="pseudonym"], td.pseudonym { width: 13%; }
+  th[data-col="selection"] { width: 20%; }
+  th[data-col="side"] { width: 12%; }
+  th[data-col="amount"] { width: 14%; }
+  th[data-col="price"] { width: 10%; }
+  th[data-col="timestamp"] { width: 16%; }
   .note {
     font-size: 12px;
     color: #6d7590;
@@ -188,13 +224,13 @@
       <table>
         <thead>
           <tr>
-            <th>Cüzdan</th>
-            <th>Takma Ad</th>
-            <th class="sortable" data-sort="selection">Seçenek <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="side">Yön <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="amount_usdc">Tutar (USDC) <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="price">Oran <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="timestamp">Tarih / Saat <span class="sort-arrow"></span></th>
+            <th data-col="wallet">Cüzdan</th>
+            <th data-col="pseudonym">Takma Ad</th>
+            <th class="sortable" data-sort="selection" data-col="selection">Seçenek <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="side" data-col="side">Yön <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="amount_usdc" data-col="amount">Tutar (USDC) <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="price" data-col="price">Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="timestamp" data-col="timestamp">Tarih / Saat <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="tradesBody"></tbody>
@@ -301,6 +337,17 @@ let currentTrades = [];
 let sortField = 'amount_usdc';
 let sortDir = 'desc';
 
+const POSITIVE_SIDES = new Set(['Evet', 'KG Var', '2.5 Üst']);
+
+function sideBadgeClass(side) {
+  return POSITIVE_SIDES.has(side) ? 'pos' : 'neg';
+}
+
+function truncWallet(w) {
+  if (!w || w.length < 12) return w || '';
+  return w.slice(0, 6) + '…' + w.slice(-4);
+}
+
 function renderTradesTable() {
   if (!currentTrades || currentTrades.length === 0) {
     tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
@@ -322,10 +369,10 @@ function renderTradesTable() {
   });
   tradesBody.innerHTML = sorted.map(t => `
     <tr>
-      <td class="wallet">${t.wallet}</td>
-      <td class="pseudonym">${t.pseudonym || '—'}</td>
-      <td><span class="outcome-badge">${t.selection || '-'}</span></td>
-      <td><span class="side-badge ${t.side === 'Evet' ? 'evet' : 'hayir'}">${t.side || '-'}</span></td>
+      <td class="wallet" title="${t.wallet}">${truncWallet(t.wallet)}</td>
+      <td class="pseudonym" title="${t.pseudonym || ''}">${t.pseudonym || '—'}</td>
+      <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}</span></td>
+      <td><span class="side-badge ${sideBadgeClass(t.side)}">${t.side || '-'}</span></td>
       <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
       <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
       <td>${fmtKickoff(t.timestamp_iso)}</td>
@@ -371,14 +418,33 @@ async function loadTrades(slug, title, kickoff) {
       return;
     }
     const ev = data.event || {};
-    const marketsHtml = (data.markets || []).map(m => `
-      <div class="market-chip"><span class="sel">${m.selection}</span><span class="vol">${fmtUsd(m.volume)}</span></div>
+    const groups = [];
+    const groupOrder = [];
+    (data.markets || []).forEach(m => {
+      if (!groupOrder.includes(m.group)) groupOrder.push(m.group);
+    });
+    groupOrder.forEach(g => {
+      groups.push({ group: g, items: (data.markets || []).filter(m => m.group === g) });
+    });
+    const marketsHtml = groups.map(g => `
+      <div class="market-group">
+        <div class="market-group-title">${g.group}</div>
+        <div class="market-summary">
+          ${g.items.map(m => `
+            <div class="market-chip">
+              <span class="sel">${m.selection}${m.side ? ' · ' + m.side : ''}</span>
+              <span class="vol">${fmtUsd(m.volume)}</span>
+              <span class="pct">(%${m.pct})</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
     `).join('');
     resultHeader.innerHTML = `
       <div class="title">${ev.title || title}</div>
       <div class="kickoff">${fmtKickoff(ev.kickoff_utc || kickoff)}</div>
       <div class="total-volume">Toplam Hacim: ${fmtUsd(ev.total_volume)}</div>
-      <div class="market-summary">${marketsHtml}</div>
+      ${marketsHtml}
     `;
     currentTrades = data.trades || [];
     sortField = 'amount_usdc';

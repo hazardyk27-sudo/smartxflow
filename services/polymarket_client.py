@@ -295,36 +295,107 @@ def _selection_label(group_item_title: str) -> str:
     return group_item_title
 
 
-def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> Dict[str, Any]:
+# Extra sub-markets to pull in from the sibling "- More Markets" event.
+# Maps the sibling market's groupItemTitle -> our internal market_type key.
+_EXTRA_MARKET_TYPES = {
+    "o/u 2.5": "ou25",
+    "both teams to score": "btts",
+}
+
+
+def _fetch_more_markets_event(base_slug: str) -> Optional[Dict[str, Any]]:
+    """Fetch the sibling '<slug>-more-markets' event that carries O/U and BTTS
+    sub-markets for a given main match event, if it exists."""
+    events = _get_json(f"{GAMMA_BASE}/events", {"slug": f"{base_slug}-more-markets"})
+    if not events:
+        return None
+    return events[0]
+
+
+def _market_selection_side(market_type: str, raw_group_title: str, raw_outcome: str):
+    """Return (selection_label, side_label) for a trade given its market type."""
+    raw_outcome_l = (raw_outcome or "").strip().lower()
+    if market_type == "1x2":
+        selection = _selection_label(raw_group_title)
+        if raw_outcome_l == "yes":
+            side = "Evet"
+        elif raw_outcome_l == "no":
+            side = "Hayır"
+        else:
+            side = raw_outcome or "-"
+        return selection, side
+    if market_type == "ou25":
+        selection = "Toplam Gol 2.5"
+        if raw_outcome_l == "over":
+            side = "2.5 Üst"
+        elif raw_outcome_l == "under":
+            side = "2.5 Alt"
+        else:
+            side = raw_outcome or "-"
+        return selection, side
+    if market_type == "btts":
+        selection = "Karşılıklı Gol (KG)"
+        if raw_outcome_l == "yes":
+            side = "KG Var"
+        elif raw_outcome_l == "no":
+            side = "KG Yok"
+        else:
+            side = raw_outcome or "-"
+        return selection, side
+    return raw_group_title or "-", raw_outcome or "-"
+
+
+def get_top_trades(slug: str, top_n: int = 40, trades_per_market: int = 200) -> Dict[str, Any]:
     """Fetch the largest matched (executed) trades for a football match by event slug.
+    Combines the main 1X2 event with its sibling "More Markets" event to also
+    surface Over/Under 2.5 and Both Teams to Score sub-markets.
 
     Returns dict:
-      {"found": bool, "event": {..., "total_volume": float}, "markets": [ {selection, volume}, ... ],
-       "trades": [ {wallet, pseudonym, selection, side, amount_usdc, price, timestamp_utc}, ... ]}
+      {"found": bool, "event": {..., "total_volume": float},
+       "markets": [ {market_type, group, selection, volume, pct}, ... ],
+       "trades": [ {wallet, pseudonym, market_type, selection, side, amount_usdc, price, timestamp_utc}, ... ]}
     """
     event = get_event_by_slug(slug)
     if not event:
         return {"found": False, "event": None, "markets": [], "trades": []}
 
-    markets = event.get("markets") or []
-    all_trades = []
-    market_summaries = []
+    base_slug = event.get("slug") or slug
+    more_markets_event = _fetch_more_markets_event(base_slug)
 
-    for market in markets:
+    market_specs = []  # list of (market_type, market_dict)
+    for market in (event.get("markets") or []):
+        market_specs.append(("1x2", market))
+
+    if more_markets_event:
+        for market in (more_markets_event.get("markets") or []):
+            raw_label = (market.get("groupItemTitle") or "").strip().lower()
+            market_type = _EXTRA_MARKET_TYPES.get(raw_label)
+            if market_type:
+                market_specs.append((market_type, market))
+
+    all_trades = []
+    # For 1x2 we trust Polymarket's own per-selection `volume` field.
+    onexone_summaries = []
+    # For ou25/btts (single market, two outcomes) we derive the per-side
+    # volume from the sampled trades themselves, since the API only exposes
+    # one combined `volume` per market, not a per-outcome breakdown.
+    derived_volume_sums: Dict[tuple, float] = {}
+    derived_entries = []  # (market_type, selection, side) seen, in order
+
+    for market_type, market in market_specs:
         condition_id = market.get("conditionId")
         if not condition_id:
             continue
         raw_label = market.get("groupItemTitle") or market.get("question") or ""
-        selection = _selection_label(raw_label)
 
         try:
             market_volume = float(market.get("volume") or 0)
         except (TypeError, ValueError):
             market_volume = 0.0
-        market_summaries.append({
-            "selection": selection,
-            "volume": round(market_volume, 2),
-        })
+
+        if market_type == "1x2":
+            selection = _selection_label(raw_label)
+            onexone_summaries.append({"selection": selection, "volume": round(market_volume, 2)})
 
         trades = _get_json(f"{DATA_BASE}/trades", {
             "market": condition_id,
@@ -344,21 +415,43 @@ def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> 
                 price = 0.0
 
             raw_outcome = (t.get("outcome") or "").strip()
-            if raw_outcome.lower() == "yes":
-                side = "Evet"
-            elif raw_outcome.lower() == "no":
-                side = "Hayır"
-            else:
-                side = raw_outcome or "-"
+            selection, side = _market_selection_side(market_type, raw_label, raw_outcome)
+
+            if market_type in ("ou25", "btts"):
+                key = (market_type, selection, side)
+                derived_volume_sums[key] = derived_volume_sums.get(key, 0.0) + usdc_size
+                if key not in derived_entries:
+                    derived_entries.append(key)
 
             all_trades.append({
                 "wallet": t.get("proxyWallet", ""),
+                "market_type": market_type,
                 "selection": selection,
                 "side": side,
                 "amount_usdc": round(usdc_size, 2),
                 "price": price,
                 "timestamp": t.get("timestamp"),
             })
+
+    def _with_pct(items):
+        total = sum(i["volume"] for i in items) or 0.0
+        for i in items:
+            i["pct"] = round((i["volume"] / total) * 100, 1) if total > 0 else 0.0
+        return items
+
+    market_summaries = []
+    for i in _with_pct(onexone_summaries):
+        market_summaries.append({"market_type": "1x2", "group": "1X2", **i})
+
+    ou25_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
+                  for (mt, sel, side) in derived_entries if mt == "ou25"]
+    for i in _with_pct(ou25_items):
+        market_summaries.append({"market_type": "ou25", "group": "2.5 Üst/Alt", **i})
+
+    btts_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
+                  for (mt, sel, side) in derived_entries if mt == "btts"]
+    for i in _with_pct(btts_items):
+        market_summaries.append({"market_type": "btts", "group": "Karşılıklı Gol (KG)", **i})
 
     all_trades.sort(key=lambda x: x["amount_usdc"], reverse=True)
     top_trades = all_trades[:top_n]
@@ -384,10 +477,7 @@ def get_top_trades(slug: str, top_n: int = 30, trades_per_market: int = 200) -> 
         else:
             t["timestamp_iso"] = None
 
-    try:
-        total_volume = float(event.get("volume") or 0)
-    except (TypeError, ValueError):
-        total_volume = 0.0
+    total_volume = sum(i["volume"] for i in market_summaries)
 
     return {
         "found": True,
