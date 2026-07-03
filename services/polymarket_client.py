@@ -132,9 +132,10 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: int = 36) -> List[Dict[str, Any]]:
-    """Return real head-to-head football matches (not futures/outrights) starting
-    within the next `hours_ahead` hours, sorted by kickoff time ascending."""
+def get_today_matches(hours_ahead: int = 36, hours_back: int = 24) -> List[Dict[str, Any]]:
+    """Return real head-to-head football matches (not futures/outrights) that started
+    within the last `hours_back` hours or will start within the next `hours_ahead`
+    hours (so yesterday's matches are included too), sorted by kickoff time ascending."""
     from datetime import datetime, timezone, timedelta
 
     events = _fetch_soccer_events()
@@ -151,7 +152,7 @@ def get_today_matches(hours_ahead: int = 36) -> List[Dict[str, Any]]:
             kickoff_dt = datetime.fromisoformat(kickoff_str)
         except Exception:
             continue
-        if now - timedelta(hours=6) <= kickoff_dt <= cutoff:
+        if now - timedelta(hours=hours_back) <= kickoff_dt <= cutoff:
             matches.append(m)
 
     matches.sort(key=lambda x: x["kickoff_utc"])
