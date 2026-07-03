@@ -473,10 +473,15 @@ def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:
         return items
 
     market_summaries = []
-    onexone_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
-                     for (mt, sel, side) in derived_entries if mt == "1x2"]
-    for i in _with_pct(onexone_items):
-        market_summaries.append({"market_type": "1x2", "group": "1X2", **i})
+    onexone_evet_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
+                          for (mt, sel, side) in derived_entries if mt == "1x2" and side == "Evet"]
+    for i in _with_pct(onexone_evet_items):
+        market_summaries.append({"market_type": "1x2", "group": "1X2 · Evet", **i})
+
+    onexone_hayir_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
+                           for (mt, sel, side) in derived_entries if mt == "1x2" and side == "Hayır"]
+    for i in _with_pct(onexone_hayir_items):
+        market_summaries.append({"market_type": "1x2", "group": "1X2 · Hayır", **i})
 
     ou25_items = [{"selection": sel, "side": side, "volume": round(derived_volume_sums[(mt, sel, side)], 2)}
                   for (mt, sel, side) in derived_entries if mt == "ou25"]
