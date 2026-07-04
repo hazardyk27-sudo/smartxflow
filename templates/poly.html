@@ -264,6 +264,9 @@
   .phase-btn.active { color: #fff; border-color: #4c7dff; background: #1a2233; }
   .phase-btn .cnt { color: #6d7590; font-size: 11px; }
   .phase-btn.active .cnt { color: #cfd6e4; }
+  .refresh-btn { margin-left: auto; }
+  .refresh-btn:hover { color: #cfd6e4; border-color: #3a4356; }
+  .refresh-btn.refreshing { opacity: 0.6; cursor: default; pointer-events: none; }
   .source-note {
     font-size: 11px;
     color: #6d7590;
@@ -338,6 +341,7 @@
       <button class="phase-btn active" data-phase="all"><span class="dot"></span>Tümü <span class="cnt" id="cntAll"></span></button>
       <button class="phase-btn" data-phase="prematch"><span class="dot"></span>Maç Öncesi <span class="cnt" id="cntPrematch"></span></button>
       <button class="phase-btn" data-phase="live"><span class="dot"></span>Canlı <span class="cnt" id="cntLive"></span></button>
+      <button class="phase-btn refresh-btn" id="refreshTradesBtn" title="Verileri yenile">⟳ Yenile</button>
       <span class="source-note" id="sourceNote"></span>
     </div>
     <div class="wallet-search-box">
@@ -486,6 +490,7 @@ let currentTrades = [];
 let currentMarketsByPhase = { all: [], prematch: [], live: [] };
 let currentPhaseVolume = { all: 0, prematch: 0, live: 0 };
 let currentEvent = {};
+let currentSlug = '';
 let sortField = 'amount_usdc';
 let sortDir = 'desc';
 let activePhase = 'all';
@@ -494,6 +499,7 @@ const phaseBar = document.getElementById('phaseBar');
 const sourceNote = document.getElementById('sourceNote');
 const walletSearchInput = document.getElementById('walletSearchInput');
 const walletSearchClear = document.getElementById('walletSearchClear');
+const refreshTradesBtn = document.getElementById('refreshTradesBtn');
 
 walletSearchInput.addEventListener('input', () => {
   walletFilter = walletSearchInput.value.trim().toLowerCase();
@@ -516,10 +522,10 @@ function phaseBadge(phase) {
   return `<span class="phase-badge ${phase}">${label}</span>`;
 }
 
-document.querySelectorAll('.phase-btn').forEach(btn => {
+document.querySelectorAll('.phase-btn[data-phase]').forEach(btn => {
   btn.addEventListener('click', () => {
     activePhase = btn.dataset.phase;
-    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.phase-btn[data-phase]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     renderMarketSummary();
     renderTradesTable();
@@ -698,15 +704,20 @@ function fmtUsd(n) {
   return '$' + (n || 0).toLocaleString('tr-TR', {maximumFractionDigits: 2});
 }
 
-async function loadTrades(slug, title, kickoff) {
+async function loadTrades(slug, title, kickoff, opts) {
+  opts = opts || {};
+  const isRefresh = !!opts.isRefresh;
+  currentSlug = slug;
   listView.style.display = 'none';
   detailView.style.display = 'block';
   resultHeader.innerHTML = `<div class="title">${title}</div><div class="kickoff">${fmtKickoff(kickoff)}</div>`;
-  tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Yükleniyor...</td></tr>';
-  currentTrades = [];
-  walletFilter = '';
-  walletSearchInput.value = '';
-  walletSearchClear.style.display = 'none';
+  if (!isRefresh) {
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Yükleniyor...</td></tr>';
+    currentTrades = [];
+    walletFilter = '';
+    walletSearchInput.value = '';
+    walletSearchClear.style.display = 'none';
+  }
 
   try {
     const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));
@@ -721,11 +732,13 @@ async function loadTrades(slug, title, kickoff) {
     currentPhaseVolume = data.phase_volume || { all: ev.total_volume || 0, prematch: 0, live: 0 };
     if (currentPhaseVolume.all === undefined) currentPhaseVolume.all = ev.total_volume || 0;
     currentTrades = data.trades || [];
-    sortField = 'amount_usdc';
-    sortDir = 'desc';
-    activePhase = 'all';
-    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.phase-btn[data-phase="all"]').classList.add('active');
+    if (!isRefresh) {
+      sortField = 'amount_usdc';
+      sortDir = 'desc';
+      activePhase = 'all';
+      document.querySelectorAll('.phase-btn[data-phase]').forEach(b => b.classList.remove('active'));
+      document.querySelector('.phase-btn[data-phase="all"]').classList.add('active');
+    }
     renderMarketSummary();
 
     const isStored = data.source === 'stored';
@@ -741,18 +754,35 @@ async function loadTrades(slug, title, kickoff) {
       sourceNote.textContent = '';
     }
 
-    document.querySelectorAll('th.sortable').forEach(h => {
-      h.classList.remove('active');
-      h.querySelector('.sort-arrow').textContent = '';
-    });
-    const amountTh = document.querySelector('th.sortable[data-sort="amount_usdc"]');
-    amountTh.classList.add('active');
-    amountTh.querySelector('.sort-arrow').textContent = '▼';
+    if (!isRefresh) {
+      document.querySelectorAll('th.sortable').forEach(h => {
+        h.classList.remove('active');
+        h.querySelector('.sort-arrow').textContent = '';
+      });
+      const amountTh = document.querySelector('th.sortable[data-sort="amount_usdc"]');
+      amountTh.classList.add('active');
+      amountTh.querySelector('.sort-arrow').textContent = '▼';
+    }
     renderTradesTable();
   } catch (e) {
-    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
+    if (!isRefresh) {
+      tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
+    }
   }
 }
+
+refreshTradesBtn.addEventListener('click', async () => {
+  if (!currentSlug || refreshTradesBtn.classList.contains('refreshing')) return;
+  refreshTradesBtn.classList.add('refreshing');
+  const originalText = refreshTradesBtn.innerHTML;
+  refreshTradesBtn.innerHTML = '⟳ Yenileniyor...';
+  try {
+    await loadTrades(currentSlug, currentEvent.title, currentEvent.kickoff_utc, { isRefresh: true });
+  } finally {
+    refreshTradesBtn.classList.remove('refreshing');
+    refreshTradesBtn.innerHTML = originalText;
+  }
+});
 
 backBtn.addEventListener('click', () => {
   detailView.style.display = 'none';
