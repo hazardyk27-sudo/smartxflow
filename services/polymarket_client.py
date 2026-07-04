@@ -44,7 +44,8 @@ def _normalize(value: str) -> str:
 
 
 _TRADES_PAGE_LIMIT = 500
-_TRADES_MAX_PAGES = 12  # cap at 6000 trades/market to bound request latency
+_TRADES_MAX_PAGES = 12  # cap at 6000 trades/market to bound request latency (first-fill only)
+_TRADES_INCREMENTAL_MAX_PAGES = 400  # ~200k rows safety net when a checkpoint exists; incremental fetch must not stop before reaching since_ts
 
 
 def _fetch_all_trades(condition_id: str, max_pages: int = _TRADES_MAX_PAGES) -> List[Dict[str, Any]]:
@@ -69,18 +70,28 @@ def _fetch_all_trades(condition_id: str, max_pages: int = _TRADES_MAX_PAGES) -> 
     return all_rows
 
 
-def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pages: int = _TRADES_MAX_PAGES) -> List[Dict[str, Any]]:
+def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
     """Incrementally fetch only NEW trades for a market (condition_id), newer than
     `since_ts` (unix seconds). The Data API /trades endpoint returns newest-first,
     so we page forward and stop as soon as we reach a trade at or before `since_ts`
     (or run out of pages). If `since_ts` is None, performs a bounded first-fill
     (same cap as _fetch_all_trades) instead of pulling unlimited history.
 
+    IMPORTANT: when `since_ts` is provided (incremental/checkpoint mode), pagination
+    must not stop before actually reaching the checkpoint — the caller advances its
+    checkpoint to MAX(traded_at) of whatever gets returned/stored here, so a premature
+    cutoff (e.g. hitting an arbitrary page cap) would permanently skip older trades
+    that lie between the cap and `since_ts`. Incremental calls therefore use a much
+    higher safety net (`_TRADES_INCREMENTAL_MAX_PAGES`) than the first-fill cap.
+
     Returns rows in newest-first order (caller should not assume any particular
     order is required for storage, since each row is upserted independently).
     """
+    if max_pages is None:
+        max_pages = _TRADES_INCREMENTAL_MAX_PAGES if since_ts is not None else _TRADES_MAX_PAGES
     new_rows: List[Dict[str, Any]] = []
     offset = 0
+    hit_page_cap = True
     for _ in range(max_pages):
         page = _get_json(f"{DATA_BASE}/trades", {
             "market": condition_id,
@@ -102,12 +113,25 @@ def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pag
             new_rows.append(t)
 
         if reached_known:
+            hit_page_cap = False
             break
         if len(page) < _TRADES_PAGE_LIMIT:
+            hit_page_cap = False
             break
         offset += _TRADES_PAGE_LIMIT
+    else:
+        hit_page_cap = True
 
-    return new_rows
+    truncated = since_ts is not None and hit_page_cap
+    if truncated:
+        print(
+            f"[Polymarket] WARNING: _fetch_new_trades hit page cap ({max_pages} pages) "
+            f"before reaching checkpoint for condition={condition_id}; returned rows are "
+            f"an incomplete prefix. Caller must NOT advance its checkpoint past the oldest "
+            f"row actually persisted, or older un-fetched trades will be permanently skipped."
+        )
+
+    return new_rows, truncated
 
 
 def _get_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:

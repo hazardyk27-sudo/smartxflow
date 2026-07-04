@@ -151,7 +151,14 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
     for market_type, condition_id, market in specs:
         raw_label = market.get("groupItemTitle") or market.get("question") or ""
         since_ts = writer.get_last_traded_at(condition_id)
-        new_trades = _fetch_new_trades(condition_id, since_ts)
+        new_trades, truncated = _fetch_new_trades(condition_id, since_ts)
+        if truncated:
+            log(
+                f"  {match.get('home')} vs {match.get('away')} [{market_type}]: "
+                f"fetch truncated before reaching checkpoint, skipping this run to avoid "
+                f"a permanent gap (will retry fully next cycle)"
+            )
+            continue
         if not new_trades:
             continue
 
