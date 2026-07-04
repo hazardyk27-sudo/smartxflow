@@ -106,10 +106,33 @@
     display: inline-flex;
     align-items: baseline;
     gap: 6px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
   }
+  .market-chip:hover { border-color: #3a4356; background: #1a2130; }
+  .market-chip.active { border-color: #4c7dff; background: #16233d; box-shadow: 0 0 0 1px #4c7dff inset; }
   .market-chip .sel { color: #cfd6e4; font-weight: 600; }
   .market-chip .vol { color: #4ade80; font-weight: 700; }
   .market-chip .pct { color: #8b93a7; font-size: 11px; }
+  .market-filter-note {
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: #8b93a7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .market-filter-note strong { color: #cfd6e4; }
+  .market-filter-note button {
+    background: #151a24;
+    border: 1px solid #262d3d;
+    color: #8b93a7;
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .market-filter-note button:hover { color: #cfd6e4; border-color: #3a4356; }
   .side-badge {
     display: inline-block;
     padding: 2px 7px;
@@ -495,6 +518,7 @@ let sortField = 'amount_usdc';
 let sortDir = 'desc';
 let activePhase = 'all';
 let walletFilter = '';
+let marketFilter = null;
 const phaseBar = document.getElementById('phaseBar');
 const sourceNote = document.getElementById('sourceNote');
 const walletSearchInput = document.getElementById('walletSearchInput');
@@ -548,23 +572,55 @@ function renderMarketSummary() {
     <div class="market-group">
       <div class="market-group-title">${g.group}</div>
       <div class="market-summary">
-        ${g.items.map(m => `
-          <div class="market-chip">
+        ${g.items.map(m => {
+          const isActive = marketFilter && marketFilter.selection === m.selection && marketFilter.side === m.side;
+          return `
+          <div class="market-chip${isActive ? ' active' : ''}" data-selection="${escapeAttr(m.selection)}" data-side="${escapeAttr(m.side || '')}" title="Bu seçeneğe göre işlemleri filtrele">
             <span class="sel">${m.selection}${m.side ? ' · ' + m.side : ''}</span>
             <span class="vol">${fmtUsd(m.volume)}</span>
             <span class="pct">(%${m.pct})</span>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </div>
   `).join('') : '<div class="market-group"><div class="market-summary" style="color:#8b93a7;font-size:13px;">Bu filtreye uygun emir bulunmuyor.</div></div>';
   const volumeLabel = activePhase === 'prematch' ? 'Maç Öncesi Hacim' : activePhase === 'live' ? 'Canlı Hacim' : 'Toplam Hacim';
+  const filterNote = marketFilter
+    ? `<div class="market-filter-note">Filtre: <strong>${marketFilter.selection}${marketFilter.side ? ' · ' + marketFilter.side : ''}</strong> <button id="clearMarketFilterBtn" title="Filtreyi temizle">✕ Temizle</button></div>`
+    : '';
   resultHeader.innerHTML = `
     <div class="title">${ev.title || ''}</div>
     <div class="kickoff">${fmtKickoff(ev.kickoff_utc)}</div>
     <div class="total-volume">${volumeLabel}: ${fmtUsd(volume)}</div>
     ${marketsHtml}
+    ${filterNote}
   `;
+  resultHeader.querySelectorAll('.market-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const selection = chip.dataset.selection;
+      const side = chip.dataset.side;
+      if (marketFilter && marketFilter.selection === selection && marketFilter.side === side) {
+        marketFilter = null;
+      } else {
+        marketFilter = { selection, side };
+      }
+      renderMarketSummary();
+      renderTradesTable();
+    });
+  });
+  const clearBtn = document.getElementById('clearMarketFilterBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      marketFilter = null;
+      renderMarketSummary();
+      renderTradesTable();
+    });
+  }
+}
+
+function escapeAttr(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 const POSITIVE_SIDES = new Set(['Evet', 'KG Var', '2.5 Üst']);
@@ -636,6 +692,9 @@ function renderTradesTable() {
   let filtered = activePhase === 'all' ? currentTrades : currentTrades.filter(t => t.phase === activePhase);
   if (walletFilter) {
     filtered = filtered.filter(t => (t.wallet || '').toLowerCase().includes(walletFilter));
+  }
+  if (marketFilter) {
+    filtered = filtered.filter(t => (t.selection || '') === marketFilter.selection && (t.side || '') === marketFilter.side);
   }
   if (filtered.length === 0) {
     tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu filtreye uygun emir bulunmuyor.</td></tr>';
@@ -717,6 +776,7 @@ async function loadTrades(slug, title, kickoff, opts) {
     walletFilter = '';
     walletSearchInput.value = '';
     walletSearchClear.style.display = 'none';
+    marketFilter = null;
   }
 
   try {
