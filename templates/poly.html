@@ -302,6 +302,12 @@
     font-size: 13px;
   }
   .wallet-search-box button:hover { color: #fff; border-color: #4c7dff; }
+  .min-amount-hint {
+    font-size: 11.5px;
+    color: #6d7590;
+    white-space: nowrap;
+    margin-left: 2px;
+  }
 </style>
 </head>
 <body>
@@ -337,6 +343,7 @@
     <div class="wallet-search-box">
       <input type="text" id="walletSearchInput" placeholder="Cüzdan adresi ile ara (örn. 0x8585...de96)...">
       <button id="walletSearchClear" style="display:none;" title="Temizle">✕</button>
+      <span class="min-amount-hint">Sadece $1000+ işlemler listelenir</span>
     </div>
     <div class="table-wrap">
       <table>

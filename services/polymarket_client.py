@@ -19,6 +19,12 @@ DATA_BASE = "https://data-api.polymarket.com"
 
 SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Soccer","slug":"soccer"}
 
+# Only trades at/above this USDC size are shown in the per-match trade table
+# (and are therefore the only ones a wallet-address search can match against).
+# Aggregate stats (total volume, per-selection market chips) still use ALL
+# trades regardless of size - this threshold only curates the trade ledger.
+MIN_TRADE_AMOUNT_USDC = 1000.0
+
 _HTTP_TIMEOUT = 10
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (SmartXFlow/poly)",
@@ -659,7 +665,7 @@ def _bet_display_fields(market_type: str, selection_raw: str, outcome_raw: str) 
     return {"selection": selection, "side": side, "group": group}
 
 
-def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
+def get_stored_trades(slug: str, top_n: int = 3000) -> Optional[Dict[str, Any]]:
     """Read the trade ledger for a match from our own Supabase tables
     (`polymarket_matches` + `polymarket_trades`), populated incrementally by
     polymarket_scraper.py. Unlike get_top_trades() (live Polymarket API call),
@@ -786,7 +792,8 @@ def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
     market_summaries = markets_by_phase["all"]
 
     trade_rows.sort(key=lambda t: float(t.get("amount_usdc") or 0), reverse=True)
-    top_trades = trade_rows[:top_n]
+    qualifying_rows = [t for t in trade_rows if float(t.get("amount_usdc") or 0) >= MIN_TRADE_AMOUNT_USDC]
+    top_trades = qualifying_rows[:top_n]
     display_trades = []
     for t in top_trades:
         fields = _bet_display_fields(t.get("market_type"), t.get("selection"), t.get("outcome_raw"))
@@ -829,7 +836,7 @@ def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:
+def get_top_trades(slug: str, top_n: int = 3000) -> Dict[str, Any]:
     """Fetch the largest matched (executed) trades for a football match by event slug.
     Combines the main 1X2 event with its sibling "More Markets" event to also
     surface Over/Under 2.5 and Both Teams to Score sub-markets.
@@ -945,7 +952,8 @@ def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:
         market_summaries.append({"market_type": "btts", "group": "Karşılıklı Gol (KG)", **i})
 
     all_trades.sort(key=lambda x: x["amount_usdc"], reverse=True)
-    top_trades = all_trades[:top_n]
+    qualifying_trades = [t for t in all_trades if t["amount_usdc"] >= MIN_TRADE_AMOUNT_USDC]
+    top_trades = qualifying_trades[:top_n]
 
     unique_wallets = {t["wallet"] for t in top_trades if t["wallet"]}
     for wallet in unique_wallets:

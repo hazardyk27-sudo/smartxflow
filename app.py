@@ -900,7 +900,11 @@ def api_poly_trades():
         top_n = request.args.get('top_n', 30, type=int)
         stored = None
         try:
-            stored = poly_get_stored_trades(slug, top_n=max(top_n, 300))
+            # Trades are now curated by a $1000+ minimum amount (see
+            # MIN_TRADE_AMOUNT_USDC in services/polymarket_client.py) rather
+            # than a small row-count cap, so top_n here is just a generous
+            # safety ceiling to make sure all qualifying trades come through.
+            stored = poly_get_stored_trades(slug, top_n=max(top_n, 3000))
         except Exception as e:
             print(f"[Poly] get_stored_trades error: {e}")
             stored = None
@@ -908,7 +912,7 @@ def api_poly_trades():
         if stored and stored.get('found') and stored.get('trades'):
             return jsonify(stored)
 
-        result = poly_get_top_trades(slug, top_n=top_n)
+        result = poly_get_top_trades(slug, top_n=max(top_n, 500))
         if not result.get('found'):
             return jsonify(result), 404
         result['source'] = 'live_api'
