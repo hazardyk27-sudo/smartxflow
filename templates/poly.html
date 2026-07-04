@@ -382,7 +382,7 @@
             <th class="sortable" data-sort="side" data-col="side">Yön <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="amount_usdc" data-col="amount">Tutar (USDC) <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="price" data-col="price">Oran <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="timestamp" data-col="timestamp">Tarih / Saat <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="timestamp_iso" data-col="timestamp">Tarih / Saat <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="tradesBody"></tbody>
@@ -709,6 +709,13 @@ function renderTradesTable() {
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
       if (va > vb) return sortDir === 'asc' ? 1 : -1;
       return 0;
+    }
+    if (sortField === 'timestamp_iso') {
+      va = va ? new Date(va).getTime() : 0;
+      vb = vb ? new Date(vb).getTime() : 0;
+      if (isNaN(va)) va = 0;
+      if (isNaN(vb)) vb = 0;
+      return sortDir === 'asc' ? va - vb : vb - va;
     }
     va = Number(va) || 0;
     vb = Number(vb) || 0;
