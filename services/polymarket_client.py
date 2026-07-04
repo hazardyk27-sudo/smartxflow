@@ -68,6 +68,47 @@ def _fetch_all_trades(condition_id: str, max_pages: int = _TRADES_MAX_PAGES) -> 
     return all_rows
 
 
+def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pages: int = _TRADES_MAX_PAGES) -> List[Dict[str, Any]]:
+    """Incrementally fetch only NEW trades for a market (condition_id), newer than
+    `since_ts` (unix seconds). The Data API /trades endpoint returns newest-first,
+    so we page forward and stop as soon as we reach a trade at or before `since_ts`
+    (or run out of pages). If `since_ts` is None, performs a bounded first-fill
+    (same cap as _fetch_all_trades) instead of pulling unlimited history.
+
+    Returns rows in newest-first order (caller should not assume any particular
+    order is required for storage, since each row is upserted independently).
+    """
+    new_rows: List[Dict[str, Any]] = []
+    offset = 0
+    for _ in range(max_pages):
+        page = _get_json(f"{DATA_BASE}/trades", {
+            "market": condition_id,
+            "limit": _TRADES_PAGE_LIMIT,
+            "offset": offset,
+        })
+        if not page:
+            break
+
+        reached_known = False
+        for t in page:
+            try:
+                ts = int(t.get("timestamp") or 0)
+            except (TypeError, ValueError):
+                ts = 0
+            if since_ts is not None and ts <= since_ts:
+                reached_known = True
+                break
+            new_rows.append(t)
+
+        if reached_known:
+            break
+        if len(page) < _TRADES_PAGE_LIMIT:
+            break
+        offset += _TRADES_PAGE_LIMIT
+
+    return new_rows
+
+
 def _get_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     try:
         resp = requests.get(url, params=params, headers=_HEADERS, timeout=_HTTP_TIMEOUT)
@@ -386,6 +427,35 @@ def _market_selection_side(market_type: str, raw_group_title: str, raw_outcome: 
             side = raw_outcome or "-"
         return selection, side
     return raw_group_title or "-", raw_outcome or "-"
+
+
+def get_event_market_specs(slug: str):
+    """Return (event, specs) where specs is a list of (market_type, condition_id, market)
+    for the event's main 1X2 markets plus its sibling "More Markets" event's O/U 2.5 and
+    BTTS sub-markets. Used by the incremental trade-ledger scraper. Returns (None, [])
+    if the event cannot be found."""
+    event = get_event_by_slug(slug)
+    if not event:
+        return None, []
+
+    base_slug = event.get("slug") or slug
+    more_markets_event = _fetch_more_markets_event(base_slug)
+
+    specs = []
+    for market in (event.get("markets") or []):
+        condition_id = market.get("conditionId")
+        if condition_id:
+            specs.append(("1x2", condition_id, market))
+
+    if more_markets_event:
+        for market in (more_markets_event.get("markets") or []):
+            raw_label = (market.get("groupItemTitle") or "").strip().lower()
+            market_type = _EXTRA_MARKET_TYPES.get(raw_label)
+            condition_id = market.get("conditionId")
+            if market_type and condition_id:
+                specs.append((market_type, condition_id, market))
+
+    return event, specs
 
 
 def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:

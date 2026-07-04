@@ -19,3 +19,6 @@ Gamma API (`gamma-api.polymarket.com/events`) and Data API (`data-api.polymarket
 **Why:** these are non-obvious API quirks (silent pagination cap, unreliable startDate, title-based real-match filtering, Yes/No-only market structure, split-event submarkets) discovered through trial and error; getting them wrong silently drops most events, returns futures markets mixed with real matches, or causes users to think market data is missing when it's just mislabeled or split across events.
 
 **How to apply:** any future work querying Polymarket for match listings or trade data (see `services/polymarket_client.py`) should reuse this filtering/pagination logic rather than re-deriving it.
+
+- `/trades` is returned **newest-first** (verified empirically, no explicit `order` param needed/available) — this makes incremental "only fetch new trades since checkpoint" scraping cheap: page forward and stop as soon as a row's `timestamp` <= the last-known checkpoint, instead of re-fetching full history every run.
+- Each trade row already includes `transactionHash` (globally unique per trade) and `pseudonym`/`name` directly — no need to call `/public-profile` per wallet when ingesting a trade ledger; that endpoint is only useful for enriching an already-known wallet later.
