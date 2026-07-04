@@ -98,13 +98,31 @@ def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pag
     new_rows: List[Dict[str, Any]] = []
     offset = 0
     hit_page_cap = True
+    fetch_failed = False
+    _FETCH_RETRIES = 3
+    _FETCH_RETRY_DELAY = 1.5
     for _ in range(max_pages):
-        page = _get_json(f"{DATA_BASE}/trades", {
-            "market": condition_id,
-            "limit": _TRADES_PAGE_LIMIT,
-            "offset": offset,
-        })
+        page = None
+        for attempt in range(_FETCH_RETRIES):
+            page = _get_json(f"{DATA_BASE}/trades", {
+                "market": condition_id,
+                "limit": _TRADES_PAGE_LIMIT,
+                "offset": offset,
+            })
+            if page is not None:
+                break
+            if attempt < _FETCH_RETRIES - 1:
+                time.sleep(_FETCH_RETRY_DELAY)
+
+        if page is None:
+            # Request kept failing (timeout/rate-limit/network) even after retries.
+            # This is NOT the same as "reached end of data" (empty list) - treat it
+            # as a transient failure, not a page-cap truncation, so the caller does
+            # not permanently skip a match just because of a temporary API hiccup.
+            fetch_failed = True
+            break
         if not page:
+            hit_page_cap = False
             break
 
         reached_known = False
@@ -127,6 +145,14 @@ def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pag
         offset += _TRADES_PAGE_LIMIT
     else:
         hit_page_cap = True
+
+    if fetch_failed:
+        print(
+            f"[Polymarket] WARNING: _fetch_new_trades failed to reach the Data API "
+            f"after {_FETCH_RETRIES} retries for condition={condition_id}; skipping this "
+            f"cycle without advancing the checkpoint (will retry fully next cycle)."
+        )
+        return [], True
 
     truncated = since_ts is not None and hit_page_cap
     if truncated:
