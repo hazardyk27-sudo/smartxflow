@@ -274,18 +274,9 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Return real head-to-head football matches (not futures/outrights).
-
-    Default mode (day_filter=None): matches that started anytime since the beginning
-    of yesterday (Europe/Istanbul calendar day) or will start within the next
-    `hours_ahead` hours. If `hours_ahead` is None, no upper bound is applied — ALL
-    currently active/tradeable (non-closed) upcoming matches are returned, no matter
-    how far in the future their kickoff is.
-
-    If `day_filter` is 'today' or 'yesterday', ignores `hours_ahead` and instead
-    returns only matches whose kickoff falls within that single Europe/Istanbul
-    calendar day — used for the "Bugün" / "Dün" filter tabs."""
+def _compute_match_window(hours_ahead: Optional[int], day_filter: Optional[str]):
+    """Shared cutoff-window logic for get_today_matches(), used by both the
+    Supabase-backed path and the live-API fallback so behavior stays identical."""
     from datetime import datetime, timezone, timedelta
     try:
         from zoneinfo import ZoneInfo
@@ -293,7 +284,6 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
     except Exception:
         tz = timezone(timedelta(hours=3))
 
-    events = _fetch_soccer_events() + _fetch_closed_soccer_events()
     now = datetime.now(timezone.utc)
     now_local = now.astimezone(tz)
 
@@ -311,6 +301,69 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
         start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
         cutoff = (now + timedelta(hours=hours_ahead)) if hours_ahead is not None else None
+
+    return back_cutoff, cutoff
+
+
+def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Return real head-to-head football matches (not futures/outrights).
+
+    Default mode (day_filter=None): matches that started anytime since the beginning
+    of yesterday (Europe/Istanbul calendar day) or will start within the next
+    `hours_ahead` hours. If `hours_ahead` is None, no upper bound is applied — ALL
+    currently active/tradeable (non-closed) upcoming matches are returned, no matter
+    how far in the future their kickoff is.
+
+    If `day_filter` is 'today' or 'yesterday', ignores `hours_ahead` and instead
+    returns only matches whose kickoff falls within that single Europe/Istanbul
+    calendar day — used for the "Bugün" / "Dün" filter tabs.
+
+    Reads from our own Supabase `polymarket_matches` table (same scraper-populated
+    source as search_matches()) instead of hitting Polymarket's live Gamma API on
+    every page load/tab switch. Falls back to the live API if Supabase is
+    unreachable/misconfigured.
+    """
+    from datetime import datetime
+
+    back_cutoff, cutoff = _compute_match_window(hours_ahead, day_filter)
+
+    rows = _fetch_stored_matches()
+    if rows is None:
+        return _get_today_matches_live(hours_ahead, day_filter)
+
+    matches = []
+    for row in rows:
+        home = row.get("home") or ""
+        away = row.get("away") or ""
+        kickoff_utc = row.get("kickoff_utc")
+        if not home or not away or not kickoff_utc:
+            continue
+        try:
+            kickoff_dt = datetime.fromisoformat(kickoff_utc.replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if kickoff_dt >= back_cutoff and (cutoff is None or kickoff_dt <= cutoff):
+            matches.append({
+                "event_id": row.get("event_id"),
+                "slug": row.get("slug"),
+                "title": f"{home} vs. {away}",
+                "home": home,
+                "away": away,
+                "kickoff_utc": kickoff_utc,
+                "volume": None,
+            })
+
+    matches.sort(key=lambda x: x["kickoff_utc"])
+    return matches
+
+
+def _get_today_matches_live(hours_ahead: Optional[int] = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Legacy fallback: build the match list directly from Polymarket's live
+    Gamma API. Only used when Supabase is unreachable/misconfigured."""
+    from datetime import datetime
+
+    back_cutoff, cutoff = _compute_match_window(hours_ahead, day_filter)
+    events = _fetch_soccer_events() + _fetch_closed_soccer_events()
 
     seen_ids = set()
     matches = []
