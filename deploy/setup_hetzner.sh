@@ -24,7 +24,7 @@ apt-get upgrade -y -q
 apt-get install -y -q \
     git curl wget ufw \
     nginx certbot python3-certbot-nginx \
-    python3 python3-venv python3-dev python3-pip \
+    python3 python3-venv python3-dev python3-pip python3-lxml \
     build-essential libssl-dev libffi-dev libxml2-dev libxslt1-dev \
     supervisor
 
@@ -73,11 +73,13 @@ chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 echo ""
 echo "[5/9] Python sanal ortamı ve bağımlılıklar kuruluyor..."
 cd "$APP_DIR"
-sudo -u "$APP_USER" python3 -m venv venv
+sudo -u "$APP_USER" python3 -m venv --system-site-packages venv
 sudo -u "$APP_USER" venv/bin/pip install --upgrade pip -q
-sudo -u "$APP_USER" venv/bin/pip install -r requirements.txt -q
+grep -v '^lxml' requirements.txt > /tmp/req_nolxml.txt
+sudo -u "$APP_USER" venv/bin/pip install -r /tmp/req_nolxml.txt -q
+rm -f /tmp/req_nolxml.txt
 sudo -u "$APP_USER" venv/bin/pip install gunicorn python-dateutil -q
-echo "Python bağımlılıkları kuruldu."
+echo "Python bağımlılıkları kuruldu (lxml sistem paketinden — venv --system-site-packages)."
 
 # ── 6. .env dosyası ────────────────────────────────────────────────────────
 echo ""
