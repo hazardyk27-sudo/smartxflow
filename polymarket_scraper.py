@@ -156,7 +156,7 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
             continue
 
         rows = []
-        for t in new_trades:
+        for t in reversed(new_trades):
             try:
                 ts = int(t.get("timestamp") or 0)
             except (TypeError, ValueError):
