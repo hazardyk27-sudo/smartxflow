@@ -53,7 +53,7 @@ fi
 
 # Kullanıcıya systemctl restart yetkisi ver (passwordless sudo for restart only)
 cat > /etc/sudoers.d/smartxflow-restart << 'SUDOEOF'
-smartxflow ALL=(ALL) NOPASSWD: /bin/systemctl restart smartxflow-web, /bin/systemctl restart smartxflow-scraper, /bin/systemctl restart smartxflow-alarm, /bin/systemctl restart smartxflow-live, /bin/systemctl restart smartxflow-poly
+smartxflow ALL=(ALL) NOPASSWD: /bin/systemctl restart smartxflow-web, /bin/systemctl restart smartxflow-scraper, /bin/systemctl restart smartxflow-alarm, /bin/systemctl restart smartxflow-live, /bin/systemctl restart smartxflow-poly, /bin/systemctl restart smartxflow-sinyal
 SUDOEOF
 chmod 440 /etc/sudoers.d/smartxflow-restart
 
@@ -234,12 +234,33 @@ StandardError=append:$APP_DIR/logs/poly.log
 WantedBy=multi-user.target
 SVCEOF
 
+# 7f. Sinyal Engine (Underdog/ConfirmedMoney/CMv2/FakeSharp/EML)
+cat > /etc/systemd/system/smartxflow-sinyal.service << SVCEOF
+[Unit]
+Description=SmartXFlow Sinyal Engine (Underdog/ConfirmedMoney/CMv2/FakeSharp/EML)
+After=network.target
+
+[Service]
+User=$APP_USER
+Group=$APP_USER
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$APP_DIR/.env
+ExecStart=$APP_DIR/venv/bin/python sinyal_engine.py
+Restart=always
+RestartSec=30
+StandardOutput=append:$APP_DIR/logs/sinyal.log
+StandardError=append:$APP_DIR/logs/sinyal.log
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
 # Log klasörü
 mkdir -p "$APP_DIR/logs"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR/logs"
 
 systemctl daemon-reload
-systemctl enable smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
+systemctl enable smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-sinyal
 echo "systemd servisleri oluşturuldu ve etkinleştirildi."
 
 # ── 8. Nginx konfigürasyonu ─────────────────────────────────────────────────

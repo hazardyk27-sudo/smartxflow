@@ -1,0 +1,17 @@
+[Unit]
+Description=SmartXFlow Sinyal Engine (Underdog/ConfirmedMoney/CMv2/FakeSharp/EML)
+After=network.target
+
+[Service]
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+ExecStart=/opt/smartxflow/venv/bin/python sinyal_engine.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/opt/smartxflow/logs/sinyal.log
+StandardError=append:/opt/smartxflow/logs/sinyal.log
+
+[Install]
+WantedBy=multi-user.target
