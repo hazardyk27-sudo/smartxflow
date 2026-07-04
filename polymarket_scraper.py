@@ -220,7 +220,7 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
 
 
 def run_scrape(writer: PolymarketSupabaseWriter) -> int:
-    matches = get_today_matches(hours_ahead=36)
+    matches = get_today_matches(hours_ahead=None)
     log(f"{len(matches)} mac taraniyor")
     total_new = 0
     for match in matches:

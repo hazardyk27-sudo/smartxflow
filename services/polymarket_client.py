@@ -249,12 +249,14 @@ def _event_to_match(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-def get_today_matches(hours_ahead: int = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """Return real head-to-head football matches (not futures/outrights).
 
     Default mode (day_filter=None): matches that started anytime since the beginning
     of yesterday (Europe/Istanbul calendar day) or will start within the next
-    `hours_ahead` hours.
+    `hours_ahead` hours. If `hours_ahead` is None, no upper bound is applied — ALL
+    currently active/tradeable (non-closed) upcoming matches are returned, no matter
+    how far in the future their kickoff is.
 
     If `day_filter` is 'today' or 'yesterday', ignores `hours_ahead` and instead
     returns only matches whose kickoff falls within that single Europe/Istanbul
@@ -283,7 +285,7 @@ def get_today_matches(hours_ahead: int = 36, day_filter: Optional[str] = None) -
     else:
         start_of_yesterday_local = (now_local - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
-        cutoff = now + timedelta(hours=hours_ahead)
+        cutoff = (now + timedelta(hours=hours_ahead)) if hours_ahead is not None else None
 
     seen_ids = set()
     matches = []
@@ -299,7 +301,7 @@ def get_today_matches(hours_ahead: int = 36, day_filter: Optional[str] = None) -
             kickoff_dt = datetime.fromisoformat(kickoff_str)
         except Exception:
             continue
-        if back_cutoff <= kickoff_dt <= cutoff:
+        if kickoff_dt >= back_cutoff and (cutoff is None or kickoff_dt <= cutoff):
             seen_ids.add(event_id)
             matches.append(m)
 
