@@ -335,11 +335,91 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
 
 
 def search_matches(query: str, limit: int = 20) -> List[Dict[str, Any]]:
-    """Search all currently-tradeable football matches by team name (fuzzy, normalized)."""
+    """Search football matches by team name (fuzzy, normalized).
+
+    Reads from our own Supabase `polymarket_matches` table (populated incrementally
+    every 5 minutes by polymarket_scraper.py, which already covers everything from
+    the start of yesterday onward - including closed/finished matches) instead of
+    hitting Polymarket's live Gamma API on every keystroke/search. This avoids the
+    slow live pagination (`_fetch_soccer_events` + `_fetch_closed_soccer_events`)
+    that made search take several seconds per query.
+
+    Falls back to the live API only if Supabase is unreachable/misconfigured, so
+    search still works even if the scraper table is empty or unavailable.
+    """
     query_norm = _normalize(query)
     if not query_norm:
         return []
 
+    rows = _fetch_stored_matches()
+    if rows is None:
+        return _search_matches_live(query_norm, limit)
+
+    results = []
+    for row in rows:
+        home = row.get("home") or ""
+        away = row.get("away") or ""
+        if not home or not away:
+            continue
+        home_norm = _normalize(home)
+        away_norm = _normalize(away)
+        title_norm = _normalize(f"{home} vs. {away}")
+        if query_norm in home_norm or query_norm in away_norm or query_norm in title_norm:
+            results.append({
+                "event_id": row.get("event_id"),
+                "slug": row.get("slug"),
+                "title": f"{home} vs. {away}",
+                "home": home,
+                "away": away,
+                "kickoff_utc": row.get("kickoff_utc"),
+                "volume": None,
+            })
+
+    results.sort(key=lambda x: x.get("kickoff_utc") or "")
+    return results[:limit]
+
+
+_stored_matches_cache = {"data": None, "time": 0}
+_stored_matches_cache_lock = threading.Lock()
+_STORED_MATCHES_CACHE_TTL = 30
+
+
+def _fetch_stored_matches(force_refresh: bool = False) -> Optional[List[Dict[str, Any]]]:
+    """Read all rows from the Supabase `polymarket_matches` table (scraper-populated),
+    with a short in-process cache so repeated searches within the same few seconds
+    don't re-hit Supabase. Returns None if Supabase isn't configured/reachable
+    (caller should fall back to the live API in that case)."""
+    now = time.time()
+    with _stored_matches_cache_lock:
+        if not force_refresh and _stored_matches_cache["data"] is not None and (now - _stored_matches_cache["time"]) < _STORED_MATCHES_CACHE_TTL:
+            return _stored_matches_cache["data"]
+
+    base = _supabase_base_url()
+    if not base:
+        return None
+    headers = _supabase_headers()
+    try:
+        resp = requests.get(
+            f"{base}/rest/v1/polymarket_matches",
+            headers=headers,
+            params={"select": "event_id,slug,home,away,kickoff_utc", "order": "kickoff_utc.desc", "limit": 5000},
+            timeout=8,
+        )
+        if resp.status_code != 200:
+            return None
+        rows = resp.json()
+    except Exception:
+        return None
+
+    with _stored_matches_cache_lock:
+        _stored_matches_cache["data"] = rows
+        _stored_matches_cache["time"] = now
+    return rows
+
+
+def _search_matches_live(query_norm: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """Legacy fallback: search directly against Polymarket's live Gamma API.
+    Only used when Supabase is unreachable/misconfigured."""
     events = _fetch_soccer_events() + _fetch_closed_soccer_events()
     seen_ids = set()
     results = []
