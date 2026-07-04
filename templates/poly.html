@@ -280,6 +280,28 @@
   .phase-badge.prematch { background: #16233d; color: #7ea6ff; }
   th[data-col="phase"] { width: 10%; }
   th[data-col="wallet"], td.wallet { width: 20%; }
+  .wallet-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .wallet-search-box input[type=text] {
+    max-width: 340px;
+    font-size: 13px;
+    padding: 9px 12px;
+  }
+  .wallet-search-box button {
+    background: #151a24;
+    border: 1px solid #262d3d;
+    color: #8b93a7;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .wallet-search-box button:hover { color: #fff; border-color: #4c7dff; }
 </style>
 </head>
 <body>
@@ -311,6 +333,10 @@
       <button class="phase-btn" data-phase="prematch"><span class="dot"></span>Maç Öncesi <span class="cnt" id="cntPrematch"></span></button>
       <button class="phase-btn" data-phase="live"><span class="dot"></span>Canlı <span class="cnt" id="cntLive"></span></button>
       <span class="source-note" id="sourceNote"></span>
+    </div>
+    <div class="wallet-search-box">
+      <input type="text" id="walletSearchInput" placeholder="Cüzdan adresi ile ara (örn. 0x8585...de96)...">
+      <button id="walletSearchClear" style="display:none;" title="Temizle">✕</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -456,8 +482,24 @@ let currentEvent = {};
 let sortField = 'amount_usdc';
 let sortDir = 'desc';
 let activePhase = 'all';
+let walletFilter = '';
 const phaseBar = document.getElementById('phaseBar');
 const sourceNote = document.getElementById('sourceNote');
+const walletSearchInput = document.getElementById('walletSearchInput');
+const walletSearchClear = document.getElementById('walletSearchClear');
+
+walletSearchInput.addEventListener('input', () => {
+  walletFilter = walletSearchInput.value.trim().toLowerCase();
+  walletSearchClear.style.display = walletFilter ? 'inline-flex' : 'none';
+  renderTradesTable();
+});
+
+walletSearchClear.addEventListener('click', () => {
+  walletSearchInput.value = '';
+  walletFilter = '';
+  walletSearchClear.style.display = 'none';
+  renderTradesTable();
+});
 
 const PHASE_LABELS = { prematch: 'Maç Öncesi', live: 'Canlı' };
 
@@ -578,7 +620,10 @@ function renderTradesTable() {
     tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
     return;
   }
-  const filtered = activePhase === 'all' ? currentTrades : currentTrades.filter(t => t.phase === activePhase);
+  let filtered = activePhase === 'all' ? currentTrades : currentTrades.filter(t => t.phase === activePhase);
+  if (walletFilter) {
+    filtered = filtered.filter(t => (t.wallet || '').toLowerCase().includes(walletFilter));
+  }
   if (filtered.length === 0) {
     tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu filtreye uygun emir bulunmuyor.</td></tr>';
     return;
@@ -652,6 +697,9 @@ async function loadTrades(slug, title, kickoff) {
   resultHeader.innerHTML = `<div class="title">${title}</div><div class="kickoff">${fmtKickoff(kickoff)}</div>`;
   tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Yükleniyor...</td></tr>';
   currentTrades = [];
+  walletFilter = '';
+  walletSearchInput.value = '';
+  walletSearchClear.style.display = 'none';
 
   try {
     const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));
