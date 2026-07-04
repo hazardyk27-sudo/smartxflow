@@ -58,7 +58,7 @@ Gerekli değerler:
 `.env` doldurulduktan sonra servisleri başlat:
 
 ```bash
-sudo systemctl start smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live
+sudo systemctl start smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
 
 # Durum kontrol:
 sudo systemctl status smartxflow-web
@@ -209,6 +209,9 @@ tail -f /opt/smartxflow/logs/alarm.log
 # Live Scraper
 tail -f /opt/smartxflow/logs/live.log
 
+# Polymarket Trade Ledger Scraper
+tail -f /opt/smartxflow/logs/poly.log
+
 # Nginx erişim / hata
 tail -f /var/log/nginx/access.log
 tail -f /var/log/nginx/error.log
@@ -218,7 +221,7 @@ tail -f /var/log/nginx/error.log
 
 ```bash
 # Tüm servisleri yeniden başlat
-sudo systemctl restart smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live
+sudo systemctl restart smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
 
 # Tek servis
 sudo systemctl restart smartxflow-web

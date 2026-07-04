@@ -53,7 +53,7 @@ fi
 
 # Kullanıcıya systemctl restart yetkisi ver (passwordless sudo for restart only)
 cat > /etc/sudoers.d/smartxflow-restart << 'SUDOEOF'
-smartxflow ALL=(ALL) NOPASSWD: /bin/systemctl restart smartxflow-web, /bin/systemctl restart smartxflow-scraper, /bin/systemctl restart smartxflow-alarm, /bin/systemctl restart smartxflow-live
+smartxflow ALL=(ALL) NOPASSWD: /bin/systemctl restart smartxflow-web, /bin/systemctl restart smartxflow-scraper, /bin/systemctl restart smartxflow-alarm, /bin/systemctl restart smartxflow-live, /bin/systemctl restart smartxflow-poly
 SUDOEOF
 chmod 440 /etc/sudoers.d/smartxflow-restart
 
@@ -211,12 +211,33 @@ StandardError=append:$APP_DIR/logs/live.log
 WantedBy=multi-user.target
 SVCEOF
 
+# 7e. Polymarket Trade Ledger Scraper
+cat > /etc/systemd/system/smartxflow-poly.service << SVCEOF
+[Unit]
+Description=SmartXFlow Polymarket Trade Ledger Scraper
+After=network.target
+
+[Service]
+User=$APP_USER
+Group=$APP_USER
+WorkingDirectory=$APP_DIR
+EnvironmentFile=$APP_DIR/.env
+ExecStart=$APP_DIR/venv/bin/python polymarket_scraper.py
+Restart=always
+RestartSec=30
+StandardOutput=append:$APP_DIR/logs/poly.log
+StandardError=append:$APP_DIR/logs/poly.log
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
 # Log klasörü
 mkdir -p "$APP_DIR/logs"
 chown -R "$APP_USER":"$APP_USER" "$APP_DIR/logs"
 
 systemctl daemon-reload
-systemctl enable smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live
+systemctl enable smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
 echo "systemd servisleri oluşturuldu ve etkinleştirildi."
 
 # ── 8. Nginx konfigürasyonu ─────────────────────────────────────────────────
@@ -257,6 +278,7 @@ systemctl start smartxflow-web
 systemctl start smartxflow-scraper
 systemctl start smartxflow-alarm
 systemctl start smartxflow-live
+systemctl start smartxflow-poly
 
 sleep 3
 echo ""
@@ -267,6 +289,7 @@ systemctl is-active smartxflow-web     && echo "  ✓ smartxflow-web     ÇALIŞ
 systemctl is-active smartxflow-scraper && echo "  ✓ smartxflow-scraper  ÇALIŞIYOR" || echo "  ✗ smartxflow-scraper  DURDU"
 systemctl is-active smartxflow-alarm   && echo "  ✓ smartxflow-alarm    ÇALIŞIYOR" || echo "  ✗ smartxflow-alarm    DURDU"
 systemctl is-active smartxflow-live    && echo "  ✓ smartxflow-live     ÇALIŞIYOR" || echo "  ✗ smartxflow-live     DURDU"
+systemctl is-active smartxflow-poly    && echo "  ✓ smartxflow-poly     ÇALIŞIYOR" || echo "  ✗ smartxflow-poly     DURDU"
 
 echo ""
 echo "============================================"

@@ -63,18 +63,20 @@ jobs:
             # Static dosya izinleri
             chmod -R o+rx /opt/smartxflow/static/
 
-            # 4 servisi yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
+            # 5 servisi yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
             sudo /bin/systemctl restart smartxflow-alarm
             sudo /bin/systemctl restart smartxflow-live
+            sudo /bin/systemctl restart smartxflow-poly
 
-            # Saglik kontrolu — 4 servisin tumu aktif olmali
+            # Saglik kontrolu — 5 servisin tumu aktif olmali
             sleep 4
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-alarm   || { echo "alarm baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
 
             echo "Deploy tamamlandi: $(date)"
         env:
