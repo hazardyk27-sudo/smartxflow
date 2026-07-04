@@ -5,3 +5,4 @@
 - [Supabase plan and timeout root cause](supabase-plan.md) — Supabase PRO hesap; timeout (57014) = Phase 2'nin 268 eşzamanlı sorgusu; Phase 2 kaldırıldı 2026-06-20.
 - [Deployment architecture](deployment-architecture.md) — smartxflow.com → Replit Deployment (GCP); scrapers Hetzner'de; deployment run komutu REPL_DEPLOYMENT=1 python app.py olmalı (scraper olmamalı).
 - [Polymarket public API integration](polymarket-api-integration.md) — Gamma/Data API no-auth quirks: 100/page pagination cap, endDate=kickoff, title-suffix filters real matches from futures markets.
+- [Polymarket wallet nicknames](polymarket-wallet-nicknames.md) — user-assigned nicknames for tracked Polymarket wallet addresses (e.g. "Colombia").
