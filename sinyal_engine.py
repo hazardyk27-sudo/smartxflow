@@ -686,8 +686,26 @@ def fetch_recent_history(active_keys=None):
     return history
 
 
+def _row_has_valid_odds(row):
+    """odds1/oddsx/odds2 üçü de dolu ve pozitif sayı mı? Scraper bir maçı ilk
+    kaydettiğinde oranlar henüz oturmadan boş satır yazabiliyor — bu satırlar
+    referans (first snapshot) olarak kullanılamaz, aksi halde oran düşüşü/yükselişi
+    hesabı hep 0 çıkar ve CM/CMv2/FakeSharp sinyalleri hiç üretilemez."""
+    for f in ('odds1', 'oddsx', 'odds2'):
+        v = row.get(f, '')
+        if v is None or not str(v).strip():
+            return False
+        try:
+            if float(str(v).replace(',', '.').strip()) <= 0:
+                return False
+        except Exception:
+            return False
+    return True
+
+
 def fetch_first_snapshots(active_keys=None):
-    """Her maç için DB'deki gerçek ilk (en eski) snapshot'ı çek.
+    """Her maç için DB'deki gerçek ilk (en eski) GEÇERLİ snapshot'ı çek
+    (odds1/oddsx/odds2 dolu olan ilk satır — bkz. _row_has_valid_odds).
     Zaman filtresi yoktur — moneyway_1x2_history tablosunun tamamı scraped_at ASC sıralı taranır.
     Supabase REST'in default satır cap'i (genellikle 1000) bilinmediği için her sayfada
     gerçek dönen satır sayısı kadar offset ilerletilir; loop boş sayfa gelince biter.
@@ -738,6 +756,10 @@ def fetch_first_snapshots(active_keys=None):
             composite = f"{home}|{away}|{date}"
             if active_keys is not None and composite not in active_keys:
                 skipped += 1
+                continue
+            if not _row_has_valid_odds(row):
+                # Oranlar henüz oturmamış (boş) ilk satırlar referans olamaz —
+                # bu maç için geçerli oranlı bir satır bulunana kadar atla.
                 continue
             # latest_snapshots ile aynı key formatı: match_id_hash varsa onu kullan,
             # yoksa home|away|date. Her iki formata da alias ekle (lookup tutarlılığı).
