@@ -2058,7 +2058,7 @@ def get_favorites_matches():
 
     # Try server-side cache first (all matches, no date limit)
     for cache_key in (f'{market}_all', f'{market}_today_future'):
-        cached, _ = get_matches_cache(cache_key)
+        cached, _ = get_cached_matches(cache_key)
         if cached:
             for m in cached:
                 k = _mk(m)
