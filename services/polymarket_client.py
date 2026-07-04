@@ -572,15 +572,19 @@ def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
                 "total_volume": 0.0,
             },
             "markets": [],
+            "markets_by_phase": {"all": [], "prematch": [], "live": []},
             "trades": [],
             "phase_counts": {"prematch": 0, "live": 0},
-            "phase_volume": {"prematch": 0.0, "live": 0.0},
+            "phase_volume": {"all": 0.0, "prematch": 0.0, "live": 0.0},
         }
 
-    volume_sums: Dict[tuple, float] = {}
+    # volume_sums is tracked per-phase (plus an "all" bucket) so the UI can
+    # show market breakdowns/totals that match whichever phase filter (Tümü /
+    # Maç Öncesi / Canlı) the user has selected.
+    volume_sums: Dict[str, Dict[tuple, float]] = {"all": {}, "prematch": {}, "live": {}}
     phase_volume = {"prematch": 0.0, "live": 0.0}
     phase_counts = {"prematch": 0, "live": 0}
-    entries_order = []
+    entries_order: List[tuple] = []
 
     for row in trade_rows:
         phase = row.get("match_phase") or "prematch"
@@ -594,24 +598,35 @@ def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
         sel = row.get("selection") or ""
         outc = row.get("outcome_raw") or ""
         key = (mt, sel, outc)
-        volume_sums[key] = volume_sums.get(key, 0.0) + amt
+        volume_sums["all"][key] = volume_sums["all"].get(key, 0.0) + amt
+        volume_sums[phase][key] = volume_sums[phase].get(key, 0.0) + amt
         if key not in entries_order:
             entries_order.append(key)
 
-    market_summaries = []
-    by_group: Dict[str, List[Dict[str, Any]]] = {}
-    for (mt, sel, outc) in entries_order:
-        fields = _bet_display_fields(mt, sel, outc)
-        by_group.setdefault(fields["group"], []).append({
-            "selection": fields["selection"],
-            "side": fields["side"],
-            "volume": round(volume_sums[(mt, sel, outc)], 2),
-        })
-    for group, items in by_group.items():
-        total = sum(i["volume"] for i in items) or 0.0
-        for i in items:
-            i["pct"] = round((i["volume"] / total) * 100, 1) if total > 0 else 0.0
-            market_summaries.append({"group": group, "selection": i["selection"], "side": i["side"], "volume": i["volume"], "pct": i["pct"]})
+    def _build_market_summaries(sums: Dict[tuple, float]) -> List[Dict[str, Any]]:
+        by_group: Dict[str, List[Dict[str, Any]]] = {}
+        for (mt, sel, outc) in entries_order:
+            vol = sums.get((mt, sel, outc), 0.0)
+            fields = _bet_display_fields(mt, sel, outc)
+            by_group.setdefault(fields["group"], []).append({
+                "selection": fields["selection"],
+                "side": fields["side"],
+                "volume": round(vol, 2),
+            })
+        summaries: List[Dict[str, Any]] = []
+        for group, items in by_group.items():
+            total = sum(i["volume"] for i in items) or 0.0
+            for i in items:
+                i["pct"] = round((i["volume"] / total) * 100, 1) if total > 0 else 0.0
+                summaries.append({"group": group, "selection": i["selection"], "side": i["side"], "volume": i["volume"], "pct": i["pct"]})
+        return summaries
+
+    markets_by_phase = {
+        "all": _build_market_summaries(volume_sums["all"]),
+        "prematch": _build_market_summaries(volume_sums["prematch"]),
+        "live": _build_market_summaries(volume_sums["live"]),
+    }
+    market_summaries = markets_by_phase["all"]
 
     trade_rows.sort(key=lambda t: float(t.get("amount_usdc") or 0), reverse=True)
     top_trades = trade_rows[:top_n]
@@ -646,9 +661,14 @@ def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
             "total_volume": round(total_volume, 2),
         },
         "markets": market_summaries,
+        "markets_by_phase": markets_by_phase,
         "trades": display_trades,
         "phase_counts": phase_counts,
-        "phase_volume": {"prematch": round(phase_volume["prematch"], 2), "live": round(phase_volume["live"], 2)},
+        "phase_volume": {
+            "all": round(total_volume, 2),
+            "prematch": round(phase_volume["prematch"], 2),
+            "live": round(phase_volume["live"], 2),
+        },
     }
 
 

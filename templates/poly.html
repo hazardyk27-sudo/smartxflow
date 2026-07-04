@@ -450,6 +450,9 @@ todayTabBtn.addEventListener('click', () => {
 });
 
 let currentTrades = [];
+let currentMarketsByPhase = { all: [], prematch: [], live: [] };
+let currentPhaseVolume = { all: 0, prematch: 0, live: 0 };
+let currentEvent = {};
 let sortField = 'amount_usdc';
 let sortDir = 'desc';
 let activePhase = 'all';
@@ -469,9 +472,45 @@ document.querySelectorAll('.phase-btn').forEach(btn => {
     activePhase = btn.dataset.phase;
     document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    renderMarketSummary();
     renderTradesTable();
   });
 });
+
+function renderMarketSummary() {
+  const ev = currentEvent || {};
+  const markets = currentMarketsByPhase[activePhase] || [];
+  const volume = currentPhaseVolume[activePhase] || 0;
+  const groups = [];
+  const groupOrder = [];
+  markets.forEach(m => {
+    if (!groupOrder.includes(m.group)) groupOrder.push(m.group);
+  });
+  groupOrder.forEach(g => {
+    groups.push({ group: g, items: markets.filter(m => m.group === g) });
+  });
+  const marketsHtml = groups.length ? groups.map(g => `
+    <div class="market-group">
+      <div class="market-group-title">${g.group}</div>
+      <div class="market-summary">
+        ${g.items.map(m => `
+          <div class="market-chip">
+            <span class="sel">${m.selection}${m.side ? ' · ' + m.side : ''}</span>
+            <span class="vol">${fmtUsd(m.volume)}</span>
+            <span class="pct">(%${m.pct})</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('') : '<div class="market-group"><div class="market-summary" style="color:#8b93a7;font-size:13px;">Bu filtreye uygun emir bulunmuyor.</div></div>';
+  const volumeLabel = activePhase === 'prematch' ? 'Maç Öncesi Hacim' : activePhase === 'live' ? 'Canlı Hacim' : 'Toplam Hacim';
+  resultHeader.innerHTML = `
+    <div class="title">${ev.title || ''}</div>
+    <div class="kickoff">${fmtKickoff(ev.kickoff_utc)}</div>
+    <div class="total-volume">${volumeLabel}: ${fmtUsd(volume)}</div>
+    ${marketsHtml}
+  `;
+}
 
 const POSITIVE_SIDES = new Set(['Evet', 'KG Var', '2.5 Üst']);
 
@@ -622,40 +661,17 @@ async function loadTrades(slug, title, kickoff) {
       return;
     }
     const ev = data.event || {};
-    const groups = [];
-    const groupOrder = [];
-    (data.markets || []).forEach(m => {
-      if (!groupOrder.includes(m.group)) groupOrder.push(m.group);
-    });
-    groupOrder.forEach(g => {
-      groups.push({ group: g, items: (data.markets || []).filter(m => m.group === g) });
-    });
-    const marketsHtml = groups.map(g => `
-      <div class="market-group">
-        <div class="market-group-title">${g.group}</div>
-        <div class="market-summary">
-          ${g.items.map(m => `
-            <div class="market-chip">
-              <span class="sel">${m.selection}${m.side ? ' · ' + m.side : ''}</span>
-              <span class="vol">${fmtUsd(m.volume)}</span>
-              <span class="pct">(%${m.pct})</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-    resultHeader.innerHTML = `
-      <div class="title">${ev.title || title}</div>
-      <div class="kickoff">${fmtKickoff(ev.kickoff_utc || kickoff)}</div>
-      <div class="total-volume">Toplam Hacim: ${fmtUsd(ev.total_volume)}</div>
-      ${marketsHtml}
-    `;
+    currentEvent = { title: ev.title || title, kickoff_utc: ev.kickoff_utc || kickoff };
+    currentMarketsByPhase = data.markets_by_phase || { all: data.markets || [], prematch: [], live: [] };
+    currentPhaseVolume = data.phase_volume || { all: ev.total_volume || 0, prematch: 0, live: 0 };
+    if (currentPhaseVolume.all === undefined) currentPhaseVolume.all = ev.total_volume || 0;
     currentTrades = data.trades || [];
     sortField = 'amount_usdc';
     sortDir = 'desc';
     activePhase = 'all';
     document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.phase-btn[data-phase="all"]').classList.add('active');
+    renderMarketSummary();
 
     const isStored = data.source === 'stored';
     const pc = data.phase_counts || { prematch: 0, live: 0 };
