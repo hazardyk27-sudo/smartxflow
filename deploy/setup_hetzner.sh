@@ -24,8 +24,8 @@ apt-get upgrade -y -q
 apt-get install -y -q \
     git curl wget ufw \
     nginx certbot python3-certbot-nginx \
-    python3.11 python3.11-venv python3.11-dev python3-pip \
-    build-essential libssl-dev libffi-dev \
+    python3 python3-venv python3-dev python3-pip \
+    build-essential libssl-dev libffi-dev libxml2-dev libxslt1-dev \
     supervisor
 
 # ── 2. UFW Firewall ────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 echo ""
 echo "[5/9] Python sanal ortamı ve bağımlılıklar kuruluyor..."
 cd "$APP_DIR"
-sudo -u "$APP_USER" python3.11 -m venv venv
+sudo -u "$APP_USER" python3 -m venv venv
 sudo -u "$APP_USER" venv/bin/pip install --upgrade pip -q
 sudo -u "$APP_USER" venv/bin/pip install -r requirements.txt -q
 sudo -u "$APP_USER" venv/bin/pip install gunicorn python-dateutil -q
