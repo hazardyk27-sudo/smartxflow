@@ -231,6 +231,7 @@ from services.polymarket_client import (
     get_today_matches as poly_get_today_matches,
     search_matches as poly_search_matches,
     get_top_trades as poly_get_top_trades,
+    get_stored_trades as poly_get_stored_trades,
 )
 import hashlib
 import re
@@ -897,9 +898,20 @@ def api_poly_trades():
         return jsonify({'found': False, 'error': 'slug gerekli'}), 400
     try:
         top_n = request.args.get('top_n', 30, type=int)
+        stored = None
+        try:
+            stored = poly_get_stored_trades(slug, top_n=max(top_n, 300))
+        except Exception as e:
+            print(f"[Poly] get_stored_trades error: {e}")
+            stored = None
+
+        if stored and stored.get('found') and stored.get('trades'):
+            return jsonify(stored)
+
         result = poly_get_top_trades(slug, top_n=top_n)
         if not result.get('found'):
             return jsonify(result), 404
+        result['source'] = 'live_api'
         return jsonify(result)
     except Exception as e:
         print(f"[Poly] /api/poly/trades error: {e}")

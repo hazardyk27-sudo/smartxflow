@@ -7,6 +7,7 @@ matched (executed) orders: wallet address, pseudonym, side, amount, price, time.
 No API key required - all endpoints used here are public read-only endpoints.
 """
 
+import os
 import re
 import time
 import threading
@@ -458,6 +459,197 @@ def get_event_market_specs(slug: str):
                 specs.append((market_type, condition_id, market))
 
     return event, specs
+
+
+def _supabase_headers() -> Dict[str, str]:
+    key = os.environ.get('SUPABASE_ANON_KEY', '') or os.environ.get('SUPABASE_KEY', '')
+    return {"apikey": key, "Authorization": f"Bearer {key}"}
+
+
+def _supabase_base_url() -> str:
+    return (os.environ.get('SUPABASE_URL', '') or '').rstrip('/')
+
+
+_1X2_OUTCOME_LABELS = {"yes": "Evet", "no": "Hayır"}
+_OU25_OUTCOME_LABELS = {"over": "2.5 Üst", "under": "2.5 Alt"}
+_BTTS_OUTCOME_LABELS = {"yes": "KG Var", "no": "KG Yok"}
+_SIDE_LABELS = {"buy": "Alım", "sell": "Satım"}
+_MARKET_TYPE_LABELS = {"1x2": "1X2", "ou25": "2.5 Üst/Alt", "btts": "Karşılıklı Gol"}
+
+
+def _bet_display_fields(market_type: str, selection_raw: str, outcome_raw: str) -> Dict[str, str]:
+    """Map a stored trade row onto the same (selection, side, group) convention
+    used by get_top_trades()/_market_selection_side(), so the frontend's
+    existing badge coloring and market-summary grouping work unchanged
+    regardless of which data source served the response.
+    `selection` = team name / fixed market label. `side` = outcome polarity
+    (Evet/Hayır, 2.5 Üst/Alt, KG Var/Yok) - NOT the buy/sell action.
+    """
+    mt = (market_type or "").strip().lower()
+    o = (outcome_raw or "").strip().lower()
+    if mt == "ou25":
+        selection = "Toplam Gol 2.5"
+        side = _OU25_OUTCOME_LABELS.get(o, outcome_raw or "-")
+        group = "2.5 Üst/Alt"
+    elif mt == "btts":
+        selection = "Karşılıklı Gol (KG)"
+        side = _BTTS_OUTCOME_LABELS.get(o, outcome_raw or "-")
+        group = "Karşılıklı Gol (KG)"
+    else:
+        selection = selection_raw or "-"
+        side = _1X2_OUTCOME_LABELS.get(o, outcome_raw or "-")
+        group = f"1X2 · {side}"
+    return {"selection": selection, "side": side, "group": group}
+
+
+def get_stored_trades(slug: str, top_n: int = 300) -> Optional[Dict[str, Any]]:
+    """Read the trade ledger for a match from our own Supabase tables
+    (`polymarket_matches` + `polymarket_trades`), populated incrementally by
+    polymarket_scraper.py. Unlike get_top_trades() (live Polymarket API call),
+    this data already has match_phase (prematch/live) precomputed per trade,
+    so it can be used to split bets by phase without extra API calls.
+
+    Returns None if the match isn't tracked yet or has no stored trades
+    (caller should fall back to get_top_trades() in that case).
+    """
+    base = _supabase_base_url()
+    if not base:
+        return None
+    headers = _supabase_headers()
+
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/polymarket_matches",
+            headers=headers,
+            params={"select": "event_id,home,away,kickoff_utc,slug", "slug": f"eq.{slug}", "limit": 1},
+            timeout=8,
+        )
+        if r.status_code != 200:
+            return None
+        rows = r.json()
+        if not rows:
+            return None
+        match = rows[0]
+        event_id = match.get("event_id")
+        if not event_id:
+            return None
+    except Exception:
+        return None
+
+    # Fetch each phase separately (rather than one combined query ordered by
+    # traded_at desc) so that high-volume matches with lots of recent LIVE
+    # trades don't crowd the older PREMATCH trades out of a single row cap.
+    select_cols = "wallet,pseudonym,market_type,selection,side,outcome_raw,amount_usdc,price,traded_at,match_phase"
+    trade_rows: List[Dict[str, Any]] = []
+    try:
+        for phase in ("prematch", "live"):
+            r = requests.get(
+                f"{base}/rest/v1/polymarket_trades",
+                headers=headers,
+                params={
+                    "select": select_cols,
+                    "event_id": f"eq.{event_id}",
+                    "match_phase": f"eq.{phase}",
+                    "order": "amount_usdc.desc",
+                    "limit": 3000,
+                },
+                timeout=15,
+            )
+            if r.status_code != 200:
+                continue
+            trade_rows.extend(r.json())
+    except Exception:
+        return None
+
+    if not trade_rows:
+        return {
+            "found": True,
+            "source": "stored",
+            "event": {
+                "slug": match.get("slug") or slug,
+                "title": f"{match.get('home', '')} vs {match.get('away', '')}",
+                "kickoff_utc": match.get("kickoff_utc"),
+                "total_volume": 0.0,
+            },
+            "markets": [],
+            "trades": [],
+            "phase_counts": {"prematch": 0, "live": 0},
+            "phase_volume": {"prematch": 0.0, "live": 0.0},
+        }
+
+    volume_sums: Dict[tuple, float] = {}
+    phase_volume = {"prematch": 0.0, "live": 0.0}
+    phase_counts = {"prematch": 0, "live": 0}
+    entries_order = []
+
+    for row in trade_rows:
+        phase = row.get("match_phase") or "prematch"
+        if phase not in phase_volume:
+            phase = "prematch"
+        amt = float(row.get("amount_usdc") or 0)
+        phase_volume[phase] += amt
+        phase_counts[phase] += 1
+
+        mt = row.get("market_type") or "1x2"
+        sel = row.get("selection") or ""
+        outc = row.get("outcome_raw") or ""
+        key = (mt, sel, outc)
+        volume_sums[key] = volume_sums.get(key, 0.0) + amt
+        if key not in entries_order:
+            entries_order.append(key)
+
+    market_summaries = []
+    by_group: Dict[str, List[Dict[str, Any]]] = {}
+    for (mt, sel, outc) in entries_order:
+        fields = _bet_display_fields(mt, sel, outc)
+        by_group.setdefault(fields["group"], []).append({
+            "selection": fields["selection"],
+            "side": fields["side"],
+            "volume": round(volume_sums[(mt, sel, outc)], 2),
+        })
+    for group, items in by_group.items():
+        total = sum(i["volume"] for i in items) or 0.0
+        for i in items:
+            i["pct"] = round((i["volume"] / total) * 100, 1) if total > 0 else 0.0
+            market_summaries.append({"group": group, "selection": i["selection"], "side": i["side"], "volume": i["volume"], "pct": i["pct"]})
+
+    trade_rows.sort(key=lambda t: float(t.get("amount_usdc") or 0), reverse=True)
+    top_trades = trade_rows[:top_n]
+    display_trades = []
+    for t in top_trades:
+        fields = _bet_display_fields(t.get("market_type"), t.get("selection"), t.get("outcome_raw"))
+        action = (t.get("side") or "").strip().lower()
+        phase = t.get("match_phase") or "prematch"
+        if phase not in ("prematch", "live"):
+            phase = "prematch"
+        display_trades.append({
+            "wallet": t.get("wallet", ""),
+            "pseudonym": t.get("pseudonym") or "",
+            "selection": fields["selection"],
+            "side": fields["side"],
+            "action": _SIDE_LABELS.get(action, t.get("side") or "-"),
+            "amount_usdc": round(float(t.get("amount_usdc") or 0), 2),
+            "price": float(t.get("price") or 0),
+            "timestamp_iso": t.get("traded_at"),
+            "phase": phase,
+        })
+
+    total_volume = phase_volume["prematch"] + phase_volume["live"]
+
+    return {
+        "found": True,
+        "source": "stored",
+        "event": {
+            "slug": match.get("slug") or slug,
+            "title": f"{match.get('home', '')} vs {match.get('away', '')}",
+            "kickoff_utc": match.get("kickoff_utc"),
+            "total_volume": round(total_volume, 2),
+        },
+        "markets": market_summaries,
+        "trades": display_trades,
+        "phase_counts": phase_counts,
+        "phase_volume": {"prematch": round(phase_volume["prematch"], 2), "live": round(phase_volume["live"], 2)},
+    }
 
 
 def get_top_trades(slug: str, top_n: int = 40) -> Dict[str, Any]:

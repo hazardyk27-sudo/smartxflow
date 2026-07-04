@@ -238,6 +238,48 @@
     margin-top: 16px;
     line-height: 1.6;
   }
+  .phase-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .phase-btn {
+    background: #151a24;
+    border: 1px solid #262d3d;
+    color: #8b93a7;
+    border-radius: 8px;
+    padding: 7px 13px;
+    font-size: 12.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .phase-btn .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .phase-btn[data-phase="live"] .dot { background: #ff5c5c; }
+  .phase-btn[data-phase="prematch"] .dot { background: #4c7dff; }
+  .phase-btn[data-phase="all"] .dot { background: #6d7590; }
+  .phase-btn.active { color: #fff; border-color: #4c7dff; background: #1a2233; }
+  .phase-btn .cnt { color: #6d7590; font-size: 11px; }
+  .phase-btn.active .cnt { color: #cfd6e4; }
+  .source-note {
+    font-size: 11px;
+    color: #6d7590;
+    margin-left: auto;
+  }
+  .phase-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .phase-badge.live { background: #3a1a1a; color: #ff8080; }
+  .phase-badge.prematch { background: #16233d; color: #7ea6ff; }
+  th[data-col="phase"] { width: 10%; }
+  th[data-col="wallet"], td.wallet { width: 20%; }
 </style>
 </head>
 <body>
@@ -264,11 +306,18 @@
   <div id="detailView" style="display:none;">
     <button class="back-btn" id="backBtn">&larr; Maç listesine dön</button>
     <div class="result-header" id="resultHeader"></div>
+    <div class="phase-bar" id="phaseBar" style="display:none;">
+      <button class="phase-btn active" data-phase="all"><span class="dot"></span>Tümü <span class="cnt" id="cntAll"></span></button>
+      <button class="phase-btn" data-phase="prematch"><span class="dot"></span>Maç Öncesi <span class="cnt" id="cntPrematch"></span></button>
+      <button class="phase-btn" data-phase="live"><span class="dot"></span>Canlı <span class="cnt" id="cntLive"></span></button>
+      <span class="source-note" id="sourceNote"></span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th data-col="wallet">Cüzdan</th>
+            <th data-col="phase">Faz</th>
             <th class="sortable" data-sort="selection" data-col="selection">Seçenek <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="side" data-col="side">Yön <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="amount_usdc" data-col="amount">Tutar (USDC) <span class="sort-arrow"></span></th>
@@ -279,7 +328,7 @@
         <tbody id="tradesBody"></tbody>
       </table>
     </div>
-    <div class="note">Cüzdan adresleri Polymarket'in herkese açık işlem verisinden birebir alınmıştır.</div>
+    <div class="note">Cüzdan adresleri Polymarket'in herkese açık işlem verisinden birebir alınmıştır. "Alım" pozisyon açmayı, "Satım" mevcut pozisyonu kapatmayı ifade eder.</div>
   </div>
 </div>
 
@@ -403,6 +452,26 @@ todayTabBtn.addEventListener('click', () => {
 let currentTrades = [];
 let sortField = 'amount_usdc';
 let sortDir = 'desc';
+let activePhase = 'all';
+const phaseBar = document.getElementById('phaseBar');
+const sourceNote = document.getElementById('sourceNote');
+
+const PHASE_LABELS = { prematch: 'Maç Öncesi', live: 'Canlı' };
+
+function phaseBadge(phase) {
+  if (!phase) return '';
+  const label = PHASE_LABELS[phase] || phase;
+  return `<span class="phase-badge ${phase}">${label}</span>`;
+}
+
+document.querySelectorAll('.phase-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activePhase = btn.dataset.phase;
+    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTradesTable();
+  });
+});
 
 const POSITIVE_SIDES = new Set(['Evet', 'KG Var', '2.5 Üst']);
 
@@ -467,10 +536,15 @@ function fallbackCopy(text, onDone) {
 
 function renderTradesTable() {
   if (!currentTrades || currentTrades.length === 0) {
-    tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu maç için henüz gerçekleşmiş emir bulunmuyor.</td></tr>';
     return;
   }
-  const sorted = [...currentTrades].sort((a, b) => {
+  const filtered = activePhase === 'all' ? currentTrades : currentTrades.filter(t => t.phase === activePhase);
+  if (filtered.length === 0) {
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#8b93a7;">Bu filtreye uygun emir bulunmuyor.</td></tr>';
+    return;
+  }
+  const sorted = [...filtered].sort((a, b) => {
     let va = a[sortField];
     let vb = b[sortField];
     if (sortField === 'selection' || sortField === 'side') {
@@ -499,7 +573,8 @@ function renderTradesTable() {
     return `
     <tr>
       <td class="wallet" title="${w}"${walletCellStyle}><span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
-      <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}</span></td>
+      <td>${phaseBadge(t.phase) || '<span style="color:#6d7590;">-</span>'}</td>
+      <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}${t.action ? ' · ' + t.action : ''}</span></td>
       <td><span class="side-badge ${sideBadgeClass(t.side)}">${t.side || '-'}</span></td>
       <td class="amount">$${t.amount_usdc.toLocaleString('tr-TR', {maximumFractionDigits: 2})}</td>
       <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
@@ -578,6 +653,23 @@ async function loadTrades(slug, title, kickoff) {
     currentTrades = data.trades || [];
     sortField = 'amount_usdc';
     sortDir = 'desc';
+    activePhase = 'all';
+    document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.phase-btn[data-phase="all"]').classList.add('active');
+
+    const isStored = data.source === 'stored';
+    const pc = data.phase_counts || { prematch: 0, live: 0 };
+    if (isStored && (pc.prematch > 0 || pc.live > 0)) {
+      phaseBar.style.display = 'flex';
+      document.getElementById('cntAll').textContent = `(${pc.prematch + pc.live})`;
+      document.getElementById('cntPrematch').textContent = `(${pc.prematch})`;
+      document.getElementById('cntLive').textContent = `(${pc.live})`;
+      sourceNote.textContent = 'Kaynak: SmartXFlow arşivi (canlı + maç öncesi ayrımı)';
+    } else {
+      phaseBar.style.display = 'none';
+      sourceNote.textContent = '';
+    }
+
     document.querySelectorAll('th.sortable').forEach(h => {
       h.classList.remove('active');
       h.querySelector('.sort-arrow').textContent = '';
@@ -587,7 +679,7 @@ async function loadTrades(slug, title, kickoff) {
     amountTh.querySelector('.sort-arrow').textContent = '▼';
     renderTradesTable();
   } catch (e) {
-    tradesBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
+    tradesBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#ff6b6b;">Veri alınamadı, lütfen tekrar deneyin.</td></tr>';
   }
 }
 
