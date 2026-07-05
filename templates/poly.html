@@ -751,7 +751,7 @@ function renderTradesTable() {
     const color = isDup ? walletColor(w) : null;
     const walletCellStyle = isDup ? ` style="background:${color}1f;border-left:2px solid ${color};"` : '';
     const dupBadge = isDup ? `<span class="wallet-badge" style="background:${color}33;color:${color};">×${count}</span>` : '';
-    const isSell = sideBadgeClass(t.side) === 'neg';
+    const isSell = t.action === 'Satım';
     return `
     <tr${isSell ? ' class="row-sell"' : ''}>
       <td class="wallet" title="${w}"${walletCellStyle}><span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
