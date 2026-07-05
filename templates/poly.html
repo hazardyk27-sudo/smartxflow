@@ -144,6 +144,9 @@
   }
   .side-badge.pos { background: #14351f; color: #4ade80; }
   .side-badge.neg { background: #3a1a1a; color: #ff8080; }
+  tbody tr.row-sell { background: rgba(255, 60, 60, 0.14); box-shadow: inset 3px 0 0 #ff4d4d; }
+  tbody tr.row-sell:hover { background: rgba(255, 60, 60, 0.2); }
+  tbody tr.row-sell td.wallet { background: transparent; }
   .back-btn {
     background: none;
     border: none;
@@ -748,8 +751,9 @@ function renderTradesTable() {
     const color = isDup ? walletColor(w) : null;
     const walletCellStyle = isDup ? ` style="background:${color}1f;border-left:2px solid ${color};"` : '';
     const dupBadge = isDup ? `<span class="wallet-badge" style="background:${color}33;color:${color};">×${count}</span>` : '';
+    const isSell = sideBadgeClass(t.side) === 'neg';
     return `
-    <tr>
+    <tr${isSell ? ' class="row-sell"' : ''}>
       <td class="wallet" title="${w}"${walletCellStyle}><span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
       <td>${phaseBadge(t.phase) || '<span style="color:#6d7590;">-</span>'}</td>
       <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}${t.action ? ' · ' + t.action : ''}</span></td>
