@@ -779,7 +779,13 @@ def get_stored_trades(slug: str, top_n: int = 3000) -> Optional[Dict[str, Any]]:
         phase = row.get("match_phase") or "prematch"
         if phase not in phase_volume:
             phase = "prematch"
-        amt = float(row.get("amount_usdc") or 0)
+        side_raw = (row.get("side") or "").strip().lower()
+        # "Satım" (sell) trades reduce the selection's and the match's total
+        # volume instead of adding to it - a sell means the trader is
+        # unwinding a previously-placed bet on that option, so the net
+        # exposure/volume on that outcome goes down, not up.
+        signed_amt = -float(row.get("amount_usdc") or 0) if side_raw == "sell" else float(row.get("amount_usdc") or 0)
+        amt = signed_amt
         phase_volume[phase] += amt
         phase_counts[phase] += 1
 
