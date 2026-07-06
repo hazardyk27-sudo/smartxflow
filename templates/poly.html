@@ -267,6 +267,10 @@
     word-break: break-word;
     line-height: 1.4;
   }
+  .wallet-positions-table th:nth-child(3), .wallet-positions-table td:nth-child(3) { width: 13%; }
+  .wallet-positions-table th:nth-child(4), .wallet-positions-table td:nth-child(4) { width: 13%; }
+  .wallet-positions-table th:nth-child(5), .wallet-positions-table td:nth-child(5) { width: 15%; }
+  .wallet-positions-table th:nth-child(6), .wallet-positions-table td:nth-child(6) { width: 12%; }
   .open-badge {
     display: inline-block;
     padding: 1px 6px;
@@ -488,11 +492,11 @@
     <div class="wallet-summary" id="walletSummaryBox"></div>
     <h3 class="wallet-section-title">Açık Pozisyonlar</h3>
     <div class="table-wrap">
-      <table>
+      <table class="wallet-activity-table wallet-positions-table">
         <thead>
           <tr>
-            <th>Maç / Seçenek</th>
-            <th>Adet</th>
+            <th>Maç</th>
+            <th>Seçenek</th>
             <th>Ort. Oran</th>
             <th>Güncel Oran</th>
             <th>Değer (USDC)</th>
@@ -1170,8 +1174,8 @@ async function openWalletProfile(wallet) {
       };
       walletPositionsBody.innerHTML = positions.map(p => `
         <tr>
-          <td>${escapeAttr(p.title || '-')}${p.outcome ? ' · ' + escapeAttr(p.outcome) : ''}</td>
-          <td>${(Number(p.size) || 0).toFixed(2)}</td>
+          <td title="${escapeAttr(p.title || '-')}">${escapeAttr(p.title || '-')}</td>
+          <td title="${escapeAttr(p.outcome || '-')}">${escapeAttr(p.outcome || '-')}</td>
           <td>${toDecimalOdds(p.avg_price)}</td>
           <td>${toDecimalOdds(p.cur_price)}</td>
           <td>${fmtUsd(p.current_value || 0)}</td>
