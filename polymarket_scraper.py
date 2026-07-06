@@ -359,7 +359,11 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
         if rows and writer.upsert_wallet_activity(rows):
             log(f"  [Wallet {wallet_row.get('nickname')}] +{len(rows)} yeni islem")
 
-    positions = fetch_wallet_positions(wallet)
+    positions, positions_ok = fetch_wallet_positions(wallet)
+    if not positions_ok:
+        log(f"  [Wallet {wallet_row.get('nickname')}] pozisyon cekme hatasi, mevcut kayitli pozisyonlar korunuyor (replace atlandi)")
+        return len(new_items) if not truncated else 0
+
     position_rows = []
     for p in positions:
         position_rows.append({

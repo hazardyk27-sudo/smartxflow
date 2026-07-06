@@ -12,7 +12,7 @@ import re
 import time
 import threading
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 GAMMA_BASE = "https://gamma-api.polymarket.com"
 DATA_BASE = "https://data-api.polymarket.com"
@@ -1147,11 +1147,18 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
     return rows, truncated
 
 
-def fetch_wallet_positions(wallet: str) -> List[Dict[str, Any]]:
+def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
     """Fetch ALL current positions (open + unredeemed-resolved) for a wallet via
-    the Data API /positions endpoint, filtered to football markets."""
+    the Data API /positions endpoint, filtered to football markets.
+
+    Returns (rows, ok). `ok=False` means the API call itself failed (network
+    error / non-200), as opposed to the wallet genuinely having zero
+    positions right now. Callers must NOT treat ok=False the same as "wallet
+    has no positions" - doing so would wipe a valid stored snapshot on a
+    transient API hiccup.
+    """
     if not wallet:
-        return []
+        return [], True
     rows: List[Dict[str, Any]] = []
     offset = 0
     for _ in range(_POSITIONS_MAX_PAGES):
@@ -1160,13 +1167,15 @@ def fetch_wallet_positions(wallet: str) -> List[Dict[str, Any]]:
             "limit": _POSITIONS_PAGE_LIMIT,
             "offset": offset,
         })
+        if page is None:
+            return rows, False
         if not page:
             break
         rows.extend(p for p in page if _is_football_item(p))
         if len(page) < _POSITIONS_PAGE_LIMIT:
             break
         offset += _POSITIONS_PAGE_LIMIT
-    return rows
+    return rows, True
 
 
 # ---- Supabase CRUD: tracked_wallets / tracked_wallet_activity / tracked_wallet_positions ----
