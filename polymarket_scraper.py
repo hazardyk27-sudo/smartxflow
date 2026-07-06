@@ -28,6 +28,7 @@ from services.polymarket_client import (
     _market_selection_side,
     list_tracked_wallets,
     fetch_wallet_activity,
+    fetch_wallet_redeems,
     fetch_wallet_positions,
     _parse_activity_market,
 )
@@ -151,7 +152,7 @@ class PolymarketSupabaseWriter:
         try:
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
-            url = f"{self._rest_url('tracked_wallet_activity')}?on_conflict=wallet,transaction_hash,asset,side"
+            url = f"{self._rest_url('tracked_wallet_activity')}?on_conflict=wallet,transaction_hash,asset,side,action"
             for i in range(0, len(rows), 500):
                 batch = rows[i:i + 500]
                 resp = requests.post(url, headers=headers, json=batch, timeout=30, verify=SSL_VERIFY)
@@ -161,6 +162,49 @@ class PolymarketSupabaseWriter:
             return True
         except Exception as e:
             log(f"[Wallet Activity UPSERT] Hata: {e}")
+            return False
+
+    def get_wallet_redeem_checkpoint(self, wallet: str) -> Optional[int]:
+        """Return unix ts (seconds) of the most recent stored REDEEM row for
+        this tracked wallet, or None if nothing stored yet (first fetch)."""
+        try:
+            headers = self._headers()
+            url = (
+                f"{self._rest_url('tracked_wallet_redeems')}"
+                f"?wallet=eq.{wallet}&select=traded_at&order=traded_at.desc&limit=1"
+            )
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code != 200:
+                log(f"[Wallet Redeem Checkpoint GET] HTTP {resp.status_code}: {resp.text[:200]}")
+                return None
+            rows = resp.json()
+            if not rows:
+                return None
+            traded_at_str = rows[0].get("traded_at")
+            if not traded_at_str:
+                return None
+            dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
+            return int(dt.timestamp())
+        except Exception as e:
+            log(f"[Wallet Redeem Checkpoint GET] Hata: {e}")
+            return None
+
+    def upsert_wallet_redeems(self, rows: List[Dict[str, Any]]) -> bool:
+        if not rows:
+            return True
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = f"{self._rest_url('tracked_wallet_redeems')}?on_conflict=wallet,transaction_hash,condition_id"
+            for i in range(0, len(rows), 500):
+                batch = rows[i:i + 500]
+                resp = requests.post(url, headers=headers, json=batch, timeout=30, verify=SSL_VERIFY)
+                if resp.status_code not in (200, 201, 204):
+                    log(f"[Wallet Redeem UPSERT] HTTP {resp.status_code}: {resp.text[:200]}")
+                    return False
+            return True
+        except Exception as e:
+            log(f"[Wallet Redeem UPSERT] Hata: {e}")
             return False
 
     def replace_wallet_positions(self, wallet: str, rows: List[Dict[str, Any]]) -> bool:
@@ -338,6 +382,13 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
             except (TypeError, ValueError):
                 amount_usdc = size * price
 
+            # `side` = outcome-polarity label (Üst/Alt, Var/Yok, or None for
+            # 1x2 where `selection` already IS the team name). `action` = raw
+            # BUY/SELL from Polymarket, stored separately so it never gets
+            # overwritten by the outcome label (Task #264 bug #2 - previously
+            # `side or item.get("side")` clobbered the raw action for
+            # non-1x2 markets, and 1x2 rows had their raw action mislabeled
+            # as "side").
             rows.append({
                 "wallet": wallet,
                 "transaction_hash": tx_hash,
@@ -348,7 +399,8 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
                 "slug": item.get("slug"),
                 "market_type": market_type,
                 "selection": selection,
-                "side": side or item.get("side"),
+                "side": side,
+                "action": (item.get("side") or "").strip().upper() or None,
                 "outcome_raw": item.get("outcome"),
                 "amount_usdc": round(amount_usdc, 4),
                 "price": price,
@@ -358,6 +410,45 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
 
         if rows and writer.upsert_wallet_activity(rows):
             log(f"  [Wallet {wallet_row.get('nickname')}] +{len(rows)} yeni islem")
+
+    # REDEEM olaylarini kalici olarak biriktir - kazanip nakde cevrilen
+    # pozisyonlar /positions'tan tamamen kaybolur, bu yuzden Isabet Orani'nin
+    # dogru kalmasi icin redeem anini burada kaydetmek sart (Task #264).
+    redeem_since_ts = writer.get_wallet_redeem_checkpoint(wallet)
+    redeem_items, redeem_truncated = fetch_wallet_redeems(wallet, redeem_since_ts)
+    if redeem_truncated:
+        log(f"  [Wallet {wallet[:10]}...] redeem fetch truncated before checkpoint, skipping this run")
+    else:
+        redeem_rows = []
+        for item in reversed(redeem_items):
+            try:
+                ts = int(item.get("timestamp") or 0)
+            except (TypeError, ValueError):
+                continue
+            if ts <= 0:
+                continue
+            tx_hash = item.get("transactionHash")
+            condition_id = item.get("conditionId")
+            if not tx_hash or not condition_id:
+                continue
+            try:
+                amount_usdc = float(item.get("usdcSize") or 0)
+            except (TypeError, ValueError):
+                amount_usdc = 0.0
+            redeem_rows.append({
+                "wallet": wallet,
+                "transaction_hash": tx_hash,
+                "condition_id": condition_id,
+                "asset": item.get("asset"),
+                "title": item.get("title"),
+                "slug": item.get("slug"),
+                "event_id": None,
+                "amount_usdc": round(amount_usdc, 4),
+                "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+            })
+
+        if redeem_rows and writer.upsert_wallet_redeems(redeem_rows):
+            log(f"  [Wallet {wallet_row.get('nickname')}] +{len(redeem_rows)} yeni redeem")
 
     positions, positions_ok = fetch_wallet_positions(wallet)
     if not positions_ok:

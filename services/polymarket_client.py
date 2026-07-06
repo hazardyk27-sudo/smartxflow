@@ -12,6 +12,7 @@ import re
 import time
 import threading
 import requests
+from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 
 GAMMA_BASE = "https://gamma-api.polymarket.com"
@@ -221,6 +222,71 @@ def _parse_match_title(title: str):
     if not home or not away:
         return None
     return home, away
+
+
+# Best-effort 3-letter country code -> display name map for events whose
+# title doesn't follow the "Team A vs. Team B" pattern (e.g. one-off prop
+# markets like "Spread: France (-1.5)"). In that case we fall back to
+# decoding the two country codes embedded in the event slug, e.g.
+# "fifwc-par-fra-2026-07-04-more-markets" -> Paraguay vs France. Unknown
+# codes are shown uppercased rather than dropped, so the Match column is
+# never left blank.
+_FIFA_COUNTRY_CODES = {
+    "arg": "Arjantin", "bra": "Brezilya", "fra": "Fransa", "ger": "Almanya",
+    "esp": "İspanya", "ita": "İtalya", "eng": "İngiltere", "por": "Portekiz",
+    "ned": "Hollanda", "bel": "Belçika", "cro": "Hırvatistan", "uru": "Uruguay",
+    "mex": "Meksika", "usa": "ABD", "jpn": "Japonya", "kor": "Güney Kore",
+    "mar": "Fas", "sen": "Senegal", "gha": "Gana", "ksa": "Suudi Arabistan",
+    "aus": "Avustralya", "can": "Kanada", "cmr": "Kamerun", "tun": "Tunus",
+    "pol": "Polonya", "swi": "İsviçre", "sui": "İsviçre", "den": "Danimarka",
+    "ser": "Sırbistan", "srb": "Sırbistan", "wal": "Galler", "irn": "İran",
+    "qat": "Katar", "ecu": "Ekvador", "cos": "Kosta Rika", "crc": "Kosta Rika",
+    "par": "Paraguay", "col": "Kolombiya", "chi": "Şili", "per": "Peru",
+    "ven": "Venezuela", "bol": "Bolivya", "nor": "Norveç", "swe": "İsveç",
+    "aut": "Avusturya", "sco": "İskoçya", "ukr": "Ukrayna", "tur": "Türkiye",
+    "gre": "Yunanistan", "cze": "Çekya", "svk": "Slovakya", "hun": "Macaristan",
+    "rou": "Romanya", "isl": "İzlanda", "isr": "İsrail", "egy": "Mısır",
+    "alg": "Cezayir", "nga": "Nijerya", "civ": "Fildişi Sahili", "rsa": "Güney Afrika",
+    "nzl": "Yeni Zelanda", "chn": "Çin", "ksw": "Kuveyt", "uae": "BAE",
+    "irq": "Irak", "jor": "Ürdün", "pan": "Panama", "hon": "Honduras",
+    "jam": "Jamaika", "hai": "Haiti", "cuw": "Curaçao", "gua": "Guatemala",
+    "sur": "Surinam", "trin": "Trinidad ve Tobago",
+}
+
+
+def _parse_slug_teams(slug: Optional[str]):
+    """Extract (home, away) from an event slug's embedded 3-letter country
+    codes, e.g. 'fifwc-par-fra-2026-07-04-more-markets' -> (Paraguay, Fransa).
+    Returns None if the slug doesn't match this shape."""
+    if not slug:
+        return None
+    parts = slug.split('-')
+    year_idx = None
+    for i, p in enumerate(parts):
+        if len(p) == 4 and p.isdigit():
+            year_idx = i
+            break
+    if year_idx is None or year_idx < 2:
+        return None
+    code1, code2 = parts[year_idx - 2], parts[year_idx - 1]
+    if len(code1) != 3 or len(code2) != 3 or not code1.isalpha() or not code2.isalpha():
+        return None
+    home = _FIFA_COUNTRY_CODES.get(code1.lower(), code1.upper())
+    away = _FIFA_COUNTRY_CODES.get(code2.lower(), code2.upper())
+    return home, away
+
+
+def _to_decimal_odds(price) -> Optional[float]:
+    """Convert a Polymarket outcome probability (0-1) into decimal odds
+    (1/price), rounded to 2dp. Returns None for price<=0 (e.g. REDEEM rows
+    or missing data) so the caller can render '-' instead of a bogus value."""
+    try:
+        p = float(price or 0)
+    except (TypeError, ValueError):
+        return None
+    if p <= 0:
+        return None
+    return round(1.0 / p, 2)
 
 
 def _fetch_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
@@ -1084,26 +1150,53 @@ _ACTIVITY_MARKET_SUFFIX_TYPES = {
 def _parse_activity_market(item: Dict[str, Any]):
     """Return (market_type, home, away, selection, side) for an /activity or
     /positions row, reusing the same display conventions as the match-page
-    trade ledger (_market_selection_side / _bet_display_fields)."""
+    trade ledger (_market_selection_side / _bet_display_fields).
+
+    `home`/`away` are always populated (never blank) so the UI's Match
+    column has something useful to show even for one-off prop markets that
+    don't follow the "Team A vs. Team B[: suffix]" title shape (e.g.
+    "Spread: France (-1.5)") - those fall back to decoding the event slug's
+    country codes, and as a last resort show the raw title."""
     title = item.get("title") or ""
+    slug = item.get("slug") or item.get("eventSlug") or ""
     outcome_raw = (item.get("outcome") or "").strip()
     if ":" in title:
         base_title, suffix = title.split(":", 1)
-        market_type = _ACTIVITY_MARKET_SUFFIX_TYPES.get(suffix.strip().lower(), "1x2")
+        market_type = _ACTIVITY_MARKET_SUFFIX_TYPES.get(suffix.strip().lower())
     else:
-        base_title = title
-        market_type = "1x2"
+        base_title, suffix = title, ""
+        market_type = None
 
     parsed = _parse_match_title(base_title.strip())
-    home, away = (parsed if parsed else (base_title.strip(), ""))
+    is_standard_title = parsed is not None
+    home, away = parsed if parsed else (None, None)
 
-    if market_type == "1x2":
-        selection = outcome_raw or "-"
-        side = None
-    else:
+    if home is None:
+        slug_teams = _parse_slug_teams(slug)
+        if slug_teams:
+            home, away = slug_teams
+
+    if market_type is None:
+        market_type = "1x2" if is_standard_title else "special"
+
+    if market_type in ("ou25", "btts"):
         fields = _bet_display_fields(market_type, "", outcome_raw)
         selection = fields["selection"]
         side = fields["side"]
+    elif market_type == "1x2" and is_standard_title:
+        selection = outcome_raw or "-"
+        side = None
+    else:
+        # Non-standard one-off market (e.g. spread/handicap props) - the full
+        # title already carries the specific bet (team + line), so use it
+        # verbatim as the selection instead of forcing it into 1X2/OU25/BTTS.
+        market_type = "special"
+        selection = title.strip() or outcome_raw or "-"
+        side = outcome_raw or None
+
+    if home is None:
+        home = base_title.strip() or title.strip() or "-"
+        away = ""
 
     return market_type, home, away, selection, side
 
@@ -1147,6 +1240,65 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
 
         reached_checkpoint = False
         for item in page:
+            if not _is_football_item(item):
+                continue
+            ts = item.get("timestamp")
+            if since_ts is not None and ts is not None and int(ts) <= since_ts:
+                reached_checkpoint = True
+                break
+            rows.append(item)
+
+        if reached_checkpoint:
+            hit_page_cap = False
+            break
+        if len(page) < _ACTIVITY_PAGE_LIMIT:
+            hit_page_cap = False
+            break
+        offset += _ACTIVITY_PAGE_LIMIT
+    else:
+        hit_page_cap = since_ts is not None
+
+    truncated = since_ts is not None and hit_page_cap
+    return rows, truncated
+
+
+def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+    """Fully/incrementally paginate the Data API /activity endpoint for a
+    single wallet, filtered server-side to REDEEM-type entries (a wallet
+    cashing out a resolved/winning position) and client-side to football
+    markets. This is what makes win-rate durable: once a wallet redeems a
+    winning position it disappears from /positions forever, so the win must
+    be recorded here at redeem-time or it becomes permanently invisible
+    (Task #264). Same (rows, truncated) contract as fetch_wallet_activity."""
+    if not wallet:
+        return [], False
+    if max_pages is None:
+        max_pages = _ACTIVITY_INCREMENTAL_MAX_PAGES if since_ts is not None else _ACTIVITY_MAX_PAGES
+
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    hit_page_cap = True
+    for _ in range(max_pages):
+        try:
+            page = _get_json(f"{DATA_BASE}/activity", {
+                "user": wallet,
+                "type": "REDEEM",
+                "limit": _ACTIVITY_PAGE_LIMIT,
+                "offset": offset,
+            })
+        except _OffsetLimitExceeded:
+            hit_page_cap = False
+            break
+        if page is None:
+            return rows, True
+        if not page:
+            hit_page_cap = False
+            break
+
+        reached_checkpoint = False
+        for item in page:
+            if not item.get("conditionId"):
+                continue
             if not _is_football_item(item):
                 continue
             ts = item.get("timestamp")
@@ -1316,7 +1468,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             f"{base}/rest/v1/tracked_wallet_activity",
             headers=headers,
             params={
-                "select": "wallet,transaction_hash,title,slug,market_type,selection,side,outcome_raw,amount_usdc,price,size,traded_at",
+                "select": "wallet,transaction_hash,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                 "wallet": f"eq.{wallet}",
                 "order": "traded_at.desc",
                 "limit": 2000,
@@ -1345,29 +1497,60 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         print(f"[WalletProfile] positions fetch hatasi: {e}")
         position_rows = []
 
+    # Kalici REDEEM kaydi - kazanip nakde cevrilen (artik /positions'ta
+    # gorunmeyen) piyasalar. Task #264: bu tablo olmadan bir cuzdan
+    # kazandigi her pozisyonu redeem ettiginde Isabet Orani sifira dusuyordu.
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallet_redeems",
+            headers=headers,
+            params={
+                "select": "condition_id,amount_usdc,traded_at",
+                "wallet": f"eq.{wallet}",
+                "order": "traded_at.desc",
+                "limit": 2000,
+            },
+            timeout=15,
+        )
+        redeem_rows = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        print(f"[WalletProfile] redeem fetch hatasi: {e}")
+        redeem_rows = []
+
     trade_count = len(activity_rows)
     total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
     avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
     weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
     avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
+    avg_price_decimal = _to_decimal_odds(avg_price)
 
-    open_positions = []
-    resolved_won = 0
-    resolved_lost = 0
+    total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
+
+    # Won markets = every conditionId this wallet has ever redeemed (durable,
+    # survives the position disappearing from /positions) UNIONed with any
+    # currently-unredeemed-but-resolved winning position still in the
+    # snapshot. Lost markets only come from the live snapshot since a losing
+    # position has nothing to redeem and just lingers there at cur_price~0.
+    resolved_won_ids = {rw.get("condition_id") for rw in redeem_rows if rw.get("condition_id")}
+    resolved_lost_ids = set()
     realized_pnl_total = 0.0
+    open_positions = []
     for p in position_rows:
+        condition_id = p.get("condition_id")
         cur_price = float(p.get("cur_price") or 0)
         redeemable = bool(p.get("redeemable"))
         is_resolved = redeemable and (cur_price <= 0.02 or cur_price >= 0.98)
         if is_resolved:
             if cur_price >= 0.98:
-                resolved_won += 1
-            else:
-                resolved_lost += 1
+                resolved_won_ids.add(condition_id)
+            elif condition_id not in resolved_won_ids:
+                resolved_lost_ids.add(condition_id)
             realized_pnl_total += float(p.get("cash_pnl") or 0)
         else:
             open_positions.append(p)
 
+    resolved_won = len(resolved_won_ids)
+    resolved_lost = len(resolved_lost_ids)
     resolved_total = resolved_won + resolved_lost
     win_rate = round((resolved_won / resolved_total) * 100, 1) if resolved_total else None
 
@@ -1393,6 +1576,8 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         if open_positions:
             summary_lines.append(f"Şu an {len(open_positions)} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
+    display_activity = _build_display_activity(activity_rows)
+
     return {
         "wallet": wallet_row.get("wallet"),
         "nickname": wallet_row.get("nickname"),
@@ -1403,14 +1588,116 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             "total_invested_usdc": round(total_invested, 2),
             "avg_bet_size_usdc": avg_bet_size,
             "avg_price": avg_price,
+            "avg_price_decimal": avg_price_decimal,
             "win_rate_pct": win_rate,
             "resolved_won": resolved_won,
             "resolved_lost": resolved_lost,
             "open_position_count": len(open_positions),
             "open_exposure_usdc": round(open_exposure, 2),
             "realized_pnl_usdc": round(realized_pnl_total, 2),
+            "total_redeemed_usdc": round(total_redeemed_usdc, 2),
         },
         "summary": summary_lines,
-        "activity": activity_rows,
+        "activity": display_activity,
         "open_positions": open_positions,
     }
+
+
+# Fills within this many seconds of each other, for the same wallet + market
+# + selection + buy/sell action, are collapsed into a single display row.
+# This is purely cosmetic (grouping genuinely distinct on-chain fills from
+# the same order being matched against multiple counterparties) - the raw
+# per-fill rows in tracked_wallet_activity are never touched.
+_ACTIVITY_DISPLAY_AGGREGATION_WINDOW_SECONDS = 120
+
+_ACTION_LABELS = {"buy": "Alım", "sell": "Satım"}
+
+
+def _build_display_activity(activity_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Turn raw per-fill activity rows into display-ready rows: adds a
+    human 'action' label (Alım/Satım, kept separate from the outcome-polarity
+    'side'/'selection' labels - Task #264 bug #2), converts price to decimal
+    odds, and aggregates near-duplicate tiny fills that belong to the same
+    wallet/market/selection/action within a short time window (Task #264
+    requirement #4) so the table doesn't show a wall of $0.01 rows."""
+    parsed_at = []
+    for a in activity_rows:
+        try:
+            traded_dt = datetime.fromisoformat(str(a.get("traded_at")).replace("Z", "+00:00"))
+        except Exception:
+            traded_dt = None
+        parsed_at.append((a, traded_dt))
+
+    groups: List[Dict[str, Any]] = []
+    group_index: Dict[Tuple[Any, ...], int] = {}
+    for a, traded_dt in parsed_at:
+        raw_action = (a.get("action") or "").strip().lower()
+        action_label = _ACTION_LABELS.get(raw_action, a.get("action") or a.get("side") or "-")
+        # Re-derive home/away from the already-stored title/slug/outcome_raw
+        # (no schema change needed) so the Match column always has a team
+        # name pair, with the eventSlug country-code fallback for one-off
+        # markets like "Spread: France (-1.5)" (Task #264 requirement #3).
+        _mt, home, away, _sel, _side = _parse_activity_market({
+            "title": a.get("title"),
+            "slug": a.get("slug"),
+            "outcome": a.get("outcome_raw"),
+        })
+        match_label = f"{home} - {away}" if away else (home or a.get("title") or "-")
+        key = (a.get("title"), a.get("selection"), a.get("side"), raw_action)
+        idx = group_index.get(key)
+        if (
+            idx is not None
+            and traded_dt is not None
+            and groups[idx]["_last_dt"] is not None
+            and abs((groups[idx]["_last_dt"] - traded_dt).total_seconds()) <= _ACTIVITY_DISPLAY_AGGREGATION_WINDOW_SECONDS
+        ):
+            g = groups[idx]
+            amount = float(a.get("amount_usdc") or 0)
+            g["amount_usdc"] += amount
+            g["_price_weight_sum"] += float(a.get("price") or 0) * amount
+            g["fill_count"] += 1
+            if traded_dt and (g["_last_dt"] is None or traded_dt > g["_last_dt"]):
+                g["_last_dt"] = traded_dt
+                g["traded_at"] = a.get("traded_at")
+        else:
+            amount = float(a.get("amount_usdc") or 0)
+            new_group = {
+                "title": a.get("title"),
+                "match": match_label,
+                "home": home,
+                "away": away,
+                "slug": a.get("slug"),
+                "market_type": a.get("market_type"),
+                "selection": a.get("selection"),
+                "side": a.get("side"),
+                "action": action_label,
+                "outcome_raw": a.get("outcome_raw"),
+                "amount_usdc": amount,
+                "_price_weight_sum": float(a.get("price") or 0) * amount,
+                "traded_at": a.get("traded_at"),
+                "fill_count": 1,
+                "_last_dt": traded_dt,
+            }
+            groups.append(new_group)
+            group_index[key] = len(groups) - 1
+
+    display_rows = []
+    for g in groups:
+        avg_p = (g["_price_weight_sum"] / g["amount_usdc"]) if g["amount_usdc"] else 0.0
+        display_rows.append({
+            "title": g["title"],
+            "match": g["match"],
+            "home": g["home"],
+            "away": g["away"],
+            "slug": g["slug"],
+            "market_type": g["market_type"],
+            "selection": g["selection"],
+            "side": g["side"],
+            "action": g["action"],
+            "outcome_raw": g["outcome_raw"],
+            "amount_usdc": round(g["amount_usdc"], 2),
+            "price": _to_decimal_odds(avg_p),
+            "traded_at": g["traded_at"],
+            "fill_count": g["fill_count"],
+        })
+    return display_rows
