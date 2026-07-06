@@ -166,13 +166,27 @@ def _fetch_new_trades(condition_id: str, since_ts: Optional[int] = None, max_pag
     return new_rows, truncated
 
 
+class _OffsetLimitExceeded(Exception):
+    """Raised when Polymarket's /activity endpoint rejects an offset beyond
+    its hard historical cap (observed: 'max historical activity offset of
+    3000 exceeded'). This is NOT a transient failure - deeper history is
+    permanently unreachable via this endpoint for this wallet, so callers
+    should treat whatever was fetched so far as the complete backfill
+    rather than retrying/discarding it."""
+    pass
+
+
 def _get_json(url: str, params: Optional[Dict[str, Any]] = None) -> Any:
     try:
         resp = requests.get(url, params=params, headers=_HEADERS, timeout=_HTTP_TIMEOUT)
         if resp.status_code != 200:
             print(f"[Polymarket] GET {url} -> {resp.status_code}")
+            if resp.status_code == 400 and "max historical activity offset" in resp.text.lower():
+                raise _OffsetLimitExceeded(resp.text[:200])
             return None
         return resp.json()
+    except _OffsetLimitExceeded:
+        raise
     except Exception as e:
         print(f"[Polymarket] Error GET {url}: {e}")
         return None
@@ -1111,12 +1125,20 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
     offset = 0
     hit_page_cap = True
     for _ in range(max_pages):
-        page = _get_json(f"{DATA_BASE}/activity", {
-            "user": wallet,
-            "type": "TRADE",
-            "limit": _ACTIVITY_PAGE_LIMIT,
-            "offset": offset,
-        })
+        try:
+            page = _get_json(f"{DATA_BASE}/activity", {
+                "user": wallet,
+                "type": "TRADE",
+                "limit": _ACTIVITY_PAGE_LIMIT,
+                "offset": offset,
+            })
+        except _OffsetLimitExceeded:
+            # Polymarket's hard historical-offset cap was hit. Deeper history
+            # is permanently unreachable via this endpoint, so whatever we've
+            # accumulated so far IS the complete backfill - not a gap to
+            # retry later.
+            hit_page_cap = False
+            break
         if page is None:
             return rows, True
         if not page:
