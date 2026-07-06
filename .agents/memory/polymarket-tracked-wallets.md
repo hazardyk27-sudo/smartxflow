@@ -15,4 +15,6 @@ This was the one explicitly user-approved exception to the standing "don't touch
 
 **Win-rate survivorship bias:** `/positions` only shows a wallet's *current* open/resolved snapshot — once a winning position is REDEEMed (cashed out), it disappears from `/positions` entirely and was never counted anywhere, making win-rate silently drift toward 0% over time. Fix: persist `/activity?type=REDEEM` events to a permanent table (`tracked_wallet_redeems`) and union those condition_ids with resolved-but-unredeemed positions when computing win rate — redeemed wins must never be inferred solely from the live positions snapshot.
 
+**Price display convention:** every trade/position price surfaced for a tracked wallet (activity fills, avg-odds stat, open-position avg/current price) must be shown as decimal odds (1/price), never the raw 0–1 probability — check all render sites, not just the activity table, when adding a new price field. Guard price<=0 -> '-'.
+
 **BUY/SELL vs outcome-polarity fields:** don't conflate them into one `side` column — for 1x2 markets `side` is naturally the raw action, but for OU25/BTTS markets a derived outcome-polarity label (Over/Under, Yes/No) needs to live in its own column separate from the raw BUY/SELL action, or one silently overwrites the other.

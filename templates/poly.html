@@ -467,8 +467,8 @@
           <tr>
             <th>Maç / Seçenek</th>
             <th>Adet</th>
-            <th>Ort. Fiyat</th>
-            <th>Güncel Fiyat</th>
+            <th>Ort. Oran</th>
+            <th>Güncel Oran</th>
             <th>Değer (USDC)</th>
             <th>Kâr/Zarar</th>
           </tr>
@@ -1138,12 +1138,16 @@ async function openWalletProfile(wallet) {
     if (!positions.length) {
       walletPositionsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
     } else {
+      const toDecimalOdds = (v) => {
+        const p = Number(v) || 0;
+        return p > 0 ? (1 / p).toFixed(2) : '-';
+      };
       walletPositionsBody.innerHTML = positions.map(p => `
         <tr>
           <td>${escapeAttr(p.title || '-')}${p.outcome ? ' · ' + escapeAttr(p.outcome) : ''}</td>
           <td>${(Number(p.size) || 0).toFixed(2)}</td>
-          <td>${(Number(p.avg_price) || 0).toFixed(2)}</td>
-          <td>${(Number(p.cur_price) || 0).toFixed(2)}</td>
+          <td>${toDecimalOdds(p.avg_price)}</td>
+          <td>${toDecimalOdds(p.cur_price)}</td>
           <td>${fmtUsd(p.current_value || 0)}</td>
           <td>${pnlSpan(p.cash_pnl)}</td>
         </tr>
