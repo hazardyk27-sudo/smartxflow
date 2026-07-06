@@ -253,6 +253,32 @@
   .amount { font-weight: 700; color: #4ade80; }
   .price { color: #e6e9ef; }
   .table-wrap { overflow-x: auto; background: #0e121a; border-radius: 10px; border: 1px solid #1e2431; }
+  .wallet-activity-table { min-width: 900px; table-layout: fixed; }
+  .wallet-activity-table th:nth-child(1), .wallet-activity-table td:nth-child(1) { width: 17%; }
+  .wallet-activity-table th:nth-child(2), .wallet-activity-table td:nth-child(2) { width: 30%; }
+  .wallet-activity-table th:nth-child(3), .wallet-activity-table td:nth-child(3) { width: 12%; }
+  .wallet-activity-table th:nth-child(4), .wallet-activity-table td:nth-child(4) { width: 17%; }
+  .wallet-activity-table th:nth-child(5), .wallet-activity-table td:nth-child(5) { width: 8%; }
+  .wallet-activity-table th:nth-child(6), .wallet-activity-table td:nth-child(6) { width: 16%; }
+  .wallet-activity-table td:nth-child(1), .wallet-activity-table td:nth-child(2) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+  .open-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    background: #16233d;
+    color: #7ea6ff;
+    margin-left: 5px;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
   th[data-col="wallet"], td.wallet { width: 22%; }
   th[data-col="selection"] { width: 24%; }
   th[data-col="side"] { width: 13%; }
@@ -478,7 +504,7 @@
     </div>
     <h3 class="wallet-section-title">İşlem Geçmişi</h3>
     <div class="table-wrap">
-      <table>
+      <table class="wallet-activity-table">
         <thead>
           <tr>
             <th>Maç</th>
@@ -1163,11 +1189,12 @@ async function openWalletProfile(wallet) {
         const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
         const selectionLabel = a.selection || a.side || a.outcome_raw || '-';
         const sideSuffix = (a.side && a.side !== a.selection) ? ` · ${escapeAttr(a.side)}` : '';
+        const openBadge = a.is_open ? ' <span class="open-badge">Açık</span>' : '';
         return `
         <tr>
-          <td>${escapeAttr(a.match || a.title || '-')}</td>
-          <td>${escapeAttr(selectionLabel)}${sideSuffix}</td>
-          <td>${escapeAttr(a.action || '-')}</td>
+          <td title="${escapeAttr(a.match || a.title || '-')}">${escapeAttr(a.match || a.title || '-')}</td>
+          <td title="${escapeAttr(selectionLabel)}${a.side && a.side !== a.selection ? ' · ' + escapeAttr(a.side) : ''}">${escapeAttr(selectionLabel)}${sideSuffix}</td>
+          <td>${escapeAttr(a.action || '-')}${openBadge}</td>
           <td>${fmtUsd(a.amount_usdc || 0)}${fillNote}</td>
           <td>${oran}</td>
           <td>${fmtDateTime(a.traded_at)}</td>

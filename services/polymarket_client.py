@@ -1619,7 +1619,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
 
 _ACTION_LABELS = {"buy": "Alım", "sell": "Satım"}
-_OPEN_POSITION_ACTION_LABEL = "Açık Pozisyon"
 
 
 def _build_display_activity(
@@ -1728,6 +1727,7 @@ def _build_display_activity(
             "selection": g["selection"],
             "side": g["side"],
             "action": g["action"],
+            "is_open": False,
             "outcome_raw": g["outcome_raw"],
             "amount_usdc": round(g["amount_usdc"], 2),
             "price": _to_decimal_odds(avg_p),
@@ -1752,7 +1752,14 @@ def _build_display_activity(
             "market_type": mt,
             "selection": selection,
             "side": side,
-            "action": _OPEN_POSITION_ACTION_LABEL,
+            # A still-open position on Polymarket only exists because outcome
+            # shares were bought (and not fully sold/redeemed yet) - there is
+            # no "short" mechanic - so the transaction the user actually made
+            # is always a Buy. "Open" is a separate status, not an action;
+            # it's surfaced to the frontend via `is_open` so it can render a
+            # distinct badge instead of overwriting the Alım/Satım column.
+            "action": _ACTION_LABELS["buy"],
+            "is_open": True,
             "outcome_raw": p.get("outcome"),
             "amount_usdc": round(float(p.get("initial_value") or 0), 2),
             "price": _to_decimal_odds(float(p.get("avg_price") or 0)),
