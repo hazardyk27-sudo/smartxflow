@@ -10,10 +10,13 @@ No API key required - all endpoints used here are public read-only endpoints.
 import os
 import re
 import time
+import logging
 import threading
 import requests
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 GAMMA_BASE = "https://gamma-api.polymarket.com"
 DATA_BASE = "https://data-api.polymarket.com"
@@ -272,6 +275,30 @@ _FIFA_COUNTRY_CODES = {
 }
 
 
+# Codes we've already warned about, so an unmapped code (e.g. a club-team
+# abbreviation, or a genuinely new country code Polymarket starts using)
+# only logs once per process instead of spamming on every request.
+_UNKNOWN_SLUG_CODES_WARNED: set = set()
+
+
+def _lookup_slug_country(code: str) -> str:
+    """Resolve a lowercase 3-letter slug code to its Turkish country name,
+    logging (once per code) when it falls back to the raw uppercased code
+    so gaps in `_FIFA_COUNTRY_CODES` are discoverable instead of silently
+    showing an abbreviation to users."""
+    name = _FIFA_COUNTRY_CODES.get(code)
+    if name is not None:
+        return name
+    if code not in _UNKNOWN_SLUG_CODES_WARNED:
+        _UNKNOWN_SLUG_CODES_WARNED.add(code)
+        logger.warning(
+            "[Polymarket] Unknown 3-letter slug code '%s' - not in "
+            "_FIFA_COUNTRY_CODES, falling back to raw code (may be a club "
+            "team, or a missing country mapping)", code
+        )
+    return code.upper()
+
+
 def _parse_slug_teams(slug: Optional[str]):
     """Extract (home, away) from an event slug's embedded 3-letter country
     codes, e.g. 'fifwc-par-fra-2026-07-04-more-markets' -> (Paraguay, Fransa).
@@ -289,8 +316,8 @@ def _parse_slug_teams(slug: Optional[str]):
     code1, code2 = parts[year_idx - 2], parts[year_idx - 1]
     if len(code1) != 3 or len(code2) != 3 or not code1.isalpha() or not code2.isalpha():
         return None
-    home = _FIFA_COUNTRY_CODES.get(code1.lower(), code1.upper())
-    away = _FIFA_COUNTRY_CODES.get(code2.lower(), code2.upper())
+    home = _lookup_slug_country(code1.lower())
+    away = _lookup_slug_country(code2.lower())
     return home, away
 
 
