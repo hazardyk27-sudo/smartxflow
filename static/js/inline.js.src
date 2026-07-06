@@ -1155,7 +1155,7 @@ function renderConfirmedMoneyView(data) {
             html += _buildGlassMatchCard({
                 kind: 'confirmed',
                 home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
-                selLabel: selLabel,
+                selLabel: selLabel, score: sig.score,
                 amt: amtFmt, curAmt: curAmtFmt,
                 pct: pctFmt, curPct: curPctFmt,
                 vol: volFmt, curVol: curVolFmt,
@@ -1343,7 +1343,7 @@ function renderConfirmedMoneyV2View(data) {
             html += _buildGlassMatchCard({
                 kind: 'confirmed_v2',
                 home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
-                selLabel: selLabel,
+                selLabel: selLabel, score: sig.score,
                 amt: amtFmt, curAmt: curAmtFmt,
                 pct: pctFmt, curPct: curPctFmt,
                 vol: volFmt, curVol: curVolFmt,
@@ -1551,7 +1551,7 @@ function renderEarlyMoneyLockView(data) {
                 html += _buildGlassMatchCard({
                     kind: 'early',
                     home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
-                    selLabel: selLabel,
+                    selLabel: selLabel, score: sig.score,
                     amt: amtFmt, curAmt: curAmtFmt,
                     pct: pctFmt, curPct: curPctFmt,
                     vol: volFmt, curVol: curVolFmt,
@@ -1965,7 +1965,7 @@ function renderFakeSharpView(data) {
                 html += _buildGlassMatchCard({
                     kind: 'fake',
                     home_team: sig.home_team, away_team: sig.away_team, league: sig.league,
-                    selLabel: selLabel,
+                    selLabel: selLabel, score: sig.score,
                     amt: amtFmt, curAmt: curAmtFmt,
                     pct: pctFmt, curPct: curPctFmt,
                     vol: volFmt, curVol: curVolFmt,

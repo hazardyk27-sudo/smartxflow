@@ -6,5 +6,6 @@
 - [Deployment architecture](deployment-architecture.md) — smartxflow.com → Replit Deployment (GCP); scrapers Hetzner'de; deployment run komutu REPL_DEPLOYMENT=1 python app.py olmalı (scraper olmamalı).
 - [Polymarket public API integration](polymarket-api-integration.md) — Gamma/Data API no-auth quirks: 100/page pagination cap, endDate=kickoff, title-suffix filters real matches from futures markets.
 - [Polymarket wallet nicknames](polymarket-wallet-nicknames.md) — user-assigned nicknames for tracked Polymarket wallet addresses (e.g. "Colombia").
+- [Supabase DDL migrations](supabase-ddl-migrations.md) — no exec_sql RPC exists; new columns/tables need a `migrations/*.sql` file the user runs manually in Supabase SQL Editor.
 - [Polymarket tracked wallets architecture](polymarket-tracked-wallets.md) — per-wallet stats need /activity+/positions (not market /trades); scraper-touch exception scope; Hetzner deploy dependency.
 - [Polymarket country-code slug mapping](polymarket-country-code-slugs.md) — Polymarket slugs use inconsistent country code variants (che vs swi, nld vs ned); verify against live wallet data, don't rely on ISO standard alone.

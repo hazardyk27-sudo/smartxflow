@@ -2729,6 +2729,69 @@ def _update_underdog_signal_scores():
         print(f"[UnderdogSignals] score update error: {e}")
 
 
+def _update_signal_scores_generic(table_name):
+    """Fill in FT scores for signals that don't have one yet.
+    Generic version of _update_underdog_signal_scores() for other signal tables
+    (confirmed_money_signals, confirmed_money_v2_signals, early_money_lock_signals,
+    fake_sharp_signals) — all share match_key/selection_code/home_team/away_team columns."""
+    try:
+        supabase = get_supabase_client()
+        if not supabase or not supabase.is_available:
+            return
+        headers = supabase._headers()
+        url = f"{supabase._rest_url(table_name)}?or=(score.is.null,score.eq.)&select=match_key,selection_code,home_team,away_team&limit=300"
+        resp = supabase._get_http_client().get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            if resp.status_code != 400:
+                print(f"[{table_name}] Fetch pending non-2xx: {resp.status_code}")
+            return
+        pending = resp.json()
+        if not pending:
+            return
+        ft_scores = _get_finished_scores_map()
+        if not ft_scores:
+            return
+        ft_entries = []
+        seen_ids = set()
+        for ft_key, ft_entry in ft_scores.items():
+            if '|' not in ft_key or not isinstance(ft_entry, dict):
+                continue
+            eid = id(ft_entry)
+            if eid in seen_ids:
+                continue
+            seen_ids.add(eid)
+            ft_h = normalize_field(ft_entry.get('home', ''))
+            ft_a = normalize_field(ft_entry.get('away', ''))
+            if ft_h and ft_a:
+                ft_entries.append((ft_h, ft_a, ft_entry))
+        updated = 0
+        for sig in pending:
+            sig_h = normalize_field(sig.get('home_team', ''))
+            sig_a = normalize_field(sig.get('away_team', ''))
+            direct_key = (sig.get('home_team', '') + '|' + sig.get('away_team', '')).lower()
+            entry = ft_scores.get(direct_key)
+            if not entry:
+                for ft_h, ft_a, ft_entry in ft_entries:
+                    if _fuzzy_team_match(sig_h, ft_h) and _fuzzy_team_match(sig_a, ft_a):
+                        entry = ft_entry
+                        break
+            if entry and entry.get('score'):
+                from urllib.parse import quote as _url_quote
+                ph = supabase._headers()
+                mk = _url_quote(sig.get('match_key', ''), safe='')
+                sc = _url_quote(sig.get('selection_code', ''), safe='')
+                pu = f"{supabase._rest_url(table_name)}?match_key=eq.{mk}&selection_code=eq.{sc}"
+                pr = supabase._get_http_client().patch(pu, headers=ph, json={'score': entry['score']}, timeout=5)
+                if pr.status_code in (200, 204):
+                    updated += 1
+                else:
+                    print(f"[{table_name}] Score patch non-2xx: {pr.status_code} mk={sig.get('match_key','')}")
+        if updated:
+            print(f"[{table_name}] Updated scores for {updated} signals")
+    except Exception as e:
+        print(f"[{table_name}] score update error: {e}")
+
+
 _backfill_done = set()
 
 def _backfill_match_date_times(rows, table_name):
@@ -7824,6 +7887,7 @@ def _fetch_all_confirmed_money_signals():
                     'last_updated_at': r.get('last_updated_at') or '',
                     'created_at': r.get('created_at') or '',
                     'result': r.get('result') or '',
+                    'score': r.get('score') or '',
                 })
             return result
         return []
@@ -7870,6 +7934,7 @@ def _fetch_all_confirmed_money_v2_signals():
                     'last_updated_at': r.get('last_updated_at') or '',
                     'created_at': r.get('created_at') or '',
                     'result': r.get('result') or '',
+                    'score': r.get('score') or '',
                 })
             return result
         return []
@@ -7958,6 +8023,10 @@ def confirmed_money_endpoint():
     if _cm_signals_cache is not None and (now - _cm_signals_cache_time) < CM_SIGNALS_CACHE_TTL:
         all_signals = _cm_signals_cache
     else:
+        try:
+            _update_signal_scores_generic('confirmed_money_signals')
+        except Exception as e:
+            print(f"[ConfirmedMoney] score update error: {e}")
         raw = _fetch_all_confirmed_money_signals()
         # Deduplication: aynı (home, away, selection_code) için tek kayıt tut
         # Tercih: last_updated_at dolu olanı; ikisi de doluysa created_at yenisini al
@@ -8043,6 +8112,10 @@ def confirmed_money_v2_endpoint():
     if _cm_v2_signals_cache is not None and (now - _cm_v2_signals_cache_time) < CM_V2_SIGNALS_CACHE_TTL:
         all_signals = _cm_v2_signals_cache
     else:
+        try:
+            _update_signal_scores_generic('confirmed_money_v2_signals')
+        except Exception as e:
+            print(f"[ConfirmedMoneyV2] score update error: {e}")
         raw = _fetch_all_confirmed_money_v2_signals()
         # V2 tablosu yoksa/boşsa — V1 verisini V2 kriterleriyle filtrele (fallback)
         if not raw:
@@ -8299,6 +8372,7 @@ def _fetch_all_eml_signals():
                     'created_at': r.get('created_at') or '',
                     'last_updated_at': r.get('last_updated_at') or '',
                     'result': r.get('result') or '',
+                    'score': r.get('score') or '',
                 })
             return result
         return []
@@ -8345,6 +8419,7 @@ def _fetch_all_fake_sharp_signals():
                     'last_updated_at': r.get('last_updated_at') or '',
                     'created_at': r.get('created_at') or '',
                     'result': r.get('result') or '',
+                    'score': r.get('score') or '',
                 })
             return result
         return []
@@ -8372,6 +8447,10 @@ def fake_sharp_endpoint():
     if _fs_signals_cache is not None and (now - _fs_signals_cache_time) < FS_SIGNALS_CACHE_TTL:
         all_signals = _fs_signals_cache
     else:
+        try:
+            _update_signal_scores_generic('fake_sharp_signals')
+        except Exception as e:
+            print(f"[FakeSharp] score update error: {e}")
         raw = _fetch_all_fake_sharp_signals()
         _fs_seen = {}
         for s in raw:
@@ -8524,6 +8603,10 @@ def early_money_lock_endpoint():
     if _eml_signals_cache is not None and (now - _eml_signals_cache_time) < EML_SIGNALS_CACHE_TTL:
         all_signals = _eml_signals_cache
     else:
+        try:
+            _update_signal_scores_generic('early_money_lock_signals')
+        except Exception as e:
+            print(f"[EarlyMoneyLock] score update error: {e}")
         raw = _fetch_all_eml_signals()
         _seen = {}
         for s in raw:
