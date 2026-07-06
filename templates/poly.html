@@ -231,6 +231,19 @@
   }
   .wallet-copy-btn:hover { background: #232d44; }
   .wallet-copy-btn.copied { color: #4ade80; border-color: #2f5c3f; }
+  @media (max-width: 768px) {
+    td.wallet {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      line-height: 1.8;
+    }
+    td.wallet .wallet-copy-btn {
+      display: inline-flex;
+      margin-top: 3px;
+      vertical-align: middle;
+    }
+  }
   #copyToast {
     position: fixed;
     bottom: 24px;
@@ -486,7 +499,7 @@
       <span class="min-amount-hint">Sadece $1000+ işlemler listelenir</span>
     </div>
     <div class="table-wrap">
-      <table>
+      <table class="trades-table">
         <thead>
           <tr>
             <th data-col="wallet">Cüzdan</th>
@@ -544,13 +557,13 @@
       <table class="wallet-activity-table">
         <thead>
           <tr>
-            <th>Maç</th>
-            <th>Seçenek</th>
-            <th>İşlem</th>
-            <th>Sonuç</th>
-            <th>Tutar (USDC)</th>
-            <th>Oran</th>
-            <th>Tarih / Saat</th>
+            <th class="sortable" data-sort="match">Maç <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="selection">Seçenek <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="action">İşlem <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="result">Sonuç <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="amount_usdc">Tutar (USDC) <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="price">Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="traded_at">Tarih / Saat <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="walletActivityBody"></tbody>
@@ -932,7 +945,7 @@ function renderTradesTable() {
   }).join('');
 }
 
-document.querySelectorAll('th.sortable').forEach(th => {
+document.querySelectorAll('.trades-table th.sortable').forEach(th => {
   th.addEventListener('click', () => {
     const field = th.dataset.sort;
     if (sortField === field) {
@@ -941,7 +954,7 @@ document.querySelectorAll('th.sortable').forEach(th => {
       sortField = field;
       sortDir = (field === 'selection' || field === 'side') ? 'asc' : 'desc';
     }
-    document.querySelectorAll('th.sortable').forEach(h => {
+    document.querySelectorAll('.trades-table th.sortable').forEach(h => {
       h.classList.remove('active');
       h.querySelector('.sort-arrow').textContent = '';
     });
@@ -1009,11 +1022,11 @@ async function loadTrades(slug, title, kickoff, opts) {
     }
 
     if (!isRefresh) {
-      document.querySelectorAll('th.sortable').forEach(h => {
+      document.querySelectorAll('.trades-table th.sortable').forEach(h => {
         h.classList.remove('active');
         h.querySelector('.sort-arrow').textContent = '';
       });
-      const amountTh = document.querySelector('th.sortable[data-sort="amount_usdc"]');
+      const amountTh = document.querySelector('.trades-table th.sortable[data-sort="amount_usdc"]');
       amountTh.classList.add('active');
       amountTh.querySelector('.sort-arrow').textContent = '▼';
     }
@@ -1243,37 +1256,99 @@ async function openWalletProfile(wallet) {
       `).join('');
     }
 
-    const activity = data.activity || [];
-    if (!activity.length) {
-      walletActivityBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
-    } else {
-      const RESULT_LABELS = { won: 'Kazandı', lost: 'Kaybetti', open: 'Açık', unknown: '-' };
-      walletActivityBody.innerHTML = activity.map(a => {
-        const fillNote = a.fill_count > 1 ? ` <span style="color:#6d7590;font-size:11px;">(${a.fill_count} işlem)</span>` : '';
-        const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
-        const selectionLabel = a.selection || a.side || a.outcome_raw || '-';
-        const sideSuffix = (a.side && a.side !== a.selection) ? ` · ${escapeAttr(a.side)}` : '';
-        const resultKey = RESULT_LABELS[a.result] ? a.result : 'unknown';
-        const resultCell = resultKey === 'unknown'
-          ? '<span class="result-badge unknown">-</span>'
-          : `<span class="result-badge ${resultKey}">${RESULT_LABELS[resultKey]}</span>`;
-        return `
-        <tr>
-          <td title="${escapeAttr(a.match || a.title || '-')}">${escapeAttr(a.match || a.title || '-')}</td>
-          <td title="${escapeAttr(selectionLabel)}${a.side && a.side !== a.selection ? ' · ' + escapeAttr(a.side) : ''}">${escapeAttr(selectionLabel)}${sideSuffix}</td>
-          <td>${escapeAttr(a.action || '-')}</td>
-          <td>${resultCell}</td>
-          <td>${fmtUsd(a.amount_usdc || 0)}${fillNote}</td>
-          <td>${oran}</td>
-          <td>${fmtDateTime(a.traded_at)}</td>
-        </tr>
-      `;
-      }).join('');
-    }
+    currentActivity = data.activity || [];
+    renderActivityTable();
   } catch (e) {
     walletProfileHeader.textContent = 'Profil alınamadı.';
   }
 }
+
+let currentActivity = [];
+let activitySortField = 'traded_at';
+let activitySortDir = 'desc';
+const RESULT_LABELS = { won: 'Kazandı', lost: 'Kaybetti', open: 'Açık', unknown: '-' };
+const RESULT_ORDER = { won: 2, lost: 1, open: 0, unknown: -1 };
+
+function renderActivityTable() {
+  const activity = currentActivity || [];
+  if (!activity.length) {
+    walletActivityBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
+    return;
+  }
+  const sorted = [...activity].sort((a, b) => {
+    let va, vb;
+    if (activitySortField === 'traded_at') {
+      va = a.traded_at ? new Date(a.traded_at).getTime() : 0;
+      vb = b.traded_at ? new Date(b.traded_at).getTime() : 0;
+      if (isNaN(va)) va = 0;
+      if (isNaN(vb)) vb = 0;
+      return activitySortDir === 'asc' ? va - vb : vb - va;
+    }
+    if (activitySortField === 'amount_usdc' || activitySortField === 'price') {
+      va = Number(a[activitySortField]) || 0;
+      vb = Number(b[activitySortField]) || 0;
+      return activitySortDir === 'asc' ? va - vb : vb - va;
+    }
+    if (activitySortField === 'result') {
+      va = RESULT_ORDER[a.result] ?? -1;
+      vb = RESULT_ORDER[b.result] ?? -1;
+      return activitySortDir === 'asc' ? va - vb : vb - va;
+    }
+    if (activitySortField === 'match') {
+      va = (a.match || a.title || '').toLowerCase();
+      vb = (b.match || b.title || '').toLowerCase();
+    } else if (activitySortField === 'selection') {
+      va = (a.selection || a.side || a.outcome_raw || '').toLowerCase();
+      vb = (b.selection || b.side || b.outcome_raw || '').toLowerCase();
+    } else {
+      va = (a[activitySortField] || '').toString().toLowerCase();
+      vb = (b[activitySortField] || '').toString().toLowerCase();
+    }
+    if (va < vb) return activitySortDir === 'asc' ? -1 : 1;
+    if (va > vb) return activitySortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  walletActivityBody.innerHTML = sorted.map(a => {
+    const fillNote = a.fill_count > 1 ? ` <span style="color:#6d7590;font-size:11px;">(${a.fill_count} işlem)</span>` : '';
+    const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
+    const selectionLabel = a.selection || a.side || a.outcome_raw || '-';
+    const sideSuffix = (a.side && a.side !== a.selection) ? ` · ${escapeAttr(a.side)}` : '';
+    const resultKey = RESULT_LABELS[a.result] ? a.result : 'unknown';
+    const resultCell = resultKey === 'unknown'
+      ? '<span class="result-badge unknown">-</span>'
+      : `<span class="result-badge ${resultKey}">${RESULT_LABELS[resultKey]}</span>`;
+    return `
+    <tr>
+      <td title="${escapeAttr(a.match || a.title || '-')}">${escapeAttr(a.match || a.title || '-')}</td>
+      <td title="${escapeAttr(selectionLabel)}${a.side && a.side !== a.selection ? ' · ' + escapeAttr(a.side) : ''}">${escapeAttr(selectionLabel)}${sideSuffix}</td>
+      <td>${escapeAttr(a.action || '-')}</td>
+      <td>${resultCell}</td>
+      <td>${fmtUsd(a.amount_usdc || 0)}${fillNote}</td>
+      <td>${oran}</td>
+      <td>${fmtDateTime(a.traded_at)}</td>
+    </tr>
+  `;
+  }).join('');
+}
+
+document.querySelectorAll('.wallet-activity-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const field = th.dataset.sort;
+    if (activitySortField === field) {
+      activitySortDir = activitySortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      activitySortField = field;
+      activitySortDir = (field === 'match' || field === 'selection' || field === 'action') ? 'asc' : 'desc';
+    }
+    document.querySelectorAll('.wallet-activity-table th.sortable').forEach(h => {
+      h.classList.remove('active');
+      h.querySelector('.sort-arrow').textContent = '';
+    });
+    th.classList.add('active');
+    th.querySelector('.sort-arrow').textContent = activitySortDir === 'asc' ? '▲' : '▼';
+    renderActivityTable();
+  });
+});
 
 walletBackBtn.addEventListener('click', () => {
   walletProfileView.style.display = 'none';
