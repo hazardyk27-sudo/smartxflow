@@ -1591,7 +1591,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         if open_positions:
             summary_lines.append(f"Şu an {len(open_positions)} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
-    display_activity = _build_display_activity(activity_rows, position_rows)
+    display_activity = _build_display_activity(activity_rows, position_rows, resolved_won_ids, resolved_lost_ids)
 
     return {
         "wallet": wallet_row.get("wallet"),
@@ -1624,6 +1624,8 @@ _ACTION_LABELS = {"buy": "Alım", "sell": "Satım"}
 def _build_display_activity(
     activity_rows: List[Dict[str, Any]],
     position_rows: Optional[List[Dict[str, Any]]] = None,
+    resolved_won_ids: Optional[set] = None,
+    resolved_lost_ids: Optional[set] = None,
 ) -> List[Dict[str, Any]]:
     """Turn raw per-fill activity rows into display-ready summary rows - ONE
     row per position (Task #266), not one row per on-chain fill.
@@ -1652,6 +1654,15 @@ def _build_display_activity(
 
     closed_groups: List[Dict[str, Any]] = []
     closed_group_index: Dict[Tuple[Any, ...], int] = {}
+    resolved_won_ids = resolved_won_ids or set()
+    resolved_lost_ids = resolved_lost_ids or set()
+
+    def _row_result(condition_id: Any) -> str:
+        if condition_id in resolved_won_ids:
+            return "won"
+        if condition_id in resolved_lost_ids:
+            return "lost"
+        return "unknown"
 
     for a in activity_rows:
         try:
@@ -1697,6 +1708,7 @@ def _build_display_activity(
                 "selection": a.get("selection"),
                 "side": a.get("side"),
                 "action": action_label,
+                "condition_id": a.get("condition_id"),
                 "outcome_raw": a.get("outcome_raw"),
                 "amount_usdc": amount,
                 "_price_weight_sum": float(a.get("price") or 0) * amount,
@@ -1728,6 +1740,7 @@ def _build_display_activity(
             "side": g["side"],
             "action": g["action"],
             "is_open": False,
+            "result": _row_result(g["condition_id"]),
             "outcome_raw": g["outcome_raw"],
             "amount_usdc": round(g["amount_usdc"], 2),
             "price": _to_decimal_odds(avg_p),
@@ -1743,6 +1756,15 @@ def _build_display_activity(
         })
         match_label = f"{home} - {away}" if away else (home or p.get("title") or "-")
         last_dt = open_asset_latest.get(asset)
+        condition_id = p.get("condition_id")
+        # A position still shows up in Polymarket's /positions snapshot even
+        # after its market has resolved, until the wallet actually redeems
+        # it. `resolved_won_ids`/`resolved_lost_ids` (computed by the caller
+        # from `redeemable` + `cur_price` thresholds) tell us whether that
+        # has already happened, so a resolved-but-unredeemed row shows its
+        # real Kazandı/Kaybetti result instead of "Açık" (Task #268).
+        row_result = _row_result(condition_id)
+        is_still_open = row_result == "unknown"
         display_rows.append({
             "title": p.get("title"),
             "match": match_label,
@@ -1755,11 +1777,13 @@ def _build_display_activity(
             # A still-open position on Polymarket only exists because outcome
             # shares were bought (and not fully sold/redeemed yet) - there is
             # no "short" mechanic - so the transaction the user actually made
-            # is always a Buy. "Open" is a separate status, not an action;
-            # it's surfaced to the frontend via `is_open` so it can render a
-            # distinct badge instead of overwriting the Alım/Satım column.
+            # is always a Buy. "Open"/"Kazandı"/"Kaybetti" is a separate
+            # status, not an action; it's surfaced to the frontend via
+            # `is_open`/`result` so it can render a distinct badge instead of
+            # overwriting the Alım/Satım column.
             "action": _ACTION_LABELS["buy"],
-            "is_open": True,
+            "is_open": is_still_open,
+            "result": "open" if is_still_open else row_result,
             "outcome_raw": p.get("outcome"),
             "amount_usdc": round(float(p.get("initial_value") or 0), 2),
             "price": _to_decimal_odds(float(p.get("avg_price") or 0)),
