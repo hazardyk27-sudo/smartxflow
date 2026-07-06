@@ -299,10 +299,10 @@ def _lookup_slug_country(code: str) -> str:
     return code.upper()
 
 
-def _parse_slug_teams(slug: Optional[str]):
-    """Extract (home, away) from an event slug's embedded 3-letter country
-    codes, e.g. 'fifwc-par-fra-2026-07-04-more-markets' -> (Paraguay, Fransa).
-    Returns None if the slug doesn't match this shape."""
+def _extract_slug_codes(slug: Optional[str]):
+    """Extract the two embedded 3-letter codes from an event slug, e.g.
+    'fifwc-par-fra-2026-07-04-more-markets' -> ('par', 'fra'). Returns None
+    if the slug doesn't match this shape."""
     if not slug:
         return None
     parts = slug.split('-')
@@ -316,9 +316,75 @@ def _parse_slug_teams(slug: Optional[str]):
     code1, code2 = parts[year_idx - 2], parts[year_idx - 1]
     if len(code1) != 3 or len(code2) != 3 or not code1.isalpha() or not code2.isalpha():
         return None
-    home = _lookup_slug_country(code1.lower())
-    away = _lookup_slug_country(code2.lower())
+    return code1.lower(), code2.lower()
+
+
+def _parse_slug_teams(slug: Optional[str]):
+    """Extract (home, away) from an event slug's embedded 3-letter country
+    codes, e.g. 'fifwc-par-fra-2026-07-04-more-markets' -> (Paraguay, Fransa).
+    Returns None if the slug doesn't match this shape. Unrecognized codes
+    (e.g. club-team abbreviations) fall back to the raw uppercased code -
+    see `_slug_codes_known` / `_lookup_stored_match_by_slug` for how callers
+    upgrade that to a real name."""
+    codes = _extract_slug_codes(slug)
+    if not codes:
+        return None
+    home = _lookup_slug_country(codes[0])
+    away = _lookup_slug_country(codes[1])
     return home, away
+
+
+def _slug_codes_known(slug: Optional[str]) -> bool:
+    """True only if BOTH of the slug's embedded codes resolve to a real
+    country name via `_FIFA_COUNTRY_CODES` (i.e. `_parse_slug_teams` didn't
+    have to fall back to a raw abbreviation for either side)."""
+    codes = _extract_slug_codes(slug)
+    if not codes:
+        return False
+    return codes[0] in _FIFA_COUNTRY_CODES and codes[1] in _FIFA_COUNTRY_CODES
+
+
+def _lookup_stored_match_by_slug(slug: Optional[str]):
+    """Look up real home/away team names for an event slug from our own
+    Supabase `polymarket_matches` table (scraper-populated). Used as a
+    fallback when the slug's embedded codes aren't national-team
+    abbreviations we can decode via `_FIFA_COUNTRY_CODES` (e.g. domestic
+    club league matches like Moroccan Botola Pro). Returns None if not
+    found or Supabase isn't reachable (caller should keep falling back)."""
+    if not slug:
+        return None
+    rows = _fetch_stored_matches()
+    if not rows:
+        return None
+    # Activity/position payloads sometimes carry the sibling
+    # '<slug>-more-markets' event's slug instead of the base event slug
+    # stored in polymarket_matches (or vice versa) - check both.
+    if slug.endswith("-more-markets"):
+        candidates = {slug, slug[: -len("-more-markets")]}
+    else:
+        candidates = {slug, f"{slug}-more-markets"}
+    for row in rows:
+        if row.get("slug") in candidates:
+            home, away = row.get("home"), row.get("away")
+            if home and away:
+                return home, away
+    return None
+
+
+_WILL_WIN_TITLE_RE = re.compile(r'^will\s+(.+?)\s+win\b', re.IGNORECASE)
+
+
+def _parse_will_win_title(title: str):
+    """Extract the team name from a one-sided prop title like 'Will US
+    Yacoub El Mansour win on 2026-07-05? Yes' -> 'US Yacoub El Mansour'.
+    Returns None if the title doesn't match this shape."""
+    if not title:
+        return None
+    m = _WILL_WIN_TITLE_RE.match(title.strip())
+    if not m:
+        return None
+    name = m.group(1).strip()
+    return name or None
 
 
 def _to_decimal_odds(price) -> Optional[float]:
@@ -1221,6 +1287,21 @@ def _parse_activity_market(item: Dict[str, Any]):
         slug_teams = _parse_slug_teams(slug)
         if slug_teams:
             home, away = slug_teams
+            if not _slug_codes_known(slug):
+                # The slug's embedded codes aren't in _FIFA_COUNTRY_CODES
+                # (most likely a domestic club match, e.g. Moroccan Botola
+                # Pro), so `home`/`away` above are raw abbreviations (e.g.
+                # "FUS", "UYE"). Try to upgrade to real team names from our
+                # own scraper-populated Supabase table first, and fall back
+                # to extracting the known side's name from a one-sided
+                # "Will X win ...?" title if the match isn't tracked there.
+                stored = _lookup_stored_match_by_slug(slug)
+                if stored:
+                    home, away = stored
+                else:
+                    will_win_name = _parse_will_win_title(title)
+                    if will_win_name:
+                        home, away = will_win_name, ""
 
     if market_type is None:
         # A recognized suffix (e.g. "O/U 2.5") maps to ou25/btts above. Any
