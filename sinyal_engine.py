@@ -41,7 +41,7 @@ UNDERDOG_HIGH_VOL = 5000.0    # bu eşik üstünde PCT_THRESHOLD (%50) uygulanı
 
 # Confirmed Money kriterleri
 CM_PCT_THRESHOLD = 80.0
-CM_ODDS_DROP_PCT = 0.04      # %4 düşüş (göreli)
+CM_ODDS_DROP_PCT = 0.05      # %5 düşüş (göreli)
 CM_VOLUME_THRESHOLD = 5000.0
 CM_COOLDOWN_HOURS = 3
 CM_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80
@@ -59,7 +59,7 @@ CMV2_MAX_ODDS            = 2.20
 
 # Fake Sharp kriterleri
 FS_PCT_THRESHOLD = 75.0
-FS_ODDS_RISE_PCT = 0.04      # %4 yükseliş (göreli)
+FS_ODDS_RISE_PCT = 0.05      # %5 yükseliş (göreli)
 FS_VOLUME_THRESHOLD = 5000.0
 FS_COOLDOWN_HOURS = 3
 FS_STABILITY_SNAPSHOTS = 3   # Son 3 ardışık snapshot'ta pct > %80

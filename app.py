@@ -55,7 +55,7 @@ SERVER_ALARM_CACHE_TTL = 120
 _cm_signals_cache = None
 _cm_signals_cache_time = 0
 CM_SIGNALS_CACHE_TTL = 60
-CM_ODDS_DROP_PCT = 0.04  # %4 düşüş eşiği — sinyal_engine.py ile aynı
+CM_ODDS_DROP_PCT = 0.05  # %5 düşüş eşiği — sinyal_engine.py ile aynı
 
 _cm_v2_signals_cache = None
 _cm_v2_signals_cache_time = 0
@@ -7987,6 +7987,7 @@ def _cm_v2_in_odds_range(s):
 
 CMV2_ODDS_DROP_PCT_LOCAL = 0.07  # %7 düşüş eşiği — sinyal_engine.py ile aynı
 EML_PCT_THRESHOLD_LOCAL = 85.0   # %85 yüzde eşiği — sinyal_engine.py ile aynı
+FS_ODDS_RISE_PCT_LOCAL = 0.05    # %5 yükseliş eşiği — sinyal_engine.py ile aynı
 
 
 def _cm_v2_still_valid(s):
@@ -8467,7 +8468,7 @@ def fake_sharp_endpoint():
                     ex['current_volume'] = s.get('current_volume') or ex.get('current_volume') or ''
                     ex['last_updated_at'] = s.get('last_updated_at') or ''
         all_signals = list(_fs_seen.values())
-        # Güvenlik filtresi: current_odds, odds_16h'a göre %4 yükseliş eşiğinin altına düştüyse sinyali gizle
+        # Güvenlik filtresi: current_odds, odds_16h'a göre %5 yükseliş eşiğinin altına düştüyse sinyali gizle
         def _fs_still_valid(s):
             try:
                 o16 = float(str(s.get('odds_16h') or 0))
@@ -8475,7 +8476,7 @@ def fake_sharp_endpoint():
                 if o16 <= 0 or ocur <= 0:
                     return True
                 rise = (ocur - o16) / o16
-                return rise >= 0.04
+                return rise >= FS_ODDS_RISE_PCT_LOCAL
             except Exception:
                 return True
         all_signals = [s for s in all_signals if _fs_still_valid(s)]
