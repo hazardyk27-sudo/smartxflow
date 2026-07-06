@@ -399,7 +399,11 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
                 "slug": item.get("slug"),
                 "market_type": market_type,
                 "selection": selection,
-                "side": side,
+                # NULL is never equal to NULL for UNIQUE constraint purposes in
+                # Postgres, so a nullable `side` in the conflict key would let
+                # repeated scraper runs insert duplicate 1x2 rows (side is
+                # always None for 1x2). Use "" as a non-null sentinel instead.
+                "side": side if side is not None else "",
                 "action": (item.get("side") or "").strip().upper() or None,
                 "outcome_raw": item.get("outcome"),
                 "amount_usdc": round(amount_usdc, 4),

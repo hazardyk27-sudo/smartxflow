@@ -17,11 +17,22 @@ ALTER TABLE public.tracked_wallet_activity
 -- yuzden kisitlamayi `action` da icerecek sekilde genisletiyoruz - aksi
 -- halde ayni tx_hash+asset'e ait olasi BUY ve SELL kayitlari birbirinin
 -- uzerine yazabilirdi.
+-- NOT: Postgres'te UNIQUE kisitlamasinda NULL hicbir zaman NULL'a esit
+-- sayilmaz, yani `side` kolonu NULL kalirsa (1x2 piyasalari icin oyle) ayni
+-- islem tekrar tekrar INSERT edilebilir (upsert conflict eslesmez). Bu yuzden
+-- uygulama katmani (polymarket_scraper.py) 1x2 icin `side`'i NULL yerine ""
+-- (bos string) olarak yaziyor - bu kisitlama sadece bos-string'i non-null
+-- sentinel olarak kullanan satirlarla dogru calisir.
 ALTER TABLE public.tracked_wallet_activity
     DROP CONSTRAINT IF EXISTS tracked_wallet_activity_wallet_transaction_hash_asset_side_key;
 ALTER TABLE public.tracked_wallet_activity
     ADD CONSTRAINT tracked_wallet_activity_wallet_txhash_asset_side_action_key
     UNIQUE (wallet, transaction_hash, asset, side, action);
+
+-- Eger bu migration'dan once zaten side=NULL olan 1x2 satirlari varsa (eski
+-- scraper kodu), onlari da "" sentinel'e cevir ki gelecekteki upsert'ler
+-- dogru satirla eslessin ve duplicate birikmesin.
+UPDATE public.tracked_wallet_activity SET side = '' WHERE side IS NULL;
 
 -- Cuzdanin kazandigi ve REDEEM ettigi (nakde cevirdigi) piyasalarin kalici
 -- kaydi. /positions anlik goruntusunden farkli olarak buradaki kayitlar asla
