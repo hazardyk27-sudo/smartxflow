@@ -1160,7 +1160,8 @@ def _parse_activity_market(item: Dict[str, Any]):
     title = item.get("title") or ""
     slug = item.get("slug") or item.get("eventSlug") or ""
     outcome_raw = (item.get("outcome") or "").strip()
-    if ":" in title:
+    has_suffix = ":" in title
+    if has_suffix:
         base_title, suffix = title.split(":", 1)
         market_type = _ACTIVITY_MARKET_SUFFIX_TYPES.get(suffix.strip().lower())
     else:
@@ -1177,7 +1178,15 @@ def _parse_activity_market(item: Dict[str, Any]):
             home, away = slug_teams
 
     if market_type is None:
-        market_type = "1x2" if is_standard_title else "special"
+        # A recognized suffix (e.g. "O/U 2.5") maps to ou25/btts above. Any
+        # OTHER suffix (e.g. "O/U 3.5", "Spread (-1.5)") is still a specific,
+        # non-1x2 sub-market even though the base title parses as "Team A vs.
+        # Team B" - it must never silently fall back to the generic 1x2
+        # branch (that used to swallow the handicap/line info entirely).
+        if has_suffix:
+            market_type = "special"
+        else:
+            market_type = "1x2" if is_standard_title else "special"
 
     if market_type in ("ou25", "btts"):
         fields = _bet_display_fields(market_type, "", outcome_raw)
@@ -1187,11 +1196,17 @@ def _parse_activity_market(item: Dict[str, Any]):
         selection = outcome_raw or "-"
         side = None
     else:
-        # Non-standard one-off market (e.g. spread/handicap props) - the full
-        # title already carries the specific bet (team + line), so use it
-        # verbatim as the selection instead of forcing it into 1X2/OU25/BTTS.
+        # Non-standard one-off market (e.g. spread/handicap props, unusual
+        # O/U lines) - Polymarket's own title suffix already carries the
+        # specific bet (team + line, e.g. "France (-1.5)" or "O/U 3.5").
+        # Use that (cleaned up) as the selection, and the actual outcome the
+        # wallet traded (e.g. "Sweden", "Under") as the side, instead of
+        # collapsing everything into the raw title string.
         market_type = "special"
-        selection = title.strip() or outcome_raw or "-"
+        suffix_clean = suffix.strip()
+        # "France (-1.5)" -> "France -1.5" (drop the redundant parens)
+        suffix_clean = re.sub(r'\(([-+]?\d+(?:\.\d+)?)\)', r'\1', suffix_clean).strip()
+        selection = suffix_clean or title.strip() or outcome_raw or "-"
         side = outcome_raw or None
 
     if home is None:
@@ -1468,7 +1483,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             f"{base}/rest/v1/tracked_wallet_activity",
             headers=headers,
             params={
-                "select": "wallet,transaction_hash,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                 "wallet": f"eq.{wallet}",
                 "order": "traded_at.desc",
                 "limit": 2000,
@@ -1576,7 +1591,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         if open_positions:
             summary_lines.append(f"Şu an {len(open_positions)} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
-    display_activity = _build_display_activity(activity_rows)
+    display_activity = _build_display_activity(activity_rows, position_rows)
 
     return {
         "wallet": wallet_row.get("wallet"),
@@ -1603,35 +1618,57 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     }
 
 
-# Fills within this many seconds of each other, for the same wallet + market
-# + selection + buy/sell action, are collapsed into a single display row.
-# This is purely cosmetic (grouping genuinely distinct on-chain fills from
-# the same order being matched against multiple counterparties) - the raw
-# per-fill rows in tracked_wallet_activity are never touched.
-_ACTIVITY_DISPLAY_AGGREGATION_WINDOW_SECONDS = 120
-
 _ACTION_LABELS = {"buy": "Alım", "sell": "Satım"}
+_OPEN_POSITION_ACTION_LABEL = "Açık Pozisyon"
 
 
-def _build_display_activity(activity_rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Turn raw per-fill activity rows into display-ready rows: adds a
-    human 'action' label (Alım/Satım, kept separate from the outcome-polarity
-    'side'/'selection' labels - Task #264 bug #2), converts price to decimal
-    odds, and aggregates near-duplicate tiny fills that belong to the same
-    wallet/market/selection/action within a short time window (Task #264
-    requirement #4) so the table doesn't show a wall of $0.01 rows."""
-    parsed_at = []
+def _build_display_activity(
+    activity_rows: List[Dict[str, Any]],
+    position_rows: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    """Turn raw per-fill activity rows into display-ready summary rows - ONE
+    row per position (Task #266), not one row per on-chain fill.
+
+    Two strategies, depending on whether the asset is still an open (or
+    resolved-but-unredeemed) position:
+
+    - Still in `position_rows` (current /positions snapshot): use the
+      already-aggregated `initial_value`/`avg_price`/`size` fields directly
+      as the display row - this IS Polymarket's own "toplam deger" for the
+      position, so there is no need to re-sum fills and risk drifting from
+      it (the old 120s aggregation window used to fragment this into dozens
+      of tiny rows for positions built up over hours/days).
+    - No longer in `position_rows` (fully sold or redeemed): sum ALL matching
+      fills for that asset + buy/sell action, with NO time limit, since
+      that's the only place the total ever existed.
+    """
+    position_by_asset: Dict[str, Dict[str, Any]] = {}
+    for p in (position_rows or []):
+        asset = p.get("asset")
+        if asset:
+            position_by_asset[asset] = p
+
+    open_asset_latest: Dict[str, datetime] = {}
+    open_asset_fill_count: Dict[str, int] = {}
+
+    closed_groups: List[Dict[str, Any]] = []
+    closed_group_index: Dict[Tuple[Any, ...], int] = {}
+
     for a in activity_rows:
         try:
             traded_dt = datetime.fromisoformat(str(a.get("traded_at")).replace("Z", "+00:00"))
         except Exception:
             traded_dt = None
-        parsed_at.append((a, traded_dt))
 
-    groups: List[Dict[str, Any]] = []
-    group_index: Dict[Tuple[Any, ...], int] = {}
-    for a, traded_dt in parsed_at:
+        asset = a.get("asset")
         raw_action = (a.get("action") or "").strip().lower()
+
+        if asset and asset in position_by_asset:
+            open_asset_fill_count[asset] = open_asset_fill_count.get(asset, 0) + 1
+            if traded_dt is not None and (asset not in open_asset_latest or traded_dt > open_asset_latest[asset]):
+                open_asset_latest[asset] = traded_dt
+            continue
+
         action_label = _ACTION_LABELS.get(raw_action, a.get("action") or a.get("side") or "-")
         # Re-derive home/away from the already-stored title/slug/outcome_raw
         # (no schema change needed) so the Match column always has a team
@@ -1643,25 +1680,15 @@ def _build_display_activity(activity_rows: List[Dict[str, Any]]) -> List[Dict[st
             "outcome": a.get("outcome_raw"),
         })
         match_label = f"{home} - {away}" if away else (home or a.get("title") or "-")
-        key = (a.get("title"), a.get("selection"), a.get("side"), raw_action)
-        idx = group_index.get(key)
-        if (
-            idx is not None
-            and traded_dt is not None
-            and groups[idx]["_last_dt"] is not None
-            and abs((groups[idx]["_last_dt"] - traded_dt).total_seconds()) <= _ACTIVITY_DISPLAY_AGGREGATION_WINDOW_SECONDS
-        ):
-            g = groups[idx]
-            amount = float(a.get("amount_usdc") or 0)
-            g["amount_usdc"] += amount
-            g["_price_weight_sum"] += float(a.get("price") or 0) * amount
-            g["fill_count"] += 1
-            if traded_dt and (g["_last_dt"] is None or traded_dt > g["_last_dt"]):
-                g["_last_dt"] = traded_dt
-                g["traded_at"] = a.get("traded_at")
-        else:
-            amount = float(a.get("amount_usdc") or 0)
-            new_group = {
+        # Group by asset (uniquely identifies market+outcome) when available,
+        # falling back to condition_id/title/selection/side for older rows
+        # scraped before the `asset` column was selected here.
+        group_key = asset or (a.get("condition_id"), a.get("title"), a.get("selection"), a.get("side"))
+        key = (group_key, raw_action)
+        idx = closed_group_index.get(key)
+        amount = float(a.get("amount_usdc") or 0)
+        if idx is None:
+            closed_groups.append({
                 "title": a.get("title"),
                 "match": match_label,
                 "home": home,
@@ -1677,12 +1704,19 @@ def _build_display_activity(activity_rows: List[Dict[str, Any]]) -> List[Dict[st
                 "traded_at": a.get("traded_at"),
                 "fill_count": 1,
                 "_last_dt": traded_dt,
-            }
-            groups.append(new_group)
-            group_index[key] = len(groups) - 1
+            })
+            closed_group_index[key] = len(closed_groups) - 1
+        else:
+            g = closed_groups[idx]
+            g["amount_usdc"] += amount
+            g["_price_weight_sum"] += float(a.get("price") or 0) * amount
+            g["fill_count"] += 1
+            if traded_dt and (g["_last_dt"] is None or traded_dt > g["_last_dt"]):
+                g["_last_dt"] = traded_dt
+                g["traded_at"] = a.get("traded_at")
 
     display_rows = []
-    for g in groups:
+    for g in closed_groups:
         avg_p = (g["_price_weight_sum"] / g["amount_usdc"]) if g["amount_usdc"] else 0.0
         display_rows.append({
             "title": g["title"],
@@ -1700,4 +1734,31 @@ def _build_display_activity(activity_rows: List[Dict[str, Any]]) -> List[Dict[st
             "traded_at": g["traded_at"],
             "fill_count": g["fill_count"],
         })
+
+    for asset, p in position_by_asset.items():
+        mt, home, away, selection, side = _parse_activity_market({
+            "title": p.get("title"),
+            "slug": p.get("slug"),
+            "outcome": p.get("outcome"),
+        })
+        match_label = f"{home} - {away}" if away else (home or p.get("title") or "-")
+        last_dt = open_asset_latest.get(asset)
+        display_rows.append({
+            "title": p.get("title"),
+            "match": match_label,
+            "home": home,
+            "away": away,
+            "slug": p.get("slug"),
+            "market_type": mt,
+            "selection": selection,
+            "side": side,
+            "action": _OPEN_POSITION_ACTION_LABEL,
+            "outcome_raw": p.get("outcome"),
+            "amount_usdc": round(float(p.get("initial_value") or 0), 2),
+            "price": _to_decimal_odds(float(p.get("avg_price") or 0)),
+            "traded_at": last_dt.isoformat() if last_dt else None,
+            "fill_count": open_asset_fill_count.get(asset, 0),
+        })
+
+    display_rows.sort(key=lambda r: r.get("traded_at") or "", reverse=True)
     return display_rows
