@@ -1586,28 +1586,65 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
 
-    # Won markets = every conditionId this wallet has ever redeemed (durable,
-    # survives the position disappearing from /positions) UNIONed with any
-    # currently-unredeemed-but-resolved winning position still in the
-    # snapshot. Lost markets only come from the live snapshot since a losing
-    # position has nothing to redeem and just lingers there at cur_price~0.
-    resolved_won_ids = {rw.get("condition_id") for rw in redeem_rows if rw.get("condition_id")}
-    resolved_lost_ids = set()
+    # Won markets = every conditionId this wallet has ever redeemed WITH a
+    # non-zero payout (durable, survives the position disappearing from
+    # /positions) UNIONed with any currently-unredeemed-but-resolved winning
+    # position still in the snapshot. Some wallets (esp. bots) batch-redeem
+    # ALL resolved positions - including losers, which pay out $0 - just to
+    # clear dust from /positions. A REDEEM row alone does NOT mean "won";
+    # only a redeem with amount_usdc > 0 does. A $0 redeem is a loss.
+    # IMPORTANT: `condition_id` identifies a whole MARKET (e.g. "Mexico vs
+    # England: O/U 5.5"), not a single outcome - both the "Over" and "Under"
+    # outcome tokens of that market share the same condition_id, each with
+    # its own distinct `asset` id. Resolving/redeeming ONE side must not mark
+    # the OTHER (losing) side's activity rows as "won" too. So won/lost is
+    # tracked primarily by `asset`; condition_id sets are kept only as a
+    # fallback for older rows scraped before the `asset` column existed.
+    resolved_won_assets = {
+        rw.get("asset")
+        for rw in redeem_rows
+        if rw.get("asset") and float(rw.get("amount_usdc") or 0) > 0.01
+    }
+    resolved_lost_assets = {
+        rw.get("asset")
+        for rw in redeem_rows
+        if rw.get("asset") and float(rw.get("amount_usdc") or 0) <= 0.01
+    }
+    resolved_lost_assets -= resolved_won_assets
+    resolved_won_ids = {
+        rw.get("condition_id")
+        for rw in redeem_rows
+        if not rw.get("asset") and rw.get("condition_id") and float(rw.get("amount_usdc") or 0) > 0.01
+    }
+    resolved_lost_ids = {
+        rw.get("condition_id")
+        for rw in redeem_rows
+        if not rw.get("asset") and rw.get("condition_id") and float(rw.get("amount_usdc") or 0) <= 0.01
+    }
+    resolved_lost_ids -= resolved_won_ids
     realized_pnl_total = 0.0
     open_positions = []
     for p in position_rows:
+        asset = p.get("asset")
         condition_id = p.get("condition_id")
         cur_price = float(p.get("cur_price") or 0)
         redeemable = bool(p.get("redeemable"))
         is_resolved = redeemable and (cur_price <= 0.02 or cur_price >= 0.98)
         if is_resolved:
-            if cur_price >= 0.98:
-                resolved_won_ids.add(condition_id)
-            elif condition_id not in resolved_won_ids:
-                resolved_lost_ids.add(condition_id)
+            won = cur_price >= 0.98
+            if asset:
+                (resolved_won_assets if won else resolved_lost_assets).add(asset)
+            else:
+                if won:
+                    resolved_won_ids.add(condition_id)
+                elif condition_id not in resolved_won_ids:
+                    resolved_lost_ids.add(condition_id)
             realized_pnl_total += float(p.get("cash_pnl") or 0)
         else:
             open_positions.append(p)
+
+    resolved_won_ids = resolved_won_ids | resolved_won_assets
+    resolved_lost_ids = resolved_lost_ids | resolved_lost_assets
 
     resolved_won = len(resolved_won_ids)
     resolved_lost = len(resolved_lost_ids)
@@ -1702,7 +1739,57 @@ def _build_display_activity(
     resolved_won_ids = resolved_won_ids or set()
     resolved_lost_ids = resolved_lost_ids or set()
 
-    def _row_result(condition_id: Any) -> str:
+    # Some Polymarket "Redeem All" transactions batch-claim many resolved
+    # positions at once and come back from the Data API with an empty
+    # `asset` and one aggregate `conditionId` (often not even the market the
+    # payout is really for). Trusting that ambiguous conditionId as a blanket
+    # "won" for the market would wrongly paint EVERY outcome sharing that
+    # conditionId - including the actual loser - as a winner too (this is
+    # exactly what caused e.g. both "Mexico" and "England" to show Kazandı
+    # in a single-winner "Team to Advance" market). To guard against that: if
+    # we can identify, via a clean asset-level signal, which specific asset
+    # under a conditionId actually won, then ANY other asset under that same
+    # conditionId is a certain loser - no matter what an ambiguous
+    # conditionId-level redeem entry claims.
+    known_winner_asset_by_condition: Dict[Any, Any] = {}
+    distinct_assets_by_condition: Dict[Any, set] = {}
+    for a in activity_rows:
+        asset = a.get("asset")
+        cid = a.get("condition_id")
+        if asset and cid:
+            distinct_assets_by_condition.setdefault(cid, set()).add(asset)
+        if asset and cid and asset in resolved_won_ids:
+            known_winner_asset_by_condition[cid] = asset
+    for p in (position_rows or []):
+        asset = p.get("asset")
+        cid = p.get("condition_id")
+        if asset and cid:
+            distinct_assets_by_condition.setdefault(cid, set()).add(asset)
+        if asset and cid and asset in resolved_won_ids:
+            known_winner_asset_by_condition[cid] = asset
+
+    def _row_result(condition_id: Any, asset: Any = None) -> str:
+        # `asset` (specific outcome token) is checked first since it's
+        # unambiguous; `condition_id` (shared by all outcomes of a market)
+        # is only a fallback for rows scraped before the asset column
+        # existed - see comment above resolved_won_assets in the caller.
+        if asset and asset in resolved_won_ids:
+            return "won"
+        if asset and asset in resolved_lost_ids:
+            return "lost"
+        known_winner = known_winner_asset_by_condition.get(condition_id)
+        if known_winner:
+            return "won" if asset == known_winner else "lost"
+        # A market can only have ONE winning outcome. If we've actually seen
+        # more than one distinct asset traded under this conditionId (e.g.
+        # both "Over" and "Under") but have no clean per-asset signal telling
+        # us which one won, an ambiguous conditionId-level redeem entry (see
+        # comment above) is NOT reliable enough to call every side a winner -
+        # so we report "unknown" rather than risk a false "Kazandı" for the
+        # side that actually lost. The blanket conditionId fallback below is
+        # only safe when at most one outcome was ever traded under it.
+        if len(distinct_assets_by_condition.get(condition_id, set())) > 1:
+            return "unknown"
         if condition_id in resolved_won_ids:
             return "won"
         if condition_id in resolved_lost_ids:
@@ -1754,6 +1841,7 @@ def _build_display_activity(
                 "side": a.get("side"),
                 "action": action_label,
                 "condition_id": a.get("condition_id"),
+                "asset": asset,
                 "outcome_raw": a.get("outcome_raw"),
                 "amount_usdc": amount,
                 "_price_weight_sum": float(a.get("price") or 0) * amount,
@@ -1785,7 +1873,7 @@ def _build_display_activity(
             "side": g["side"],
             "action": g["action"],
             "is_open": False,
-            "result": _row_result(g["condition_id"]),
+            "result": _row_result(g["condition_id"], g.get("asset")),
             "outcome_raw": g["outcome_raw"],
             "amount_usdc": round(g["amount_usdc"], 2),
             "price": _to_decimal_odds(avg_p),
@@ -1808,7 +1896,7 @@ def _build_display_activity(
         # from `redeemable` + `cur_price` thresholds) tell us whether that
         # has already happened, so a resolved-but-unredeemed row shows its
         # real Kazandı/Kaybetti result instead of "Açık" (Task #268).
-        row_result = _row_result(condition_id)
+        row_result = _row_result(condition_id, asset)
         is_still_open = row_result == "unknown"
         display_rows.append({
             "title": p.get("title"),
