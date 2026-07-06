@@ -200,6 +200,20 @@
     vertical-align: middle;
     white-space: nowrap;
   }
+  .tracked-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+    vertical-align: middle;
+    white-space: nowrap;
+    background: #3a2f0033;
+    color: #eab308;
+    border: 1px solid #eab30855;
+    letter-spacing: 0.2px;
+  }
   .wallet-copy-btn {
     display: inline-flex;
     align-items: center;
@@ -663,6 +677,7 @@ todayTabBtn.addEventListener('click', () => {
 });
 
 let currentTrades = [];
+let trackedWalletsMap = {};
 let currentMarketsByPhase = { all: [], prematch: [], live: [] };
 let currentPhaseVolume = { all: 0, prematch: 0, live: 0 };
 let currentEvent = {};
@@ -898,12 +913,14 @@ function renderTradesTable() {
     const count = walletCounts[w] || 0;
     const isDup = w && count > 1;
     const color = isDup ? walletColor(w) : null;
+    const trackedNickname = w ? trackedWalletsMap[w.toLowerCase()] : null;
     const walletCellStyle = isDup ? ` style="background:${color}1f;border-left:2px solid ${color};"` : '';
     const dupBadge = isDup ? `<span class="wallet-badge" style="background:${color}33;color:${color};">×${count}</span>` : '';
+    const trackedBadge = trackedNickname ? `<span class="tracked-badge" title="Takip ettiğiniz bahisçi">★ ${escapeAttr(trackedNickname)}</span>` : '';
     const isSell = t.action === 'Satım';
     return `
     <tr${isSell ? ' class="row-sell"' : ''}>
-      <td class="wallet" title="${w}"${walletCellStyle}><span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
+      <td class="wallet" title="${w}"${walletCellStyle}>${trackedBadge}<span class="wallet-addr">${truncWallet(w)}</span>${dupBadge}<button class="wallet-copy-btn" data-wallet="${w}" onclick="copyWallet(this)" title="Kopyala">⧉</button></td>
       <td>${phaseBadge(t.phase) || '<span style="color:#6d7590;">-</span>'}</td>
       <td><span class="outcome-badge" title="${t.selection || ''}">${t.selection || '-'}${t.action ? ' · ' + t.action : ''}</span></td>
       <td><span class="side-badge ${sideBadgeClass(t.side)}">${t.side || '-'}</span></td>
@@ -953,6 +970,8 @@ async function loadTrades(slug, title, kickoff, opts) {
     walletSearchClear.style.display = 'none';
     marketFilter = null;
   }
+
+  refreshTrackedWalletsMap();
 
   try {
     const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));
@@ -1061,12 +1080,32 @@ function truncAddr(w) {
   return w.slice(0, 6) + '...' + w.slice(-4);
 }
 
+async function refreshTrackedWalletsMap() {
+  try {
+    const res = await fetch('/api/poly/tracked');
+    const data = await res.json();
+    const wallets = data.wallets || [];
+    const map = {};
+    wallets.forEach(w => {
+      if (w.wallet) map[w.wallet.toLowerCase()] = w.nickname;
+    });
+    trackedWalletsMap = map;
+  } catch (e) {
+    // sessizce yoksay; rozet göstermeden devam et
+  }
+}
+
 async function loadTrackedWallets() {
   trackedWalletList.innerHTML = '<div class="loading">Yükleniyor...</div>';
   try {
     const res = await fetch('/api/poly/tracked');
     const data = await res.json();
     const wallets = data.wallets || [];
+    const map = {};
+    wallets.forEach(w => {
+      if (w.wallet) map[w.wallet.toLowerCase()] = w.nickname;
+    });
+    trackedWalletsMap = map;
     if (!wallets.length) {
       trackedWalletList.innerHTML = '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
       return;
