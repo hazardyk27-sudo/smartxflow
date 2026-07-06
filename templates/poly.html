@@ -338,6 +338,46 @@
     white-space: nowrap;
     margin-left: 2px;
   }
+  .add-wallet-box { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .add-wallet-box input[type=text] { flex: 1; min-width: 180px; }
+  .add-wallet-box button {
+    background: #4c7dff; border: none; color: #fff; border-radius: 8px;
+    padding: 0 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .add-wallet-box button:hover { background: #3a67e0; }
+  .add-wallet-error { color: #ff6b6b; font-size: 13px; margin-bottom: 12px; }
+  .tracked-wallet-item {
+    background: #12161f; border: 1px solid #1e2431; border-radius: 10px;
+    padding: 12px 14px; display: flex; justify-content: space-between;
+    align-items: center; cursor: pointer; margin-bottom: 8px;
+  }
+  .tracked-wallet-item:hover { border-color: #4c7dff; }
+  .tracked-wallet-name { font-weight: 600; font-size: 14.5px; }
+  .tracked-wallet-addr { color: #6d7590; font-size: 12px; margin-top: 2px; font-family: monospace; }
+  .tracked-wallet-actions { display: flex; gap: 8px; }
+  .tracked-wallet-actions button {
+    background: transparent; border: 1px solid #262d3d; color: #8b93a7;
+    border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+  }
+  .tracked-wallet-actions button:hover { color: #fff; border-color: #ff6b6b; }
+  .wallet-stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px; margin: 16px 0;
+  }
+  .wallet-stat-card {
+    background: #12161f; border: 1px solid #1e2431; border-radius: 10px; padding: 12px;
+  }
+  .wallet-stat-card .label { color: #6d7590; font-size: 11.5px; margin-bottom: 4px; }
+  .wallet-stat-card .value { font-size: 17px; font-weight: 700; }
+  .wallet-summary {
+    background: #151a24; border: 1px solid #262d3d; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 20px; font-size: 13.5px; color: #c7cddb;
+  }
+  .wallet-summary div { margin-bottom: 4px; }
+  .wallet-summary div:last-child { margin-bottom: 0; }
+  .wallet-section-title { font-size: 15px; margin: 20px 0 8px; color: #e6e9ef; }
+  .pnl-pos { color: #34d399; }
+  .pnl-neg { color: #ff6b6b; }
 </style>
 </head>
 <body>
@@ -345,6 +385,12 @@
   <h1>Polymarket Maç Emirleri</h1>
   <div class="sub">Bir futbol maçı arayın, Polymarket'teki en yüksek tutarlı gerçekleşmiş emirleri görün.</div>
 
+  <div class="tabs" id="mainNav">
+    <button class="tab-btn active" data-main="search">Maç Ara</button>
+    <button class="tab-btn" data-main="wallets">Takip Edilen Bahisçiler</button>
+  </div>
+
+  <div id="matchSearchView">
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="Takım adı yazın (örn. Portugal, Spain)...">
   </div>
@@ -393,6 +439,58 @@
       </table>
     </div>
     <div class="note">Cüzdan adresleri Polymarket'in herkese açık işlem verisinden birebir alınmıştır. "Alım" pozisyon açmayı, "Satım" mevcut pozisyonu kapatmayı ifade eder.</div>
+  </div>
+  </div>
+
+  <div id="walletsView" style="display:none;">
+    <div class="sub" style="margin-bottom:16px;">Belirli bir Polymarket cüzdanını takibe alın; işlem geçmişi ve açık pozisyonları periyodik olarak toplanır ve profil sayfasında gösterilir.</div>
+    <div class="add-wallet-box">
+      <input type="text" id="addWalletAddress" placeholder="Cüzdan adresi (0x...)">
+      <input type="text" id="addWalletNickname" placeholder="Takma ad (örn. Sharp Bettor)">
+      <button id="addWalletBtn">+ Takibe Al</button>
+    </div>
+    <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
+    <div class="match-list" id="trackedWalletList">
+      <div class="loading">Yükleniyor...</div>
+    </div>
+  </div>
+
+  <div id="walletProfileView" style="display:none;">
+    <button class="back-btn" id="walletBackBtn">&larr; Cüzdan listesine dön</button>
+    <div class="result-header" id="walletProfileHeader"></div>
+    <div class="wallet-stats-grid" id="walletStatsGrid"></div>
+    <div class="wallet-summary" id="walletSummaryBox"></div>
+    <h3 class="wallet-section-title">Açık Pozisyonlar</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Maç / Seçenek</th>
+            <th>Adet</th>
+            <th>Ort. Fiyat</th>
+            <th>Güncel Fiyat</th>
+            <th>Değer (USDC)</th>
+            <th>Kâr/Zarar</th>
+          </tr>
+        </thead>
+        <tbody id="walletPositionsBody"></tbody>
+      </table>
+    </div>
+    <h3 class="wallet-section-title">İşlem Geçmişi</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Maç / Seçenek</th>
+            <th>Yön</th>
+            <th>Tutar (USDC)</th>
+            <th>Oran</th>
+            <th>Tarih / Saat</th>
+          </tr>
+        </thead>
+        <tbody id="walletActivityBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -873,6 +971,206 @@ refreshTradesBtn.addEventListener('click', async () => {
 backBtn.addEventListener('click', () => {
   detailView.style.display = 'none';
   listView.style.display = 'block';
+});
+
+// ---- Takip Edilen Bahisçiler (Task #259) ----
+const matchSearchView = document.getElementById('matchSearchView');
+const walletsView = document.getElementById('walletsView');
+const walletProfileView = document.getElementById('walletProfileView');
+const trackedWalletList = document.getElementById('trackedWalletList');
+const addWalletAddress = document.getElementById('addWalletAddress');
+const addWalletNickname = document.getElementById('addWalletNickname');
+const addWalletBtn = document.getElementById('addWalletBtn');
+const addWalletError = document.getElementById('addWalletError');
+const walletBackBtn = document.getElementById('walletBackBtn');
+const walletProfileHeader = document.getElementById('walletProfileHeader');
+const walletStatsGrid = document.getElementById('walletStatsGrid');
+const walletSummaryBox = document.getElementById('walletSummaryBox');
+const walletPositionsBody = document.getElementById('walletPositionsBody');
+const walletActivityBody = document.getElementById('walletActivityBody');
+
+document.querySelectorAll('#mainNav .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mainNav .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    walletProfileView.style.display = 'none';
+    if (btn.dataset.main === 'wallets') {
+      matchSearchView.style.display = 'none';
+      walletsView.style.display = 'block';
+      loadTrackedWallets();
+    } else {
+      walletsView.style.display = 'none';
+      matchSearchView.style.display = 'block';
+    }
+  });
+});
+
+function truncAddr(w) {
+  if (!w || w.length < 12) return w || '';
+  return w.slice(0, 6) + '...' + w.slice(-4);
+}
+
+async function loadTrackedWallets() {
+  trackedWalletList.innerHTML = '<div class="loading">Yükleniyor...</div>';
+  try {
+    const res = await fetch('/api/poly/tracked');
+    const data = await res.json();
+    const wallets = data.wallets || [];
+    if (!wallets.length) {
+      trackedWalletList.innerHTML = '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
+      return;
+    }
+    trackedWalletList.innerHTML = '';
+    wallets.forEach(w => {
+      const item = document.createElement('div');
+      item.className = 'tracked-wallet-item';
+      item.innerHTML = `
+        <div>
+          <div class="tracked-wallet-name">${escapeAttr(w.nickname)}</div>
+          <div class="tracked-wallet-addr">${truncAddr(w.wallet)}</div>
+        </div>
+        <div class="tracked-wallet-actions">
+          <button data-action="profile">Profil</button>
+          <button data-action="remove">Sil</button>
+        </div>
+      `;
+      item.querySelector('[data-action="profile"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openWalletProfile(w.wallet);
+      });
+      item.querySelector('[data-action="remove"]').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm(`${w.nickname} takipten çıkarılsın mı?`)) return;
+        await fetch(`/api/poly/tracked/${w.wallet}`, { method: 'DELETE' });
+        loadTrackedWallets();
+      });
+      item.addEventListener('click', () => openWalletProfile(w.wallet));
+      trackedWalletList.appendChild(item);
+    });
+  } catch (e) {
+    trackedWalletList.innerHTML = '<div class="loading">Liste alınamadı.</div>';
+  }
+}
+
+addWalletBtn.addEventListener('click', async () => {
+  const wallet = addWalletAddress.value.trim();
+  const nickname = addWalletNickname.value.trim();
+  addWalletError.style.display = 'none';
+  if (!wallet || !nickname) {
+    addWalletError.textContent = 'Cüzdan adresi ve takma ad gerekli.';
+    addWalletError.style.display = 'block';
+    return;
+  }
+  addWalletBtn.disabled = true;
+  try {
+    const res = await fetch('/api/poly/tracked', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet, nickname })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      addWalletError.textContent = data.error || 'Cüzdan eklenemedi.';
+      addWalletError.style.display = 'block';
+      return;
+    }
+    addWalletAddress.value = '';
+    addWalletNickname.value = '';
+    loadTrackedWallets();
+  } catch (e) {
+    addWalletError.textContent = 'Cüzdan eklenemedi.';
+    addWalletError.style.display = 'block';
+  } finally {
+    addWalletBtn.disabled = false;
+  }
+});
+
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) + ' TR';
+  } catch (e) { return iso; }
+}
+
+function pnlSpan(v) {
+  const n = Number(v) || 0;
+  const cls = n >= 0 ? 'pnl-pos' : 'pnl-neg';
+  const sign = n >= 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${n.toFixed(2)}</span>`;
+}
+
+async function openWalletProfile(wallet) {
+  walletsView.style.display = 'none';
+  walletProfileView.style.display = 'block';
+  walletProfileHeader.textContent = 'Yükleniyor...';
+  walletStatsGrid.innerHTML = '';
+  walletSummaryBox.innerHTML = '';
+  walletPositionsBody.innerHTML = '';
+  walletActivityBody.innerHTML = '';
+  try {
+    const res = await fetch(`/api/poly/tracked/${wallet}/profile`);
+    const data = await res.json();
+    if (!data.found) {
+      walletProfileHeader.textContent = 'Profil bulunamadı.';
+      return;
+    }
+    walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>`;
+
+    const s = data.stats || {};
+    const statCards = [
+      { label: 'İşlem Sayısı', value: s.trade_count ?? 0 },
+      { label: 'Toplam Hacim (USDC)', value: fmtUsd(s.total_invested_usdc || 0) },
+      { label: 'Ort. Bahis (USDC)', value: fmtUsd(s.avg_bet_size_usdc || 0) },
+      { label: 'Ort. Oran', value: s.avg_price ? s.avg_price.toFixed(2) : '-' },
+      { label: 'İsabet Oranı', value: s.win_rate_pct != null ? `%${s.win_rate_pct}` : '-' },
+      { label: 'Açık Pozisyon', value: s.open_position_count ?? 0 },
+      { label: 'Açık Pozisyon Değeri', value: fmtUsd(s.open_exposure_usdc || 0) },
+    ];
+    walletStatsGrid.innerHTML = statCards.map(c => `
+      <div class="wallet-stat-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>
+    `).join('');
+
+    walletSummaryBox.innerHTML = (data.summary || []).map(line => `<div>• ${line}</div>`).join('') || '<div>Özet bilgisi yok.</div>';
+
+    const positions = data.open_positions || [];
+    if (!positions.length) {
+      walletPositionsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
+    } else {
+      walletPositionsBody.innerHTML = positions.map(p => `
+        <tr>
+          <td>${escapeAttr(p.title || '-')}${p.outcome ? ' · ' + escapeAttr(p.outcome) : ''}</td>
+          <td>${(Number(p.size) || 0).toFixed(2)}</td>
+          <td>${(Number(p.avg_price) || 0).toFixed(2)}</td>
+          <td>${(Number(p.cur_price) || 0).toFixed(2)}</td>
+          <td>${fmtUsd(p.current_value || 0)}</td>
+          <td>${pnlSpan(p.cash_pnl)}</td>
+        </tr>
+      `).join('');
+    }
+
+    const activity = data.activity || [];
+    if (!activity.length) {
+      walletActivityBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
+    } else {
+      walletActivityBody.innerHTML = activity.map(a => `
+        <tr>
+          <td>${escapeAttr(a.title || '-')}</td>
+          <td>${escapeAttr(a.side || a.outcome_raw || '-')}</td>
+          <td>${fmtUsd(a.amount_usdc || 0)}</td>
+          <td>${(Number(a.price) || 0).toFixed(2)}</td>
+          <td>${fmtDateTime(a.traded_at)}</td>
+        </tr>
+      `).join('');
+    }
+  } catch (e) {
+    walletProfileHeader.textContent = 'Profil alınamadı.';
+  }
+}
+
+walletBackBtn.addEventListener('click', () => {
+  walletProfileView.style.display = 'none';
+  walletsView.style.display = 'block';
 });
 
 loadUpcoming();

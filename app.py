@@ -232,6 +232,11 @@ from services.polymarket_client import (
     search_matches as poly_search_matches,
     get_top_trades as poly_get_top_trades,
     get_stored_trades as poly_get_stored_trades,
+    list_tracked_wallets as poly_list_tracked_wallets,
+    add_tracked_wallet as poly_add_tracked_wallet,
+    update_tracked_wallet as poly_update_tracked_wallet,
+    remove_tracked_wallet as poly_remove_tracked_wallet,
+    get_wallet_profile as poly_get_wallet_profile,
 )
 import hashlib
 import re
@@ -920,6 +925,72 @@ def api_poly_trades():
     except Exception as e:
         print(f"[Poly] /api/poly/trades error: {e}")
         return jsonify({'found': False, 'error': 'Polymarket verisi alinamadi'}), 502
+
+@app.route('/api/poly/tracked', methods=['GET'])
+def api_poly_tracked_list():
+    """Takip edilen bahisçi cüzdanlarının listesi"""
+    try:
+        wallets = poly_list_tracked_wallets()
+        return jsonify({'wallets': wallets})
+    except Exception as e:
+        print(f"[Poly] /api/poly/tracked GET error: {e}")
+        return jsonify({'wallets': [], 'error': 'Liste alinamadi'}), 502
+
+@app.route('/api/poly/tracked', methods=['POST'])
+def api_poly_tracked_add():
+    """Yeni bir cüzdanı takibe al (wallet + takma ad)"""
+    data = request.get_json(silent=True) or {}
+    wallet = (data.get('wallet') or '').strip().lower()
+    nickname = (data.get('nickname') or '').strip()
+    notes = (data.get('notes') or '').strip() or None
+    if not wallet or not wallet.startswith('0x') or len(wallet) < 10:
+        return jsonify({'success': False, 'error': 'Geçerli bir cüzdan adresi gerekli (0x...)'}), 400
+    if not nickname:
+        return jsonify({'success': False, 'error': 'Takma ad gerekli'}), 400
+    try:
+        ok = poly_add_tracked_wallet(wallet, nickname, notes)
+        if not ok:
+            return jsonify({'success': False, 'error': 'Cüzdan eklenemedi (zaten takip ediliyor olabilir)'}), 409
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[Poly] /api/poly/tracked POST error: {e}")
+        return jsonify({'success': False, 'error': 'Cüzdan eklenemedi'}), 502
+
+@app.route('/api/poly/tracked/<wallet>', methods=['PATCH'])
+def api_poly_tracked_update(wallet):
+    """Takip edilen bir cüzdanın takma adını/notunu güncelle"""
+    data = request.get_json(silent=True) or {}
+    nickname = data.get('nickname')
+    notes = data.get('notes')
+    try:
+        ok = poly_update_tracked_wallet(wallet, nickname=nickname, notes=notes)
+        return jsonify({'success': ok})
+    except Exception as e:
+        print(f"[Poly] /api/poly/tracked PATCH error: {e}")
+        return jsonify({'success': False, 'error': 'Güncellenemedi'}), 502
+
+@app.route('/api/poly/tracked/<wallet>', methods=['DELETE'])
+def api_poly_tracked_remove(wallet):
+    """Bir cüzdanı takipten çıkar"""
+    try:
+        ok = poly_remove_tracked_wallet(wallet)
+        return jsonify({'success': ok})
+    except Exception as e:
+        print(f"[Poly] /api/poly/tracked DELETE error: {e}")
+        return jsonify({'success': False, 'error': 'Silinemedi'}), 502
+
+@app.route('/api/poly/tracked/<wallet>/profile', methods=['GET'])
+def api_poly_tracked_profile(wallet):
+    """Takip edilen bir cüzdanın profil görünümü: istatistikler, işlem geçmişi, açık pozisyonlar"""
+    try:
+        profile = poly_get_wallet_profile(wallet)
+        if not profile:
+            return jsonify({'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
+        profile['found'] = True
+        return jsonify(profile)
+    except Exception as e:
+        print(f"[Poly] /api/poly/tracked/<wallet>/profile error: {e}")
+        return jsonify({'found': False, 'error': 'Profil alinamadi'}), 502
 
 @app.route('/pricing')
 def pricing_page():

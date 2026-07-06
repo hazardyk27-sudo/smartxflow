@@ -26,6 +26,10 @@ from services.polymarket_client import (
     get_event_market_specs,
     _fetch_new_trades,
     _market_selection_side,
+    list_tracked_wallets,
+    fetch_wallet_activity,
+    fetch_wallet_positions,
+    _parse_activity_market,
 )
 
 try:
@@ -114,6 +118,74 @@ class PolymarketSupabaseWriter:
             return True
         except Exception as e:
             log(f"[Trades UPSERT] Hata: {e}")
+            return False
+
+    def get_wallet_activity_checkpoint(self, wallet: str) -> Optional[int]:
+        """Return unix ts (seconds) of the most recent stored activity row for
+        this tracked wallet, or None if nothing stored yet (first fill)."""
+        try:
+            headers = self._headers()
+            url = (
+                f"{self._rest_url('tracked_wallet_activity')}"
+                f"?wallet=eq.{wallet}&select=traded_at&order=traded_at.desc&limit=1"
+            )
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code != 200:
+                log(f"[Wallet Checkpoint GET] HTTP {resp.status_code}: {resp.text[:200]}")
+                return None
+            rows = resp.json()
+            if not rows:
+                return None
+            traded_at_str = rows[0].get("traded_at")
+            if not traded_at_str:
+                return None
+            dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
+            return int(dt.timestamp())
+        except Exception as e:
+            log(f"[Wallet Checkpoint GET] Hata: {e}")
+            return None
+
+    def upsert_wallet_activity(self, rows: List[Dict[str, Any]]) -> bool:
+        if not rows:
+            return True
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = f"{self._rest_url('tracked_wallet_activity')}?on_conflict=wallet,transaction_hash,asset,side"
+            for i in range(0, len(rows), 500):
+                batch = rows[i:i + 500]
+                resp = requests.post(url, headers=headers, json=batch, timeout=30, verify=SSL_VERIFY)
+                if resp.status_code not in (200, 201, 204):
+                    log(f"[Wallet Activity UPSERT] HTTP {resp.status_code}: {resp.text[:200]}")
+                    return False
+            return True
+        except Exception as e:
+            log(f"[Wallet Activity UPSERT] Hata: {e}")
+            return False
+
+    def replace_wallet_positions(self, wallet: str, rows: List[Dict[str, Any]]) -> bool:
+        """Full-sync a wallet's open positions: delete the previous snapshot and
+        insert the current one, so closed/redeemed positions disappear."""
+        try:
+            headers = self._headers()
+            del_url = f"{self._rest_url('tracked_wallet_positions')}?wallet=eq.{wallet}"
+            resp = requests.delete(del_url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code not in (200, 204):
+                log(f"[Wallet Positions DELETE] HTTP {resp.status_code}: {resp.text[:200]}")
+                return False
+            if not rows:
+                return True
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = f"{self._rest_url('tracked_wallet_positions')}?on_conflict=wallet,condition_id,asset"
+            for i in range(0, len(rows), 500):
+                batch = rows[i:i + 500]
+                resp = requests.post(url, headers=headers, json=batch, timeout=30, verify=SSL_VERIFY)
+                if resp.status_code not in (200, 201, 204):
+                    log(f"[Wallet Positions UPSERT] HTTP {resp.status_code}: {resp.text[:200]}")
+                    return False
+            return True
+        except Exception as e:
+            log(f"[Wallet Positions SYNC] Hata: {e}")
             return False
 
 
@@ -226,6 +298,107 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
     return total_new
 
 
+def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:
+    """Fully sync one tracked wallet's football activity ledger (incremental,
+    checkpoint-based like process_match) and its current open positions
+    (full-replace snapshot each cycle)."""
+    wallet = (wallet_row.get("wallet") or "").lower()
+    if not wallet:
+        return 0
+
+    since_ts = writer.get_wallet_activity_checkpoint(wallet)
+    new_items, truncated = fetch_wallet_activity(wallet, since_ts)
+    if truncated:
+        log(f"  [Wallet {wallet[:10]}...] fetch truncated before checkpoint, skipping this run")
+    else:
+        rows = []
+        for item in reversed(new_items):
+            try:
+                ts = int(item.get("timestamp") or 0)
+            except (TypeError, ValueError):
+                continue
+            if ts <= 0:
+                continue
+            tx_hash = item.get("transactionHash")
+            asset = item.get("asset")
+            if not tx_hash or not asset:
+                continue
+
+            market_type, home, away, selection, side = _parse_activity_market(item)
+            try:
+                price = float(item.get("price") or 0)
+            except (TypeError, ValueError):
+                price = 0.0
+            try:
+                size = float(item.get("size") or 0)
+            except (TypeError, ValueError):
+                size = 0.0
+            try:
+                amount_usdc = float(item.get("usdcSize")) if item.get("usdcSize") is not None else size * price
+            except (TypeError, ValueError):
+                amount_usdc = size * price
+
+            rows.append({
+                "wallet": wallet,
+                "transaction_hash": tx_hash,
+                "asset": asset,
+                "condition_id": item.get("conditionId"),
+                "event_id": None,
+                "title": item.get("title"),
+                "slug": item.get("slug"),
+                "market_type": market_type,
+                "selection": selection,
+                "side": side or item.get("side"),
+                "outcome_raw": item.get("outcome"),
+                "amount_usdc": round(amount_usdc, 4),
+                "price": price,
+                "size": size,
+                "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+            })
+
+        if rows and writer.upsert_wallet_activity(rows):
+            log(f"  [Wallet {wallet_row.get('nickname')}] +{len(rows)} yeni islem")
+
+    positions = fetch_wallet_positions(wallet)
+    position_rows = []
+    for p in positions:
+        position_rows.append({
+            "wallet": wallet,
+            "condition_id": p.get("conditionId"),
+            "asset": p.get("asset"),
+            "title": p.get("title"),
+            "slug": p.get("slug"),
+            "event_id": p.get("eventId"),
+            "outcome": p.get("outcome"),
+            "size": p.get("size"),
+            "avg_price": p.get("avgPrice"),
+            "cur_price": p.get("curPrice"),
+            "initial_value": p.get("initialValue"),
+            "current_value": p.get("currentValue"),
+            "cash_pnl": p.get("cashPnl"),
+            "percent_pnl": p.get("percentPnl"),
+            "redeemable": p.get("redeemable"),
+            "end_date": p.get("endDate"),
+        })
+    writer.replace_wallet_positions(wallet, position_rows)
+
+    return len(position_rows)
+
+
+def run_tracked_wallets(writer: PolymarketSupabaseWriter):
+    wallets = list_tracked_wallets()
+    if not wallets:
+        return
+    log(f"{len(wallets)} takip edilen cuzdan senkronize ediliyor")
+    for wallet_row in wallets:
+        try:
+            process_tracked_wallet(writer, wallet_row)
+        except Exception as e:
+            log(f"[Tracked Wallet Hata] {wallet_row.get('wallet')}: {e}")
+            traceback.print_exc()
+            continue
+
+
 def run_scrape(writer: PolymarketSupabaseWriter) -> int:
     matches = get_today_matches(hours_ahead=None)
     log(f"{len(matches)} mac taraniyor")
@@ -251,10 +424,12 @@ def main() -> bool:
     writer = PolymarketSupabaseWriter(supabase_url, supabase_key)
 
     last_error = None
+    scrape_ok = False
     for attempt in range(MAX_RETRIES):
         try:
             run_scrape(writer)
-            return True
+            scrape_ok = True
+            break
         except Exception as e:
             last_error = str(e)[:200]
             log(f"[HATA] {last_error}")
@@ -265,7 +440,13 @@ def main() -> bool:
             log(f"{delay} saniye bekleniyor...")
             time.sleep(delay)
 
-    return False
+    try:
+        run_tracked_wallets(writer)
+    except Exception as e:
+        log(f"[Takip Edilen Cuzdanlar] Hata: {e}")
+        traceback.print_exc()
+
+    return scrape_ok
 
 
 def run_loop():

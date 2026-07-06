@@ -1021,3 +1021,365 @@ def get_top_trades(slug: str, top_n: int = 3000) -> Dict[str, Any]:
         "markets": market_summaries,
         "trades": top_trades,
     }
+
+
+# ------------------------------------------------------------------
+# Takip edilen bahisçiler (tracked wallets) - Task #259
+#
+# Polymarket'in market-bazlı /trades feed'i, aynı blockchain işleminde birden
+# fazla kullanıcının toplu (batch) eşleştiği durumlarda diğer cüzdanların
+# payını gizleyip tek bir cüzdana atfedebiliyor (confirmed via direct API
+# comparison). Kullanıcının açıkça takibe aldığı belirli cüzdanlar için bunun
+# yerine cüzdana özel /activity ve /positions endpoint'leri kullanılır - bunlar
+# o cüzdanın TÜM işlemlerini/pozisyonlarını eksiksiz döner. Bu endpoint'ler
+# `user=` zorunlu kıldığı için toplu/taranabilir değildir; sadece açıkça takip
+# edilen cüzdanlar için çağrılır.
+# ------------------------------------------------------------------
+
+_ACTIVITY_PAGE_LIMIT = 500
+_ACTIVITY_MAX_PAGES = 20          # ilk dolum (checkpoint yok) - ~10k islem guvenlik siniri
+_ACTIVITY_INCREMENTAL_MAX_PAGES = 200  # checkpoint varken - ~100k islem guvenlik agi
+
+_POSITIONS_PAGE_LIMIT = 500
+_POSITIONS_MAX_PAGES = 20
+
+
+def _is_football_item(item: Dict[str, Any]) -> bool:
+    """An /activity or /positions row is treated as a football (soccer) bet if
+    its icon references the soccer-ball asset Polymarket uses for all soccer
+    markets, or (fallback) its title matches the 'Team A vs. Team B[...]'
+    pattern. Non-football markets (politics, crypto, etc.) are excluded so the
+    tracked-wallet feature stays scoped to football per Task #259."""
+    icon = (item.get("icon") or "").lower()
+    if "soccer" in icon:
+        return True
+    title = item.get("title") or ""
+    base_title = title.split(":", 1)[0].strip()
+    return _parse_match_title(base_title) is not None
+
+
+# Title suffix (after the first ':') -> our internal market_type key, mirroring
+# _EXTRA_MARKET_TYPES but keyed off the human title text /activity returns
+# instead of a market's groupItemTitle.
+_ACTIVITY_MARKET_SUFFIX_TYPES = {
+    "o/u 2.5": "ou25",
+    "both teams to score": "btts",
+}
+
+
+def _parse_activity_market(item: Dict[str, Any]):
+    """Return (market_type, home, away, selection, side) for an /activity or
+    /positions row, reusing the same display conventions as the match-page
+    trade ledger (_market_selection_side / _bet_display_fields)."""
+    title = item.get("title") or ""
+    outcome_raw = (item.get("outcome") or "").strip()
+    if ":" in title:
+        base_title, suffix = title.split(":", 1)
+        market_type = _ACTIVITY_MARKET_SUFFIX_TYPES.get(suffix.strip().lower(), "1x2")
+    else:
+        base_title = title
+        market_type = "1x2"
+
+    parsed = _parse_match_title(base_title.strip())
+    home, away = (parsed if parsed else (base_title.strip(), ""))
+
+    if market_type == "1x2":
+        selection = outcome_raw or "-"
+        side = None
+    else:
+        fields = _bet_display_fields(market_type, "", outcome_raw)
+        selection = fields["selection"]
+        side = fields["side"]
+
+    return market_type, home, away, selection, side
+
+
+def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+    """Fully/incrementally paginate the Data API /activity endpoint for a single
+    wallet, filtered server-side to TRADE-type entries and client-side to
+    football markets. Returns (rows, truncated) - `truncated=True` means the
+    page cap was hit before reaching `since_ts`, so the caller should skip
+    storing this batch and retry the full range next cycle (same contract as
+    _fetch_new_trades) to avoid a permanent gap.
+    """
+    if not wallet:
+        return [], False
+    if max_pages is None:
+        max_pages = _ACTIVITY_INCREMENTAL_MAX_PAGES if since_ts is not None else _ACTIVITY_MAX_PAGES
+
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    hit_page_cap = True
+    for _ in range(max_pages):
+        page = _get_json(f"{DATA_BASE}/activity", {
+            "user": wallet,
+            "type": "TRADE",
+            "limit": _ACTIVITY_PAGE_LIMIT,
+            "offset": offset,
+        })
+        if page is None:
+            return rows, True
+        if not page:
+            hit_page_cap = False
+            break
+
+        reached_checkpoint = False
+        for item in page:
+            if not _is_football_item(item):
+                continue
+            ts = item.get("timestamp")
+            if since_ts is not None and ts is not None and int(ts) <= since_ts:
+                reached_checkpoint = True
+                break
+            rows.append(item)
+
+        if reached_checkpoint:
+            hit_page_cap = False
+            break
+        if len(page) < _ACTIVITY_PAGE_LIMIT:
+            hit_page_cap = False
+            break
+        offset += _ACTIVITY_PAGE_LIMIT
+    else:
+        hit_page_cap = since_ts is not None
+
+    truncated = since_ts is not None and hit_page_cap
+    return rows, truncated
+
+
+def fetch_wallet_positions(wallet: str) -> List[Dict[str, Any]]:
+    """Fetch ALL current positions (open + unredeemed-resolved) for a wallet via
+    the Data API /positions endpoint, filtered to football markets."""
+    if not wallet:
+        return []
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    for _ in range(_POSITIONS_MAX_PAGES):
+        page = _get_json(f"{DATA_BASE}/positions", {
+            "user": wallet,
+            "limit": _POSITIONS_PAGE_LIMIT,
+            "offset": offset,
+        })
+        if not page:
+            break
+        rows.extend(p for p in page if _is_football_item(p))
+        if len(page) < _POSITIONS_PAGE_LIMIT:
+            break
+        offset += _POSITIONS_PAGE_LIMIT
+    return rows
+
+
+# ---- Supabase CRUD: tracked_wallets / tracked_wallet_activity / tracked_wallet_positions ----
+
+def list_tracked_wallets() -> List[Dict[str, Any]]:
+    base = _supabase_base_url()
+    if not base:
+        return []
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=_supabase_headers(),
+            params={"select": "wallet,nickname,notes,created_at", "order": "created_at.desc"},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return []
+        return r.json()
+    except Exception as e:
+        print(f"[TrackedWallets] list hatasi: {e}")
+        return []
+
+
+def add_tracked_wallet(wallet: str, nickname: str, notes: Optional[str] = None) -> bool:
+    base = _supabase_base_url()
+    if not base or not wallet or not nickname:
+        return False
+    try:
+        headers = _supabase_headers()
+        headers["Content-Type"] = "application/json"
+        headers["Prefer"] = "return=minimal"
+        r = requests.post(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=headers,
+            json=[{"wallet": wallet.lower(), "nickname": nickname, "notes": notes}],
+            timeout=10,
+        )
+        return r.status_code in (200, 201, 204)
+    except Exception as e:
+        print(f"[TrackedWallets] add hatasi: {e}")
+        return False
+
+
+def update_tracked_wallet(wallet: str, nickname: Optional[str] = None, notes: Optional[str] = None) -> bool:
+    base = _supabase_base_url()
+    if not base or not wallet:
+        return False
+    payload = {}
+    if nickname is not None:
+        payload["nickname"] = nickname
+    if notes is not None:
+        payload["notes"] = notes
+    if not payload:
+        return False
+    try:
+        headers = _supabase_headers()
+        headers["Content-Type"] = "application/json"
+        headers["Prefer"] = "return=minimal"
+        r = requests.patch(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=headers,
+            params={"wallet": f"eq.{wallet.lower()}"},
+            json=payload,
+            timeout=10,
+        )
+        return r.status_code in (200, 204)
+    except Exception as e:
+        print(f"[TrackedWallets] update hatasi: {e}")
+        return False
+
+
+def remove_tracked_wallet(wallet: str) -> bool:
+    base = _supabase_base_url()
+    if not base or not wallet:
+        return False
+    try:
+        r = requests.delete(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=_supabase_headers(),
+            params={"wallet": f"eq.{wallet.lower()}"},
+            timeout=10,
+        )
+        return r.status_code in (200, 204)
+    except Exception as e:
+        print(f"[TrackedWallets] remove hatasi: {e}")
+        return False
+
+
+def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
+    """Build the tracked-wallet profile view (stats + trade history + open
+    positions + a simple rule-based summary) from data already collected into
+    Supabase by the periodic wallet-tracker job. Returns None if the wallet
+    isn't tracked."""
+    base = _supabase_base_url()
+    if not base or not wallet:
+        return None
+    wallet = wallet.lower()
+    headers = _supabase_headers()
+
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=headers,
+            params={"select": "wallet,nickname,notes,created_at", "wallet": f"eq.{wallet}", "limit": 1},
+            timeout=10,
+        )
+        if r.status_code != 200 or not r.json():
+            return None
+        wallet_row = r.json()[0]
+    except Exception as e:
+        print(f"[WalletProfile] wallet fetch hatasi: {e}")
+        return None
+
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallet_activity",
+            headers=headers,
+            params={
+                "select": "wallet,transaction_hash,title,slug,market_type,selection,side,outcome_raw,amount_usdc,price,size,traded_at",
+                "wallet": f"eq.{wallet}",
+                "order": "traded_at.desc",
+                "limit": 2000,
+            },
+            timeout=15,
+        )
+        activity_rows = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        print(f"[WalletProfile] activity fetch hatasi: {e}")
+        activity_rows = []
+
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallet_positions",
+            headers=headers,
+            params={
+                "select": "condition_id,asset,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
+                "wallet": f"eq.{wallet}",
+                "order": "current_value.desc",
+                "limit": 500,
+            },
+            timeout=15,
+        )
+        position_rows = r.json() if r.status_code == 200 else []
+    except Exception as e:
+        print(f"[WalletProfile] positions fetch hatasi: {e}")
+        position_rows = []
+
+    trade_count = len(activity_rows)
+    total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
+    avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
+    weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
+    avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
+
+    open_positions = []
+    resolved_won = 0
+    resolved_lost = 0
+    realized_pnl_total = 0.0
+    for p in position_rows:
+        cur_price = float(p.get("cur_price") or 0)
+        redeemable = bool(p.get("redeemable"))
+        is_resolved = redeemable and (cur_price <= 0.02 or cur_price >= 0.98)
+        if is_resolved:
+            if cur_price >= 0.98:
+                resolved_won += 1
+            else:
+                resolved_lost += 1
+            realized_pnl_total += float(p.get("cash_pnl") or 0)
+        else:
+            open_positions.append(p)
+
+    resolved_total = resolved_won + resolved_lost
+    win_rate = round((resolved_won / resolved_total) * 100, 1) if resolved_total else None
+
+    open_exposure = sum(float(p.get("current_value") or 0) for p in open_positions)
+
+    summary_lines = []
+    if trade_count == 0:
+        summary_lines.append("Henüz futbol maçlarında kayıtlı işlemi bulunmuyor.")
+    else:
+        summary_lines.append(f"{trade_count} futbol işlemi, toplam {round(total_invested, 0):,.0f} USDC hacim.".replace(",", "."))
+        if win_rate is not None:
+            if win_rate >= 60:
+                summary_lines.append(f"Sonuçlanan {resolved_total} bahisin %{win_rate}'ini kazandı - isabet oranı yüksek.")
+            elif win_rate <= 35:
+                summary_lines.append(f"Sonuçlanan {resolved_total} bahisin sadece %{win_rate}'ini kazandı - isabet oranı düşük.")
+            else:
+                summary_lines.append(f"Sonuçlanan {resolved_total} bahisin %{win_rate}'ini kazandı - ortalama bir isabet oranı.")
+        if avg_price:
+            if avg_price <= 0.35:
+                summary_lines.append("Genelde düşük ihtimalli (uzun oranlı) taraflara oynuyor - sürpriz/underdog odaklı bir profil.")
+            elif avg_price >= 0.65:
+                summary_lines.append("Genelde favoriye/yüksek ihtimalli tarafa oynuyor - güvenli/favori odaklı bir profil.")
+        if open_positions:
+            summary_lines.append(f"Şu an {len(open_positions)} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
+
+    return {
+        "wallet": wallet_row.get("wallet"),
+        "nickname": wallet_row.get("nickname"),
+        "notes": wallet_row.get("notes"),
+        "tracked_since": wallet_row.get("created_at"),
+        "stats": {
+            "trade_count": trade_count,
+            "total_invested_usdc": round(total_invested, 2),
+            "avg_bet_size_usdc": avg_bet_size,
+            "avg_price": avg_price,
+            "win_rate_pct": win_rate,
+            "resolved_won": resolved_won,
+            "resolved_lost": resolved_lost,
+            "open_position_count": len(open_positions),
+            "open_exposure_usdc": round(open_exposure, 2),
+            "realized_pnl_usdc": round(realized_pnl_total, 2),
+        },
+        "summary": summary_lines,
+        "activity": activity_rows,
+        "open_positions": open_positions,
+    }
