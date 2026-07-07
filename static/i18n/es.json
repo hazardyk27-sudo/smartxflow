@@ -190,7 +190,7 @@
       "tum_mim_alarmlarini_silmek_istediginize_emin_mis": "¿Está seguro de que desea eliminar todas las alarmas MIM?",
       "tumu": "Todos",
       "u_a_2_5": "O/U 2.5",
-      "ust": "Alto",
+      "ust": "Más ",
       "ust_2_5": "Más 2.5",
       "ust_a5be93": " MÁS",
       "uyelik_gerekmektedir": " se requiere membresía",
@@ -202,12 +202,7 @@
       "yeni_para": "dinero nuevo",
       "yukleniyor": "\n                    Cargando...\n                ",
       "yuzde": "PORCENTAJE",
-      "yuzde_d786cd": "\n                % Porcentaje\n            ",
-      "1_gun": "1 día",
-      "alt": "Bajo",
-      "evet": "Sí",
-      "hayir": "No",
-      "ou25_label": "Más/Menos 2.5"
+      "yuzde_d786cd": "\n                % Porcentaje\n            "
     },
     "flt": {
       "all": "Todos",
@@ -488,41 +483,7 @@
       "volume_lbl": "Volumen:",
       "won_badge": "✓ GANADO",
       "yes": "Sí",
-      "yesterday": "Ayer",
-      "eski_lider": "Antiguo Líder",
-      "yeni_lider": "Nuevo Líder",
-      "secenek": "Selección",
-      "market_hacmi": "Volumen del mercado",
-      "toplam_hacim_lbl": "Volumen total",
-      "pct_view": "% Porcentaje",
-      "money_view": "£ Dinero",
-      "saat_kala": "h para el partido",
-      "maca_once": "Partido en",
-      "hacim_puan": "Puntuación Volumen",
-      "oran_puan": "Puntuación Cuotas",
-      "oran_degisimi": "Cambio de cuota",
-      "dusus_lbl": "Caída",
-      "olay_sonrasi": "Después del evento",
-      "sonrasi": "Después",
-      "cd_mim": "Impacto del dinero en el volumen del mercado.",
-      "public_para": "dinero público",
-      "analysis_word": "ANÁLISIS",
-      "analyst_lbl": "Analista",
-      "awaiting": "En espera",
-      "load_failed_short": "Error",
-      "loser": "Perdedor",
-      "money_pct": "% Dinero",
-      "net_profit": "Beneficio neto",
-      "no_approved_signals": "Aún no hay señales aprobadas",
-      "odds_short": "Cuota",
-      "pending_lbl": "Pendiente",
-      "pro_required": "Esta función requiere una licencia PRO.",
-      "result_lost": "Perdido",
-      "result_push": "Empate",
-      "result_void": "Anulado",
-      "result_won": "Ganado",
-      "total": "Total",
-      "winner": "Ganador"
+      "yesterday": "Ayer"
     },
     "lic": {
       "activate": "Activar Licencia",
@@ -552,8 +513,7 @@
       "amount": "Importe",
       "chart": "Gráfico",
       "chart_loading": "Cargando gráfico...",
-      "match_detail": "Detalles del Partido",
-      "oran_row": "Cuota"
+      "match_detail": "Detalles del Partido"
     },
     "mvh": {
       "last_value": "Último valor",
@@ -571,8 +531,7 @@
       "odds_drop": "Caída de Cuota",
       "smart_money": "Dinero Inteligente",
       "vol_leader": "Líder de Volumen",
-      "vol_shock": "Choque de Volumen",
-      "moneyway_btts": "Moneyway BTTS"
+      "vol_shock": "Choque de Volumen"
     },
     "tbl": {
       "amount": "MONTO",
@@ -581,27 +540,7 @@
       "loading": "Cargando...",
       "match": "PARTIDO",
       "over": "MÁS",
-      "volume": "VOLUMEN",
-      "alt": "Menos"
-    },
-    "live": {
-      "badge": "LIVE",
-      "bos": "No se encontraron partidos en vivo",
-      "bos_sub": "Los partidos en vivo aparecerán aquí cuando empiecen",
-      "bos_tablo": "No hay partidos en vivo",
-      "canli_maclar": "Partidos en vivo",
-      "dk": "Min",
-      "gelen_para": "Dinero entrada",
-      "oran": "CUOTA",
-      "oran_degisim": "Cambio cuota",
-      "pct_degisimi": "% cambio",
-      "pro_gerekli": "Los datos en vivo requieren membresía <strong>Pro</strong>",
-      "pro_periyot": "Los datos de período en vivo requieren membresía Pro.",
-      "proya_gec": "Ir a Pro →",
-      "skor": "MARCADOR",
-      "yuzde": "PORCENT.",
-      "yukleniyor": "Cargando partidos en vivo...",
-      "henuz_periyot": "Aún sin datos de período"
+      "volume": "VOLUMEN"
     }
   },
   "core": {
@@ -687,6 +626,7 @@
     "canli_periyot_verileri": "Datos del período en vivo",
     "canli_veriler_yukleniyor": "Cargando datos en vivo...",
     "fav_add": "Añadir a favoritos",
+    "fav_remove": "Quitar de favoritos",
     "favoriler": "Favoritos",
     "francais": "🇫🇷 Francés",
     "gelecek": "Futuro",
@@ -695,7 +635,6 @@
     },
     "periyot_verileri_yukleniyor": "Cargando datos del período...",
     "search_placeholder": "Buscar...",
-    "takim_veya_lig_ara": "Buscar equipo o liga...",
     "turkce": "🇹🇷 Turco"
   },
   "land": {

@@ -190,7 +190,7 @@
       "tum_mim_alarmlarini_silmek_istediginize_emin_mis": "Are you sure you want to delete all MIM alarms?",
       "tumu": "All",
       "u_a_2_5": "O/U 2.5",
-      "ust": "Over",
+      "ust": "Over ",
       "ust_2_5": "Over 2.5",
       "ust_a5be93": " OVER",
       "uyelik_gerekmektedir": " membership is required",
@@ -202,12 +202,7 @@
       "yeni_para": "new money",
       "yukleniyor": "\n                    Loading...\n                ",
       "yuzde": "PERCENTAGE",
-      "yuzde_d786cd": "\n                % Percentage\n            ",
-      "1_gun": "1 day",
-      "alt": "Under",
-      "evet": "Yes",
-      "hayir": "No",
-      "ou25_label": "O/U 2.5"
+      "yuzde_d786cd": "\n                % Percentage\n            "
     },
     "flt": {
       "all": "All",
@@ -488,41 +483,7 @@
       "volume_lbl": "Volume:",
       "won_badge": "✓ WON",
       "yes": "Yes",
-      "yesterday": "Yesterday",
-      "eski_lider": "Old Leader",
-      "yeni_lider": "New Leader",
-      "secenek": "Selection",
-      "market_hacmi": "Market Volume",
-      "toplam_hacim_lbl": "Total Volume",
-      "pct_view": "% Percent",
-      "money_view": "£ Money",
-      "saat_kala": "h to kickoff",
-      "maca_once": "Kickoff in",
-      "hacim_puan": "Volume Score",
-      "oran_puan": "Odds Score",
-      "oran_degisimi": "Odds Change",
-      "dusus_lbl": "Drop",
-      "olay_sonrasi": "After event",
-      "sonrasi": "After",
-      "cd_mim": "Money impact on market volume.",
-      "public_para": "public money",
-      "analysis_word": "ANALYSIS",
-      "analyst_lbl": "Analyst",
-      "awaiting": "Awaiting",
-      "load_failed_short": "Failed",
-      "loser": "Loser",
-      "money_pct": "% Money",
-      "net_profit": "Net Profit",
-      "no_approved_signals": "No approved signals yet",
-      "odds_short": "Odds",
-      "pending_lbl": "Pending",
-      "pro_required": "This feature requires a PRO license.",
-      "result_lost": "Lost",
-      "result_push": "Push",
-      "result_void": "Void",
-      "result_won": "Won",
-      "total": "Total",
-      "winner": "Winner"
+      "yesterday": "Yesterday"
     },
     "lic": {
       "activate": "Activate License",
@@ -552,8 +513,7 @@
       "amount": "Amount",
       "chart": "Chart",
       "chart_loading": "Loading chart...",
-      "match_detail": "Match Details",
-      "oran_row": "Odds"
+      "match_detail": "Match Details"
     },
     "mvh": {
       "last_value": "Last value",
@@ -571,8 +531,7 @@
       "odds_drop": "Odds Drop",
       "smart_money": "Smart Money",
       "vol_leader": "Volume Leader",
-      "vol_shock": "Volume Shock",
-      "moneyway_btts": "Moneyway BTTS"
+      "vol_shock": "Volume Shock"
     },
     "tbl": {
       "amount": "AMOUNT",
@@ -581,27 +540,7 @@
       "loading": "Loading...",
       "match": "MATCH",
       "over": "OVER",
-      "volume": "VOLUME",
-      "alt": "Under"
-    },
-    "live": {
-      "badge": "LIVE",
-      "bos": "No live matches found",
-      "bos_sub": "Live matches will appear here when they start",
-      "bos_tablo": "No live matches",
-      "canli_maclar": "Live Matches",
-      "dk": "Min",
-      "gelen_para": "Money in",
-      "oran": "ODDS",
-      "oran_degisim": "Odds change",
-      "pct_degisimi": "% change",
-      "pro_gerekli": "Live data requires <strong>Pro</strong> membership",
-      "pro_periyot": "Live period data requires Pro membership.",
-      "proya_gec": "Go Pro →",
-      "skor": "SCORE",
-      "yuzde": "PCT",
-      "yukleniyor": "Loading live matches...",
-      "henuz_periyot": "No period data yet"
+      "volume": "VOLUME"
     }
   },
   "core": {
@@ -687,6 +626,7 @@
     "canli_periyot_verileri": "Live Period Data",
     "canli_veriler_yukleniyor": "Loading live data...",
     "fav_add": "Add to favorites",
+    "fav_remove": "Remove from favorites",
     "favoriler": "Favorites",
     "francais": "🇫🇷 French",
     "gelecek": "Future",
@@ -695,7 +635,6 @@
     },
     "periyot_verileri_yukleniyor": "Loading period data...",
     "search_placeholder": "Search...",
-    "takim_veya_lig_ara": "Team or League search...",
     "turkce": "🇹🇷 Turkish"
   },
   "land": {

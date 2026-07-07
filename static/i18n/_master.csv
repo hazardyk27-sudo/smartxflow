@@ -673,6 +673,7 @@
 "idx.canli_periyot_verileri","","Canlı Periyot Verileri","Live Period Data","Live-Periodendaten","Données de période en direct","Live periodegegevens","Dati del periodo in diretta","Datos del período en vivo"
 "idx.canli_veriler_yukleniyor","","Canlı veriler yükleniyor...","Loading live data...","Live-Daten werden geladen...","Chargement des données en direct...","Live data laden...","Caricamento dati in diretta...","Cargando datos en vivo..."
 "idx.fav_add","","Favorilere ekle","Add to favorites","Zu Favoriten hinzufügen","Ajouter aux favoris","Toevoegen aan favorieten","Aggiungi ai preferiti","Añadir a favoritos"
+"idx.fav_remove","","Favorilerden çıkar","Remove from favorites","Aus Favoriten entfernen","Retirer des favoris","Verwijderen uit favorieten","Rimuovi dai preferiti","Quitar de favoritos"
 "idx.favoriler","","Favoriler","Favorites","Favoriten","Favoris","Favorieten","Preferiti","Favoritos"
 "idx.francais","templates/index.html:160;templates/analysis.html:402;templates/match_detail.html:49","🇫🇷 Français","🇫🇷 French","🇫🇷 Französisch","🇫🇷 Français","🇫🇷 Frans","🇫🇷 Francese","🇫🇷 Francés"
 "idx.gelecek","","Gelecek","Future","Zukünftig","Futur","Toekomstig","Futuro","Futuro"

@@ -190,7 +190,7 @@
       "tum_mim_alarmlarini_silmek_istediginize_emin_mis": "Weet u zeker dat u alle MIM-alarmen wilt verwijderen?",
       "tumu": "Alle",
       "u_a_2_5": "O/U 2.5",
-      "ust": "Boven",
+      "ust": "Over ",
       "ust_2_5": "Over 2.5",
       "ust_a5be93": " OVER",
       "uyelik_gerekmektedir": " lidmaatschap vereist",
@@ -202,12 +202,7 @@
       "yeni_para": "nieuw geld",
       "yukleniyor": "\n                    Laden...\n                ",
       "yuzde": "PERCENTAGE",
-      "yuzde_d786cd": "\n                % Percentage\n            ",
-      "1_gun": "1 dag",
-      "alt": "Onder",
-      "evet": "Ja",
-      "hayir": "Nee",
-      "ou25_label": "O/U 2.5"
+      "yuzde_d786cd": "\n                % Percentage\n            "
     },
     "flt": {
       "all": "Alle",
@@ -488,41 +483,7 @@
       "volume_lbl": "Volume:",
       "won_badge": "✓ GEWONNEN",
       "yes": "Ja",
-      "yesterday": "Gisteren",
-      "eski_lider": "Oude Leader",
-      "yeni_lider": "Nieuwe Leader",
-      "secenek": "Selectie",
-      "market_hacmi": "Marktvolume",
-      "toplam_hacim_lbl": "Totaalvolume",
-      "pct_view": "% Procent",
-      "money_view": "£ Geld",
-      "saat_kala": "u voor aftrap",
-      "maca_once": "Aftrap in",
-      "hacim_puan": "Volume Score",
-      "oran_puan": "Odds Score",
-      "oran_degisimi": "Quoteverandering",
-      "dusus_lbl": "Daling",
-      "olay_sonrasi": "Na evenement",
-      "sonrasi": "Hierna",
-      "cd_mim": "Geldimpact op marktvolume.",
-      "public_para": "publiek geld",
-      "analysis_word": "ANALYSE",
-      "analyst_lbl": "Analist",
-      "awaiting": "In afwachting",
-      "load_failed_short": "Mislukt",
-      "loser": "Verliezer",
-      "money_pct": "% Geld",
-      "net_profit": "Nettowinst",
-      "no_approved_signals": "Nog geen goedgekeurde signalen",
-      "odds_short": "Odds",
-      "pending_lbl": "In afwachting",
-      "pro_required": "Deze functie vereist een PRO-licentie.",
-      "result_lost": "Verloren",
-      "result_push": "Push",
-      "result_void": "Ongeldig",
-      "result_won": "Gewonnen",
-      "total": "Totaal",
-      "winner": "Winnaar"
+      "yesterday": "Gisteren"
     },
     "lic": {
       "activate": "Licentie Activeren",
@@ -552,8 +513,7 @@
       "amount": "Bedrag",
       "chart": "Grafiek",
       "chart_loading": "Grafiek laden...",
-      "match_detail": "Wedstrijddetails",
-      "oran_row": "Odds"
+      "match_detail": "Wedstrijddetails"
     },
     "mvh": {
       "last_value": "Laatste waarde",
@@ -571,8 +531,7 @@
       "odds_drop": "Oddsdaling",
       "smart_money": "Slim Geld",
       "vol_leader": "Volumeleider",
-      "vol_shock": "Volumeschok",
-      "moneyway_btts": "Moneyway BTTS"
+      "vol_shock": "Volumeschok"
     },
     "tbl": {
       "amount": "BEDRAG",
@@ -581,27 +540,7 @@
       "loading": "Laden...",
       "match": "WEDSTRIJD",
       "over": "OVER",
-      "volume": "VOLUME",
-      "alt": "Onder"
-    },
-    "live": {
-      "badge": "LIVE",
-      "bos": "Geen live wedstrijden gevonden",
-      "bos_sub": "Live wedstrijden verschijnen hier wanneer ze beginnen",
-      "bos_tablo": "Geen live wedstrijden",
-      "canli_maclar": "Live wedstrijden",
-      "dk": "Min",
-      "gelen_para": "Geld in",
-      "oran": "ODDS",
-      "oran_degisim": "Odds wijz.",
-      "pct_degisimi": "% wijz.",
-      "pro_gerekli": "Live gegevens vereisen een <strong>Pro</strong>-lidmaatschap",
-      "pro_periyot": "Live periodegegevens vereisen een Pro-lidmaatschap.",
-      "proya_gec": "Ga Pro →",
-      "skor": "SCORE",
-      "yuzde": "PCT",
-      "yukleniyor": "Live wedstrijden laden...",
-      "henuz_periyot": "Nog geen periodegegevens"
+      "volume": "VOLUME"
     }
   },
   "core": {
@@ -687,6 +626,7 @@
     "canli_periyot_verileri": "Live periodegegevens",
     "canli_veriler_yukleniyor": "Live data laden...",
     "fav_add": "Toevoegen aan favorieten",
+    "fav_remove": "Verwijderen uit favorieten",
     "favoriler": "Favorieten",
     "francais": "🇫🇷 Frans",
     "gelecek": "Toekomstig",
@@ -695,7 +635,6 @@
     },
     "periyot_verileri_yukleniyor": "Periodegegevens laden...",
     "search_placeholder": "Zoeken...",
-    "takim_veya_lig_ara": "Team of competitie zoeken...",
     "turkce": "🇹🇷 Turks"
   },
   "land": {
