@@ -984,7 +984,7 @@ async function loadTrades(slug, title, kickoff, opts) {
     marketFilter = null;
   }
 
-  await refreshTrackedWalletsMap();
+  refreshTrackedWalletsMap();
 
   try {
     const res = await fetch('/api/poly/trades?slug=' + encodeURIComponent(slug));

@@ -1616,23 +1616,29 @@ def list_tracked_wallets() -> List[Dict[str, Any]]:
 def list_tracked_wallets_with_stats() -> List[Dict[str, Any]]:
     """Wallet list enriched with success % + open position count per wallet
     (Task #280) - used by the `/poly` "Takip Edilen Bahisçiler" list UI so
-    those numbers show without opening the profile."""
+    those numbers show without opening the profile.
+    Uses ThreadPoolExecutor to fetch all wallet stats in parallel."""
     base = _supabase_base_url()
     if not base:
         return []
     headers = _supabase_headers()
     wallets = list_tracked_wallets()
-    for w in wallets:
+
+    def _fetch_one(w):
         wallet = w.get("wallet")
         if not wallet:
-            continue
+            return w
         try:
             w.update(_fetch_wallet_stat_summary(base, headers, wallet, w.get("created_at")))
         except Exception as e:
             print(f"[TrackedWallets] stat summary hatasi ({wallet}): {e}")
             w["win_rate_pct"] = None
             w["open_position_count"] = None
-    return wallets
+        return w
+
+    with ThreadPoolExecutor(max_workers=15) as pool:
+        results = list(pool.map(_fetch_one, wallets))
+    return results
 
 
 def add_tracked_wallet(wallet: str, nickname: str, notes: Optional[str] = None) -> bool:
