@@ -52,6 +52,10 @@ _server_alarm_cache = None
 _server_alarm_cache_time = 0
 SERVER_ALARM_CACHE_TTL = 120
 
+_poly_tracked_cache = {'data': None, 'ts': 0}
+_poly_profile_cache = {}
+POLY_CACHE_TTL = 300
+
 _cm_signals_cache = None
 _cm_signals_cache_time = 0
 CM_SIGNALS_CACHE_TTL = 60
