@@ -168,7 +168,7 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            return self.get_wallet_tracked_since(wallet)
+            return None
         except Exception as e:
             log(f"[Wallet Checkpoint GET] Hata: {e}")
             return None
@@ -212,7 +212,7 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            return self.get_wallet_tracked_since(wallet)
+            return None
         except Exception as e:
             log(f"[Wallet Redeem Checkpoint GET] Hata: {e}")
             return None

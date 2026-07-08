@@ -1545,21 +1545,16 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
 
 # ---- Supabase CRUD: tracked_wallets / tracked_wallet_activity / tracked_wallet_positions ----
 
-def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, tracked_since: Optional[str]) -> Dict[str, Any]:
-    """Lightweight per-wallet stats for the tracked-wallets LIST view (Task
-    #280) - success % + open position count, filtered to only data collected
-    since tracking started. Deliberately avoids `_build_display_activity`
-    (which does CLOB market-resolution calls) since this runs once per
-    tracked wallet on every list load and must stay fast."""
+def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, tracked_since: Optional[str] = None) -> Dict[str, Any]:
+    """Lightweight per-wallet stats for the tracked-wallets LIST view.
+    Uses ALL data in DB (no date filter) - stats improve as new bets
+    are collected and resolved over time."""
     try:
-        activity_params = {
+        r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
             "select": "asset,traded_at",
             "wallet": f"eq.{wallet}",
             "limit": 2000,
-        }
-        if tracked_since:
-            activity_params["traded_at"] = f"gte.{tracked_since}"
-        r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params=activity_params, timeout=15)
+        }, timeout=15)
         activity_rows = r.json() if r.status_code == 200 else []
     except Exception:
         activity_rows = []
@@ -1580,20 +1575,14 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
         position_rows = []
 
     try:
-        redeem_params = {
+        r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params={
             "select": "condition_id,asset,amount_usdc,traded_at",
             "wallet": f"eq.{wallet}",
             "limit": 2000,
-        }
-        if tracked_since:
-            redeem_params["traded_at"] = f"gte.{tracked_since}"
-        r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params=redeem_params, timeout=15)
+        }, timeout=15)
         redeem_rows = r.json() if r.status_code == 200 else []
     except Exception:
         redeem_rows = []
-
-    if tracked_since:
-        position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
 
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     return {
@@ -1848,8 +1837,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             "order": "traded_at.desc",
             "limit": 2000,
         }
-        if tracked_since:
-            activity_params["traded_at"] = f"gte.{tracked_since}"
         r = requests.get(
             f"{base}/rest/v1/tracked_wallet_activity",
             headers=headers,
@@ -1888,8 +1875,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             "order": "traded_at.desc",
             "limit": 2000,
         }
-        if tracked_since:
-            redeem_params["traded_at"] = f"gte.{tracked_since}"
         r = requests.get(
             f"{base}/rest/v1/tracked_wallet_redeems",
             headers=headers,
@@ -1900,15 +1885,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         print(f"[WalletProfile] redeem fetch hatasi: {e}")
         redeem_rows = []
-
-    # Acik pozisyonlar her zaman GUNCEL bir anlik goruntudur (ne zaman acildigi
-    # /positions endpoint'inde tutulmaz), bu yuzden tarih filtresi uygulanamaz.
-    # Bunun yerine: bu pozisyonun varligini takip baslangicindan SONRA en az bir
-    # islemle (activity_rows, yukarida zaten filtrelendi) dogrulayabiliyor
-    # muyuz? Dogrulayamiyorsak (pozisyon tamamen takip oncesi acildi ve o
-    # tarihten beri hic islem gormedi), takip sonrasi gozlemlenmis sayilmaz.
-    if tracked_since:
-        position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
 
     trade_count = len(activity_rows)
     total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
