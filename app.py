@@ -54,7 +54,7 @@ SERVER_ALARM_CACHE_TTL = 120
 
 _poly_tracked_cache = {'data': None, 'ts': 0}
 _poly_profile_cache = {}
-POLY_CACHE_TTL = 300
+POLY_CACHE_TTL = 60
 
 _cm_signals_cache = None
 _cm_signals_cache_time = 0
@@ -933,8 +933,13 @@ def api_poly_trades():
 @app.route('/api/poly/tracked', methods=['GET'])
 def api_poly_tracked_list():
     """Takip edilen bahisçi cüzdanlarının listesi"""
+    global _poly_tracked_cache
     try:
+        now = time.time()
+        if _poly_tracked_cache['data'] is not None and now - _poly_tracked_cache['ts'] < POLY_CACHE_TTL:
+            return jsonify({'wallets': _poly_tracked_cache['data'], 'cached': True})
         wallets = poly_list_tracked_wallets()
+        _poly_tracked_cache = {'data': wallets, 'ts': now}
         return jsonify({'wallets': wallets})
     except Exception as e:
         print(f"[Poly] /api/poly/tracked GET error: {e}")
@@ -943,6 +948,7 @@ def api_poly_tracked_list():
 @app.route('/api/poly/tracked', methods=['POST'])
 def api_poly_tracked_add():
     """Yeni bir cüzdanı takibe al (wallet + takma ad)"""
+    global _poly_tracked_cache
     data = request.get_json(silent=True) or {}
     wallet = (data.get('wallet') or '').strip().lower()
     nickname = (data.get('nickname') or '').strip()
@@ -955,6 +961,7 @@ def api_poly_tracked_add():
         ok = poly_add_tracked_wallet(wallet, nickname, notes)
         if not ok:
             return jsonify({'success': False, 'error': 'Cüzdan eklenemedi (zaten takip ediliyor olabilir)'}), 409
+        _poly_tracked_cache = {'data': None, 'ts': 0}
         return jsonify({'success': True})
     except Exception as e:
         print(f"[Poly] /api/poly/tracked POST error: {e}")
@@ -963,11 +970,14 @@ def api_poly_tracked_add():
 @app.route('/api/poly/tracked/<wallet>', methods=['PATCH'])
 def api_poly_tracked_update(wallet):
     """Takip edilen bir cüzdanın takma adını/notunu güncelle"""
+    global _poly_tracked_cache, _poly_profile_cache
     data = request.get_json(silent=True) or {}
     nickname = data.get('nickname')
     notes = data.get('notes')
     try:
         ok = poly_update_tracked_wallet(wallet, nickname=nickname, notes=notes)
+        _poly_tracked_cache = {'data': None, 'ts': 0}
+        _poly_profile_cache.pop(wallet.lower(), None)
         return jsonify({'success': ok})
     except Exception as e:
         print(f"[Poly] /api/poly/tracked PATCH error: {e}")
@@ -976,8 +986,11 @@ def api_poly_tracked_update(wallet):
 @app.route('/api/poly/tracked/<wallet>', methods=['DELETE'])
 def api_poly_tracked_remove(wallet):
     """Bir cüzdanı takipten çıkar"""
+    global _poly_tracked_cache, _poly_profile_cache
     try:
         ok = poly_remove_tracked_wallet(wallet)
+        _poly_tracked_cache = {'data': None, 'ts': 0}
+        _poly_profile_cache.pop(wallet.lower(), None)
         return jsonify({'success': ok})
     except Exception as e:
         print(f"[Poly] /api/poly/tracked DELETE error: {e}")
@@ -986,11 +999,18 @@ def api_poly_tracked_remove(wallet):
 @app.route('/api/poly/tracked/<wallet>/profile', methods=['GET'])
 def api_poly_tracked_profile(wallet):
     """Takip edilen bir cüzdanın profil görünümü: istatistikler, işlem geçmişi, açık pozisyonlar"""
+    global _poly_profile_cache
+    key = wallet.lower()
     try:
+        now = time.time()
+        cached = _poly_profile_cache.get(key)
+        if cached and now - cached['ts'] < POLY_CACHE_TTL:
+            return jsonify({**cached['data'], 'cached': True})
         profile = poly_get_wallet_profile(wallet)
         if not profile:
             return jsonify({'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
         profile['found'] = True
+        _poly_profile_cache[key] = {'data': profile, 'ts': now}
         return jsonify(profile)
     except Exception as e:
         print(f"[Poly] /api/poly/tracked/<wallet>/profile error: {e}")
