@@ -13,6 +13,7 @@ import time
 import logging
 import threading
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 GAMMA_BASE = "https://gamma-api.polymarket.com"
 DATA_BASE = "https://data-api.polymarket.com"
+CLOB_BASE = "https://clob.polymarket.com"
 
 SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Soccer","slug":"soccer"}
 
@@ -213,6 +215,54 @@ _EVENTS_CACHE_TTL = 90
 _closed_events_cache = {"data": None, "time": 0}
 _closed_events_cache_lock = threading.Lock()
 _CLOSED_EVENTS_CACHE_TTL = 180
+
+# Market-level resolution (which outcome token actually won) fetched from the
+# public CLOB API by conditionId. This is wallet-independent - it tells us
+# the true winner of a market regardless of what any individual wallet's
+# (possibly asset-less/batched) REDEEM row claims. Once a market is closed
+# its resolution never changes, so successful lookups are cached forever for
+# the life of the process; unresolved/failed lookups are not cached so they
+# get retried on the next request.
+_market_resolution_cache: Dict[str, Optional[Dict[str, bool]]] = {}
+_market_resolution_lock = threading.Lock()
+
+
+def _fetch_market_resolution(condition_id: str) -> Optional[Dict[str, bool]]:
+    """Look up which specific outcome token won a (closed) market, straight
+    from the public CLOB API - wallet-independent ground truth. Returns
+    {token_id: is_winner} or None if the market isn't resolved yet / the
+    lookup failed. Successful (closed-market) results are cached forever
+    for the life of the process since a market's resolution never changes."""
+    if not condition_id:
+        return None
+    with _market_resolution_lock:
+        if condition_id in _market_resolution_cache:
+            return _market_resolution_cache[condition_id]
+    try:
+        resp = requests.get(f"{CLOB_BASE}/markets/{condition_id}", timeout=8)
+        if resp.status_code != 200:
+            return None
+        data = resp.json() or {}
+    except Exception as e:
+        print(f"[Polymarket] CLOB market resolution fetch hatasi ({condition_id[:12]}...): {e}")
+        return None
+
+    if not data.get("closed"):
+        return None  # not resolved yet - don't cache, retry later
+
+    tokens = data.get("tokens") or []
+    resolution = {}
+    for t in tokens:
+        token_id = t.get("token_id")
+        if token_id is not None:
+            resolution[token_id] = bool(t.get("winner"))
+
+    if not resolution:
+        return None
+
+    with _market_resolution_lock:
+        _market_resolution_cache[condition_id] = resolution
+    return resolution
 
 
 def _parse_match_title(title: str):
@@ -1849,6 +1899,28 @@ def _build_display_activity(
         if asset and cid and asset in resolved_won_ids:
             known_winner_asset_by_condition[cid] = asset
 
+    # Pre-warm the CLOB resolution cache for every conditionId that will
+    # actually need it, fetched CONCURRENTLY - a wallet can have hundreds of
+    # distinct markets, and calling the CLOB API one-by-one in the row loop
+    # below made large wallet profiles take 30-45s+ to load (Task #279).
+    conditions_needing_resolution: set = set()
+    for rows, key in ((activity_rows, "condition_id"), (position_rows or [], "condition_id")):
+        for r in rows:
+            asset = r.get("asset")
+            cid = r.get(key)
+            if not asset or not cid:
+                continue
+            if asset in resolved_won_ids or asset in resolved_lost_ids:
+                continue
+            if known_winner_asset_by_condition.get(cid):
+                continue
+            conditions_needing_resolution.add(cid)
+    if conditions_needing_resolution:
+        with ThreadPoolExecutor(max_workers=40) as pool:
+            futures = [pool.submit(_fetch_market_resolution, cid) for cid in conditions_needing_resolution]
+            for f in as_completed(futures):
+                f.result()
+
     def _row_result(condition_id: Any, asset: Any = None) -> str:
         # `asset` (specific outcome token) is checked first since it's
         # unambiguous; `condition_id` (shared by all outcomes of a market)
@@ -1861,14 +1933,26 @@ def _build_display_activity(
         known_winner = known_winner_asset_by_condition.get(condition_id)
         if known_winner:
             return "won" if asset == known_winner else "lost"
+        # No clean signal yet from the wallet's own (possibly asset-less/
+        # batched, or simply not-yet-redeemed) data. Ask the market itself:
+        # the public CLOB API exposes, per closed market, which specific
+        # outcome token actually won - wallet-independent ground truth, so
+        # it's safe to trust for any known asset regardless of how many
+        # outcomes were traded under the same conditionId (Task #279).
+        if asset:
+            resolution = _fetch_market_resolution(condition_id)
+            if resolution and asset in resolution:
+                return "won" if resolution[asset] else "lost"
+            return "unknown"
         # A market can only have ONE winning outcome. If we've actually seen
         # more than one distinct asset traded under this conditionId (e.g.
-        # both "Over" and "Under") but have no clean per-asset signal telling
-        # us which one won, an ambiguous conditionId-level redeem entry (see
-        # comment above) is NOT reliable enough to call every side a winner -
-        # so we report "unknown" rather than risk a false "Kazandı" for the
-        # side that actually lost. The blanket conditionId fallback below is
-        # only safe when at most one outcome was ever traded under it.
+        # both "Over" and "Under") but have no asset for this row (legacy
+        # rows scraped before the asset column existed) an ambiguous
+        # conditionId-level redeem entry is NOT reliable enough to call
+        # every side a winner - so we report "unknown" rather than risk a
+        # false "Kazandı" for the side that actually lost. The blanket
+        # conditionId fallback below is only safe when at most one outcome
+        # was ever traded under it.
         if len(distinct_assets_by_condition.get(condition_id, set())) > 1:
             return "unknown"
         if condition_id in resolved_won_ids:
