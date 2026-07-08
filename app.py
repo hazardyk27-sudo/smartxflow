@@ -1471,6 +1471,17 @@ def _warmup_licenses():
     _license_cache['ts'] = _t.time()
     return len(licenses)
 
+def _warmup_poly_tracked():
+    """Pre-fill poly tracked wallets cache at server startup"""
+    global _poly_tracked_cache
+    import time as _t
+    try:
+        wallets = poly_list_tracked_wallets()
+        _poly_tracked_cache = {'data': wallets, 'ts': _t.time()}
+        print(f"[Poly Warmup] Tracked wallets cache filled ({len(wallets)} cüzdan)")
+    except Exception as e:
+        print(f"[Poly Warmup] Hata: {e}")
+
 def _lazy_app_warmup():
     """Lazy warmup for /app - fills alarm + matches cache on first visit"""
     import time as _t
@@ -11341,6 +11352,8 @@ def _initialize_server():
             start_cleanup_scheduler()
         start_alarm_scheduler()
         print("[Init] Web-only mode - scraper/alarm managed by run_services.sh", flush=True)
+
+    threading.Thread(target=_warmup_poly_tracked, daemon=True).start()
 
     if is_client_mode():
         host = '127.0.0.1'
