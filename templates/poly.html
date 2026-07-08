@@ -543,10 +543,10 @@
           <tr>
             <th>Maç</th>
             <th>Seçenek</th>
-            <th>Ort. Oran</th>
-            <th>Güncel Oran</th>
-            <th>Değer (USDC)</th>
-            <th>Kâr/Zarar</th>
+            <th class="sortable" data-sort="avg_price">Ort. Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="cur_price">Güncel Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="current_value">Değer (USDC) <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="cash_pnl">Kâr/Zarar <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="walletPositionsBody"></tbody>
@@ -1242,25 +1242,8 @@ async function openWalletProfile(wallet) {
 
     walletSummaryBox.innerHTML = (data.summary || []).map(line => `<div>• ${line}</div>`).join('') || '<div>Özet bilgisi yok.</div>';
 
-    const positions = data.open_positions || [];
-    if (!positions.length) {
-      walletPositionsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
-    } else {
-      const toDecimalOdds = (v) => {
-        const p = Number(v) || 0;
-        return p > 0 ? (1 / p).toFixed(2) : '-';
-      };
-      walletPositionsBody.innerHTML = positions.map(p => `
-        <tr>
-          <td title="${escapeAttr(p.title || '-')}">${escapeAttr(p.title || '-')}</td>
-          <td title="${escapeAttr(p.outcome || '-')}">${escapeAttr(p.outcome || '-')}</td>
-          <td>${toDecimalOdds(p.avg_price)}</td>
-          <td>${toDecimalOdds(p.cur_price)}</td>
-          <td>${fmtUsd(p.current_value || 0)}</td>
-          <td>${pnlSpan(p.cash_pnl)}</td>
-        </tr>
-      `).join('');
-    }
+    currentPositions = data.open_positions || [];
+    renderPositionsTable();
 
     currentActivity = data.activity || [];
     renderActivityTable();
@@ -1274,6 +1257,57 @@ let activitySortField = 'traded_at';
 let activitySortDir = 'desc';
 const RESULT_LABELS = { won: 'Kazandı', lost: 'Kaybetti', open: 'Açık', unknown: '-' };
 const RESULT_ORDER = { won: 2, lost: 1, open: 0, unknown: -1 };
+
+let currentPositions = [];
+let positionSortField = 'current_value';
+let positionSortDir = 'desc';
+
+function renderPositionsTable() {
+  const walletPositionsBody = document.getElementById('walletPositionsBody');
+  if (!walletPositionsBody) return;
+  const positions = currentPositions || [];
+  if (!positions.length) {
+    walletPositionsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
+  } else {
+    const toDecimalOdds = (v) => {
+      const p = Number(v) || 0;
+      return p > 0 ? (1 / p).toFixed(2) : '-';
+    };
+    const sorted = [...positions].sort((a, b) => {
+      const numFields = ['avg_price', 'cur_price', 'current_value', 'cash_pnl'];
+      if (numFields.includes(positionSortField)) {
+        const va = Number(a[positionSortField]) || 0;
+        const vb = Number(b[positionSortField]) || 0;
+        return positionSortDir === 'asc' ? va - vb : vb - va;
+      }
+      const va = (a[positionSortField] || '').toString().toLowerCase();
+      const vb = (b[positionSortField] || '').toString().toLowerCase();
+      if (va < vb) return positionSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return positionSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    walletPositionsBody.innerHTML = sorted.map(p => `
+      <tr>
+        <td title="${escapeAttr(p.title || '-')}">${escapeAttr(p.title || '-')}</td>
+        <td title="${escapeAttr(p.outcome || '-')}">${escapeAttr(p.outcome || '-')}</td>
+        <td>${toDecimalOdds(p.avg_price)}</td>
+        <td>${toDecimalOdds(p.cur_price)}</td>
+        <td>${fmtUsd(p.current_value || 0)}</td>
+        <td>${pnlSpan(p.cash_pnl)}</td>
+      </tr>
+    `).join('');
+  }
+  // Update sort arrows on positions table headers
+  document.querySelectorAll('.wallet-positions-table th.sortable').forEach(h => {
+    h.classList.remove('active');
+    h.querySelector('.sort-arrow').textContent = '';
+  });
+  const activePosTh = document.querySelector(`.wallet-positions-table th[data-sort="${positionSortField}"]`);
+  if (activePosTh) {
+    activePosTh.classList.add('active');
+    activePosTh.querySelector('.sort-arrow').textContent = positionSortDir === 'asc' ? '▲' : '▼';
+  }
+}
 
 function renderActivityTable() {
   const activity = currentActivity || [];
@@ -1337,7 +1371,7 @@ function renderActivityTable() {
   }).join('');
 }
 
-document.querySelectorAll('.wallet-activity-table th.sortable').forEach(th => {
+document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) th.sortable').forEach(th => {
   th.addEventListener('click', () => {
     const field = th.dataset.sort;
     if (activitySortField === field) {
@@ -1346,13 +1380,32 @@ document.querySelectorAll('.wallet-activity-table th.sortable').forEach(th => {
       activitySortField = field;
       activitySortDir = (field === 'match' || field === 'selection' || field === 'action') ? 'asc' : 'desc';
     }
-    document.querySelectorAll('.wallet-activity-table th.sortable').forEach(h => {
+    document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) th.sortable').forEach(h => {
       h.classList.remove('active');
       h.querySelector('.sort-arrow').textContent = '';
     });
     th.classList.add('active');
     th.querySelector('.sort-arrow').textContent = activitySortDir === 'asc' ? '▲' : '▼';
     renderActivityTable();
+  });
+});
+// Set default sort arrow on Tarih column for activity table
+const defaultActivityTh = document.querySelector('.wallet-activity-table:not(.wallet-positions-table) th[data-sort="traded_at"]');
+if (defaultActivityTh) {
+  defaultActivityTh.classList.add('active');
+  defaultActivityTh.querySelector('.sort-arrow').textContent = '▼';
+}
+
+document.querySelectorAll('.wallet-positions-table th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const field = th.dataset.sort;
+    if (positionSortField === field) {
+      positionSortDir = positionSortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      positionSortField = field;
+      positionSortDir = 'desc';
+    }
+    renderPositionsTable();
   });
 });
 

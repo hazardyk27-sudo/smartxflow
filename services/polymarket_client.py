@@ -1708,24 +1708,20 @@ def remove_tracked_wallet(wallet: str) -> bool:
 
 def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Shared won/lost/open-position accounting used by both the full wallet
-    profile and the tracked-wallets list summary. Pure function of
-    (position_rows, redeem_rows) - no CLOB calls, safe to run for every
-    tracked wallet on every list load.
+    profile and the tracked-wallets list summary.
 
-    Won markets = every conditionId this wallet has ever redeemed WITH a
-    non-zero payout (durable, survives the position disappearing from
-    /positions) UNIONed with any currently-unredeemed-but-resolved winning
-    position still in the snapshot. Some wallets (esp. bots) batch-redeem
-    ALL resolved positions - including losers, which pay out $0 - just to
-    clear dust from /positions. A REDEEM row alone does NOT mean "won";
-    only a redeem with amount_usdc > 0 does. A $0 redeem is a loss.
-    IMPORTANT: `condition_id` identifies a whole MARKET (e.g. "Mexico vs
-    England: O/U 5.5"), not a single outcome - both the "Over" and "Under"
-    outcome tokens of that market share the same condition_id, each with
-    its own distinct `asset` id. Resolving/redeeming ONE side must not mark
-    the OTHER (losing) side's activity rows as "won" too. So won/lost is
-    tracked primarily by `asset`; condition_id sets are kept only as a
-    fallback for older rows scraped before the `asset` column existed."""
+    WIN RATE uses condition_id-based grouping: 1 market = 1 bet, regardless
+    of how many outcome tokens the wallet held. If any redeem for a given
+    condition_id paid > $0.01, that market is "won"; if all redeems paid $0,
+    it is "lost". Open positions (no redeem yet) are excluded entirely.
+    This avoids the double-counting bug that occurred when asset IDs and
+    condition_ids were mixed in the same set.
+
+    ACTIVITY BADGE display (resolved_won_ids / resolved_lost_ids) keeps the
+    asset-level logic so each row in the İşlem Geçmişi table gets the correct
+    Kazandı / Kaybetti badge at the outcome-token level."""
+
+    # ── Activity-badge sets (asset-level, unchanged) ─────────────────────
     resolved_won_assets = {
         rw.get("asset")
         for rw in redeem_rows
@@ -1737,17 +1733,18 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
         if rw.get("asset") and float(rw.get("amount_usdc") or 0) <= 0.01
     }
     resolved_lost_assets -= resolved_won_assets
-    resolved_won_ids = {
+    resolved_won_cids_badge = {
         rw.get("condition_id")
         for rw in redeem_rows
         if not rw.get("asset") and rw.get("condition_id") and float(rw.get("amount_usdc") or 0) > 0.01
     }
-    resolved_lost_ids = {
+    resolved_lost_cids_badge = {
         rw.get("condition_id")
         for rw in redeem_rows
         if not rw.get("asset") and rw.get("condition_id") and float(rw.get("amount_usdc") or 0) <= 0.01
     }
-    resolved_lost_ids -= resolved_won_ids
+    resolved_lost_cids_badge -= resolved_won_cids_badge
+
     realized_pnl_total = 0.0
     open_positions = []
     for p in position_rows:
@@ -1762,18 +1759,39 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
                 (resolved_won_assets if won else resolved_lost_assets).add(asset)
             else:
                 if won:
-                    resolved_won_ids.add(condition_id)
-                elif condition_id not in resolved_won_ids:
-                    resolved_lost_ids.add(condition_id)
+                    resolved_won_cids_badge.add(condition_id)
+                elif condition_id not in resolved_won_cids_badge:
+                    resolved_lost_cids_badge.add(condition_id)
             realized_pnl_total += float(p.get("cash_pnl") or 0)
         else:
             open_positions.append(p)
 
-    resolved_won_ids = resolved_won_ids | resolved_won_assets
-    resolved_lost_ids = resolved_lost_ids | resolved_lost_assets
+    resolved_won_ids = resolved_won_cids_badge | resolved_won_assets
+    resolved_lost_ids = resolved_lost_cids_badge | resolved_lost_assets
 
-    resolved_won = len(resolved_won_ids)
-    resolved_lost = len(resolved_lost_ids)
+    # ── Win rate: condition_id-based grouping (1 market = 1 bet) ─────────
+    # Group ALL redeems by condition_id. A single > $0 redeem on any outcome
+    # token of that market means the wallet won that market.
+    won_conditions: Dict[str, float] = {}
+    for rw in redeem_rows:
+        cid = rw.get("condition_id") or rw.get("asset")
+        if not cid:
+            continue
+        amount = float(rw.get("amount_usdc") or 0)
+        won_conditions[cid] = won_conditions.get(cid, 0.0) + amount
+    # Also include position-based resolved markets not yet redeemed
+    for p in position_rows:
+        cur_price = float(p.get("cur_price") or 0)
+        redeemable = bool(p.get("redeemable"))
+        if not redeemable:
+            continue
+        if cur_price >= 0.98 or cur_price <= 0.02:
+            cid = p.get("condition_id") or p.get("asset")
+            if cid and cid not in won_conditions:
+                won_conditions[cid] = 1.0 if cur_price >= 0.98 else 0.0
+
+    resolved_won = sum(1 for v in won_conditions.values() if v > 0.01)
+    resolved_lost = sum(1 for v in won_conditions.values() if v <= 0.01)
     resolved_total = resolved_won + resolved_lost
     win_rate = round((resolved_won / resolved_total) * 100, 1) if resolved_total else None
 
