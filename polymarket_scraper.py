@@ -121,9 +121,37 @@ class PolymarketSupabaseWriter:
             log(f"[Trades UPSERT] Hata: {e}")
             return False
 
+    def get_wallet_tracked_since(self, wallet: str) -> Optional[int]:
+        """Return unix ts (seconds) of the moment this wallet was added to
+        tracked_wallets (created_at), or None if the wallet row can't be
+        found. Used as the checkpoint floor on a wallet's FIRST sync so we
+        never backfill trades that happened before we started watching it
+        (Task #280)."""
+        try:
+            headers = self._headers()
+            url = f"{self._rest_url('tracked_wallets')}?wallet=eq.{wallet}&select=created_at&limit=1"
+            resp = requests.get(url, headers=headers, timeout=15, verify=SSL_VERIFY)
+            if resp.status_code != 200:
+                log(f"[Wallet Tracked-Since GET] HTTP {resp.status_code}: {resp.text[:200]}")
+                return None
+            rows = resp.json()
+            if not rows:
+                return None
+            created_at_str = rows[0].get("created_at")
+            if not created_at_str:
+                return None
+            dt = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+            return int(dt.timestamp())
+        except Exception as e:
+            log(f"[Wallet Tracked-Since GET] Hata: {e}")
+            return None
+
     def get_wallet_activity_checkpoint(self, wallet: str) -> Optional[int]:
         """Return unix ts (seconds) of the most recent stored activity row for
-        this tracked wallet, or None if nothing stored yet (first fill)."""
+        this tracked wallet. If nothing is stored yet, fall back to the
+        wallet's tracking-start time so the first sync only captures trades
+        made SINCE tracking began, instead of backfilling ~10k historical
+        trades (Task #280)."""
         try:
             headers = self._headers()
             url = (
@@ -135,13 +163,12 @@ class PolymarketSupabaseWriter:
                 log(f"[Wallet Checkpoint GET] HTTP {resp.status_code}: {resp.text[:200]}")
                 return None
             rows = resp.json()
-            if not rows:
-                return None
-            traded_at_str = rows[0].get("traded_at")
-            if not traded_at_str:
-                return None
-            dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
-            return int(dt.timestamp())
+            if rows:
+                traded_at_str = rows[0].get("traded_at")
+                if traded_at_str:
+                    dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
+                    return int(dt.timestamp())
+            return self.get_wallet_tracked_since(wallet)
         except Exception as e:
             log(f"[Wallet Checkpoint GET] Hata: {e}")
             return None
@@ -166,7 +193,9 @@ class PolymarketSupabaseWriter:
 
     def get_wallet_redeem_checkpoint(self, wallet: str) -> Optional[int]:
         """Return unix ts (seconds) of the most recent stored REDEEM row for
-        this tracked wallet, or None if nothing stored yet (first fetch)."""
+        this tracked wallet. If nothing is stored yet, fall back to the
+        wallet's tracking-start time (same first-sync fix as
+        get_wallet_activity_checkpoint - Task #280)."""
         try:
             headers = self._headers()
             url = (
@@ -178,13 +207,12 @@ class PolymarketSupabaseWriter:
                 log(f"[Wallet Redeem Checkpoint GET] HTTP {resp.status_code}: {resp.text[:200]}")
                 return None
             rows = resp.json()
-            if not rows:
-                return None
-            traded_at_str = rows[0].get("traded_at")
-            if not traded_at_str:
-                return None
-            dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
-            return int(dt.timestamp())
+            if rows:
+                traded_at_str = rows[0].get("traded_at")
+                if traded_at_str:
+                    dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
+                    return int(dt.timestamp())
+            return self.get_wallet_tracked_since(wallet)
         except Exception as e:
             log(f"[Wallet Redeem Checkpoint GET] Hata: {e}")
             return None

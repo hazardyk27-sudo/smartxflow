@@ -1127,10 +1127,16 @@ async function loadTrackedWallets() {
     wallets.forEach(w => {
       const item = document.createElement('div');
       item.className = 'tracked-wallet-item';
+      const winRateText = w.win_rate_pct != null ? `%${w.win_rate_pct}` : '-';
+      const openPosText = w.open_position_count ?? 0;
       item.innerHTML = `
         <div>
           <div class="tracked-wallet-name">${escapeAttr(w.nickname)}</div>
           <div class="tracked-wallet-addr">${truncAddr(w.wallet)}</div>
+          <div class="tracked-wallet-stats" style="margin-top:4px;font-size:12px;color:#9aa2b8;">
+            <span>İsabet: <strong style="color:#e6e8f0;">${winRateText}</strong></span>
+            <span style="margin-left:12px;">Açık Pozisyon: <strong style="color:#e6e8f0;">${openPosText}</strong></span>
+          </div>
         </div>
         <div class="tracked-wallet-actions">
           <button data-action="profile">Profil</button>

@@ -232,7 +232,7 @@ from services.polymarket_client import (
     search_matches as poly_search_matches,
     get_top_trades as poly_get_top_trades,
     get_stored_trades as poly_get_stored_trades,
-    list_tracked_wallets as poly_list_tracked_wallets,
+    list_tracked_wallets_with_stats as poly_list_tracked_wallets,
     add_tracked_wallet as poly_add_tracked_wallet,
     update_tracked_wallet as poly_update_tracked_wallet,
     remove_tracked_wallet as poly_remove_tracked_wallet,
