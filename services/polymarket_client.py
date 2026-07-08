@@ -1770,28 +1770,62 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
     resolved_lost_ids = resolved_lost_cids_badge | resolved_lost_assets
 
     # ── Win rate: condition_id-based grouping (1 market = 1 bet) ─────────
-    # Group ALL redeems by condition_id. A single > $0 redeem on any outcome
-    # token of that market means the wallet won that market.
-    won_conditions: Dict[str, float] = {}
+    # First build an asset→condition_id lookup from rows that have BOTH fields.
+    # Old scraper rows may have asset only; new rows have both. Without this
+    # normalization the same market gets two separate keys (the asset ID and the
+    # condition_id) and is double-counted.
+    asset_to_cid: Dict[str, str] = {}
     for rw in redeem_rows:
-        cid = rw.get("condition_id") or rw.get("asset")
+        a = rw.get("asset")
+        c = rw.get("condition_id")
+        if a and c:
+            asset_to_cid[a] = c
+    for p in position_rows:
+        a = p.get("asset")
+        c = p.get("condition_id")
+        if a and c:
+            asset_to_cid[a] = c
+
+    def _canonical_cid(row: Dict[str, Any]) -> Optional[str]:
+        cid = row.get("condition_id")
+        if cid:
+            return cid
+        asset = row.get("asset")
+        if asset:
+            return asset_to_cid.get(asset, asset)
+        return None
+
+    # Classify each market as won or lost using ONLY actual redeems.
+    # Open positions (no redeem yet) are excluded entirely.
+    won_markets: set = set()
+    all_redeemed_markets: set = set()
+    for rw in redeem_rows:
+        cid = _canonical_cid(rw)
         if not cid:
             continue
-        amount = float(rw.get("amount_usdc") or 0)
-        won_conditions[cid] = won_conditions.get(cid, 0.0) + amount
-    # Also include position-based resolved markets not yet redeemed
+        all_redeemed_markets.add(cid)
+        if float(rw.get("amount_usdc") or 0) > 0.01:
+            won_markets.add(cid)
+    lost_markets = all_redeemed_markets - won_markets
+
+    # Also count position-based resolved markets not yet redeemed
+    # (wallet won / lost but hasn't clicked Redeem yet).
     for p in position_rows:
         cur_price = float(p.get("cur_price") or 0)
         redeemable = bool(p.get("redeemable"))
         if not redeemable:
             continue
         if cur_price >= 0.98 or cur_price <= 0.02:
-            cid = p.get("condition_id") or p.get("asset")
-            if cid and cid not in won_conditions:
-                won_conditions[cid] = 1.0 if cur_price >= 0.98 else 0.0
+            cid = _canonical_cid(p)
+            if not cid or cid in all_redeemed_markets:
+                continue  # already counted via redeems
+            if cur_price >= 0.98:
+                won_markets.add(cid)
+            else:
+                lost_markets.add(cid)
 
-    resolved_won = sum(1 for v in won_conditions.values() if v > 0.01)
-    resolved_lost = sum(1 for v in won_conditions.values() if v <= 0.01)
+    resolved_won = len(won_markets)
+    resolved_lost = len(lost_markets)
     resolved_total = resolved_won + resolved_lost
     win_rate = round((resolved_won / resolved_total) * 100, 1) if resolved_total else None
 
