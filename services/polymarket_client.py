@@ -1808,22 +1808,6 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
             won_markets.add(cid)
     lost_markets = all_redeemed_markets - won_markets
 
-    # Also count position-based resolved markets not yet redeemed
-    # (wallet won / lost but hasn't clicked Redeem yet).
-    for p in position_rows:
-        cur_price = float(p.get("cur_price") or 0)
-        redeemable = bool(p.get("redeemable"))
-        if not redeemable:
-            continue
-        if cur_price >= 0.98 or cur_price <= 0.02:
-            cid = _canonical_cid(p)
-            if not cid or cid in all_redeemed_markets:
-                continue  # already counted via redeems
-            if cur_price >= 0.98:
-                won_markets.add(cid)
-            else:
-                lost_markets.add(cid)
-
     resolved_won = len(won_markets)
     resolved_lost = len(lost_markets)
     resolved_total = resolved_won + resolved_lost
