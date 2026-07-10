@@ -1253,20 +1253,39 @@ async function loadTrackedWallets() {
       trackedWalletList.innerHTML = '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
       return;
     }
+    // Profil sayfasıyla aynı kaynak: her cüzdan için profile endpoint'ini parallel çek
+    const profileResults = await Promise.all(
+      wallets.map(w => fetch(`/api/poly/tracked/${w.wallet}/profile`).then(r => r.json()).catch(() => null))
+    );
+    const profileMap = {};
+    profileResults.forEach((pd, i) => {
+      if (!pd || !pd.found) return;
+      const activity = pd.activity || [];
+      const wonCount = activity.filter(r => r.result === 'won').length;
+      const lostCount = activity.filter(r => r.result === 'lost').length;
+      profileMap[(wallets[i].wallet || '').toLowerCase()] = {
+        tot: activity.length,
+        won: wonCount,
+        lost: lostCount,
+        pct: (wonCount + lostCount) > 0 ? Math.round((wonCount / (wonCount + lostCount)) * 1000) / 10 : null
+      };
+    });
+
     trackedWalletList.innerHTML = '';
     wallets.forEach(w => {
       const item = document.createElement('div');
       item.className = 'tw-card';
       item.dataset.wallet = (w.wallet || '').toLowerCase();
-      const pct = w.win_rate_pct;
+      const ps = profileMap[(w.wallet || '').toLowerCase()];
+      const pct = ps ? ps.pct : w.win_rate_pct;
       const grade = twGrade(pct);
       const winColor = twWinColor(pct);
       const openPos = w.open_position_count ?? 0;
       const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
       const initials = twInitials(w.nickname || '?');
-      const tot  = w.resolved_total  != null ? w.resolved_total  : '-';
-      const won  = w.resolved_won    != null ? w.resolved_won    : '-';
-      const lost = w.resolved_lost   != null ? w.resolved_lost   : '-';
+      const tot  = ps ? ps.tot  : (w.resolved_total  != null ? w.resolved_total  : '-');
+      const won  = ps ? ps.won  : (w.resolved_won    != null ? w.resolved_won    : '-');
+      const lost = ps ? ps.lost : (w.resolved_lost   != null ? w.resolved_lost   : '-');
       const pctText = pct != null ? `%${pct}` : '-';
       item.innerHTML = `
         <div class="tw-card-body">
