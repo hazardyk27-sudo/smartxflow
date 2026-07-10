@@ -2007,9 +2007,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc",
-                    "limit": 2000,
+                    "limit": 500,
                 },
-                timeout=20,
+                timeout=15,
             )
             return r2.json() if r2.status_code == 200 else []
         except Exception as e2:
@@ -2025,9 +2025,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "condition_id,asset,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
                     "wallet": f"eq.{wallet}",
                     "order": "current_value.desc",
-                    "limit": 500,
+                    "limit": 200,
                 },
-                timeout=20,
+                timeout=15,
             )
             return r2.json() if r2.status_code == 200 else []
         except Exception as e2:
@@ -2043,9 +2043,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "condition_id,asset,amount_usdc,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc",
-                    "limit": 2000,
+                    "limit": 1000,
                 },
-                timeout=20,
+                timeout=15,
             )
             return r2.json() if r2.status_code == 200 else []
         except Exception as e2:

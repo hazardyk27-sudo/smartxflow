@@ -1252,6 +1252,7 @@ async function loadTrackedWallets() {
     wallets.forEach(w => {
       const item = document.createElement('div');
       item.className = 'tw-card';
+      item.dataset.wallet = (w.wallet || '').toLowerCase();
       const pct = w.win_rate_pct;
       const grade = twGrade(pct);
       const winColor = twWinColor(pct);
@@ -1295,8 +1296,24 @@ async function loadTrackedWallets() {
     });
     // Pre-warm server-side profile cache: background-fetch each profile so
     // clicking "Profil →" is instant (cache TTL 300s covers typical session).
+    // Also update win_rate pill from profile data (more accurate than DB column).
     wallets.forEach(w => {
-      fetch(`/api/poly/tracked/${w.wallet}/profile`).catch(() => {});
+      fetch(`/api/poly/tracked/${w.wallet}/profile`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data || !data.stats) return;
+          const pct = data.stats.win_rate_pct;
+          if (pct == null) return;
+          // Find the card for this wallet by data-wallet attribute and update pill
+          const card = trackedWalletList.querySelector(`.tw-card[data-wallet="${w.wallet.toLowerCase()}"]`);
+          if (!card) return;
+          const pill = card.querySelector('.tw-winrate-pill');
+          if (!pill) return;
+          const color = pct >= 58 ? '#4ade80' : pct >= 45 ? '#fbbf24' : '#ff6b6b';
+          pill.style.color = color;
+          pill.textContent = `%${pct} isabet`;
+        })
+        .catch(() => {});
     });
   } catch (e) {
     trackedWalletList.innerHTML = '<div class="loading">Liste alınamadı.</div>';
