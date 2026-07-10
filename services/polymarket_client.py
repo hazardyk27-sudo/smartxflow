@@ -969,7 +969,7 @@ def get_stored_trades(slug: str, top_n: int = 3000) -> Optional[Dict[str, Any]]:
     # Fetch each phase separately (rather than one combined query ordered by
     # traded_at desc) so that high-volume matches with lots of recent LIVE
     # trades don't crowd the older PREMATCH trades out of a single row cap.
-    select_cols = "wallet,pseudonym,market_type,selection,side,outcome_raw,amount_usdc,price,traded_at,match_phase"
+    select_cols = "wallet,pseudonym,market_type,selection,side,outcome_raw,asset,amount_usdc,price,traded_at,match_phase"
     trade_rows: List[Dict[str, Any]] = []
     try:
         for phase in ("prematch", "live"):

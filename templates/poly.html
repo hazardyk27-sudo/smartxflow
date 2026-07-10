@@ -989,11 +989,14 @@ function renderTradesTable() {
     const w = t.wallet || '';
     walletCounts[w] = (walletCounts[w] || 0) + 1;
   });
-  // Group: BUY = ana satır, SELL = eşleşen alımın altında alt satır
+  // Group: BUY = ana satır, SELL = aynı wallet+asset'e ait alt satır (birebir pozisyon eşleşmesi)
   const _sellsByKeyT = {};
   sorted.forEach(t => {
     if (t.action === 'Satım') {
-      const k = (t.wallet||'').toLowerCase()+'|'+(t.selection||'').toLowerCase()+'|'+(t.side||'').toLowerCase();
+      // asset varsa birebir eşleştir, yoksa wallet+selection+side fallback
+      const k = t.asset
+        ? (t.wallet||'').toLowerCase()+'|asset|'+(t.asset||'')
+        : (t.wallet||'').toLowerCase()+'|'+(t.selection||'').toLowerCase()+'|'+(t.side||'').toLowerCase();
       if (!_sellsByKeyT[k]) _sellsByKeyT[k] = [];
       _sellsByKeyT[k].push(t);
     }
@@ -1019,7 +1022,9 @@ function renderTradesTable() {
       <td class="price">${t.price > 0 ? (1 / t.price).toFixed(2) : '-'}</td>
       <td>${fmtKickoff(t.timestamp_iso)}</td>
     </tr>`);
-    const k = (t.wallet||'').toLowerCase()+'|'+(t.selection||'').toLowerCase()+'|'+(t.side||'').toLowerCase();
+    const k = t.asset
+      ? (t.wallet||'').toLowerCase()+'|asset|'+(t.asset||'')
+      : (t.wallet||'').toLowerCase()+'|'+(t.selection||'').toLowerCase()+'|'+(t.side||'').toLowerCase();
     const _ms = _sellsByKeyT[k] || [];
     while (_ms.length > 0) {
       const s = _ms.shift();
