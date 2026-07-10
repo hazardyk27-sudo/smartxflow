@@ -1648,7 +1648,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary():
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "amount_usdc,price",
+                "select": "asset,amount_usdc,price",
                 "wallet": f"eq.{wallet}",
                 "limit": 5000,
             }, timeout=20)
@@ -1666,6 +1666,18 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
 
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
 
+    # Win rate: asset-level counting (same method as profile page display rows).
+    # resolved_won_ids / resolved_lost_ids contain asset IDs; counting unique
+    # assets in activity that appear in those sets gives identical results to
+    # what the profile page shows (wonCount/lostCount from displayActivity).
+    resolved_won_ids = resolved["resolved_won_ids"]
+    resolved_lost_ids = resolved["resolved_lost_ids"]
+    unique_assets_in_activity = {row.get("asset") for row in activity_rows if row.get("asset")}
+    asset_won_count = len(unique_assets_in_activity & resolved_won_ids)
+    asset_lost_count = len(unique_assets_in_activity & (resolved_lost_ids - resolved_won_ids))
+    asset_total = asset_won_count + asset_lost_count
+    asset_win_rate = round((asset_won_count / asset_total) * 100, 1) if asset_total else None
+
     trade_count = len(activity_rows)
     total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
     avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
@@ -1674,10 +1686,10 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     avg_price_decimal = _to_decimal_odds(avg_price) if avg_price else None
 
     stats_payload = {
-        "win_rate": resolved["win_rate"],
-        "resolved_won": resolved["resolved_won"],
-        "resolved_lost": resolved["resolved_lost"],
-        "resolved_total": resolved["resolved_total"],
+        "win_rate": asset_win_rate,
+        "resolved_won": asset_won_count,
+        "resolved_lost": asset_lost_count,
+        "resolved_total": asset_total,
         "trade_count": trade_count,
         "total_invested_usdc": round(total_invested, 2),
         "avg_bet_size_usdc": avg_bet_size,
@@ -2075,10 +2087,15 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
         avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
         avg_price_decimal = _to_decimal_odds(avg_price)
-        win_rate = resolved["win_rate"]
-        resolved_won = resolved["resolved_won"]
-        resolved_lost = resolved["resolved_lost"]
-        resolved_total = resolved["resolved_total"]
+        # Asset-level win rate — same method as profile page (wonCount/lostCount in JS)
+        _fb_assets = {row.get("asset") for row in activity_rows if row.get("asset")}
+        fb_won = len(_fb_assets & resolved_won_ids)
+        fb_lost = len(_fb_assets & (resolved_lost_ids - resolved_won_ids))
+        fb_total = fb_won + fb_lost
+        win_rate = round((fb_won / fb_total) * 100, 1) if fb_total else None
+        resolved_won = fb_won
+        resolved_lost = fb_lost
+        resolved_total = fb_total
         open_exposure = resolved["open_exposure"]
 
     total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
