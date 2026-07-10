@@ -454,13 +454,18 @@
     border-radius: 5px; letter-spacing: .3px; flex-shrink: 0;
   }
   .tw-addr { color: #6d7590; font-size: 11.5px; font-family: monospace; margin-bottom: 6px; }
-  .tw-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .tw-winrate-pill { font-size: 13px; font-weight: 700; }
-  .tw-pill-sep { color: #3a4356; font-size: 13px; }
-  .tw-pill {
-    font-size: 11.5px; color: #8b93a7;
-    background: #1a2233; border: 1px solid #262d3d;
-    border-radius: 5px; padding: 2px 8px;
+  .tw-mini-stats { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+  .tw-ms-box {
+    background: #1a2233; border: 1px solid #262d3d; border-radius: 6px;
+    padding: 4px 9px; display: flex; flex-direction: column; min-width: 58px;
+  }
+  .tw-ms-label { font-size: 10px; color: #6d7590; line-height: 1.2; }
+  .tw-ms-val { font-size: 13px; font-weight: 700; color: #e6e9ef; line-height: 1.3; }
+  .tw-ms-won { color: #34d399; }
+  .tw-ms-lost { color: #ff6b6b; }
+  .tw-ms-open {
+    font-size: 11px; color: #8b93a7; background: #1a2233; border: 1px solid #262d3d;
+    border-radius: 5px; padding: 4px 8px; align-self: flex-end;
   }
   .tw-actions {
     display: flex; gap: 6px; margin-top: 10px;
@@ -1256,10 +1261,13 @@ async function loadTrackedWallets() {
       const pct = w.win_rate_pct;
       const grade = twGrade(pct);
       const winColor = twWinColor(pct);
-      const winText = pct != null ? `%${pct} isabet` : '— isabet';
       const openPos = w.open_position_count ?? 0;
       const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
       const initials = twInitials(w.nickname || '?');
+      const tot  = w.resolved_total  != null ? w.resolved_total  : '-';
+      const won  = w.resolved_won    != null ? w.resolved_won    : '-';
+      const lost = w.resolved_lost   != null ? w.resolved_lost   : '-';
+      const pctText = pct != null ? `%${pct}` : '-';
       item.innerHTML = `
         <div class="tw-card-body">
           <div class="tw-avatar" style="background:${avatarBg}">${initials}</div>
@@ -1269,10 +1277,12 @@ async function loadTrackedWallets() {
               <span class="tw-grade" style="color:${grade.color};background:${grade.bg}">${grade.g}</span>
             </div>
             <div class="tw-addr">${truncAddr(w.wallet)}</div>
-            <div class="tw-pills">
-              <span class="tw-winrate-pill" style="color:${winColor}">${winText}</span>
-              <span class="tw-pill-sep">·</span>
-              <span class="tw-pill">${openPos} açık pos</span>
+            <div class="tw-mini-stats">
+              <div class="tw-ms-box"><span class="tw-ms-label">Toplam</span><span class="tw-ms-val">${tot}</span></div>
+              <div class="tw-ms-box"><span class="tw-ms-label">Kazanan</span><span class="tw-ms-val tw-ms-won">${won}</span></div>
+              <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost">${lost}</span></div>
+              <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" style="color:${winColor}">${pctText}</span></div>
+              ${openPos > 0 ? `<span class="tw-ms-open">${openPos} açık</span>` : ''}
             </div>
           </div>
         </div>
