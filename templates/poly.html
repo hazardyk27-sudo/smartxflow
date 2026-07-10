@@ -1329,8 +1329,8 @@ async function openWalletProfile(wallet) {
 
     const s = data.stats || {};
     const displayActivity = data.activity || [];
-    const wonCount = displayActivity.filter(r => r.result === 'win').length;
-    const lostCount = displayActivity.filter(r => r.result === 'loss').length;
+    const wonCount = displayActivity.filter(r => r.result === 'won').length;
+    const lostCount = displayActivity.filter(r => r.result === 'lost').length;
     const statCards = [
       { label: 'Toplam Bahis', value: displayActivity.length },
       { label: 'Kazanan', value: wonCount },
