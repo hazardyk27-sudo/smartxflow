@@ -1780,19 +1780,24 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         except Exception:
             pass
 
-    # CLOB-based win_rate (unique resolved assets).
-    asset_won_count = sum(1 for r in asset_to_result.values() if r == "won")
-    asset_lost_count = sum(1 for r in asset_to_result.values() if r == "lost")
-    asset_total = asset_won_count + asset_lost_count
-    asset_win_rate = round((asset_won_count / asset_total) * 100, 1) if asset_total else None
-    # Fall back to redeems-based stats if CLOB gave nothing (all markets still open).
-    if asset_total == 0:
-        asset_won_count = resolved["resolved_won"]
-        asset_lost_count = resolved["resolved_lost"]
-        asset_total = resolved["resolved_total"]
-        asset_win_rate = resolved["win_rate"]
+    # Row-level won/lost counts — matches profile page JS calculation.
+    # Uses asset_to_result to fill in result for rows that were just resolved
+    # this cycle (result was null before CLOB patching above).
+    act_won = 0
+    act_lost = 0
+    for row in activity_rows:
+        result = row.get("result")
+        if result is None:
+            asset = row.get("asset")
+            result = asset_to_result.get(asset) if asset else None
+        if result == "won":
+            act_won += 1
+        elif result == "lost":
+            act_lost += 1
+    act_total = len(activity_rows)
+    act_win_rate = round((act_won / (act_won + act_lost)) * 100, 1) if (act_won + act_lost) > 0 else None
 
-    trade_count = len(activity_rows)
+    trade_count = act_total
     total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
     avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
     weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
@@ -1800,10 +1805,10 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     avg_price_decimal = _to_decimal_odds(avg_price) if avg_price else None
 
     stats_payload = {
-        "win_rate": asset_win_rate,
-        "resolved_won": asset_won_count,
-        "resolved_lost": asset_lost_count,
-        "resolved_total": asset_total,
+        "win_rate": act_win_rate,
+        "resolved_won": act_won,
+        "resolved_lost": act_lost,
+        "resolved_total": act_total,
         "trade_count": trade_count,
         "total_invested_usdc": round(total_invested, 2),
         "avg_bet_size_usdc": avg_bet_size,
