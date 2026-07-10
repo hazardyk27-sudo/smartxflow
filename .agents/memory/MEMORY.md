@@ -10,3 +10,4 @@
 - [Polymarket tracked wallets architecture](polymarket-tracked-wallets.md) — per-wallet stats need /activity+/positions (not market /trades); scraper-touch exception scope; Hetzner deploy dependency.
 - [Polymarket country-code slug mapping](polymarket-country-code-slugs.md) — Polymarket slugs use inconsistent country code variants (che vs swi, nld vs ned); verify against live wallet data, don't rely on ISO standard alone.
 - [Polymarket CLOB market resolution](polymarket-clob-market-resolution.md) — CLOB API (not Gamma) gives wallet-independent won/lost per outcome token; batch-fetch unique conditionIds concurrently, not per-row, or large wallets take 30s+.
+- [Wallet activity result storage](wallet-activity-result.md) — tracked_wallet_activity.result col stores won/lost per asset; scraper writes via compute_and_save_wallet_stats (CLOB-based); profile reads from DB; CLOB only as fallback for null rows.

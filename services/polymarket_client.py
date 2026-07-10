@@ -1648,9 +1648,9 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary():
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "asset,amount_usdc,price",
+                "select": "asset,condition_id,result,amount_usdc,price",
                 "wallet": f"eq.{wallet}",
-                "limit": 5000,
+                "limit": 10000,
             }, timeout=20)
             return r.json() if r.status_code == 200 else []
         except Exception:
@@ -1666,17 +1666,82 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
 
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
 
-    # Win rate: asset-level counting (same method as profile page display rows).
-    # resolved_won_ids / resolved_lost_ids contain asset IDs; counting unique
-    # assets in activity that appear in those sets gives identical results to
-    # what the profile page shows (wonCount/lostCount from displayActivity).
+    # Win rate: CLOB-based resolution — same ground truth as profile display.
+    # For each unique condition_id in activity, call CLOB to determine which
+    # outcome token won, store in tracked_wallet_activity.result so the
+    # profile page reads directly from DB without live API calls on every open.
     resolved_won_ids = resolved["resolved_won_ids"]
     resolved_lost_ids = resolved["resolved_lost_ids"]
-    unique_assets_in_activity = {row.get("asset") for row in activity_rows if row.get("asset")}
-    asset_won_count = len(unique_assets_in_activity & resolved_won_ids)
-    asset_lost_count = len(unique_assets_in_activity & (resolved_lost_ids - resolved_won_ids))
+    open_assets = {p.get("asset") for p in position_rows if p.get("asset")}
+
+    # Collect condition_ids that still need CLOB resolution.
+    cids_needing_clob: set = set()
+    for row in activity_rows:
+        asset = row.get("asset")
+        cid = row.get("condition_id")
+        if not asset or not cid or asset in open_assets:
+            continue
+        if row.get("result") in ("won", "lost"):
+            continue  # already stored in DB
+        if asset in resolved_won_ids or asset in resolved_lost_ids:
+            continue  # known from redeems/positions
+        cids_needing_clob.add(cid)
+
+    if cids_needing_clob:
+        with ThreadPoolExecutor(max_workers=30) as pool:
+            futures = [pool.submit(_fetch_market_resolution, cid) for cid in cids_needing_clob]
+            for f in as_completed(futures):
+                f.result()
+
+    # Determine result per unique asset.
+    asset_to_result: Dict[str, str] = {}
+    for row in activity_rows:
+        asset = row.get("asset")
+        cid = row.get("condition_id")
+        if not asset or not cid or asset in open_assets:
+            continue
+        if row.get("result") in ("won", "lost"):
+            asset_to_result[asset] = row["result"]  # already stored
+            continue
+        if asset in resolved_won_ids:
+            asset_to_result[asset] = "won"
+            continue
+        if asset in resolved_lost_ids:
+            asset_to_result[asset] = "lost"
+            continue
+        resolution = _fetch_market_resolution(cid)  # from cache after pre-warm
+        if resolution is None:
+            continue
+        is_winner = resolution.get(asset)
+        if is_winner is None:
+            continue
+        asset_to_result[asset] = "won" if is_winner else "lost"
+
+    # PATCH tracked_wallet_activity.result for newly resolved assets (null rows only).
+    _patch_headers = {**headers, "Content-Type": "application/json"}
+    for _asset, _result_val in asset_to_result.items():
+        try:
+            requests.patch(
+                f"{base}/rest/v1/tracked_wallet_activity",
+                headers=_patch_headers,
+                params={"wallet": f"eq.{wallet}", "asset": f"eq.{_asset}", "result": "is.null"},
+                json={"result": _result_val},
+                timeout=10,
+            )
+        except Exception:
+            pass
+
+    # CLOB-based win_rate (unique resolved assets).
+    asset_won_count = sum(1 for r in asset_to_result.values() if r == "won")
+    asset_lost_count = sum(1 for r in asset_to_result.values() if r == "lost")
     asset_total = asset_won_count + asset_lost_count
     asset_win_rate = round((asset_won_count / asset_total) * 100, 1) if asset_total else None
+    # Fall back to redeems-based stats if CLOB gave nothing (all markets still open).
+    if asset_total == 0:
+        asset_won_count = resolved["resolved_won"]
+        asset_lost_count = resolved["resolved_lost"]
+        asset_total = resolved["resolved_total"]
+        asset_win_rate = resolved["win_rate"]
 
     trade_count = len(activity_rows)
     total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
@@ -2004,7 +2069,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 f"{base}/rest/v1/tracked_wallet_activity",
                 headers=headers,
                 params={
-                    "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                    "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc,id.desc",
                     "limit": 500,
@@ -2227,6 +2292,8 @@ def _build_display_activity(
             cid = r.get(key)
             if not asset or not cid:
                 continue
+            if r.get("result") in ("won", "lost"):
+                continue  # already resolved in DB, no CLOB needed
             if asset in resolved_won_ids or asset in resolved_lost_ids:
                 continue
             if known_winner_asset_by_condition.get(cid):
@@ -2330,6 +2397,7 @@ def _build_display_activity(
                 "traded_at": a.get("traded_at"),
                 "fill_count": 1,
                 "_last_dt": traded_dt,
+                "_stored_result": a.get("result") if a.get("result") in ("won", "lost") else None,
             })
             closed_group_index[key] = len(closed_groups) - 1
         else:
@@ -2340,6 +2408,8 @@ def _build_display_activity(
             if traded_dt and (g["_last_dt"] is None or traded_dt > g["_last_dt"]):
                 g["_last_dt"] = traded_dt
                 g["traded_at"] = a.get("traded_at")
+            if g.get("_stored_result") is None and a.get("result") in ("won", "lost"):
+                g["_stored_result"] = a["result"]
 
     display_rows = []
     for g in closed_groups:
@@ -2355,7 +2425,7 @@ def _build_display_activity(
             "side": g["side"],
             "action": g["action"],
             "is_open": False,
-            "result": _row_result(g["condition_id"], g.get("asset")),
+            "result": g.get("_stored_result") or _row_result(g["condition_id"], g.get("asset")),
             "outcome_raw": g["outcome_raw"],
             "amount_usdc": round(g["amount_usdc"], 2),
             "price": _to_decimal_odds(avg_p),
