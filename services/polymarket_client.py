@@ -29,7 +29,7 @@ SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Socc
 # (and are therefore the only ones a wallet-address search can match against).
 # Aggregate stats (total volume, per-selection market chips) still use ALL
 # trades regardless of size - this threshold only curates the trade ledger.
-MIN_TRADE_AMOUNT_USDC = 1000.0
+MIN_TRADE_AMOUNT_USDC = 100.0
 
 _HTTP_TIMEOUT = 10
 _HEADERS = {
