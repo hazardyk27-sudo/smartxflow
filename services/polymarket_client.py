@@ -2006,7 +2006,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 params={
                     "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
-                    "order": "traded_at.desc",
+                    "order": "traded_at.desc,id.desc",
                     "limit": 500,
                 },
                 timeout=15,

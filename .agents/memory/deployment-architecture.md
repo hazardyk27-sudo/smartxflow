@@ -16,6 +16,10 @@ Yanlış (eski): `python app.py & bash run_services.sh & wait` (scraper da başl
 
 **Why:** Hem Hetzner hem Replit Deployment aynı anda scraper çalıştırınca Supabase statement timeout (57014) hatası oluşuyordu. Fix: 2026-06-20.
 
+## Hetzner Proje Yolu
+`/opt/smartxflow` — polymarket_scraper.py burada. `python3` kullan (`python` değil).
+Çalıştırma: `cd /opt/smartxflow && set -a && source .env && set +a && python3 polymarket_scraper.py &`
+
 ## Hetzner Systemd Servisleri
 - smartxflow-web.service (gunicorn port 5000)
 - smartxflow-scraper.service
