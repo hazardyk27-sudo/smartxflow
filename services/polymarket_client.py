@@ -630,6 +630,51 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
     return matches
 
 
+def get_all_active_matches(hours_ahead: int = 168) -> List[Dict[str, Any]]:
+    """Fetch real head-to-head football matches from the live Gamma API within
+    the window [start-of-yesterday .. now+hours_ahead]. Used by the scraper to
+    discover newly listed matches (e.g. knockout-round games added by Polymarket
+    hours before kickoff) that haven't yet been written to `polymarket_matches`.
+
+    Default `hours_ahead=168` (7 days) keeps the discovery window wide enough to
+    catch any upcoming match while avoiding processing thousands of old events."""
+    from datetime import datetime, timezone, timedelta
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Europe/Istanbul")
+    except Exception:
+        tz = timezone(timedelta(hours=3))
+
+    now = datetime.now(timezone.utc)
+    now_local = now.astimezone(tz)
+    start_of_yesterday_local = (now_local - timedelta(days=1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    back_cutoff = start_of_yesterday_local.astimezone(timezone.utc)
+    forward_cutoff = now + timedelta(hours=hours_ahead)
+
+    events = _fetch_soccer_events(force_refresh=True) + _fetch_closed_soccer_events(force_refresh=True)
+    seen_ids: set = set()
+    matches: List[Dict[str, Any]] = []
+    for event in events:
+        event_id = event.get("id")
+        if event_id in seen_ids:
+            continue
+        m = _event_to_match(event)
+        if not m or not m.get("kickoff_utc"):
+            continue
+        try:
+            kickoff_dt = datetime.fromisoformat(m["kickoff_utc"].replace("Z", "+00:00"))
+        except Exception:
+            continue
+        if kickoff_dt < back_cutoff or kickoff_dt > forward_cutoff:
+            continue
+        seen_ids.add(event_id)
+        matches.append(m)
+    matches.sort(key=lambda x: x.get("kickoff_utc") or "")
+    return matches
+
+
 def _get_today_matches_live(hours_ahead: Optional[int] = 36, day_filter: Optional[str] = None) -> List[Dict[str, Any]]:
     """Legacy fallback: build the match list directly from Polymarket's live
     Gamma API. Only used when Supabase is unreachable/misconfigured."""

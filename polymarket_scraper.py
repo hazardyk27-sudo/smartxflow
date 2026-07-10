@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from services.polymarket_client import (
     get_today_matches,
+    get_all_active_matches,
     get_event_market_specs,
     _fetch_new_trades,
     _market_selection_side,
@@ -706,7 +707,17 @@ def run_backfill(writer: PolymarketSupabaseWriter):
 
 
 def run_scrape(writer: PolymarketSupabaseWriter) -> int:
-    matches = get_today_matches(hours_ahead=None)
+    # Merge DB-stored matches with live Gamma API so newly listed matches
+    # (e.g. Spain vs. Belgium appearing hours before kickoff) are discovered
+    # every cycle without waiting for a manual DB seed.
+    db_matches = get_today_matches(hours_ahead=None)
+    live_matches = get_all_active_matches()
+    seen_ids = {m["event_id"] for m in db_matches if m.get("event_id")}
+    for lm in live_matches:
+        if lm.get("event_id") not in seen_ids:
+            db_matches.append(lm)
+            seen_ids.add(lm["event_id"])
+    matches = db_matches
     log(f"{len(matches)} mac taraniyor")
     total_new = 0
     for match in matches:
