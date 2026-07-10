@@ -1328,12 +1328,15 @@ async function openWalletProfile(wallet) {
     walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>`;
 
     const s = data.stats || {};
+    const resolvedTotal = (s.resolved_won ?? 0) + (s.resolved_lost ?? 0);
     const statCards = [
-      { label: 'İşlem Sayısı', value: s.trade_count ?? 0 },
+      { label: 'Toplam Bahis', value: resolvedTotal },
+      { label: 'Kazanan', value: s.resolved_won ?? 0 },
+      { label: 'Kaybeden', value: s.resolved_lost ?? 0 },
+      { label: 'İsabet Oranı', value: s.win_rate_pct != null ? `%${s.win_rate_pct}` : '-' },
       { label: 'Toplam Hacim (USDC)', value: fmtUsd(s.total_invested_usdc || 0) },
       { label: 'Ort. Bahis (USDC)', value: fmtUsd(s.avg_bet_size_usdc || 0) },
       { label: 'Ort. Oran', value: s.avg_price_decimal ? s.avg_price_decimal.toFixed(2) : '-' },
-      { label: 'İsabet Oranı', value: s.win_rate_pct != null ? `%${s.win_rate_pct}` : '-' },
       { label: 'Açık Pozisyon', value: s.open_position_count ?? 0 },
       { label: 'Açık Pozisyon Değeri', value: fmtUsd(s.open_exposure_usdc || 0) },
     ];

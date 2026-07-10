@@ -31,6 +31,7 @@ from services.polymarket_client import (
     fetch_wallet_redeems,
     fetch_wallet_positions,
     _parse_activity_market,
+    compute_and_save_wallet_stats,
 )
 
 try:
@@ -534,6 +535,13 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
             "end_date": p.get("endDate"),
         })
     writer.replace_wallet_positions(wallet, position_rows)
+
+    # Pre-compute and save stats to tracked_wallets so the profile endpoint
+    # can read them instantly without re-computing on every request.
+    try:
+        compute_and_save_wallet_stats(wallet)
+    except Exception as e:
+        log(f"  [Wallet {wallet_row.get('nickname')}] stats kaydetme hatasi: {e}")
 
     return len(position_rows)
 

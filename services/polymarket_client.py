@@ -14,7 +14,7 @@ import logging
 import threading
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -1613,32 +1613,122 @@ def list_tracked_wallets() -> List[Dict[str, Any]]:
         return []
 
 
+def compute_and_save_wallet_stats(wallet: str) -> bool:
+    """Compute per-wallet stats from stored DB data and PATCH them back to
+    tracked_wallets. Called by the scraper after each sync so the profile
+    endpoint reads pre-computed values instead of recalculating on every request."""
+    base = _supabase_base_url()
+    if not base or not wallet:
+        return False
+    wallet = wallet.lower()
+    headers = _supabase_headers()
+
+    def _fetch_redeems():
+        try:
+            r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params={
+                "select": "condition_id,asset,amount_usdc",
+                "wallet": f"eq.{wallet}",
+                "limit": 5000,
+            }, timeout=20)
+            return r.json() if r.status_code == 200 else []
+        except Exception:
+            return []
+
+    def _fetch_positions():
+        try:
+            r = requests.get(f"{base}/rest/v1/tracked_wallet_positions", headers=headers, params={
+                "select": "condition_id,asset,cur_price,current_value,cash_pnl,redeemable",
+                "wallet": f"eq.{wallet}",
+                "limit": 500,
+            }, timeout=20)
+            return r.json() if r.status_code == 200 else []
+        except Exception:
+            return []
+
+    def _fetch_activity_summary():
+        try:
+            r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
+                "select": "amount_usdc,price",
+                "wallet": f"eq.{wallet}",
+                "limit": 5000,
+            }, timeout=20)
+            return r.json() if r.status_code == 200 else []
+        except Exception:
+            return []
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        f_red = pool.submit(_fetch_redeems)
+        f_pos = pool.submit(_fetch_positions)
+        f_act = pool.submit(_fetch_activity_summary)
+        redeem_rows = f_red.result()
+        position_rows = f_pos.result()
+        activity_rows = f_act.result()
+
+    resolved = _compute_resolved_stats(position_rows, redeem_rows)
+
+    trade_count = len(activity_rows)
+    total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
+    avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
+    weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
+    avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
+    avg_price_decimal = _to_decimal_odds(avg_price) if avg_price else None
+
+    stats_payload = {
+        "win_rate": resolved["win_rate"],
+        "resolved_won": resolved["resolved_won"],
+        "resolved_lost": resolved["resolved_lost"],
+        "resolved_total": resolved["resolved_total"],
+        "trade_count": trade_count,
+        "total_invested_usdc": round(total_invested, 2),
+        "avg_bet_size_usdc": avg_bet_size,
+        "avg_price": avg_price,
+        "avg_price_decimal": avg_price_decimal,
+        "open_position_count": len(resolved["open_positions"]),
+        "open_exposure_usdc": round(resolved["open_exposure"], 2),
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        patch_headers = {**headers, "Content-Type": "application/json"}
+        r = requests.patch(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=patch_headers,
+            params={"wallet": f"eq.{wallet}"},
+            json=stats_payload,
+            timeout=15,
+        )
+        return r.status_code in (200, 204)
+    except Exception as e:
+        print(f"[WalletStats] save error for {wallet}: {e}")
+        return False
+
+
 def list_tracked_wallets_with_stats() -> List[Dict[str, Any]]:
-    """Wallet list enriched with success % + open position count per wallet
-    (Task #280) - used by the `/poly` "Takip Edilen Bahisçiler" list UI so
-    those numbers show without opening the profile.
-    Uses ThreadPoolExecutor to fetch all wallet stats in parallel."""
+    """Single query to tracked_wallets — stats pre-computed by the scraper
+    after each sync. No per-wallet sub-queries needed (replaces the old
+    ThreadPoolExecutor approach that fired 96 concurrent Supabase requests)."""
     base = _supabase_base_url()
     if not base:
         return []
-    headers = _supabase_headers()
-    wallets = list_tracked_wallets()
-
-    def _fetch_one(w):
-        wallet = w.get("wallet")
-        if not wallet:
-            return w
-        try:
-            w.update(_fetch_wallet_stat_summary(base, headers, wallet, w.get("created_at")))
-        except Exception as e:
-            print(f"[TrackedWallets] stat summary hatasi ({wallet}): {e}")
-            w["win_rate_pct"] = None
-            w["open_position_count"] = None
-        return w
-
-    with ThreadPoolExecutor(max_workers=15) as pool:
-        results = list(pool.map(_fetch_one, wallets))
-    return results
+    try:
+        r = requests.get(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=_supabase_headers(),
+            params={
+                "select": "wallet,nickname,notes,created_at,win_rate,resolved_won,resolved_lost,resolved_total,trade_count,open_position_count,open_exposure_usdc,last_synced_at",
+                "order": "created_at.desc",
+            },
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return []
+        wallets = r.json()
+        for w in wallets:
+            w["win_rate_pct"] = w.pop("win_rate", None)
+        return wallets
+    except Exception as e:
+        print(f"[TrackedWallets] list_with_stats hatasi: {e}")
+        return []
 
 
 def add_tracked_wallet(wallet: str, nickname: str, notes: Optional[str] = None) -> bool:
@@ -1864,18 +1954,28 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     """Build the tracked-wallet profile view (stats + trade history + open
     positions + a simple rule-based summary) from data already collected into
     Supabase by the periodic wallet-tracker job. Returns None if the wallet
-    isn't tracked."""
+    isn't tracked.
+
+    Fast path: stats (win_rate, trade_count, etc.) are read from pre-computed
+    columns in tracked_wallets (written by compute_and_save_wallet_stats after
+    each scraper sync). Display data (activity + positions + redeems for the
+    trade-history table) is fetched in parallel via ThreadPoolExecutor."""
     base = _supabase_base_url()
     if not base or not wallet:
         return None
     wallet = wallet.lower()
     headers = _supabase_headers()
 
+    # 1. Single fast query — tracked_wallets row with pre-computed stats
     try:
         r = requests.get(
             f"{base}/rest/v1/tracked_wallets",
             headers=headers,
-            params={"select": "wallet,nickname,notes,created_at", "wallet": f"eq.{wallet}", "limit": 1},
+            params={
+                "select": "wallet,nickname,notes,created_at,win_rate,resolved_won,resolved_lost,resolved_total,trade_count,total_invested_usdc,avg_bet_size_usdc,avg_price,avg_price_decimal,open_position_count,open_exposure_usdc,last_synced_at",
+                "wallet": f"eq.{wallet}",
+                "limit": 1,
+            },
             timeout=10,
         )
         if r.status_code != 200 or not r.json():
@@ -1885,86 +1985,103 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         print(f"[WalletProfile] wallet fetch hatasi: {e}")
         return None
 
-    # Task #280: istatistikler SADECE cuzdani takibe aldigimiz andan (tracked_since)
-    # itibaren biriktirdigimiz veriden hesaplanir - ilk senkronizasyonda cekilen
-    # gecmise donuk backfill dahil edilmez. tracked_since = tracked_wallets.created_at.
-    tracked_since = wallet_row.get("created_at")
+    # 2. Parallel fetch — display data only (activity + positions + redeems)
+    def _fetch_activity():
+        try:
+            r2 = requests.get(
+                f"{base}/rest/v1/tracked_wallet_activity",
+                headers=headers,
+                params={
+                    "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                    "wallet": f"eq.{wallet}",
+                    "order": "traded_at.desc",
+                    "limit": 2000,
+                },
+                timeout=20,
+            )
+            return r2.json() if r2.status_code == 200 else []
+        except Exception as e2:
+            print(f"[WalletProfile] activity fetch hatasi: {e2}")
+            return []
 
-    try:
-        activity_params = {
-            "select": "wallet,transaction_hash,asset,condition_id,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
-            "wallet": f"eq.{wallet}",
-            "order": "traded_at.desc",
-            "limit": 2000,
-        }
-        r = requests.get(
-            f"{base}/rest/v1/tracked_wallet_activity",
-            headers=headers,
-            params=activity_params,
-            timeout=15,
-        )
-        activity_rows = r.json() if r.status_code == 200 else []
-    except Exception as e:
-        print(f"[WalletProfile] activity fetch hatasi: {e}")
-        activity_rows = []
+    def _fetch_positions():
+        try:
+            r2 = requests.get(
+                f"{base}/rest/v1/tracked_wallet_positions",
+                headers=headers,
+                params={
+                    "select": "condition_id,asset,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
+                    "wallet": f"eq.{wallet}",
+                    "order": "current_value.desc",
+                    "limit": 500,
+                },
+                timeout=20,
+            )
+            return r2.json() if r2.status_code == 200 else []
+        except Exception as e2:
+            print(f"[WalletProfile] positions fetch hatasi: {e2}")
+            return []
 
-    try:
-        r = requests.get(
-            f"{base}/rest/v1/tracked_wallet_positions",
-            headers=headers,
-            params={
-                "select": "condition_id,asset,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
-                "wallet": f"eq.{wallet}",
-                "order": "current_value.desc",
-                "limit": 500,
-            },
-            timeout=15,
-        )
-        position_rows = r.json() if r.status_code == 200 else []
-    except Exception as e:
-        print(f"[WalletProfile] positions fetch hatasi: {e}")
-        position_rows = []
+    def _fetch_redeems():
+        try:
+            r2 = requests.get(
+                f"{base}/rest/v1/tracked_wallet_redeems",
+                headers=headers,
+                params={
+                    "select": "condition_id,asset,amount_usdc,traded_at",
+                    "wallet": f"eq.{wallet}",
+                    "order": "traded_at.desc",
+                    "limit": 2000,
+                },
+                timeout=20,
+            )
+            return r2.json() if r2.status_code == 200 else []
+        except Exception as e2:
+            print(f"[WalletProfile] redeem fetch hatasi: {e2}")
+            return []
 
-    # Kalici REDEEM kaydi - kazanip nakde cevrilen (artik /positions'ta
-    # gorunmeyen) piyasalar. Task #264: bu tablo olmadan bir cuzdan
-    # kazandigi her pozisyonu redeem ettiginde Isabet Orani sifira dusuyordu.
-    try:
-        redeem_params = {
-            "select": "condition_id,asset,amount_usdc,traded_at",
-            "wallet": f"eq.{wallet}",
-            "order": "traded_at.desc",
-            "limit": 2000,
-        }
-        r = requests.get(
-            f"{base}/rest/v1/tracked_wallet_redeems",
-            headers=headers,
-            params=redeem_params,
-            timeout=15,
-        )
-        redeem_rows = r.json() if r.status_code == 200 else []
-    except Exception as e:
-        print(f"[WalletProfile] redeem fetch hatasi: {e}")
-        redeem_rows = []
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        f_act = pool.submit(_fetch_activity)
+        f_pos = pool.submit(_fetch_positions)
+        f_red = pool.submit(_fetch_redeems)
+        activity_rows = f_act.result()
+        position_rows = f_pos.result()
+        redeem_rows = f_red.result()
 
-    trade_count = len(activity_rows)
-    total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
-    avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
-    weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
-    avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
-    avg_price_decimal = _to_decimal_odds(avg_price)
-
-    total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
-
+    # 3. Badge sets for display (fast pure-Python, no extra DB calls)
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     resolved_won_ids = resolved["resolved_won_ids"]
     resolved_lost_ids = resolved["resolved_lost_ids"]
-    resolved_won = resolved["resolved_won"]
-    resolved_lost = resolved["resolved_lost"]
-    resolved_total = resolved["resolved_total"]
-    win_rate = resolved["win_rate"]
     open_positions = resolved["open_positions"]
-    open_exposure = resolved["open_exposure"]
     realized_pnl_total = resolved["realized_pnl_total"]
+
+    # 4. Read pre-computed stats from wallet_row (no heavy recalculation)
+    trade_count = wallet_row.get("trade_count") or 0
+    total_invested = float(wallet_row.get("total_invested_usdc") or 0)
+    avg_bet_size = float(wallet_row.get("avg_bet_size_usdc") or 0)
+    avg_price = float(wallet_row.get("avg_price") or 0)
+    avg_price_decimal = wallet_row.get("avg_price_decimal")
+    win_rate = wallet_row.get("win_rate")
+    resolved_won = wallet_row.get("resolved_won") or 0
+    resolved_lost = wallet_row.get("resolved_lost") or 0
+    resolved_total = wallet_row.get("resolved_total") or 0
+    open_exposure = float(wallet_row.get("open_exposure_usdc") or 0)
+
+    # Fallback: stats columns not yet populated (scraper hasn't run after migration)
+    if trade_count == 0 and activity_rows:
+        trade_count = len(activity_rows)
+        total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
+        avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
+        weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
+        avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
+        avg_price_decimal = _to_decimal_odds(avg_price)
+        win_rate = resolved["win_rate"]
+        resolved_won = resolved["resolved_won"]
+        resolved_lost = resolved["resolved_lost"]
+        resolved_total = resolved["resolved_total"]
+        open_exposure = resolved["open_exposure"]
+
+    total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
 
     summary_lines = []
     if trade_count == 0:
@@ -1996,12 +2113,13 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         "stats": {
             "trade_count": trade_count,
             "total_invested_usdc": round(total_invested, 2),
-            "avg_bet_size_usdc": avg_bet_size,
+            "avg_bet_size_usdc": round(avg_bet_size, 2),
             "avg_price": avg_price,
             "avg_price_decimal": avg_price_decimal,
             "win_rate_pct": win_rate,
             "resolved_won": resolved_won,
             "resolved_lost": resolved_lost,
+            "resolved_total": resolved_total,
             "open_position_count": len(open_positions),
             "open_exposure_usdc": round(open_exposure, 2),
             "realized_pnl_usdc": round(realized_pnl_total, 2),
