@@ -10,6 +10,7 @@ olarak okunur; Polymarket Data API'den sadece o zamandan SONRAKI yeni trade'ler
 cekilir (tam yeniden tarama yapilmaz). match_phase (prematch/live) trade'in
 kendi zaman damgasi ile maçin kickoff zamani kiyaslanarak belirlenir.
 """
+import argparse
 import os
 import sys
 import time
@@ -546,6 +547,131 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
     return len(position_rows)
 
 
+def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:
+    """Fetch the COMPLETE Polymarket history for one tracked wallet (no checkpoint
+    filter) and upsert everything into the DB. Safe to run multiple times — the
+    upsert uses on_conflict keys so existing rows are updated in-place rather
+    than duplicated. Positions are NOT backfilled (they reflect current state
+    only); redeems ARE backfilled so win-rate stays correct.
+
+    Kullanim (Hetzner'de):
+        cd /opt/smartxflow
+        set -a && source .env && set +a
+        python3 polymarket_scraper.py --backfill
+    """
+    wallet = (wallet_row.get("wallet") or "").lower()
+    if not wallet:
+        return 0
+    nickname = wallet_row.get("nickname") or wallet[:10]
+
+    log(f"  [Backfill] {nickname} — tam gecmis cekiliyor (since_ts=None)...")
+
+    # ── Activity (BUY/SELL fills) ────────────────────────────────────────────
+    new_items, truncated = fetch_wallet_activity(wallet, since_ts=None)
+    if truncated:
+        log(f"  [Backfill] {nickname} — activity page cap'e ulasti, kismi veri")
+    activity_rows = []
+    for item in reversed(new_items):
+        try:
+            ts = int(item.get("timestamp") or 0)
+        except (TypeError, ValueError):
+            continue
+        if ts <= 0:
+            continue
+        tx_hash = item.get("transactionHash")
+        asset = item.get("asset")
+        if not tx_hash or not asset:
+            continue
+        market_type, home, away, selection, side = _parse_activity_market(item)
+        try:
+            price = float(item.get("price") or 0)
+        except (TypeError, ValueError):
+            price = 0.0
+        try:
+            size = float(item.get("size") or 0)
+        except (TypeError, ValueError):
+            size = 0.0
+        try:
+            amount_usdc = float(item.get("usdcSize")) if item.get("usdcSize") is not None else size * price
+        except (TypeError, ValueError):
+            amount_usdc = size * price
+        activity_rows.append({
+            "wallet": wallet,
+            "transaction_hash": tx_hash,
+            "asset": asset,
+            "condition_id": item.get("conditionId"),
+            "event_id": None,
+            "title": item.get("title"),
+            "slug": item.get("slug"),
+            "market_type": market_type,
+            "selection": selection,
+            "side": side if side is not None else "",
+            "action": (item.get("side") or "").strip().upper() or None,
+            "outcome_raw": item.get("outcome"),
+            "amount_usdc": round(amount_usdc, 4),
+            "price": price,
+            "size": size,
+            "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+        })
+
+    if activity_rows:
+        if writer.upsert_wallet_activity(activity_rows):
+            log(f"  [Backfill] {nickname} — {len(activity_rows)} activity upsert edildi")
+        else:
+            log(f"  [Backfill] {nickname} — activity upsert HATASI")
+    else:
+        log(f"  [Backfill] {nickname} — hic activity bulunamadi")
+
+    # ── Redeems ─────────────────────────────────────────────────────────────
+    redeem_items, redeem_truncated = fetch_wallet_redeems(wallet, since_ts=None)
+    if redeem_truncated:
+        log(f"  [Backfill] {nickname} — redeem page cap'e ulasti, kismi veri")
+    redeem_rows = []
+    for item in reversed(redeem_items):
+        try:
+            ts = int(item.get("timestamp") or 0)
+        except (TypeError, ValueError):
+            continue
+        if ts <= 0:
+            continue
+        tx_hash = item.get("transactionHash")
+        condition_id = item.get("conditionId")
+        if not tx_hash or not condition_id:
+            continue
+        try:
+            amount_usdc = float(item.get("usdcSize") or 0)
+        except (TypeError, ValueError):
+            amount_usdc = 0.0
+        redeem_rows.append({
+            "wallet": wallet,
+            "transaction_hash": tx_hash,
+            "condition_id": condition_id,
+            "asset": item.get("asset"),
+            "title": item.get("title"),
+            "slug": item.get("slug"),
+            "event_id": None,
+            "amount_usdc": round(amount_usdc, 4),
+            "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
+        })
+
+    if redeem_rows:
+        if writer.upsert_wallet_redeems(redeem_rows):
+            log(f"  [Backfill] {nickname} — {len(redeem_rows)} redeem upsert edildi")
+        else:
+            log(f"  [Backfill] {nickname} — redeem upsert HATASI")
+    else:
+        log(f"  [Backfill] {nickname} — hic redeem bulunamadi")
+
+    # ── Stats recompute ──────────────────────────────────────────────────────
+    try:
+        compute_and_save_wallet_stats(wallet)
+        log(f"  [Backfill] {nickname} — stats guncellendi")
+    except Exception as e:
+        log(f"  [Backfill] {nickname} — stats hatasi: {e}")
+
+    return len(activity_rows)
+
+
 def run_tracked_wallets(writer: PolymarketSupabaseWriter):
     wallets = list_tracked_wallets()
     if not wallets:
@@ -558,6 +684,25 @@ def run_tracked_wallets(writer: PolymarketSupabaseWriter):
             log(f"[Tracked Wallet Hata] {wallet_row.get('wallet')}: {e}")
             traceback.print_exc()
             continue
+
+
+def run_backfill(writer: PolymarketSupabaseWriter):
+    """Tum tracked cuzdan icin tam gecmis backfill calistirir.
+    Normal 5 dk dongusunden bagimsizdir; sadece --backfill argumaninyla tetiklenir."""
+    wallets = list_tracked_wallets()
+    if not wallets:
+        log("[Backfill] Hic tracked cuzdan bulunamadi.")
+        return
+    log(f"[Backfill] {len(wallets)} cuzdan icin tam gecmis backfill basliyor...")
+    for wallet_row in wallets:
+        try:
+            count = backfill_tracked_wallet(writer, wallet_row)
+            log(f"[Backfill] {wallet_row.get('nickname')} tamamlandi: {count} activity")
+        except Exception as e:
+            log(f"[Backfill Hata] {wallet_row.get('wallet')}: {e}")
+            traceback.print_exc()
+            continue
+    log("[Backfill] Tum cuzdanlar tamamlandi.")
 
 
 def run_scrape(writer: PolymarketSupabaseWriter) -> int:
@@ -623,4 +768,26 @@ def run_loop():
 
 
 if __name__ == "__main__":
-    run_loop()
+    parser = argparse.ArgumentParser(description="SmartXFlow Polymarket Scraper")
+    parser.add_argument(
+        "--backfill",
+        action="store_true",
+        help=(
+            "Tum tracked cuzdanlar icin tam gecmis backfill calistir. "
+            "Normal donguden bagimsiz, tek seferlik. "
+            "Ornek: python3 polymarket_scraper.py --backfill"
+        ),
+    )
+    args = parser.parse_args()
+
+    supabase_url = os.environ.get("SUPABASE_URL")
+    supabase_key = os.environ.get("SUPABASE_ANON_KEY")
+    if not supabase_url or not supabase_key:
+        log("HATA: SUPABASE_URL veya SUPABASE_ANON_KEY eksik!")
+        sys.exit(1)
+
+    if args.backfill:
+        writer = PolymarketSupabaseWriter(supabase_url, supabase_key)
+        run_backfill(writer)
+    else:
+        run_loop()
