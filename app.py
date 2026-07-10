@@ -11353,8 +11353,6 @@ def _initialize_server():
         start_alarm_scheduler()
         print("[Init] Web-only mode - scraper/alarm managed by run_services.sh", flush=True)
 
-    threading.Thread(target=_warmup_poly_tracked, daemon=True).start()
-
     if is_client_mode():
         host = '127.0.0.1'
         is_desktop = os.environ.get('SMARTX_DESKTOP') == '1'

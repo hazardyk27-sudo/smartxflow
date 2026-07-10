@@ -177,6 +177,21 @@ class PolymarketSupabaseWriter:
         if not rows:
             return True
         try:
+            # Dedup: same conflict key (wallet,tx_hash,asset,side,action) in one
+            # batch causes PostgreSQL "ON CONFLICT DO UPDATE cannot affect row
+            # twice" — keep only the last occurrence of each key.
+            seen: dict = {}
+            for row in rows:
+                key = (
+                    row.get("wallet", ""),
+                    row.get("transaction_hash", ""),
+                    row.get("asset", ""),
+                    row.get("side", ""),
+                    row.get("action", ""),
+                )
+                seen[key] = row
+            rows = list(seen.values())
+
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = f"{self._rest_url('tracked_wallet_activity')}?on_conflict=wallet,transaction_hash,asset,side,action"
@@ -221,6 +236,17 @@ class PolymarketSupabaseWriter:
         if not rows:
             return True
         try:
+            # Dedup by conflict key to prevent PostgreSQL batch conflict error.
+            seen: dict = {}
+            for row in rows:
+                key = (
+                    row.get("wallet", ""),
+                    row.get("transaction_hash", ""),
+                    row.get("condition_id", ""),
+                )
+                seen[key] = row
+            rows = list(seen.values())
+
             headers = self._headers()
             headers["Prefer"] = "resolution=merge-duplicates"
             url = f"{self._rest_url('tracked_wallet_redeems')}?on_conflict=wallet,transaction_hash,condition_id"

@@ -1278,7 +1278,7 @@ def get_top_trades(slug: str, top_n: int = 3000) -> Dict[str, Any]:
 # ------------------------------------------------------------------
 
 _ACTIVITY_PAGE_LIMIT = 500
-_ACTIVITY_MAX_PAGES = 20          # ilk dolum (checkpoint yok) - ~10k islem guvenlik siniri
+_ACTIVITY_MAX_PAGES = 200         # ilk dolum (checkpoint yok) - ~100k islem tarama
 _ACTIVITY_INCREMENTAL_MAX_PAGES = 200  # checkpoint varken - ~100k islem guvenlik agi
 
 _POSITIONS_PAGE_LIMIT = 500
@@ -1795,8 +1795,10 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
             return asset_to_cid.get(asset, asset)
         return None
 
-    # Classify each market as won or lost using ONLY actual redeems.
-    # Open positions (no redeem yet) are excluded entirely.
+    # Classify each market as won or lost.
+    # Priority: actual redeems (definitive). Fallback: resolved positions not
+    # yet redeemed (cur_price≥0.98 → won, ≤0.02 → lost). Dedup guard ensures
+    # a market already counted via redeems is never double-counted via positions.
     won_markets: set = set()
     all_redeemed_markets: set = set()
     for rw in redeem_rows:
@@ -1806,6 +1808,22 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
         all_redeemed_markets.add(cid)
         if float(rw.get("amount_usdc") or 0) > 0.01:
             won_markets.add(cid)
+
+    # Resolved positions not yet redeemed (won but haven't clicked Redeem yet,
+    # OR lost and position is worthless). Only counted if NOT already in redeems.
+    for p in position_rows:
+        cur_price = float(p.get("cur_price") or 0)
+        redeemable = bool(p.get("redeemable"))
+        if not redeemable:
+            continue
+        if cur_price >= 0.98 or cur_price <= 0.02:
+            cid = _canonical_cid(p)
+            if not cid or cid in all_redeemed_markets:
+                continue  # already counted via redeems, skip
+            all_redeemed_markets.add(cid)
+            if cur_price >= 0.98:
+                won_markets.add(cid)
+
     lost_markets = all_redeemed_markets - won_markets
 
     resolved_won = len(won_markets)
