@@ -1679,8 +1679,10 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     for row in activity_rows:
         asset = row.get("asset")
         cid = row.get("condition_id")
-        if not asset or not cid or asset in open_assets:
+        if not asset or asset in open_assets:
             continue
+        if not cid:
+            continue  # need cid for CLOB resolution
         if row.get("result") in ("won", "lost"):
             continue  # already stored in DB
         if asset in resolved_won_ids or asset in resolved_lost_ids:
@@ -1698,7 +1700,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     for row in activity_rows:
         asset = row.get("asset")
         cid = row.get("condition_id")
-        if not asset or not cid or asset in open_assets:
+        if not asset or asset in open_assets:
             continue
         if row.get("result") in ("won", "lost"):
             asset_to_result[asset] = row["result"]  # already stored
@@ -1709,6 +1711,8 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         if asset in resolved_lost_ids:
             asset_to_result[asset] = "lost"
             continue
+        if not cid:
+            continue  # can't resolve via CLOB without condition_id
         resolution = _fetch_market_resolution(cid)  # from cache after pre-warm
         if resolution is None:
             continue
