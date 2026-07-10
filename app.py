@@ -54,7 +54,8 @@ SERVER_ALARM_CACHE_TTL = 120
 
 _poly_tracked_cache = {'data': None, 'ts': 0}
 _poly_profile_cache = {}
-POLY_CACHE_TTL = 300
+POLY_CACHE_TTL = 300       # profil cache: 5 dakika (hızlı açılış)
+POLY_LIST_CACHE_TTL = 30   # liste cache: 30 saniye (Hetzner güncellemelerini hızlı yansıt)
 
 _cm_signals_cache = None
 _cm_signals_cache_time = 0
@@ -936,7 +937,7 @@ def api_poly_tracked_list():
     global _poly_tracked_cache
     try:
         now = time.time()
-        if _poly_tracked_cache['data'] is not None and now - _poly_tracked_cache['ts'] < POLY_CACHE_TTL:
+        if _poly_tracked_cache['data'] is not None and now - _poly_tracked_cache['ts'] < POLY_LIST_CACHE_TTL:
             return jsonify({'wallets': _poly_tracked_cache['data'], 'cached': True})
         wallets = poly_list_tracked_wallets()
         _poly_tracked_cache = {'data': wallets, 'ts': now}
