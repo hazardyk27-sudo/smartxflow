@@ -64,15 +64,22 @@ def _fetch_all_trades(condition_id: str, max_pages: int = _TRADES_MAX_PAGES) -> 
     """Fully paginate the Data API /trades endpoint for a single condition (market),
     so per-outcome volume sums reflect ALL matched trades, not a capped sample.
     Bounded by max_pages as a latency safety net for extremely high-volume markets.
+    If Polymarket's hard offset cap (3000) is hit, returns whatever was collected
+    so far rather than failing — high-volume markets like World Cup matches will
+    still show data from the first N pages.
     """
     all_rows: List[Dict[str, Any]] = []
     offset = 0
     for _ in range(max_pages):
-        page = _get_json(f"{DATA_BASE}/trades", {
-            "market": condition_id,
-            "limit": _TRADES_PAGE_LIMIT,
-            "offset": offset,
-        })
+        try:
+            page = _get_json(f"{DATA_BASE}/trades", {
+                "market": condition_id,
+                "limit": _TRADES_PAGE_LIMIT,
+                "offset": offset,
+            })
+        except _OffsetLimitExceeded:
+            # Hard Polymarket cap hit — return whatever we have so far.
+            break
         if not page:
             break
         all_rows.extend(page)
