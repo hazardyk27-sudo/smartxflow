@@ -410,8 +410,8 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
     since_ts = writer.get_wallet_activity_checkpoint(wallet)
     new_items, truncated = fetch_wallet_activity(wallet, since_ts)
     if truncated:
-        log(f"  [Wallet {wallet[:10]}...] fetch truncated before checkpoint, skipping this run")
-    else:
+        log(f"  [Wallet {wallet[:10]}...] fetch truncated (page cap), writing partial results")
+    if True:
         rows = []
         for item in reversed(new_items):
             try:

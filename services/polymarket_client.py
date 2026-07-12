@@ -1337,18 +1337,35 @@ _POSITIONS_PAGE_LIMIT = 500
 _POSITIONS_MAX_PAGES = 20
 
 
+_DRAW_TITLE_RE = re.compile(
+    r"will\s+there\s+be\s+a\s+draw",
+    re.IGNORECASE,
+)
+
+
 def _is_football_item(item: Dict[str, Any]) -> bool:
-    """An /activity or /positions row is treated as a football (soccer) bet if
-    its icon references the soccer-ball asset Polymarket uses for all soccer
-    markets, or (fallback) its title matches the 'Team A vs. Team B[...]'
-    pattern. Non-football markets (politics, crypto, etc.) are excluded so the
-    tracked-wallet feature stays scoped to football per Task #259."""
+    """An /activity or /positions row is treated as a football (soccer) bet if:
+    1. Icon URL contains 'soccer' (primary), OR
+    2. Title matches 'Team A vs. Team B[...]' pattern, OR
+    3. Title matches 'Will X win on YYYY-MM-DD?' pattern, OR
+    4. Title matches 'Will there be a draw...' pattern, OR
+    5. Slug country codes are both in _FIFA_COUNTRY_CODES.
+    Non-football markets (politics, crypto, etc.) are excluded."""
     icon = (item.get("icon") or "").lower()
     if "soccer" in icon:
         return True
     title = item.get("title") or ""
     base_title = title.split(":", 1)[0].strip()
-    return _parse_match_title(base_title) is not None
+    if _parse_match_title(base_title) is not None:
+        return True
+    if _parse_will_win_title(title) is not None:
+        return True
+    if _DRAW_TITLE_RE.search(title):
+        return True
+    slug = (item.get("slug") or item.get("eventSlug") or "").lower()
+    if slug and _slug_codes_known(slug):
+        return True
+    return False
 
 
 # Title suffix (after the first ':') -> our internal market_type key, mirroring
@@ -1483,13 +1500,12 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
 
         reached_checkpoint = False
         for item in page:
-            if not _is_football_item(item):
-                continue
             ts = item.get("timestamp")
-            if since_ts is not None and ts is not None and int(ts) <= since_ts:
+            if since_ts is not None and ts is not None and int(ts) < since_ts:
                 reached_checkpoint = True
                 break
-            rows.append(item)
+            if _is_football_item(item):
+                rows.append(item)
 
         if reached_checkpoint:
             hit_page_cap = False
@@ -1540,15 +1556,12 @@ def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages:
 
         reached_checkpoint = False
         for item in page:
-            if not item.get("conditionId"):
-                continue
-            if not _is_football_item(item):
-                continue
             ts = item.get("timestamp")
-            if since_ts is not None and ts is not None and int(ts) <= since_ts:
+            if since_ts is not None and ts is not None and int(ts) < since_ts:
                 reached_checkpoint = True
                 break
-            rows.append(item)
+            if item.get("conditionId") and _is_football_item(item):
+                rows.append(item)
 
         if reached_checkpoint:
             hit_page_cap = False
