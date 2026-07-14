@@ -400,7 +400,7 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
 
 
 def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:
-    """Fully sync one tracked wallet's football activity ledger (incremental,
+    """Fully sync one tracked wallet's sports activity ledger (incremental,
     checkpoint-based like process_match) and its current open positions
     (full-replace snapshot each cycle)."""
     wallet = (wallet_row.get("wallet") or "").lower()

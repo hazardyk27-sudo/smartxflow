@@ -1504,8 +1504,7 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
             if since_ts is not None and ts is not None and int(ts) < since_ts:
                 reached_checkpoint = True
                 break
-            if _is_football_item(item):
-                rows.append(item)
+            rows.append(item)
 
         if reached_checkpoint:
             hit_page_cap = False
@@ -1560,7 +1559,7 @@ def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages:
             if since_ts is not None and ts is not None and int(ts) < since_ts:
                 reached_checkpoint = True
                 break
-            if item.get("conditionId") and _is_football_item(item):
+            if item.get("conditionId"):
                 rows.append(item)
 
         if reached_checkpoint:
@@ -1601,7 +1600,7 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
             return rows, False
         if not page:
             break
-        rows.extend(p for p in page if _is_football_item(p))
+        rows.extend(page)
         if len(page) < _POSITIONS_PAGE_LIMIT:
             break
         offset += _POSITIONS_PAGE_LIMIT
