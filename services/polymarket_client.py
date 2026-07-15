@@ -2145,9 +2145,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc,id.desc",
-                    "limit": 500,
+                    "limit": 10000,
                 },
-                timeout=15,
+                timeout=30,
             )
             return r2.json() if r2.status_code == 200 else []
         except Exception as e2:
