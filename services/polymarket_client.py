@@ -2137,6 +2137,24 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     # 2. Parallel fetch — display data only (activity + positions + redeems)
     def _fetch_activity():
+        # Fast path: Supabase RPC that GROUP BY's on the server side, returning
+        # one aggregated row per (asset, outcome, action) instead of thousands
+        # of raw fill rows.  Falls back to the direct table query if the RPC
+        # isn't deployed yet or returns an error.
+        try:
+            r2 = requests.post(
+                f"{base}/rest/v1/rpc/get_wallet_activity_summary",
+                headers={**headers, "Content-Type": "application/json"},
+                json={"wallet_addr": wallet},
+                timeout=15,
+            )
+            if r2.status_code == 200:
+                rows = r2.json()
+                if isinstance(rows, list):
+                    return rows
+        except Exception:
+            pass
+        # Fallback: direct table query (slow for large wallets)
         try:
             r2 = requests.get(
                 f"{base}/rest/v1/tracked_wallet_activity",
@@ -2428,7 +2446,8 @@ def _build_display_activity(
         raw_action = (a.get("action") or "").strip().lower()
 
         if asset and asset in position_by_asset:
-            open_asset_fill_count[asset] = open_asset_fill_count.get(asset, 0) + 1
+            row_fill_count = int(a.get("fill_count") or 1)
+            open_asset_fill_count[asset] = open_asset_fill_count.get(asset, 0) + row_fill_count
             if traded_dt is not None and (asset not in open_asset_latest or traded_dt > open_asset_latest[asset]):
                 open_asset_latest[asset] = traded_dt
             continue
@@ -2468,7 +2487,7 @@ def _build_display_activity(
                 "amount_usdc": amount,
                 "_price_weight_sum": float(a.get("price") or 0) * amount,
                 "traded_at": a.get("traded_at"),
-                "fill_count": 1,
+                "fill_count": int(a.get("fill_count") or 1),
                 "_last_dt": traded_dt,
                 "_stored_result": a.get("result") if a.get("result") in ("won", "lost") else None,
             })
