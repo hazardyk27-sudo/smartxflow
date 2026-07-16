@@ -11440,7 +11440,7 @@ def main():
 
                 options = {
                     'bind': f'{host}:{port}',
-                    'workers': 2,
+                    'workers': 1,
                     'threads': 4,
                     'timeout': 300,
                     'graceful_timeout': 30,
