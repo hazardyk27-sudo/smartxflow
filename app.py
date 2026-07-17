@@ -1568,7 +1568,7 @@ def _try_acquire_warmup_lock(pid):
         return False
 
 def _periodic_matches_warmup():
-    """Keep matches cache always warm — refresh every 100s (TTL=120s).
+    """Keep matches + alarms cache always warm — refresh every 100s (TTL=120s).
     Only the master worker (file-lock winner) runs this; slave skips."""
     import time as _t
     my_pid = os.getpid()
@@ -1583,7 +1583,12 @@ def _periodic_matches_warmup():
             _warmup_matches()
             print("[Cache Warmup] Matches refreshed")
         except Exception as e:
-            print(f"[Cache Warmup] Error: {e}")
+            print(f"[Cache Warmup] Matches error: {e}")
+        try:
+            _warmup_alarms()
+            print("[Cache Warmup] Alarms refreshed")
+        except Exception as e:
+            print(f"[Cache Warmup] Alarms error: {e}")
 
 def trigger_app_warmup():
     """Trigger app warmup on first /app visit (thread-safe, runs only once)"""
