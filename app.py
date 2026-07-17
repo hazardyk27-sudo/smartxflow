@@ -54,7 +54,9 @@ SERVER_ALARM_CACHE_TTL = 120
 
 _poly_tracked_cache = {'data': None, 'ts': 0}
 _poly_profile_cache = {}
-POLY_CACHE_TTL = 300       # profil cache: 5 dakika (hızlı açılış)
+_poly_profile_inflight = {}   # wallet_key -> threading.Event (in-flight dedup)
+_poly_profile_inflight_lock = threading.Lock()
+POLY_CACHE_TTL = 1800      # profil cache: 30 dakika (cold-start sonrası hızlı servis)
 POLY_LIST_CACHE_TTL = 30   # liste cache: 30 saniye (Hetzner güncellemelerini hızlı yansıt)
 
 _cm_signals_cache = None
@@ -1000,21 +1002,52 @@ def api_poly_tracked_remove(wallet):
 @app.route('/api/poly/tracked/<wallet>/profile', methods=['GET'])
 def api_poly_tracked_profile(wallet):
     """Takip edilen bir cüzdanın profil görünümü: istatistikler, işlem geçmişi, açık pozisyonlar"""
-    global _poly_profile_cache
+    global _poly_profile_cache, _poly_profile_inflight
     key = wallet.lower()
     try:
         now = time.time()
+        # Cache hit — hızlı yol
         cached = _poly_profile_cache.get(key)
         if cached and now - cached['ts'] < POLY_CACHE_TTL:
             return jsonify({**cached['data'], 'cached': True})
-        profile = poly_get_wallet_profile(wallet)
-        if not profile:
-            return jsonify({'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
-        profile['found'] = True
-        _poly_profile_cache[key] = {'data': profile, 'ts': now}
-        return jsonify(profile)
+
+        # In-flight dedup: aynı wallet için zaten bir hesaplama varsa bekle
+        with _poly_profile_inflight_lock:
+            event = _poly_profile_inflight.get(key)
+            if event is not None:
+                # Başka bir thread hesaplıyor — sonucu bekle (max 120s)
+                already_computing = True
+            else:
+                event = threading.Event()
+                _poly_profile_inflight[key] = event
+                already_computing = False
+
+        if already_computing:
+            event.wait(timeout=120)
+            # Bekledikten sonra cache'e yaz
+            cached = _poly_profile_cache.get(key)
+            if cached:
+                return jsonify({**cached['data'], 'cached': True})
+            return jsonify({'found': False, 'error': 'Profil hesaplanamadi'}), 502
+
+        # Bu thread hesaplıyor
+        try:
+            profile = poly_get_wallet_profile(wallet)
+            if not profile:
+                return jsonify({'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
+            profile['found'] = True
+            _poly_profile_cache[key] = {'data': profile, 'ts': time.time()}
+            return jsonify(profile)
+        except Exception as e:
+            print(f"[Poly] /api/poly/tracked/<wallet>/profile error: {e}")
+            return jsonify({'found': False, 'error': 'Profil alinamadi'}), 502
+        finally:
+            # Her durumda event'i sinyalle ve temizle
+            with _poly_profile_inflight_lock:
+                _poly_profile_inflight.pop(key, None)
+            event.set()
     except Exception as e:
-        print(f"[Poly] /api/poly/tracked/<wallet>/profile error: {e}")
+        print(f"[Poly] /api/poly/tracked/<wallet>/profile outer error: {e}")
         return jsonify({'found': False, 'error': 'Profil alinamadi'}), 502
 
 @app.route('/pricing')
@@ -11441,7 +11474,7 @@ def main():
                 options = {
                     'bind': f'{host}:{port}',
                     'workers': 1,
-                    'threads': 4,
+                    'threads': 8,
                     'timeout': 300,
                     'graceful_timeout': 30,
                     'max_requests': 5000,
