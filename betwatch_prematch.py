@@ -429,6 +429,29 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     if skipped:
         _log(f"[BW-Pre] {skipped} maç skip (eksik home/away)")
 
+    # 3b. Deduplicate rows by (league, home, away, date) — prevents Supabase 21000 error
+    def _dedup(rows):
+        seen = {}
+        for row in rows:
+            d = row.get("date", "")
+            key = (row.get("league", ""), row.get("home", ""), row.get("away", ""), d[:10] if d else "")
+            seen[key] = row
+        return list(seen.values())
+
+    pre_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
+                  len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
+    mw_1x2_rows  = _dedup(mw_1x2_rows)
+    mw_ou25_rows = _dedup(mw_ou25_rows)
+    mw_btts_rows = _dedup(mw_btts_rows)
+    do_1x2_rows  = _dedup(do_1x2_rows)
+    do_ou25_rows = _dedup(do_ou25_rows)
+    do_btts_rows = _dedup(do_btts_rows)
+    post_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
+                   len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
+    removed = sum(a - b for a, b in zip(pre_counts, post_counts))
+    if removed:
+        _log(f"[BW-Pre] Dedup: {removed} duplicate satır kaldırıldı")
+
     _log(
         f"[BW-Pre] İşlendi: {len(all_fixtures)} fixture | "
         f"MW 1X2={len(mw_1x2_rows)} OU25={len(mw_ou25_rows)} BTTS={len(mw_btts_rows)} | "
@@ -491,4 +514,4 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         f"{len(all_fixtures)} fixture, {len(all_snapshots)} snapshot, "
         f"{write_errors} hata"
     )
-    return total_rows
+    return total_rows or len(all_fixtures)
