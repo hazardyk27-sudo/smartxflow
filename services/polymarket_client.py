@@ -2155,6 +2155,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         except Exception:
             pass
         # Fallback: direct table query (slow for large wallets)
+        print(f"[WalletProfile] WARNING: RPC failed, using direct table fallback for {wallet[:10]}...")
         try:
             r2 = requests.get(
                 f"{base}/rest/v1/tracked_wallet_activity",
@@ -2163,9 +2164,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc,id.desc",
-                    "limit": 10000,
+                    "limit": 2000,
                 },
-                timeout=30,
+                timeout=15,
             )
             return r2.json() if r2.status_code == 200 else []
         except Exception as e2:

@@ -1304,35 +1304,6 @@ async function loadTrackedWallets() {
       item.addEventListener('click', () => openWalletProfile(w.wallet));
       trackedWalletList.appendChild(item);
     });
-    // Arka planda her cüzdanın profilini çek, geldikçe kartı güncelle.
-    // Kartlar anında DB verisiyle gösterildi; profil verisi gelince üzerine yazar.
-    wallets.forEach(w => {
-      fetch(`/api/poly/tracked/${w.wallet}/profile`)
-        .then(r => r.json())
-        .then(pd => {
-          if (!pd || !pd.found) return;
-          const activity = pd.activity || [];
-          const wonCount = activity.filter(r => r.result === 'won').length;
-          const lostCount = activity.filter(r => r.result === 'lost').length;
-          const newPct = (wonCount + lostCount) > 0
-            ? Math.round((wonCount / (wonCount + lostCount)) * 1000) / 10
-            : null;
-          const card = trackedWalletList.querySelector(`.tw-card[data-wallet="${(w.wallet || '').toLowerCase()}"]`);
-          if (!card) return;
-          const totEl  = card.querySelector('[data-stat="tot"]');
-          const wonEl  = card.querySelector('[data-stat="won"]');
-          const lostEl = card.querySelector('[data-stat="lost"]');
-          const pctEl  = card.querySelector('[data-stat="pct"]');
-          if (totEl)  totEl.textContent  = activity.length;
-          if (wonEl)  wonEl.textContent  = wonCount;
-          if (lostEl) lostEl.textContent = lostCount;
-          if (pctEl) {
-            pctEl.textContent = newPct != null ? `%${newPct}` : '-';
-            pctEl.style.color = twWinColor(newPct);
-          }
-        })
-        .catch(() => {});
-    });
   } catch (e) {
     trackedWalletList.innerHTML = '<div class="loading">Liste alınamadı.</div>';
   }
