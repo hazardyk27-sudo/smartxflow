@@ -2373,29 +2373,9 @@ def _build_display_activity(
         if asset and cid and asset in resolved_won_ids:
             known_winner_asset_by_condition[cid] = asset
 
-    # Pre-warm the CLOB resolution cache for every conditionId that will
-    # actually need it, fetched CONCURRENTLY - a wallet can have hundreds of
-    # distinct markets, and calling the CLOB API one-by-one in the row loop
-    # below made large wallet profiles take 30-45s+ to load (Task #279).
-    conditions_needing_resolution: set = set()
-    for rows, key in ((activity_rows, "condition_id"), (position_rows or [], "condition_id")):
-        for r in rows:
-            asset = r.get("asset")
-            cid = r.get(key)
-            if not asset or not cid:
-                continue
-            if r.get("result") in ("won", "lost"):
-                continue  # already resolved in DB, no CLOB needed
-            if asset in resolved_won_ids or asset in resolved_lost_ids:
-                continue
-            if known_winner_asset_by_condition.get(cid):
-                continue
-            conditions_needing_resolution.add(cid)
-    if conditions_needing_resolution:
-        with ThreadPoolExecutor(max_workers=40) as pool:
-            futures = [pool.submit(_fetch_market_resolution, cid) for cid in conditions_needing_resolution]
-            for f in as_completed(futures):
-                f.result()
+    # CLOB API web server tarafında çağrılmıyor.
+    # Scraper zaten result kolonunu yazıyor; NULL satırlar "bilinmiyor"
+    # gösterilir, scraper arka planda doldurur.
 
     def _row_result(condition_id: Any, asset: Any = None) -> str:
         # `asset` (specific outcome token) is checked first since it's
@@ -2409,16 +2389,7 @@ def _build_display_activity(
         known_winner = known_winner_asset_by_condition.get(condition_id)
         if known_winner:
             return "won" if asset == known_winner else "lost"
-        # No clean signal yet from the wallet's own (possibly asset-less/
-        # batched, or simply not-yet-redeemed) data. Ask the market itself:
-        # the public CLOB API exposes, per closed market, which specific
-        # outcome token actually won - wallet-independent ground truth, so
-        # it's safe to trust for any known asset regardless of how many
-        # outcomes were traded under the same conditionId (Task #279).
         if asset:
-            resolution = _fetch_market_resolution(condition_id)
-            if resolution and asset in resolution:
-                return "won" if resolution[asset] else "lost"
             return "unknown"
         # A market can only have ONE winning outcome. If we've actually seen
         # more than one distinct asset traded under this conditionId (e.g.
