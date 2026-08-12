@@ -1904,6 +1904,17 @@ class SupabaseClient:
             deleted['live_snapshots'] = ls_count
         print(f"[Cleanup] live_snapshots: {ls_count} satir silindi (snapshot_at < {cutoff_date})")
 
+        # polymarket_trades: 30 gunden eski satirlar silinir (traded_at kolonu)
+        from datetime import datetime as _dt2, timedelta as _td2
+        try:
+            poly_cutoff = (today_dt - _td2(days=30)).strftime('%Y-%m-%d')
+        except Exception:
+            poly_cutoff = cutoff_date
+        pt_count = self._delete_before_simple('polymarket_trades', 'traded_at', poly_cutoff)
+        if pt_count > 0:
+            deleted['polymarket_trades'] = pt_count
+        print(f"[Cleanup] polymarket_trades: {pt_count} satir silindi (traded_at < {poly_cutoff})")
+
         # History tablolari: scraped_at'e (Turkiye +03:00 string, lex karsilastirma) gore
         # D-8 oncesi her satir silinir — orphan dahil. (id PK yok → tek-statement.)
         history_tables = ['moneyway_1x2_history', 'moneyway_ou25_history', 'moneyway_btts_history',
