@@ -361,6 +361,7 @@
       "ms1": "fév.",
       "ms10": "nov.",
       "ms11": "déc.",
+      "incele_btn": "VOIR",
       "ms2": "mar.",
       "ms3": "avr.",
       "ms4": "mai",
@@ -635,6 +636,7 @@
     },
     "periyot_verileri_yukleniyor": "Chargement des données de période...",
     "search_placeholder": "Rechercher...",
+    "takim_veya_lig_ara": "Rechercher une équipe ou une ligue...",
     "turkce": "🇹🇷 Turc"
   },
   "land": {

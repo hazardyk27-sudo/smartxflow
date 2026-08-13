@@ -361,6 +361,7 @@
       "ms1": "feb",
       "ms10": "nov",
       "ms11": "dec",
+      "incele_btn": "BEKIJK",
       "ms2": "mrt",
       "ms3": "apr",
       "ms4": "mei",
@@ -635,6 +636,7 @@
     },
     "periyot_verileri_yukleniyor": "Periodegegevens laden...",
     "search_placeholder": "Zoeken...",
+    "takim_veya_lig_ara": "Zoek team of competitie...",
     "turkce": "🇹🇷 Turks"
   },
   "land": {

@@ -361,6 +361,7 @@
       "ms1": "Şub",
       "ms10": "Kas",
       "ms11": "Ara",
+      "incele_btn": "İNCELE",
       "ms2": "Mar",
       "ms3": "Nis",
       "ms4": "May",
@@ -635,6 +636,7 @@
     },
     "periyot_verileri_yukleniyor": "Periyot verileri yukleniyor...",
     "search_placeholder": "Ara...",
+    "takim_veya_lig_ara": "Takım veya Lig ara...",
     "turkce": "🇹🇷 Türkçe"
   },
   "land": {

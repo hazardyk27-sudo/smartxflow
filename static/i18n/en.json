@@ -361,6 +361,7 @@
       "ms1": "Feb",
       "ms10": "Nov",
       "ms11": "Dec",
+      "incele_btn": "VIEW",
       "ms2": "Mar",
       "ms3": "Apr",
       "ms4": "May",
@@ -635,6 +636,7 @@
     },
     "periyot_verileri_yukleniyor": "Loading period data...",
     "search_placeholder": "Search...",
+    "takim_veya_lig_ara": "Search team or league...",
     "turkce": "🇹🇷 Turkish"
   },
   "land": {

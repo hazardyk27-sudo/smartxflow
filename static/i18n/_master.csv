@@ -1378,3 +1378,5 @@
 "ui.dyn.para","static/js/ui.js:67","% Para","% Money","% Geld","% Argent","% Geld","% Denaro","% Dinero"
 "ui.dyn.saat_once","static/js/ui.js:139;static/js/ui.js:118;static/js/ui.js:104;static/js/ui.js:91;static/js/ui.js:78;static/js/ui.js:69"," saat önce"," hours ago"," Stunden her"," heures auparavant"," uur geleden"," ore fa"," horas atrás"
 "ui.dyn.sinyal","static/js/ui.js:131","Sinyal","Signal","Signal","Signal","Signaal","Segnale","Señal"
+"app.j.incele_btn","static/js/ui.js:66;static/js/ui.js:67","İNCELE","VIEW","ANSEHEN","VOIR","BEKIJK","VEDI","VER"
+"idx.takim_veya_lig_ara","templates/index.html:455","Takım veya Lig ara...","Search team or league...","Team oder Liga suchen...","Rechercher une équipe ou une ligue...","Zoek team of competitie...","Cerca squadra o lega...","Buscar equipo o liga..."
