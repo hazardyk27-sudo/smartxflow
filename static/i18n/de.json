@@ -526,6 +526,7 @@
       "leader_chg": "Führer Geändert",
       "live": "Live",
       "live_period": "Live-Periodendaten",
+      "moneyway_btts": "Moneyway BTTS",
       "odds_1x2": "Quote 1X2",
       "odds_25": "Quote 2.5",
       "odds_btts": "Quote BTTS",
@@ -631,13 +632,15 @@
     "favoriler": "Favoriten",
     "francais": "🇫🇷 Französisch",
     "gelecek": "Zukünftig",
+    "gun": "-- Tage",
     "nav": {
       "kilavuz": "Anleitung"
     },
     "periyot_verileri_yukleniyor": "Periodendaten werden geladen...",
     "search_placeholder": "Suchen...",
     "takim_veya_lig_ara": "Team oder Liga suchen...",
-    "turkce": "🇹🇷 Türkisch"
+    "turkce": "🇹🇷 Türkisch",
+    "yukleniyor": "Lädt..."
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Echtzeit-Daten, intelligente Signale.",
@@ -1103,17 +1106,21 @@
     "val_yukseliyor": "Steigt"
   },
   "sta": {
+    "9_dakika": "9 Minuten",
     "aktif_alarm_bugun": "Aktive Alarme (Heute+)",
     "aktif_alarm_i_statistikleri": "Aktive Alarmstatistik",
     "aktif_mac_bugun": "Aktive Spiele (Heute+)",
     "alarm_engine_i_slenen_sinyaller_son_24_saat": "Alarm-Engine - Verarbeitete Signale (Letzte 24 Stunden)",
+    "bekleyen_sinyal": "Ausstehendes Signal",
     "calisma_araligi": "Laufintervall",
     "i_slenme_zamani": "Verarbeitungszeit",
     "scraper_alarm_engine_ve_veri_toplama_servislerin": "Echtzeit-Status von Scraper, Alarm-Engine und Datensammlungsdiensten",
     "sinyal_zamani": "Signalzeit",
+    "snapshot": "Snapshot",
     "son_24_saat_ozeti": "Zusammenfassung der letzten 24 Stunden",
     "son_calisma_gecmisi": "Letzter Verlauf",
     "son_snapshot_sayisi": "Anzahl der letzten Snapshots",
+    "toplam_aktif": "Gesamt aktiv",
     "toplam_calisma": "Gesamtläufe",
     "toplam_i_slenen": "Gesamt verarbeitet"
   },

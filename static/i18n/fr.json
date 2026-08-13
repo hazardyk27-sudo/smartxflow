@@ -526,6 +526,7 @@
       "leader_chg": "Leader Changé",
       "live": "Direct",
       "live_period": "Données de Période en Direct",
+      "moneyway_btts": "Moneyway BTTS",
       "odds_1x2": "Cote 1X2",
       "odds_25": "Cote 2.5",
       "odds_btts": "Cote BTTS",
@@ -631,13 +632,15 @@
     "favoriler": "Favoris",
     "francais": "🇫🇷 Français",
     "gelecek": "Futur",
+    "gun": "-- jours",
     "nav": {
       "kilavuz": "Guide"
     },
     "periyot_verileri_yukleniyor": "Chargement des données de période...",
     "search_placeholder": "Rechercher...",
     "takim_veya_lig_ara": "Rechercher une équipe ou une ligue...",
-    "turkce": "🇹🇷 Turc"
+    "turkce": "🇹🇷 Turc",
+    "yukleniyor": "Chargement..."
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Données en temps réel, signaux intelligents.",
@@ -1103,17 +1106,21 @@
     "val_yukseliyor": "Monte"
   },
   "sta": {
+    "9_dakika": "9 minutes",
     "aktif_alarm_bugun": "Alarmes actives (Aujourd'hui+)",
     "aktif_alarm_i_statistikleri": "Statistiques des alarmes actives",
     "aktif_mac_bugun": "Matchs actifs (Aujourd'hui+)",
     "alarm_engine_i_slenen_sinyaller_son_24_saat": "Moteur d'alarme - Signaux traités (Dernières 24 heures)",
+    "bekleyen_sinyal": "Signal en attente",
     "calisma_araligi": "Intervalle d'exécution",
     "i_slenme_zamani": "Heure de traitement",
     "scraper_alarm_engine_ve_veri_toplama_servislerin": "État en temps réel du Scraper, du moteur d'alarme et des services de collecte de données",
     "sinyal_zamani": "Heure du signal",
+    "snapshot": "Snapshot",
     "son_24_saat_ozeti": "Résumé des dernières 24 heures",
     "son_calisma_gecmisi": "Historique récent des exécutions",
     "son_snapshot_sayisi": "Nombre du dernier instantané",
+    "toplam_aktif": "Total actif",
     "toplam_calisma": "Total des exécutions",
     "toplam_i_slenen": "Total traité"
   },

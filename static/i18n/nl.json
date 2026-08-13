@@ -526,6 +526,7 @@
       "leader_chg": "Leider Gewijzigd",
       "live": "Live",
       "live_period": "Live Periodegegevens",
+      "moneyway_btts": "Moneyway BTTS",
       "odds_1x2": "Odds 1X2",
       "odds_25": "Odds 2.5",
       "odds_btts": "Odds BTTS",
@@ -631,13 +632,15 @@
     "favoriler": "Favorieten",
     "francais": "🇫🇷 Frans",
     "gelecek": "Toekomstig",
+    "gun": "-- dagen",
     "nav": {
       "kilavuz": "Gids"
     },
     "periyot_verileri_yukleniyor": "Periodegegevens laden...",
     "search_placeholder": "Zoeken...",
     "takim_veya_lig_ara": "Zoek team of competitie...",
-    "turkce": "🇹🇷 Turks"
+    "turkce": "🇹🇷 Turks",
+    "yukleniyor": "Laden..."
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Realtime gegevens, slimme signalen.",
@@ -1103,17 +1106,21 @@
     "val_yukseliyor": "Stijgt"
   },
   "sta": {
+    "9_dakika": "9 minuten",
     "aktif_alarm_bugun": "Actieve alarmen (Vandaag+)",
     "aktif_alarm_i_statistikleri": "Statistieken actieve alarmen",
     "aktif_mac_bugun": "Actieve wedstrijden (Vandaag+)",
     "alarm_engine_i_slenen_sinyaller_son_24_saat": "Alarm Engine - Verwerkte signalen (Laatste 24 uur)",
+    "bekleyen_sinyal": "Wachtend signaal",
     "calisma_araligi": "Run-interval",
     "i_slenme_zamani": "Verwerkingstijd",
     "scraper_alarm_engine_ve_veri_toplama_servislerin": "Realtime status van Scraper, Alarm Engine en gegevensverzamelingsdiensten",
     "sinyal_zamani": "Signaaltijd",
+    "snapshot": "Snapshot",
     "son_24_saat_ozeti": "Samenvatting laatste 24 uur",
     "son_calisma_gecmisi": "Recente run-geschiedenis",
     "son_snapshot_sayisi": "Aantal laatste snapshots",
+    "toplam_aktif": "Totaal actief",
     "toplam_calisma": "Totaal runs",
     "toplam_i_slenen": "Totaal verwerkt"
   },
