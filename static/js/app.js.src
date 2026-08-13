@@ -1941,9 +1941,8 @@ function _renderMoreMobile() {
             const dt = dayjs(match.date).tz('Europe/Istanbul');
             const day = dt.format('D');
             const monthIdx = dt.month();
-            const monthsTR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
             const time = dt.format('HH:mm');
-            dateStr = `${day} ${monthsTR[monthIdx]} ${time}`;
+            dateStr = `${day} ${_t('app.j.ms'+monthIdx)} ${time}`;
         } catch(e) { dateStr = match.date || ''; }
         if (isMoneyway) {
             html += renderMobileMoneywayCard(match, i, d, volume, dateStr, _mStar);
@@ -2558,11 +2557,10 @@ function mfSelectPast(el) {
 function _buildMfPastDropdown(container) {
     var nowTR = nowTurkey ? nowTurkey() : dayjs();
     var selectedVal = (document.getElementById('mfPastSelectedValue') || {}).value || '';
-    var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
     container.innerHTML = '';
     for (var i = 1; i <= 7; i++) {
         var d = nowTR.subtract(i, 'day');
-        var label = i === 1 ? _t('app.flt.yesterday','Dün') : (d.date() + ' ' + months[d.month()]);
+        var label = i === 1 ? _t('app.flt.yesterday','Dün') : (d.date() + ' ' + _t('app.j.ms'+d.month()));
         var val = 'd-' + i;
         var btn = document.createElement('button');
         btn.className = 'mf-past-day-btn' + (selectedVal === val ? ' active' : '');
@@ -2670,8 +2668,7 @@ function _getDayFilterLabel(dateVal) {
         if (!isNaN(n)) {
             var nowTR = nowTurkey ? nowTurkey() : dayjs();
             var d = nowTR.subtract(n, 'day');
-            var months = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-            return d.date() + ' ' + months[d.month()];
+            return d.date() + ' ' + _t('app.j.ms'+d.month());
         }
     }
     return _t('app.flt.all','Tümü');
@@ -2840,9 +2837,8 @@ function formatDateTwoLine(dateStr) {
     
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
-        const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         const day = dt.date();
-        const month = months[dt.month()];
+        const month = _t('app.j.ms'+dt.month());
         const time = dt.format('HH:mm');
         return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
     }
@@ -7399,7 +7395,6 @@ function parseAlarmTime(timeStr) {
 function formatMatchTime3(dateStr) {
     if (!dateStr) return '-';
     
-    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
     
@@ -7411,7 +7406,7 @@ function formatMatchTime3(dateStr) {
         // UTC olarak oluştur, sonra Istanbul'a çevir
         const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = monthNames[trDate.month()];
+        const monthName = _t('app.j.ms'+trDate.month());
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7421,7 +7416,7 @@ function formatMatchTime3(dateStr) {
         const [, day, month, year, hour, min] = match2;
         const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = monthNames[trDate.month()];
+        const monthName = _t('app.j.ms'+trDate.month());
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7435,7 +7430,7 @@ function formatMatchTime3(dateStr) {
         } else {
             dt = dayjs.utc(dateStr).tz('Europe/Istanbul');
         }
-        const monthName = monthNames[dt.month()];
+        const monthName = _t('app.j.ms'+dt.month());
         return `${dt.format('DD')} ${monthName} • ${dt.format('HH:mm')}`;
     }
     
@@ -7445,7 +7440,7 @@ function formatMatchTime3(dateStr) {
         const [, year, month, day, hour, min] = matchISOSpace;
         const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = monthNames[trDate.month()];
+        const monthName = _t('app.j.ms'+trDate.month());
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7454,7 +7449,7 @@ function formatMatchTime3(dateStr) {
     if (matchDateOnly) {
         const [, year, month, day] = matchDateOnly;
         const dt = dayjs(`${year}-${month}-${day}`);
-        const monthName = monthNames[dt.month()];
+        const monthName = _t('app.j.ms'+dt.month());
         return `${dt.format('DD')} ${monthName}`;
     }
     
@@ -7466,7 +7461,6 @@ function formatMatchTime3(dateStr) {
 function formatMatchDateShort(dateStr) {
     if (!dateStr) return '';
     
-    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
     const monthMap = { 'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5, 
                        'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11 };
     
@@ -7478,14 +7472,14 @@ function formatMatchDateShort(dateStr) {
         // UTC olarak oluştur, sonra Istanbul'a çevir
         const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = monthNames[trDate.month()];
+        const monthName = _t('app.j.ms'+trDate.month());
         return `${trDate.format('DD')} ${monthName} ${trDate.format('HH:mm')}`;
     }
     
     // Fallback: toTurkeyTime ile dene
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
-        const monthName = monthNames[dt.month()];
+        const monthName = _t('app.j.ms'+dt.month());
         return `${dt.format('DD')} ${monthName} ${dt.format('HH:mm')}`;
     }
     
@@ -9082,14 +9076,12 @@ function parseAlarmDateTR(dateStr) {
 function formatTriggerTimeFull(dateStr) {
     if (!dateStr) return '-';
     
-    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-    
     // ISO format with timezone offset
     if (dateStr.includes('T') && (dateStr.includes('+') || dateStr.includes('Z'))) {
         const dt = dayjs(dateStr).tz(APP_TIMEZONE);
         if (dt && dt.isValid()) {
             const day = dt.format('DD');
-            const month = monthNames[dt.month()];
+            const month = _t('app.j.ms'+dt.month());
             const time = dt.format('HH:mm');
             return `${day} ${month} • ${time}`;
         }
@@ -9103,7 +9095,7 @@ function formatTriggerTimeFull(dateStr) {
             if (datePart.length >= 2) {
                 const day = datePart[0].padStart(2, '0');
                 const monthIdx = parseInt(datePart[1]) - 1;
-                const month = monthNames[monthIdx] || datePart[1];
+                const month = _t('app.j.ms'+monthIdx) || datePart[1];
                 const time = parts[1];
                 return `${day} ${month} • ${time}`;
             }
@@ -9345,15 +9337,13 @@ function getMatchAlarms(homeTeam, awayTeam) {
 function formatSmartMoneyTime(dateStr) {
     if (!dateStr) return '-';
     
-    const monthNames = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-    
     // Direct parse for DD.MM.YYYY HH:MM format - +3 saat ekle
     const match1 = dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);
     if (match1) {
         const [, day, month, year, hour, min] = match1;
         const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
         dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
+        const monthName = _t('app.j.ms'+dt.getMonth());
         const h = String(dt.getHours()).padStart(2, '0');
         const m = String(dt.getMinutes()).padStart(2, '0');
         const d = String(dt.getDate()).padStart(2, '0');
@@ -9366,7 +9356,7 @@ function formatSmartMoneyTime(dateStr) {
         const [, year, month, day, hour, min] = match2;
         const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
         dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = monthNames[dt.getMonth()];
+        const monthName = _t('app.j.ms'+dt.getMonth());
         const h = String(dt.getHours()).padStart(2, '0');
         const m = String(dt.getMinutes()).padStart(2, '0');
         const d = String(dt.getDate()).padStart(2, '0');

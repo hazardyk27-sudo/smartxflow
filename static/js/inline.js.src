@@ -734,7 +734,7 @@ function _buildGlassMatchCard(opts) {
         var hasActions = opts.inceleHandler || isStale || opts.hoursBefore;
         if (hasActions) {
             html += '<div style="display:flex;align-items:center;gap:8px;">';
-            if (opts.inceleHandler) html += '<button onclick="' + opts.inceleHandler + '" style="font-size:9px;font-weight:600;letter-spacing:0.5px;color:rgba(255,255,255,0.38);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-transform:uppercase;">\u0130NCELE \u2197</button>';
+            if (opts.inceleHandler) html += '<button onclick="' + opts.inceleHandler + '" style="font-size:9px;font-weight:600;letter-spacing:0.5px;color:rgba(255,255,255,0.38);background:none;border:none;padding:0;cursor:pointer;font-family:inherit;text-transform:uppercase;">' + _t('app.j.incele_btn') + ' \u2197</button>';
             if (isStale) html += '<span style="color:#f85149;font-size:9px;font-weight:700;text-transform:uppercase;">\u26a0 ZAYIFLADI</span>';
             if (opts.hoursBefore) html += '<span style="color:rgba(255,255,255,0.28);font-size:9px;">\u23f1 ' + opts.hoursBefore + '</span>';
             html += '</div>';
@@ -755,7 +755,7 @@ function _buildGlassMatchCard(opts) {
         html += (opts.home_team || '') + ' <span style="color:rgba(255,255,255,0.30);font-weight:400;margin:0 2px;">\u2014</span> ' + (opts.away_team || '');
         html += '</h3>';
         if (opts.inceleHandler) {
-            html += '<button onclick="' + opts.inceleHandler + '" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.05);text-transform:uppercase;border:none;cursor:pointer;font-family:inherit;">\u0130NCELE \u2197</button>';
+            html += '<button onclick="' + opts.inceleHandler + '" style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.05);text-transform:uppercase;border:none;cursor:pointer;font-family:inherit;">' + _t('app.j.incele_btn') + ' \u2197</button>';
         }
         if (isStale) {
             html += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:4px;background:rgba(248,81,73,0.10);color:#f85149;font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;border:1px solid rgba(248,81,73,0.20);">\u26a0 ZAYIFLADI</span>';
