@@ -7,6 +7,8 @@ if (typeof window._t !== 'function') {
     };
 }
 var _t = window._t;
+var _MONTH_FB = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function _tms(i) { return _tms(i), _MONTH_FB[i] || ''); }
 if (typeof dayjs !== 'undefined') {
     if (typeof dayjs_plugin_utc !== 'undefined') dayjs.extend(dayjs_plugin_utc);
     if (typeof dayjs_plugin_timezone !== 'undefined') dayjs.extend(dayjs_plugin_timezone);
@@ -1942,7 +1944,7 @@ function _renderMoreMobile() {
             const day = dt.format('D');
             const monthIdx = dt.month();
             const time = dt.format('HH:mm');
-            dateStr = `${day} ${_t('app.j.ms'+monthIdx)} ${time}`;
+            dateStr = `${day} ${_tms(monthIdx))} ${time}`;
         } catch(e) { dateStr = match.date || ''; }
         if (isMoneyway) {
             html += renderMobileMoneywayCard(match, i, d, volume, dateStr, _mStar);
@@ -2560,7 +2562,7 @@ function _buildMfPastDropdown(container) {
     container.innerHTML = '';
     for (var i = 1; i <= 7; i++) {
         var d = nowTR.subtract(i, 'day');
-        var label = i === 1 ? _t('app.flt.yesterday','Dün') : (d.date() + ' ' + _t('app.j.ms'+d.month()));
+        var label = i === 1 ? _t('app.flt.yesterday','Dün') : (d.date() + ' ' + _tms(d.month())));
         var val = 'd-' + i;
         var btn = document.createElement('button');
         btn.className = 'mf-past-day-btn' + (selectedVal === val ? ' active' : '');
@@ -2668,7 +2670,7 @@ function _getDayFilterLabel(dateVal) {
         if (!isNaN(n)) {
             var nowTR = nowTurkey ? nowTurkey() : dayjs();
             var d = nowTR.subtract(n, 'day');
-            return d.date() + ' ' + _t('app.j.ms'+d.month());
+            return d.date() + ' ' + _tms(d.month()));
         }
     }
     return _t('app.flt.all','Tümü');
@@ -2838,7 +2840,7 @@ function formatDateTwoLine(dateStr) {
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
         const day = dt.date();
-        const month = _t('app.j.ms'+dt.month());
+        const month = _tms(dt.month()));
         const time = dt.format('HH:mm');
         return `<div class="date-line">${day}.${month}</div><div class="time-line">${time}</div>`;
     }
@@ -7406,7 +7408,7 @@ function formatMatchTime3(dateStr) {
         // UTC olarak oluştur, sonra Istanbul'a çevir
         const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = _t('app.j.ms'+trDate.month());
+        const monthName = _tms(trDate.month()));
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7416,7 +7418,7 @@ function formatMatchTime3(dateStr) {
         const [, day, month, year, hour, min] = match2;
         const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = _t('app.j.ms'+trDate.month());
+        const monthName = _tms(trDate.month()));
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7430,7 +7432,7 @@ function formatMatchTime3(dateStr) {
         } else {
             dt = dayjs.utc(dateStr).tz('Europe/Istanbul');
         }
-        const monthName = _t('app.j.ms'+dt.month());
+        const monthName = _tms(dt.month()));
         return `${dt.format('DD')} ${monthName} • ${dt.format('HH:mm')}`;
     }
     
@@ -7440,7 +7442,7 @@ function formatMatchTime3(dateStr) {
         const [, year, month, day, hour, min] = matchISOSpace;
         const utcDate = dayjs.utc(`${year}-${month}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = _t('app.j.ms'+trDate.month());
+        const monthName = _tms(trDate.month()));
         return `${trDate.format('DD')} ${monthName} • ${trDate.format('HH:mm')}`;
     }
     
@@ -7449,7 +7451,7 @@ function formatMatchTime3(dateStr) {
     if (matchDateOnly) {
         const [, year, month, day] = matchDateOnly;
         const dt = dayjs(`${year}-${month}-${day}`);
-        const monthName = _t('app.j.ms'+dt.month());
+        const monthName = _tms(dt.month()));
         return `${dt.format('DD')} ${monthName}`;
     }
     
@@ -7472,14 +7474,14 @@ function formatMatchDateShort(dateStr) {
         // UTC olarak oluştur, sonra Istanbul'a çevir
         const utcDate = dayjs.utc(`2025-${String(monthIdx + 1).padStart(2, '0')}-${day}T${hour}:${min}:00`);
         const trDate = utcDate.tz('Europe/Istanbul');
-        const monthName = _t('app.j.ms'+trDate.month());
+        const monthName = _tms(trDate.month()));
         return `${trDate.format('DD')} ${monthName} ${trDate.format('HH:mm')}`;
     }
     
     // Fallback: toTurkeyTime ile dene
     const dt = toTurkeyTime(dateStr);
     if (dt && dt.isValid()) {
-        const monthName = _t('app.j.ms'+dt.month());
+        const monthName = _tms(dt.month()));
         return `${dt.format('DD')} ${monthName} ${dt.format('HH:mm')}`;
     }
     
@@ -9081,7 +9083,7 @@ function formatTriggerTimeFull(dateStr) {
         const dt = dayjs(dateStr).tz(APP_TIMEZONE);
         if (dt && dt.isValid()) {
             const day = dt.format('DD');
-            const month = _t('app.j.ms'+dt.month());
+            const month = _tms(dt.month()));
             const time = dt.format('HH:mm');
             return `${day} ${month} • ${time}`;
         }
@@ -9095,7 +9097,7 @@ function formatTriggerTimeFull(dateStr) {
             if (datePart.length >= 2) {
                 const day = datePart[0].padStart(2, '0');
                 const monthIdx = parseInt(datePart[1]) - 1;
-                const month = _t('app.j.ms'+monthIdx) || datePart[1];
+                const month = _tms(monthIdx)) || datePart[1];
                 const time = parts[1];
                 return `${day} ${month} • ${time}`;
             }
@@ -9343,7 +9345,7 @@ function formatSmartMoneyTime(dateStr) {
         const [, day, month, year, hour, min] = match1;
         const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
         dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = _t('app.j.ms'+dt.getMonth());
+        const monthName = _tms(dt.getMonth()));
         const h = String(dt.getHours()).padStart(2, '0');
         const m = String(dt.getMinutes()).padStart(2, '0');
         const d = String(dt.getDate()).padStart(2, '0');
@@ -9356,7 +9358,7 @@ function formatSmartMoneyTime(dateStr) {
         const [, year, month, day, hour, min] = match2;
         const dt = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min));
         dt.setHours(dt.getHours() + 3); // +3 saat Türkiye
-        const monthName = _t('app.j.ms'+dt.getMonth());
+        const monthName = _tms(dt.getMonth()));
         const h = String(dt.getHours()).padStart(2, '0');
         const m = String(dt.getMinutes()).padStart(2, '0');
         const d = String(dt.getDate()).padStart(2, '0');
@@ -10576,6 +10578,20 @@ window.addEventListener('i18n:change', function() {
     if (typeof _updateFavCountsInDOM === 'function') _updateFavCountsInDOM();
     var si = document.getElementById('searchInput');
     if (si && window.SXFI18n) si.placeholder = window.SXFI18n.t('idx.takim_veya_lig_ara') || si.placeholder;
+    // Re-render match cards so month names and button labels update in current language
+    if (typeof filteredMatches !== 'undefined' && filteredMatches && filteredMatches.length) {
+        try { renderMatches(filteredMatches); } catch(e) {}
+    }
+    // Refresh day-filter label (e.g. "13 Aug" → "13 Ağu" on locale switch)
+    var labelEl = document.getElementById('dayFilterLabel');
+    if (labelEl && typeof _getDayFilterLabel === 'function') {
+        labelEl.textContent = _getDayFilterLabel(typeof currentDayFilter !== 'undefined' ? currentDayFilter : 'all');
+    }
+    // Rebuild open past-day dropdown if it is currently visible
+    var pd = document.getElementById('mfPastDropdown');
+    if (pd && pd.style.display !== 'none' && typeof _buildMfPastDropdown === 'function') {
+        _buildMfPastDropdown(pd);
+    }
 });
 
 async function validateWebLicense() {
