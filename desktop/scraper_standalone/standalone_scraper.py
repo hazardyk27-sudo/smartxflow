@@ -256,7 +256,91 @@ class SupabaseWriter:
     
     def _rest_url(self, table: str) -> str:
         return f"{self.url}/rest/v1/{table}"
-    
+
+    def delete_before(self, table: str, date_col: str, cutoff_date: str,
+                       retries: int = 3, chunk_fallback: bool = True) -> int:
+        """DELETE: date_col < cutoff_date olan TUM satirlari siler (orphan dahil).
+        Buyuk tablolarda (milyonlarca satir birikince) tek-statement DELETE Supabase/PostgREST
+        tarafinda statement timeout'a takilip 500 donebiliyor. Once birkac kez (backoff ile)
+        tek-statement DELETE denenir; hepsi basarisiz olursa gune-gune chunk'li silmeye
+        dusulur, boylece bir birikinti varken tum cleanup basarisiz olmaz."""
+        last_status = None
+        for attempt in range(retries):
+            try:
+                headers = self._headers()
+                headers['Prefer'] = 'count=exact'
+                url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
+                resp = requests.delete(url, headers=headers, timeout=120)
+                if resp.status_code in (200, 204):
+                    cr = resp.headers.get('content-range', '')
+                    if '/' in cr:
+                        t = cr.split('/')[-1]
+                        if t.isdigit():
+                            return int(t)
+                    return 0
+                if resp.status_code == 404:
+                    return 0
+                last_status = resp.status_code
+                log(f"  [Cleanup] {table} delete failed (attempt {attempt + 1}/{retries}): {resp.status_code}")
+            except Exception as e:
+                last_status = str(e)
+                log(f"  [Cleanup] {table} delete error (attempt {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+
+        if not chunk_fallback:
+            log(f"  [Cleanup] {table}: tum denemeler basarisiz ({last_status}), chunk fallback devre disi")
+            return 0
+
+        log(f"  [Cleanup] {table}: tek-statement DELETE basarisiz ({last_status}), gune-gune chunk'li silmeye geciliyor...")
+        return self._delete_before_chunked(table, date_col, cutoff_date)
+
+    def _delete_before_chunked(self, table: str, date_col: str, cutoff_date: str,
+                                max_chunks: int = 90) -> int:
+        """Gune-gune chunk'li DELETE fallback (bkz. SupabaseClient._delete_before_chunked
+        - Replit web app tarafindaki ayni mantik). Toplam silinen satir sayisini dondurur."""
+        try:
+            cutoff_dt = datetime.strptime(cutoff_date[:10], '%Y-%m-%d').date()
+        except Exception as e:
+            log(f"  [Cleanup] {table}: chunk fallback cutoff parse hatasi: {e}")
+            return 0
+
+        total = 0
+        day = cutoff_dt - timedelta(days=max_chunks)
+        while day < cutoff_dt:
+            next_day = day + timedelta(days=1)
+            day_str = day.strftime('%Y-%m-%d')
+            next_str = next_day.strftime('%Y-%m-%d')
+            chunk_count = None
+            for attempt in range(2):
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'count=exact'
+                    url = f"{self._rest_url(table)}?{date_col}=gte.{day_str}&{date_col}=lt.{next_str}"
+                    resp = requests.delete(url, headers=headers, timeout=90)
+                    if resp.status_code in (200, 204):
+                        cr = resp.headers.get('content-range', '')
+                        chunk_count = 0
+                        if '/' in cr:
+                            t = cr.split('/')[-1]
+                            if t.isdigit():
+                                chunk_count = int(t)
+                        break
+                    if resp.status_code == 404:
+                        chunk_count = 0
+                        break
+                    log(f"  [Cleanup] {table} chunk {day_str} delete failed (attempt {attempt + 1}/2): {resp.status_code}")
+                except Exception as e:
+                    log(f"  [Cleanup] {table} chunk {day_str} delete error (attempt {attempt + 1}/2): {e}")
+                time.sleep(2)
+            if chunk_count:
+                total += chunk_count
+                log(f"  [Cleanup] {table} chunk {day_str}: {chunk_count} satir silindi")
+            day = next_day
+
+        log(f"  [Cleanup] {table}: chunk'li silme tamamlandi - toplam {total} satir")
+        return total
+
     def upsert_rows(self, table: str, rows: List[Dict[str, Any]], on_conflict: str = "home,away,date") -> bool:
         """UPSERT rows using Supabase REST API with proper on_conflict"""
         if not rows:
@@ -825,27 +909,25 @@ def cleanup_old_matches(writer: SupabaseWriter, logger_callback=None):
     except Exception as e:
         _log(f"  [Cleanup] fixtures: Hata - {e}")
 
-    # 4. Snapshot tablolari (scraped_at_utc bazli)
+    # 4. Snapshot tablolari (scraped_at_utc bazli) - buyuk tablolar, retry+chunk fallback'li silinir
     snapshot_cutoff = d_minus_8.strftime('%Y-%m-%d')
     for snap_table, snap_col in [
         ('moneyway_snapshots', 'scraped_at_utc'),
     ]:
         try:
-            url = f"{writer._rest_url(snap_table)}?{snap_col}=lt.{snapshot_cutoff}"
-            resp = requests.delete(url, headers=writer._headers(), timeout=60)
-            if resp.status_code in [200, 204]:
-                _log(f"  [Cleanup] {snap_table}: D-8+ kayitlar silindi")
-                total_deleted += 1
+            count = writer.delete_before(snap_table, snap_col, snapshot_cutoff)
+            if count:
+                _log(f"  [Cleanup] {snap_table}: {count} satir silindi (D-8+)")
+                total_deleted += count
         except Exception as e:
             _log(f"  [Cleanup] {snap_table}: Hata - {e}")
 
-    # 5. Live tablolari
+    # 5. Live tablolari - EN BUYUK tablo (live_snapshots), retry+chunk fallback'li silinir
     try:
-        url = f"{writer._rest_url('live_snapshots')}?snapshot_at=lt.{snapshot_cutoff}"
-        resp = requests.delete(url, headers=writer._headers(), timeout=60)
-        if resp.status_code in [200, 204]:
-            _log(f"  [Cleanup] live_snapshots: D-8+ kayitlar silindi")
-            total_deleted += 1
+        count = writer.delete_before('live_snapshots', 'snapshot_at', snapshot_cutoff)
+        if count:
+            _log(f"  [Cleanup] live_snapshots: {count} satir silindi (D-8+)")
+            total_deleted += count
     except Exception as e:
         _log(f"  [Cleanup] live_snapshots: Hata - {e}")
 

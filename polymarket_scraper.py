@@ -15,7 +15,7 @@ import os
 import sys
 import time
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 
 import requests
@@ -263,6 +263,89 @@ class PolymarketSupabaseWriter:
         except Exception as e:
             log(f"[Wallet Redeem UPSERT] Hata: {e}")
             return False
+
+    def delete_before(self, table: str, date_col: str, cutoff_date: str,
+                       retries: int = 3, chunk_fallback: bool = True) -> int:
+        """DELETE: date_col < cutoff_date olan TUM satirlari siler (orphan dahil).
+        Buyuk tablolarda tek-statement DELETE Supabase/PostgREST tarafinda statement
+        timeout'a takilip 500 donebiliyor. Once birkac kez (backoff ile) tek-statement
+        DELETE denenir; hepsi basarisiz olursa gune-gune chunk'li silmeye dusulur (bkz.
+        services/supabase_client.py::_delete_before_chunked - ayni mantik)."""
+        last_status = None
+        for attempt in range(retries):
+            try:
+                headers = self._headers()
+                headers['Prefer'] = 'count=exact'
+                url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
+                resp = requests.delete(url, headers=headers, timeout=120, verify=SSL_VERIFY)
+                if resp.status_code in (200, 204):
+                    cr = resp.headers.get('content-range', '')
+                    if '/' in cr:
+                        t = cr.split('/')[-1]
+                        if t.isdigit():
+                            return int(t)
+                    return 0
+                if resp.status_code == 404:
+                    return 0
+                last_status = resp.status_code
+                log(f"[Cleanup] {table} delete failed (attempt {attempt + 1}/{retries}): {resp.status_code}")
+            except Exception as e:
+                last_status = str(e)
+                log(f"[Cleanup] {table} delete error (attempt {attempt + 1}/{retries}): {e}")
+            if attempt < retries - 1:
+                time.sleep(2 * (attempt + 1))
+
+        if not chunk_fallback:
+            log(f"[Cleanup] {table}: tum denemeler basarisiz ({last_status}), chunk fallback devre disi")
+            return 0
+
+        log(f"[Cleanup] {table}: tek-statement DELETE basarisiz ({last_status}), gune-gune chunk'li silmeye geciliyor...")
+        return self._delete_before_chunked(table, date_col, cutoff_date)
+
+    def _delete_before_chunked(self, table: str, date_col: str, cutoff_date: str,
+                                max_chunks: int = 90) -> int:
+        """Gune-gune chunk'li DELETE fallback. Toplam silinen satir sayisini dondurur."""
+        try:
+            cutoff_dt = datetime.strptime(cutoff_date[:10], '%Y-%m-%d').date()
+        except Exception as e:
+            log(f"[Cleanup] {table}: chunk fallback cutoff parse hatasi: {e}")
+            return 0
+
+        total = 0
+        day = cutoff_dt - timedelta(days=max_chunks)
+        while day < cutoff_dt:
+            next_day = day + timedelta(days=1)
+            day_str = day.strftime('%Y-%m-%d')
+            next_str = next_day.strftime('%Y-%m-%d')
+            chunk_count = None
+            for attempt in range(2):
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'count=exact'
+                    url = f"{self._rest_url(table)}?{date_col}=gte.{day_str}&{date_col}=lt.{next_str}"
+                    resp = requests.delete(url, headers=headers, timeout=90, verify=SSL_VERIFY)
+                    if resp.status_code in (200, 204):
+                        cr = resp.headers.get('content-range', '')
+                        chunk_count = 0
+                        if '/' in cr:
+                            t = cr.split('/')[-1]
+                            if t.isdigit():
+                                chunk_count = int(t)
+                        break
+                    if resp.status_code == 404:
+                        chunk_count = 0
+                        break
+                    log(f"[Cleanup] {table} chunk {day_str} delete failed (attempt {attempt + 1}/2): {resp.status_code}")
+                except Exception as e:
+                    log(f"[Cleanup] {table} chunk {day_str} delete error (attempt {attempt + 1}/2): {e}")
+                time.sleep(2)
+            if chunk_count:
+                total += chunk_count
+                log(f"[Cleanup] {table} chunk {day_str}: {chunk_count} satir silindi")
+            day = next_day
+
+        log(f"[Cleanup] {table}: chunk'li silme tamamlandi - toplam {total} satir")
+        return total
 
     def replace_wallet_positions(self, wallet: str, rows: List[Dict[str, Any]]) -> bool:
         """Full-sync a wallet's open positions: delete the previous snapshot and
@@ -706,6 +789,30 @@ def run_backfill(writer: PolymarketSupabaseWriter):
     log("[Backfill] Tum cuzdanlar tamamlandi.")
 
 
+def cleanup_old_poly_data(writer: PolymarketSupabaseWriter) -> int:
+    """Poly tarafinda sadece son 2 gun + gelecek veriler kalsin: D-2 oncesi (traded_at bazli)
+    tum satirlar silinir (orphan dahil, match_id eslestirmesi yok). tracked_wallet_positions
+    her cycle'da tamamen yeniden yazildigi icin (replace_wallet_positions) burada ayrica
+    temizlenmesine gerek yok - kendiliginden guncel kalir."""
+    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=2)
+    cutoff_iso = cutoff_dt.strftime('%Y-%m-%dT00:00:00')
+    log(f"[Cleanup] Poly D-2 silme: {cutoff_iso} oncesi silinecek (son 2 gun + gelecek korunur)")
+
+    total_deleted = 0
+    for table in ("tracked_wallet_activity", "tracked_wallet_redeems", "polymarket_trades"):
+        try:
+            count = writer.delete_before(table, "traded_at", cutoff_iso)
+            if count:
+                log(f"  [Cleanup] {table}: {count} satir silindi (D-2+)")
+                total_deleted += count
+        except Exception as e:
+            log(f"  [Cleanup] {table}: Hata - {e}")
+
+    if total_deleted:
+        log(f"[Cleanup] Poly cleanup tamamlandi - {total_deleted} satir silindi")
+    return total_deleted
+
+
 def run_scrape(writer: PolymarketSupabaseWriter) -> int:
     # Merge DB-stored matches with live Gamma API so newly listed matches
     # (e.g. Spain vs. Belgium appearing hours before kickoff) are discovered
@@ -768,12 +875,29 @@ def main() -> bool:
 
 def run_loop():
     log(f"Polymarket Scraper {INTERVAL_MINUTES} dakikada bir calisacak")
+
+    supabase_url = os.environ.get('SUPABASE_URL')
+    supabase_key = os.environ.get('SUPABASE_ANON_KEY')
+    cleanup_writer = PolymarketSupabaseWriter(supabase_url, supabase_key) if supabase_url and supabase_key else None
+    last_cleanup_date = None
+
     while True:
         try:
             main()
         except Exception as e:
             log(f"[Loop] main() hatasi: {e}")
             traceback.print_exc()
+
+        if cleanup_writer is not None:
+            today = datetime.now(timezone.utc).date()
+            if last_cleanup_date != today:
+                try:
+                    cleanup_old_poly_data(cleanup_writer)
+                    last_cleanup_date = today
+                except Exception as e:
+                    log(f"[Loop] cleanup_old_poly_data hatasi: {e}")
+                    traceback.print_exc()
+
         log(f"Sonraki calisma {INTERVAL_MINUTES} dakika sonra...")
         time.sleep(INTERVAL_SECONDS)
 

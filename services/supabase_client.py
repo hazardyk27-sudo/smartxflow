@@ -1835,30 +1835,101 @@ class SupabaseClient:
         print(f"[Cleanup] count error {table} (3 deneme): {last_err}")
         return 0
 
-    def _delete_before_simple(self, table: str, date_col: str, cutoff_date: str) -> int:
-        """Tek-statement DELETE: date_col < cutoff_date olan TUM satirlari tek SQL ile siler.
+    def _delete_before_simple(self, table: str, date_col: str, cutoff_date: str,
+                               _retries: int = 3, _chunk_fallback: bool = True) -> int:
+        """DELETE: date_col < cutoff_date olan TUM satirlari siler.
         match_id_hash eslestirmesi YOK — bagli fixture olsun olmasin (orphan dahil) her eski
         satir gider. Silinen satir sayisini dondurur. Tablo yoksa 0.
-        NOT: Onceki COUNT(*) pre-check kaldirildi — buyuk tablolarda sequential scan yapiyordu
-        ve CPU'yu spike'a sokuyordu. DELETE zaten no-op olur silinecek satir yoksa."""
+
+        Buyuk tablolarda (milyonlarca satir birikince) tek-statement DELETE Supabase/PostgREST
+        tarafinda statement timeout'a takilip 500 donebiliyor. Bu yuzden:
+        1. Once birkac kez (backoff ile) tek-statement DELETE denenir (normal gunluk calisma
+           icin bu yeterli, kucuk artis miktarlari hizlica silinir).
+        2. Hepsi basarisiz olursa (orn. cok buyuk bir birikinti varsa) gune-gune (chunk'li)
+           silmeye dusulur — her chunk kendi cutoff'una kadar tek-statement DELETE'tir, boylece
+           tek bir asiri buyuk statement yerine bir dizi kucuk/sinirli statement calisir ve
+           herhangi biri basarisiz olursa sadece o gun yeniden denenir, tum islem iptal olmaz."""
+        last_status = None
+        for attempt in range(_retries):
+            try:
+                headers = self._headers()
+                headers['Prefer'] = 'count=exact'
+                url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
+                resp = httpx.delete(url, headers=headers, timeout=120)
+                if resp.status_code in (200, 204):
+                    cr = resp.headers.get('content-range', '')
+                    if '/' in cr:
+                        t = cr.split('/')[-1]
+                        if t.isdigit():
+                            return int(t)
+                    return 0
+                if resp.status_code == 404:
+                    return 0
+                last_status = resp.status_code
+                print(f"[Cleanup] {table} simple delete failed (attempt {attempt + 1}/{_retries}): {resp.status_code}")
+            except Exception as e:
+                last_status = str(e)
+                print(f"[Cleanup] {table} simple delete error (attempt {attempt + 1}/{_retries}): {e}")
+            if attempt < _retries - 1:
+                time.sleep(2 * (attempt + 1))
+
+        if not _chunk_fallback:
+            print(f"[Cleanup] {table}: tum denemeler basarisiz ({last_status}), chunk fallback devre disi")
+            return 0
+
+        print(f"[Cleanup] {table}: tek-statement DELETE basarisiz ({last_status}), gune-gune chunk'li silmeye geciliyor...")
+        return self._delete_before_chunked(table, date_col, cutoff_date)
+
+    def _delete_before_chunked(self, table: str, date_col: str, cutoff_date: str,
+                                max_chunks: int = 90) -> int:
+        """Gune-gune (en eskiden en yeniye) chunk'li DELETE fallback. Her chunk kendi
+        icinde `date_col >= gun AND date_col < gun+1` araligini tek-statement siler, boylece
+        tek bir asiri buyuk DELETE yerine sinirli boyutlu statement'lar calisir. Bir chunk
+        birkac denemeden sonra hala basarisiz olursa atlanir (bir sonraki gunku cleanup'ta
+        tekrar denenir), tum islem yarida kesilmez. Toplam silinen satir sayisini dondurur."""
+        from datetime import datetime as _dt, timedelta as _td
+
         try:
-            headers = self._headers()
-            headers['Prefer'] = 'count=exact'
-            url = f"{self._rest_url(table)}?{date_col}=lt.{cutoff_date}"
-            resp = httpx.delete(url, headers=headers, timeout=60)
-            if resp.status_code in (200, 204):
-                cr = resp.headers.get('content-range', '')
-                if '/' in cr:
-                    t = cr.split('/')[-1]
-                    if t.isdigit():
-                        return int(t)
-                return 0
-            if resp.status_code == 404:
-                return 0
-            print(f"[Cleanup] {table} simple delete failed: {resp.status_code}")
+            cutoff_dt = _dt.strptime(cutoff_date[:10], '%Y-%m-%d').date()
         except Exception as e:
-            print(f"[Cleanup] {table} simple delete error: {e}")
-        return 0
+            print(f"[Cleanup] {table}: chunk fallback cutoff parse hatasi: {e}")
+            return 0
+
+        total = 0
+        day = cutoff_dt - _td(days=max_chunks)
+        while day < cutoff_dt:
+            next_day = day + _td(days=1)
+            day_str = day.strftime('%Y-%m-%d')
+            next_str = next_day.strftime('%Y-%m-%d')
+            chunk_count = None
+            for attempt in range(2):
+                try:
+                    headers = self._headers()
+                    headers['Prefer'] = 'count=exact'
+                    url = f"{self._rest_url(table)}?{date_col}=gte.{day_str}&{date_col}=lt.{next_str}"
+                    resp = httpx.delete(url, headers=headers, timeout=90)
+                    if resp.status_code in (200, 204):
+                        cr = resp.headers.get('content-range', '')
+                        chunk_count = 0
+                        if '/' in cr:
+                            t = cr.split('/')[-1]
+                            if t.isdigit():
+                                chunk_count = int(t)
+                        break
+                    if resp.status_code == 404:
+                        chunk_count = 0
+                        break
+                    print(f"[Cleanup] {table} chunk {day_str} delete failed (attempt {attempt + 1}/2): {resp.status_code}")
+                except Exception as e:
+                    print(f"[Cleanup] {table} chunk {day_str} delete error (attempt {attempt + 1}/2): {e}")
+                time.sleep(2)
+            if chunk_count:
+                total += chunk_count
+                print(f"[Cleanup] {table} chunk {day_str}: {chunk_count} satir silindi")
+            day = next_day
+
+        print(f"[Cleanup] {table}: chunk'li silme tamamlandi - toplam {total} satir")
+        return total
 
     def cleanup_old_matches(self, cutoff_date: str) -> Dict[str, int]:
         """
