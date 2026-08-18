@@ -302,22 +302,56 @@ class PolymarketSupabaseWriter:
         log(f"[Cleanup] {table}: tek-statement DELETE basarisiz ({last_status}), gune-gune chunk'li silmeye geciliyor...")
         return self._delete_before_chunked(table, date_col, cutoff_date)
 
+    def _oldest_date_value(self, table: str, date_col: str):
+        """Tablodaki en eski date_col degerini dondurur (chunk fallback'in nereden
+        baslayacagini bilmesi icin). Tablo bos/erisilemezse None."""
+        try:
+            headers = self._headers()
+            url = f"{self._rest_url(table)}?select={date_col}&order={date_col}.asc&limit=1"
+            resp = requests.get(url, headers=headers, timeout=30, verify=SSL_VERIFY)
+            if resp.status_code == 200:
+                rows = resp.json()
+                if rows:
+                    return rows[0].get(date_col)
+        except Exception as e:
+            log(f"[Cleanup] {table}: en eski tarih sorgusu hatasi: {e}")
+        return None
+
     def _delete_before_chunked(self, table: str, date_col: str, cutoff_date: str,
-                                max_chunks: int = 90) -> int:
-        """Gune-gune chunk'li DELETE fallback. Toplam silinen satir sayisini dondurur."""
+                                max_days: int = 3650) -> int:
+        """Gune-gune chunk'li DELETE fallback. Baslangic noktasi sabit bir gun sayisi degil,
+        tablodaki gercek en eski kaydin tarihidir, boylece daha eski birikinti de atlanmaz.
+        Basarisiz chunk'lar ATLANDI olarak loglanir ve bir sonraki calismada otomatik tekrar
+        denenir (sessizce tamamlandi sayilmaz). Toplam silinen satir sayisini dondurur."""
         try:
             cutoff_dt = datetime.strptime(cutoff_date[:10], '%Y-%m-%d').date()
         except Exception as e:
             log(f"[Cleanup] {table}: chunk fallback cutoff parse hatasi: {e}")
             return 0
 
+        oldest_raw = self._oldest_date_value(table, date_col)
+        if oldest_raw:
+            try:
+                oldest_dt = datetime.strptime(str(oldest_raw)[:10], '%Y-%m-%d').date()
+            except Exception:
+                oldest_dt = cutoff_dt - timedelta(days=max_days)
+        else:
+            oldest_dt = cutoff_dt - timedelta(days=max_days)
+
+        span_days = (cutoff_dt - oldest_dt).days
+        if span_days > max_days:
+            log(f"[Cleanup] {table}: en eski kayit {oldest_dt} - {span_days} gunluk aralik {max_days} gun ile sinirlandirildi, kalan sonraki calismada islenecek")
+            oldest_dt = cutoff_dt - timedelta(days=max_days)
+
         total = 0
-        day = cutoff_dt - timedelta(days=max_chunks)
+        skipped_days = []
+        day = oldest_dt
         while day < cutoff_dt:
             next_day = day + timedelta(days=1)
             day_str = day.strftime('%Y-%m-%d')
             next_str = next_day.strftime('%Y-%m-%d')
             chunk_count = None
+            ok = False
             for attempt in range(2):
                 try:
                     headers = self._headers()
@@ -331,20 +365,28 @@ class PolymarketSupabaseWriter:
                             t = cr.split('/')[-1]
                             if t.isdigit():
                                 chunk_count = int(t)
+                        ok = True
                         break
                     if resp.status_code == 404:
                         chunk_count = 0
+                        ok = True
                         break
                     log(f"[Cleanup] {table} chunk {day_str} delete failed (attempt {attempt + 1}/2): {resp.status_code}")
                 except Exception as e:
                     log(f"[Cleanup] {table} chunk {day_str} delete error (attempt {attempt + 1}/2): {e}")
                 time.sleep(2)
-            if chunk_count:
+            if not ok:
+                skipped_days.append(day_str)
+                log(f"[Cleanup] {table} chunk {day_str}: ATLANDI (denemeler basarisiz) - bir sonraki calismada tekrar denenecek")
+            elif chunk_count:
                 total += chunk_count
                 log(f"[Cleanup] {table} chunk {day_str}: {chunk_count} satir silindi")
             day = next_day
 
-        log(f"[Cleanup] {table}: chunk'li silme tamamlandi - toplam {total} satir")
+        if skipped_days:
+            log(f"[Cleanup] {table}: chunk'li silme KISMEN tamamlandi - {total} satir silindi, {len(skipped_days)} gun atlandi")
+        else:
+            log(f"[Cleanup] {table}: chunk'li silme tamamlandi - toplam {total} satir")
         return total
 
     def replace_wallet_positions(self, wallet: str, rows: List[Dict[str, Any]]) -> bool:

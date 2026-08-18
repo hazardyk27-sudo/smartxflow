@@ -40,3 +40,26 @@ returns 0 (graceful skip) — next daily run retries.
 **One-off backlog purge:** `scripts/one_off/purge_old_data_time_based.py` reports + runs the
 same time-based cleanup. Note bloat was mostly RECENT in-retention data, not orphans
 (`live_snapshots` had 340k total but only ~17k were actually D-8+).
+
+## Large-backlog DELETE timeout: chunk from actual oldest row, not a fixed lookback
+
+A single-statement `DELETE ... WHERE date_col < cutoff` can hit a PostgREST/Supabase statement
+timeout (HTTP 500) when the backlog to delete is very large (millions of rows) — confirmed live.
+
+**Fix pattern:** retry the single-statement delete a few times with backoff first (covers
+transient failures, keeps normal small daily deletes fast); if it keeps failing, fall back to
+deleting one calendar day at a time. The chunk fallback's start point must be the table's actual
+oldest existing date value (queried live), NOT a fixed lookback window (e.g. "last 90 days") —
+a fixed window silently ignores any backlog older than the window and the cleanup would report
+"done" while leaving old data behind forever. A day that still fails after retries must be logged
+as skipped/incomplete, not folded into a silent success count — the next run naturally retries it
+since it starts from the same live oldest-date query.
+
+**Why this matters:** multiple independent cleanup implementations exist for this project across
+different deployment targets (web app, and separate long-running scraper services on Hetzner). A
+robustness fix to one does not propagate to the others — apply the same fix everywhere cleanup
+logic deletes by date range when touching this area.
+
+**Side-effect to know about:** immediately after a very large purge, `SELECT count(*)` against
+the purged table can itself time out (table/index bloat until autovacuum catches up) — expected
+and unrelated to the DELETE logic itself.
