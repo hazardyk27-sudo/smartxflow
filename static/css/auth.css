@@ -1,14 +1,14 @@
 /* SmartXFlow — Auth pages (login/signup/verify/reset/membership/account) */
 :root {
-  --sxf-bg: #0d1117;
-  --sxf-card: linear-gradient(175deg, #1e2329 0, #181c21 60%, #141719 100%);
+  --sxf-bg: #101314;
+  --sxf-card: #1b2021;
   --sxf-border: rgba(255, 255, 255, 0.07);
-  --sxf-text: #e8edf3;
-  --sxf-text-dim: #9aa3ad;
-  --sxf-text-faint: #5c636b;
+  --sxf-text: #f2f4f2;
+  --sxf-text-dim: #a5adaa;
+  --sxf-text-faint: #717a77;
   --sxf-accent: #2bff88;
   --sxf-danger: #ff5c5c;
-  --sxf-input-bg: rgba(255, 255, 255, 0.04);
+  --sxf-input-bg: #15191a;
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +17,7 @@ body.sxf-auth-body {
   margin: 0;
   min-height: 100vh;
   background: var(--sxf-bg);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter Tight', Inter, -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--sxf-text);
   display: flex;
   align-items: center;
@@ -30,9 +30,9 @@ body.sxf-auth-body {
   max-width: 400px;
   background: var(--sxf-card);
   border: 1px solid var(--sxf-border);
-  border-radius: 20px;
+  border-radius: 8px;
   padding: 36px 32px;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+  box-shadow: none;
 }
 
 .sxf-auth-logo {
@@ -194,7 +194,7 @@ body.sxf-auth-body {
 /* Login composition */
 .sxf-auth-shell { min-height:100dvh; display:grid; grid-template-columns:54% 46%; }
 .sxf-brand-panel,.sxf-auth-panel { position:relative; min-width:0; }
-.sxf-brand-panel { padding:clamp(32px,6vw,88px) clamp(30px,7vw,112px); display:flex; flex-direction:column; overflow:hidden; background-image:linear-gradient(rgba(141,172,190,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(141,172,190,.025) 1px,transparent 1px); background-size:48px 48px; }
+ .sxf-brand-panel { padding:clamp(32px,6vw,88px) clamp(30px,7vw,112px); display:flex; flex-direction:column; overflow:hidden; background-color:#101314; background-image:repeating-linear-gradient(90deg,transparent 0,transparent 119px,rgba(255,255,255,.012) 120px,transparent 121px); background-size:auto; }
 .sxf-brand-panel:after { content:""; position:absolute; width:440px; height:440px; left:32%; top:45%; background:rgba(43,255,136,.045); filter:blur(100px); border-radius:50%; pointer-events:none; }
 .sxf-brand-lockup,.sxf-mobile-brand { display:flex; align-items:center; gap:10px; color:var(--sxf-text); text-decoration:none; font-size:20px; font-weight:700; letter-spacing:-.6px; }
 .sxf-brand-lockup img,.sxf-mobile-brand img { width:31px; height:31px; object-fit:contain; }
@@ -206,7 +206,7 @@ body.sxf-auth-body {
 .sxf-brand-copy h1 em { color:#8b99a5; font-style:normal; }
 .sxf-brand-description { max-width:400px; margin:0; color:#82909c; font-size:14px; line-height:1.7; }
 .sxf-market-visual { position:relative; z-index:1; width:min(490px,100%); margin:clamp(38px,6vh,80px) 0 auto; min-height:280px; }
-.sxf-market-card { position:relative; width:min(390px,90%); padding:20px; background:rgba(20,29,38,.9); border:1px solid rgba(163,188,201,.18); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.28); transform:rotate(-2deg); }
+ .sxf-market-card { position:relative; width:min(390px,90%); padding:20px; background:#1b2021; border:1px solid rgba(255,255,255,.14); border-radius:8px; box-shadow:none; transform:none; }
 .sxf-market-card-top { display:flex; justify-content:space-between; color:#8595a1; font-size:9px; font-weight:700; letter-spacing:1.2px; }
 .sxf-market-card-top i { display:inline-block; width:5px; height:5px; margin-right:6px; border-radius:50%; background:var(--sxf-accent); vertical-align:1px; }
 .sxf-market-time { color:#52616d; font-weight:500; letter-spacing:0; }
@@ -214,7 +214,7 @@ body.sxf-auth-body {
 .sxf-market-card strong b,.sxf-market-metrics small { color:#657581; font-size:10px; font-weight:500; }
 .sxf-market-metrics { display:flex; gap:45px; }.sxf-market-metrics span { display:flex; flex-direction:column; gap:7px; }.sxf-market-metrics small { letter-spacing:1px; }.sxf-market-metrics mark { background:none; color:var(--sxf-accent); font-size:16px; font-weight:650; }.sxf-market-metrics mark b,.sxf-mini-signal b { color:#8b99a5; font-weight:500; }
 .sxf-activity-bars { display:flex; align-items:end; gap:5px; height:30px; margin-top:20px; opacity:.6; }.sxf-activity-bars i { width:14px; height:var(--h,12px); background:#477360; border-radius:2px; }.sxf-activity-bars i:nth-child(2n){--h:22px}.sxf-activity-bars i:nth-child(3n){--h:16px}.sxf-activity-bars i:nth-child(5n){--h:28px}.sxf-activity-bars i:nth-child(8n){--h:24px}.sxf-activity-bars i:last-child{background:var(--sxf-accent)}
-.sxf-mini-signal { position:absolute; right:0; bottom:20px; display:flex; flex-direction:column; gap:6px; padding:13px 15px; background:rgba(13,20,27,.92); border:1px solid rgba(163,188,201,.12); border-radius:9px; transform:rotate(3deg); }.sxf-mini-signal span { color:#687b85; font-size:9px; letter-spacing:1.1px; }.sxf-mini-signal strong { color:#e1e9eb; font-size:13px; font-weight:600; }.sxf-mini-signal span:before { content:""; display:inline-block; width:5px; height:5px; margin-right:6px; border-radius:50%; background:#f2b866; }
+ .sxf-mini-signal { position:absolute; right:0; bottom:20px; display:flex; flex-direction:column; gap:6px; padding:13px 15px; background:#15191a; border:1px solid rgba(255,255,255,.08); border-radius:6px; transform:none; }.sxf-mini-signal span { color:#717a77; font-size:9px; letter-spacing:1.1px; }.sxf-mini-signal strong { color:#f2f4f2; font-size:13px; font-weight:600; }.sxf-mini-signal span:before { content:""; display:inline-block; width:5px; height:5px; margin-right:6px; border-radius:1px; background:#2bff88; }
 .sxf-signal-line { position:absolute; height:1px; width:115%; background:rgba(43,255,136,.15); transform:rotate(-11deg); }.sxf-signal-line-one { top:43px; left:-5%; }.sxf-signal-line-two { top:176px; left:-7%; opacity:.45; transform:rotate(7deg); }
 .sxf-brand-footer { margin-top:35px; color:#465560; font-size:9px; letter-spacing:1.4px; }.sxf-brand-footer span,.sxf-copyright span { color:#697984; margin:0 6px; }
 .sxf-auth-panel { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:48px clamp(24px,6vw,90px); background:rgba(8,13,19,.35); }
