@@ -236,4 +236,7 @@ body.sxf-auth-body {
 @media (max-width:479px) {
   .sxf-auth-panel { padding:calc(28px + env(safe-area-inset-top)) 20px calc(25px + env(safe-area-inset-bottom)); }.sxf-auth-card { margin:0; }.sxf-mobile-brand { margin-bottom:38px; font-size:19px; }.sxf-auth-heading { margin-bottom:27px; }.sxf-auth-heading h2 { font-size:29px; }.sxf-field { margin-bottom:17px; }.sxf-legacy { margin-top:27px; }.sxf-copyright { margin-top:28px; }
 }
+@media (min-width:1024px) and (max-height:800px) {
+  .sxf-auth-panel { padding-top:28px; padding-bottom:24px; }.sxf-auth-heading { margin-bottom:21px; }.sxf-heading-rule { margin-bottom:14px; }.sxf-auth-heading h2 { font-size:30px; }.sxf-field { margin-bottom:13px; }.sxf-field input,.sxf-btn { min-height:48px; }.sxf-divider { margin:19px 0 8px; }.sxf-legacy { margin-top:19px; padding-top:14px; }.sxf-copyright { margin-top:18px; }.sxf-brand-panel { padding-top:36px; padding-bottom:30px; }.sxf-market-visual { margin-top:36px; min-height:230px; }.sxf-brand-footer { margin-top:14px; }
+}
 @media (prefers-reduced-motion:reduce) { *,*:before,*:after { animation-duration:.01ms!important; transition-duration:.01ms!important; } }
