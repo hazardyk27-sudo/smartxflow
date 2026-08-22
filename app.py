@@ -532,11 +532,27 @@ def _legacy_license_session_valid():
         if not expires or expires > now:
             if time.time() - cached.get('cached_at', 0) <= _LICENSE_CACHE_TTL:
                 return True
-    result = _refresh_license_from_supabase(key)
-    if result in ('LICENSE_EXPIRED', 'LICENSE_REVOKED', 'LICENSE_REQUIRED'):
-        return False
-    cached = _validated_licenses.get(key)
-    return bool(cached and (not cached.get('expires') or cached['expires'] > now))
+    try:
+        rows = license_select('licenses', 'plan,status,expires_at', {'key': key})
+        if not rows:
+            return False
+        license_data = rows[0]
+        if license_data.get('status') == 'revoked':
+            return False
+        expires_at = license_data.get('expires_at')
+        expires = _parse_expires_naive(expires_at) if expires_at else None
+        if expires and expires <= now:
+            return False
+        _validated_licenses[key] = {
+            'expires': expires,
+            'plan': license_data.get('plan') or 'core',
+            'cached_at': time.time(),
+        }
+        return True
+    except Exception:
+        # Existing validated licenses may continue during a transient DB outage.
+        cached = _validated_licenses.get(key)
+        return bool(cached and (not cached.get('expires') or cached['expires'] > now))
 
 def resolve_account_session():
     """

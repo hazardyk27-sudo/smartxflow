@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
 <body class="sxf-auth-body">
   <div class="sxf-auth-card" style="text-align:center;">
     <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
-    <p class="sxf-center-text" id="statusText" style="margin-top:14px;">Doğrulanıyor...</p>
+    <p class="sxf-center-text" id="statusText" style="margin-top:14px;">Verifying...</p>
     <div class="sxf-error" id="errBox"></div>
   </div>
 
@@ -33,7 +33,7 @@
 
   if (!accessToken) {
     statusText.textContent = '';
-    errBox.textContent = 'Geçersiz veya süresi dolmuş bağlantı.';
+    errBox.textContent = 'This link is invalid or has expired.';
     errBox.style.display = 'block';
     return;
   }
@@ -56,12 +56,12 @@
       window.location.href = data.next || '/app';
     } else {
       statusText.textContent = '';
-      errBox.textContent = 'Doğrulama tamamlanamadı, lütfen tekrar giriş yapın.';
+      errBox.textContent = 'Verification failed. Please sign in again.';
       errBox.style.display = 'block';
     }
   } catch (e) {
     statusText.textContent = '';
-    errBox.textContent = 'Bağlantı hatası.';
+    errBox.textContent = 'Connection error.';
     errBox.style.display = 'block';
   }
 })();

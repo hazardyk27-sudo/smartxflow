@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>E-posta Doğrulama - SmartXFlow</title>
+<title>Verify Your Email - SmartXFlow</title>
 <link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
 </head>
 <body class="sxf-auth-body">
@@ -13,18 +13,18 @@
     </div>
     <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
     <p class="sxf-center-text" style="margin-top:14px;">
-      <strong id="emailLabel">E-posta adresinize</strong> bir doğrulama bağlantısı gönderdik.
-      Devam etmek için gelen kutunuzdaki bağlantıya tıklayın.
+      We sent a verification link to <strong id="emailLabel">your email address</strong>.
+      Click the link in your inbox to continue.
     </p>
 
     <div class="sxf-error" id="errBox"></div>
     <div class="sxf-success" id="okBox"></div>
 
-    <button type="button" class="sxf-btn" id="resendBtn">Doğrulama E-postasını Yeniden Gönder</button>
-    <button type="button" class="sxf-btn-secondary" id="refreshBtn">Doğruladım, devam et</button>
+    <button type="button" class="sxf-btn" id="resendBtn">Resend Verification Email</button>
+    <button type="button" class="sxf-btn-secondary" id="refreshBtn">I've Verified My Email, Continue</button>
 
     <div class="sxf-footer-link">
-      <a href="#" id="logoutLink">Farklı bir hesapla giriş yap</a>
+      <a href="#" id="logoutLink">Sign in with a different account</a>
     </div>
   </div>
 
@@ -42,7 +42,7 @@ document.getElementById('resendBtn').addEventListener('click', async () => {
   const status = await statusResp.json();
   const email = status.email || pendingEmail;
   if (!email) {
-    errBox.textContent = 'E-posta adresi bulunamadı, lütfen tekrar giriş yapın.';
+    errBox.textContent = 'Email address not found. Please sign in again.';
     errBox.style.display = 'block';
     return;
   }
@@ -54,17 +54,17 @@ document.getElementById('resendBtn').addEventListener('click', async () => {
     });
     const data = await resp.json();
     if (data.ok) {
-      okBox.textContent = 'Doğrulama e-postası yeniden gönderildi.';
+      okBox.textContent = 'Verification email sent again.';
       okBox.style.display = 'block';
     } else if (data.error === 'COOLDOWN') {
-      errBox.textContent = `Lütfen ${data.retry_after} saniye sonra tekrar deneyin.`;
+      errBox.textContent = `Please try again in ${data.retry_after} seconds.`;
       errBox.style.display = 'block';
     } else {
-      errBox.textContent = 'Gönderilemedi, tekrar deneyin.';
+      errBox.textContent = 'Could not send the email. Please try again.';
       errBox.style.display = 'block';
     }
   } catch (e) {
-    errBox.textContent = 'Bağlantı hatası.';
+    errBox.textContent = 'Connection error.';
     errBox.style.display = 'block';
   }
 });
@@ -77,7 +77,7 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
   } else if (data.status === 'membership_required') {
     window.location.href = '/membership-required';
   } else {
-    errBox.textContent = 'Henüz doğrulanmamış görünüyor. E-postanızı kontrol edin.';
+    errBox.textContent = 'Your email is not verified yet. Please check your inbox.';
     errBox.style.display = 'block';
   }
 });

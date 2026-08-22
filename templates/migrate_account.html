@@ -1,39 +1,39 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lisansı Hesaba Taşı - SmartXFlow</title>
+<title>Move License to Account - SmartXFlow</title>
 <link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
 </head>
 <body class="sxf-auth-body">
   <div class="sxf-auth-card">
     <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
-    <p class="sxf-auth-title">Lisans anahtarınızı bir hesaba taşıyın</p>
+    <p class="sxf-auth-title">Move your license key to an account</p>
     <p class="sxf-center-text">
-      SmartXFlow artık e-posta/şifre ile giriş kullanıyor. Mevcut lisans anahtarınızla
-      bir kere yeni bir hesap oluşturun; üyeliğiniz otomatik olarak aktarılacak.
+      SmartXFlow now uses email and password sign-in. Create a new account once with
+      your existing license key and your membership will be transferred automatically.
     </p>
 
     <div class="sxf-error" id="errBox"></div>
 
     <form id="migrateForm" autocomplete="on">
       <div class="sxf-field">
-        <label for="licenseKey">Lisans Anahtarı</label>
+        <label for="licenseKey">License Key</label>
         <input type="text" id="licenseKey" name="licenseKey" required placeholder="SXF-XXXX-XXXX-XXXX" style="text-transform:uppercase;">
       </div>
       <div class="sxf-field">
-        <label for="email">E-posta</label>
+        <label for="email">Email</label>
         <input type="email" id="email" name="email" required autocomplete="username">
       </div>
       <div class="sxf-field">
-        <label for="password">Yeni Şifre</label>
+        <label for="password">New Password</label>
         <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
       </div>
-      <button type="submit" class="sxf-btn" id="submitBtn">Hesabı Oluştur ve Taşı</button>
+      <button type="submit" class="sxf-btn" id="submitBtn">Create Account and Move License</button>
     </form>
 
-    <div class="sxf-footer-link"><a href="/login">Girişe geri dön</a></div>
+    <div class="sxf-footer-link"><a href="/login">Back to sign in</a></div>
   </div>
 
 <script>
@@ -42,21 +42,21 @@ const errBox = document.getElementById('errBox');
 const submitBtn = document.getElementById('submitBtn');
 
 const ERR_MSG = {
-  LICENSE_NOT_FOUND: 'Bu lisans anahtarı bulunamadı.',
-  LICENSE_REVOKED: 'Bu lisans iptal edilmiş.',
-  LICENSE_EXPIRED: 'Bu lisansın süresi dolmuş.',
-  LICENSE_ALREADY_MIGRATED: 'Bu lisans zaten bir hesaba taşınmış. Giriş yapmayı deneyin.',
-  EMAIL_ALREADY_REGISTERED: 'Bu e-posta zaten kayıtlı. Giriş yapmayı deneyin.',
-  INVALID_EMAIL: 'Geçerli bir e-posta adresi girin.',
-  PASSWORD_TOO_SHORT: 'Şifre en az 8 karakter olmalı.',
-  INVALID_INPUT: 'Lütfen tüm alanları doldurun.',
+  LICENSE_NOT_FOUND: 'This license key was not found.',
+  LICENSE_REVOKED: 'This license has been revoked.',
+  LICENSE_EXPIRED: 'This license has expired.',
+  LICENSE_ALREADY_MIGRATED: 'This license has already been moved to an account. Try signing in.',
+  EMAIL_ALREADY_REGISTERED: 'This email is already registered. Try signing in.',
+  INVALID_EMAIL: 'Enter a valid email address.',
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters.',
+  INVALID_INPUT: 'Please complete all fields.',
 };
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errBox.style.display = 'none';
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Taşınıyor...';
+  submitBtn.textContent = 'Moving license...';
   try {
     const resp = await fetch('/api/auth/migrate-key', {
       method: 'POST',
@@ -69,19 +69,19 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
-      errBox.textContent = ERR_MSG[data.error] || 'Taşıma başarısız oldu.';
+      errBox.textContent = ERR_MSG[data.error] || 'License transfer failed.';
       errBox.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Hesabı Oluştur ve Taşı';
+      submitBtn.textContent = 'Create Account and Move License';
       return;
     }
     sessionStorage.setItem('sxf_pending_email', data.email);
     window.location.href = '/verify-email';
   } catch (err) {
-    errBox.textContent = 'Bağlantı hatası, tekrar deneyin.';
+    errBox.textContent = 'Connection error. Please try again.';
     errBox.style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Hesabı Oluştur ve Taşı';
+    submitBtn.textContent = 'Create Account and Move License';
   }
 });
 </script>
