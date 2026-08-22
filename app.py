@@ -515,6 +515,29 @@ def _account_block(error, message, status=403):
         return redirect(f'/login?next={next_path}')
     return jsonify({'error': error, 'message': message}), status
 
+def _legacy_license_session_valid():
+    """Temporary compatibility bridge for users who still use a license key.
+
+    This is deliberately kept separate from the account session. It allows the
+    old client to continue working during the migration window without making
+    license keys a fallback for the new account login flow.
+    """
+    key = (session.get('license_key') or request.headers.get('X-License-Key', '')).strip()
+    if not key:
+        return False
+    cached = _validated_licenses.get(key)
+    now = datetime.utcnow()
+    if cached:
+        expires = cached.get('expires')
+        if not expires or expires > now:
+            if time.time() - cached.get('cached_at', 0) <= _LICENSE_CACHE_TTL:
+                return True
+    result = _refresh_license_from_supabase(key)
+    if result in ('LICENSE_EXPIRED', 'LICENSE_REVOKED', 'LICENSE_REQUIRED'):
+        return False
+    cached = _validated_licenses.get(key)
+    return bool(cached and (not cached.get('expires') or cached['expires'] > now))
+
 def resolve_account_session():
     """
     Validates the current Flask session against Supabase Auth (with a short TTL cache)
@@ -560,6 +583,11 @@ def license_required(f):
         # Free-trial "test mode" is an anonymous trial toggle, not part of the
         # key-based license system — kept as-is (see /api/test/activate).
         if session.get('license_plan') == 'test':
+            return f(*args, **kwargs)
+
+        # Keep existing key-based customers working until the migration
+        # window is explicitly closed. New users never enter this path.
+        if _legacy_license_session_valid():
             return f(*args, **kwargs)
 
         user, profile = resolve_account_session()
@@ -1281,7 +1309,7 @@ def index():
         # Cheap presence-only check to avoid a network round-trip on every page
         # load; the client re-validates the full status via /api/auth/session-status
         # and redirects further (email verify / membership required) as needed.
-        if not session.get('sb_access_token'):
+        if not session.get('sb_access_token') and not _legacy_license_session_valid():
             return redirect(f"/login?next={request.path}")
     trigger_app_warmup()
     return render_template('index.html')

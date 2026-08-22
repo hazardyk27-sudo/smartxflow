@@ -1,40 +1,40 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Giriş Yap - SmartXFlow</title>
+<title>Sign In - SmartXFlow</title>
 <link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
 </head>
 <body class="sxf-auth-body">
   <div class="sxf-auth-card">
     <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
-    <p class="sxf-auth-title">Hesabınıza giriş yapın</p>
+    <p class="sxf-auth-title">Sign in to your account</p>
 
     <div class="sxf-error" id="errBox"></div>
 
     <form id="loginForm" autocomplete="on">
       <div class="sxf-field">
-        <label for="email">E-posta</label>
+        <label for="email">Email</label>
         <input type="email" id="email" name="email" required autocomplete="username">
       </div>
       <div class="sxf-field">
-        <label for="password">Şifre</label>
+        <label for="password">Password</label>
         <input type="password" id="password" name="password" required autocomplete="current-password">
       </div>
-      <button type="submit" class="sxf-btn" id="submitBtn">Giriş Yap</button>
+      <button type="submit" class="sxf-btn" id="submitBtn">Sign In</button>
     </form>
 
-    <button type="button" class="sxf-btn-secondary" id="testModeBtn">Hesapsız Test Modunu Dene</button>
+    <button type="button" class="sxf-btn-secondary" id="testModeBtn">Try Test Mode Without an Account</button>
 
     <div class="sxf-footer-link" style="margin-top:14px;">
-      <a href="/forgot-password">Şifremi unuttum</a>
+      <a href="/forgot-password">Forgot your password?</a>
     </div>
     <div class="sxf-footer-link">
-      Hesabınız yok mu? <a href="/signup">Kayıt Ol</a>
+      Don't have an account? <a href="/signup">Sign Up</a>
     </div>
     <div class="sxf-footer-link">
-      Eski lisans anahtarınız mı var? <a href="/migrate-account">Hesaba taşı</a>
+      Have an existing license key? <a href="/migrate-account">Move it to an account</a>
     </div>
   </div>
 
@@ -45,11 +45,11 @@ const errBox = document.getElementById('errBox');
 const submitBtn = document.getElementById('submitBtn');
 
 const ERR_MSG = {
-  MISSING_CREDENTIALS: 'E-posta ve şifre girin.',
-  INVALID_CREDENTIALS: 'E-posta veya şifre hatalı.',
-  ACCOUNT_DELETED: 'Bu hesap silinmiş.',
-  AUTH_UNAVAILABLE: 'Kimlik doğrulama servisine ulaşılamıyor.',
-  LOGIN_FAILED: 'Giriş yapılamadı, tekrar deneyin.',
+  MISSING_CREDENTIALS: 'Enter your email and password.',
+  INVALID_CREDENTIALS: 'Your email or password is incorrect.',
+  ACCOUNT_DELETED: 'This account has been deleted.',
+  AUTH_UNAVAILABLE: 'The authentication service is unavailable.',
+  LOGIN_FAILED: 'Sign-in failed. Please try again.',
 };
 
 form.addEventListener('submit', async (e) => {
@@ -68,18 +68,18 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
-      errBox.textContent = ERR_MSG[data.error] || 'Giriş yapılamadı.';
+      errBox.textContent = ERR_MSG[data.error] || 'Sign-in failed.';
       errBox.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Giriş Yap';
+      submitBtn.textContent = 'Sign In';
       return;
     }
     window.location.href = data.next || nextPath || '/app';
   } catch (err) {
-    errBox.textContent = 'Bağlantı hatası, tekrar deneyin.';
+    errBox.textContent = 'Connection error. Please try again.';
     errBox.style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Giriş Yap';
+    submitBtn.textContent = 'Sign In';
   }
 });
 

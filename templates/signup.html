@@ -1,36 +1,36 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kayıt Ol - SmartXFlow</title>
+<title>Sign Up - SmartXFlow</title>
 <link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
 </head>
 <body class="sxf-auth-body">
   <div class="sxf-auth-card">
     <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
-    <p class="sxf-auth-title">Yeni hesap oluşturun</p>
+    <p class="sxf-auth-title">Create a new account</p>
 
     <div class="sxf-error" id="errBox"></div>
 
     <form id="signupForm" autocomplete="on">
       <div class="sxf-field">
-        <label for="displayName">Ad (opsiyonel)</label>
+        <label for="displayName">Name (optional)</label>
         <input type="text" id="displayName" name="displayName" autocomplete="name">
       </div>
       <div class="sxf-field">
-        <label for="email">E-posta</label>
+        <label for="email">Email</label>
         <input type="email" id="email" name="email" required autocomplete="username">
       </div>
       <div class="sxf-field">
-        <label for="password">Şifre</label>
+        <label for="password">Password</label>
         <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
       </div>
-      <button type="submit" class="sxf-btn" id="submitBtn">Kayıt Ol</button>
+      <button type="submit" class="sxf-btn" id="submitBtn">Sign Up</button>
     </form>
 
     <div class="sxf-footer-link">
-      Zaten hesabınız var mı? <a href="/login">Giriş Yap</a>
+      Already have an account? <a href="/login">Sign In</a>
     </div>
   </div>
 
@@ -40,19 +40,19 @@ const errBox = document.getElementById('errBox');
 const submitBtn = document.getElementById('submitBtn');
 
 const ERR_MSG = {
-  INVALID_EMAIL: 'Geçerli bir e-posta adresi girin.',
-  PASSWORD_TOO_SHORT: 'Şifre en az 8 karakter olmalı.',
-  PASSWORD_TOO_WEAK: 'Şifre çok zayıf, daha güçlü bir şifre seçin.',
-  EMAIL_ALREADY_REGISTERED: 'Bu e-posta zaten kayıtlı. Giriş yapmayı deneyin.',
-  AUTH_UNAVAILABLE: 'Kimlik doğrulama servisine ulaşılamıyor.',
-  SIGNUP_FAILED: 'Kayıt oluşturulamadı, tekrar deneyin.',
+  INVALID_EMAIL: 'Enter a valid email address.',
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters.',
+  PASSWORD_TOO_WEAK: 'Password is too weak. Choose a stronger password.',
+  EMAIL_ALREADY_REGISTERED: 'This email is already registered. Try signing in.',
+  AUTH_UNAVAILABLE: 'The authentication service is unavailable.',
+  SIGNUP_FAILED: 'Account creation failed. Please try again.',
 };
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errBox.style.display = 'none';
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Kayıt oluşturuluyor...';
+  submitBtn.textContent = 'Creating account...';
   try {
     const resp = await fetch('/api/auth/signup', {
       method: 'POST',
@@ -65,19 +65,19 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await resp.json();
     if (!resp.ok || !data.ok) {
-      errBox.textContent = ERR_MSG[data.error] || 'Kayıt oluşturulamadı.';
+      errBox.textContent = ERR_MSG[data.error] || 'Account creation failed.';
       errBox.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Kayıt Ol';
+      submitBtn.textContent = 'Sign Up';
       return;
     }
     sessionStorage.setItem('sxf_pending_email', data.email);
     window.location.href = '/verify-email';
   } catch (err) {
-    errBox.textContent = 'Bağlantı hatası, tekrar deneyin.';
+    errBox.textContent = 'Connection error. Please try again.';
     errBox.style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Kayıt Ol';
+    submitBtn.textContent = 'Sign Up';
   }
 });
 </script>
