@@ -3,46 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign In - SmartXFlow</title>
+<title>Sign In | SmartXFlow</title>
 <link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
 </head>
 <body class="sxf-auth-body">
-  <div class="sxf-auth-card">
-    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
-    <p class="sxf-auth-title">Sign in to your account</p>
-
-    <div class="sxf-error" id="errBox"></div>
-
-    <form id="loginForm" autocomplete="on">
-      <div class="sxf-field">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required autocomplete="username">
+  <main class="sxf-auth-shell">
+    <section class="sxf-brand-panel" aria-label="SmartXFlow product">
+      <a class="sxf-brand-lockup" href="/" aria-label="SmartXFlow home">
+        <img src="/static/images/smartxflow_logo.png" alt="">
+        <span>Smart<span class="sxf-brand-x">X</span>Flow</span>
+      </a>
+      <div class="sxf-brand-copy">
+        <p class="sxf-eyebrow"><span class="sxf-status-dot"></span> MARKET INTELLIGENCE</p>
+        <h1>Read the market.<br><em>See the movement.</em></h1>
+        <p class="sxf-brand-description">Track money flow, odds movement and market signals in real time.</p>
       </div>
-      <div class="sxf-field">
-        <label for="password">Password</label>
-        <input type="password" id="password" name="password" required autocomplete="current-password">
+      <div class="sxf-market-visual" aria-hidden="true">
+        <div class="sxf-signal-line sxf-signal-line-one"></div>
+        <div class="sxf-signal-line sxf-signal-line-two"></div>
+        <div class="sxf-market-card">
+          <div class="sxf-market-card-top"><span><i></i> LIVE MARKET</span><span class="sxf-market-time">02:14:38</span></div>
+          <strong>Chelsea <b>vs</b> Man City</strong>
+          <div class="sxf-market-metrics"><span><small>SHARP MOVE</small><mark>1.85 <b>→</b> 1.62</mark></span><span><small>MONEY FLOW</small><mark>£842K</mark></span></div>
+          <div class="sxf-activity-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="sxf-mini-signal"><span>DROPPING</span><strong>1.55 <b>→</b> 1.40</strong></div>
       </div>
-      <button type="submit" class="sxf-btn" id="submitBtn">Sign In</button>
-    </form>
+      <p class="sxf-brand-footer">DATA-LED MARKET INTELLIGENCE <span>•</span> SMARTXFLOW</p>
+    </section>
 
-    <button type="button" class="sxf-btn-secondary" id="testModeBtn">Try Test Mode Without an Account</button>
-
-    <div class="sxf-footer-link" style="margin-top:14px;">
-      <a href="/forgot-password">Forgot your password?</a>
-    </div>
-    <div class="sxf-footer-link">
-      Don't have an account? <a href="/signup">Sign Up</a>
-    </div>
-    <div class="sxf-footer-link">
-      Have an existing license key? <a href="/migrate-account">Move it to an account</a>
-    </div>
-  </div>
+    <section class="sxf-auth-panel">
+      <div class="sxf-auth-card">
+        <div class="sxf-mobile-brand">
+          <img src="/static/images/smartxflow_logo.png" alt="">
+          <span>Smart<span class="sxf-brand-x">X</span>Flow</span>
+        </div>
+        <div class="sxf-auth-heading">
+          <span class="sxf-heading-rule"></span>
+          <p class="sxf-eyebrow">WELCOME BACK</p>
+          <h2>Sign in to your account</h2>
+          <p>Access your market dashboard and live signals.</p>
+        </div>
+        <div class="sxf-error" id="errBox" role="alert" aria-live="polite"></div>
+        <form id="loginForm" autocomplete="on" novalidate>
+          <div class="sxf-field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required autocomplete="username" placeholder="you@example.com" aria-describedby="emailError">
+            <span class="sxf-field-error" id="emailError"></span>
+          </div>
+          <div class="sxf-field">
+            <div class="sxf-label-row"><label for="password">Password</label><a href="/forgot-password">Forgot password?</a></div>
+            <div class="sxf-password-wrap">
+              <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter your password" aria-describedby="passwordError">
+              <button type="button" class="sxf-password-toggle" id="passwordToggle" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>
+              </button>
+            </div>
+            <span class="sxf-field-error" id="passwordError"></span>
+          </div>
+          <button type="submit" class="sxf-btn" id="submitBtn"><span class="sxf-btn-label">Sign In</span><span class="sxf-spinner" aria-hidden="true"></span></button>
+        </form>
+        <p class="sxf-create-account">New to SmartXFlow? <a href="/signup">Create account</a></p>
+        <div class="sxf-divider"><span>or continue without an account</span></div>
+        <button type="button" class="sxf-test-link" id="testModeBtn">Explore Test Mode <span aria-hidden="true">→</span></button>
+        <div class="sxf-legacy"><span>Already have a SmartXFlow license?</span><a href="/migrate-account">Move it to your account <span aria-hidden="true">→</span></a></div>
+      </div>
+      <p class="sxf-copyright">© SmartXFlow <span>•</span> <a href="/privacy">Privacy</a> <span>•</span> <a href="/terms">Terms</a></p>
+    </section>
+  </main>
 
 <script>
 const nextPath = {{ next_path | tojson }};
 const form = document.getElementById('loginForm');
 const errBox = document.getElementById('errBox');
 const submitBtn = document.getElementById('submitBtn');
+const passwordInput = document.getElementById('password');
+const passwordToggle = document.getElementById('passwordToggle');
 
 const ERR_MSG = {
   MISSING_CREDENTIALS: 'Enter your email and password.',
@@ -55,8 +91,20 @@ const ERR_MSG = {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   errBox.style.display = 'none';
+  document.querySelectorAll('.sxf-field-error').forEach((el) => el.textContent = '');
+  if (!document.getElementById('email').value.trim()) {
+    document.getElementById('emailError').textContent = 'Enter your email address.';
+    document.getElementById('email').focus();
+    return;
+  }
+  if (!passwordInput.value) {
+    document.getElementById('passwordError').textContent = 'Enter your password.';
+    passwordInput.focus();
+    return;
+  }
   submitBtn.disabled = true;
-   submitBtn.textContent = 'Signing in...';
+  submitBtn.classList.add('is-loading');
+  submitBtn.querySelector('.sxf-btn-label').textContent = 'Signing in...';
   try {
     const resp = await fetch('/api/auth/login', {
       method: 'POST',
@@ -71,7 +119,8 @@ form.addEventListener('submit', async (e) => {
       errBox.textContent = ERR_MSG[data.error] || 'Sign-in failed.';
       errBox.style.display = 'block';
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Sign In';
+      submitBtn.querySelector('.sxf-btn-label').textContent = 'Sign In';
+      submitBtn.classList.remove('is-loading');
       return;
     }
     window.location.href = data.next || nextPath || '/app';
@@ -79,8 +128,16 @@ form.addEventListener('submit', async (e) => {
     errBox.textContent = 'Connection error. Please try again.';
     errBox.style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Sign In';
+    submitBtn.querySelector('.sxf-btn-label').textContent = 'Sign In';
+    submitBtn.classList.remove('is-loading');
   }
+});
+
+passwordToggle.addEventListener('click', () => {
+  const visible = passwordInput.type === 'text';
+  passwordInput.type = visible ? 'password' : 'text';
+  passwordToggle.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
+  passwordToggle.setAttribute('aria-pressed', String(!visible));
 });
 
 document.getElementById('testModeBtn').addEventListener('click', async () => {
