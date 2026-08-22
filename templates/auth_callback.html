@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card" style="text-align:center;">
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-center-text" id="statusText" style="margin-top:14px;">Doğrulanıyor...</p>
+    <div class="sxf-error" id="errBox"></div>
+  </div>
+
+<script>
+(async function () {
+  const statusText = document.getElementById('statusText');
+  const errBox = document.getElementById('errBox');
+  const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const type = params.get('type') || 'signup';
+  const errorDesc = params.get('error_description');
+
+  if (errorDesc) {
+    statusText.textContent = '';
+    errBox.textContent = decodeURIComponent(errorDesc.replace(/\+/g, ' '));
+    errBox.style.display = 'block';
+    return;
+  }
+
+  if (!accessToken) {
+    statusText.textContent = '';
+    errBox.textContent = 'Geçersiz veya süresi dolmuş bağlantı.';
+    errBox.style.display = 'block';
+    return;
+  }
+
+  if (type === 'recovery') {
+    sessionStorage.setItem('sxf_recovery_access_token', accessToken);
+    sessionStorage.setItem('sxf_recovery_refresh_token', refreshToken || '');
+    window.location.href = '/reset-password#access_token=' + encodeURIComponent(accessToken) + '&refresh_token=' + encodeURIComponent(refreshToken || '');
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/auth/establish-session', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({access_token: accessToken, refresh_token: refreshToken, type: type}),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      window.location.href = data.next || '/app';
+    } else {
+      statusText.textContent = '';
+      errBox.textContent = 'Doğrulama tamamlanamadı, lütfen tekrar giriş yapın.';
+      errBox.style.display = 'block';
+    }
+  } catch (e) {
+    statusText.textContent = '';
+    errBox.textContent = 'Bağlantı hatası.';
+    errBox.style.display = 'block';
+  }
+})();
+</script>
+</body>
+</html>

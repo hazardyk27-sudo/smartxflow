@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Giriş Yap - SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card">
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-auth-title">Hesabınıza giriş yapın</p>
+
+    <div class="sxf-error" id="errBox"></div>
+
+    <form id="loginForm" autocomplete="on">
+      <div class="sxf-field">
+        <label for="email">E-posta</label>
+        <input type="email" id="email" name="email" required autocomplete="username">
+      </div>
+      <div class="sxf-field">
+        <label for="password">Şifre</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="sxf-btn" id="submitBtn">Giriş Yap</button>
+    </form>
+
+    <button type="button" class="sxf-btn-secondary" id="testModeBtn">Hesapsız Test Modunu Dene</button>
+
+    <div class="sxf-footer-link" style="margin-top:14px;">
+      <a href="/forgot-password">Şifremi unuttum</a>
+    </div>
+    <div class="sxf-footer-link">
+      Hesabınız yok mu? <a href="/signup">Kayıt Ol</a>
+    </div>
+    <div class="sxf-footer-link">
+      Eski lisans anahtarınız mı var? <a href="/migrate-account">Hesaba taşı</a>
+    </div>
+  </div>
+
+<script>
+const nextPath = {{ next_path | tojson }};
+const form = document.getElementById('loginForm');
+const errBox = document.getElementById('errBox');
+const submitBtn = document.getElementById('submitBtn');
+
+const ERR_MSG = {
+  MISSING_CREDENTIALS: 'E-posta ve şifre girin.',
+  INVALID_CREDENTIALS: 'E-posta veya şifre hatalı.',
+  ACCOUNT_DELETED: 'Bu hesap silinmiş.',
+  AUTH_UNAVAILABLE: 'Kimlik doğrulama servisine ulaşılamıyor.',
+  LOGIN_FAILED: 'Giriş yapılamadı, tekrar deneyin.',
+};
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errBox.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Giriş yapılıyor...';
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      errBox.textContent = ERR_MSG[data.error] || 'Giriş yapılamadı.';
+      errBox.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Giriş Yap';
+      return;
+    }
+    window.location.href = data.next || nextPath || '/app';
+  } catch (err) {
+    errBox.textContent = 'Bağlantı hatası, tekrar deneyin.';
+    errBox.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Giriş Yap';
+  }
+});
+
+document.getElementById('testModeBtn').addEventListener('click', async () => {
+  try {
+    const resp = await fetch('/api/test/activate', {method: 'POST'});
+    const data = await resp.json();
+    if (data.success) window.location.href = '/app';
+  } catch (e) {}
+});
+</script>
+</body>
+</html>

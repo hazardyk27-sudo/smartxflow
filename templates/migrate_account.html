@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lisansı Hesaba Taşı - SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card">
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-auth-title">Lisans anahtarınızı bir hesaba taşıyın</p>
+    <p class="sxf-center-text">
+      SmartXFlow artık e-posta/şifre ile giriş kullanıyor. Mevcut lisans anahtarınızla
+      bir kere yeni bir hesap oluşturun; üyeliğiniz otomatik olarak aktarılacak.
+    </p>
+
+    <div class="sxf-error" id="errBox"></div>
+
+    <form id="migrateForm" autocomplete="on">
+      <div class="sxf-field">
+        <label for="licenseKey">Lisans Anahtarı</label>
+        <input type="text" id="licenseKey" name="licenseKey" required placeholder="SXF-XXXX-XXXX-XXXX" style="text-transform:uppercase;">
+      </div>
+      <div class="sxf-field">
+        <label for="email">E-posta</label>
+        <input type="email" id="email" name="email" required autocomplete="username">
+      </div>
+      <div class="sxf-field">
+        <label for="password">Yeni Şifre</label>
+        <input type="password" id="password" name="password" required minlength="8" autocomplete="new-password">
+      </div>
+      <button type="submit" class="sxf-btn" id="submitBtn">Hesabı Oluştur ve Taşı</button>
+    </form>
+
+    <div class="sxf-footer-link"><a href="/login">Girişe geri dön</a></div>
+  </div>
+
+<script>
+const form = document.getElementById('migrateForm');
+const errBox = document.getElementById('errBox');
+const submitBtn = document.getElementById('submitBtn');
+
+const ERR_MSG = {
+  LICENSE_NOT_FOUND: 'Bu lisans anahtarı bulunamadı.',
+  LICENSE_REVOKED: 'Bu lisans iptal edilmiş.',
+  LICENSE_EXPIRED: 'Bu lisansın süresi dolmuş.',
+  LICENSE_ALREADY_MIGRATED: 'Bu lisans zaten bir hesaba taşınmış. Giriş yapmayı deneyin.',
+  EMAIL_ALREADY_REGISTERED: 'Bu e-posta zaten kayıtlı. Giriş yapmayı deneyin.',
+  INVALID_EMAIL: 'Geçerli bir e-posta adresi girin.',
+  PASSWORD_TOO_SHORT: 'Şifre en az 8 karakter olmalı.',
+  INVALID_INPUT: 'Lütfen tüm alanları doldurun.',
+};
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errBox.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Taşınıyor...';
+  try {
+    const resp = await fetch('/api/auth/migrate-key', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        license_key: document.getElementById('licenseKey').value.trim().toUpperCase(),
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.ok) {
+      errBox.textContent = ERR_MSG[data.error] || 'Taşıma başarısız oldu.';
+      errBox.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Hesabı Oluştur ve Taşı';
+      return;
+    }
+    sessionStorage.setItem('sxf_pending_email', data.email);
+    window.location.href = '/verify-email';
+  } catch (err) {
+    errBox.textContent = 'Bağlantı hatası, tekrar deneyin.';
+    errBox.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Hesabı Oluştur ve Taşı';
+  }
+});
+</script>
+</body>
+</html>

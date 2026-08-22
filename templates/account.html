@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hesabım - SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card">
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-auth-title">Hesabım</p>
+
+    <div class="sxf-profile-row">
+      <span>E-posta</span>
+      <span>{{ user.email }}</span>
+    </div>
+    <div class="sxf-profile-row">
+      <span>Plan</span>
+      <span>{{ profile.plan if profile else 'core' }}</span>
+    </div>
+    <div class="sxf-profile-row">
+      <span>Üyelik Durumu</span>
+      <span class="sxf-badge {{ 'inactive' if not profile or profile.subscription_status != 'active' else '' }}">
+        {{ (profile.subscription_status if profile else 'inactive') }}
+      </span>
+    </div>
+    {% if profile and profile.subscription_expires_at %}
+    <div class="sxf-profile-row">
+      <span>Bitiş Tarihi</span>
+      <span>{{ profile.subscription_expires_at }}</span>
+    </div>
+    {% endif %}
+
+    <a href="/app" class="sxf-btn" style="display:block;text-align:center;text-decoration:none;line-height:1.3;padding-top:13px;margin-top:20px;">
+      Uygulamaya Dön
+    </a>
+    <button type="button" class="sxf-btn-secondary" id="logoutBtn2">Çıkış Yap</button>
+  </div>
+<script>
+document.getElementById('logoutBtn2').addEventListener('click', async () => {
+  await fetch('/api/auth/logout', {method: 'POST'}).catch(()=>{});
+  window.location.href = '/login';
+});
+</script>
+</body>
+</html>

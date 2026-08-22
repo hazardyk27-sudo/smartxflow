@@ -2896,6 +2896,94 @@
                 </div>
             </div>
 
+            <!-- Hesap Uyelik Yonetimi (email/parola sistemi) -->
+            <div class="info-card" style="border-left: 3px solid #2bff88; margin-top: 20px;">
+                <h3>👤 Hesap Uyelik Yonetimi</h3>
+                <p class="page-subtitle" style="margin-top: -6px;">Email/parola hesabinin plan ve uyelik durumunu duzenle</p>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>E-posta</label>
+                        <input type="email" id="acctLookupEmail" placeholder="kullanici@email.com" style="width: 100%;">
+                    </div>
+                </div>
+                <div class="btn-group" style="margin-top: 12px;">
+                    <button class="btn btn-primary" onclick="acctLookup()" style="background: #238636;">
+                        <span class="btn-icon">🔍</span> Ara
+                    </button>
+                </div>
+                <div id="acctResult" style="display:none; margin-top: 18px; padding: 15px; background: #1c2128; border-radius: 8px; border: 1px solid #30363d;">
+                    <div style="color:#8b949e; font-size:12px; margin-bottom:10px;">Kullanici ID: <span id="acctUserId" style="color:#e6edf3; font-family: monospace;"></span></div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Plan</label>
+                            <select id="acctPlan" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                                <option value="core">CORE</option>
+                                <option value="pro">PRO</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Uyelik Durumu</label>
+                            <select id="acctStatus" style="padding: 8px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3;">
+                                <option value="inactive">Inaktif</option>
+                                <option value="active">Aktif</option>
+                                <option value="trial">Deneme</option>
+                                <option value="cancelled">Iptal Edildi</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Bitis Tarihi (opsiyonel)</label>
+                            <input type="datetime-local" id="acctExpiresAt" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-top: 12px;">
+                        <button class="btn btn-primary" onclick="acctSave()" style="background: #238636;">
+                            <span class="btn-icon">💾</span> Kaydet
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            let _acctCurrentUserId = null;
+            async function acctLookup() {
+                const email = document.getElementById('acctLookupEmail').value.trim();
+                if (!email) return;
+                const res = await fetch('/api/admin/account/lookup?email=' + encodeURIComponent(email));
+                const data = await res.json();
+                if (!data.found) {
+                    alert('Bu e-posta ile bir hesap bulunamadi.');
+                    document.getElementById('acctResult').style.display = 'none';
+                    return;
+                }
+                const p = data.profile;
+                _acctCurrentUserId = p.id;
+                document.getElementById('acctUserId').textContent = p.id;
+                document.getElementById('acctPlan').value = p.plan || 'core';
+                document.getElementById('acctStatus').value = p.subscription_status || 'inactive';
+                document.getElementById('acctExpiresAt').value = p.subscription_expires_at ? p.subscription_expires_at.slice(0, 16) : '';
+                document.getElementById('acctResult').style.display = 'block';
+            }
+            async function acctSave() {
+                if (!_acctCurrentUserId) return;
+                const body = {
+                    user_id: _acctCurrentUserId,
+                    plan: document.getElementById('acctPlan').value,
+                    subscription_status: document.getElementById('acctStatus').value,
+                    subscription_expires_at: document.getElementById('acctExpiresAt').value ? new Date(document.getElementById('acctExpiresAt').value).toISOString() : null
+                };
+                const res = await fetch('/api/admin/account/update-membership', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    alert('Uyelik guncellendi.');
+                } else {
+                    alert('Hata: ' + (data.error || 'bilinmiyor'));
+                }
+            }
+            </script>
 
             <!-- Lisans Arama -->
             <div class="info-card" style="margin-top: 20px;">

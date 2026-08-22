@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-posta Doğrulama - SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card">
+    <div class="sxf-icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="m4 6 8 7 8-7"/></svg>
+    </div>
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-center-text" style="margin-top:14px;">
+      <strong id="emailLabel">E-posta adresinize</strong> bir doğrulama bağlantısı gönderdik.
+      Devam etmek için gelen kutunuzdaki bağlantıya tıklayın.
+    </p>
+
+    <div class="sxf-error" id="errBox"></div>
+    <div class="sxf-success" id="okBox"></div>
+
+    <button type="button" class="sxf-btn" id="resendBtn">Doğrulama E-postasını Yeniden Gönder</button>
+    <button type="button" class="sxf-btn-secondary" id="refreshBtn">Doğruladım, devam et</button>
+
+    <div class="sxf-footer-link">
+      <a href="#" id="logoutLink">Farklı bir hesapla giriş yap</a>
+    </div>
+  </div>
+
+<script>
+const pendingEmail = sessionStorage.getItem('sxf_pending_email');
+if (pendingEmail) document.getElementById('emailLabel').textContent = pendingEmail + ' adresine';
+
+const errBox = document.getElementById('errBox');
+const okBox = document.getElementById('okBox');
+
+document.getElementById('resendBtn').addEventListener('click', async () => {
+  errBox.style.display = 'none';
+  okBox.style.display = 'none';
+  const statusResp = await fetch('/api/auth/session-status');
+  const status = await statusResp.json();
+  const email = status.email || pendingEmail;
+  if (!email) {
+    errBox.textContent = 'E-posta adresi bulunamadı, lütfen tekrar giriş yapın.';
+    errBox.style.display = 'block';
+    return;
+  }
+  try {
+    const resp = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email}),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      okBox.textContent = 'Doğrulama e-postası yeniden gönderildi.';
+      okBox.style.display = 'block';
+    } else if (data.error === 'COOLDOWN') {
+      errBox.textContent = `Lütfen ${data.retry_after} saniye sonra tekrar deneyin.`;
+      errBox.style.display = 'block';
+    } else {
+      errBox.textContent = 'Gönderilemedi, tekrar deneyin.';
+      errBox.style.display = 'block';
+    }
+  } catch (e) {
+    errBox.textContent = 'Bağlantı hatası.';
+    errBox.style.display = 'block';
+  }
+});
+
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  const resp = await fetch('/api/auth/session-status');
+  const data = await resp.json();
+  if (data.status === 'ok') {
+    window.location.href = '/app';
+  } else if (data.status === 'membership_required') {
+    window.location.href = '/membership-required';
+  } else {
+    errBox.textContent = 'Henüz doğrulanmamış görünüyor. E-postanızı kontrol edin.';
+    errBox.style.display = 'block';
+  }
+});
+
+document.getElementById('logoutLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await fetch('/api/auth/logout', {method: 'POST'}).catch(()=>{});
+  window.location.href = '/login';
+});
+</script>
+</body>
+</html>

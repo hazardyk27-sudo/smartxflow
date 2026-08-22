@@ -18,7 +18,7 @@ import mimetypes
 mimetypes.init()
 from functools import wraps
 from datetime import datetime, timedelta, timezone
-from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect, make_response
+from flask import Flask, render_template, jsonify, request, Response, send_from_directory, session, redirect, make_response, g, url_for
 
 # Conditional import for compression (not needed in desktop mode)
 if os.environ.get('SMARTX_DESKTOP') != '1':
@@ -245,6 +245,7 @@ from services.polymarket_client import (
     remove_tracked_wallet as poly_remove_tracked_wallet,
     get_wallet_profile as poly_get_wallet_profile,
 )
+from services import auth_helpers
 import hashlib
 import re
 
@@ -484,97 +485,94 @@ def _license_block(error, message, status=403):
         return redirect(f'/app?next={request.path}')
     return jsonify({'error': error, 'message': message}), status
 
+# ============================================
+# ACCOUNT SESSION CACHE (Supabase Auth) — replaces the old license-key cache.
+# Short TTL so we don't call Supabase Auth's API on every single request.
+# ============================================
+_validated_sessions = {}
+_ACCOUNT_SESSION_TTL = 60
+_ACCOUNT_MAX_ENTRIES = 200
+
+def _purge_session_cache():
+    now = time.time()
+    expired = [k for k, v in list(_validated_sessions.items()) if (now - v.get('cached_at', 0)) > _ACCOUNT_SESSION_TTL * 5]
+    for k in expired:
+        _validated_sessions.pop(k, None)
+    if len(_validated_sessions) > _ACCOUNT_MAX_ENTRIES:
+        sorted_keys = sorted(_validated_sessions.keys(), key=lambda k: _validated_sessions[k].get('cached_at', 0))
+        for k in sorted_keys[:len(_validated_sessions) - _ACCOUNT_MAX_ENTRIES]:
+            _validated_sessions.pop(k, None)
+
+def _account_block(error, message, status=403):
+    if not request.path.startswith('/api/') and 'text/html' in request.headers.get('Accept', ''):
+        next_path = request.path
+        if error == 'LOGIN_REQUIRED':
+            return redirect(f'/login?next={next_path}')
+        if error == 'EMAIL_NOT_VERIFIED':
+            return redirect('/verify-email')
+        if error == 'MEMBERSHIP_REQUIRED':
+            return redirect('/membership-required')
+        return redirect(f'/login?next={next_path}')
+    return jsonify({'error': error, 'message': message}), status
+
+def resolve_account_session():
+    """
+    Validates the current Flask session against Supabase Auth (with a short TTL cache)
+    and returns (user, profile) or (None, None) if there is no valid, verified,
+    active-membership session. Transparently refreshes an expired access token using
+    the stored refresh token before giving up.
+    """
+    access_token = session.get('sb_access_token')
+    refresh_token = session.get('sb_refresh_token')
+    if not access_token:
+        return None, None
+
+    cached = _validated_sessions.get(access_token)
+    if cached and (time.time() - cached.get('cached_at', 0)) <= _ACCOUNT_SESSION_TTL:
+        return cached['user'], cached['profile']
+
+    user = auth_helpers.get_user_from_token(access_token)
+    if user is None and refresh_token:
+        refreshed = auth_helpers.refresh_session(refresh_token)
+        if refreshed.get('ok'):
+            session['sb_access_token'] = refreshed['access_token']
+            session['sb_refresh_token'] = refreshed['refresh_token']
+            access_token = refreshed['access_token']
+            user = auth_helpers.get_user_from_token(access_token)
+
+    if user is None:
+        session.pop('sb_access_token', None)
+        session.pop('sb_refresh_token', None)
+        return None, None
+
+    profile = auth_helpers.get_or_create_profile(user['id'], user['email'])
+    _validated_sessions[access_token] = {'user': user, 'profile': profile, 'cached_at': time.time()}
+    if len(_validated_sessions) > _ACCOUNT_MAX_ENTRIES:
+        _purge_session_cache()
+    return user, profile
+
 def license_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if os.environ.get('SMARTX_DESKTOP') == '1':
             return f(*args, **kwargs)
-        
-        header_key = request.headers.get('X-License-Key', '').strip()
-        
+
+        # Free-trial "test mode" is an anonymous trial toggle, not part of the
+        # key-based license system — kept as-is (see /api/test/activate).
         if session.get('license_plan') == 'test':
             return f(*args, **kwargs)
-        
-        lic_valid = session.get('license_valid')
-        if lic_valid:
-            session_key = session.get('license_key', '') or header_key
-            print(f"[LicenseCheck] SESSION path: key={session_key[:8] if session_key else 'NONE'}... last_check={session.get('license_last_check', 0)}")
-            if not session_key:
-                print(f"[LicenseCheck] SESSION: no key found, clearing session")
-                session.pop('license_valid', None)
-                session.pop('license_expires', None)
-                return _license_block('LICENSE_REQUIRED', 'Gecerli lisans gerekli')
-            last_check = session.get('license_last_check', 0)
-            age = time.time() - last_check
-            if age > _LICENSE_CACHE_TTL:
-                print(f"[LicenseCheck] SESSION: TTL expired (age={age:.0f}s), refreshing from Supabase...")
-                err = _refresh_license_from_supabase(session_key)
-                if err:
-                    # If it's a network error (LICENSE_REQUIRED from None response) and session has
-                    # a future expiry, trust the session and extend TTL — don't block user
-                    if err == 'LICENSE_REQUIRED':
-                        session_exp = session.get('license_expires', '')
-                        if session_exp:
-                            try:
-                                exp_dt = _parse_expires_naive(session_exp)
-                                if exp_dt and exp_dt > datetime.utcnow():
-                                    session['license_last_check'] = time.time()
-                                    # Populate HEADER cache so API calls (X-License-Key) also work
-                                    plan = session.get('license_plan', 'core')
-                                    _validated_licenses[session_key] = {
-                                        'expires': exp_dt,
-                                        'plan': plan,
-                                        'cached_at': time.time(),
-                                    }
-                                    _save_license_cache()
-                                    print(f"[LicenseCheck] SESSION: Supabase unreachable, session grace active (expires={exp_dt}), HEADER cache populated")
-                                    return f(*args, **kwargs)
-                            except Exception:
-                                pass
-                    print(f"[LicenseCheck] SESSION: refresh returned {err}, blocking user")
-                    session.pop('license_valid', None)
-                    session.pop('license_expires', None)
-                    session.pop('license_key', None)
-                    session.pop('license_last_check', None)
-                    return _license_block(err, 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli')
-                print(f"[LicenseCheck] SESSION: refresh OK, license still valid")
-                session['license_last_check'] = time.time()
-                session['license_key'] = session_key
-            return f(*args, **kwargs)
-        
-        if header_key:
-            cached = _validated_licenses.get(header_key)
-            print(f"[LicenseCheck] HEADER path: key={header_key[:8]}... cached={'YES' if cached else 'NO'}")
-            if not cached:
-                # Try disk cache first (populated by another worker or previous run)
-                _load_license_cache()
-                cached = _validated_licenses.get(header_key)
-            if not cached:
-                print(f"[LicenseCheck] HEADER: not cached, validating from Supabase...")
-                err = _refresh_license_from_supabase(header_key)
-                if err:
-                    print(f"[LicenseCheck] HEADER: validation returned {err}, blocking")
-                    return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
-                cached = _validated_licenses.get(header_key)
-            else:
-                cached_at = cached.get('cached_at', 0)
-                age = time.time() - cached_at
-                if age > _LICENSE_CACHE_TTL:
-                    print(f"[LicenseCheck] HEADER: TTL expired (age={age:.0f}s), refreshing...")
-                    err = _refresh_license_from_supabase(header_key)
-                    if err:
-                        print(f"[LicenseCheck] HEADER: refresh returned {err}, blocking")
-                        return jsonify({'error': err, 'message': 'Lisans suresi dolmus' if err == 'LICENSE_EXPIRED' else 'Lisans iptal edilmis' if err == 'LICENSE_REVOKED' else 'Gecerli lisans gerekli'}), 403
-                    cached = _validated_licenses.get(header_key)
-            if cached:
-                exp_time = cached.get('expires')
-                if exp_time and exp_time < datetime.utcnow():
-                    _validated_licenses.pop(header_key, None)
-                    return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus'}), 403
-                return f(*args, **kwargs)
-        
-        print(f"[LicenseCheck] NO valid session, NO cached header key -> LICENSE_REQUIRED")
-        return _license_block('LICENSE_REQUIRED', 'Gecerli lisans gerekli')
+
+        user, profile = resolve_account_session()
+        if user is None:
+            return _account_block('LOGIN_REQUIRED', 'Giris yapmaniz gerekiyor')
+        if not user.get('email_confirmed'):
+            return _account_block('EMAIL_NOT_VERIFIED', 'E-posta adresinizi dogrulamaniz gerekiyor')
+        if not auth_helpers.is_membership_active(profile):
+            return _account_block('MEMBERSHIP_REQUIRED', 'Aktif bir uyeliginiz bulunmuyor')
+
+        g.current_user = user
+        g.current_profile = profile
+        return f(*args, **kwargs)
     return decorated
 
 @app.after_request
@@ -1279,8 +1277,235 @@ def api_alarm_engine_status():
 @app.route('/app')
 def index():
     """Main dashboard page - triggers lazy warmup on first visit"""
+    if os.environ.get('SMARTX_DESKTOP') != '1' and session.get('license_plan') != 'test':
+        # Cheap presence-only check to avoid a network round-trip on every page
+        # load; the client re-validates the full status via /api/auth/session-status
+        # and redirects further (email verify / membership required) as needed.
+        if not session.get('sb_access_token'):
+            return redirect(f"/login?next={request.path}")
     trigger_app_warmup()
     return render_template('index.html')
+
+
+def _redirect_if_already_authed():
+    """Shared guard for auth pages: if already fully logged in, skip to /app."""
+    if not session.get('sb_access_token'):
+        return None
+    user, profile = resolve_account_session()
+    if user is None:
+        return None
+    if not user.get('email_confirmed'):
+        return redirect('/verify-email')
+    if not auth_helpers.is_membership_active(profile):
+        return redirect('/membership-required')
+    return redirect(request.args.get('next') or '/app')
+
+@app.route('/login')
+def login_page():
+    redir = _redirect_if_already_authed()
+    if redir:
+        return redir
+    return render_template('login.html', next_path=request.args.get('next', '/app'))
+
+@app.route('/signup')
+def signup_page():
+    redir = _redirect_if_already_authed()
+    if redir:
+        return redir
+    return render_template('signup.html')
+
+@app.route('/verify-email')
+def verify_email_page():
+    return render_template('verify_email.html')
+
+@app.route('/forgot-password')
+def forgot_password_page():
+    return render_template('forgot_password.html')
+
+@app.route('/reset-password')
+def reset_password_page():
+    return render_template('reset_password.html')
+
+@app.route('/membership-required')
+def membership_required_page():
+    return render_template('membership_required.html')
+
+@app.route('/migrate-account')
+def migrate_account_page():
+    return render_template('migrate_account.html')
+
+@app.route('/auth/callback')
+def auth_callback_page():
+    return render_template('auth_callback.html')
+
+@app.route('/account')
+def account_page():
+    user, profile = resolve_account_session()
+    if user is None:
+        return redirect('/login?next=/account')
+    return render_template('account.html', user=user, profile=profile)
+
+
+@app.route('/api/auth/session-status')
+def api_auth_session_status():
+    if session.get('license_plan') == 'test':
+        return jsonify({'status': 'ok', 'test_mode': True})
+    user, profile = resolve_account_session()
+    if user is None:
+        return jsonify({'status': 'login_required'})
+    if not user.get('email_confirmed'):
+        return jsonify({'status': 'email_unverified', 'email': user.get('email')})
+    if not auth_helpers.is_membership_active(profile):
+        return jsonify({'status': 'membership_required', 'email': user.get('email')})
+    return jsonify({
+        'status': 'ok',
+        'email': user.get('email'),
+        'plan': profile.get('plan') if profile else 'core',
+        'subscription_expires_at': profile.get('subscription_expires_at') if profile else None,
+        'display_name': profile.get('display_name') if profile else None,
+    })
+
+
+_resend_cooldowns = {}
+_RESEND_COOLDOWN_SECONDS = 60
+
+@app.route('/api/auth/signup', methods=['POST'])
+def api_auth_signup():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    display_name = (data.get('display_name') or '').strip() or None
+    if not email or '@' not in email:
+        return jsonify({'ok': False, 'error': 'INVALID_EMAIL'}), 400
+    if len(password) < 8:
+        return jsonify({'ok': False, 'error': 'PASSWORD_TOO_SHORT'}), 400
+    result = auth_helpers.signup(email, password, display_name=display_name)
+    if not result.get('ok'):
+        status = 409 if result.get('error') == 'EMAIL_ALREADY_REGISTERED' else 400
+        return jsonify(result), status
+    _resend_cooldowns[email] = time.time()
+    return jsonify(result)
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    if not email or not password:
+        return jsonify({'ok': False, 'error': 'MISSING_CREDENTIALS'}), 400
+    result = auth_helpers.login(email, password)
+    if not result.get('ok'):
+        return jsonify(result), 401
+    session['sb_access_token'] = result['access_token']
+    session['sb_refresh_token'] = result['refresh_token']
+    session.permanent = True
+    session.pop('license_plan', None)
+    session.pop('license_valid', None)
+    session.pop('license_key', None)
+    user, profile = resolve_account_session()
+    if user is None:
+        return jsonify({'ok': False, 'error': 'SESSION_ESTABLISH_FAILED'}), 500
+    if not user.get('email_confirmed'):
+        return jsonify({'ok': True, 'next': '/verify-email'})
+    if not auth_helpers.is_membership_active(profile):
+        return jsonify({'ok': True, 'next': '/membership-required'})
+    return jsonify({'ok': True, 'next': request.args.get('next') or '/app'})
+
+
+@app.route('/api/auth/establish-session', methods=['POST'])
+def api_auth_establish_session():
+    """Called by /auth/callback after Supabase redirects back with tokens in the
+    URL fragment (not visible server-side), so the client posts them here."""
+    data = request.get_json(silent=True) or {}
+    access_token = data.get('access_token') or ''
+    refresh_token = data.get('refresh_token') or ''
+    kind = data.get('type') or 'signup'
+    user = auth_helpers.get_user_from_token(access_token)
+    if user is None:
+        return jsonify({'ok': False, 'error': 'INVALID_TOKEN'}), 401
+    if kind == 'recovery':
+        # For password recovery we don't log the user in yet — the reset-password
+        # page uses these same tokens directly to set a new password.
+        return jsonify({'ok': True, 'type': 'recovery'})
+    session['sb_access_token'] = access_token
+    session['sb_refresh_token'] = refresh_token
+    session.permanent = True
+    profile = auth_helpers.get_or_create_profile(user['id'], user['email'])
+    if not user.get('email_confirmed'):
+        return jsonify({'ok': True, 'next': '/verify-email'})
+    if not auth_helpers.is_membership_active(profile):
+        return jsonify({'ok': True, 'next': '/membership-required'})
+    return jsonify({'ok': True, 'next': '/app'})
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_auth_logout():
+    access_token = session.get('sb_access_token')
+    refresh_token = session.get('sb_refresh_token')
+    if access_token:
+        auth_helpers.sign_out(access_token, refresh_token)
+        _validated_sessions.pop(access_token, None)
+    session.pop('sb_access_token', None)
+    session.pop('sb_refresh_token', None)
+    session.pop('license_plan', None)
+    session.pop('license_valid', None)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/auth/resend-verification', methods=['POST'])
+def api_auth_resend_verification():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'ok': False, 'error': 'MISSING_EMAIL'}), 400
+    last = _resend_cooldowns.get(email, 0)
+    remaining = _RESEND_COOLDOWN_SECONDS - (time.time() - last)
+    if remaining > 0:
+        return jsonify({'ok': False, 'error': 'COOLDOWN', 'retry_after': int(remaining)}), 429
+    result = auth_helpers.resend_verification_email(email)
+    _resend_cooldowns[email] = time.time()
+    return jsonify(result)
+
+
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def api_auth_forgot_password():
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email:
+        return jsonify({'ok': False, 'error': 'MISSING_EMAIL'}), 400
+    last = _resend_cooldowns.get(f'reset:{email}', 0)
+    remaining = _RESEND_COOLDOWN_SECONDS - (time.time() - last)
+    if remaining > 0:
+        return jsonify({'ok': False, 'error': 'COOLDOWN', 'retry_after': int(remaining)}), 429
+    redirect_to = request.url_root.rstrip('/') + '/auth/callback'
+    result = auth_helpers.send_password_reset(email, redirect_to)
+    _resend_cooldowns[f'reset:{email}'] = time.time()
+    # Always return ok (don't reveal whether an email exists)
+    return jsonify({'ok': True})
+
+
+@app.route('/api/auth/reset-password', methods=['POST'])
+def api_auth_reset_password():
+    data = request.get_json(silent=True) or {}
+    access_token = data.get('access_token') or ''
+    refresh_token = data.get('refresh_token') or ''
+    new_password = data.get('password') or ''
+    result = auth_helpers.update_password_with_session(access_token, refresh_token, new_password)
+    return jsonify(result), (200 if result.get('ok') else 400)
+
+
+@app.route('/api/auth/migrate-key', methods=['POST'])
+def api_auth_migrate_key():
+    data = request.get_json(silent=True) or {}
+    license_key = (data.get('license_key') or '').strip().upper()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    if not license_key or not email or len(password) < 8:
+        return jsonify({'ok': False, 'error': 'INVALID_INPUT'}), 400
+    result = auth_helpers.migrate_license_to_account(license_key, email, password)
+    status = 200 if result.get('ok') else 400
+    return jsonify(result), status
 
 
 @app.route('/match/<home>/<away>')
@@ -7351,31 +7576,21 @@ def get_analyses():
         category = request.args.get('category', None)
         data = db.get_analyses(category)
         return jsonify(data)
-    license_key = request.headers.get('X-License-Key') or request.args.get('license_key')
-    if license_key:
-        lic = license_select('licenses', 'plan,status,expires_at', {'key': license_key})
-        if lic:
-            license_data = lic[0]
-            if license_data.get('status') == 'revoked':
-                return jsonify({'error': 'LICENSE_REVOKED', 'message': 'Bu lisans iptal edilmis.'}), 403
-            expires_at = license_data.get('expires_at')
-            if expires_at:
-                try:
-                    from datetime import datetime
-                    exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00').replace('+00:00', ''))
-                    if exp_date < datetime.utcnow():
-                        return jsonify({'error': 'LICENSE_EXPIRED', 'message': 'Lisans suresi dolmus.'}), 403
-                except:
-                    pass
-            plan = license_data.get('plan') or 'core'
-            category = request.args.get('category', None)
-            if plan != 'pro' and category != 'moves':
-                return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
-        else:
-            return jsonify({'error': 'INVALID_KEY'}), 401
-    else:
+    if session.get('license_plan') == 'test':
         category = request.args.get('category', None)
         if category != 'moves':
+            return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
+    else:
+        user, profile = resolve_account_session()
+        if user is None:
+            return jsonify({'error': 'LOGIN_REQUIRED', 'message': 'Giris yapmaniz gerekiyor.'}), 403
+        if not user.get('email_confirmed'):
+            return jsonify({'error': 'EMAIL_NOT_VERIFIED', 'message': 'E-posta adresinizi dogrulamaniz gerekiyor.'}), 403
+        if not auth_helpers.is_membership_active(profile):
+            return jsonify({'error': 'MEMBERSHIP_REQUIRED', 'message': 'Aktif bir uyeliginiz bulunmuyor.'}), 403
+        plan = (profile.get('plan') if profile else 'core') or 'core'
+        category = request.args.get('category', None)
+        if plan != 'pro' and category != 'moves':
             return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
     
     category = request.args.get('category', None)
@@ -9733,6 +9948,40 @@ def license_delete(table, filters):
     except Exception as e:
         license_logging.error(f"license_delete exception: {e}")
         return False
+
+
+@app.route('/api/admin/account/lookup', methods=['GET'])
+def admin_account_lookup():
+    """Admin panel: e-posta ile hesap/uyelik profili arar (yeni email/parola sistemi)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    email = (request.args.get('email') or '').strip()
+    if not email:
+        return jsonify({'error': 'EMAIL_REQUIRED'}), 400
+    profile = auth_helpers.find_profile_by_email(email)
+    if not profile:
+        return jsonify({'found': False})
+    return jsonify({'found': True, 'profile': profile})
+
+
+@app.route('/api/admin/account/update-membership', methods=['POST'])
+def admin_account_update_membership():
+    """Admin panel: bir hesabin plan/uyelik durumunu gunceller (service_role uzerinden)."""
+    if not session.get('admin_authenticated'):
+        return jsonify({'error': 'UNAUTHORIZED'}), 401
+    data = request.get_json() or {}
+    user_id = (data.get('user_id') or '').strip()
+    if not user_id:
+        return jsonify({'error': 'USER_ID_REQUIRED'}), 400
+    plan = data.get('plan')
+    status = data.get('subscription_status')
+    expires_at = data.get('subscription_expires_at')
+    started_at = data.get('subscription_started_at')
+    result = auth_helpers.update_membership(user_id, plan=plan, status=status,
+                                             expires_at=expires_at, started_at=started_at)
+    if not result.get('ok'):
+        return jsonify(result), 400
+    return jsonify(result)
 
 
 @app.route('/api/licenses/create', methods=['POST'])

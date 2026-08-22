@@ -1,0 +1,192 @@
+/* SmartXFlow — Auth pages (login/signup/verify/reset/membership/account) */
+:root {
+  --sxf-bg: #0d1117;
+  --sxf-card: linear-gradient(175deg, #1e2329 0, #181c21 60%, #141719 100%);
+  --sxf-border: rgba(255, 255, 255, 0.07);
+  --sxf-text: #e8edf3;
+  --sxf-text-dim: #9aa3ad;
+  --sxf-text-faint: #5c636b;
+  --sxf-accent: #2bff88;
+  --sxf-danger: #ff5c5c;
+  --sxf-input-bg: rgba(255, 255, 255, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+body.sxf-auth-body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--sxf-bg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--sxf-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.sxf-auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--sxf-card);
+  border: 1px solid var(--sxf-border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+.sxf-auth-logo {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.sxf-auth-logo span { color: var(--sxf-accent); }
+
+.sxf-auth-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sxf-text-dim);
+  margin: 0 0 26px;
+}
+
+.sxf-field { margin-bottom: 16px; }
+.sxf-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sxf-text-dim);
+  margin-bottom: 6px;
+}
+.sxf-field input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--sxf-input-bg);
+  border: 1px solid var(--sxf-border);
+  border-radius: 10px;
+  color: var(--sxf-text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s;
+}
+.sxf-field input:focus { border-color: var(--sxf-accent); }
+
+.sxf-btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: var(--sxf-accent);
+  color: #0d1117;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.sxf-btn:hover { opacity: .9; }
+.sxf-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.sxf-btn-secondary {
+  width: 100%;
+  padding: 13px;
+  border-radius: 10px;
+  border: 1px solid var(--sxf-border);
+  background: transparent;
+  color: var(--sxf-text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.sxf-btn-secondary:hover { background: rgba(255,255,255,0.04); }
+
+.sxf-error {
+  display: none;
+  background: rgba(255, 92, 92, 0.1);
+  border: 1px solid rgba(255, 92, 92, 0.25);
+  color: var(--sxf-danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+.sxf-success {
+  display: none;
+  background: rgba(43, 255, 136, 0.08);
+  border: 1px solid rgba(43, 255, 136, 0.25);
+  color: var(--sxf-accent);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+
+.sxf-footer-link {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--sxf-text-faint);
+}
+.sxf-footer-link a { color: var(--sxf-accent); text-decoration: none; font-weight: 600; }
+.sxf-footer-link a:hover { text-decoration: underline; }
+
+.sxf-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(43, 255, 136, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+}
+.sxf-icon-wrap svg { stroke: var(--sxf-accent); }
+
+.sxf-center-text {
+  text-align: center;
+  font-size: 13px;
+  color: var(--sxf-text-dim);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.sxf-center-text strong { color: var(--sxf-text); }
+
+.sxf-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: var(--sxf-text-faint);
+  font-size: 11px;
+}
+.sxf-divider::before, .sxf-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sxf-border);
+}
+
+.sxf-profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--sxf-border);
+  font-size: 13px;
+}
+.sxf-profile-row:last-of-type { border-bottom: none; }
+.sxf-profile-row span:first-child { color: var(--sxf-text-dim); }
+.sxf-profile-row span:last-child { font-weight: 600; }
+
+.sxf-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(43,255,136,0.12);
+  color: var(--sxf-accent);
+}
+.sxf-badge.inactive { background: rgba(255,92,92,0.12); color: var(--sxf-danger); }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Üyelik Gerekli - SmartXFlow</title>
+<link rel="stylesheet" href="/static/css/auth.css?v={{ asset_v('css/auth.css') }}">
+</head>
+<body class="sxf-auth-body">
+  <div class="sxf-auth-card">
+    <div class="sxf-icon-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    </div>
+    <div class="sxf-auth-logo">Smart<span>X</span>Flow</div>
+    <p class="sxf-center-text" style="margin-top:14px;">
+      Hesabınızda aktif bir üyelik bulunmuyor. SmartXFlow'a erişmek için bir üyelik planı
+      seçmeniz veya destek ekibiyle iletişime geçmeniz gerekiyor.
+    </p>
+
+    <a href="mailto:smartxflow29@gmail.com" class="sxf-btn" style="display:block;text-align:center;text-decoration:none;line-height:1.3;padding-top:13px;">
+      Destek ile İletişime Geç
+    </a>
+
+    <div class="sxf-footer-link">
+      Eski lisans anahtarınız mı var? <a href="/migrate-account">Hesaba taşı</a>
+    </div>
+    <div class="sxf-footer-link">
+      <a href="#" id="logoutLink">Çıkış yap</a>
+    </div>
+  </div>
+<script>
+document.getElementById('logoutLink').addEventListener('click', async (e) => {
+  e.preventDefault();
+  await fetch('/api/auth/logout', {method: 'POST'}).catch(()=>{});
+  window.location.href = '/login';
+});
+</script>
+</body>
+</html>
