@@ -16,3 +16,4 @@
 - [Cleanup DELETE timeout + chunked fallback](supabase-cleanup-deletes.md) — large-table single-statement DELETE can 500 on PostgREST timeout; retry+day-chunked fallback fixes it; 3 separate cleanup implementations exist (web app, Hetzner scraper, poly scraper) - keep them in sync.
 - [Supabase email/password auth migration](supabase-email-auth-migration.md) — profile table design, Resend-via-dashboard-SMTP, membership self-edit trigger, auth callback token-in-hash pattern, no exec_sql/DB URL blocker.
 - [Legacy debug route leftover UI](legacy-debug-route-leftover-ui.md) — a retired screen can resurface via an orphaned debug/test route serving the old markup verbatim; grep backend source for old literal strings, not just templates/nav links.
+- [Live match identity](live-match-identity.md) — modal alarm/live data must use match_id_hash; team-only lookup is unsafe, with league+kickoff required for legacy fallback.

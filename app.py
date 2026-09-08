@@ -3283,9 +3283,12 @@ def get_finished_scores():
 @app.route('/api/live/match/history-by-teams')
 @license_required
 def get_live_match_history_by_teams():
-    """Takım isimlerine göre live snapshot geçmişi (prematch modal için)"""
+    """Takım/lig/kickoff ile doğrulanmış live snapshot geçmişi."""
     home = request.args.get('home', '').strip()
     away = request.args.get('away', '').strip()
+    league = request.args.get('league', '').strip()
+    kickoff = request.args.get('kickoff', '').strip()
+    requested_hash = request.args.get('hash', '').strip()
     if not home or not away:
         return jsonify({'snapshots': [], 'error': 'home ve away parametreleri gerekli'}), 200
 
@@ -3297,6 +3300,9 @@ def get_live_match_history_by_teams():
         headers = supabase._headers()
 
         import urllib.parse
+        if requested_hash:
+            return _get_live_history_by_hash(supabase, headers, requested_hash)
+
         home_short = home[:100].rstrip('.')
         away_short = away[:100].rstrip('.')
         if len(home_short) < 3 or len(away_short) < 3:
@@ -3311,20 +3317,25 @@ def get_live_match_history_by_teams():
         fix_url = (
             f"{supabase._rest_url('live_fixtures')}"
             f"?home_team=ilike.{home_enc}*&away_team=ilike.{away_enc}*"
-            f"&order=updated_at.desc&limit=1"
+            f"&order=updated_at.desc&limit=25"
         )
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
-        if fix_resp.status_code != 200 or not fix_resp.json():
+        fixtures = fix_resp.json() if fix_resp.status_code == 200 else []
+        if not fixtures:
             fix_url2 = (
                 f"{supabase._rest_url('live_fixtures')}"
                 f"?home_team=eq.{urllib.parse.quote(home[:100])}&away_team=eq.{urllib.parse.quote(away[:100])}"
-                f"&order=updated_at.desc&limit=1"
+                f"&order=updated_at.desc&limit=25"
             )
             fix_resp = supabase._get_http_client().get(fix_url2, headers=headers, timeout=10)
-            if fix_resp.status_code != 200 or not fix_resp.json():
+            fixtures = fix_resp.json() if fix_resp.status_code == 200 else []
+            if not fixtures:
                 return jsonify({'snapshots': [], 'has_live': False}), 200
 
-        fixture = fix_resp.json()[0]
+        fixture = _select_live_fixture_for_match(fixtures, league, kickoff)
+        if not fixture:
+            return jsonify({'snapshots': [], 'has_live': False}), 200
+
         match_hash = fixture.get('match_id_hash', '')
         if not match_hash:
             return jsonify({'snapshots': [], 'has_live': False}), 200
@@ -3336,13 +3347,87 @@ def get_live_match_history_by_teams():
         return jsonify({'snapshots': [], 'has_live': False, 'error': str(e)}), 200
 
 
+def _parse_live_datetime(value):
+    """Parse fixture/kickoff timestamps as timezone-aware UTC datetimes."""
+    if not value:
+        return None
+    try:
+        raw = str(value).strip()
+        if not raw:
+            return None
+        if raw.endswith('Z'):
+            raw = raw[:-1] + '+00:00'
+        parsed = datetime.fromisoformat(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _live_text_key(value):
+    return ' '.join(str(value or '').lower().split())
+
+
+def _select_live_fixture_for_match(fixtures, league='', kickoff=''):
+    """Select only a fixture matching the requested competition and kickoff."""
+    requested_league = _live_text_key(league)
+    requested_kickoff = _parse_live_datetime(kickoff)
+    now_utc = datetime.now(timezone.utc)
+    candidates = []
+
+    for fixture in fixtures or []:
+        fixture_status = _live_text_key(fixture.get('status'))
+        if fixture_status and fixture_status not in {'live', 'ft', 'finished', 'ended', 'aet', 'pen'}:
+            continue
+
+        fixture_league = _live_text_key(
+            fixture.get('league') or fixture.get('league_name') or fixture.get('competition')
+        )
+        if requested_league and fixture_league and fixture_league != requested_league:
+            continue
+        if requested_league and not fixture_league:
+            continue
+
+        fixture_kickoff = _parse_live_datetime(
+            fixture.get('kickoff_utc') or fixture.get('kickoff') or fixture.get('fixture_date')
+        )
+        if fixture_kickoff and fixture_kickoff > now_utc + timedelta(seconds=90):
+            continue
+        if requested_kickoff and fixture_kickoff:
+            if abs((fixture_kickoff - requested_kickoff).total_seconds()) > 30 * 60:
+                continue
+        elif requested_kickoff and not fixture_kickoff:
+            continue
+
+        candidates.append(fixture)
+
+    return candidates[0] if candidates else None
+
+
 def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
-    """Ortak live history verisi döndüren yardımcı fonksiyon."""
+    """Hash ile fixture doğrulayıp live history döndüren ortak yardımcı."""
     if not fixture:
         fix_url = f"{supabase._rest_url('live_fixtures')}?match_id_hash=eq.{match_hash}&limit=1"
         fix_resp = supabase._get_http_client().get(fix_url, headers=headers, timeout=10)
         if fix_resp.status_code == 200 and fix_resp.json():
             fixture = fix_resp.json()[0]
+    if not fixture or fixture.get('match_id_hash') != match_hash:
+        return jsonify({'snapshots': [], 'has_live': False}), 200
+
+    fixture_status = _live_text_key(fixture.get('status'))
+    if fixture_status and fixture_status not in {'live', 'ft', 'finished', 'ended', 'aet', 'pen'}:
+        return jsonify({'snapshots': [], 'has_live': False}), 200
+
+    kickoff_utc = fixture.get('kickoff_utc', '') or fixture.get('kickoff', '')
+    kickoff_dt = _parse_live_datetime(kickoff_utc)
+    if kickoff_dt and kickoff_dt > datetime.now(timezone.utc) + timedelta(seconds=90):
+        return jsonify({
+            'snapshots': [],
+            'has_live': False,
+            'kickoff_utc': kickoff_utc,
+            'status': fixture.get('status', '')
+        }), 200
 
     snap_url = (
         f"{supabase._rest_url('live_snapshots')}"
@@ -3356,15 +3441,6 @@ def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
     all_snaps = snap_resp.json()
     if not all_snaps:
         return jsonify({'snapshots': [], 'has_live': False}), 200
-
-    kickoff_utc = fixture.get('kickoff_utc', '') if fixture else ''
-    kickoff_dt = None
-    if kickoff_utc:
-        try:
-            ko = kickoff_utc.replace('Z', '+00:00')
-            kickoff_dt = datetime.fromisoformat(ko)
-        except Exception:
-            kickoff_dt = None
 
     periods = {}
     for s in all_snaps:
@@ -3411,7 +3487,13 @@ def _get_live_history_by_hash(supabase, headers, match_hash, fixture=None):
 
     result = sorted(periods.values(), key=lambda x: x['snapshot_at'])
 
-    return jsonify({'snapshots': result, 'total': len(result), 'kickoff_utc': kickoff_utc, 'has_live': True}), 200
+    return jsonify({
+        'snapshots': result,
+        'total': len(result),
+        'kickoff_utc': kickoff_utc,
+        'status': fixture.get('status', ''),
+        'has_live': bool(result)
+    }), 200
 
 
 @app.route('/api/live/match/history')

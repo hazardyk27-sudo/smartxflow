@@ -3492,21 +3492,22 @@ async function openMatchModalFromMatches(index) {
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league, matchIdHash);
         
+        const kickoff = selectedMatch.date || selectedMatch.kickoff_utc || '';
         const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
             if (reqId !== _modalRequestId) return;
-            return loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
+            return loadChartWithTrends(home, away, selectedChartMarket, league, reqId, matchIdHash);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
+        const alarmsPipeline = renderMatchAlarmsSection(home, away, league, kickoff, matchIdHash, reqId);
         
-        const livePipeline = _checkModalLiveData(home, away, reqId);
+        const livePipeline = _checkModalLiveData(home, away, matchIdHash, league, kickoff, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
     }
 }
 
 // API'den maç verisi çekip modal aç (listede olmayan maçlar için)
-async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
+async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff, matchIdHash = '') {
     const reqId = ++_modalRequestId;
     resetModalState();
 
@@ -3524,6 +3525,9 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         for (var si = 0; si < arr.length; si++) {
             var pmH = (arr[si].home_team || '').toLowerCase().trim();
             var pmA = (arr[si].away_team || '').toLowerCase().trim();
+            var pmHash = _matchContextHash(arr[si]);
+            if (matchIdHash && pmHash === matchIdHash) return arr[si];
+            if (matchIdHash) continue;
             if (pmH === hLow && pmA === aLow) return arr[si];
             if ((pmH.includes(hLow) || hLow.includes(pmH)) && (pmA.includes(aLow) || aLow.includes(pmA)) && pmH.length > 2 && pmA.length > 2) {
                 return arr[si];
@@ -3553,7 +3557,7 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
         away_team: apiAway,
         league: apiLeague,
         date: apiKickoff,
-        match_id: prematchFound ? (prematchFound.match_id || '') : '',
+        match_id: prematchFound ? _matchContextHash(prematchFound) : matchIdHash,
         history: [],
         history_count: 0,
         odds: null,
@@ -3593,12 +3597,12 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff) {
     try {
         const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
             if (reqId !== _modalRequestId) return;
-            return loadChartWithTrends(apiHome, apiAway, selectedChartMarket, apiLeague, reqId);
+            return loadChartWithTrends(apiHome, apiAway, selectedChartMarket, apiLeague, reqId, matchIdHash2);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = renderMatchAlarmsSection(apiHome, apiAway, reqId);
+        const alarmsPipeline = renderMatchAlarmsSection(apiHome, apiAway, apiLeague, apiKickoff, matchIdHash2, reqId);
         
-        const livePipeline = _checkModalLiveData(homeTeam, awayTeam, reqId);
+        const livePipeline = _checkModalLiveData(apiHome, apiAway, matchIdHash2, apiLeague, apiKickoff, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
         
@@ -3655,14 +3659,15 @@ async function openMatchModal(index) {
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
         const marketsPromise = loadAllMarketsAtOnce(home, away, league, matchIdHash3);
         
+        const kickoff = selectedMatch.date || selectedMatch.kickoff_utc || '';
         const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
             if (reqId !== _modalRequestId) return;
-            return loadChartWithTrends(home, away, selectedChartMarket, league, reqId);
+            return loadChartWithTrends(home, away, selectedChartMarket, league, reqId, matchIdHash3);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
         
-        const alarmsPipeline = renderMatchAlarmsSection(home, away, reqId);
+        const alarmsPipeline = renderMatchAlarmsSection(home, away, league, kickoff, matchIdHash3, reqId);
         
-        const livePipeline = _checkModalLiveData(home, away, reqId);
+        const livePipeline = _checkModalLiveData(home, away, matchIdHash3, league, kickoff, reqId);
         
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
     }
@@ -3745,12 +3750,12 @@ let bulkHistoryCacheKey = '';
 const MODAL_CACHE_TTL = 30000; // 30 seconds
 let modalDataCache = {}; // {cacheKey: {data, timestamp}}
 
-function getModalCacheKey(home, away, market) {
-    return `${home}|${away}|${market}`.toLowerCase();
+function getModalCacheKey(home, away, market, league = '', matchIdHash = '') {
+    return `${home}|${away}|${league}|${market}|${matchIdHash}`.toLowerCase();
 }
 
-function getModalCachedData(home, away, market) {
-    const key = getModalCacheKey(home, away, market);
+function getModalCachedData(home, away, market, league = '', matchIdHash = '') {
+    const key = getModalCacheKey(home, away, market, league, matchIdHash);
     const cached = modalDataCache[key];
     if (cached && (Date.now() - cached.timestamp) < MODAL_CACHE_TTL) {
         console.log('[ModalCache] HIT:', key);
@@ -3759,8 +3764,8 @@ function getModalCachedData(home, away, market) {
     return null;
 }
 
-function setModalCachedData(home, away, market, data) {
-    const key = getModalCacheKey(home, away, market);
+function setModalCachedData(home, away, market, data, league = '', matchIdHash = '') {
+    const key = getModalCacheKey(home, away, market, league, matchIdHash);
     modalDataCache[key] = { data, timestamp: Date.now() };
     console.log('[ModalCache] SET:', key);
     
@@ -3775,7 +3780,7 @@ function setModalCachedData(home, away, market, data) {
 }
 
 async function loadAllMarketsAtOnce(home, away, league = '', matchIdHash = '') {
-    const cacheKey = `${home}|${away}|${league}|${currentSource}`;
+    const cacheKey = `${home}|${away}|${league}|${matchIdHash}|${currentSource}`;
     if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
         console.log('[Bulk] Using cached data for', cacheKey);
         return bulkHistoryCache;
@@ -3801,11 +3806,11 @@ async function loadAllMarketsAtOnce(home, away, league = '', matchIdHash = '') {
     }
 }
 
-async function loadChartWithTrends(home, away, market, league = '', reqId) {
+async function loadChartWithTrends(home, away, market, league = '', reqId, matchIdHash = '') {
     try {
         let data = { history: [] };
         
-        const cachedData = getModalCachedData(home, away, market);
+        const cachedData = getModalCachedData(home, away, market, league, matchIdHash);
         if (cachedData) {
             data = cachedData;
             console.log('[Modal] Using modal cache for', market, 'count:', data.history?.length);
@@ -3815,7 +3820,7 @@ async function loadChartWithTrends(home, away, market, league = '', reqId) {
             if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
                 data = bulkHistoryCache[market];
                 console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
-                setModalCachedData(home, away, market, data);
+                setModalCachedData(home, away, market, data, league, matchIdHash);
             } else {
                 try {
                     const response = await fetch(
@@ -3824,7 +3829,7 @@ async function loadChartWithTrends(home, away, market, league = '', reqId) {
                     if (reqId && reqId !== _modalRequestId) return;
                     data = await response.json();
                     console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
-                    setModalCachedData(home, away, market, data);
+                    setModalCachedData(home, away, market, data, league, matchIdHash);
                 } catch (e) {
                     console.log('Using demo history data');
                 }
@@ -7786,7 +7791,8 @@ function renderAlertBand() {
         const alarmType = alarm._type || '';
         const alarmMarket = (alarm.market || '').replace(/'/g, "\\'");
         const alarmLeague = (alarm.league || '').replace(/'/g, "\\'");
-        const alarmKickoff = (alarm.kickoff_utc || alarm.match_date || alarm.fixture_date || '').replace(/'/g, "\\'");
+    const alarmKickoff = (alarm.kickoff_utc || alarm.match_date || alarm.fixture_date || '').replace(/'/g, "\\'");
+    const alarmHash = (alarm.match_id_hash || alarm.match_id || '').replace(/'/g, "\\'");
         
         // Mobil kontrolü - sadece ev sahibi takım göster
         const isMobile = window.innerWidth <= 768;
@@ -7800,7 +7806,7 @@ function renderAlertBand() {
             const oldLeader = alarm.old_leader || alarm.previous_leader || '?';
             const newLeader = alarm.new_leader || alarm.selection || '?';
             return `
-                <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}')" style="cursor: pointer;">
+                <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}', '${alarmHash}')" style="cursor: pointer;">
                     <span class="ab-dot dot-${info.pillClass}"></span>
                     <span class="ab-type">${info.label}</span>
                     <span class="ab-sep">—</span>
@@ -7812,7 +7818,7 @@ function renderAlertBand() {
         }
         
         return `
-            <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}')" style="cursor: pointer;">
+            <div class="ab-pill ${info.pillClass}" onclick="goToMatchFromAlarm('${home.replace(/'/g, "\\'")}', '${away.replace(/'/g, "\\'")}', '${alarmType}', '${alarmMarket}', '${alarmLeague}', '${alarmKickoff}', '${alarmHash}')" style="cursor: pointer;">
                 <span class="ab-dot dot-${info.pillClass}"></span>
                 <span class="ab-type">${info.label}</span>
                 <span class="ab-sep">—</span>
@@ -8675,6 +8681,7 @@ function renderAlarmsList(filterType) {
         const marketEscaped = market.replace(/'/g, "\\'");
         const leagueEscaped = (group.league || '').replace(/'/g, "\\'");
         const kickoffEscaped = (group.kickoff_utc || group.match_date || '').replace(/'/g, "\\'");
+        const hashEscaped = (group.match_id || group.latestAlarm?.match_id_hash || group.latestAlarm?.match_id || '').replace(/'/g, "\\'");
         const matchTimeFormatted = formatMatchTime3(group.kickoff_utc || group.match_date);
         const marketLabel2 = `${translateMarket(market)} → ${translateSelection(selection, market)}`;
         // Dropping alarmlar icin created_at (oranin dustugu an) oncelikli
@@ -8962,7 +8969,7 @@ function renderAlarmsList(filterType) {
                             ${metricContent}
                             <div class="acd-history">${historyLine}</div>
                             ${historySection}
-                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}')">${_t('app.j.acd_open_match','Maç Sayfasını Aç')}</button>
+                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}', '${hashEscaped}')">${_t('app.j.acd_open_match','Maç Sayfasını Aç')}</button>
                         </div>
                     </div>
                 </div>
@@ -9236,7 +9243,7 @@ function goToMatchPage(matchKey, alarmType, alarmMarket) {
     }
 }
 
-function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket, league, kickoff) {
+function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket, league, kickoff, matchIdHash) {
     if (window.userPlan === 'test') {
         var _testFake = { home_team: homeTeam, away_team: awayTeam };
         if (!_isTestFreeMatch(_testFake)) return;
@@ -9244,7 +9251,7 @@ function goToMatchFromAlarm(homeTeam, awayTeam, alarmType, alarmMarket, league, 
     openAlarmId = null;
     closeAlarmsSidebar();
     
-    openMatchModalFromAPI(homeTeam.trim(), awayTeam.trim(), (league || '').trim(), (kickoff || '').trim());
+    openMatchModalFromAPI(homeTeam.trim(), awayTeam.trim(), (league || '').trim(), (kickoff || '').trim(), (matchIdHash || '').trim());
 }
 
 async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, homeTeam, awayTeam) {
@@ -9318,21 +9325,63 @@ async function loadAllAlarmsOnce(forceRefresh = false) {
     return cachedAllAlarms;
 }
 
-function getMatchAlarms(homeTeam, awayTeam) {
+function _matchContextHash(match) {
+    return (match && (match.match_id_hash || match.match_id || match.matchIdHash || '') || '').toString().trim();
+}
+
+function _matchContextLabel(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function _alarmTeamPairMatches(alarm, homeTeam, awayTeam) {
+    const homeLower = _matchContextLabel(homeTeam);
+    const awayLower = _matchContextLabel(awayTeam);
+    const aHome = _matchContextLabel(alarm.home || alarm.home_team);
+    const aAway = _matchContextLabel(alarm.away || alarm.away_team);
+    return !!aHome && !!aAway &&
+        (aHome.includes(homeLower) || homeLower.includes(aHome)) &&
+        (aAway.includes(awayLower) || awayLower.includes(aAway));
+}
+
+function _matchContextTime(value) {
+    if (!value) return null;
+    const parsed = toTurkeyTime(value);
+    return parsed && parsed.isValid() ? parsed.valueOf() : null;
+}
+
+function _alarmKickoffMatches(alarm, modalKickoff) {
+    const alarmKickoff = alarm.kickoff_utc || alarm.kickoff || alarm.match_date || alarm.fixture_date || '';
+    const modalMs = _matchContextTime(modalKickoff);
+    const alarmMs = _matchContextTime(alarmKickoff);
+    if (modalMs === null || alarmMs === null) return false;
+    return Math.abs(modalMs - alarmMs) <= 30 * 60 * 1000;
+}
+
+function _alarmBelongsToMatch(alarm, homeTeam, awayTeam, league, kickoff, matchIdHash) {
+    if (!_alarmTeamPairMatches(alarm, homeTeam, awayTeam)) return false;
+
+    const alarmHash = (alarm.match_id_hash || alarm.match_id || alarm.matchIdHash || '').toString().trim();
+    if (matchIdHash) {
+        if (alarmHash) return alarmHash === matchIdHash;
+    }
+
+    const modalLeague = _matchContextLabel(league);
+    const alarmLeague = _matchContextLabel(alarm.league);
+    if (!modalLeague || !alarmLeague || modalLeague !== alarmLeague) return false;
+    return _alarmKickoffMatches(alarm, kickoff);
+}
+
+function getMatchAlarms(homeTeam, awayTeam, league = '', kickoff = '', matchIdHash = '') {
     if (!cachedAllAlarms) return [];
+
+    const result = cachedAllAlarms.filter(a =>
+        _alarmBelongsToMatch(a, homeTeam, awayTeam, league, kickoff, matchIdHash)
+    );
     
-    const homeLower = homeTeam.toLowerCase().trim();
-    const awayLower = awayTeam.toLowerCase().trim();
-    
-    const result = cachedAllAlarms.filter(a => {
-        const aHome = (a.home || a.home_team || '').toLowerCase().trim();
-        const aAway = (a.away || a.away_team || '').toLowerCase().trim();
-        
-        return (aHome.includes(homeLower) || homeLower.includes(aHome)) &&
-               (aAway.includes(awayLower) || awayLower.includes(aAway));
-    });
-    
-    console.log(`[getMatchAlarms] ${homeTeam} vs ${awayTeam}: Found ${result.length} alarms, types:`, result.map(a => a._type));
+    console.log(`[getMatchAlarms] ${homeTeam} vs ${awayTeam} [${matchIdHash || 'context-fallback'}]: Found ${result.length} alarms, types:`, result.map(a => a._type));
     return result;
 }
 
@@ -9370,7 +9419,7 @@ function formatSmartMoneyTime(dateStr) {
     return dt.format('DD MMM • HH:mm');
 }
 
-async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
+async function renderMatchAlarmsSection(homeTeam, awayTeam, league, kickoff, matchIdHash, reqId) {
     const section = document.getElementById('smartMoneySection');
     const grid = document.getElementById('smartMoneyGrid');
     const empty = document.getElementById('smartMoneyEmpty');
@@ -9387,7 +9436,7 @@ async function renderMatchAlarmsSection(homeTeam, awayTeam, reqId) {
     // zaten kendi 60sn TTL'i ile network isteğini sınırlıyor, bu yüzden koşulsuz çağrı güvenli.
     await loadAllAlarmsOnce(false);
     if (reqId && reqId !== _modalRequestId) return;
-    const matchAlarms = getMatchAlarms(homeTeam, awayTeam);
+    const matchAlarms = getMatchAlarms(homeTeam, awayTeam, league, kickoff, matchIdHash);
     
     hideSmartMoneyLoading();
     
@@ -11976,11 +12025,34 @@ function renderLiveDetail(snapshots, market) {
     body.innerHTML = html;
 }
 
-async function _checkModalLiveData(home, away, reqId) {
+async function _checkModalLiveData(home, away, matchIdHash, league, kickoff, reqId) {
     try {
-        var resp = await fetch('/api/live/match/history-by-teams?home=' + encodeURIComponent(home) + '&away=' + encodeURIComponent(away));
+        var url;
+        if (matchIdHash) {
+            url = '/api/live/match/history?hash=' + encodeURIComponent(matchIdHash);
+        } else if (league && kickoff) {
+            url = '/api/live/match/history-by-teams?home=' + encodeURIComponent(home) +
+                '&away=' + encodeURIComponent(away) +
+                '&league=' + encodeURIComponent(league) +
+                '&kickoff=' + encodeURIComponent(kickoff);
+        } else {
+            return;
+        }
+
+        var resp = await fetch(url);
         var data = await resp.json();
         if (reqId !== _modalRequestId) return;
+        var modalKickoffMs = _matchContextTime(kickoff);
+        var liveKickoffMs = _matchContextTime(data.kickoff_utc);
+        if (modalKickoffMs !== null && liveKickoffMs !== null &&
+            Math.abs(modalKickoffMs - liveKickoffMs) > 30 * 60 * 1000) {
+            console.warn('[Modal] Ignoring live data with mismatched kickoff:', kickoff, data.kickoff_utc);
+            return;
+        }
+        if (liveKickoffMs !== null && liveKickoffMs > Date.now() + 90 * 1000) {
+            console.warn('[Modal] Ignoring future live fixture:', data.kickoff_utc);
+            return;
+        }
         if (data.has_live && data.snapshots && data.snapshots.length > 0 && window.userPlan !== 'core') {
             _modalLiveData = data.snapshots;
             _modalLiveMarket = '1x2';
