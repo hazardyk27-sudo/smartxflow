@@ -638,30 +638,32 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
 
     positions, positions_ok = fetch_wallet_positions(wallet)
     if not positions_ok:
+        # Keep the last known snapshot, but still compute activity statistics
+        # below. A transient positions API failure must not leave a new wallet
+        # stuck at zero until a later cycle.
         log(f"  [Wallet {wallet_row.get('nickname')}] pozisyon cekme hatasi, mevcut kayitli pozisyonlar korunuyor (replace atlandi)")
-        return len(new_items) if not truncated else 0
-
-    position_rows = []
-    for p in positions:
-        position_rows.append({
-            "wallet": wallet,
-            "condition_id": p.get("conditionId"),
-            "asset": p.get("asset"),
-            "title": p.get("title"),
-            "slug": p.get("slug"),
-            "event_id": p.get("eventId"),
-            "outcome": p.get("outcome"),
-            "size": p.get("size"),
-            "avg_price": p.get("avgPrice"),
-            "cur_price": p.get("curPrice"),
-            "initial_value": p.get("initialValue"),
-            "current_value": p.get("currentValue"),
-            "cash_pnl": p.get("cashPnl"),
-            "percent_pnl": p.get("percentPnl"),
-            "redeemable": p.get("redeemable"),
-            "end_date": p.get("endDate"),
-        })
-    writer.replace_wallet_positions(wallet, position_rows)
+    else:
+        position_rows = []
+        for p in positions:
+            position_rows.append({
+                "wallet": wallet,
+                "condition_id": p.get("conditionId"),
+                "asset": p.get("asset"),
+                "title": p.get("title"),
+                "slug": p.get("slug"),
+                "event_id": p.get("eventId"),
+                "outcome": p.get("outcome"),
+                "size": p.get("size"),
+                "avg_price": p.get("avgPrice"),
+                "cur_price": p.get("curPrice"),
+                "initial_value": p.get("initialValue"),
+                "current_value": p.get("currentValue"),
+                "cash_pnl": p.get("cashPnl"),
+                "percent_pnl": p.get("percentPnl"),
+                "redeemable": p.get("redeemable"),
+                "end_date": p.get("endDate"),
+            })
+        writer.replace_wallet_positions(wallet, position_rows)
 
     # Pre-compute and save stats to tracked_wallets so the profile endpoint
     # can read them instantly without re-computing on every request.
@@ -670,7 +672,7 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
     except Exception as e:
         log(f"  [Wallet {wallet_row.get('nickname')}] stats kaydetme hatasi: {e}")
 
-    return len(position_rows)
+    return len(position_rows) if positions_ok else len(new_items)
 
 
 def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:

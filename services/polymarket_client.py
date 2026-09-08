@@ -1687,46 +1687,61 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     wallet = wallet.lower()
     headers = _supabase_headers()
 
-    def _fetch_redeems():
+    def _fetch_redeems() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params={
                 "select": "condition_id,asset,amount_usdc",
                 "wallet": f"eq.{wallet}",
                 "limit": 5000,
             }, timeout=20)
-            return r.json() if r.status_code == 200 else []
+            if r.status_code != 200:
+                return [], False
+            rows = r.json()
+            return (rows, True) if isinstance(rows, list) else ([], False)
         except Exception:
-            return []
+            return [], False
 
-    def _fetch_positions():
+    def _fetch_positions() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_positions", headers=headers, params={
                 "select": "condition_id,asset,cur_price,current_value,cash_pnl,redeemable",
                 "wallet": f"eq.{wallet}",
                 "limit": 500,
             }, timeout=20)
-            return r.json() if r.status_code == 200 else []
+            if r.status_code != 200:
+                return [], False
+            rows = r.json()
+            return (rows, True) if isinstance(rows, list) else ([], False)
         except Exception:
-            return []
+            return [], False
 
-    def _fetch_activity_summary():
+    def _fetch_activity_summary() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
                 "select": "asset,condition_id,result,amount_usdc,price",
                 "wallet": f"eq.{wallet}",
                 "limit": 10000,
             }, timeout=20)
-            return r.json() if r.status_code == 200 else []
+            if r.status_code != 200:
+                return [], False
+            rows = r.json()
+            return (rows, True) if isinstance(rows, list) else ([], False)
         except Exception:
-            return []
+            return [], False
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         f_red = pool.submit(_fetch_redeems)
         f_pos = pool.submit(_fetch_positions)
         f_act = pool.submit(_fetch_activity_summary)
-        redeem_rows = f_red.result()
-        position_rows = f_pos.result()
-        activity_rows = f_act.result()
+        redeem_rows, redeems_ok = f_red.result()
+        position_rows, positions_ok = f_pos.result()
+        activity_rows, activity_ok = f_act.result()
+
+    # Activity is the source of the card's total/won/lost values. Never
+    # replace an already computed row with zeros when this query failed.
+    if not activity_ok:
+        print(f"[WalletStats] activity fetch failed; keeping existing stats for {wallet[:10]}...")
+        return False
 
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
 
@@ -1753,7 +1768,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
             continue  # known from redeems/positions
         cids_needing_clob.add(cid)
 
-    if cids_needing_clob:
+    if cids_needing_clob and positions_ok:
         with ThreadPoolExecutor(max_workers=30) as pool:
             futures = [pool.submit(_fetch_market_resolution, cid) for cid in cids_needing_clob]
             for f in as_completed(futures):
@@ -1774,6 +1789,11 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
             continue
         if asset in resolved_lost_ids:
             asset_to_result[asset] = "lost"
+            continue
+        if not positions_ok:
+            # Without a fresh positions snapshot we cannot distinguish an
+            # unresolved/closed asset from a currently open one. Keep the
+            # persisted result untouched instead of guessing via CLOB.
             continue
         if not cid:
             continue  # can't resolve via CLOB without condition_id
@@ -1833,10 +1853,16 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         "avg_bet_size_usdc": avg_bet_size,
         "avg_price": avg_price,
         "avg_price_decimal": avg_price_decimal,
-        "open_position_count": len(resolved["open_positions"]),
-        "open_exposure_usdc": round(resolved["open_exposure"], 2),
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
+    # A failed positions read must not make a real open-position snapshot look
+    # empty. Activity stats remain safe to refresh, while these two fields stay
+    # at their previous values in tracked_wallets.
+    if positions_ok:
+        stats_payload["open_position_count"] = len(resolved["open_positions"])
+        stats_payload["open_exposure_usdc"] = round(resolved["open_exposure"], 2)
+    else:
+        print(f"[WalletStats] positions fetch failed; preserving position stats for {wallet[:10]}...")
 
     try:
         patch_headers = {**headers, "Content-Type": "application/json"}
@@ -1875,6 +1901,7 @@ def list_tracked_wallets_with_stats() -> List[Dict[str, Any]]:
         wallets = r.json()
         for w in wallets:
             w["win_rate_pct"] = w.pop("win_rate", None)
+            w["stats_status"] = "ready" if w.get("last_synced_at") else "pending"
         return wallets
     except Exception as e:
         print(f"[TrackedWallets] list_with_stats hatasi: {e}")
@@ -2284,6 +2311,8 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         "nickname": wallet_row.get("nickname"),
         "notes": wallet_row.get("notes"),
         "tracked_since": wallet_row.get("created_at"),
+        "last_synced_at": wallet_row.get("last_synced_at"),
+        "stats_status": "ready" if wallet_row.get("last_synced_at") else "pending",
         "stats": {
             "trade_count": trade_count,
             "total_invested_usdc": round(total_invested, 2),

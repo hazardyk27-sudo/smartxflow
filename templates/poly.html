@@ -467,6 +467,10 @@
     font-size: 11px; color: #8b93a7; background: #1a2233; border: 1px solid #262d3d;
     border-radius: 5px; padding: 4px 8px; align-self: flex-end;
   }
+  .tw-sync-status {
+    font-size: 10px; color: #fbbf24; background: #2a2415; border: 1px solid #5b4817;
+    border-radius: 5px; padding: 4px 8px; align-self: flex-end;
+  }
   .tw-actions {
     display: flex; gap: 6px; margin-top: 10px;
     padding-top: 10px; border-top: 1px solid #1e2431;
@@ -1264,10 +1268,14 @@ async function loadTrackedWallets() {
       const openPos = w.open_position_count ?? 0;
       const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
       const initials = twInitials(w.nickname || '?');
-      const tot  = w.resolved_total  != null ? w.resolved_total  : '-';
-      const won  = w.resolved_won    != null ? w.resolved_won    : '-';
-      const lost = w.resolved_lost   != null ? w.resolved_lost   : '-';
-      const pctText = pct != null ? `%${pct}` : '-';
+      const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
+      const tot  = statsPending ? '…' : (w.resolved_total  != null ? w.resolved_total  : 0);
+      const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won    : 0);
+      const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost   : 0);
+      const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
+      const syncStatus = statsPending
+        ? '<span class="tw-sync-status" title="İlk wallet senkronizasyonu bekleniyor">Senkronizasyon bekleniyor</span>'
+        : '';
       item.innerHTML = `
         <div class="tw-card-body">
           <div class="tw-avatar" style="background:${avatarBg}">${initials}</div>
@@ -1283,6 +1291,7 @@ async function loadTrackedWallets() {
               <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost" data-stat="lost">${lost}</span></div>
               <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" data-stat="pct" style="color:${winColor}">${pctText}</span></div>
               ${openPos > 0 ? `<span class="tw-ms-open">${openPos} açık</span>` : ''}
+               ${syncStatus}
             </div>
           </div>
         </div>
@@ -1372,7 +1381,11 @@ async function openWalletProfile(wallet) {
       walletProfileHeader.textContent = 'Profil bulunamadı.';
       return;
     }
-    walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>`;
+    const statsPending = data.stats_status === 'pending' || !data.last_synced_at;
+    const syncStatus = statsPending
+      ? '<span style="color:#fbbf24;font-size:11px;font-weight:500;margin-left:8px;">Senkronizasyon bekleniyor</span>'
+      : '';
+    walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>${syncStatus}`;
 
     const s = data.stats || {};
     const displayActivity = data.activity || [];

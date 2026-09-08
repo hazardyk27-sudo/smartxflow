@@ -1050,7 +1050,12 @@ def api_poly_tracked_profile(wallet):
         now = time.time()
         # Cache hit — hızlı yol
         cached = _poly_profile_cache.get(key)
-        if cached and now - cached['ts'] < POLY_CACHE_TTL:
+        cached_data = cached.get('data') if cached else None
+        # A newly added wallet has no last_synced_at yet. Do not cache that
+        # pending snapshot for 30 minutes, otherwise the first profile visit
+        # could hide the scraper's first successful sync.
+        pending_snapshot = cached_data and cached_data.get('stats_status') == 'pending'
+        if cached and not pending_snapshot and now - cached['ts'] < POLY_CACHE_TTL:
             return jsonify({**cached['data'], 'cached': True})
 
         # In-flight dedup: aynı wallet için zaten bir hesaplama varsa bekle
