@@ -7659,7 +7659,7 @@ async function loadAlertBand() {
 function groupAlarmsForBand(alarms) {
     const groups = {};
     
-    alarms.forEach(alarm => {
+    alarms.forEach((alarm, alarmIndex) => {
         const home = (alarm.home || alarm.home_team || '').toLowerCase().trim();
         const away = (alarm.away || alarm.away_team || '').toLowerCase().trim();
         const league = (alarm.league || '').toLowerCase().trim();
@@ -8141,8 +8141,16 @@ function groupAlarmsByMatch(alarms) {
         const market = (alarm.market || '').toLowerCase().trim();
         const selection = (alarm.selection || alarm.side || '').toLowerCase().trim();
         const type = alarm._type;
+        const matchHash = (alarm.match_id_hash || alarm.match_id || alarm.matchIdHash || '').toString().trim();
+        const alarmKickoff = alarm.kickoff_utc || alarm.kickoff || alarm.match_date || alarm.fixture_date || '';
+        const kickoffMs = _matchContextTime(alarmKickoff);
+        // A hash is the canonical identity. Legacy records without one still
+        // need a date/time component so separate fixtures are never merged.
+        const matchContext = matchHash || (kickoffMs !== null
+            ? `kickoff:${kickoffMs}`
+            : `legacy:${_matchContextLabel(alarmKickoff) || alarm.id || alarm.alarm_id || alarm.trigger_at || alarm.created_at || alarm.triggered_at || alarmIndex}`);
         
-        const groupKey = `${type}|${home}|${away}|${league}|${market}|${selection}`;
+        const groupKey = `${type}|${matchContext}|${home}|${away}|${league}|${market}|${selection}`;
         
         if (!groups[groupKey]) {
             groups[groupKey] = {
@@ -8152,13 +8160,14 @@ function groupAlarmsByMatch(alarms) {
                 away: alarm.away || alarm.away_team || '-',
                 home_team: alarm.home_team || alarm.home || '-',
                 away_team: alarm.away_team || alarm.away || '-',
-                match_id: alarm.match_id || '',
+                match_id: matchHash,
+                match_id_hash: matchHash,
                 market: alarm.market || '',
                 selection: alarm.selection || alarm.side || '',
                 league: alarm.league || '',
                 match_date: alarm.match_date || alarm.fixture_date || '',
                 fixture_date: alarm.fixture_date || alarm.match_date || '',
-                kickoff_utc: alarm.kickoff_utc || '',
+                kickoff_utc: alarm.kickoff_utc || alarm.kickoff || '',
                 latestAlarm: alarm,
                 allAlarms: [],
                 history: [],
@@ -8174,10 +8183,12 @@ function groupAlarmsByMatch(alarms) {
         const thisTime = alarm.trigger_at || alarm.created_at || alarm.triggered_at || '';
         if (thisTime.localeCompare(currentLatestTime) > 0) {
             groups[groupKey].latestAlarm = alarm;
-            groups[groupKey].match_id = alarm.match_id || groups[groupKey].match_id;
+            const latestHash = (alarm.match_id_hash || alarm.match_id || alarm.matchIdHash || '').toString().trim();
+            groups[groupKey].match_id = latestHash || groups[groupKey].match_id;
+            groups[groupKey].match_id_hash = latestHash || groups[groupKey].match_id_hash;
             groups[groupKey].match_date = alarm.match_date || alarm.fixture_date || groups[groupKey].match_date;
             groups[groupKey].fixture_date = alarm.fixture_date || alarm.match_date || groups[groupKey].fixture_date;
-            groups[groupKey].kickoff_utc = alarm.kickoff_utc || groups[groupKey].kickoff_utc;
+            groups[groupKey].kickoff_utc = alarm.kickoff_utc || alarm.kickoff || groups[groupKey].kickoff_utc;
         }
     });
     
@@ -9361,12 +9372,15 @@ function _alarmKickoffMatches(alarm, modalKickoff) {
 }
 
 function _alarmBelongsToMatch(alarm, homeTeam, awayTeam, league, kickoff, matchIdHash) {
-    if (!_alarmTeamPairMatches(alarm, homeTeam, awayTeam)) return false;
-
     const alarmHash = (alarm.match_id_hash || alarm.match_id || alarm.matchIdHash || '').toString().trim();
     if (matchIdHash) {
-        if (alarmHash) return alarmHash === matchIdHash;
+        // Once the modal has a canonical hash, a legacy alarm without a hash
+        // is not safe to associate through team/league fallback. The same
+        // teams can have senior, youth, women's, or historical fixtures.
+        return !!alarmHash && alarmHash === matchIdHash;
     }
+
+    if (!_alarmTeamPairMatches(alarm, homeTeam, awayTeam)) return false;
 
     const modalLeague = _matchContextLabel(league);
     const alarmLeague = _matchContextLabel(alarm.league);
