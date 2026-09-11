@@ -17,3 +17,4 @@
 - [Supabase email/password auth migration](supabase-email-auth-migration.md) — profile table design, Resend-via-dashboard-SMTP, membership self-edit trigger, auth callback token-in-hash pattern, no exec_sql/DB URL blocker.
 - [Legacy debug route leftover UI](legacy-debug-route-leftover-ui.md) — a retired screen can resurface via an orphaned debug/test route serving the old markup verbatim; grep backend source for old literal strings, not just templates/nav links.
 - [Live match identity](live-match-identity.md) — modal alarm/live data must use match_id_hash; team-only lookup is unsafe, with league+kickoff required for legacy fallback.
+- [Alarm engine OOM crash-loop](alarm-engine-memory-leak.md) — real causes were stale scraper_signal backlog reprocessing + glibc not releasing freed memory (malloc_trim fix), not the per-match cache first suspected.
