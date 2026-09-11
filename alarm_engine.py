@@ -56,8 +56,17 @@ def get_calculator():
 
 
 def check_unprocessed_signals():
+    """Fetch the NEWEST unprocessed signal, not the oldest.
+
+    run_all_calculations() always recomputes from the current state of the
+    match/odds tables in Supabase - it does not use any per-signal payload.
+    So replaying a backlog of stale scrape_complete signals oldest-first
+    recalculates the exact same thing over and over with no benefit, just
+    burns CPU/RAM. If the engine ever falls behind (e.g. after a crash-loop),
+    jump straight to the latest signal; skip_stale_signals() clears the rest.
+    """
     try:
-        url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&order=created_at.asc&limit=1"
+        url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&order=created_at.desc&limit=1"
         r = requests.get(url, headers=HEADERS_READ, timeout=15)
         if r.status_code == 200:
             signals = r.json()
@@ -68,6 +77,35 @@ def check_unprocessed_signals():
     except Exception as e:
         print(f"[Signal Check] Hata: {e}")
         return None
+
+
+def skip_stale_signals(before_id):
+    """Mark every unprocessed signal older than before_id as processed
+    WITHOUT running a calculation for it. Safe because run_all_calculations()
+    reads live DB state, so only the newest pending signal is ever worth
+    computing. Returns the number of rows skipped.
+    """
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&id=lt.{before_id}"
+        data = {"processed": True, "processed_at": now}
+        headers = {**HEADERS_WRITE, 'Prefer': 'return=representation'}
+        r = requests.patch(url, json=data, headers=headers, timeout=20)
+        if r.status_code in (200, 204):
+            try:
+                rows = r.json()
+                skipped = len(rows) if isinstance(rows, list) else 0
+            except Exception:
+                skipped = 0
+            if skipped:
+                print(f"[Signal] Backlog: {skipped} eski sinyal (id<{before_id}) "
+                      f"hesaplanmadan processed olarak isaretlendi")
+            return skipped
+        print(f"[Signal] Backlog atlama hata: HTTP {r.status_code}: {r.text[:200]}")
+        return 0
+    except Exception as e:
+        print(f"[Signal] Backlog atlama exception: {e}")
+        return 0
 
 
 def mark_signal_processed(signal_id):
@@ -188,6 +226,7 @@ def run_engine():
 
             if signal:
                 consecutive_errors = 0
+                skip_stale_signals(signal['id'])
                 success = process_signal(signal)
                 if not success:
                     time.sleep(ERROR_WAIT)
