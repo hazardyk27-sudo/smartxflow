@@ -264,6 +264,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     Döndürür: toplam yazılan satır sayısı (0 = hata veya boş veri).
     """
     _log = logger_callback if logger_callback else log
+    writer.last_write_errors = []
 
     _log("[BW-Pre] Scrape başlıyor — Betwatch API v1 /football/prematch")
 
@@ -495,9 +496,13 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         hist_tbl = HISTORY_TABLE[tbl]
         ok_main = writer.replace_table(tbl, rows)
         ok_hist = writer.append_history(hist_tbl, rows, scraped_at)
+        if ok_main:
+            # Main tables are the current-data source.  Count them even when
+            # append-only history is degraded so the watchdog and alarm
+            # engine do not mistake a history timeout for a dead scraper.
+            total_rows += len(rows)
         if ok_main and ok_hist:
             _log(f"[BW-Pre]   [OK] {tbl}: {len(rows)} satır")
-            total_rows += len(rows)
         else:
             _log(f"[BW-Pre]   [HATA] {tbl}: (main={ok_main}, hist={ok_hist})")
             write_errors += 1
@@ -514,4 +519,4 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         f"{len(all_fixtures)} fixture, {len(all_snapshots)} snapshot, "
         f"{write_errors} hata"
     )
-    return total_rows or len(all_fixtures)
+    return total_rows

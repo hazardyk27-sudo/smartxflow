@@ -243,9 +243,16 @@ def load_config() -> Dict[str, str]:
 
 
 class SupabaseWriter:
+    HISTORY_BATCH_SIZE = 100
+    HISTORY_MIN_BATCH_SIZE = 25
+    HISTORY_RETRIES = 3
+
     def __init__(self, url: str, key: str):
         self.url = url.rstrip('/')
         self.key = key
+        # Consumers use this to distinguish a successful main-table scrape
+        # from a scrape whose append-only history was partially degraded.
+        self.last_write_errors: List[str] = []
     
     def _headers(self) -> Dict[str, str]:
         return {
@@ -445,6 +452,101 @@ class SupabaseWriter:
         except Exception as e:
             log(f"  Supabase baglanti hatasi: {e}")
             return False
+
+    @staticmethod
+    def _is_retryable_insert_response(resp) -> bool:
+        """Return whether retrying a failed PostgREST insert is safe/useful.
+
+        Supabase exposes PostgreSQL statement_timeout as HTTP 500 with code
+        57014.  Network timeouts and transient gateway/rate-limit responses
+        are also retryable; validation and schema errors are not.
+        """
+        if resp is None:
+            return True
+        if resp.status_code in (408, 425, 429, 500, 502, 503, 504):
+            body = (resp.text or "").lower()
+            if resp.status_code != 500:
+                return True
+            return "57014" in body or "statement timeout" in body or "timeout" in body
+        return False
+
+    def insert_rows_chunked(self, table: str, rows: List[Dict[str, Any]],
+                            batch_size: int = HISTORY_BATCH_SIZE) -> bool:
+        """Append rows in bounded batches with retry and adaptive shrinking.
+
+        A history table is append-only, so an entire 700-1000 row request is
+        needlessly expensive for PostgreSQL.  A failed batch is retried before
+        moving on; if it still times out, the batch is halved down to a safe
+        floor.  The next scheduled scrape naturally retries any batch that
+        could not be completed in this run.
+        """
+        if not rows:
+            return True
+
+        cursor = 0
+        current_batch_size = max(self.HISTORY_MIN_BATCH_SIZE, int(batch_size))
+        total = len(rows)
+
+        while cursor < total:
+            chunk = rows[cursor:cursor + current_batch_size]
+            chunk_ok = False
+            last_error = ""
+
+            for attempt in range(self.HISTORY_RETRIES):
+                resp = None
+                try:
+                    headers = self._headers()
+                    url = self._rest_url(table)
+                    resp = requests.post(
+                        url,
+                        headers=headers,
+                        json=chunk,
+                        timeout=45,
+                        verify=SSL_VERIFY
+                    )
+                    if resp.status_code in [200, 201, 204]:
+                        chunk_ok = True
+                        break
+
+                    last_error = f"HTTP {resp.status_code}: {(resp.text or '')[:180]}"
+                    log(f"  [HISTORY INSERT] {table} batch {cursor + 1}-{cursor + len(chunk)} "
+                        f"attempt {attempt + 1}/{self.HISTORY_RETRIES} failed: {last_error}")
+                except requests.exceptions.RequestException as exc:
+                    last_error = str(exc)
+                    log(f"  [HISTORY INSERT] {table} batch {cursor + 1}-{cursor + len(chunk)} "
+                        f"attempt {attempt + 1}/{self.HISTORY_RETRIES} error: {exc}")
+
+                if attempt < self.HISTORY_RETRIES - 1:
+                    time.sleep(1.5 * (attempt + 1))
+
+                if resp is not None and not self._is_retryable_insert_response(resp):
+                    break
+
+            if not chunk_ok:
+                # A timeout at the current size can still succeed with less
+                # index/trigger work per statement.  Retry the same rows at
+                # half size before declaring the history write degraded.
+                if current_batch_size > self.HISTORY_MIN_BATCH_SIZE and (
+                    not resp or self._is_retryable_insert_response(resp)
+                ):
+                    current_batch_size = max(
+                        self.HISTORY_MIN_BATCH_SIZE,
+                        current_batch_size // 2
+                    )
+                    log(f"  [HISTORY INSERT] {table}: batch küçültülüyor -> "
+                        f"{current_batch_size} satır")
+                    continue
+
+                failed = total - cursor
+                error = f"{table}: {failed} satır yazılamadı ({last_error or 'unknown error'})"
+                self.last_write_errors.append(error)
+                log(f"  [HISTORY INSERT] {error}")
+                return False
+
+            cursor += len(chunk)
+
+        log(f"  [HISTORY INSERT] {table}: {total} satır tamamlandı")
+        return True
     
     def delete_all_rows(self, table: str) -> bool:
         """DELETE all rows - id > 0 filtresi ile"""
@@ -508,7 +610,7 @@ class SupabaseWriter:
         if skipped > 0:
             log(f"  [HISTORY WARN] {table}: {skipped} satir skip (eksik field)")
         
-        return self.insert_rows(table, history_rows)
+        return self.insert_rows_chunked(table, history_rows)
     
     def upsert_fixtures(self, fixtures: List[Dict[str, Any]]) -> bool:
         """Fixtures tablosuna UPSERT - match_id_hash unique key"""

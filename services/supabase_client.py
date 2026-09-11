@@ -1553,7 +1553,13 @@ class SupabaseClient:
         return row
     
     def get_last_data_update(self) -> Optional[str]:
-        """Get the most recent ScrapedAt timestamp from history tables (cached for 60s)"""
+        """Get the most recent successful scraper completion timestamp.
+
+        The append-only history tables can be temporarily unavailable while
+        the current market tables are already updated.  scraper_signal is
+        written after a successful current-data scrape, so prefer it and keep
+        the history query only as a legacy fallback.
+        """
         if not self.is_available:
             return None
         
@@ -1565,12 +1571,25 @@ class SupabaseClient:
         
         latest_time = None
         try:
-            url = f"{self._rest_url('moneyway_1x2_history')}?select=scraped_at&order=scraped_at.desc&limit=1"
+            url = (
+                f"{self._rest_url('scraper_signal')}"
+                "?source=eq.replit&signal_type=eq.scrape_complete"
+                "&select=created_at&order=created_at.desc&limit=1"
+            )
             resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
             if resp.status_code == 200:
                 rows = resp.json()
-                if rows and rows[0].get('scraped_at'):
-                    latest_time = rows[0]['scraped_at']
+                if rows and rows[0].get('created_at'):
+                    latest_time = rows[0]['created_at']
+
+            # Keep older deployments usable until scraper_signal is available.
+            if latest_time is None:
+                url = f"{self._rest_url('moneyway_1x2_history')}?select=scraped_at&order=scraped_at.desc&limit=1"
+                resp = self._get_http_client().get(url, headers=self._headers(), timeout=5)
+                if resp.status_code == 200:
+                    rows = resp.json()
+                    if rows and rows[0].get('scraped_at'):
+                        latest_time = rows[0]['scraped_at']
         except Exception:
             pass
         

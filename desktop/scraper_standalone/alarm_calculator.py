@@ -11,8 +11,10 @@ TELEGRAM: Integrated notification system for new alarms
 import json
 import os
 import hashlib
+import gc
 import time
 import urllib.parse
+from collections import deque
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Callable
 
@@ -368,6 +370,10 @@ def normalize_date_for_db(date_str: str) -> str:
 
 class AlarmCalculator:
     """Supabase-based alarm calculator - OPTIMIZED with batch fetch"""
+    # Alarm rules only compare recent snapshots.  Keeping the full history for
+    # every active fixture made one calculation retain hundreds of thousands of
+    # JSON dictionaries and was the source of the recurring multi-GB OOM.
+    MAX_HISTORY_ROWS_PER_MATCH = 256
     
     def __init__(self, supabase_url: str, supabase_key: str, logger_callback: Optional[Callable[[str], None]] = None):
         self.url = supabase_url
@@ -1854,7 +1860,43 @@ class AlarmCalculator:
         # D-1+ fixture hash'lerini al
         active_hashes = self._get_active_fixture_hashes()
         
-        rows = []
+        # Stream each response into bounded per-match buffers.  Do not build a
+        # second full-table `rows` list: history tables grow on every scrape.
+        history_map = {}
+        loaded_rows = 0
+        fallback_count = 0
+
+        def history_key(row):
+            nonlocal fallback_count
+            match_hash = row.get('match_id_hash', '')
+            if match_hash:
+                return match_hash
+
+            # Fallback for old rows written before match_id_hash existed.
+            home_raw = ' '.join(row.get('home', '').strip().lower().split())
+            away_raw = ' '.join(row.get('away', '').strip().lower().split())
+            home = normalize_team_name(home_raw)
+            away = normalize_team_name(away_raw)
+            league = ' '.join(row.get('league', '').strip().lower().split())
+            kickoff = row.get('date', row.get('kickoff', row.get('kickoff_utc', '')))
+            kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
+            if not home or not away:
+                return None
+            fallback_count += 1
+            return f"{league}|{home}|{away}|{kickoff_date}"
+
+        def add_batch(batch):
+            nonlocal loaded_rows
+            loaded_rows += len(batch)
+            for row in batch:
+                key = history_key(row)
+                if key is None:
+                    continue
+                bucket = history_map.setdefault(
+                    key,
+                    deque(maxlen=self.MAX_HISTORY_ROWS_PER_MATCH)
+                )
+                bucket.append(row)
         
         if active_hashes:
             log(f"[HISTORY] {actual_table}: Using D-1+ filter ({len(active_hashes)} fixtures)")
@@ -1875,7 +1917,7 @@ class AlarmCalculator:
                     batch = self._get(actual_table, params)
                     if not batch:
                         break
-                    rows.extend(batch)
+                    add_batch(batch)
                     if len(batch) < page_size:
                         break
                     offset += page_size
@@ -1896,40 +1938,16 @@ class AlarmCalculator:
                 batch = self._get(actual_table, params)
                 if not batch:
                     break
-                rows.extend(batch)
+                add_batch(batch)
                 if len(batch) < page_size:
                     break
                 offset += page_size
-        
-        log(f"[HISTORY] {actual_table}: {len(rows)} snapshots loaded")
-        
-        # KEY: match_id_hash ile gruplama, FALLBACK: league|home|away|date ile gruplama
-        # ALIAS NORMALIZATION: Kısaltılmış takım adlarını (Nottm Fores -> nottingham forest) dönüştür
-        history_map = {}
-        fallback_count = 0
-        for row in rows:
-            match_hash = row.get('match_id_hash', '')
-            if not match_hash:
-                # FALLBACK: league|home|away|date ile key oluştur (eski tablolar için)
-                # Normalizasyon: lower, trim, çoklu boşluk temizliği + alias normalization
-                home_raw = ' '.join(row.get('home', '').strip().lower().split())
-                away_raw = ' '.join(row.get('away', '').strip().lower().split())
-                home = normalize_team_name(home_raw)
-                away = normalize_team_name(away_raw)
-                league = ' '.join(row.get('league', '').strip().lower().split())
-                # Kickoff date: normalize_date_for_db ile YYYY-MM-DD formatına çevir
-                kickoff = row.get('date', row.get('kickoff', row.get('kickoff_utc', '')))
-                kickoff_date = normalize_date_for_db(kickoff) if kickoff else ''
-                
-                if home and away:
-                    # Güçlendirilmiş fallback key: league|home|away|date
-                    match_hash = f"{league}|{home}|{away}|{kickoff_date}"
-                    fallback_count += 1
-                else:
-                    continue
-            if match_hash not in history_map:
-                history_map[match_hash] = []
-            history_map[match_hash].append(row)
+
+        # Convert bounded deques to the list shape consumed by all calculators.
+        history_map = {key: list(bucket) for key, bucket in history_map.items()}
+        kept_rows = sum(len(bucket) for bucket in history_map.values())
+        log(f"[HISTORY] {actual_table}: {loaded_rows} snapshots loaded, "
+            f"{kept_rows} retained (max {self.MAX_HISTORY_ROWS_PER_MATCH}/match)")
         
         if fallback_count > 0:
             log(f"[HISTORY WARN] {cache_key}: match_id_hash missing -> {fallback_count} rows using fallback key (league|home|away|date)")
@@ -1999,6 +2017,8 @@ class AlarmCalculator:
         
         self._history_cache = {}
         self._matches_cache = {}
+        self._active_hashes_checked = False
+        self._active_hashes_cache = []
         
         # Prefetch all data
         markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts']
@@ -2101,6 +2121,15 @@ class AlarmCalculator:
         self.alarm_summary = alarm_counts
         
         self._cleanup_expired_match_alarms()
+
+        # Release the large per-run object graph before the next signal arrives.
+        # The calculator instance is intentionally reused for config/connection
+        # setup, but calculation data must not survive a completed run.
+        self._history_cache.clear()
+        self._matches_cache.clear()
+        self._active_hashes_cache = []
+        self._active_hashes_checked = False
+        gc.collect()
         
         return total_alarms
     

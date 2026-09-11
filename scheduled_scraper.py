@@ -105,6 +105,9 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
         if success:
             print(f"[Heartbeat] {status} - {match_count} matches ✓")
         else:
+            if r.status_code == 404 and "scraper_heartbeat" in r.text:
+                print("[Heartbeat] scraper_heartbeat tablosu bulunamadı; "
+                      "migrations/2026_06_20_indexes_and_heartbeat.sql uygulanmalı")
             print(f"[Heartbeat] {status} - HTTP {r.status_code}: {r.text[:100]}")
         return success
     except Exception as e:
@@ -121,6 +124,8 @@ def check_master_status(supabase_url: str, supabase_key: str) -> tuple:
         
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
+            if r.status_code == 404 and "scraper_heartbeat" in r.text:
+                return True, "heartbeat_unavailable"
             return True, "api_error_fallback"
         
         rows = r.json()
@@ -233,7 +238,19 @@ def main():
         send_telegram(f"SCRAPER HATA (3 retry sonrası):\n{error}", is_error=True)
         update_heartbeat(supabase_url, supabase_key, "error", rows, error[:200])
     else:
-        update_heartbeat(supabase_url, supabase_key, "active", rows)
+        history_errors = getattr(writer, "last_write_errors", [])
+        if history_errors:
+            degraded_msg = "History yazma kısmi hata: " + "; ".join(history_errors[:2])
+            print(f"[Scrape] ACTIVE_DEGRADED: {degraded_msg}")
+            update_heartbeat(
+                supabase_url,
+                supabase_key,
+                "active_degraded",
+                rows,
+                degraded_msg[:500]
+            )
+        else:
+            update_heartbeat(supabase_url, supabase_key, "active", rows)
         # Alarm Engine'e sinyal gönder
         send_alarm_engine_signal(supabase_url, supabase_key, rows, rows)
     
