@@ -2130,7 +2130,18 @@ class AlarmCalculator:
         self._active_hashes_cache = []
         self._active_hashes_checked = False
         gc.collect()
-        
+
+        # gc.collect() frees the Python objects, but glibc's malloc does not
+        # hand freed heap arenas back to the OS on its own after a run this
+        # large (thousands of matches x history rows), so RSS keeps climbing
+        # cycle over cycle even though nothing is actually still referenced.
+        # malloc_trim(0) forces glibc to release those freed arenas.
+        try:
+            import ctypes
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
+
         return total_alarms
     
     def _cleanup_expired_match_alarms(self):
