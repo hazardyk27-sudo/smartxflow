@@ -457,7 +457,7 @@ def _to_decimal_odds(price) -> Optional[float]:
     return round(1.0 / p, 2)
 
 
-def _fetch_events_paginated(base_params: Dict[str, Any], max_pages: int, page_size: int = 500,
+def _fetch_events_paginated(base_params: Dict[str, Any], max_pages: int = 500, page_size: int = 100,
                              stop_check=None) -> List[Dict[str, Any]]:
     """Paginate Gamma API's /events/keyset endpoint (cursor-based via
     `after_cursor` - no hard offset cap). The plain /events endpoint rejects
@@ -468,10 +468,18 @@ def _fetch_events_paginated(base_params: Dict[str, Any], max_pages: int, page_si
     endpoint has no such cap, so real matches are no longer dropped as the
     total event count grows.
 
-    Stops when the API returns no more events, no next_cursor, or
-    `stop_check(page)` returns True (checked after each page - used by the
-    closed-events fetch to bail out once it reaches events older than its
-    needed window)."""
+    The endpoint silently caps each page at 100 events regardless of the
+    `limit` requested (verified: `limit=500` still returns 100), so pagination
+    must keep following `next_cursor` until it is exhausted rather than
+    relying on a fixed page count times an assumed page size. `max_pages` is
+    only an infinite-loop safety net, not the intended stopping condition;
+    it is sized generously (500 pages * 100 = 50k events) so it should never
+    be hit in practice. A repeated cursor also stops the loop defensively.
+
+    Stops when the API returns no more events, no next_cursor, the cursor
+    repeats, or `stop_check(page)` returns True (checked after each page -
+    used by the closed-events fetch to bail out once it reaches events older
+    than its needed window)."""
     all_events: List[Dict[str, Any]] = []
     cursor = None
     for _ in range(max_pages):
@@ -488,9 +496,10 @@ def _fetch_events_paginated(base_params: Dict[str, Any], max_pages: int, page_si
         all_events.extend(page)
         if stop_check and stop_check(page):
             break
-        cursor = data.get("next_cursor")
-        if not cursor:
+        next_cursor = data.get("next_cursor")
+        if not next_cursor or next_cursor == cursor:
             break
+        cursor = next_cursor
     return all_events
 
 
@@ -503,7 +512,6 @@ def _fetch_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
 
     all_events = _fetch_events_paginated(
         {"tag_id": SOCCER_TAG_ID, "active": "true", "closed": "false", "order": "endDate", "ascending": "true"},
-        max_pages=40,  # keyset has no hard offset cap; generous safety net (~20k events)
     )
 
     with _events_cache_lock:
@@ -537,7 +545,6 @@ def _fetch_closed_soccer_events(force_refresh: bool = False) -> List[Dict[str, A
 
     all_events = _fetch_events_paginated(
         {"tag_id": SOCCER_TAG_ID, "closed": "true", "order": "endDate", "ascending": "false"},
-        max_pages=20,  # newest-first; well beyond the ~3-day window we actually need
         stop_check=_stop_when_older_than_window,
     )
 
