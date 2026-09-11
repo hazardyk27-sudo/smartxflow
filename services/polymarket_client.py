@@ -457,6 +457,43 @@ def _to_decimal_odds(price) -> Optional[float]:
     return round(1.0 / p, 2)
 
 
+def _fetch_events_paginated(base_params: Dict[str, Any], max_pages: int, page_size: int = 500,
+                             stop_check=None) -> List[Dict[str, Any]]:
+    """Paginate Gamma API's /events/keyset endpoint (cursor-based via
+    `after_cursor` - no hard offset cap). The plain /events endpoint rejects
+    offsets beyond ~2100 with 'offset too large, use /events/keyset for
+    deeper pagination', which silently truncated the soccer event list once
+    Polymarket's active event count grew past that point (e.g. a same-day
+    match landing at list position ~2000 was never discovered/stored). This
+    endpoint has no such cap, so real matches are no longer dropped as the
+    total event count grows.
+
+    Stops when the API returns no more events, no next_cursor, or
+    `stop_check(page)` returns True (checked after each page - used by the
+    closed-events fetch to bail out once it reaches events older than its
+    needed window)."""
+    all_events: List[Dict[str, Any]] = []
+    cursor = None
+    for _ in range(max_pages):
+        params = dict(base_params)
+        params["limit"] = page_size
+        if cursor:
+            params["after_cursor"] = cursor
+        data = _get_json(f"{GAMMA_BASE}/events/keyset", params)
+        if not isinstance(data, dict):
+            break
+        page = data.get("events") or []
+        if not page:
+            break
+        all_events.extend(page)
+        if stop_check and stop_check(page):
+            break
+        cursor = data.get("next_cursor")
+        if not cursor:
+            break
+    return all_events
+
+
 def _fetch_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
     """Fetch active, non-closed soccer events from Gamma API (paginated), cached briefly."""
     now = time.time()
@@ -464,26 +501,10 @@ def _fetch_soccer_events(force_refresh: bool = False) -> List[Dict[str, Any]]:
         if not force_refresh and _events_cache["data"] is not None and (now - _events_cache["time"]) < _EVENTS_CACHE_TTL:
             return _events_cache["data"]
 
-    all_events: List[Dict[str, Any]] = []
-    page_size = 100  # Gamma API silently caps results at 100 per page regardless of requested limit
-    offset = 0
-    max_pages = 20  # safety cap (~2000 events)
-    for _ in range(max_pages):
-        page = _get_json(f"{GAMMA_BASE}/events", {
-            "tag_id": SOCCER_TAG_ID,
-            "active": "true",
-            "closed": "false",
-            "limit": page_size,
-            "offset": offset,
-            "order": "endDate",
-            "ascending": "true",
-        })
-        if not page:
-            break
-        all_events.extend(page)
-        if len(page) < page_size:
-            break
-        offset += page_size
+    all_events = _fetch_events_paginated(
+        {"tag_id": SOCCER_TAG_ID, "active": "true", "closed": "false", "order": "endDate", "ascending": "true"},
+        max_pages=40,  # keyset has no hard offset cap; generous safety net (~20k events)
+    )
 
     with _events_cache_lock:
         _events_cache["data"] = all_events
@@ -503,33 +524,22 @@ def _fetch_closed_soccer_events(force_refresh: bool = False) -> List[Dict[str, A
             return _closed_events_cache["data"]
 
     stop_before = datetime.now(timezone.utc) - timedelta(days=3)
-    all_events: List[Dict[str, Any]] = []
-    page_size = 100
-    offset = 0
-    max_pages = 6  # safety cap (~600 events, newest-first so recent matches come first)
-    for _ in range(max_pages):
-        page = _get_json(f"{GAMMA_BASE}/events", {
-            "tag_id": SOCCER_TAG_ID,
-            "closed": "true",
-            "limit": page_size,
-            "offset": offset,
-            "order": "endDate",
-            "ascending": "false",
-        })
-        if not page:
-            break
-        all_events.extend(page)
+
+    def _stop_when_older_than_window(page: List[Dict[str, Any]]) -> bool:
         oldest_end = page[-1].get("endDate")
-        if oldest_end:
-            try:
-                oldest_dt = datetime.fromisoformat(oldest_end.replace("Z", "+00:00"))
-                if oldest_dt < stop_before:
-                    break
-            except Exception:
-                pass
-        if len(page) < page_size:
-            break
-        offset += page_size
+        if not oldest_end:
+            return False
+        try:
+            oldest_dt = datetime.fromisoformat(oldest_end.replace("Z", "+00:00"))
+            return oldest_dt < stop_before
+        except Exception:
+            return False
+
+    all_events = _fetch_events_paginated(
+        {"tag_id": SOCCER_TAG_ID, "closed": "true", "order": "endDate", "ascending": "false"},
+        max_pages=20,  # newest-first; well beyond the ~3-day window we actually need
+        stop_check=_stop_when_older_than_window,
+    )
 
     with _closed_events_cache_lock:
         _closed_events_cache["data"] = all_events
