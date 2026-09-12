@@ -337,6 +337,41 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(computed, ["0xwallet"])
         self.assertFalse(writer.positions_replaced)
 
+    def test_poly_cleanup_keeps_last_seven_days_of_wallet_history(self):
+        class FakeWriter:
+            def __init__(self):
+                self.deletes = []
+
+            def delete_before(self, table, date_column, cutoff):
+                self.deletes.append((table, date_column, cutoff))
+                return 0
+
+        writer = FakeWriter()
+        original_timedelta = polymarket_scraper.timedelta
+        timedelta_calls = []
+
+        def capture_timedelta(*args, **kwargs):
+            timedelta_calls.append((args, kwargs))
+            return original_timedelta(*args, **kwargs)
+
+        with patch.object(
+            polymarket_scraper,
+            "timedelta",
+            side_effect=capture_timedelta,
+        ):
+            self.assertEqual(polymarket_scraper.cleanup_old_poly_data(writer), 0)
+
+        self.assertEqual(timedelta_calls, [((), {"days": 7})])
+        self.assertEqual(
+            [table for table, _column, _cutoff in writer.deletes],
+            [
+                "tracked_wallet_activity",
+                "tracked_wallet_redeems",
+                "polymarket_trades",
+            ],
+        )
+        self.assertTrue(all(column == "traded_at" for _table, column, _cutoff in writer.deletes))
+
 
 if __name__ == "__main__":
     unittest.main()

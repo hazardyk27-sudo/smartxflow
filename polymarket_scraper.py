@@ -839,20 +839,20 @@ def run_backfill(writer: PolymarketSupabaseWriter):
 
 
 def cleanup_old_poly_data(writer: PolymarketSupabaseWriter) -> int:
-    """Poly tarafinda sadece son 2 gun + gelecek veriler kalsin: D-2 oncesi (traded_at bazli)
+    """Poly tarafinda sadece son 7 gun + gelecek veriler kalsin: D-7 oncesi (traded_at bazli)
     tum satirlar silinir (orphan dahil, match_id eslestirmesi yok). tracked_wallet_positions
     her cycle'da tamamen yeniden yazildigi icin (replace_wallet_positions) burada ayrica
     temizlenmesine gerek yok - kendiliginden guncel kalir."""
-    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=2)
+    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=7)
     cutoff_iso = cutoff_dt.strftime('%Y-%m-%dT00:00:00')
-    log(f"[Cleanup] Poly D-2 silme: {cutoff_iso} oncesi silinecek (son 2 gun + gelecek korunur)")
+    log(f"[Cleanup] Poly D-7 silme: {cutoff_iso} oncesi silinecek (son 7 gun + gelecek korunur)")
 
     total_deleted = 0
     for table in ("tracked_wallet_activity", "tracked_wallet_redeems", "polymarket_trades"):
         try:
             count = writer.delete_before(table, "traded_at", cutoff_iso)
             if count:
-                log(f"  [Cleanup] {table}: {count} satir silindi (D-2+)")
+                log(f"  [Cleanup] {table}: {count} satir silindi (D-7+)")
                 total_deleted += count
         except Exception as e:
             log(f"  [Cleanup] {table}: Hata - {e}")
