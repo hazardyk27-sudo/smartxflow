@@ -428,6 +428,34 @@
   }
   .add-wallet-box button:hover { background: #3a67e0; }
   .add-wallet-error { color: #ff6b6b; font-size: 13px; margin-bottom: 12px; }
+  .tracked-wallet-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 14px 0 8px;
+  }
+  .tracked-wallet-controls input,
+  .tracked-wallet-controls select {
+    background: #151a24;
+    border: 1px solid #262d3d;
+    border-radius: 8px;
+    color: #e6e9ef;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+  }
+  .tracked-wallet-controls input {
+    flex: 1;
+    min-width: 0;
+  }
+  .tracked-wallet-controls input:focus,
+  .tracked-wallet-controls select:focus { border-color: #4c7dff; }
+  .tracked-wallet-controls select { min-width: 190px; cursor: pointer; }
+  .tracked-wallet-note {
+    color: #6d7590;
+    font-size: 11.5px;
+    margin-bottom: 12px;
+  }
   /* ── Tracked Wallet Cards (polycopy-inspired) ────────── */
   .tw-card {
     background: #12161f;
@@ -520,6 +548,8 @@
     .add-wallet-box input[type=text] { width: 100%; min-width: 0; }
     .wallet-search-box { flex-wrap: wrap; }
     .wallet-search-box input[type=text] { max-width: 100%; width: 100%; }
+    .tracked-wallet-controls { align-items: stretch; flex-direction: column; }
+    .tracked-wallet-controls select { width: 100%; }
     .min-amount-hint { white-space: normal; }
     .market-summary { flex-wrap: wrap; }
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
@@ -602,6 +632,15 @@
       <button id="addWalletBtn">+ Takibe Al</button>
     </div>
     <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
+    <div class="tracked-wallet-controls">
+      <input type="text" id="trackedWalletSearch" placeholder="Tahminci adına göre ara...">
+      <select id="trackedWalletSort" aria-label="Tahmincileri sırala">
+        <option value="default">Varsayılan sıralama</option>
+        <option value="win-desc">Başarı oranı: yüksekten düşüğe</option>
+        <option value="win-asc">Başarı oranı: düşükten yükseğe</option>
+      </select>
+    </div>
+    <div class="tracked-wallet-note">Takipçi istatistikleri ve işlem geçmişi yalnızca 1.000 USDC ve üzerindeki tekil işlemleri kapsar.</div>
     <div class="match-list" id="trackedWalletList">
       <div class="loading">Yükleniyor...</div>
     </div>
@@ -1168,6 +1207,8 @@ const matchSearchView = document.getElementById('matchSearchView');
 const walletsView = document.getElementById('walletsView');
 const walletProfileView = document.getElementById('walletProfileView');
 const trackedWalletList = document.getElementById('trackedWalletList');
+const trackedWalletSearch = document.getElementById('trackedWalletSearch');
+const trackedWalletSort = document.getElementById('trackedWalletSort');
 const addWalletAddress = document.getElementById('addWalletAddress');
 const addWalletNickname = document.getElementById('addWalletNickname');
 const addWalletBtn = document.getElementById('addWalletBtn');
@@ -1242,81 +1283,113 @@ function twWinColor(pct) {
   return '#ff6b6b';
 }
 
+let trackedWalletRows = [];
+
+function renderTrackedWallets() {
+  const query = (trackedWalletSearch.value || '').trim().toLocaleLowerCase('tr-TR');
+  const sortMode = trackedWalletSort.value;
+  const filtered = trackedWalletRows.filter(w =>
+    (w.nickname || '').toLocaleLowerCase('tr-TR').includes(query)
+  );
+  const wallets = [...filtered];
+
+  if (sortMode !== 'default') {
+    wallets.sort((a, b) => {
+      const aPct = Number(a.win_rate_pct);
+      const bPct = Number(b.win_rate_pct);
+      const aValid = Number.isFinite(aPct);
+      const bValid = Number.isFinite(bPct);
+      if (aValid !== bValid) return aValid ? -1 : 1;
+      if (!aValid) return (a.nickname || '').localeCompare(b.nickname || '', 'tr');
+      const diff = sortMode === 'win-desc' ? bPct - aPct : aPct - bPct;
+      return diff || (a.nickname || '').localeCompare(b.nickname || '', 'tr');
+    });
+  }
+
+  if (!wallets.length) {
+    trackedWalletList.innerHTML = trackedWalletRows.length
+      ? '<div class="loading">Arama kriterine uyan tahminci bulunamadı.</div>'
+      : '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
+    return;
+  }
+
+  trackedWalletList.innerHTML = '';
+  wallets.forEach(w => {
+    const item = document.createElement('div');
+    item.className = 'tw-card';
+    item.dataset.wallet = (w.wallet || '').toLowerCase();
+    const pct = w.win_rate_pct;
+    const grade = twGrade(pct);
+    const winColor = twWinColor(pct);
+    const openPos = w.open_position_count ?? 0;
+    const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
+    const initials = twInitials(w.nickname || '?');
+    const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
+    const tot  = statsPending ? '…' : (w.resolved_total  != null ? w.resolved_total : 0);
+    const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won   : 0);
+    const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost  : 0);
+    const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
+    const syncStatus = statsPending
+      ? '<span class="tw-sync-status" title="İlk wallet senkronizasyonu bekleniyor">Senkronizasyon bekleniyor</span>'
+      : '';
+    item.innerHTML = `
+      <div class="tw-card-body">
+        <div class="tw-avatar" style="background:${avatarBg}">${initials}</div>
+        <div class="tw-info">
+          <div class="tw-top-row">
+            <span class="tw-name">${escapeAttr(w.nickname)}</span>
+            <span class="tw-grade" style="color:${grade.color};background:${grade.bg}">${grade.g}</span>
+          </div>
+          <div class="tw-addr">${truncAddr(w.wallet)}</div>
+          <div class="tw-mini-stats">
+            <div class="tw-ms-box"><span class="tw-ms-label">Toplam</span><span class="tw-ms-val" data-stat="tot">${tot}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">Kazanan</span><span class="tw-ms-val tw-ms-won" data-stat="won">${won}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost" data-stat="lost">${lost}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" data-stat="pct" style="color:${winColor}">${pctText}</span></div>
+            ${openPos > 0 ? `<span class="tw-ms-open">${openPos} açık</span>` : ''}
+            ${syncStatus}
+          </div>
+        </div>
+      </div>
+      <div class="tw-actions">
+        <button class="tw-btn tw-btn-profile" data-action="profile">Profil →</button>
+        <button class="tw-btn tw-btn-remove" data-action="remove">Sil</button>
+      </div>
+    `;
+    item.querySelector('[data-action="profile"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openWalletProfile(w.wallet);
+    });
+    item.querySelector('[data-action="remove"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`${w.nickname} takipten çıkarılsın mı?`)) return;
+      await fetch(`/api/poly/tracked/${w.wallet}`, { method: 'DELETE' });
+      loadTrackedWallets();
+    });
+    item.addEventListener('click', () => openWalletProfile(w.wallet));
+    trackedWalletList.appendChild(item);
+  });
+}
+
 async function loadTrackedWallets() {
   trackedWalletList.innerHTML = '<div class="loading">Yükleniyor...</div>';
   try {
     const res = await fetch('/api/poly/tracked');
     const data = await res.json();
-    const wallets = data.wallets || [];
+    trackedWalletRows = data.wallets || [];
     const map = {};
-    wallets.forEach(w => {
+    trackedWalletRows.forEach(w => {
       if (w.wallet) map[w.wallet.toLowerCase()] = w.nickname;
     });
     trackedWalletsMap = map;
-    if (!wallets.length) {
-      trackedWalletList.innerHTML = '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
-      return;
-    }
-    trackedWalletList.innerHTML = '';
-    wallets.forEach(w => {
-      const item = document.createElement('div');
-      item.className = 'tw-card';
-      item.dataset.wallet = (w.wallet || '').toLowerCase();
-      const pct = w.win_rate_pct;
-      const grade = twGrade(pct);
-      const winColor = twWinColor(pct);
-      const openPos = w.open_position_count ?? 0;
-      const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
-      const initials = twInitials(w.nickname || '?');
-      const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
-      const tot  = statsPending ? '…' : (w.resolved_total  != null ? w.resolved_total  : 0);
-      const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won    : 0);
-      const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost   : 0);
-      const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
-      const syncStatus = statsPending
-        ? '<span class="tw-sync-status" title="İlk wallet senkronizasyonu bekleniyor">Senkronizasyon bekleniyor</span>'
-        : '';
-      item.innerHTML = `
-        <div class="tw-card-body">
-          <div class="tw-avatar" style="background:${avatarBg}">${initials}</div>
-          <div class="tw-info">
-            <div class="tw-top-row">
-              <span class="tw-name">${escapeAttr(w.nickname)}</span>
-              <span class="tw-grade" style="color:${grade.color};background:${grade.bg}">${grade.g}</span>
-            </div>
-            <div class="tw-addr">${truncAddr(w.wallet)}</div>
-            <div class="tw-mini-stats">
-              <div class="tw-ms-box"><span class="tw-ms-label">Toplam</span><span class="tw-ms-val" data-stat="tot">${tot}</span></div>
-              <div class="tw-ms-box"><span class="tw-ms-label">Kazanan</span><span class="tw-ms-val tw-ms-won" data-stat="won">${won}</span></div>
-              <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost" data-stat="lost">${lost}</span></div>
-              <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" data-stat="pct" style="color:${winColor}">${pctText}</span></div>
-              ${openPos > 0 ? `<span class="tw-ms-open">${openPos} açık</span>` : ''}
-               ${syncStatus}
-            </div>
-          </div>
-        </div>
-        <div class="tw-actions">
-          <button class="tw-btn tw-btn-profile" data-action="profile">Profil →</button>
-          <button class="tw-btn tw-btn-remove" data-action="remove">Sil</button>
-        </div>
-      `;
-      item.querySelector('[data-action="profile"]').addEventListener('click', (e) => {
-        e.stopPropagation();
-        openWalletProfile(w.wallet);
-      });
-      item.querySelector('[data-action="remove"]').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (!confirm(`${w.nickname} takipten çıkarılsın mı?`)) return;
-        await fetch(`/api/poly/tracked/${w.wallet}`, { method: 'DELETE' });
-        loadTrackedWallets();
-      });
-      item.addEventListener('click', () => openWalletProfile(w.wallet));
-      trackedWalletList.appendChild(item);
-    });
+    renderTrackedWallets();
   } catch (e) {
     trackedWalletList.innerHTML = '<div class="loading">Liste alınamadı.</div>';
   }
 }
+
+trackedWalletSearch.addEventListener('input', renderTrackedWallets);
+trackedWalletSort.addEventListener('change', renderTrackedWallets);
 
 addWalletBtn.addEventListener('click', async () => {
   const wallet = addWalletAddress.value.trim();

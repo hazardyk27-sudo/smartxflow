@@ -17,6 +17,64 @@ class FakeResponse:
 
 
 class TrackedWalletStatsTests(unittest.TestCase):
+    def test_tracked_wallet_threshold_is_applied_before_market_grouping(self):
+        activity = [
+            {
+                "asset": "hidden-below-threshold",
+                "condition_id": "hidden-condition",
+                "result": "won",
+                "amount_usdc": 999.99,
+                "price": 0.5,
+            },
+            {
+                "asset": "exact-threshold",
+                "condition_id": "exact-condition",
+                "result": "lost",
+                "amount_usdc": 1000,
+                "price": 0.4,
+            },
+            {
+                "asset": "grouped-winner",
+                "condition_id": "grouped-condition",
+                "result": "won",
+                "amount_usdc": 1000.01,
+                "price": 0.6,
+            },
+            {
+                "asset": "grouped-winner",
+                "condition_id": "grouped-condition",
+                "result": "won",
+                "amount_usdc": 1500,
+                "price": 0.7,
+            },
+            {
+                "asset": "two-small-fills",
+                "condition_id": "small-group",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.8,
+            },
+            {
+                "asset": "two-small-fills",
+                "condition_id": "small-group",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.8,
+            },
+        ]
+
+        filtered = polymarket_client._filter_tracked_wallet_activity_amount(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
+
+        self.assertEqual(len(filtered), 3)
+        self.assertEqual(stats["trade_count"], 3)
+        self.assertEqual(stats["total_invested_usdc"], 3500.01)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 1)
+        self.assertEqual(stats["resolved_total"], 2)
+        self.assertEqual(stats["win_rate"], 50.0)
+        self.assertEqual(polymarket_client.MIN_TRADE_AMOUNT_USDC, 100.0)
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {
@@ -104,8 +162,8 @@ class TrackedWalletStatsTests(unittest.TestCase):
     def test_stats_refresh_keeps_activity_when_positions_query_fails(self):
         wallet = "0xwallet"
         activity = [
-            {"asset": "winner", "condition_id": "condition-1", "result": "won", "amount_usdc": 10, "price": 0.5},
-            {"asset": "loser", "condition_id": "condition-2", "result": "lost", "amount_usdc": 20, "price": 0.25},
+            {"asset": "winner", "condition_id": "condition-1", "result": "won", "amount_usdc": 1000, "price": 0.5},
+            {"asset": "loser", "condition_id": "condition-2", "result": "lost", "amount_usdc": 2000, "price": 0.25},
         ]
         patches = []
 
