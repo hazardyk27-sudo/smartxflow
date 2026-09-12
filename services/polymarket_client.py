@@ -30,6 +30,9 @@ SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Socc
 # Aggregate stats (total volume, per-selection market chips) still use ALL
 # trades regardless of size - this threshold only curates the trade ledger.
 MIN_TRADE_AMOUNT_USDC = 100.0
+# Only the tracked-wallet flow uses this higher threshold. The general
+# match/trade search above intentionally keeps its existing 100 USDC rule.
+MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC = 1000.0
 
 _HTTP_TIMEOUT = 10
 _HEADERS = {
@@ -1657,6 +1660,42 @@ def _filter_wallet_rows_since(
     ]
 
 
+def _filter_tracked_wallet_activity_amount(
+    rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Keep qualifying fills before any wallet-history grouping happens."""
+    qualifying = []
+    for row in rows:
+        try:
+            amount = float(row.get("amount_usdc") or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
+        if amount >= MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC:
+            qualifying.append(row)
+    return qualifying
+
+
+def _filter_wallet_redeems_to_activity(
+    redeem_rows: List[Dict[str, Any]],
+    activity_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Ignore payouts belonging only to hidden, sub-threshold fills."""
+    assets = {row.get("asset") for row in activity_rows if row.get("asset")}
+    conditions = {
+        row.get("condition_id")
+        for row in activity_rows
+        if row.get("condition_id")
+    }
+    return [
+        row for row in redeem_rows
+        if (row.get("asset") and row.get("asset") in assets)
+        or (
+            not row.get("asset")
+            and row.get("condition_id") in conditions
+        )
+    ]
+
+
 def _get_wallet_tracking_start(
     base: str,
     headers: Dict[str, str],
@@ -1719,8 +1758,11 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
     except Exception:
         redeem_rows = []
 
-    activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+    activity_rows = _filter_tracked_wallet_activity_amount(
+        _filter_wallet_rows_since(activity_rows, tracked_since)
+    )
     redeem_rows = _filter_wallet_rows_since(redeem_rows, tracked_since)
+    redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
     resolved = _compute_wallet_activity_stats(activity_rows, position_rows, redeem_rows)
     return {
