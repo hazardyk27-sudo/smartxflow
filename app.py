@@ -1499,6 +1499,8 @@ def api_auth_logout():
     session.pop('sb_refresh_token', None)
     session.pop('license_plan', None)
     session.pop('license_valid', None)
+    session.pop('license_key', None)
+    session.pop('license_expires', None)
     return jsonify({'ok': True})
 
 

@@ -64,6 +64,19 @@
           </div>
           <button type="submit" class="sxf-btn" id="submitBtn"><span class="sxf-btn-label">Sign In</span><span class="sxf-spinner" aria-hidden="true"></span></button>
         </form>
+        <div class="sxf-license-login">
+          <button type="button" class="sxf-btn-secondary" id="licenseLoginToggle">Sign in with license key</button>
+          <form id="licenseLoginForm" autocomplete="off" hidden>
+            <div class="sxf-field">
+              <label for="licenseKey">License Key</label>
+              <input type="text" id="licenseKey" name="licenseKey" required autocomplete="off" placeholder="SXF-XXXX-XXXX-XXXX" autocapitalize="characters" spellcheck="false">
+            </div>
+            <button type="submit" class="sxf-btn" id="licenseSubmitBtn">
+              <span class="sxf-license-btn-label">Continue with license key</span>
+              <span class="sxf-spinner" aria-hidden="true"></span>
+            </button>
+          </form>
+        </div>
         <p class="sxf-create-account">New to SmartXFlow? <a href="/signup">Create account</a></p>
         <div class="sxf-divider"><span>or continue without an account</span></div>
         <button type="button" class="sxf-test-link" id="testModeBtn">Explore Test Mode <span aria-hidden="true">→</span></button>
@@ -80,6 +93,10 @@ const errBox = document.getElementById('errBox');
 const submitBtn = document.getElementById('submitBtn');
 const passwordInput = document.getElementById('password');
 const passwordToggle = document.getElementById('passwordToggle');
+const licenseLoginToggle = document.getElementById('licenseLoginToggle');
+const licenseLoginForm = document.getElementById('licenseLoginForm');
+const licenseKeyInput = document.getElementById('licenseKey');
+const licenseSubmitBtn = document.getElementById('licenseSubmitBtn');
 
 const ERR_MSG = {
   MISSING_CREDENTIALS: 'Enter your email and password.',
@@ -139,6 +156,70 @@ passwordToggle.addEventListener('click', () => {
   passwordInput.type = visible ? 'password' : 'text';
   passwordToggle.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
   passwordToggle.setAttribute('aria-pressed', String(!visible));
+});
+
+function getLicenseDeviceId() {
+  let deviceId = localStorage.getItem('smartxflow_device_id');
+  if (!deviceId || deviceId.length > 16) {
+    const randomPart = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID().replace(/-/g, '')
+      : String(Date.now()) + Math.random().toString(36).slice(2);
+    deviceId = ('w-' + randomPart).slice(0, 16);
+    localStorage.setItem('smartxflow_device_id', deviceId);
+  }
+  return deviceId;
+}
+
+licenseLoginToggle.addEventListener('click', () => {
+  const isOpen = !licenseLoginForm.hidden;
+  licenseLoginForm.hidden = isOpen;
+  licenseLoginToggle.textContent = isOpen ? 'Sign in with license key' : 'Hide license key login';
+  if (!isOpen) licenseKeyInput.focus();
+});
+
+licenseLoginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errBox.style.display = 'none';
+  const key = licenseKeyInput.value.trim().toUpperCase();
+  if (!key) {
+    errBox.textContent = 'Enter your license key.';
+    errBox.style.display = 'block';
+    licenseKeyInput.focus();
+    return;
+  }
+  licenseSubmitBtn.disabled = true;
+  licenseSubmitBtn.classList.add('is-loading');
+  licenseSubmitBtn.querySelector('.sxf-license-btn-label').textContent = 'Checking license...';
+  try {
+    const resp = await fetch('/api/licenses/validate', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        key,
+        device_id: getLicenseDeviceId(),
+        device_name: navigator.userAgent.slice(0, 120),
+      }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.valid) {
+      errBox.textContent = data.error || 'License key could not be verified.';
+      errBox.style.display = 'block';
+      licenseSubmitBtn.disabled = false;
+      licenseSubmitBtn.classList.remove('is-loading');
+      licenseSubmitBtn.querySelector('.sxf-license-btn-label').textContent = 'Continue with license key';
+      return;
+    }
+    localStorage.setItem('smartxflow_web_license', key);
+    localStorage.setItem('smartxflow_web_license_valid', 'true');
+    window.location.href = nextPath || '/app';
+  } catch (err) {
+    errBox.textContent = 'Connection error. Please try again.';
+    errBox.style.display = 'block';
+    licenseSubmitBtn.disabled = false;
+    licenseSubmitBtn.classList.remove('is-loading');
+    licenseSubmitBtn.querySelector('.sxf-license-btn-label').textContent = 'Continue with license key';
+  }
 });
 
 document.getElementById('testModeBtn').addEventListener('click', async () => {

@@ -101,6 +101,12 @@ body.sxf-auth-body {
   margin-top: 10px;
 }
 .sxf-btn-secondary:hover { background: rgba(255,255,255,0.04); }
+.sxf-license-login { margin-top: 18px; }
+.sxf-license-login .sxf-btn-secondary { margin-top: 0; color: #91a0aa; }
+.sxf-license-login form { margin-top: 14px; }
+.sxf-license-login .sxf-field { margin-bottom: 12px; }
+.sxf-license-login .sxf-btn { margin-top: 0; }
+.sxf-license-login[hidden] { display: none; }
 
 .sxf-error {
   display: none;
