@@ -17,6 +17,89 @@ class FakeResponse:
 
 
 class TrackedWalletStatsTests(unittest.TestCase):
+    def test_profile_uses_persisted_stats_shared_with_tracked_list(self):
+        wallet = "0xwallet"
+        persisted = {
+            "wallet": wallet,
+            "nickname": "Tracked bettor",
+            "notes": None,
+            "created_at": "2026-09-08T00:00:00+00:00",
+            "last_synced_at": "2026-09-12T00:00:00+00:00",
+            "win_rate": 69.2,
+            "resolved_won": 9,
+            "resolved_lost": 4,
+            "resolved_total": 13,
+            "trade_count": 42,
+            "total_invested_usdc": 42000.0,
+            "avg_bet_size_usdc": 1000.0,
+            "avg_price": 0.5,
+            "avg_price_decimal": 2.0,
+            "open_position_count": 1,
+            "open_exposure_usdc": 1234.5,
+        }
+        activity = [{
+            "wallet": wallet,
+            "transaction_hash": "tx",
+            "asset": "open-asset",
+            "condition_id": "open-condition",
+            "result": None,
+            "title": "Open market",
+            "slug": "open-market",
+            "market_type": "moneyline",
+            "selection": "Yes",
+            "side": "BUY",
+            "action": "buy",
+            "outcome_raw": "Yes",
+            "amount_usdc": 1000.0,
+            "price": 0.5,
+            "size": 2000.0,
+            "traded_at": "2026-09-10T00:00:00+00:00",
+        }]
+        positions = [{
+            "condition_id": "open-condition",
+            "asset": "open-asset",
+            "title": "Open market",
+            "slug": "open-market",
+            "outcome": "Yes",
+            "size": 2000.0,
+            "avg_price": 0.5,
+            "cur_price": 0.5,
+            "initial_value": 1000.0,
+            "current_value": 1234.5,
+            "cash_pnl": 234.5,
+            "percent_pnl": 23.45,
+            "redeemable": False,
+            "end_date": "2026-09-20T00:00:00+00:00",
+        }]
+
+        def fake_get(url, **_kwargs):
+            if "tracked_wallets" in url:
+                return FakeResponse(200, [persisted])
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(200, activity)
+            if "tracked_wallet_positions" in url:
+                return FakeResponse(200, positions)
+            if "tracked_wallet_redeems" in url:
+                return FakeResponse(200, [])
+            raise AssertionError(url)
+
+        with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
+             patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
+             patch.object(polymarket_client.requests, "get", side_effect=fake_get):
+            profile = polymarket_client.get_wallet_profile(wallet)
+
+        self.assertIsNotNone(profile)
+        stats = profile["stats"]
+        # The live rows intentionally describe only one open fill. The profile
+        # must still expose the same persisted snapshot used by the list card.
+        self.assertEqual(stats["trade_count"], 42)
+        self.assertEqual(stats["resolved_won"], 9)
+        self.assertEqual(stats["resolved_lost"], 4)
+        self.assertEqual(stats["resolved_total"], 13)
+        self.assertEqual(stats["win_rate_pct"], 69.2)
+        self.assertEqual(stats["open_position_count"], 1)
+        self.assertEqual(stats["open_exposure_usdc"], 1234.5)
+
     def test_tracked_wallet_threshold_is_applied_before_market_grouping(self):
         activity = [
             {

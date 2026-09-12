@@ -2461,9 +2461,12 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     open_positions = resolved["open_positions"]
     realized_pnl_total = resolved["realized_pnl_total"]
 
-    # 4. Use the same filtered ledger for profile totals whenever all source
-    # snapshots are available. During a transient API failure, keep the
-    # pre-computed values instead of replacing them with zeros.
+    # 4. The persisted tracked_wallets stats are the canonical snapshot shared
+    # with the tracked-wallet list. The scraper computes them from the filtered
+    # (>= 1000 USDC) activity ledger and persists the result after resolution.
+    # Do not replace them with a second live calculation here: that calculation
+    # can observe a different resolution snapshot and was the reason the card
+    # and profile showed different win rates for the same wallet.
     trade_count = wallet_row.get("trade_count") or 0
     total_invested = float(wallet_row.get("total_invested_usdc") or 0)
     avg_bet_size = float(wallet_row.get("avg_bet_size_usdc") or 0)
@@ -2473,24 +2476,8 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     resolved_won = wallet_row.get("resolved_won") or 0
     resolved_lost = wallet_row.get("resolved_lost") or 0
     resolved_total = wallet_row.get("resolved_total") or 0
+    open_position_count = wallet_row.get("open_position_count") or 0
     open_exposure = float(wallet_row.get("open_exposure_usdc") or 0)
-
-    if activity_ok and positions_ok and redeems_ok:
-        live_stats = _compute_wallet_activity_stats(
-            activity_rows,
-            position_rows,
-            redeem_rows,
-        )
-        trade_count = live_stats["trade_count"]
-        total_invested = live_stats["total_invested_usdc"]
-        avg_bet_size = live_stats["avg_bet_size_usdc"]
-        avg_price = live_stats["avg_price"]
-        avg_price_decimal = live_stats["avg_price_decimal"]
-        win_rate = live_stats["win_rate"]
-        resolved_won = live_stats["resolved_won"]
-        resolved_lost = live_stats["resolved_lost"]
-        resolved_total = live_stats["resolved_total"]
-        open_exposure = live_stats["open_exposure"]
 
     total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
 
@@ -2511,8 +2498,8 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 summary_lines.append("Genelde düşük ihtimalli (uzun oranlı) taraflara oynuyor - sürpriz/underdog odaklı bir profil.")
             elif avg_price >= 0.65:
                 summary_lines.append("Genelde favoriye/yüksek ihtimalli tarafa oynuyor - güvenli/favori odaklı bir profil.")
-        if open_positions:
-            summary_lines.append(f"Şu an {len(open_positions)} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
+        if open_position_count:
+            summary_lines.append(f"Şu an {open_position_count} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
     display_activity = _build_display_activity(activity_rows, position_rows, resolved_won_ids, resolved_lost_ids)
 
@@ -2533,7 +2520,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             "resolved_won": resolved_won,
             "resolved_lost": resolved_lost,
             "resolved_total": resolved_total,
-            "open_position_count": len(open_positions),
+            "open_position_count": open_position_count,
             "open_exposure_usdc": round(open_exposure, 2),
             "realized_pnl_usdc": round(realized_pnl_total, 2),
             "total_redeemed_usdc": round(total_redeemed_usdc, 2),
