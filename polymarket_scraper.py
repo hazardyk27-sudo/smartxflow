@@ -171,7 +171,9 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            return None
+            # First sync: never backfill fills from before the wallet was
+            # added to the watch list.
+            return self.get_wallet_tracked_since(wallet)
         except Exception as e:
             log(f"[Wallet Checkpoint GET] Hata: {e}")
             return None
@@ -230,7 +232,7 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            return None
+            return self.get_wallet_tracked_since(wallet)
         except Exception as e:
             log(f"[Wallet Redeem Checkpoint GET] Hata: {e}")
             return None
@@ -535,8 +537,10 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
     since_ts = writer.get_wallet_activity_checkpoint(wallet)
     new_items, truncated = fetch_wallet_activity(wallet, since_ts)
     if truncated:
-        log(f"  [Wallet {wallet[:10]}...] fetch truncated (page cap), writing partial results")
-    if True:
+        # A truncated page can leave a checkpoint gap. Do not persist partial
+        # results; the next cycle will retry from the same checkpoint.
+        log(f"  [Wallet {wallet[:10]}...] fetch truncated (page cap), skipping this run")
+    else:
         rows = []
         for item in reversed(new_items):
             try:
@@ -636,6 +640,7 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
         if redeem_rows and writer.upsert_wallet_redeems(redeem_rows):
             log(f"  [Wallet {wallet_row.get('nickname')}] +{len(redeem_rows)} yeni redeem")
 
+    position_rows = []
     positions, positions_ok = fetch_wallet_positions(wallet)
     if not positions_ok:
         # Keep the last known snapshot, but still compute activity statistics

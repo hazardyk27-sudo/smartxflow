@@ -1388,11 +1388,13 @@ async function openWalletProfile(wallet) {
     walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>${syncStatus}`;
 
     const s = data.stats || {};
-    const displayActivity = data.activity || [];
-    const wonCount = displayActivity.filter(r => r.result === 'won').length;
-    const lostCount = displayActivity.filter(r => r.result === 'lost').length;
+    // The history table is intentionally grouped by market/outcome, while
+    // trade_count is the raw fill count. Use the canonical backend summary
+    // here; counting rendered rows made the cards disagree with the ledger.
+    const wonCount = Number(s.resolved_won) || 0;
+    const lostCount = Number(s.resolved_lost) || 0;
     const statCards = [
-      { label: 'Toplam Bahis', value: displayActivity.length },
+      { label: 'Toplam İşlem', value: Number(s.trade_count) || 0 },
       { label: 'Kazanan', value: wonCount },
       { label: 'Kaybeden', value: lostCount },
       { label: 'İsabet Oranı', value: (wonCount + lostCount) > 0 ? `%${((wonCount / (wonCount + lostCount)) * 100).toFixed(1)}` : '-' },

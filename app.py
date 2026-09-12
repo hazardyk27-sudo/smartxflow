@@ -56,7 +56,7 @@ _poly_tracked_cache = {'data': None, 'ts': 0}
 _poly_profile_cache = {}
 _poly_profile_inflight = {}   # wallet_key -> threading.Event (in-flight dedup)
 _poly_profile_inflight_lock = threading.Lock()
-POLY_CACHE_TTL = 1800      # profil cache: 30 dakika (cold-start sonrası hızlı servis)
+POLY_CACHE_TTL = 120       # profil cache: scraper senkronizasyonundan sonra en fazla 2 dk eski
 POLY_LIST_CACHE_TTL = 30   # liste cache: 30 saniye (Hetzner güncellemelerini hızlı yansıt)
 
 _cm_signals_cache = None

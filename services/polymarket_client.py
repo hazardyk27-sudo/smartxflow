@@ -1623,10 +1623,67 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
 
 # ---- Supabase CRUD: tracked_wallets / tracked_wallet_activity / tracked_wallet_positions ----
 
+def _parse_wallet_datetime(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _filter_wallet_rows_since(
+    rows: List[Dict[str, Any]],
+    tracked_since: Optional[str],
+    date_field: str = "traded_at",
+) -> List[Dict[str, Any]]:
+    """Keep only records observed after the wallet entered the watch list.
+
+    `tracked_wallets.created_at` is the durable tracking boundary. Filtering
+    at read time protects profiles and list stats even when an older backfill
+    is still present in the database.
+    """
+    if not tracked_since:
+        return rows
+    boundary = _parse_wallet_datetime(tracked_since)
+    if boundary is None:
+        return rows
+    return [
+        row for row in rows
+        if (row_dt := _parse_wallet_datetime(row.get(date_field))) is not None
+        and row_dt >= boundary
+    ]
+
+
+def _get_wallet_tracking_start(
+    base: str,
+    headers: Dict[str, str],
+    wallet: str,
+) -> Optional[str]:
+    try:
+        response = requests.get(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=headers,
+            params={
+                "select": "created_at",
+                "wallet": f"eq.{wallet.lower()}",
+                "limit": 1,
+            },
+            timeout=10,
+        )
+        if response.status_code != 200:
+            return None
+        rows = response.json()
+        return rows[0].get("created_at") if rows else None
+    except Exception:
+        return None
+
+
 def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, tracked_since: Optional[str] = None) -> Dict[str, Any]:
     """Lightweight per-wallet stats for the tracked-wallets LIST view.
-    Uses ALL data in DB (no date filter) - stats improve as new bets
-    are collected and resolved over time."""
+    Uses only data observed after tracking started."""
     try:
         r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
             "select": "asset,traded_at",
@@ -1662,9 +1719,16 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
     except Exception:
         redeem_rows = []
 
-    resolved = _compute_resolved_stats(position_rows, redeem_rows)
+    activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+    redeem_rows = _filter_wallet_rows_since(redeem_rows, tracked_since)
+    position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
+    resolved = _compute_wallet_activity_stats(activity_rows, position_rows, redeem_rows)
     return {
         "win_rate_pct": resolved["win_rate"],
+        "resolved_won": resolved["resolved_won"],
+        "resolved_lost": resolved["resolved_lost"],
+        "resolved_total": resolved["resolved_total"],
+        "trade_count": resolved["trade_count"],
         "open_position_count": len(resolved["open_positions"]),
     }
 
@@ -1700,18 +1764,22 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         return False
     wallet = wallet.lower()
     headers = _supabase_headers()
+    tracked_since = _get_wallet_tracking_start(base, headers, wallet)
 
     def _fetch_redeems() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params={
-                "select": "condition_id,asset,amount_usdc",
+                "select": "condition_id,asset,amount_usdc,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 5000,
             }, timeout=20)
             if r.status_code != 200:
                 return [], False
             rows = r.json()
-            return (rows, True) if isinstance(rows, list) else ([], False)
+            return (
+                _filter_wallet_rows_since(rows, tracked_since),
+                True,
+            ) if isinstance(rows, list) else ([], False)
         except Exception:
             return [], False
 
@@ -1732,14 +1800,17 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "asset,condition_id,result,amount_usdc,price",
+                "select": "asset,condition_id,result,amount_usdc,price,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 10000,
             }, timeout=20)
             if r.status_code != 200:
                 return [], False
             rows = r.json()
-            return (rows, True) if isinstance(rows, list) else ([], False)
+            return (
+                _filter_wallet_rows_since(rows, tracked_since),
+                True,
+            ) if isinstance(rows, list) else ([], False)
         except Exception:
             return [], False
 
@@ -1756,7 +1827,11 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     if not activity_ok:
         print(f"[WalletStats] activity fetch failed; keeping existing stats for {wallet[:10]}...")
         return False
+    if not redeems_ok:
+        print(f"[WalletStats] redeem fetch failed; keeping existing stats for {wallet[:10]}...")
+        return False
 
+    position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
 
     # Win rate: CLOB-based resolution — same ground truth as profile display.
@@ -1833,40 +1908,26 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         except Exception:
             pass
 
-    # Row-level won/lost counts — matches profile page JS calculation.
-    # Uses asset_to_result to fill in result for rows that were just resolved
-    # this cycle (result was null before CLOB patching above).
-    act_won = 0
-    act_lost = 0
     for row in activity_rows:
-        result = row.get("result")
-        if result is None:
-            asset = row.get("asset")
-            result = asset_to_result.get(asset) if asset else None
-        if result == "won":
-            act_won += 1
-        elif result == "lost":
-            act_lost += 1
-    act_total = len(activity_rows)
-    act_win_rate = round((act_won / (act_won + act_lost)) * 100, 1) if (act_won + act_lost) > 0 else None
+        if row.get("result") not in ("won", "lost") and row.get("asset") in asset_to_result:
+            row["result"] = asset_to_result[row["asset"]]
 
-    trade_count = act_total
-    total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
-    avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
-    weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
-    avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
-    avg_price_decimal = _to_decimal_odds(avg_price) if avg_price else None
+    activity_stats = _compute_wallet_activity_stats(
+        activity_rows,
+        position_rows,
+        redeem_rows,
+    )
 
     stats_payload = {
-        "win_rate": act_win_rate,
-        "resolved_won": act_won,
-        "resolved_lost": act_lost,
-        "resolved_total": act_total,
-        "trade_count": trade_count,
-        "total_invested_usdc": round(total_invested, 2),
-        "avg_bet_size_usdc": avg_bet_size,
-        "avg_price": avg_price,
-        "avg_price_decimal": avg_price_decimal,
+        "win_rate": activity_stats["win_rate"],
+        "resolved_won": activity_stats["resolved_won"],
+        "resolved_lost": activity_stats["resolved_lost"],
+        "resolved_total": activity_stats["resolved_total"],
+        "trade_count": activity_stats["trade_count"],
+        "total_invested_usdc": activity_stats["total_invested_usdc"],
+        "avg_bet_size_usdc": activity_stats["avg_bet_size_usdc"],
+        "avg_price": activity_stats["avg_price"],
+        "avg_price_decimal": activity_stats["avg_price_decimal"],
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
     # A failed positions read must not make a real open-position snapshot look
@@ -2127,6 +2188,87 @@ def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: Li
     }
 
 
+def _compute_wallet_activity_stats(
+    activity_rows: List[Dict[str, Any]],
+    position_rows: List[Dict[str, Any]],
+    redeem_rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Build the profile/list summary from the same filtered ledger.
+
+    Fill count and volume remain fill-level metrics. Resolution metrics are
+    market-level: several fills, or both outcome assets in one condition,
+    cannot create several wins for the same market.
+    """
+    resolved = _compute_resolved_stats(position_rows, redeem_rows)
+    resolved_won_ids = resolved["resolved_won_ids"]
+    resolved_lost_ids = resolved["resolved_lost_ids"]
+    open_assets = {
+        p.get("asset")
+        for p in resolved["open_positions"]
+        if p.get("asset")
+    }
+
+    asset_to_condition: Dict[str, Any] = {}
+    for row in [*activity_rows, *position_rows, *redeem_rows]:
+        asset = row.get("asset")
+        condition_id = row.get("condition_id")
+        if asset and condition_id:
+            asset_to_condition[asset] = condition_id
+
+    def market_key(row: Dict[str, Any]) -> Optional[str]:
+        condition_id = row.get("condition_id")
+        if condition_id:
+            return f"condition:{condition_id}"
+        asset = row.get("asset")
+        if asset:
+            return f"condition:{asset_to_condition.get(asset, asset)}"
+        return None
+
+    result_by_market: Dict[str, set] = {}
+    for row in activity_rows:
+        asset = row.get("asset")
+        if asset in open_assets:
+            continue
+        key = market_key(row)
+        if not key:
+            continue
+        result = row.get("result")
+        condition_id = row.get("condition_id")
+        if result not in ("won", "lost"):
+            if asset and asset in resolved_won_ids or condition_id in resolved_won_ids:
+                result = "won"
+            elif asset and asset in resolved_lost_ids or condition_id in resolved_lost_ids:
+                result = "lost"
+        if result in ("won", "lost"):
+            result_by_market.setdefault(key, set()).add(result)
+
+    resolved_won = sum("won" in results for results in result_by_market.values())
+    resolved_lost = sum(
+        "won" not in results and "lost" in results
+        for results in result_by_market.values()
+    )
+    resolved_total = resolved_won + resolved_lost
+    total_invested = sum(float(row.get("amount_usdc") or 0) for row in activity_rows)
+    trade_count = len(activity_rows)
+    weighted_price_sum = sum(
+        float(row.get("price") or 0) * float(row.get("amount_usdc") or 0)
+        for row in activity_rows
+    )
+    avg_price = weighted_price_sum / total_invested if total_invested else 0.0
+    return {
+        **resolved,
+        "resolved_won": resolved_won,
+        "resolved_lost": resolved_lost,
+        "resolved_total": resolved_total,
+        "win_rate": round((resolved_won / resolved_total) * 100, 1) if resolved_total else None,
+        "trade_count": trade_count,
+        "total_invested_usdc": round(total_invested, 2),
+        "avg_bet_size_usdc": round(total_invested / trade_count, 2) if trade_count else 0.0,
+        "avg_price": round(avg_price, 4),
+        "avg_price_decimal": _to_decimal_odds(avg_price) if avg_price else None,
+    }
+
+
 def _filter_positions_since_tracking(
     position_rows: List[Dict[str, Any]],
     activity_rows: List[Dict[str, Any]],
@@ -2176,14 +2318,29 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         print(f"[WalletProfile] wallet fetch hatasi: {e}")
         return None
 
+    tracked_since = wallet_row.get("created_at")
+
     # 2. Parallel fetch — display data only (activity + positions + redeems)
     def _fetch_activity():
-        # Fast path: Supabase RPC that GROUP BY's on the server side, returning
-        # one aggregated row per (asset, outcome, action) instead of thousands
-        # of raw fill rows.  Falls back to the direct table query if the RPC
-        # isn't deployed yet or returns an error.
+        # The RPC intentionally aggregates the whole wallet and therefore
+        # cannot safely apply the tracking-start boundary. Use raw rows when
+        # the boundary exists; the display builder performs the aggregation
+        # after filtering.
         try:
-            r2 = requests.post(
+            activity_params = {
+                "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                "wallet": f"eq.{wallet}",
+                "order": "traded_at.desc,id.desc",
+                "limit": 10000,
+            }
+            if tracked_since:
+                activity_params["traded_at"] = f"gte.{tracked_since}"
+            r2 = requests.get(
+                f"{base}/rest/v1/tracked_wallet_activity",
+                headers=headers,
+                params=activity_params,
+                timeout=15,
+            ) if tracked_since else requests.post(
                 f"{base}/rest/v1/rpc/get_wallet_activity_summary",
                 headers={**headers, "Content-Type": "application/json"},
                 json={"wallet_addr": wallet},
@@ -2192,7 +2349,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             if r2.status_code == 200:
                 rows = r2.json()
                 if isinstance(rows, list):
-                    return rows
+                    return rows, True
         except Exception:
             pass
         # Fallback: direct table query (slow for large wallets)
@@ -2205,14 +2362,17 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                     "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
                     "order": "traded_at.desc,id.desc",
-                    "limit": 2000,
+                    "limit": 10000,
                 },
                 timeout=15,
             )
-            return r2.json() if r2.status_code == 200 else []
+            if r2.status_code != 200:
+                return [], False
+            rows = r2.json()
+            return _filter_wallet_rows_since(rows, tracked_since), True
         except Exception as e2:
             print(f"[WalletProfile] activity fetch hatasi: {e2}")
-            return []
+            return [], False
 
     def _fetch_positions():
         try:
@@ -2227,10 +2387,13 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 },
                 timeout=15,
             )
-            return r2.json() if r2.status_code == 200 else []
+            if r2.status_code != 200:
+                return [], False
+            rows = r2.json()
+            return rows, True
         except Exception as e2:
             print(f"[WalletProfile] positions fetch hatasi: {e2}")
-            return []
+            return [], False
 
     def _fetch_redeems():
         try:
@@ -2245,27 +2408,36 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 },
                 timeout=15,
             )
-            return r2.json() if r2.status_code == 200 else []
+            if r2.status_code != 200:
+                return [], False
+            rows = r2.json()
+            return _filter_wallet_rows_since(rows, tracked_since), True
         except Exception as e2:
             print(f"[WalletProfile] redeem fetch hatasi: {e2}")
-            return []
+            return [], False
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         f_act = pool.submit(_fetch_activity)
         f_pos = pool.submit(_fetch_positions)
         f_red = pool.submit(_fetch_redeems)
-        activity_rows = f_act.result()
-        position_rows = f_pos.result()
-        redeem_rows = f_red.result()
+        activity_rows, activity_ok = f_act.result()
+        position_rows, positions_ok = f_pos.result()
+        redeem_rows, redeems_ok = f_red.result()
 
     # 3. Badge sets for display (fast pure-Python, no extra DB calls)
+    if activity_ok:
+        activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+    if activity_ok and positions_ok:
+        position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     resolved_won_ids = resolved["resolved_won_ids"]
     resolved_lost_ids = resolved["resolved_lost_ids"]
     open_positions = resolved["open_positions"]
     realized_pnl_total = resolved["realized_pnl_total"]
 
-    # 4. Read pre-computed stats from wallet_row (no heavy recalculation)
+    # 4. Use the same filtered ledger for profile totals whenever all source
+    # snapshots are available. During a transient API failure, keep the
+    # pre-computed values instead of replacing them with zeros.
     trade_count = wallet_row.get("trade_count") or 0
     total_invested = float(wallet_row.get("total_invested_usdc") or 0)
     avg_bet_size = float(wallet_row.get("avg_bet_size_usdc") or 0)
@@ -2277,24 +2449,22 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     resolved_total = wallet_row.get("resolved_total") or 0
     open_exposure = float(wallet_row.get("open_exposure_usdc") or 0)
 
-    # Fallback: stats columns not yet populated (scraper hasn't run after migration)
-    if trade_count == 0 and activity_rows:
-        trade_count = len(activity_rows)
-        total_invested = sum(float(t.get("amount_usdc") or 0) for t in activity_rows)
-        avg_bet_size = round(total_invested / trade_count, 2) if trade_count else 0.0
-        weighted_price_sum = sum(float(t.get("price") or 0) * float(t.get("amount_usdc") or 0) for t in activity_rows)
-        avg_price = round(weighted_price_sum / total_invested, 4) if total_invested > 0 else 0.0
-        avg_price_decimal = _to_decimal_odds(avg_price)
-        # Asset-level win rate — same method as profile page (wonCount/lostCount in JS)
-        _fb_assets = {row.get("asset") for row in activity_rows if row.get("asset")}
-        fb_won = len(_fb_assets & resolved_won_ids)
-        fb_lost = len(_fb_assets & (resolved_lost_ids - resolved_won_ids))
-        fb_total = fb_won + fb_lost
-        win_rate = round((fb_won / fb_total) * 100, 1) if fb_total else None
-        resolved_won = fb_won
-        resolved_lost = fb_lost
-        resolved_total = fb_total
-        open_exposure = resolved["open_exposure"]
+    if activity_ok and positions_ok and redeems_ok:
+        live_stats = _compute_wallet_activity_stats(
+            activity_rows,
+            position_rows,
+            redeem_rows,
+        )
+        trade_count = live_stats["trade_count"]
+        total_invested = live_stats["total_invested_usdc"]
+        avg_bet_size = live_stats["avg_bet_size_usdc"]
+        avg_price = live_stats["avg_price"]
+        avg_price_decimal = live_stats["avg_price_decimal"]
+        win_rate = live_stats["win_rate"]
+        resolved_won = live_stats["resolved_won"]
+        resolved_lost = live_stats["resolved_lost"]
+        resolved_total = live_stats["resolved_total"]
+        open_exposure = live_stats["open_exposure"]
 
     total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
 

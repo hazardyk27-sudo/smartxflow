@@ -17,6 +17,90 @@ class FakeResponse:
 
 
 class TrackedWalletStatsTests(unittest.TestCase):
+    def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
+        activity = [
+            {
+                "asset": "winner",
+                "condition_id": "condition-1",
+                "result": "won",
+                "amount_usdc": 10,
+                "price": 0.5,
+                "traded_at": "2026-09-10T00:00:00+00:00",
+            },
+            {
+                "asset": "winner",
+                "condition_id": "condition-1",
+                "result": "won",
+                "amount_usdc": 20,
+                "price": 0.6,
+                "traded_at": "2026-09-10T00:01:00+00:00",
+            },
+            {
+                "asset": "loser",
+                "condition_id": "condition-2",
+                "result": "lost",
+                "amount_usdc": 5,
+                "price": 0.2,
+                "traded_at": "2026-09-11T00:00:00+00:00",
+            },
+            {
+                "asset": "old",
+                "condition_id": "condition-old",
+                "result": "won",
+                "amount_usdc": 99,
+                "price": 0.9,
+                "traded_at": "2026-09-01T00:00:00+00:00",
+            },
+        ]
+
+        filtered = polymarket_client._filter_wallet_rows_since(
+            activity,
+            "2026-09-10T00:00:00+00:00",
+        )
+        stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
+
+        self.assertEqual(stats["trade_count"], 3)
+        self.assertEqual(stats["total_invested_usdc"], 35)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 1)
+        self.assertEqual(stats["resolved_total"], 2)
+        self.assertEqual(stats["win_rate"], 50.0)
+
+    def test_open_position_is_not_counted_as_resolved_market(self):
+        activity = [
+            {
+                "asset": "open-asset",
+                "condition_id": "open-condition",
+                "result": None,
+                "amount_usdc": 12,
+                "price": 0.4,
+            },
+            {
+                "asset": "won-asset",
+                "condition_id": "won-condition",
+                "result": "won",
+                "amount_usdc": 8,
+                "price": 0.7,
+            },
+        ]
+        positions = [
+            {
+                "asset": "open-asset",
+                "condition_id": "open-condition",
+                "cur_price": 0.4,
+                "current_value": 12,
+                "redeemable": False,
+            },
+        ]
+
+        stats = polymarket_client._compute_wallet_activity_stats(activity, positions, [])
+
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 0)
+        self.assertEqual(len(stats["open_positions"]), 1)
+        self.assertEqual(stats["open_exposure"], 12)
+
     def test_stats_refresh_keeps_activity_when_positions_query_fails(self):
         wallet = "0xwallet"
         activity = [
