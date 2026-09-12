@@ -2007,6 +2007,25 @@ function loadAnalysts(callback) {
 var _trendsRawCache = {};
 var _trendsRawCacheTs = {};
 var _TRENDS_CACHE_TTL = 60000;
+
+function redirectForAuthError(data) {
+    if (!data || !data.error) return false;
+    var next = encodeURIComponent(window.location.pathname + window.location.search);
+    if (data.error === 'LOGIN_REQUIRED') {
+        window.location.replace('/login?next=' + next);
+        return true;
+    }
+    if (data.error === 'EMAIL_NOT_VERIFIED') {
+        window.location.replace('/verify-email');
+        return true;
+    }
+    if (data.error === 'MEMBERSHIP_REQUIRED') {
+        window.location.replace('/membership-required');
+        return true;
+    }
+    return false;
+}
+
 function loadTrends(category) {
     var sidebar = document.getElementById('trendsSidebar');
     var contentArea = document.getElementById('trendsContentArea');
@@ -2030,6 +2049,7 @@ function loadTrends(category) {
             }
             var data = results[1];
             if (data && data.error) {
+                if (redirectForAuthError(data)) return;
                 contentArea.innerHTML = '<div class="trends-placeholder"><div style="color:#f85149;font-size:14px;">' + (data.message || _t('app.j.access_denied','Erişim reddedildi')) + '</div></div>';
                 return;
             }
@@ -2054,6 +2074,7 @@ function loadTrends(category) {
     })
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (redirectForAuthError(data)) return;
             if (data && !data.error) {
                 _trendsRawCache[category] = data;
                 _trendsRawCacheTs[category] = Date.now();

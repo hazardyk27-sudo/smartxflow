@@ -10940,6 +10940,34 @@ function logoutWebLicense() {
     }
 }
 
+async function logoutAccount() {
+    var logoutButton = document.getElementById('logoutBtn');
+    if (logoutButton) {
+        logoutButton.disabled = true;
+        logoutButton.setAttribute('aria-busy', 'true');
+    }
+
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
+    try {
+        await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            signal: controller.signal
+        });
+    } catch (error) {
+        console.warn('[Auth] Logout request failed; clearing local session state:', error);
+    } finally {
+        clearTimeout(timeoutId);
+        localStorage.removeItem(WEB_LICENSE_KEY);
+        localStorage.removeItem(WEB_LICENSE_VALID_KEY);
+        localStorage.removeItem('license_days_remaining');
+        localStorage.removeItem('license_plan');
+        window.location.replace('/login');
+    }
+}
+
 function copyLicenseEmail() {
     const email = 'smartxflow29@gmail.com';
     const emailText = document.getElementById('licenseEmailText');
