@@ -1725,7 +1725,7 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
     Uses only data observed after tracking started."""
     try:
         r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-            "select": "asset,traded_at",
+            "select": "asset,amount_usdc,traded_at",
             "wallet": f"eq.{wallet}",
             "limit": 2000,
         }, timeout=15)
@@ -1850,7 +1850,9 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
                 return [], False
             rows = r.json()
             return (
-                _filter_wallet_rows_since(rows, tracked_since),
+                _filter_tracked_wallet_activity_amount(
+                    _filter_wallet_rows_since(rows, tracked_since)
+                ),
                 True,
             ) if isinstance(rows, list) else ([], False)
         except Exception:
@@ -1873,6 +1875,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         print(f"[WalletStats] redeem fetch failed; keeping existing stats for {wallet[:10]}...")
         return False
 
+    redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
 
@@ -2364,10 +2367,10 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     # 2. Parallel fetch — display data only (activity + positions + redeems)
     def _fetch_activity():
-        # The RPC intentionally aggregates the whole wallet and therefore
-        # cannot safely apply the tracking-start boundary. Use raw rows when
-        # the boundary exists; the display builder performs the aggregation
-        # after filtering.
+        # Always use raw fills here. The tracked-wallet minimum must be applied
+        # before the display builder groups fills by market/outcome; the RPC
+        # summary would make sub-threshold fills indistinguishable from one
+        # qualifying fill after aggregation.
         try:
             activity_params = {
                 "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
@@ -2382,39 +2385,17 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 headers=headers,
                 params=activity_params,
                 timeout=15,
-            ) if tracked_since else requests.post(
-                f"{base}/rest/v1/rpc/get_wallet_activity_summary",
-                headers={**headers, "Content-Type": "application/json"},
-                json={"wallet_addr": wallet},
-                timeout=15,
             )
             if r2.status_code == 200:
                 rows = r2.json()
                 if isinstance(rows, list):
-                    return rows, True
+                    return _filter_tracked_wallet_activity_amount(
+                        _filter_wallet_rows_since(rows, tracked_since)
+                    ), True
         except Exception:
             pass
-        # Fallback: direct table query (slow for large wallets)
-        print(f"[WalletProfile] WARNING: RPC failed, using direct table fallback for {wallet[:10]}...")
-        try:
-            r2 = requests.get(
-                f"{base}/rest/v1/tracked_wallet_activity",
-                headers=headers,
-                params={
-                    "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
-                    "wallet": f"eq.{wallet}",
-                    "order": "traded_at.desc,id.desc",
-                    "limit": 10000,
-                },
-                timeout=15,
-            )
-            if r2.status_code != 200:
-                return [], False
-            rows = r2.json()
-            return _filter_wallet_rows_since(rows, tracked_since), True
-        except Exception as e2:
-            print(f"[WalletProfile] activity fetch hatasi: {e2}")
-            return [], False
+        print(f"[WalletProfile] activity fetch hatasi: {wallet[:10]}...")
+        return [], False
 
     def _fetch_positions():
         try:
@@ -2468,7 +2449,10 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     # 3. Badge sets for display (fast pure-Python, no extra DB calls)
     if activity_ok:
-        activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+        activity_rows = _filter_tracked_wallet_activity_amount(
+            _filter_wallet_rows_since(activity_rows, tracked_since)
+        )
+        redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     if activity_ok and positions_ok:
         position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
