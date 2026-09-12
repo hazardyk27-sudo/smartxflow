@@ -7703,15 +7703,20 @@ _ANALYSES_CACHE_TTL = 60
 def get_analyses():
     """Get analyses list - PRO only (admin bypass with referer check)"""
     import time as _time
+    category = request.args.get('category', None)
     referer = request.headers.get('Referer', '')
     is_admin = request.args.get('admin') == 'true' and '/admin' in referer
     if is_admin:
-        category = request.args.get('category', None)
         data = db.get_analyses(category)
         return jsonify(data)
     if session.get('license_plan') == 'test':
-        category = request.args.get('category', None)
         if category != 'moves':
+            return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
+    elif _legacy_license_session_valid():
+        license_key = (session.get('license_key') or request.headers.get('X-License-Key', '')).strip()
+        cached_license = _validated_licenses.get(license_key) or {}
+        plan = (session.get('license_plan') or cached_license.get('plan') or 'core').lower()
+        if plan != 'pro' and category != 'moves':
             return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
     else:
         user, profile = resolve_account_session()
@@ -7722,11 +7727,9 @@ def get_analyses():
         if not auth_helpers.is_membership_active(profile):
             return jsonify({'error': 'MEMBERSHIP_REQUIRED', 'message': 'Aktif bir uyeliginiz bulunmuyor.'}), 403
         plan = (profile.get('plan') if profile else 'core') or 'core'
-        category = request.args.get('category', None)
-        if plan != 'pro' and category != 'moves':
+        if plan.lower() != 'pro' and category != 'moves':
             return jsonify({'error': 'PRO_REQUIRED', 'message': 'Bu ozellik PRO uyelikte aktif.'}), 403
     
-    category = request.args.get('category', None)
     cache_key = category or 'all'
     now = _time.time()
     if cache_key in _analyses_cache and _analyses_cache[cache_key]['data'] is not None and (now - _analyses_cache[cache_key]['ts']) < _ANALYSES_CACHE_TTL:
