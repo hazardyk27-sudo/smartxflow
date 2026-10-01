@@ -3,29 +3,15 @@ name: Deployment architecture
 description: Hangi servis nerede çalışıyor ve Replit Deployment run komutu
 ---
 
-## Mimari
-| Servis | Sunucu |
-|---|---|
-| Web app (app.py) | Replit Deployment → smartxflow.com (GCP IP: 34.111.179.208) |
-| Scraper Engine + Alarm + Sinyal + Live Scraper | Hetzner VPS (91.99.6.245) — systemd servisleri |
-| Replit workspace workflows | Sadece geliştirme için; Hetzner scraperlar çalışırken workspace workflow'larına gerek yok |
+## Doğrulanan web kurulumları (2026-10-01)
+- Hetzner web servisi: `/opt/smartxflow`, `smartxflow-web.service`, Gunicorn `127.0.0.1:8000`; Nginx'in HTTP/80 bloğu bu porta proxy yapıyor.
+- Ayrı scraper kod ağacı: `/root/smartxflow`; web dağıtımı için bu dizini güncelleme veya servislerini yeniden başlatma.
+- Aynı tarihli Replit deployment metadata'sı da `smartxflow.com` alan adını Replit VM yayınına bağlı gösteriyordu. Public DNS Hetzner sunucusuna çözülmüyor ve alan adı eski JS'i sunuyordu.
+- Replit workspace workflow'ları geliştirme/test içindir; Hetzner web servisine otomatik olarak yansımaz.
 
-## Replit Deployment Run Komutu
-Doğru: `REPL_DEPLOYMENT=1 python app.py` (CLIENT mode, scraper yok)
-Yanlış (eski): `python app.py & bash run_services.sh & wait` (scraper da başlatıyordu → çift scraping)
+**Why:** Aynı ürünün Hetzner'de çalışan web servisi ve alan adına bağlı ayrı bir Replit yayını vardı; birini güncellemek diğerinin public trafiğini güncellemiyor.
 
-**Why:** Hem Hetzner hem Replit Deployment aynı anda scraper çalıştırınca Supabase statement timeout (57014) hatası oluşuyordu. Fix: 2026-06-20.
-
-## Hetzner Proje Yolu
-`/opt/smartxflow` — polymarket_scraper.py burada. `python3` kullan (`python` değil).
-Çalıştırma: `cd /opt/smartxflow && set -a && source .env && set +a && python3 polymarket_scraper.py &`
-
-## Hetzner Systemd Servisleri
-- smartxflow-web.service (gunicorn port 5000)
-- smartxflow-scraper.service
-- smartxflow-alarm.service  
-- smartxflow-live.service
-- nginx (reverse proxy, 80→5000)
+**How to apply:** Web kodu yayınlarken hedefi kullanıcı isteğine göre belirle, önce çalışan servisin dizinini doğrula. Hetzner-only isteğinde `/opt/smartxflow` ve `smartxflow-web.service` ile sınırlı kal; DNS'i değiştirme veya Replit'i yayınlama. Public-site hedefi istenirse, canlı alan adı içeriğini ayrıca doğrula.
 
 ## alarm_engine Bellek Sorunu
 alarm_engine.py Hetzner'de ~1.7GB RAM kullanıyor (Jun19'dan beri çalışıyor). alarm_calculator.py'nin _telegram_sent_cache ve _matches_cache'inde TTL/temizleme mekanizması yok — zamanla büyüyebilir.

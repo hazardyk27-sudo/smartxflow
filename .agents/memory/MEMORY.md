@@ -3,7 +3,7 @@
 - [Main table vs history table odds source](main-table-vs-history-odds.md) — read latest odds from main market tables (upserted, 1 row/match), not history tables (append-only, batch-limit starves stale matches).
 - [History table fetch strategy (superseded)](history-fetch-strategy.md) — old two-phase hash-based approach, replaced 2026-07-03; kept for historical context.
 - [Supabase plan and timeout root cause](supabase-plan.md) — Supabase PRO hesap; timeout (57014) = Phase 2'nin 268 eşzamanlı sorgusu; Phase 2 kaldırıldı 2026-06-20.
-- [Deployment architecture](deployment-architecture.md) — smartxflow.com → Replit Deployment (GCP); scrapers Hetzner'de; deployment run komutu REPL_DEPLOYMENT=1 python app.py olmalı (scraper olmamalı).
+- [Deployment architecture](deployment-architecture.md) — Hetzner web service and Replit's public-domain deployment are separate; verify the requested target before publishing.
 - [Polymarket public API integration](polymarket-api-integration.md) — Gamma/Data API no-auth quirks: 100/page pagination cap, endDate=kickoff, title-suffix filters real matches from futures markets.
 - [Polymarket wallet nicknames](polymarket-wallet-nicknames.md) — user-assigned nicknames for tracked Polymarket wallet addresses (e.g. "Colombia").
 - [Supabase DDL migrations](supabase-ddl-migrations.md) — no exec_sql RPC exists; new columns/tables need a `migrations/*.sql` file the user runs manually in Supabase SQL Editor.
@@ -11,7 +11,7 @@
 - [Polymarket country-code slug mapping](polymarket-country-code-slugs.md) — Polymarket slugs use inconsistent country code variants (che vs swi, nld vs ned); verify against live wallet data, don't rely on ISO standard alone.
 - [Polymarket CLOB market resolution](polymarket-clob-market-resolution.md) — CLOB API (not Gamma) gives wallet-independent won/lost per outcome token; batch-fetch unique conditionIds concurrently, not per-row, or large wallets take 30s+.
 - [Wallet activity result storage](wallet-activity-result.md) — tracked_wallet_activity.result col stores won/lost per asset; scraper writes via compute_and_save_wallet_stats (CLOB-based); profile reads from DB; CLOB only as fallback for null rows.
-- [Hetzner SSH access](hetzner-ssh-access.md) — HETZNER_IP + HETZNER_PASSWORD secrets mevcut; sshpass ile bağlanılır; repo /opt/smartxflow; servis: smartxflow-web.service (web), smartxflow-poly.service (poly); git pull + systemctl restart yapılabilir.
+- [Hetzner SSH access](hetzner-ssh-access.md) — Web repo `/opt/smartxflow` and scraper repo `/root/smartxflow` are separate; verify status and restart only the requested service.
 - [App performance bottlenecks](app-performance.md) — alarm cache miss her 120s'de 1.2-1.7s gecikmeye yol açıyor; fix: _periodic_matches_warmup'a _warmup_alarms() eklendi. Poly profile CLOB batch (40 thread) büyük walletlerde 43-107s alıyor; fix: POLY_CACHE_TTL 300→1800s + in-flight dedup. Gunicorn: workers=1 threads=8 gthread.
 - [Cleanup DELETE timeout + chunked fallback](supabase-cleanup-deletes.md) — large-table single-statement DELETE can 500 on PostgREST timeout; retry+day-chunked fallback fixes it; 3 separate cleanup implementations exist (web app, Hetzner scraper, poly scraper) - keep them in sync.
 - [Supabase email/password auth migration](supabase-email-auth-migration.md) — profile table design, Resend-via-dashboard-SMTP, membership self-edit trigger, auth callback token-in-hash pattern, no exec_sql/DB URL blocker.
