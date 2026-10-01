@@ -1407,13 +1407,18 @@ function renderMatchLoadError(message, reloadPage = false) {
     if (mobileCountEl) mobileCountEl.textContent = '0';
 }
 
-async function loadMatches(appendMode = false) {
-    if (_liveMode) return;
+async function loadMatches(appendMode = false, forceNetwork = false) {
+    if (_liveMode) {
+        console.log('[Matches] blocked: liveMode');
+        return;
+    }
     if (_loadMatchesLock) {
         if (_loadMatchesPending) {
+            console.log('[Matches] blocked: loadLock; coalescing with pending request');
             return _loadMatchesPending;
         }
-        return;
+        console.warn('[Matches] stale loadLock without pending request; resetting');
+        _loadMatchesLock = false;
     }
     
     _loadMatchesLock = true;
@@ -1422,7 +1427,10 @@ async function loadMatches(appendMode = false) {
     const requestSource = currentSource;
     const cacheKey = `${requestMarket}|${dateFilterMode}|${requestSource}`;
     const cached = _matchesMarketCache[cacheKey];
-    if (!appendMode && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
+    if (forceNetwork) {
+        console.log('[Matches] bypassing client cache');
+    }
+    if (!appendMode && !forceNetwork && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
         matches = cached.matches;
         totalMatchCount = cached.total;
         hasMoreMatches = false;
@@ -11391,6 +11399,7 @@ function switchToLive() {
 }
 
 function switchFromLive() {
+    const wasLive = _liveMode;
     _liveMode = false;
     if (_liveInterval) { clearInterval(_liveInterval); _liveInterval = null; }
     _prevLiveScores = {};
@@ -11411,6 +11420,18 @@ function switchFromLive() {
     updateTableHeaders();
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
+    if (wasLive) {
+        console.log('[Matches] Live mode exited; scheduling Prematch reload');
+        // Let the initiating desktop/mobile handler update the selected market first.
+        // forceNetwork bypasses only the client cache; the server-side cache remains intact.
+        setTimeout(() => {
+            if (_liveMode) {
+                console.log('[Matches] Prematch reload skipped: liveMode became active again');
+                return;
+            }
+            loadMatches(false, true);
+        }, 0);
+    }
 }
 
 if (typeof window.setTab === 'function') {

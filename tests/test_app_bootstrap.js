@@ -46,6 +46,104 @@ function extractFunctionDeclaration(source, signature) {
   assert.fail(`${signature} should have a closing brace`);
 }
 
+function createMatchesLoaderHarness(source, options = {}) {
+  const timedFetch = extractFunctionDeclaration(source, 'async function _fetchMatchesWithTimeout(');
+  const loaderStart = source.indexOf('async function loadMatches(');
+  const loaderEnd = source.indexOf('async function loadAllRemainingMatches()', loaderStart);
+  assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, 'match loader should exist');
+  const loader = source.slice(loaderStart, loaderEnd);
+  const switchFromLive = extractFunctionDeclaration(source, 'function switchFromLive()');
+  const state = {
+    fetchUrls: [],
+    timers: [],
+    logs: [],
+    warnings: [],
+    errors: [],
+    clearedIntervals: [],
+    renderedMatches: [],
+    tbody: { innerHTML: '' },
+    cardList: { innerHTML: '' }
+  };
+  const context = vm.createContext({
+    AbortController: class {
+      constructor() { this.signal = {}; }
+      abort() {}
+    },
+    setTimeout(callback, delay) {
+      state.timers.push({ callback, delay });
+      return state.timers.length;
+    },
+    clearTimeout() {},
+    clearInterval(interval) {
+      state.clearedIntervals.push(interval);
+    },
+    fetch: async (url) => {
+      state.fetchUrls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          matches: [{ home_team: 'Home', away_team: 'Away' }],
+          total: 1
+        })
+      };
+    },
+    document: {
+      getElementById(id) {
+        if (id === 'matchesTableBody') return state.tbody;
+        if (id === 'matchCardList') return state.cardList;
+        return null;
+      },
+      querySelector() {
+        return null;
+      }
+    },
+    window: { location: { reload() {} } },
+    console: {
+      log(...args) { state.logs.push(args.map(String).join(' ')); },
+      warn(...args) { state.warnings.push(args.map(String).join(' ')); },
+      error(...args) { state.errors.push(args.map(String).join(' ')); }
+    },
+    performance: { now: () => 1 },
+    currentMarket: 'moneyway_1x2',
+    currentSource: 'betfair',
+    dateFilterMode: 'ALL',
+    _liveMode: options.liveMode ?? false,
+    _liveInterval: options.liveMode ? 7 : null,
+    _prevLiveScores: { old: true },
+    _loadMatchesLock: options.loadLock ?? false,
+    _loadMatchesPending: options.loadPending ?? null,
+    _matchesMarketCache: options.matchesCache ?? {},
+    _MATCHES_CACHE_TTL: 90000,
+    matches: [{ home_team: 'Old', away_team: 'Match' }],
+    filteredMatches: [],
+    totalMatchCount: 0,
+    hasMoreMatches: false,
+    currentOffset: 0,
+    oddsTrendCache: {},
+    _finishedScores: {},
+    applySorting(items) { return items; },
+    updateTableHeaders() {},
+    attachTrendTooltipListeners() {},
+    renderMatches(items) {
+      state.renderedMatches = items;
+      state.tbody.innerHTML = items.length ? '<tr class="match-row"></tr>' : '<tr class="empty-state"></tr>';
+      state.cardList.innerHTML = items.length ? 'match-row' : 'empty-state';
+    },
+    renderMatchLoadError(message, reloadPage = false) {
+      state.errors.push({ message, reloadPage });
+    }
+  });
+
+  vm.runInContext(
+    `${switchFromLive}\n${timedFetch}\n${loader}\n` +
+      'window.__testSwitchFromLive = switchFromLive;\n' +
+      'window.__testLoadMatches = loadMatches;',
+    context
+  );
+  return { context, state };
+}
+
 function createLicenseBridgeContext(fetch) {
   let resolveLicenseReady;
   const licenseReady = new Promise((resolve) => {
@@ -339,6 +437,52 @@ test(`match loading reaches a visible terminal state for every response (${bundl
     }
   }
 });
+}
+
+for (const [bundleName, source] of appBundles) {
+  test(`leaving Live schedules a fresh Prematch request (${bundleName})`, async () => {
+    const cacheKey = 'moneyway_1x2|ALL|betfair';
+    const { context, state } = createMatchesLoaderHarness(source, {
+      liveMode: true,
+      matchesCache: {
+        [cacheKey]: {
+          matches: [{ home_team: 'Cached', away_team: 'Match' }],
+          total: 1,
+          ts: Date.now()
+        }
+      }
+    });
+
+    context.window.__testSwitchFromLive();
+    assert.equal(context._liveMode, false, 'switching away from Live should clear live mode');
+    assert.deepEqual(state.clearedIntervals, [7], 'the Live refresh interval should stop');
+
+    const transitionTimer = state.timers.find((timer) => timer.delay === 0);
+    assert.ok(transitionTimer, 'Prematch reload should be queued after the current click handler');
+    transitionTimer.callback();
+    await context._loadMatchesPending;
+
+    assert.deepEqual(
+      state.fetchUrls,
+      ['/api/matches?market=moneyway_1x2&date_filter=today_future&bulk=1'],
+      'leaving Live should fetch Prematch even when the client cache is still warm'
+    );
+    assert.match(state.logs.join('\n'), /bypassing client cache/);
+    assert.equal(context._loadMatchesLock, false, 'the request should release its lock');
+  });
+
+  test(`match-load guards are observable and stale locks recover (${bundleName})`, async () => {
+    const liveHarness = createMatchesLoaderHarness(source, { liveMode: true });
+    await liveHarness.context.window.__testLoadMatches();
+    assert.equal(liveHarness.state.fetchUrls.length, 0, 'Live mode should not request Prematch data');
+    assert.match(liveHarness.state.logs.join('\n'), /blocked: liveMode/);
+
+    const staleLockHarness = createMatchesLoaderHarness(source, { loadLock: true });
+    await staleLockHarness.context.window.__testLoadMatches();
+    assert.equal(staleLockHarness.state.fetchUrls.length, 1, 'a lock without a pending request should recover');
+    assert.match(staleLockHarness.state.warnings.join('\n'), /stale loadLock without pending request/);
+    assert.equal(staleLockHarness.context._loadMatchesLock, false);
+  });
 }
 
 for (const [bundleName, source] of appBundles) {
