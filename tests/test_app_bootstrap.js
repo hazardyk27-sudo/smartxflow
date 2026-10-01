@@ -8,6 +8,8 @@ const appJsPath = path.join(__dirname, '..', 'static', 'js', 'app.js');
 const appJs = fs.readFileSync(appJsPath, 'utf8');
 const appJsSrcPath = path.join(__dirname, '..', 'static', 'js', 'app.js.src');
 const appJsSrc = fs.readFileSync(appJsSrcPath, 'utf8');
+const loginTemplatePath = path.join(__dirname, '..', 'templates', 'login.html');
+const loginTemplate = fs.readFileSync(loginTemplatePath, 'utf8');
 const appBundles = [
   ['runtime bundle', appJs],
   ['source bundle', appJsSrc]
@@ -157,6 +159,7 @@ function createLicenseBridgeContext(fetch) {
   });
   const state = {
     stored: {},
+    fetchUrls: [],
     licenseReady: false,
     legacyInitCalls: 0,
     matchLoads: 0,
@@ -173,7 +176,10 @@ function createLicenseBridgeContext(fetch) {
     },
     setTimeout: () => 1,
     clearTimeout() {},
-    fetch,
+    fetch(...args) {
+      state.fetchUrls.push(args[0]);
+      return fetch(...args);
+    },
     localStorage: {
       setItem(key, value) {
         state.stored[key] = String(value);
@@ -246,6 +252,60 @@ function createLicenseBridgeContext(fetch) {
   });
   return { context, state };
 }
+
+test('license-key login stores canonical dashboard keys and response metadata', () => {
+  const stored = { license_plan: 'stale', license_days_remaining: '0', smartxflow_web_license_valid: 'true' };
+  const context = vm.createContext({
+    localStorage: {
+      setItem(key, value) { stored[key] = String(value); },
+      getItem(key) { return stored[key] ?? null; },
+      removeItem(key) { delete stored[key]; }
+    }
+  });
+  const persistLoginState = vm.runInContext(
+    extractFunctionDeclaration(loginTemplate, 'function storeValidatedLicenseState(') +
+      '\nstoreValidatedLicenseState;',
+    context
+  );
+  const response = {
+    expires_at: '2031-04-05T06:07:08.000Z',
+    plan: 'pro',
+    days_left: 37
+  };
+
+  persistLoginState('SXF-TEST-KEY', response);
+
+  assert.equal(stored.smartxflow_web_license, 'SXF-TEST-KEY');
+  assert.equal(stored.smartxflow_license_valid_until, response.expires_at);
+  assert.equal(stored.smartxflow_web_license_valid, undefined);
+  assert.equal(stored.license_plan, 'pro');
+  assert.equal(stored.license_days_remaining, '37');
+});
+
+test('license-key login uses a short ISO expiry fallback when expires_at is absent', () => {
+  const stored = { license_plan: 'stale', license_days_remaining: '99' };
+  const context = vm.createContext({
+    localStorage: {
+      setItem(key, value) { stored[key] = String(value); },
+      getItem(key) { return stored[key] ?? null; },
+      removeItem(key) { delete stored[key]; }
+    }
+  });
+  const persistLoginState = vm.runInContext(
+    extractFunctionDeclaration(loginTemplate, 'function storeValidatedLicenseState(') +
+      '\nstoreValidatedLicenseState;',
+    context
+  );
+  const before = Date.now();
+
+  persistLoginState('SXF-TEST-KEY', { valid: true });
+
+  const expiresAt = Date.parse(stored.smartxflow_license_valid_until);
+  assert.ok(Number.isFinite(expiresAt), 'fallback expiry should be a valid ISO timestamp');
+  assert.ok(expiresAt > before && expiresAt <= before + 15 * 60 * 1000 + 1000);
+  assert.equal(stored.license_plan, undefined, 'missing plan must not leave stale plan metadata');
+  assert.equal(stored.license_days_remaining, undefined, 'missing days must not leave stale expiry metadata');
+});
 
 for (const [bundleName, source] of appBundles) {
   test(`match loading starts without awaiting optional favorites (${bundleName})`, async () => {

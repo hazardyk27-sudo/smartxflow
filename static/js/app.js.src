@@ -10739,6 +10739,8 @@ async function deleteMimAlarms() {
 // ============================================
 const WEB_LICENSE_KEY = 'smartxflow_web_license';
 const WEB_LICENSE_VALID_KEY = 'smartxflow_license_valid_until';
+const LEGACY_WEB_LICENSE_VALID_KEY = 'smartxflow_web_license_valid';
+const LEGACY_WEB_LICENSE_MIGRATION_MS = 15 * 60 * 1000;
 
 window._testFreeHashes = [];
 window._testFreeTeams = [];
@@ -10751,7 +10753,14 @@ function checkWebLicense() {
         return true;
     }
     const savedKey = localStorage.getItem(WEB_LICENSE_KEY);
-    const validUntil = localStorage.getItem(WEB_LICENSE_VALID_KEY);
+    let validUntil = localStorage.getItem(WEB_LICENSE_VALID_KEY);
+
+    if (savedKey && !validUntil &&
+        localStorage.getItem(LEGACY_WEB_LICENSE_VALID_KEY) === 'true') {
+        validUntil = new Date(Date.now() + LEGACY_WEB_LICENSE_MIGRATION_MS).toISOString();
+        localStorage.setItem(WEB_LICENSE_VALID_KEY, validUntil);
+        localStorage.removeItem(LEGACY_WEB_LICENSE_VALID_KEY);
+    }
     
     if (savedKey && validUntil) {
         const validDate = new Date(validUntil);

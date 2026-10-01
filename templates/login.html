@@ -170,6 +170,30 @@ function getLicenseDeviceId() {
   return deviceId;
 }
 
+function storeValidatedLicenseState(key, data) {
+  const now = Date.now();
+  const expiryMs = data.expires_at ? Date.parse(data.expires_at) : NaN;
+  const validUntil = Number.isFinite(expiryMs)
+    ? new Date(expiryMs)
+    : new Date(now + 15 * 60 * 1000);
+
+  localStorage.setItem('smartxflow_web_license', key);
+  localStorage.setItem('smartxflow_license_valid_until', validUntil.toISOString());
+  localStorage.removeItem('smartxflow_web_license_valid');
+
+  const plan = typeof data.plan === 'string' ? data.plan.trim() : '';
+  if (plan) localStorage.setItem('license_plan', plan);
+  else localStorage.removeItem('license_plan');
+
+  const daysLeft = Number(data.days_left);
+  if (data.days_left !== undefined && data.days_left !== null &&
+      data.days_left !== '' && Number.isFinite(daysLeft)) {
+    localStorage.setItem('license_days_remaining', String(daysLeft));
+  } else {
+    localStorage.removeItem('license_days_remaining');
+  }
+}
+
 licenseLoginToggle.addEventListener('click', () => {
   const isOpen = !licenseLoginForm.hidden;
   licenseLoginForm.hidden = isOpen;
@@ -210,8 +234,7 @@ licenseLoginForm.addEventListener('submit', async (e) => {
       licenseSubmitBtn.querySelector('.sxf-license-btn-label').textContent = 'Continue with license key';
       return;
     }
-    localStorage.setItem('smartxflow_web_license', key);
-    localStorage.setItem('smartxflow_web_license_valid', 'true');
+    storeValidatedLicenseState(key, data);
     window.location.href = nextPath || '/app';
   } catch (err) {
     errBox.textContent = 'Connection error. Please try again.';
