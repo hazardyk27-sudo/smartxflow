@@ -221,3 +221,87 @@ test('match loading error controls retry or reload on desktop and mobile', () =>
   elements.matchCardList.button.handler();
   assert.equal(reloads, 2);
 });
+
+test('authenticated Supabase accounts unlock the dashboard without a legacy license key', async () => {
+  const helperStart = appJs.indexOf('async function _fetchAccountSessionStatus()');
+  const helperEnd = appJs.indexOf('function logoutWebLicense()', helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'account-session license bridge should exist');
+
+  const stored = {};
+  let licenseReady = false;
+  let legacyInitCalls = 0;
+  let requestedUrl = '';
+  const context = {
+    AbortController: class {
+      constructor() { this.signal = {}; }
+      abort() {}
+    },
+    setTimeout: () => 1,
+    clearTimeout() {},
+    fetch: async (url, options) => {
+      requestedUrl = url;
+      assert.equal(options.credentials, 'same-origin');
+      assert.equal(options.cache, 'no-store');
+      return { ok: true, json: async () => ({ status: 'ok', plan: 'pro' }) };
+    },
+    localStorage: {
+      setItem(key, value) { stored[key] = String(value); },
+      getItem(key) { return stored[key] || null; }
+    },
+    window: { location: { replace() {} } },
+    document: { getElementById: () => null },
+    _isLicensed: false,
+    _isPro: false,
+    _licenseReadyResolve() { licenseReady = true; },
+    checkWebLicense: () => false,
+    initLicenseCheck() { legacyInitCalls += 1; },
+    updateLicenseDaysBadge() {},
+    _loadTestFreeHashes() {},
+    _addTestLockIcons() {},
+    _addMobileMktLockIcons() {}
+  };
+
+  const initLicenseCheck = vm.runInNewContext(
+    appJs.slice(helperStart, helperEnd) + '\ninitLicenseCheck;',
+    context
+  );
+  await initLicenseCheck();
+
+  assert.equal(requestedUrl, '/api/auth/session-status');
+  assert.equal(context._isLicensed, true);
+  assert.equal(context.window.userPlan, 'pro');
+  assert.equal(context._isPro, true);
+  assert.equal(stored.license_plan, 'pro');
+  assert.equal(licenseReady, true);
+  assert.equal(legacyInitCalls, 0, 'valid account sessions should not fall through to the key-based gate');
+});
+
+test('legacy license gate remains available when no authenticated account session exists', async () => {
+  const helperStart = appJs.indexOf('async function _fetchAccountSessionStatus()');
+  const helperEnd = appJs.indexOf('function logoutWebLicense()', helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'account-session license bridge should exist');
+
+  let legacyInitCalls = 0;
+  const context = {
+    AbortController: class {
+      constructor() { this.signal = {}; }
+      abort() {}
+    },
+    setTimeout: () => 1,
+    clearTimeout() {},
+    fetch: async () => ({ ok: true, json: async () => ({ status: 'login_required' }) }),
+    localStorage: { setItem() {}, getItem: () => null },
+    window: { location: { replace() {} } },
+    document: { getElementById: () => null },
+    _licenseReadyResolve() {},
+    checkWebLicense: () => false,
+    initLicenseCheck() { legacyInitCalls += 1; }
+  };
+
+  const initLicenseCheck = vm.runInNewContext(
+    appJs.slice(helperStart, helperEnd) + '\ninitLicenseCheck;',
+    context
+  );
+  await initLicenseCheck();
+  assert.equal(legacyInitCalls, 1, 'unauthenticated legacy visitors should retain the existing license gate');
+});
