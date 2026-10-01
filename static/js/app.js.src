@@ -551,6 +551,11 @@ let hasMoreMatches = false;
 // Request locking to prevent duplicate API calls
 let _loadMatchesLock = false;
 let _loadMatchesPending = null;
+let _loadMatchesPendingSince = 0;
+let _loadMatchesRequestId = 0;
+let _loadMatchesRequestKey = null;
+let _loadMatchesQueued = null;
+const _LOAD_MATCHES_PENDING_STALE_MS = 45000;
 
 // Auto-refresh system (10 dakika interval)
 let _lastMatchRefreshTime = null;
@@ -1151,17 +1156,42 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', async () => {
     const allBtn = document.getElementById('allBtn');
     if (allBtn) allBtn.classList.add('active');
-    
-    setupTabs();
-    setupSearch();
-    setupModalChartTabs();
+
+    const runOptionalStartupTask = (name, task) => {
+        try {
+            const result = task();
+            if (result && typeof result.catch === 'function') {
+                result.catch(error => console.warn('[Startup] Optional task failed:', name, error));
+            }
+        } catch (error) {
+            console.warn('[Startup] Optional task failed:', name, error);
+        }
+    };
+
+    runOptionalStartupTask('tab setup', setupTabs);
+    runOptionalStartupTask('search setup', setupSearch);
+    runOptionalStartupTask('chart tab setup', setupModalChartTabs);
     
     await _licenseReady;
     if (!_isLicensed) return;
+
+    // Start the required Prematch request before any optional startup work.
+    try {
+        const initialMatchLoad = loadMatches();
+        if (initialMatchLoad && typeof initialMatchLoad.catch === 'function') {
+            initialMatchLoad.catch(error => {
+                console.error('[Matches] Initial load failed before completion:', error);
+                if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');
+            });
+        }
+    } catch (error) {
+        console.error('[Matches] Initial load could not be started:', error);
+        if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');
+    }
     
-    fetchAnalysisMatchHashes();
-    loadFinishedScores();
-    Promise.all([loadUserFavorites(), loadFavoriteCounts()])
+    runOptionalStartupTask('analysis match hashes', fetchAnalysisMatchHashes);
+    runOptionalStartupTask('finished scores', loadFinishedScores);
+    runOptionalStartupTask('favorites', () => Promise.all([loadUserFavorites(), loadFavoriteCounts()])
         .then(() => {
             document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el) {
                 const matchKey = el.getAttribute('data-matchkey');
@@ -1169,20 +1199,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             if (_favFilterActive) _applyFavoritesFilter();
         })
-        .catch(error => console.warn('[Fav] Startup favorites failed:', error));
-    loadMatches();
-    _startBackgroundLiveFetch();
-    checkStatus();
-    window.statusInterval = window.setInterval(checkStatus, 60000);
+        .catch(error => console.warn('[Fav] Startup favorites failed:', error)));
+    runOptionalStartupTask('background live data', _startBackgroundLiveFetch);
+    runOptionalStartupTask('status check', checkStatus);
+    runOptionalStartupTask('status interval', () => {
+        window.statusInterval = window.setInterval(checkStatus, 60000);
+    });
     
-    if (window.loadChartLibs) window.loadChartLibs().then(() => registerChartPlugins()).catch(() => {});
+    runOptionalStartupTask('chart libraries', () => {
+        if (window.loadChartLibs) return window.loadChartLibs().then(() => registerChartPlugins());
+    });
     
     // Dropping preload deferred — loaded on tab switch
     
-    setupAutoRefresh();
-    _startBackgroundLiveFetch();
+    runOptionalStartupTask('auto refresh', setupAutoRefresh);
     
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    runOptionalStartupTask('visibility handler', () => {
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+    });
 });
 
 // Son güncelleme zamanını header'da göster
@@ -1393,13 +1427,13 @@ function renderMatchLoadError(message, reloadPage = false) {
         const colspan = currentMarket.includes('1x2') ? 8 : 7;
         tbody.innerHTML = '<tr class="loading-row"><td colspan="' + colspan + '">' + errorMarkup + '</td></tr>';
         const button = tbody.querySelector('.match-load-retry');
-        if (button) button.addEventListener('click', () => reloadPage ? window.location.reload() : loadMatches());
+        if (button) button.addEventListener('click', () => reloadPage ? window.location.reload() : loadMatches(false, true));
     }
     const cardList = document.getElementById('matchCardList');
     if (cardList) {
         cardList.innerHTML = '<div class="match-card" style="justify-content:center;padding:24px 20px">' + errorMarkup + '</div>';
         const button = cardList.querySelector('.match-load-retry');
-        if (button) button.addEventListener('click', () => reloadPage ? window.location.reload() : loadMatches());
+        if (button) button.addEventListener('click', () => reloadPage ? window.location.reload() : loadMatches(false, true));
     }
     const countEl = document.getElementById('matchCount');
     const mobileCountEl = document.getElementById('mobileMatchCount');
@@ -1412,20 +1446,53 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
         console.log('[Matches] blocked: liveMode');
         return;
     }
+
+    const requestMarket = currentMarket;
+    const requestSource = currentSource;
+    const requestDateFilter = dateFilterMode;
+    const cacheKey = `${requestMarket}|${requestDateFilter}|${requestSource}`;
+    const queueFollowupLoad = (queuedAppendMode, queuedForceNetwork) => {
+        const previous = _loadMatchesQueued;
+        _loadMatchesQueued = {
+            appendMode: !!queuedAppendMode && (!previous || previous.appendMode),
+            forceNetwork: !!queuedForceNetwork || !!(previous && previous.forceNetwork)
+        };
+    };
+
+    if (!_loadMatchesLock && _loadMatchesPending) {
+        console.warn('[Matches] stale pending promise without load lock; discarding');
+        _loadMatchesRequestId += 1;
+        _loadMatchesPending = null;
+        _loadMatchesPendingSince = 0;
+        _loadMatchesRequestKey = null;
+    }
     if (_loadMatchesLock) {
-        if (_loadMatchesPending) {
-            console.log('[Matches] blocked: loadLock; coalescing with pending request');
+        const pendingAge = _loadMatchesPendingSince
+            ? Date.now() - _loadMatchesPendingSince
+            : Number.POSITIVE_INFINITY;
+        if (!_loadMatchesPending || pendingAge > _LOAD_MATCHES_PENDING_STALE_MS) {
+            console.warn('[Matches] stale load lock/pending state; resetting', {
+                hasPending: !!_loadMatchesPending,
+                ageMs: pendingAge
+            });
+            _loadMatchesRequestId += 1;
+            _loadMatchesLock = false;
+            _loadMatchesPending = null;
+            _loadMatchesPendingSince = 0;
+            _loadMatchesRequestKey = null;
+            _loadMatchesQueued = null;
+        } else {
+            if (forceNetwork || cacheKey !== _loadMatchesRequestKey) {
+                queueFollowupLoad(false, forceNetwork);
+                console.log('[Matches] queued follow-up load behind pending request:', cacheKey);
+            } else {
+                console.log('[Matches] blocked: loadLock; coalescing with pending request');
+            }
             return _loadMatchesPending;
         }
-        console.warn('[Matches] stale loadLock without pending request; resetting');
-        _loadMatchesLock = false;
     }
     
     _loadMatchesLock = true;
-    
-    const requestMarket = currentMarket;
-    const requestSource = currentSource;
-    const cacheKey = `${requestMarket}|${dateFilterMode}|${requestSource}`;
     const cached = _matchesMarketCache[cacheKey];
     if (forceNetwork) {
         console.log('[Matches] bypassing client cache');
@@ -1442,6 +1509,8 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             attachTrendTooltipListeners();
         }
         _loadMatchesLock = false;
+        _loadMatchesPendingSince = 0;
+        _loadMatchesRequestKey = null;
         console.log('[Matches] Cache HIT:', cacheKey);
         return;
     }
@@ -1475,6 +1544,17 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
     }
     
     updateTableHeaders();
+
+    const requestId = ++_loadMatchesRequestId;
+    _loadMatchesPendingSince = Date.now();
+    _loadMatchesRequestKey = cacheKey;
+    const requestIsCurrent = () => (
+        requestId === _loadMatchesRequestId &&
+        !_liveMode &&
+        currentMarket === requestMarket &&
+        currentSource === requestSource &&
+        dateFilterMode === requestDateFilter
+    );
     
     _loadMatchesPending = (async () => {
         try {
@@ -1518,8 +1598,16 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                     throw fetchErr;
                 }
             }
+            if (requestId !== _loadMatchesRequestId) {
+                console.log('[Matches] Ignoring response from stale request:', requestId);
+                return;
+            }
             const response = matchPayload.response;
             if (response.status === 403) {
+                if (!requestIsCurrent()) {
+                    if (!_liveMode) queueFollowupLoad(false, forceNetwork);
+                    return;
+                }
                 console.warn('[Matches] 403 License error');
                 renderMatchLoadError('Lisans doğrulanamadı. Yeniden giriş yapmayı deneyin.', true);
                 return;
@@ -1538,11 +1626,18 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             const elapsed = Math.round(performance.now() - startTime);
             console.log(`[Matches] Loaded ${responseMatches.length} matches in ${elapsed}ms`);
             
-            // Race condition check: if market changed during fetch, discard results and reload
-            if (currentMarket !== requestMarket) {
-                console.log(`[Matches] Race condition detected: request was for ${requestMarket} but current market is ${currentMarket}. Triggering fresh load.`);
-                // Schedule fresh load after lock is released (in finally block)
-                setTimeout(() => loadMatches(), 0);
+            // Discard data captured for an old market/source/date or before entering Live.
+            if (!requestIsCurrent()) {
+                console.log('[Matches] Discarding response after Prematch state changed:', {
+                    requestMarket,
+                    currentMarket,
+                    requestSource,
+                    currentSource,
+                    requestDateFilter,
+                    currentDateFilter: dateFilterMode,
+                    liveMode: _liveMode
+                });
+                if (!_liveMode) queueFollowupLoad(false, forceNetwork);
                 return;
             }
             
@@ -1566,13 +1661,34 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                 attachTrendTooltipListeners();
             }
         } catch (error) {
+            if (requestId !== _loadMatchesRequestId) {
+                console.log('[Matches] Ignoring failure from stale request:', requestId);
+                return;
+            }
+            if (!requestIsCurrent()) {
+                console.log('[Matches] Suppressing error from outdated Prematch request');
+                if (!_liveMode) queueFollowupLoad(false, forceNetwork);
+                return;
+            }
             console.error('Error loading matches:', error);
             matches = [];
             filteredMatches = [];
             renderMatchLoadError('Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
         } finally {
-            _loadMatchesLock = false;
-            _loadMatchesPending = null;
+            if (requestId === _loadMatchesRequestId) {
+                _loadMatchesLock = false;
+                _loadMatchesPending = null;
+                _loadMatchesPendingSince = 0;
+                _loadMatchesRequestKey = null;
+                const queuedLoad = _loadMatchesQueued;
+                _loadMatchesQueued = null;
+                if (queuedLoad && !_liveMode) {
+                    console.log('[Matches] Starting queued Prematch request');
+                    setTimeout(() => {
+                        if (!_liveMode) loadMatches(queuedLoad.appendMode, queuedLoad.forceNetwork);
+                    }, 0);
+                }
+            }
         }
     })();
     
@@ -10823,14 +10939,23 @@ async function activateTestMode() {
 
 async function _loadTestFreeHashes() {
     if (window.userPlan !== 'test') return;
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function() { controller.abort(); }, 5000);
     try {
-        var res = await fetch('/api/test/free-matches');
+        var res = await fetch('/api/test/free-matches', {
+            cache: 'no-store',
+            signal: controller.signal
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         var data = await res.json();
         window._testFreeHashes = data.hashes || [];
         window._testFreeTeams = data.teams || [];
     } catch(e) {
         window._testFreeHashes = [];
         window._testFreeTeams = [];
+        console.warn('[TestMode] Free-match lookup failed; continuing without optional data:', e);
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 
@@ -11021,8 +11146,8 @@ async function initLicenseCheck() {
 
     if (window.userPlan === 'test') {
         _isLicensed = true;
-        await _loadTestFreeHashes();
         _licenseReadyResolve();
+        _loadTestFreeHashes();
         updateLicenseDaysBadge(-1);
         var daysBadge = document.getElementById('licenseDaysBadge');
         if (daysBadge) {
@@ -11116,7 +11241,19 @@ function copyLicenseEmail() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    initLicenseCheck();
+    Promise.resolve().then(function() {
+        return initLicenseCheck();
+    }).catch(function(error) {
+        console.error('[License] Initialization failed:', error);
+        _licenseReadyResolve();
+        if (!_isLicensed) {
+            if (typeof renderMatchLoadError === 'function') {
+                renderMatchLoadError('Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.', true);
+            } else {
+                showLicenseGate();
+            }
+        }
+    });
 });
 
 document.getElementById('licenseKeyInput')?.addEventListener('keypress', function(e) {

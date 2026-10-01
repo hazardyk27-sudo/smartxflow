@@ -77,16 +77,17 @@ function createMatchesLoaderHarness(source, options = {}) {
     clearInterval(interval) {
       state.clearedIntervals.push(interval);
     },
-    fetch: async (url) => {
+    fetch: (url, requestOptions) => {
       state.fetchUrls.push(url);
-      return {
+      if (options.fetch) return options.fetch(url, requestOptions, state);
+      return Promise.resolve({
         ok: true,
         status: 200,
         json: async () => ({
           matches: [{ home_team: 'Home', away_team: 'Away' }],
           total: 1
         })
-      };
+      });
     },
     document: {
       getElementById(id) {
@@ -113,6 +114,11 @@ function createMatchesLoaderHarness(source, options = {}) {
     _prevLiveScores: { old: true },
     _loadMatchesLock: options.loadLock ?? false,
     _loadMatchesPending: options.loadPending ?? null,
+    _loadMatchesPendingSince: options.pendingSince ?? 0,
+    _loadMatchesRequestId: 0,
+    _loadMatchesRequestKey: options.requestKey ?? null,
+    _loadMatchesQueued: null,
+    _LOAD_MATCHES_PENDING_STALE_MS: 45000,
     _matchesMarketCache: options.matchesCache ?? {},
     _MATCHES_CACHE_TTL: 90000,
     matches: [{ home_team: 'Old', away_team: 'Match' }],
