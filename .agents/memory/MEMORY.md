@@ -3,7 +3,7 @@
 - [Main table vs history table odds source](main-table-vs-history-odds.md) — read latest odds from main market tables (upserted, 1 row/match), not history tables (append-only, batch-limit starves stale matches).
 - [History table fetch strategy (superseded)](history-fetch-strategy.md) — old two-phase hash-based approach, replaced 2026-07-03; kept for historical context.
 - [Supabase plan and timeout root cause](supabase-plan.md) — Supabase PRO hesap; timeout (57014) = Phase 2'nin 268 eşzamanlı sorgusu; Phase 2 kaldırıldı 2026-06-20.
-- [Deployment architecture](deployment-architecture.md) — Hetzner web service and Replit's public-domain deployment are separate; verify the requested target before publishing.
+- [Deployment architecture](deployment-architecture.md) — Hetzner is canonical; use one frozen RELEASE_ID snapshot for Preview-approved Hetzner and Replit releases.
 - [Polymarket public API integration](polymarket-api-integration.md) — Gamma/Data API no-auth quirks: 100/page pagination cap, endDate=kickoff, title-suffix filters real matches from futures markets.
 - [Polymarket wallet nicknames](polymarket-wallet-nicknames.md) — user-assigned nicknames for tracked Polymarket wallet addresses (e.g. "Colombia").
 - [Supabase DDL migrations](supabase-ddl-migrations.md) — no exec_sql RPC exists; new columns/tables need a `migrations/*.sql` file the user runs manually in Supabase SQL Editor.
