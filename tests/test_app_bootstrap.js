@@ -255,7 +255,7 @@ for (const [bundleName, source] of appBundles) {
 
     assert.ok(bootstrap.includes('await _licenseReady'), 'license gating should remain');
     assert.ok(favoritesStart >= 0, 'favorite requests should still start');
-    assert.ok(matchesStart > favoritesStart, 'matches should start after favorites have been launched');
+    assert.ok(matchesStart >= 0 && matchesStart < favoritesStart, 'Prematch loading should start before optional favorites');
     assert.doesNotMatch(
       bootstrap,
       /await\s+Promise\.all\(\[loadUserFavorites\(\),\s*loadFavoriteCounts\(\)\]\)/,
@@ -400,6 +400,11 @@ test(`match loading reaches a visible terminal state for every response (${bundl
       _liveMode: false,
       _loadMatchesLock: false,
       _loadMatchesPending: null,
+      _loadMatchesPendingSince: 0,
+      _loadMatchesRequestId: 0,
+      _loadMatchesRequestKey: null,
+      _loadMatchesQueued: null,
+      _LOAD_MATCHES_PENDING_STALE_MS: 45000,
       _matchesMarketCache: {},
       _MATCHES_CACHE_TTL: 90000,
       matches: [],
@@ -486,7 +491,7 @@ for (const [bundleName, source] of appBundles) {
     const staleLockHarness = createMatchesLoaderHarness(source, { loadLock: true });
     await staleLockHarness.context.window.__testLoadMatches();
     assert.equal(staleLockHarness.state.fetchUrls.length, 1, 'a lock without a pending request should recover');
-    assert.match(staleLockHarness.state.warnings.join('\n'), /stale loadLock without pending request/);
+    assert.match(staleLockHarness.state.warnings.join('\n'), /stale load lock\/pending state; resetting/);
     assert.equal(staleLockHarness.context._loadMatchesLock, false);
   });
 }
@@ -540,37 +545,31 @@ test(`match response body is covered by the fetch timeout (${bundleName})`, asyn
 });
 }
 
-test('test-mode free-match lookup does not block dashboard readiness', () => {
-  const helperStart = appJs.indexOf('async function _loadTestFreeHashes()');
-  const helperEnd = appJs.indexOf('function _isTestFreeAlarm(', helperStart);
-  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'test-mode lookup helper should exist');
+for (const [bundleName, source] of appBundles) {
+  test(`test-mode account readiness does not wait for optional free-match data (${bundleName})`, async () => {
+    const { context, state } = createLicenseBridgeContext(async () => ({
+      ok: true,
+      json: async () => ({ status: 'ok', test_mode: true })
+    }));
+    let freeMatchLookupStarted = false;
+    context._loadTestFreeHashes = () => {
+      freeMatchLookupStarted = true;
+      return new Promise(() => {});
+    };
 
-  let licenseReady = false;
-  const context = {
-    window: { userPlan: 'test' },
-    AbortController: class {
-      constructor() {
-        this.signal = { aborted: false };
-      }
-      abort() {
-        this.signal.aborted = true;
-      }
-    },
-    setTimeout: () => 1,
-    clearTimeout() {},
-    _licenseReadyResolve() {
-      licenseReady = true;
-    },
-    fetch: () => new Promise(() => {})
-  };
-  const loadTestFreeHashes = vm.runInNewContext(
-    appJs.slice(helperStart, helperEnd) + '\n_loadTestFreeHashes;',
-    context
-  );
+    const initLicenseCheck = vm.runInContext(extractAccountLicenseCheck(source), context);
+    const initResult = await Promise.race([
+      initLicenseCheck().then(() => 'resolved'),
+      new Promise((resolve) => setTimeout(() => resolve('timed out'), 50))
+    ]);
 
-  loadTestFreeHashes();
-  assert.equal(licenseReady, true, 'license readiness should resolve before optional network data');
-});
+    assert.equal(initResult, 'resolved', 'license initialization must not await optional test data');
+    assert.equal(state.licenseReady, true);
+    assert.equal(context._isLicensed, true);
+    assert.equal(context.window.userPlan, 'test');
+    assert.equal(freeMatchLookupStarted, true);
+  });
+}
 
 for (const [bundleName, source] of appBundles) {
 test(`match loading error controls retry or reload on desktop and mobile (${bundleName})`, () => {
@@ -698,7 +697,8 @@ test('legacy license gate remains available when no authenticated account sessio
   const helperEnd = appJs.indexOf('function logoutWebLicense()', helperStart);
   assert.ok(helperStart >= 0 && helperEnd > helperStart, 'account-session license bridge should exist');
 
-  let legacyInitCalls = 0;
+  let licenseReady = false;
+  let licenseGateCalls = 0;
   const context = {
     AbortController: class {
       constructor() { this.signal = {}; }
@@ -709,10 +709,15 @@ test('legacy license gate remains available when no authenticated account sessio
     fetch: async () => ({ ok: true, json: async () => ({ status: 'login_required' }) }),
     localStorage: { setItem() {}, getItem: () => null },
     window: { location: { replace() {} } },
-    document: { getElementById: () => null },
-    _licenseReadyResolve() {},
+    document: {
+      getElementById(id) {
+        assert.equal(id, 'logoutBtn');
+        return null;
+      }
+    },
+    _licenseReadyResolve() { licenseReady = true; },
     checkWebLicense: () => false,
-    initLicenseCheck() { legacyInitCalls += 1; }
+    showLicenseGate() { licenseGateCalls += 1; }
   };
 
   const initLicenseCheck = vm.runInNewContext(
@@ -720,7 +725,8 @@ test('legacy license gate remains available when no authenticated account sessio
     context
   );
   await initLicenseCheck();
-  assert.equal(legacyInitCalls, 1, 'unauthenticated legacy visitors should retain the existing license gate');
+  assert.equal(licenseGateCalls, 1, 'unauthenticated legacy visitors should retain the existing license gate');
+  assert.equal(licenseReady, true, 'the gate path should resolve dashboard readiness');
 });
 
 for (const [bundleName, source] of appBundles) {
