@@ -1161,7 +1161,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     fetchAnalysisMatchHashes();
     loadFinishedScores();
-    await Promise.all([loadUserFavorites(), loadFavoriteCounts()]);
+    Promise.all([loadUserFavorites(), loadFavoriteCounts()])
+        .then(() => {
+            document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el) {
+                const matchKey = el.getAttribute('data-matchkey');
+                el.classList.toggle('fav-active', _userFavorites.has(matchKey));
+            });
+            if (_favFilterActive) _applyFavoritesFilter();
+        })
+        .catch(error => console.warn('[Fav] Startup favorites failed:', error));
     loadMatches();
     _startBackgroundLiveFetch();
     checkStatus();
@@ -10934,6 +10942,24 @@ async function initLicenseCheck() {
             _isLicensed = false;
             _licenseReadyResolve();
             window.location.replace(accountStatus.status === 'email_unverified' ? '/verify-email' : '/membership-required');
+            return;
+        }
+
+        if (accountStatus && accountStatus.status === 'session_expired') {
+            _isLicensed = false;
+            _licenseReadyResolve();
+            window.location.replace('/login?next=/app');
+            return;
+        }
+
+        if (!accountStatus || accountStatus.status !== 'login_required') {
+            _isLicensed = false;
+            _licenseReadyResolve();
+            if (typeof renderMatchLoadError === 'function') {
+                renderMatchLoadError('Hesap oturumu doğrulanamadı. Sayfayı yenileyip tekrar deneyin.', true);
+            } else {
+                showLicenseGate();
+            }
             return;
         }
 

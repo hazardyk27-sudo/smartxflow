@@ -1399,9 +1399,12 @@ def account_page():
 def api_auth_session_status():
     if session.get('license_plan') == 'test':
         return jsonify({'status': 'ok', 'test_mode': True})
+    had_account_session = bool(session.get('sb_access_token'))
     user, profile = resolve_account_session()
     if user is None:
-        return jsonify({'status': 'login_required'})
+        return jsonify({
+            'status': 'session_expired' if had_account_session else 'login_required'
+        })
     if not user.get('email_confirmed'):
         return jsonify({'status': 'email_unverified', 'email': user.get('email')})
     if not auth_helpers.is_membership_active(profile):

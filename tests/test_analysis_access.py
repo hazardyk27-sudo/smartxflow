@@ -84,5 +84,73 @@ class AnalysisAccessTests(unittest.TestCase):
         self.assertEqual(response.get_json()['error'], 'PRO_REQUIRED')
 
 
+class AccountSessionStatusTests(unittest.TestCase):
+    def setUp(self):
+        smartx_app.app.config.update(TESTING=True, SECRET_KEY='account-session-status-test')
+        self.client = smartx_app.app.test_client()
+
+    def test_invalid_account_cookie_is_reported_as_expired_session(self):
+        with self.client.session_transaction() as session:
+            session['sb_access_token'] = 'expired-access-token'
+
+        with patch.object(smartx_app, 'resolve_account_session', return_value=(None, None)):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {'status': 'session_expired'})
+
+    def test_no_account_cookie_preserves_legacy_login_fallback(self):
+        response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {'status': 'login_required'})
+
+    def test_test_mode_session_status_remains_ok(self):
+        with self.client.session_transaction() as session:
+            session['license_plan'] = 'test'
+
+        response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {'status': 'ok', 'test_mode': True})
+
+    def test_active_account_session_status_includes_plan(self):
+        user = {'id': 'user-1', 'email': 'member@example.com', 'email_confirmed': True}
+        profile = {'plan': 'pro', 'subscription_expires_at': '2030-01-01T00:00:00Z'}
+
+        with patch.object(smartx_app, 'resolve_account_session', return_value=(user, profile)), \
+                patch.object(smartx_app.auth_helpers, 'is_membership_active', return_value=True):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()['status'], 'ok')
+        self.assertEqual(response.get_json()['plan'], 'pro')
+        self.assertEqual(response.get_json()['subscription_expires_at'], profile['subscription_expires_at'])
+
+    def test_unverified_account_session_status_is_preserved(self):
+        user = {'id': 'user-1', 'email': 'member@example.com', 'email_confirmed': False}
+
+        with patch.object(smartx_app, 'resolve_account_session', return_value=(user, None)):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.get_json(), {
+            'status': 'email_unverified',
+            'email': 'member@example.com'
+        })
+
+    def test_inactive_membership_status_is_preserved(self):
+        user = {'id': 'user-1', 'email': 'member@example.com', 'email_confirmed': True}
+        profile = {'plan': 'core', 'subscription_status': 'expired'}
+
+        with patch.object(smartx_app, 'resolve_account_session', return_value=(user, profile)), \
+                patch.object(smartx_app.auth_helpers, 'is_membership_active', return_value=False):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.get_json(), {
+            'status': 'membership_required',
+            'email': 'member@example.com'
+        })
+
+
 if __name__ == '__main__':
     unittest.main()
