@@ -89,6 +89,52 @@ class AccountSessionStatusTests(unittest.TestCase):
         smartx_app.app.config.update(TESTING=True, SECRET_KEY='account-session-status-test')
         self.client = smartx_app.app.test_client()
 
+    def test_valid_legacy_license_session_status_is_ok_without_exposing_key(self):
+        license_key = 'SXF-LEGACY-STATUS-TEST'
+        with self.client.session_transaction() as session:
+            session['license_key'] = license_key
+            session['license_plan'] = 'pro'
+            session['license_days_remaining'] = 37
+
+        with patch.object(smartx_app, '_legacy_license_session_valid', return_value=True), \
+                patch.dict(smartx_app._validated_licenses, {
+                    license_key: {'plan': 'pro', 'expires': None, 'days_left': 37}
+                }):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload, {
+            'status': 'ok',
+            'legacy_license': True,
+            'plan': 'pro',
+            'days_left': 37,
+        })
+        self.assertNotIn(license_key, response.get_data(as_text=True))
+
+    def test_invalid_legacy_license_session_remains_login_required(self):
+        with self.client.session_transaction() as session:
+            session['license_key'] = 'SXF-INVALID-STATUS-TEST'
+
+        with patch.object(smartx_app, '_legacy_license_session_valid', return_value=False):
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {'status': 'login_required'})
+
+    def test_expired_account_session_does_not_fall_back_to_valid_legacy_license(self):
+        with self.client.session_transaction() as session:
+            session['sb_access_token'] = 'expired-access-token'
+            session['license_key'] = 'SXF-LEGACY-STATUS-TEST'
+
+        with patch.object(smartx_app, 'resolve_account_session', return_value=(None, None)), \
+                patch.object(smartx_app, '_legacy_license_session_valid', return_value=True) as legacy_valid:
+            response = self.client.get('/api/auth/session-status')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {'status': 'session_expired'})
+        legacy_valid.assert_not_called()
+
     def test_invalid_account_cookie_is_reported_as_expired_session(self):
         with self.client.session_transaction() as session:
             session['sb_access_token'] = 'expired-access-token'

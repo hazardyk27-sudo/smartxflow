@@ -917,6 +917,34 @@ for (const [bundleName, source] of appBundles) {
     assert.equal(state.stored.license_days_remaining, undefined);
   });
 
+  test(`valid legacy session status starts Prematch loading (${bundleName})`, async () => {
+    const { context, state } = createLicenseBridgeContext(async (url, options) => {
+      assert.equal(url, '/api/auth/session-status');
+      assert.equal(options.credentials, 'same-origin');
+      assert.equal(options.cache, 'no-store');
+      return {
+        ok: true,
+        json: async () => ({
+          status: 'ok',
+          legacy_license: true,
+          plan: 'pro',
+          days_left: 37
+        })
+      };
+    });
+
+    vm.runInContext(extractDashboardBootstrap(source), context);
+    const initLicenseCheck = vm.runInContext(extractAccountLicenseCheck(source), context);
+    await initLicenseCheck();
+    await state.domReadyHandler();
+
+    assert.equal(context._isLicensed, true);
+    assert.equal(context.window.userPlan, 'pro');
+    assert.equal(state.licenseReady, true);
+    assert.equal(state.matchLoads, 1, 'a valid legacy session must start the Prematch request');
+    assert.deepEqual(state.fetchUrls, ['/api/auth/session-status']);
+  });
+
   test(`expired account session returns to login (${bundleName})`, async () => {
     const { context, state } = createLicenseBridgeContext(async () => ({
       ok: true,
