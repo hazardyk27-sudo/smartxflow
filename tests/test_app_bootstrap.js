@@ -28,6 +28,24 @@ function extractAccountLicenseCheck(source) {
   return source.slice(start, end) + '\ninitLicenseCheck;';
 }
 
+function extractFunctionDeclaration(source, signature) {
+  const start = source.indexOf(signature);
+  assert.ok(start >= 0, `${signature} should exist`);
+  const bodyStart = source.indexOf('{', start);
+  assert.ok(bodyStart > start, `${signature} should have a body`);
+
+  let depth = 0;
+  for (let index = bodyStart; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    if (source[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, index + 1);
+    }
+  }
+
+  assert.fail(`${signature} should have a closing brace`);
+}
+
 function createLicenseBridgeContext(fetch) {
   let resolveLicenseReady;
   const licenseReady = new Promise((resolve) => {
@@ -181,19 +199,151 @@ for (const [bundleName, source] of appBundles) {
   });
 }
 
-test('match API failures render an actionable error instead of a spinner', () => {
-  assert.match(appJs, /if\(response\.status===403\)\{[^}]*renderMatchLoadError\(/);
-  assert.match(appJs, /if\(!response\.ok\)\{throw new Error\(/);
-  assert.match(appJs, /catch\(error\)\{console\.error\('Error loading matches:',error\);matches=\[\];filteredMatches=\[\];renderMatchLoadError\(/);
-  assert.match(appJs, /function renderMatchLoadError\(message,reloadPage=false\)/);
-  assert.match(appJs, /class="match-load-retry"/);
+for (const [bundleName, source] of appBundles) {
+test(`match loading reaches a visible terminal state for every response (${bundleName})`, async () => {
+  const timedFetch = extractFunctionDeclaration(source, 'async function _fetchMatchesWithTimeout(');
+  const payloadHelperStart = source.indexOf('function _getMatchArrayFromPayload(');
+  const payloadHelper = payloadHelperStart >= 0
+    ? extractFunctionDeclaration(source, 'function _getMatchArrayFromPayload(')
+    : '';
+  const loaderStart = source.indexOf('async function loadMatches(');
+  const loaderEnd = source.indexOf('async function loadAllRemainingMatches()', loaderStart);
+  assert.ok(loaderStart >= 0 && loaderEnd > loaderStart, 'match loader should exist');
+  const loader = source.slice(loaderStart, loaderEnd);
+
+  const scenarios = [
+    {
+      name: 'matches',
+      fetch: async () => ({ ok: true, status: 200, json: async () => ({ matches: [{ id: 'm1' }], total: 1 }) }),
+      expected: 'match-row'
+    },
+    {
+      name: 'empty response',
+      fetch: async () => ({ ok: true, status: 200, json: async () => ({ matches: [], total: 0 }) }),
+      expected: 'empty-state'
+    },
+    {
+      name: '403 authorization response',
+      fetch: async () => ({ ok: false, status: 403, json: async () => ({}) }),
+      expected: 'role="alert"',
+      reload: true
+    },
+    {
+      name: 'HTTP failure',
+      fetch: async () => ({ ok: false, status: 503, json: async () => ({}) }),
+      expected: 'role="alert"'
+    },
+    {
+      name: 'timed-out request after retry',
+      fetch: async () => {
+        const error = new Error('request timed out');
+        error.name = 'AbortError';
+        throw error;
+      },
+      expected: 'role="alert"',
+      fetchCalls: 2
+    },
+    {
+      name: 'invalid JSON',
+      fetch: async () => ({
+        ok: true,
+        status: 200,
+        json: async () => { throw new SyntaxError('invalid JSON'); }
+      }),
+      expected: 'role="alert"'
+    },
+    {
+      name: 'malformed payload shape',
+      fetch: async () => ({ ok: true, status: 200, json: async () => ({ matches: 'not-an-array' }) }),
+      expected: 'role="alert"'
+    }
+  ];
+
+  for (const scenario of scenarios) {
+    const state = {
+      errors: [],
+      fetchCalls: 0,
+      tbody: { innerHTML: '' },
+      cardList: { innerHTML: '' }
+    };
+    const context = vm.createContext({
+      AbortController: class {
+        constructor() { this.signal = {}; }
+        abort() {}
+      },
+      setTimeout(callback, delay) {
+        if (delay === 1500) queueMicrotask(callback);
+        return 1;
+      },
+      clearTimeout() {},
+      fetch: async (...args) => {
+        state.fetchCalls += 1;
+        return scenario.fetch(...args);
+      },
+      document: {
+        getElementById(id) {
+          if (id === 'matchesTableBody') return state.tbody;
+          if (id === 'matchCardList') return state.cardList;
+          return null;
+        }
+      },
+      window: { location: { reload() {} } },
+      console: { log() {}, warn() {}, error() {} },
+      performance: { now: () => 1 },
+      currentMarket: 'moneyway_1x2',
+      currentSource: 'betfair',
+      dateFilterMode: 'ALL',
+      _liveMode: false,
+      _loadMatchesLock: false,
+      _loadMatchesPending: null,
+      _matchesMarketCache: {},
+      _MATCHES_CACHE_TTL: 90000,
+      matches: [],
+      filteredMatches: [],
+      totalMatchCount: 0,
+      hasMoreMatches: false,
+      currentOffset: 0,
+      oddsTrendCache: {},
+      _finishedScores: {},
+      applySorting: (items) => items,
+      updateTableHeaders() {},
+      attachTrendTooltipListeners() {},
+      renderMatches(items) {
+        const stateName = items.length ? 'match-row' : 'empty-state';
+        state.tbody.innerHTML = `<tr class="${stateName}">${items.length || 'No matches found'}</tr>`;
+        state.cardList.innerHTML = stateName;
+      },
+      renderMatchLoadError(message, reloadPage = false) {
+        state.errors.push({ message, reloadPage });
+        state.tbody.innerHTML = `<tr role="alert">${message}</tr>`;
+        state.cardList.innerHTML = `<div role="alert">${message}</div>`;
+      }
+    });
+
+    const helperCode = `${timedFetch}\n${payloadHelper}\n${loader}\nloadMatches;`;
+    const loadMatches = vm.runInContext(helperCode, context);
+    await loadMatches();
+
+    assert.match(state.tbody.innerHTML, new RegExp(scenario.expected), scenario.name);
+    assert.doesNotMatch(state.tbody.innerHTML, /loading-spinner/, `${scenario.name} must not leave a spinner`);
+    if (scenario.reload) {
+      assert.equal(state.errors[0]?.reloadPage, true, '403 should offer a page reload');
+    } else if (scenario.expected === 'role="alert"') {
+      assert.equal(state.errors.length, 1, `${scenario.name} should show an error`);
+      assert.equal(state.errors[0].reloadPage, false, `${scenario.name} should offer retry`);
+    } else {
+      assert.equal(state.errors.length, 0, `${scenario.name} should not be treated as an error`);
+    }
+    if (scenario.fetchCalls) {
+      assert.equal(state.fetchCalls, scenario.fetchCalls, 'timed-out requests should use one retry');
+    }
+  }
 });
+}
 
-test('match response body is covered by the fetch timeout', async () => {
-  const helperStart = appJs.indexOf('async function _fetchMatchesWithTimeout(');
-  const helperEnd = appJs.indexOf('let _matchesMarketCache=', helperStart);
-  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'timed fetch helper should exist');
-
+for (const [bundleName, source] of appBundles) {
+test(`match response body is covered by the fetch timeout (${bundleName})`, async () => {
+  const helperSource = extractFunctionDeclaration(source, 'async function _fetchMatchesWithTimeout(');
   class TestAbortController {
     constructor() {
       this.signal = { aborted: false, onabort: null };
@@ -232,12 +382,13 @@ test('match response body is covered by the fetch timeout', async () => {
     })
   };
   const fetchMatches = vm.runInNewContext(
-    appJs.slice(helperStart, helperEnd) + '\n_fetchMatchesWithTimeout;',
+    helperSource + '\n_fetchMatchesWithTimeout;',
     context
   );
 
   await assert.rejects(fetchMatches('/api/matches', 5), { name: 'AbortError' });
 });
+}
 
 test('test-mode free-match lookup does not block dashboard readiness', () => {
   const helperStart = appJs.indexOf('async function _loadTestFreeHashes()');
@@ -271,11 +422,9 @@ test('test-mode free-match lookup does not block dashboard readiness', () => {
   assert.equal(licenseReady, true, 'license readiness should resolve before optional network data');
 });
 
-test('match loading error controls retry or reload on desktop and mobile', () => {
-  const helperStart = appJs.indexOf('function renderMatchLoadError(');
-  const helperEnd = appJs.length;
-  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'error renderer should be defined');
-  const helperSource = appJs.slice(helperStart, helperEnd);
+for (const [bundleName, source] of appBundles) {
+test(`match loading error controls retry or reload on desktop and mobile (${bundleName})`, () => {
+  const helperSource = extractFunctionDeclaration(source, 'function renderMatchLoadError(');
 
   function createContainer() {
     const button = {
@@ -335,6 +484,7 @@ test('match loading error controls retry or reload on desktop and mobile', () =>
   elements.matchCardList.button.handler();
   assert.equal(reloads, 2);
 });
+}
 
 test('authenticated Supabase accounts unlock the dashboard without a legacy license key', async () => {
   const helperStart = appJs.indexOf('async function _fetchAccountSessionStatus()');
