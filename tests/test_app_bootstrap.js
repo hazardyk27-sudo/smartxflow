@@ -208,6 +208,8 @@ function createLicenseBridgeContext(fetch) {
     },
     WEB_LICENSE_KEY: 'smartxflow_web_license',
     WEB_LICENSE_VALID_KEY: 'smartxflow_license_valid_until',
+    LEGACY_WEB_LICENSE_VALID_KEY: 'smartxflow_web_license_valid',
+    LEGACY_WEB_LICENSE_MIGRATION_MS: 15 * 60 * 1000,
     _isLicensed: false,
     _isPro: false,
     _licenseReady: licenseReady,
@@ -254,6 +256,11 @@ function createLicenseBridgeContext(fetch) {
 }
 
 test('license-key login stores canonical dashboard keys and response metadata', () => {
+  assert.match(
+    loginTemplate,
+    /storeValidatedLicenseState\(key,\s*data\);/,
+    'successful license validation should persist state through the canonical helper'
+  );
   const stored = { license_plan: 'stale', license_days_remaining: '0', smartxflow_web_license_valid: 'true' };
   const context = vm.createContext({
     localStorage: {
@@ -306,6 +313,84 @@ test('license-key login uses a short ISO expiry fallback when expires_at is abse
   assert.equal(stored.license_plan, undefined, 'missing plan must not leave stale plan metadata');
   assert.equal(stored.license_days_remaining, undefined, 'missing days must not leave stale expiry metadata');
 });
+
+for (const [bundleName, source] of appBundles) {
+  test(`legacy license localStorage state migrates to the dashboard key (${bundleName})`, () => {
+    const { context, state } = createLicenseBridgeContext(async () => {
+      throw new Error('migration must not make an API request');
+    });
+    state.stored.smartxflow_web_license = 'SXF-LEGACY-KEY';
+    state.stored.smartxflow_web_license_valid = 'true';
+
+    const checkWebLicense = vm.runInContext(
+      extractFunctionDeclaration(source, 'function checkWebLicense()') + '\ncheckWebLicense;',
+      context
+    );
+    const before = Date.now();
+    assert.equal(checkWebLicense(), true);
+
+    const migratedExpiry = Date.parse(state.stored.smartxflow_license_valid_until);
+    assert.ok(Number.isFinite(migratedExpiry), 'migration should write a valid canonical expiry');
+    assert.ok(migratedExpiry > before && migratedExpiry <= before + 15 * 60 * 1000 + 1000);
+    assert.equal(state.stored.smartxflow_web_license_valid, undefined);
+    assert.equal(context.window.userLicenseKey, 'SXF-LEGACY-KEY');
+    assert.deepEqual(state.fetchUrls, [], 'migration compatibility must not bypass server API authorization');
+
+    const noKey = createLicenseBridgeContext(async () => {
+      throw new Error('a legacy marker without its license key must not migrate');
+    });
+    noKey.state.stored.smartxflow_web_license_valid = 'true';
+    const noKeyCheck = vm.runInContext(
+      extractFunctionDeclaration(source, 'function checkWebLicense()') + '\ncheckWebLicense;',
+      noKey.context
+    );
+    assert.equal(noKeyCheck(), false);
+    assert.equal(noKey.state.stored.smartxflow_license_valid_until, undefined);
+  });
+
+  test(`license-key login reaches the Prematch bootstrap (${bundleName})`, async () => {
+    const { context, state } = createLicenseBridgeContext(async (url) => {
+      if (url === '/api/auth/session-status') {
+        throw new Error('a valid legacy license must not fall into account-session gating');
+      }
+      assert.equal(url, '/api/licenses/validate');
+      return {
+        ok: true,
+        json: async () => ({ valid: true, plan: 'pro', days_left: 37 })
+      };
+    });
+    const persistLoginState = vm.runInContext(
+      extractFunctionDeclaration(loginTemplate, 'function storeValidatedLicenseState(') +
+        '\nstoreValidatedLicenseState;',
+      context
+    );
+    persistLoginState('SXF-LOGIN-KEY', {
+      expires_at: '2031-04-05T06:07:08.000Z',
+      plan: 'pro',
+      days_left: 37
+    });
+    context.getWebDeviceId = () => 'device-test';
+    context.navigator = { userAgent: 'bootstrap regression test' };
+    context.startLicenseStatusRefresh = () => {};
+
+    const initLicenseCheck = vm.runInContext(
+      extractFunctionDeclaration(source, 'function checkWebLicense()') +
+        '\n' + extractAccountLicenseCheck(source),
+      context
+    );
+    vm.runInContext(extractDashboardBootstrap(source), context);
+
+    await initLicenseCheck();
+    await state.domReadyHandler();
+
+    assert.equal(context._isLicensed, true);
+    assert.equal(state.stored.smartxflow_license_valid_until, '2031-04-05T06:07:08.000Z');
+    assert.equal(state.stored.license_plan, 'pro');
+    assert.equal(state.stored.license_days_remaining, '37');
+    assert.equal(state.matchLoads, 1, 'verified license login should start the Prematch load');
+    assert.deepEqual(state.fetchUrls, ['/api/licenses/validate']);
+  });
+}
 
 for (const [bundleName, source] of appBundles) {
   test(`match loading starts without awaiting optional favorites (${bundleName})`, async () => {
