@@ -75,6 +75,88 @@ test('match API failures render an actionable error instead of a spinner', () =>
   assert.match(appJs, /class="match-load-retry"/);
 });
 
+test('match response body is covered by the fetch timeout', async () => {
+  const helperStart = appJs.indexOf('async function _fetchMatchesWithTimeout(');
+  const helperEnd = appJs.indexOf('let _matchesMarketCache=', helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'timed fetch helper should exist');
+
+  class TestAbortController {
+    constructor() {
+      this.signal = { aborted: false, onabort: null };
+    }
+
+    abort() {
+      this.signal.aborted = true;
+      if (this.signal.onabort) this.signal.onabort();
+    }
+  }
+
+  const context = {
+    AbortController: TestAbortController,
+    setTimeout(callback) {
+      callback();
+      return 1;
+    },
+    clearTimeout() {},
+    fetch: async (_url, { signal }) => ({
+      ok: true,
+      status: 200,
+      json: () => {
+        if (signal.aborted) {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          return Promise.reject(error);
+        }
+        return new Promise((resolve, reject) => {
+          signal.onabort = () => {
+            const error = new Error('aborted');
+            error.name = 'AbortError';
+            reject(error);
+          };
+        });
+      }
+    })
+  };
+  const fetchMatches = vm.runInNewContext(
+    appJs.slice(helperStart, helperEnd) + '\n_fetchMatchesWithTimeout;',
+    context
+  );
+
+  await assert.rejects(fetchMatches('/api/matches', 5), { name: 'AbortError' });
+});
+
+test('test-mode free-match lookup does not block dashboard readiness', () => {
+  const helperStart = appJs.indexOf('async function _loadTestFreeHashes()');
+  const helperEnd = appJs.indexOf('function _isTestFreeAlarm(', helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, 'test-mode lookup helper should exist');
+
+  let licenseReady = false;
+  const context = {
+    window: { userPlan: 'test' },
+    AbortController: class {
+      constructor() {
+        this.signal = { aborted: false };
+      }
+      abort() {
+        this.signal.aborted = true;
+      }
+    },
+    setTimeout: () => 1,
+    clearTimeout() {},
+    _licenseReadyResolve() {
+      licenseReady = true;
+    },
+    fetch: () => new Promise(() => {})
+  };
+  const loadTestFreeHashes = vm.runInNewContext(
+    appJs.slice(helperStart, helperEnd) + '\n_loadTestFreeHashes;',
+    context
+  );
+
+  loadTestFreeHashes();
+  assert.equal(licenseReady, true, 'license readiness should resolve before optional network data');
+});
+
 test('match loading error controls retry or reload on desktop and mobile', () => {
   const helperStart = appJs.indexOf('function renderMatchLoadError(');
   const helperEnd = appJs.length;
