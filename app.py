@@ -1402,6 +1402,69 @@ def api_auth_session_status():
     had_account_session = bool(session.get('sb_access_token'))
     user, profile = resolve_account_session()
     if user is None:
+        if not had_account_session and _legacy_license_session_valid():
+            license_key = (
+                session.get('license_key')
+                or request.headers.get('X-License-Key', '')
+            ).strip()
+            cached_license = _validated_licenses.get(license_key) or {}
+            plan = cached_license.get('plan') or session.get('license_plan') or 'core'
+            if (
+                not isinstance(plan, str)
+                or not plan.strip()
+                or len(plan.strip()) > 32
+                or not all(
+                    char.isascii() and (char.isalnum() or char in '_-')
+                    for char in plan.strip()
+                )
+            ):
+                plan = 'core'
+            else:
+                plan = plan.strip().lower()
+
+            legacy_status = {
+                'status': 'ok',
+                'legacy_license': True,
+                'plan': plan,
+            }
+            expires_value = (
+                cached_license.get('expires')
+                if 'expires' in cached_license
+                else session.get('license_expires')
+            )
+            try:
+                expires = (
+                    expires_value
+                    if isinstance(expires_value, datetime)
+                    else _parse_expires_naive(expires_value)
+                )
+            except (TypeError, ValueError):
+                expires = None
+
+            if isinstance(expires, datetime):
+                expires_utc = (
+                    expires.replace(tzinfo=timezone.utc)
+                    if expires.tzinfo is None
+                    else expires.astimezone(timezone.utc)
+                )
+                legacy_status['subscription_expires_at'] = (
+                    expires_utc.isoformat().replace('+00:00', 'Z')
+                )
+                legacy_status['days_left'] = max(
+                    0, (expires_utc - datetime.now(timezone.utc)).days
+                )
+            else:
+                days_left = cached_license.get(
+                    'days_left', session.get('license_days_remaining', 9999)
+                )
+                try:
+                    days_left = int(days_left)
+                except (TypeError, ValueError, OverflowError):
+                    days_left = 9999
+                legacy_status['days_left'] = max(0, days_left)
+
+            return jsonify(legacy_status)
+
         return jsonify({
             'status': 'session_expired' if had_account_session else 'login_required'
         })
