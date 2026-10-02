@@ -295,15 +295,15 @@
     word-break: break-word;
     line-height: 1.4;
   }
-  /* İşlem Geçmişi: Maç, Market, Seçim, İşlem, Sonuç, Tutar, Oran, Tarih (8 columns) */
+  /* İşlem Geçmişi: tek canonical bahis lifecycle satırı (8 columns) */
   .wallet-activity-table th:nth-child(1), .wallet-activity-table td:nth-child(1) { width: 15%; }
-  .wallet-activity-table th:nth-child(2), .wallet-activity-table td:nth-child(2) { width: 15%; }
-  .wallet-activity-table th:nth-child(3), .wallet-activity-table td:nth-child(3) { width: 18%; }
-  .wallet-activity-table th:nth-child(4), .wallet-activity-table td:nth-child(4) { width: 9%; }
-  .wallet-activity-table th:nth-child(5), .wallet-activity-table td:nth-child(5) { width: 10%; }
-  .wallet-activity-table th:nth-child(6), .wallet-activity-table td:nth-child(6) { width: 13%; }
-  .wallet-activity-table th:nth-child(7), .wallet-activity-table td:nth-child(7) { width: 7%; }
-  .wallet-activity-table th:nth-child(8), .wallet-activity-table td:nth-child(8) { width: 13%; }
+  .wallet-activity-table th:nth-child(2), .wallet-activity-table td:nth-child(2) { width: 14%; }
+  .wallet-activity-table th:nth-child(3), .wallet-activity-table td:nth-child(3) { width: 17%; }
+  .wallet-activity-table th:nth-child(4), .wallet-activity-table td:nth-child(4) { width: 10%; }
+  .wallet-activity-table th:nth-child(5), .wallet-activity-table td:nth-child(5) { width: 15%; }
+  .wallet-activity-table th:nth-child(6), .wallet-activity-table td:nth-child(6) { width: 9%; }
+  .wallet-activity-table th:nth-child(7), .wallet-activity-table td:nth-child(7) { width: 9%; }
+  .wallet-activity-table th:nth-child(8), .wallet-activity-table td:nth-child(8) { width: 11%; }
   /* Açık Pozisyonlar: Maç, Market, Seçim, Ort/Güncel Oran, Değer, K/Z (7 columns) */
   .wallet-positions-table th:nth-child(1), .wallet-positions-table td:nth-child(1) { width: 16%; }
   .wallet-positions-table th:nth-child(2), .wallet-positions-table td:nth-child(2) { width: 18%; }
@@ -336,6 +336,7 @@
   .result-badge.won { background: #14351f; color: #4ade80; }
   .result-badge.lost { background: #3a1a1a; color: #ff8080; }
   .result-badge.open { background: #16233d; color: #7ea6ff; }
+  .result-badge.closed { background: #302a16; color: #facc15; }
   .result-badge.unknown { background: transparent; color: #6d7590; }
   th[data-col="wallet"], td.wallet { width: 22%; }
   th[data-col="selection"] { width: 24%; }
@@ -678,11 +679,11 @@
             <th class="sortable" data-sort="match">Maç <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="market_label">Market <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="bet_label">Seçim <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="action">İşlem <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="result">Sonuç <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="amount_usdc">Tutar (USDC) <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="price">Oran <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="traded_at">Tarih / Saat <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="status_label">Durum <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="stake_usdc">Giriş / Çıkış <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="price">Ort. Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="pnl_usdc">K/Z <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="traded_at">Son İşlem <span class="sort-arrow"></span></th>
           </tr>
         </thead>
         <tbody id="walletActivityBody"></tbody>
@@ -1569,22 +1570,19 @@ function renderActivityTable() {
       if (isNaN(vb)) vb = 0;
       return activitySortDir === 'asc' ? va - vb : vb - va;
     }
-    if (activitySortField === 'amount_usdc' || activitySortField === 'price') {
-      va = Number(a[activitySortField]) || 0;
-      vb = Number(b[activitySortField]) || 0;
-      return activitySortDir === 'asc' ? va - vb : vb - va;
-    }
-    if (activitySortField === 'result') {
-      va = RESULT_ORDER[a.result] ?? -1;
-      vb = RESULT_ORDER[b.result] ?? -1;
+    if (activitySortField === 'stake_usdc' || activitySortField === 'price' || activitySortField === 'pnl_usdc') {
+      va = Number(a[activitySortField]);
+      vb = Number(b[activitySortField]);
+      if (!Number.isFinite(va)) va = -Infinity;
+      if (!Number.isFinite(vb)) vb = -Infinity;
       return activitySortDir === 'asc' ? va - vb : vb - va;
     }
     if (activitySortField === 'match') {
       va = (a.match || a.title || '').toLowerCase();
       vb = (b.match || b.title || '').toLowerCase();
     } else if (activitySortField === 'bet_label') {
-      va = (a.bet_label || a.selection_label || a.selection || a.side || a.outcome_raw || '').toLowerCase();
-      vb = (b.bet_label || b.selection_label || b.selection || b.side || b.outcome_raw || '').toLowerCase();
+      va = (a.bet_label || a.selection_label || a.selection || '').toLowerCase();
+      vb = (b.bet_label || b.selection_label || b.selection || '').toLowerCase();
     } else {
       va = (a[activitySortField] || '').toString().toLowerCase();
       vb = (b[activitySortField] || '').toString().toLowerCase();
@@ -1593,57 +1591,54 @@ function renderActivityTable() {
     if (va > vb) return activitySortDir === 'asc' ? 1 : -1;
     return 0;
   });
-  // Group: BUY = ana satır, SELL = eşleşen alımın altında alt satır
-  const _sellsByKeyA = {};
-  sorted.forEach(a => {
-    if (a.action === 'Satım') {
-      const k = (a.asset || ((a.match||a.title||'').toLowerCase()+'|'+(a.market_label||'').toLowerCase()+'|'+(a.bet_label||a.selection||'').toLowerCase()));
-      if (!_sellsByKeyA[k]) _sellsByKeyA[k] = [];
-      _sellsByKeyA[k].push(a);
-    }
-  });
-  const _actRows = [];
-  sorted.forEach(a => {
-    if (a.action === 'Satım') return;
-    const fillNote = a.fill_count > 1 ? ` <span style="color:#6d7590;font-size:11px;">(${a.fill_count} işlem)</span>` : '';
-    const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
+
+  walletActivityBody.innerHTML = sorted.map(a => {
     const marketLabel = a.market_label || a.market_type || '-';
-    const selectionLabel = a.bet_label || a.selection_label || a.selection || a.side || a.outcome_raw || '-';
-    const resultKey = RESULT_LABELS[a.result] ? a.result : 'unknown';
-    const resultCell = resultKey === 'unknown'
-      ? '<span class="result-badge unknown">-</span>'
-      : `<span class="result-badge ${resultKey}">${RESULT_LABELS[resultKey]}</span>`;
-    _actRows.push(`
+    const selectionLabel = a.bet_label || a.selection_label || a.selection || '-';
+    const statusLabel = a.status_label || RESULT_LABELS[a.result] || '-';
+    const statusKey = a.result === 'won' ? 'won'
+      : a.result === 'lost' ? 'lost'
+      : a.lifecycle_status === 'open' ? 'open'
+      : a.lifecycle_status === 'closed' ? 'closed'
+      : 'unknown';
+    const statusCell = `<span class="result-badge ${statusKey}">${escapeAttr(statusLabel)}</span>`;
+
+    const buyFills = Number(a.buy_fill_count) || 0;
+    const sellFills = Number(a.sell_fill_count) || 0;
+    const fillNote = (buyFills + sellFills) > 1
+      ? ` <span style="color:#6d7590;font-size:10px;">(${buyFills}A${sellFills ? ` / ${sellFills}S` : ''})</span>`
+      : '';
+    const stake = fmtUsd(a.stake_usdc || a.amount_usdc || 0);
+    const exit = Number(a.sell_proceeds_usdc) > 0
+      ? ` <span style="color:#6d7590;">/ ${fmtUsd(a.sell_proceeds_usdc)}</span>`
+      : '';
+
+    const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
+    let pnl = '—';
+    let pnlStyle = '';
+    if (a.pnl_usdc !== null && a.pnl_usdc !== undefined && Number.isFinite(Number(a.pnl_usdc))) {
+      const n = Number(a.pnl_usdc);
+      pnl = `${n > 0 ? '+' : ''}${fmtUsd(n)}`;
+      pnlStyle = n > 0 ? 'color:#4ade80;font-weight:700;' : n < 0 ? 'color:#ff8080;font-weight:700;' : '';
+    }
+    const pnlTitle = a.pnl_kind === 'current'
+      ? 'Güncel K/Z'
+      : a.pnl_kind === 'realized'
+        ? 'Gerçekleşmiş K/Z'
+        : 'K/Z hesaplanamadı';
+
+    return `
     <tr>
       <td title="${escapeAttr(a.match || a.title || '-')}">${escapeAttr(a.match || a.title || '-')}</td>
       <td title="${escapeAttr(marketLabel)}">${escapeAttr(marketLabel)}</td>
       <td title="${escapeAttr(selectionLabel)}">${escapeAttr(selectionLabel)}</td>
-      <td>${escapeAttr(a.action || 'Alım')}</td>
-      <td>${resultCell}</td>
-      <td>${fmtUsd(a.amount_usdc || 0)}${fillNote}</td>
+      <td>${statusCell}</td>
+      <td title="Giriş stake / SELL çıkışı">${stake}${exit}${fillNote}</td>
       <td>${oran}</td>
+      <td title="${escapeAttr(pnlTitle)}" style="${pnlStyle}">${pnl}</td>
       <td>${fmtDateTime(a.traded_at)}</td>
-    </tr>`);
-    const k = (a.asset || ((a.match||a.title||'').toLowerCase()+'|'+(a.market_label||'').toLowerCase()+'|'+(a.bet_label||a.selection||'').toLowerCase()));
-    const _ms = _sellsByKeyA[k] || [];
-    while (_ms.length > 0) {
-      const s = _ms.shift();
-      const sOran = (s.price === null || s.price === undefined) ? '-' : Number(s.price).toFixed(2);
-      const sFillNote = s.fill_count > 1 ? ` <span style="font-size:10px;">(${s.fill_count})</span>` : '';
-      _actRows.push(`
-    <tr class="row-sell-sub">
-      <td title="${escapeAttr(s.match || s.title || '-')}"><span class="sell-sub-indent">└</span>${escapeAttr(s.match || s.title || '-')}</td>
-      <td>${escapeAttr(s.market_label || marketLabel)}</td>
-      <td>${escapeAttr(s.bet_label || s.selection_label || selectionLabel)}</td>
-      <td style="color:#f59e0b;">Satım</td>
-      <td>—</td>
-      <td class="sell-sub-amount">${fmtUsd(s.amount_usdc || 0)}${sFillNote}</td>
-      <td>${sOran}</td>
-      <td>${fmtDateTime(s.traded_at)}</td>
-    </tr>`);
-    }
-  });
-  walletActivityBody.innerHTML = _actRows.join('');
+    </tr>`;
+  }).join('');
 }
 
 document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) th.sortable').forEach(th => {
@@ -1653,7 +1648,7 @@ document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) t
       activitySortDir = activitySortDir === 'asc' ? 'desc' : 'asc';
     } else {
       activitySortField = field;
-      activitySortDir = (field === 'match' || field === 'market_label' || field === 'bet_label' || field === 'action') ? 'asc' : 'desc';
+      activitySortDir = (field === 'match' || field === 'market_label' || field === 'bet_label' || field === 'status_label') ? 'asc' : 'desc';
     }
     document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) th.sortable').forEach(h => {
       h.classList.remove('active');
