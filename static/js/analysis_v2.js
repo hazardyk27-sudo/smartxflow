@@ -221,7 +221,13 @@
         const reco = card.recommendation || {};
         const movement = card.movement || {};
         const flow = card.flow || [];
-        const odds = reco.odds != null ? `@${fmtOdds(reco.odds)}` : 'oran yok';
+        const isRecommendation = reco.decision === 'RECOMMEND';
+        const odds = isRecommendation && reco.odds != null
+            ? `@${fmtOdds(reco.odds)}`
+            : '—';
+        const recoKicker = isRecommendation
+            ? 'Piyasanın en sağlıklı ifadesi'
+            : 'Bahis önerisi yok · izlenen yön';
         return `
             <article class="signal-card" data-tone="${esc(card.state_tone || 'muted')}">
                 <div class="signal-main">
@@ -236,12 +242,16 @@
                             <p class="signal-state-summary">${esc(card.state_summary || '')}</p>
                         </div>
                         <div class="reco-box">
-                            <span class="reco-kicker">Piyasanın en sağlıklı ifadesi</span>
+                            <span class="reco-kicker">${esc(recoKicker)}</span>
                             <div class="reco-main">
-                                <span class="reco-selection">${esc(reco.selection || '—')}</span>
+                                <span class="reco-selection">${esc(reco.selection || (card.details || {}).source_selection || '—')}</span>
                                 <span class="reco-odds">${esc(odds)}</span>
                             </div>
-                            <span class="reco-market">${esc(reco.market || '—')} marketi</span>
+                            <span class="reco-market">${esc(
+                                isRecommendation
+                                    ? `${reco.market || '—'} marketi`
+                                    : 'Yalnızca piyasa teşhisi'
+                            )}</span>
                         </div>
                     </div>
 
