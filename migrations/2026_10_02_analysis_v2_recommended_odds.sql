@@ -14,6 +14,7 @@ AS $$
 DECLARE
     expected_match_id_hash TEXT;
     expected_entry_odds NUMERIC;
+    expected_pnl_units NUMERIC;
     expected_engine_version TEXT;
 BEGIN
     SELECT
@@ -50,6 +51,22 @@ BEGIN
     IF expected_entry_odds IS DISTINCT FROM NEW.entry_odds THEN
         RAISE EXCEPTION
             'Settlement entry_odds must equal immutable recommended entry odds for signal %',
+            NEW.signal_id;
+    END IF;
+
+    expected_pnl_units := CASE
+        WHEN NEW.outcome = 'WIN' AND expected_entry_odds IS NOT NULL
+            THEN expected_entry_odds - 1
+        WHEN NEW.outcome = 'LOSS'
+            THEN -1
+        WHEN NEW.outcome IN ('PUSH', 'VOID')
+            THEN 0
+        ELSE NULL
+    END;
+
+    IF expected_pnl_units IS DISTINCT FROM NEW.pnl_units THEN
+        RAISE EXCEPTION
+            'Settlement pnl_units must match canonical flat-stake PnL for signal %',
             NEW.signal_id;
     END IF;
 
