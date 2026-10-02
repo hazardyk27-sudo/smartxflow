@@ -26,6 +26,7 @@ from betwatch_client import (
     map_market,
 )
 from analysis_v2.market_contract import has_real_provider_payload
+from core.hash_utils import make_match_id_hash as canonical_match_id_hash
 
 try:
     import certifi
@@ -105,20 +106,14 @@ def _parse_pct(pct_str: str) -> float:
         return 0.0
 
 
-def _normalize_hash_field(s: str) -> str:
-    import hashlib as _hlib
-    if not s:
-        return ""
-    return re.sub(r"\s+", " ", s.strip().lower())
-
-
 def make_match_id_hash(home: str, away: str, league: str) -> str:
-    import hashlib
-    h = _normalize_hash_field(home)
-    a = _normalize_hash_field(away)
-    l = _normalize_hash_field(league)
-    canonical = f"{l}|{h}|{a}"
-    return hashlib.md5(canonical.encode("utf-8")).hexdigest()[:12]
+    """Use the repository-wide canonical match identity contract.
+
+    Fixtures, history rows, alarms and Analysis V2 signals must all resolve the
+    same match to the same 12-character hash. Do not reimplement normalization
+    in this scraper.
+    """
+    return canonical_match_id_hash(home, away, league)
 
 
 # ── Previous odds reader (for dropping trend) ─────────────────────────────────
