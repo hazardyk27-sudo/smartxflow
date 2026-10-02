@@ -112,3 +112,13 @@ def test_feed_endpoint_supports_safe_scope_market_and_offset():
     assert "requested_market not in {'1X2', 'DNB', 'DC', 'OU25', 'BTTS'}" in app
     assert "requested_offset" in app
     assert "payload['has_more']" in app
+
+
+
+def test_runtime_hook_is_disabled_by_default_and_isolated_from_v1():
+    env = read(".env.example")
+    scraper = read("betwatch_prematch.py")
+    assert "ANALYSIS_V2_RUNTIME_ENABLED=0" in env
+    assert 'os.environ.get("ANALYSIS_V2_RUNTIME_ENABLED", "0")' in scraper
+    assert "Analysis V2 runtime isolated error" in scraper
+    assert "run_runtime_batch(" in scraper
