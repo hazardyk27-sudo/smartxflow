@@ -3520,7 +3520,10 @@ def _persisted_wallet_bet_to_display(row: Dict[str, Any]) -> Dict[str, Any]:
     return display
 
 
-def compute_and_save_wallet_stats(wallet: str) -> bool:
+def compute_and_save_wallet_stats(
+    wallet: str,
+    allow_verified_sport_rebase: bool = False,
+) -> bool:
     """Compute per-wallet stats from stored DB data and PATCH them back to
     tracked_wallets. Called by the scraper after each sync so the profile
     endpoint reads pre-computed values instead of recalculating on every request."""
@@ -3732,18 +3735,21 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     raw_count = int(activity_stats.get("trade_count") or 0)
     raw_invested = float(activity_stats.get("total_invested_usdc") or 0)
 
+    persisted_floor_count = 0 if allow_verified_sport_rebase else baseline_count
+    persisted_floor_invested = 0.0 if allow_verified_sport_rebase else baseline_invested
     persisted_complete = bool(
         persisted_stats is not None
         and int(persisted_stats.get("trade_count") or 0)
-            >= max(baseline_count, raw_count)
+            >= max(persisted_floor_count, raw_count)
         and float(persisted_stats.get("total_invested_usdc") or 0)
-            + 0.01 >= max(baseline_invested, raw_invested)
+            + 0.01 >= max(persisted_floor_invested, raw_invested)
     )
 
     if persisted_complete:
         history_stats = persisted_stats
     elif (
-        baseline.get("last_synced_at")
+        not allow_verified_sport_rebase
+        and baseline.get("last_synced_at")
         and baseline_count >= raw_count
         and baseline_invested + 0.01 >= raw_invested
     ):
