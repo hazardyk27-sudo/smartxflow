@@ -718,6 +718,45 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(len(result["uncertain"]), 1)
         self.assertEqual(result["uncertain"][0]["_sport_reason"], "event_tags_missing")
 
+    def test_v2_stale_nonfootball_registry_is_revalidated(self):
+        now = polymarket_client.datetime.now(polymarket_client.timezone.utc)
+        old = (
+            now
+            - polymarket_client.timedelta(
+                seconds=polymarket_client.FOOTBALL_NON_FOOTBALL_RECHECK_SECONDS + 60
+            )
+        ).isoformat()
+        row = {
+            "classification": polymarket_client.FOOTBALL_CLASS_NON_FOOTBALL,
+            "classifier_version": polymarket_client.FOOTBALL_CLASSIFIER_VERSION,
+            "last_checked_at": old,
+        }
+
+        self.assertFalse(
+            polymarket_client._persisted_classification_is_trusted(
+                row,
+                now=now,
+            )
+        )
+
+    def test_v2_recent_nonfootball_registry_is_temporarily_trusted(self):
+        now = polymarket_client.datetime.now(polymarket_client.timezone.utc)
+        recent = (
+            now - polymarket_client.timedelta(minutes=10)
+        ).isoformat()
+        row = {
+            "classification": polymarket_client.FOOTBALL_CLASS_NON_FOOTBALL,
+            "classifier_version": polymarket_client.FOOTBALL_CLASSIFIER_VERSION,
+            "last_checked_at": recent,
+        }
+
+        self.assertTrue(
+            polymarket_client._persisted_classification_is_trusted(
+                row,
+                now=now,
+            )
+        )
+
     def test_v2_persisted_parent_soccer_overrides_stale_condition_negative(self):
         items = [{"conditionId": "child-condition"}]
 
