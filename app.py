@@ -244,6 +244,7 @@ from services.polymarket_client import (
     update_tracked_wallet as poly_update_tracked_wallet,
     remove_tracked_wallet as poly_remove_tracked_wallet,
     get_wallet_profile as poly_get_wallet_profile,
+    TRACKED_WALLET_API_CONTRACT_VERSION as POLY_TRACKED_CONTRACT_VERSION,
 )
 from services import auth_helpers
 import hashlib
@@ -982,13 +983,21 @@ def api_poly_tracked_list():
     try:
         now = time.time()
         if _poly_tracked_cache['data'] is not None and now - _poly_tracked_cache['ts'] < POLY_LIST_CACHE_TTL:
-            return jsonify({'wallets': _poly_tracked_cache['data'], 'cached': True})
+            return jsonify({
+                'contract_version': POLY_TRACKED_CONTRACT_VERSION,
+                'wallets': _poly_tracked_cache['data'],
+                'cached': True,
+            })
         wallets = poly_list_tracked_wallets()
         _poly_tracked_cache = {'data': wallets, 'ts': now}
-        return jsonify({'wallets': wallets})
+        return jsonify({
+            'contract_version': POLY_TRACKED_CONTRACT_VERSION,
+            'wallets': wallets,
+            'cached': False,
+        })
     except Exception as e:
         print(f"[Poly] /api/poly/tracked GET error: {e}")
-        return jsonify({'wallets': [], 'error': 'Liste alinamadi'}), 502
+        return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'wallets': [], 'error': 'Liste alinamadi'}), 502
 
 @app.route('/api/poly/tracked', methods=['POST'])
 def api_poly_tracked_add():
@@ -1075,19 +1084,20 @@ def api_poly_tracked_profile(wallet):
             cached = _poly_profile_cache.get(key)
             if cached:
                 return jsonify({**cached['data'], 'cached': True})
-            return jsonify({'found': False, 'error': 'Profil hesaplanamadi'}), 502
+            return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'found': False, 'error': 'Profil hesaplanamadi'}), 502
 
         # Bu thread hesaplıyor
         try:
             profile = poly_get_wallet_profile(wallet)
             if not profile:
-                return jsonify({'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
+                return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'found': False, 'error': 'Bu cüzdan takip edilmiyor'}), 404
             profile['found'] = True
+            profile['cached'] = False
             _poly_profile_cache[key] = {'data': profile, 'ts': time.time()}
             return jsonify(profile)
         except Exception as e:
             print(f"[Poly] /api/poly/tracked/<wallet>/profile error: {e}")
-            return jsonify({'found': False, 'error': 'Profil alinamadi'}), 502
+            return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'found': False, 'error': 'Profil alinamadi'}), 502
         finally:
             # Her durumda event'i sinyalle ve temizle
             with _poly_profile_inflight_lock:
@@ -1095,7 +1105,7 @@ def api_poly_tracked_profile(wallet):
             event.set()
     except Exception as e:
         print(f"[Poly] /api/poly/tracked/<wallet>/profile outer error: {e}")
-        return jsonify({'found': False, 'error': 'Profil alinamadi'}), 502
+        return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'found': False, 'error': 'Profil alinamadi'}), 502
 
 @app.route('/pricing')
 def pricing_page():
