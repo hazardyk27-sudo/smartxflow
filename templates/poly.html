@@ -563,6 +563,157 @@
     .source-note { display: none; }
     .refresh-btn { margin-left: 0; }
   }
+  /* ── Tracked Bettors V2 ─────────────────────────────── */
+  #walletsView, #walletProfileView { animation: twFadeIn .18s ease-out; }
+  @keyframes twFadeIn { from { opacity:.4; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  .tw-v2-hero {
+    display:flex; align-items:flex-end; justify-content:space-between; gap:18px;
+    padding:22px; margin:4px 0 16px; border:1px solid #242b3b; border-radius:16px;
+    background:
+      radial-gradient(circle at 92% 10%, rgba(76,125,255,.18), transparent 34%),
+      linear-gradient(145deg, #121824 0%, #0f141e 100%);
+    box-shadow: 0 18px 50px rgba(0,0,0,.18);
+  }
+  .tw-v2-eyebrow { color:#7ea6ff; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:7px; }
+  .tw-v2-title { font-size:25px; font-weight:800; letter-spacing:-.03em; color:#f4f7fb; }
+  .tw-v2-copy { color:#8f99ad; font-size:12.5px; line-height:1.55; max-width:680px; margin-top:7px; }
+  .tw-v2-rule {
+    min-width:150px; padding:11px 13px; border:1px solid #2b354a; border-radius:12px;
+    background:rgba(12,17,26,.72); color:#8f99ad; font-size:10.5px; line-height:1.35;
+  }
+  .tw-v2-rule strong { display:block; color:#f3f6fb; font-size:17px; margin-bottom:2px; }
+  .tw-v2-panel {
+    background:#0f141d; border:1px solid #1f2736; border-radius:14px; padding:14px; margin-bottom:12px;
+  }
+  .tw-v2-panel-title { color:#cfd6e4; font-size:12px; font-weight:750; margin-bottom:10px; }
+  .tw-v2-controls {
+    display:grid; grid-template-columns:minmax(0,1fr) 230px; gap:10px; align-items:center;
+  }
+  .tw-v2-controls input, .tw-v2-controls select {
+    width:100%; background:#151b27; border:1px solid #293247; border-radius:10px;
+    color:#eef2f8; padding:11px 12px; outline:none; font-size:13px;
+  }
+  .tw-v2-controls input:focus, .tw-v2-controls select:focus { border-color:#4c7dff; box-shadow:0 0 0 3px rgba(76,125,255,.10); }
+  .tw-v2-note { color:#6f7a90; font-size:11.5px; line-height:1.5; margin-top:9px; }
+  #trackedWalletList {
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px;
+  }
+  #trackedWalletList > .loading { grid-column:1/-1; }
+  .tw-card {
+    margin:0; min-height:188px; padding:16px; border-radius:15px; overflow:hidden; position:relative;
+    background:linear-gradient(150deg,#131a25 0%,#10151e 100%); border-color:#222b3b;
+    box-shadow:0 12px 32px rgba(0,0,0,.14);
+  }
+  .tw-card::after {
+    content:""; position:absolute; width:150px; height:150px; right:-72px; top:-78px;
+    border-radius:50%; background:rgba(76,125,255,.07); pointer-events:none;
+  }
+  .tw-card:hover { transform:translateY(-1px); border-color:#466fcf; box-shadow:0 16px 38px rgba(0,0,0,.22); }
+  .tw-card-body { align-items:flex-start; }
+  .tw-avatar { width:48px; height:48px; border-radius:13px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .tw-name { font-size:16px; letter-spacing:-.01em; }
+  .tw-addr { margin-top:2px; color:#69758a; }
+  .tw-status-pill {
+    margin-left:auto; padding:3px 7px; border-radius:999px; font-size:9.5px; font-weight:750;
+    border:1px solid #2a3448; color:#8fa1be; background:#141b27; white-space:nowrap;
+  }
+  .tw-status-pill.ready { color:#7dd3a6; border-color:#244638; background:#10241d; }
+  .tw-primary-metric { margin-top:13px; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; }
+  .tw-primary-label { color:#6f7a90; font-size:10.5px; margin-bottom:3px; }
+  .tw-primary-value { color:#f6f8fb; font-weight:800; font-size:27px; line-height:1; letter-spacing:-.04em; }
+  .tw-primary-sub { color:#7b869a; font-size:10.5px; text-align:right; line-height:1.35; }
+  .tw-mini-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:12px; }
+  .tw-ms-box { min-width:0; padding:7px 8px; border-radius:8px; background:#111824; border-color:#232d40; }
+  .tw-ms-label { font-size:9.5px; }
+  .tw-ms-val { font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tw-actions { margin-top:13px; padding-top:11px; }
+  .tw-btn-profile { background:#1a2740; border-color:#35558e; color:#9cbcff; }
+  .tw-btn-profile:hover { background:#203252; }
+  .tw-v2-profile-hero {
+    display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center;
+    padding:18px 20px; border:1px solid #242d3e; border-radius:16px;
+    background:linear-gradient(145deg,#121925,#0f141d); margin-bottom:10px;
+  }
+  .tw-v2-profile-name { font-size:22px; font-weight:800; letter-spacing:-.025em; color:#f4f7fb; }
+  .tw-v2-profile-address { color:#728098; font:11.5px/1.4 monospace; margin-top:4px; }
+  .tw-v2-profile-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .tw-meta-pill { padding:4px 7px; border:1px solid #293247; border-radius:999px; color:#8997ae; font-size:10px; background:#121925; }
+  .tw-meta-pill.good { color:#7dd3a6; border-color:#234637; background:#10231c; }
+  .tw-meta-pill.warn { color:#f4c56b; border-color:#55431c; background:#261f0f; }
+  .tw-v2-score {
+    min-width:118px; text-align:center; padding:12px 14px; border:1px solid #30405f; border-radius:13px; background:#121b2b;
+  }
+  .tw-v2-score-label { color:#7f90ad; font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .tw-v2-score-value { font-size:31px; font-weight:850; letter-spacing:-.05em; color:#f5f8ff; margin:2px 0; }
+  .tw-v2-score-sub { color:#68768f; font-size:9.5px; }
+  .tw-v2-quality {
+    display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin:10px 0 14px;
+    padding:10px 12px; border:1px solid #202a3a; border-radius:11px; background:#0e131b;
+    color:#7d899d; font-size:10.5px;
+  }
+  .tw-v2-quality strong { color:#cbd3e1; }
+  .tw-v2-insights {
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin:12px 0;
+  }
+  .tw-insight {
+    padding:12px; border:1px solid #222c3d; border-radius:11px; background:#111721;
+  }
+  .tw-insight-label { color:#6f7a90; font-size:10px; margin-bottom:6px; }
+  .tw-insight-value { color:#eef3fa; font-size:18px; font-weight:800; letter-spacing:-.02em; }
+  .tw-insight-help { color:#637087; font-size:9.5px; line-height:1.35; margin-top:4px; }
+  .wallet-stats-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin:12px 0; }
+  .wallet-stat-card { border-radius:11px; padding:12px; background:#111721; border-color:#222c3d; }
+  .wallet-stat-card .label { color:#6f7a90; font-size:10px; }
+  .wallet-stat-card .value { font-size:16px; letter-spacing:-.015em; }
+  .wallet-summary { background:#0f151f; border-color:#222c3d; border-radius:12px; color:#aab4c6; line-height:1.55; }
+  .wallet-section-title {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:14px; margin:22px 0 8px; color:#e8edf5;
+  }
+  .tw-v2-explain { color:#68758b; font-size:10.5px; font-weight:400; }
+  .wallet-activity-table { min-width:1180px; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(1),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(1) { width:15%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(2),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(2) { width:11%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(3),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(3) { width:11%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(4),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(4) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(5),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(5) { width:12%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(6),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(6) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(7),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(7) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(8),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(8) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(9),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(9) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(10),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(10) { width:11%; }
+  .clv-pos { color:#4ade80; font-weight:750; }
+  .clv-neg { color:#ff8080; font-weight:750; }
+  .clv-flat { color:#8b93a7; font-weight:650; }
+  .tw-info-dot {
+    display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    border:1px solid #354159; border-radius:50%; color:#8190a8; font-size:9px; cursor:help; margin-left:3px;
+  }
+  @media (max-width: 900px) {
+    #trackedWalletList { grid-template-columns:1fr; }
+    .tw-v2-insights, .wallet-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width: 640px) {
+    .tw-v2-hero { align-items:stretch; flex-direction:column; padding:16px; }
+    .tw-v2-rule { min-width:0; }
+    .tw-v2-controls { grid-template-columns:1fr; }
+    .tw-v2-profile-hero { grid-template-columns:1fr; padding:15px; }
+    .tw-v2-score { min-width:0; display:flex; align-items:center; justify-content:space-between; text-align:left; }
+    .tw-v2-score-value { font-size:26px; }
+    .tw-v2-insights, .wallet-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .tw-mini-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  }
+
 </style>
 </head>
 <body>
@@ -628,33 +779,53 @@
   </div>
 
   <div id="walletsView" style="display:none;">
-    <div class="sub" style="margin-bottom:16px;">Belirli bir Polymarket cüzdanını takibe alın; işlem geçmişi ve açık pozisyonları periyodik olarak toplanır ve profil sayfasında gösterilir.</div>
-    <div class="add-wallet-box">
-      <input type="text" id="addWalletAddress" placeholder="Cüzdan adresi (0x...)">
-      <input type="text" id="addWalletNickname" placeholder="Takma ad (örn. Sharp Bettor)">
-      <button id="addWalletBtn">+ Takibe Al</button>
+    <div class="tw-v2-hero">
+      <div>
+        <div class="tw-v2-eyebrow">Polymarket · Football only</div>
+        <div class="tw-v2-title">Takip Edilen Bahisçiler</div>
+        <div class="tw-v2-copy">Ham işlem satırları yerine aynı pozisyondaki BUY/SELL hareketlerini tek bahis yaşam döngüsünde birleştirir. Böylece bahis sayısı, yatırım ve sonuç performansı fill sayısıyla şişmez.</div>
+      </div>
+      <div class="tw-v2-rule"><strong>≥ $1.000</strong>Pozisyon toplam BUY girişi</div>
     </div>
-    <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
-    <div class="tracked-wallet-controls">
-      <input type="text" id="trackedWalletSearch" placeholder="Tahminci adına göre ara...">
-      <select id="trackedWalletSort" aria-label="Tahmincileri sırala">
-        <option value="default">Varsayılan sıralama</option>
-        <option value="win-desc">Başarı oranı: yüksekten düşüğe</option>
-        <option value="win-asc">Başarı oranı: düşükten yükseğe</option>
-      </select>
+
+    <div class="tw-v2-panel">
+      <div class="tw-v2-panel-title">Yeni cüzdan ekle</div>
+      <div class="add-wallet-box">
+        <input type="text" id="addWalletAddress" placeholder="Polymarket cüzdan adresi (0x...)">
+        <input type="text" id="addWalletNickname" placeholder="Görünen ad (örn. Sharp Bettor)">
+        <button id="addWalletBtn">+ Takibe Al</button>
+      </div>
+      <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
     </div>
-    <div class="tracked-wallet-note">Takipçi istatistikleri ve işlem geçmişi, aynı pozisyondaki toplam giriş yatırımı en az 1.000 USDC olan bahisleri kapsar.</div>
-    <div class="match-list" id="trackedWalletList">
+
+    <div class="tw-v2-panel">
+      <div class="tw-v2-controls">
+        <input type="text" id="trackedWalletSearch" placeholder="Bahisçi adına göre ara...">
+        <select id="trackedWalletSort" aria-label="Bahisçileri sırala">
+          <option value="default">En yeni takip</option>
+          <option value="resolved-desc">Sonuçlanan bahis: çoktan aza</option>
+          <option value="bets-desc">Toplam bahis: çoktan aza</option>
+          <option value="open-desc">Açık pozisyon: çoktan aza</option>
+          <option value="win-desc">İsabet: yüksekten düşüğe</option>
+          <option value="win-asc">İsabet: düşükten yükseğe</option>
+        </select>
+      </div>
+      <div class="tw-v2-note">İsabet oranı yalnız sonuçlanmış canonical bahisleri kullanır. Karttaki oran tek başına performans hükmü değildir; profil ekranında giriş olasılığı, CLV, gerçekleşmiş K/Z ve veri kapsamı birlikte gösterilir.</div>
+    </div>
+
+    <div id="trackedWalletList">
       <div class="loading">Yükleniyor...</div>
     </div>
   </div>
 
   <div id="walletProfileView" style="display:none;">
-    <button class="back-btn" id="walletBackBtn">&larr; Cüzdan listesine dön</button>
-    <div class="result-header" id="walletProfileHeader"></div>
+    <button class="back-btn" id="walletBackBtn">&larr; Bahisçi listesine dön</button>
+    <div id="walletProfileHeader"></div>
+    <div id="walletQualityBox"></div>
+    <div class="tw-v2-insights" id="walletInsightGrid"></div>
     <div class="wallet-stats-grid" id="walletStatsGrid"></div>
     <div class="wallet-summary" id="walletSummaryBox"></div>
-    <h3 class="wallet-section-title">Açık Pozisyonlar</h3>
+    <h3 class="wallet-section-title"><span>Açık Pozisyonlar</span><span class="tw-v2-explain">Henüz sonuçlanmamış canonical bahisler</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table wallet-positions-table">
         <thead>
@@ -671,7 +842,7 @@
         <tbody id="walletPositionsBody"></tbody>
       </table>
     </div>
-    <h3 class="wallet-section-title">İşlem Geçmişi</h3>
+    <h3 class="wallet-section-title"><span>Bahis Geçmişi</span><span class="tw-v2-explain">Closing line = maç başlamadan önceki son geçerli piyasa fiyatı</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table">
         <thead>
@@ -681,7 +852,9 @@
             <th class="sortable" data-sort="bet_label">Seçim <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="status_label">Durum <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="stake_usdc">Giriş / Çıkış <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="avg_entry_decimal">Ort. Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="avg_entry_decimal">Giriş Oranı <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="closing_decimal">Closing <span class="sort-arrow"></span><span class="tw-info-dot" title="Maç başlamadan önceki son geçerli midpoint oranı">i</span></th>
+            <th class="sortable" data-sort="clv_probability_pp">CLV <span class="sort-arrow"></span><span class="tw-info-dot" title="Closing olasılığı − giriş olasılığı. Pozitif değer, piyasadan daha iyi giriş anlamına gelir.">i</span></th>
             <th class="sortable" data-sort="pnl_usdc">K/Z <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="traded_at">Son İşlem <span class="sort-arrow"></span></th>
           </tr>
