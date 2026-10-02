@@ -992,6 +992,110 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(rows[0]["pnl_usdc"], -750.0)
         self.assertEqual(rows[0]["pnl_kind"], "realized")
 
+    def test_persisted_wallet_bet_stats_keep_all_history(self):
+        rows = [
+            {
+                "bet_key": "old-win",
+                "stake_usdc": 1500,
+                "avg_entry_price": 0.50,
+                "result": "won",
+                "lifecycle_status": "resolved",
+                "fill_count": 2,
+            },
+            {
+                "bet_key": "old-loss",
+                "stake_usdc": 2500,
+                "avg_entry_price": 0.25,
+                "result": "lost",
+                "lifecycle_status": "resolved",
+                "fill_count": 3,
+            },
+            {
+                "bet_key": "recent-open",
+                "stake_usdc": 1000,
+                "avg_entry_price": 0.60,
+                "result": "open",
+                "lifecycle_status": "open",
+                "fill_count": 1,
+            },
+            {
+                "bet_key": "sub-threshold-corrupt-row",
+                "stake_usdc": 999,
+                "avg_entry_price": 0.90,
+                "result": "won",
+                "fill_count": 1,
+            },
+        ]
+
+        stats = polymarket_client._compute_persisted_wallet_bet_stats(rows)
+
+        self.assertEqual(stats["trade_count"], 3)
+        self.assertEqual(stats["fill_count"], 6)
+        self.assertEqual(stats["total_invested_usdc"], 5000.0)
+        self.assertEqual(stats["avg_bet_size_usdc"], 1666.67)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 1)
+        self.assertEqual(stats["resolved_total"], 2)
+        self.assertEqual(stats["win_rate"], 50.0)
+        # stake-weighted probability: (1500*.5 + 2500*.25 + 1000*.6) / 5000
+        self.assertEqual(stats["avg_price"], 0.395)
+        self.assertEqual(stats["avg_price_decimal"], 2.53)
+
+    def test_incomplete_normalized_rollout_preserves_larger_baseline(self):
+        baseline = {
+            "last_synced_at": "2026-10-01T00:00:00+00:00",
+            "trade_count": 42,
+            "total_invested_usdc": 42000,
+            "avg_bet_size_usdc": 1000,
+            "avg_price": 0.5,
+            "avg_price_decimal": 2.0,
+            "resolved_won": 20,
+            "resolved_lost": 10,
+            "resolved_total": 30,
+            "win_rate": 66.7,
+        }
+        raw = {
+            "trade_count": 4,
+            "fill_count": 8,
+            "total_invested_usdc": 5000,
+        }
+
+        preserved = polymarket_client._baseline_wallet_history_stats(
+            baseline,
+            raw,
+        )
+
+        self.assertEqual(preserved["trade_count"], 42)
+        self.assertEqual(preserved["total_invested_usdc"], 42000.0)
+        self.assertEqual(preserved["resolved_total"], 30)
+        self.assertEqual(preserved["win_rate"], 66.7)
+        self.assertEqual(preserved["fill_count"], 8)
+
+    def test_persisted_wallet_bet_stats_reader_paginates_full_history(self):
+        calls = []
+        page1 = [
+            {"bet_key": f"b{i}", "stake_usdc": 1000}
+            for i in range(1000)
+        ]
+        page2 = [{"bet_key": "b1000", "stake_usdc": 1000}]
+
+        def fake_get(_url, **kwargs):
+            calls.append(kwargs["params"]["offset"])
+            if kwargs["params"]["offset"] == 0:
+                return FakeResponse(200, page1)
+            return FakeResponse(200, page2)
+
+        with patch.object(polymarket_client.requests, "get", side_effect=fake_get):
+            rows, ok = polymarket_client._fetch_persisted_wallet_bets_for_stats(
+                "https://supabase.test",
+                {"apikey": "test"},
+                "0xwallet",
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual(len(rows), 1001)
+        self.assertEqual(calls, [0, 1000])
+
     def test_canonical_bet_key_is_deterministic_for_same_asset(self):
         first = polymarket_client._canonical_bet_identity({
             "wallet": "0xABC",

@@ -2450,6 +2450,166 @@ def list_tracked_wallets() -> List[Dict[str, Any]]:
         return []
 
 
+def _get_wallet_stat_baseline(
+    base: str,
+    headers: Dict[str, str],
+    wallet: str,
+) -> Dict[str, Any]:
+    """Read the last durable card/profile snapshot before recalculating it.
+
+    This is the anti-regression floor during normalized-table rollout: a short
+    raw retention window must never overwrite a previously larger all-history
+    snapshot with smaller recent-only totals.
+    """
+    try:
+        response = requests.get(
+            f"{base}/rest/v1/tracked_wallets",
+            headers=headers,
+            params={
+                "select": (
+                    "created_at,last_synced_at,win_rate,resolved_won,resolved_lost,"
+                    "resolved_total,trade_count,total_invested_usdc,avg_bet_size_usdc,"
+                    "avg_price,avg_price_decimal,open_position_count,open_exposure_usdc"
+                ),
+                "wallet": f"eq.{wallet.lower()}",
+                "limit": 1,
+            },
+            timeout=10,
+        )
+        if response.status_code != 200:
+            return {}
+        rows = response.json()
+        return rows[0] if isinstance(rows, list) and rows else {}
+    except Exception:
+        return {}
+
+
+def _fetch_persisted_wallet_bets_for_stats(
+    base: str,
+    headers: Dict[str, str],
+    wallet: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Read the complete durable bet ledger with pagination.
+
+    No fixed 5k/10k history cap is allowed here: this table is the long-term
+    bettor record and statistics must continue to cover the full stored span.
+    """
+    rows: List[Dict[str, Any]] = []
+    page_size = 1000
+    max_pages = 100
+    try:
+        for page in range(max_pages):
+            response = requests.get(
+                f"{base}/rest/v1/tracked_wallet_bets",
+                headers=headers,
+                params={
+                    "select": (
+                        "bet_key,stake_usdc,avg_entry_price,result,lifecycle_status,"
+                        "fill_count,first_traded_at,last_traded_at"
+                    ),
+                    "wallet": f"eq.{wallet.lower()}",
+                    "order": "first_traded_at.asc.nullsfirst",
+                    "limit": page_size,
+                    "offset": page * page_size,
+                },
+                timeout=20,
+            )
+            if response.status_code != 200:
+                return [], False
+            page_rows = response.json()
+            if not isinstance(page_rows, list):
+                return [], False
+            rows.extend(page_rows)
+            if len(page_rows) < page_size:
+                return rows, True
+        logger.warning(
+            "[WalletBets] stat pagination safety cap reached for %s (%s rows)",
+            wallet[:10],
+            len(rows),
+        )
+        return rows, False
+    except Exception:
+        return [], False
+
+
+def _compute_persisted_wallet_bet_stats(
+    bet_rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Compute all-history bettor metrics from durable canonical bet rows."""
+    entered: List[Dict[str, Any]] = []
+    for row in bet_rows:
+        try:
+            stake = float(row.get("stake_usdc") or 0)
+        except (TypeError, ValueError):
+            stake = 0.0
+        if stake >= MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC:
+            entered.append(row)
+
+    total_invested = sum(float(row.get("stake_usdc") or 0) for row in entered)
+    trade_count = len(entered)
+    fill_count = sum(int(row.get("fill_count") or 0) for row in entered)
+
+    resolved_won = sum(row.get("result") == "won" for row in entered)
+    resolved_lost = sum(row.get("result") == "lost" for row in entered)
+    resolved_total = resolved_won + resolved_lost
+
+    weighted_price_sum = 0.0
+    for row in entered:
+        try:
+            price = float(row.get("avg_entry_price") or 0)
+            stake = float(row.get("stake_usdc") or 0)
+        except (TypeError, ValueError):
+            continue
+        weighted_price_sum += price * stake
+
+    avg_price = weighted_price_sum / total_invested if total_invested else 0.0
+    return {
+        "resolved_won": resolved_won,
+        "resolved_lost": resolved_lost,
+        "resolved_total": resolved_total,
+        "win_rate": (
+            round((resolved_won / resolved_total) * 100, 1)
+            if resolved_total else None
+        ),
+        "trade_count": trade_count,
+        "fill_count": fill_count,
+        "total_invested_usdc": round(total_invested, 2),
+        "avg_bet_size_usdc": (
+            round(total_invested / trade_count, 2)
+            if trade_count else 0.0
+        ),
+        "avg_price": round(avg_price, 4),
+        "avg_price_decimal": _to_decimal_odds(avg_price) if avg_price else None,
+    }
+
+
+def _baseline_wallet_history_stats(
+    baseline: Dict[str, Any],
+    raw_stats: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Return a compatibility-shaped history snapshot from tracked_wallets."""
+    return {
+        "resolved_won": int(baseline.get("resolved_won") or 0),
+        "resolved_lost": int(baseline.get("resolved_lost") or 0),
+        "resolved_total": int(baseline.get("resolved_total") or 0),
+        "win_rate": baseline.get("win_rate"),
+        "trade_count": int(baseline.get("trade_count") or 0),
+        # tracked_wallets does not persist raw fill_count; this value is not
+        # user-facing and can safely reflect the current audit window.
+        "fill_count": int(raw_stats.get("fill_count") or 0),
+        "total_invested_usdc": round(
+            float(baseline.get("total_invested_usdc") or 0),
+            2,
+        ),
+        "avg_bet_size_usdc": round(
+            float(baseline.get("avg_bet_size_usdc") or 0),
+            2,
+        ),
+        "avg_price": round(float(baseline.get("avg_price") or 0), 4),
+        "avg_price_decimal": baseline.get("avg_price_decimal"),
+    }
+
+
 def _persist_wallet_bet_rows(
     base: str,
     headers: Dict[str, str],
@@ -2562,7 +2722,10 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         return False
     wallet = wallet.lower()
     headers = _supabase_headers()
-    tracked_since = _get_wallet_tracking_start(base, headers, wallet)
+    baseline = _get_wallet_stat_baseline(base, headers, wallet)
+    tracked_since = baseline.get("created_at") if baseline else None
+    if not tracked_since:
+        tracked_since = _get_wallet_tracking_start(base, headers, wallet)
 
     def _fetch_redeems() -> Tuple[List[Dict[str, Any]], bool]:
         try:
@@ -2747,16 +2910,54 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
             "normalized snapshot preserved"
         )
 
+    persisted_rows, persisted_ok = _fetch_persisted_wallet_bets_for_stats(
+        base,
+        headers,
+        wallet,
+    )
+    persisted_stats = (
+        _compute_persisted_wallet_bet_stats(persisted_rows)
+        if persisted_ok else None
+    )
+
+    baseline_count = int(baseline.get("trade_count") or 0)
+    baseline_invested = float(baseline.get("total_invested_usdc") or 0)
+    raw_count = int(activity_stats.get("trade_count") or 0)
+    raw_invested = float(activity_stats.get("total_invested_usdc") or 0)
+
+    persisted_complete = bool(
+        persisted_stats is not None
+        and int(persisted_stats.get("trade_count") or 0)
+            >= max(baseline_count, raw_count)
+        and float(persisted_stats.get("total_invested_usdc") or 0)
+            + 0.01 >= max(baseline_invested, raw_invested)
+    )
+
+    if persisted_complete:
+        history_stats = persisted_stats
+    elif (
+        baseline.get("last_synced_at")
+        and baseline_count >= raw_count
+        and baseline_invested + 0.01 >= raw_invested
+    ):
+        # Migration/backfill can be partial for a while. Preserve the last
+        # larger known history instead of replacing it with a recent raw slice.
+        history_stats = _baseline_wallet_history_stats(baseline, activity_stats)
+    else:
+        # Initial rollout / first sync fallback before tracked_wallet_bets is
+        # available. PART 9 keeps this path functional.
+        history_stats = activity_stats
+
     stats_payload = {
-        "win_rate": activity_stats["win_rate"],
-        "resolved_won": activity_stats["resolved_won"],
-        "resolved_lost": activity_stats["resolved_lost"],
-        "resolved_total": activity_stats["resolved_total"],
-        "trade_count": activity_stats["trade_count"],
-        "total_invested_usdc": activity_stats["total_invested_usdc"],
-        "avg_bet_size_usdc": activity_stats["avg_bet_size_usdc"],
-        "avg_price": activity_stats["avg_price"],
-        "avg_price_decimal": activity_stats["avg_price_decimal"],
+        "win_rate": history_stats["win_rate"],
+        "resolved_won": history_stats["resolved_won"],
+        "resolved_lost": history_stats["resolved_lost"],
+        "resolved_total": history_stats["resolved_total"],
+        "trade_count": history_stats["trade_count"],
+        "total_invested_usdc": history_stats["total_invested_usdc"],
+        "avg_bet_size_usdc": history_stats["avg_bet_size_usdc"],
+        "avg_price": history_stats["avg_price"],
+        "avg_price_decimal": history_stats["avg_price_decimal"],
         "last_synced_at": datetime.now(timezone.utc).isoformat(),
     }
     # A failed positions read must not make a real open-position snapshot look
