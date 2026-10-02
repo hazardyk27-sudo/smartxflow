@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
-
 from analysis_v2.signal_store import (
     SignalLedger,
     build_settlement_event,
@@ -52,8 +50,12 @@ def test_trigger_event_freezes_numeric_trigger_values():
 
 def test_trigger_rejects_noncanonical_match_identity():
     bad = dict(BASE_TRIGGER, match_id_hash="Home|Away")
-    with pytest.raises(ValueError):
+    try:
         build_trigger_event(bad)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("noncanonical match hash must be rejected")
 
 
 def test_initial_state_matches_trigger_snapshot():
@@ -76,7 +78,7 @@ def test_lifecycle_does_not_resurrect_invalidated_signal():
 
 
 def test_settlement_requires_canonical_hash():
-    with pytest.raises(ValueError):
+    try:
         build_settlement_event(
             signal_uid="sig_x",
             match_id_hash="wrong",
@@ -85,6 +87,10 @@ def test_settlement_requires_canonical_hash():
             away_score=0,
             selection_result="WIN",
         )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("settlement must reject noncanonical match hash")
 
 
 class _Response:
