@@ -1720,17 +1720,35 @@ def _canonical_bet_identity(row: Dict[str, Any]) -> Optional[Tuple[Any, ...]]:
     return None
 
 
+def _tracked_wallet_activity_action(row: Dict[str, Any]) -> str:
+    """Normalize raw Polymarket direction for stake accounting.
+
+    Current rows store BUY/SELL in `action`. Older 1x2 rows may carry that
+    value in `side`, so accept it only when it is literally BUY or SELL.
+    """
+    action = str(row.get("action") or "").strip().upper()
+    if action in ("BUY", "SELL"):
+        return action
+    legacy_side = str(row.get("side") or "").strip().upper()
+    if legacy_side in ("BUY", "SELL"):
+        return legacy_side
+    return "UNKNOWN"
+
+
 def _group_activity_into_canonical_bets(
     activity_rows: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Collapse raw fills into one bettor bet/position per outcome identity."""
+    """Collapse qualifying fills into one bettor bet/position per outcome.
+
+    BUY fills establish stake/cost basis. SELL fills are exits and therefore
+    never add to investment. Completely action-less legacy positions retain a
+    conservative stake fallback so old tracked history is not silently erased.
+    """
     grouped: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
 
     for idx, row in enumerate(activity_rows):
         key = _canonical_bet_identity(row)
         if key is None:
-            # Never silently drop an old malformed row from the count. Without
-            # enough identity data it stays a standalone fill/bet.
             key = ("unidentified-fill", idx)
 
         group = grouped.get(key)
@@ -1745,9 +1763,17 @@ def _group_activity_into_canonical_bets(
                 "side": row.get("side"),
                 "outcome_raw": row.get("outcome_raw"),
                 "fill_count": 0,
-                # PART 1 intentionally keeps this as gross fill volume. PART 2
-                # will split BUY stake from SELL exit proceeds.
                 "gross_fill_volume_usdc": 0.0,
+                "buy_fill_count": 0,
+                "sell_fill_count": 0,
+                "unknown_fill_count": 0,
+                "buy_stake_usdc": 0.0,
+                "sell_proceeds_usdc": 0.0,
+                "unknown_volume_usdc": 0.0,
+                "_buy_shares": 0.0,
+                "_unknown_shares": 0.0,
+                "_buy_price_amount_weight_sum": 0.0,
+                "_unknown_price_amount_weight_sum": 0.0,
             }
             grouped[key] = group
 
@@ -1755,18 +1781,84 @@ def _group_activity_into_canonical_bets(
             row_fill_count = int(row.get("fill_count") or 1)
         except (TypeError, ValueError):
             row_fill_count = 1
+        row_fill_count = max(row_fill_count, 1)
+
         try:
             amount = float(row.get("amount_usdc") or 0)
         except (TypeError, ValueError):
             amount = 0.0
+        try:
+            price = float(row.get("price") or 0)
+        except (TypeError, ValueError):
+            price = 0.0
+        try:
+            size = float(row.get("size") or 0)
+        except (TypeError, ValueError):
+            size = 0.0
 
-        group["fill_count"] += max(row_fill_count, 1)
+        # Data API size = outcome shares. If a legacy row lacks size but has
+        # amount+price, amount/price reconstructs the share count.
+        effective_shares = size if size > 0 else (amount / price if amount > 0 and price > 0 else 0.0)
+
+        group["fill_count"] += row_fill_count
         group["gross_fill_volume_usdc"] += amount
 
+        action = _tracked_wallet_activity_action(row)
+        if action == "BUY":
+            group["buy_fill_count"] += row_fill_count
+            group["buy_stake_usdc"] += amount
+            group["_buy_shares"] += effective_shares
+            group["_buy_price_amount_weight_sum"] += price * amount
+        elif action == "SELL":
+            group["sell_fill_count"] += row_fill_count
+            group["sell_proceeds_usdc"] += amount
+        else:
+            group["unknown_fill_count"] += row_fill_count
+            group["unknown_volume_usdc"] += amount
+            group["_unknown_shares"] += effective_shares
+            group["_unknown_price_amount_weight_sum"] += price * amount
+
     for group in grouped.values():
-        group["gross_fill_volume_usdc"] = round(
-            group["gross_fill_volume_usdc"], 2
-        )
+        group["gross_fill_volume_usdc"] = round(group["gross_fill_volume_usdc"], 2)
+        group["buy_stake_usdc"] = round(group["buy_stake_usdc"], 2)
+        group["sell_proceeds_usdc"] = round(group["sell_proceeds_usdc"], 2)
+        group["unknown_volume_usdc"] = round(group["unknown_volume_usdc"], 2)
+
+        if group["buy_fill_count"] > 0:
+            stake = group["buy_stake_usdc"]
+            shares = group["_buy_shares"]
+            fallback_weight = group["_buy_price_amount_weight_sum"]
+            stake_source = "buy"
+        elif group["sell_fill_count"] == 0 and group["unknown_fill_count"] > 0:
+            # Fully legacy position: preserve historical stake semantics.
+            stake = group["unknown_volume_usdc"]
+            shares = group["_unknown_shares"]
+            fallback_weight = group["_unknown_price_amount_weight_sum"]
+            stake_source = "legacy_unknown"
+        else:
+            # SELL-only activity is an exit from a position opened before our
+            # tracked window; it is not a new bettor bet/investment.
+            stake = 0.0
+            shares = 0.0
+            fallback_weight = 0.0
+            stake_source = "none"
+
+        if stake > 0 and shares > 0:
+            avg_entry_price = stake / shares
+        elif stake > 0:
+            avg_entry_price = fallback_weight / stake
+        else:
+            avg_entry_price = 0.0
+
+        group["stake_usdc"] = round(stake, 2)
+        group["avg_entry_price"] = round(avg_entry_price, 6)
+        group["stake_source"] = stake_source
+
+        group.pop("_buy_shares", None)
+        group.pop("_unknown_shares", None)
+        group.pop("_buy_price_amount_weight_sum", None)
+        group.pop("_unknown_price_amount_weight_sum", None)
+
     return list(grouped.values())
 
 
@@ -1820,7 +1912,7 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
     Uses only data observed after tracking started."""
     try:
         r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-            "select": "asset,amount_usdc,traded_at",
+            "select": "asset,condition_id,result,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
             "wallet": f"eq.{wallet}",
             "limit": 2000,
         }, timeout=15)
@@ -1937,7 +2029,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "asset,condition_id,result,market_type,selection,side,outcome_raw,amount_usdc,price,traded_at",
+                "select": "asset,condition_id,result,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 10000,
             }, timeout=20)
@@ -2390,13 +2482,23 @@ def _compute_wallet_activity_stats(
     resolved_total = resolved_won + resolved_lost
     canonical_bets = _group_activity_into_canonical_bets(activity_rows)
     fill_count = sum(int(bet.get("fill_count") or 0) for bet in canonical_bets)
-    total_invested = sum(float(row.get("amount_usdc") or 0) for row in activity_rows)
+    entered_bets = [
+        bet for bet in canonical_bets
+        if float(bet.get("stake_usdc") or 0) > 0
+    ]
+
+    # Investment is qualifying BUY cost only. SELL is exit proceeds and must
+    # not inflate bettor stake or average bet size.
+    total_invested = sum(float(bet.get("stake_usdc") or 0) for bet in entered_bets)
     # Legacy DB/API field name retained for compatibility; its semantics are
-    # now canonical bettor bets/positions rather than raw execution fills.
-    trade_count = len(canonical_bets)
+    # canonical entered bets/positions rather than raw execution fills.
+    trade_count = len(entered_bets)
+
+    # Within a bet, avg_entry_price is share-weighted (cost / shares). Across
+    # bets we weight by stake so larger positions contribute proportionally.
     weighted_price_sum = sum(
-        float(row.get("price") or 0) * float(row.get("amount_usdc") or 0)
-        for row in activity_rows
+        float(bet.get("avg_entry_price") or 0) * float(bet.get("stake_usdc") or 0)
+        for bet in entered_bets
     )
     avg_price = weighted_price_sum / total_invested if total_invested else 0.0
     return {
@@ -2585,7 +2687,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     if trade_count == 0:
         summary_lines.append("Henüz futbol maçlarında kayıtlı bahsi bulunmuyor.")
     else:
-        summary_lines.append(f"{trade_count} futbol bahsi, toplam {round(total_invested, 0):,.0f} USDC hacim.".replace(",", "."))
+        summary_lines.append(f"{trade_count} futbol bahsi, toplam {round(total_invested, 0):,.0f} USDC yatırım.".replace(",", "."))
         if win_rate is not None:
             if win_rate >= 60:
                 summary_lines.append(f"Sonuçlanan {resolved_total} bahisin %{win_rate}'ini kazandı - isabet oranı yüksek.")

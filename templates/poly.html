@@ -1470,7 +1470,7 @@ async function openWalletProfile(wallet) {
       { label: 'Kazanan', value: wonCount },
       { label: 'Kaybeden', value: lostCount },
       { label: 'İsabet Oranı', value: (wonCount + lostCount) > 0 ? `%${((wonCount / (wonCount + lostCount)) * 100).toFixed(1)}` : '-' },
-      { label: 'Toplam Hacim (USDC)', value: fmtUsd(s.total_invested_usdc || 0) },
+      { label: 'Toplam Yatırım (USDC)', value: fmtUsd(s.total_invested_usdc || 0) },
       { label: 'Ort. Bahis (USDC)', value: fmtUsd(s.avg_bet_size_usdc || 0) },
       { label: 'Ort. Oran', value: s.avg_price_decimal ? s.avg_price_decimal.toFixed(2) : '-' },
       { label: 'Açık Pozisyon', value: s.open_position_count ?? 0 },

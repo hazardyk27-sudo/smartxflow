@@ -222,6 +222,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
                 "action": "BUY",
                 "amount_usdc": 1000,
                 "price": 0.5,
+                "size": 2000,
             }
             for _ in range(10)
         ]
@@ -232,8 +233,116 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(len(grouped), 1)
         self.assertEqual(grouped[0]["fill_count"], 10)
         self.assertEqual(grouped[0]["gross_fill_volume_usdc"], 10000.0)
+        self.assertEqual(grouped[0]["buy_stake_usdc"], 10000.0)
+        self.assertEqual(grouped[0]["sell_proceeds_usdc"], 0.0)
+        self.assertEqual(grouped[0]["stake_usdc"], 10000.0)
+        self.assertEqual(grouped[0]["avg_entry_price"], 0.5)
         self.assertEqual(stats["trade_count"], 1)
         self.assertEqual(stats["fill_count"], 10)
+        self.assertEqual(stats["total_invested_usdc"], 10000.0)
+        self.assertEqual(stats["avg_bet_size_usdc"], 10000.0)
+        self.assertEqual(stats["avg_price"], 0.5)
+        self.assertEqual(stats["avg_price_decimal"], 2.0)
+
+    def test_buy_stake_excludes_sell_proceeds_and_uses_share_weighted_entry(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1500,
+                "price": 0.6,
+                "size": 2500,
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "SELL",
+                "amount_usdc": 1100,
+                "price": 0.55,
+                "size": 2000,
+            },
+        ]
+
+        grouped = polymarket_client._group_activity_into_canonical_bets(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(len(grouped), 1)
+        self.assertEqual(grouped[0]["fill_count"], 3)
+        self.assertEqual(grouped[0]["buy_fill_count"], 2)
+        self.assertEqual(grouped[0]["sell_fill_count"], 1)
+        self.assertEqual(grouped[0]["gross_fill_volume_usdc"], 3600.0)
+        self.assertEqual(grouped[0]["buy_stake_usdc"], 2500.0)
+        self.assertEqual(grouped[0]["sell_proceeds_usdc"], 1100.0)
+        self.assertEqual(grouped[0]["stake_usdc"], 2500.0)
+        self.assertEqual(grouped[0]["avg_entry_price"], 0.555556)
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["fill_count"], 3)
+        self.assertEqual(stats["total_invested_usdc"], 2500.0)
+        self.assertEqual(stats["avg_bet_size_usdc"], 2500.0)
+        self.assertEqual(stats["avg_price"], 0.5556)
+        self.assertEqual(stats["avg_price_decimal"], 1.8)
+
+    def test_sell_only_activity_is_exit_not_new_bet(self):
+        activity = [{
+            "wallet": "0xwallet",
+            "asset": "old-france-yes",
+            "condition_id": "france-market",
+            "action": "SELL",
+            "amount_usdc": 1500,
+            "price": 0.6,
+            "size": 2500,
+        }]
+
+        grouped = polymarket_client._group_activity_into_canonical_bets(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(len(grouped), 1)
+        self.assertEqual(grouped[0]["sell_proceeds_usdc"], 1500.0)
+        self.assertEqual(grouped[0]["stake_usdc"], 0.0)
+        self.assertEqual(grouped[0]["stake_source"], "none")
+        self.assertEqual(stats["trade_count"], 0)
+        self.assertEqual(stats["total_invested_usdc"], 0.0)
+        self.assertEqual(stats["avg_bet_size_usdc"], 0.0)
+        self.assertEqual(stats["avg_price"], 0.0)
+        self.assertIsNone(stats["avg_price_decimal"])
+
+    def test_actionless_legacy_position_keeps_historical_stake(self):
+        activity = [
+            {
+                "asset": "legacy-france-yes",
+                "condition_id": "france-market",
+                "amount_usdc": 1000,
+                "price": 0.5,
+            },
+            {
+                "asset": "legacy-france-yes",
+                "condition_id": "france-market",
+                "amount_usdc": 1500,
+                "price": 0.6,
+            },
+        ]
+
+        grouped = polymarket_client._group_activity_into_canonical_bets(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(len(grouped), 1)
+        self.assertEqual(grouped[0]["stake_source"], "legacy_unknown")
+        self.assertEqual(grouped[0]["stake_usdc"], 2500.0)
+        self.assertEqual(grouped[0]["avg_entry_price"], 0.555556)
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["total_invested_usdc"], 2500.0)
 
     def test_legacy_same_condition_keeps_opposite_outcomes_separate(self):
         activity = [
