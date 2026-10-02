@@ -530,6 +530,40 @@ class SnapshotHistoryClient:
             return []
         return combined
 
+    def fetch_match_rows(
+        self,
+        *,
+        match_id_hash: str,
+        as_of: Any,
+    ) -> List[Dict[str, Any]]:
+        """Fetch all retained snapshot rows for one exact match in one paged read path.
+
+        Runtime V2 uses this to build every directional/structural feature from
+        the same immutable snapshot set instead of issuing one HTTP history
+        request per selection.
+        """
+        match_hash = validate_match_id_hash(match_id_hash)
+        cutoff = _timestamp(as_of)
+        params = {
+            "select": SNAPSHOT_COLUMNS,
+            "match_id_hash": f"eq.{match_hash}",
+            "scraped_at_utc": f"lte.{_iso(cutoff)}",
+            "order": "scraped_at_utc.asc,id.asc",
+        }
+        rows: List[Dict[str, Any]] = []
+        for page in range(self.max_pages):
+            chunk = self._get(
+                params,
+                range_start=page * self.page_size,
+            )
+            rows.extend(chunk)
+            if len(chunk) < self.page_size:
+                return rows
+        raise RuntimeError(
+            "moneyway_snapshots pagination limit reached "
+            "for exact match runtime query"
+        )
+
     def build_features(
         self,
         *,
