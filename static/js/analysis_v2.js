@@ -124,16 +124,16 @@
         }
     };
 
-    const renderCounters = (counts = {}) => {
-        counters.all.textContent = String(
-            (counts.FIRSAT || 0)
-            + (counts.IZLE || 0)
-            + (counts.UZAK_DUR || 0)
-            + (counts.UNKNOWN || 0)
-        );
-        counters.FIRSAT.textContent = String(counts.FIRSAT || 0);
-        counters.IZLE.textContent = String(counts.IZLE || 0);
-        counters.UZAK_DUR.textContent = String(counts.UZAK_DUR || 0);
+    const renderCounters = () => {
+        const counts = { FIRSAT: 0, IZLE: 0, UZAK_DUR: 0, UNKNOWN: 0 };
+        cards.forEach((card) => {
+            const state = counts[card.state] != null ? card.state : 'UNKNOWN';
+            counts[state] += 1;
+        });
+        counters.all.textContent = String(cards.length);
+        counters.FIRSAT.textContent = String(counts.FIRSAT);
+        counters.IZLE.textContent = String(counts.IZLE);
+        counters.UZAK_DUR.textContent = String(counts.UZAK_DUR);
     };
 
     const metricCells = (movement) => {
@@ -367,7 +367,7 @@
 
             if (response.status === 401 || response.status === 403) {
                 cards = [];
-                renderCounters({});
+                renderCounters();
                 feed.innerHTML = emptyState(
                     'Erişim doğrulanamadı',
                     'Analizler V2 verisini görmek için hesabınızla giriş yapın veya aktif lisansınızı doğrulayın.',
@@ -380,7 +380,7 @@
             const payload = await response.json();
             if (!payload.available) {
                 cards = [];
-                renderCounters(payload.counts || {});
+                renderCounters();
                 showStatus(reasonMessage(payload.reason), true);
                 feed.innerHTML = emptyState(
                     'V2 veri akışı bekleniyor',
@@ -396,7 +396,7 @@
             hasMore = Boolean(payload.has_more);
             nextOffset = offset + PAGE_SIZE;
 
-            renderCounters(payload.counts || {});
+            renderCounters();
             renderFeed();
             lastRefresh.textContent = `Güncellendi · ${new Intl.DateTimeFormat('tr-TR', {
                 hour: '2-digit',
@@ -405,7 +405,7 @@
             }).format(new Date())}`;
         } catch (error) {
             if (!append) cards = [];
-            renderCounters({});
+            renderCounters();
             showStatus('V2 sinyal akışına bağlanılamadı.', true);
             if (!append) {
                 feed.innerHTML = emptyState(
