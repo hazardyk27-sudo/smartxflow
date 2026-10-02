@@ -1020,3 +1020,29 @@ body.drawer-open { overflow: hidden; }
     .market-field { width: 100%; }
     .settlement-box { grid-template-columns: 1fr; }
 }
+
+
+.load-more-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 18px 0 0;
+}
+.load-more-btn {
+    min-width: 170px;
+    padding: 11px 16px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--panel);
+    color: #cbd6dc;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 800;
+}
+.load-more-btn:hover {
+    border-color: var(--line-strong);
+    background: var(--panel-2);
+}
+.load-more-btn:disabled {
+    opacity: .55;
+    cursor: wait;
+}
