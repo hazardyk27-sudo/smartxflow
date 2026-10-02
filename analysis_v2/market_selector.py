@@ -330,6 +330,7 @@ def apply_market_selection_to_trigger(
     if result.get("decision") == "RECOMMEND":
         payload["recommended_market"] = result.get("recommended_market")
         payload["recommended_selection"] = result.get("recommended_selection")
+        payload["recommended_odds"] = result.get("recommended_odds")
 
     engine_reason = dict(payload.get("engine_reason") or {})
     engine_reason["market_selector"] = {
