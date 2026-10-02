@@ -1160,7 +1160,12 @@ def analysis_v2_signals_endpoint():
     if requested_state not in {'FIRSAT', 'IZLE', 'UZAK_DUR'}:
         requested_state = ''
 
-    requested_query = str(request.args.get('q') or '').strip().casefold()[:80]
+    requested_query_raw = str(request.args.get('q') or '').strip()[:80]
+    requested_query = _analysis_v2_re.sub(
+        r'[^0-9A-Za-zğüşöçıİĞÜŞÖÇ ._\-]+',
+        ' ',
+        requested_query_raw,
+    ).strip().casefold()
 
     empty_counts = {'FIRSAT': 0, 'IZLE': 0, 'UZAK_DUR': 0, 'UNKNOWN': 0}
     supabase = get_supabase_client()
@@ -1193,6 +1198,12 @@ def analysis_v2_signals_endpoint():
             params['recommended_market'] = f'eq.{requested_market}'
         if requested_engine:
             params['engine_key'] = f'eq.{requested_engine}'
+        if requested_query:
+            params['or'] = (
+                f'(home_team.ilike.*{requested_query}*,'
+                f'away_team.ilike.*{requested_query}*,'
+                f'league.ilike.*{requested_query}*)'
+            )
 
         response = supabase._get_http_client().get(
             supabase._rest_url('analysis_v2_signal_current'),
