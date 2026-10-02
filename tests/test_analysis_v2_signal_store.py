@@ -291,3 +291,40 @@ def test_legacy_boundary_keys_map_to_canonical_snapshot():
     assert event["trigger_at"] == "2026-10-02T12:34:56+00:00"
     assert event["features"] == {"legacy": True}
     assert event["config_snapshot"] == {"threshold": 5}
+
+
+def test_recommended_odds_are_part_of_immutable_trigger_snapshot():
+    payload = dict(
+        BASE_TRIGGER,
+        recommended_market="DC",
+        recommended_selection="1X",
+        recommended_odds="1.44",
+    )
+    event = build_trigger_event(payload)
+    assert event["trigger_odds"] == 1.82
+    assert event["recommended_odds"] == 1.44
+
+
+def test_store_settlement_uses_recommended_odds_when_market_changed():
+    store, session = _store()
+    trigger = store.create_signal_once(
+        dict(
+            BASE_TRIGGER,
+            recommended_market="DC",
+            recommended_selection="1X",
+            recommended_odds=1.44,
+        )
+    )
+
+    settled = store.settle_signal(
+        signal_id=trigger["signal_id"],
+        match_id_hash=trigger["match_id_hash"],
+        final_home_score=1,
+        final_away_score=1,
+        outcome="WIN",
+        settled_at="2026-10-02T20:00:00Z",
+        pnl_units=0.44,
+    )
+
+    assert settled["entry_odds"] == 1.44
+    assert len(session.tables["analysis_v2_signal_settlements"]) == 1
