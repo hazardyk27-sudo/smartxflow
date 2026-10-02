@@ -15,7 +15,7 @@ import logging
 import threading
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -2419,7 +2419,12 @@ def _with_wallet_bet_display_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
     return enriched
 
 
-def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+def fetch_wallet_activity(
+    wallet: str,
+    since_ts: Optional[int] = None,
+    max_pages: Optional[int] = None,
+    classification_details: bool = False,
+):
     """Fully/incrementally paginate the Data API /activity endpoint for a single
     wallet, filtered server-side to TRADE-type entries and client-side to
     markets verified by Gamma's Soccer tag registry. Returns (rows, truncated) - `truncated=True` means the
@@ -2476,17 +2481,27 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
 
     truncated = since_ts is not None and hit_page_cap
     if truncated:
+        if classification_details:
+            return rows, True, [], []
         return rows, True
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
-        # Treat registry uncertainty like an incomplete fetch so callers do
-        # not persist a partial category view or advance their checkpoint.
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, False, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], True
     return football_rows, False
 
 
-def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+def fetch_wallet_redeems(
+    wallet: str,
+    since_ts: Optional[int] = None,
+    max_pages: Optional[int] = None,
+    classification_details: bool = False,
+):
     """Fully/incrementally paginate the Data API /activity endpoint for a
     single wallet, filtered server-side to REDEEM-type entries (a wallet
     cashing out a resolved/winning position) and client-side to football
@@ -2540,15 +2555,25 @@ def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages:
 
     truncated = since_ts is not None and hit_page_cap
     if truncated:
+        if classification_details:
+            return rows, True, [], []
         return rows, True
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, False, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], True
     return football_rows, False
 
 
-def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
+def fetch_wallet_positions(
+    wallet: str,
+    classification_details: bool = False,
+):
     """Fetch ALL current positions (open + unredeemed-resolved) for a wallet via
     the Data API /positions endpoint, then strictly verified against Gamma's Soccer registry.
 
@@ -2577,10 +2602,13 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
             break
         offset += _POSITIONS_PAGE_LIMIT
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
-        # Do not let a temporary Gamma verification failure wipe the last
-        # known stored position snapshot.
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, not uncertain_rows, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], False
     return football_rows, True
 

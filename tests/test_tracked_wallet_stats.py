@@ -796,6 +796,32 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertFalse(truncated)
         self.assertEqual([row["conditionId"] for row in rows], ["soccer-condition"])
 
+    def test_activity_classification_details_returns_uncertain_without_dropping_verified(self):
+        raw = [
+            {"conditionId": "soccer", "timestamp": 100},
+            {"conditionId": "mystery", "timestamp": 99},
+            {"conditionId": "politics", "timestamp": 98},
+        ]
+        classified = {
+            "verified_football": [dict(raw[0], _sport_classification="verified_football")],
+            "uncertain": [dict(raw[1], _sport_classification="uncertain")],
+            "verified_non_football": [dict(raw[2], _sport_classification="verified_non_football")],
+            "verification_complete": False,
+        }
+
+        with patch.object(polymarket_client, "_get_json", return_value=raw), \
+             patch.object(polymarket_client, "_classify_football_items", return_value=classified):
+            football, truncated, uncertain, nonfootball = polymarket_client.fetch_wallet_activity(
+                "0xwallet",
+                max_pages=1,
+                classification_details=True,
+            )
+
+        self.assertFalse(truncated)
+        self.assertEqual(len(football), 1)
+        self.assertEqual(len(uncertain), 1)
+        self.assertEqual(len(nonfootball), 1)
+
     def test_positions_registry_failure_preserves_existing_snapshot_contract(self):
         raw = [{
             "conditionId": "soccer-condition",
