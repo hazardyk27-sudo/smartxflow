@@ -1774,6 +1774,7 @@ def _group_activity_into_canonical_bets(
                 "_unknown_shares": 0.0,
                 "_buy_price_amount_weight_sum": 0.0,
                 "_unknown_price_amount_weight_sum": 0.0,
+                "_stored_results": set(),
             }
             grouped[key] = group
 
@@ -1802,6 +1803,8 @@ def _group_activity_into_canonical_bets(
 
         group["fill_count"] += row_fill_count
         group["gross_fill_volume_usdc"] += amount
+        if row.get("result") in ("won", "lost"):
+            group["_stored_results"].add(row["result"])
 
         action = _tracked_wallet_activity_action(row)
         if action == "BUY":
@@ -1850,9 +1853,18 @@ def _group_activity_into_canonical_bets(
         else:
             avg_entry_price = 0.0
 
+        stored_results = group.pop("_stored_results", set())
+        if stored_results == {"won"}:
+            stored_result = "won"
+        elif stored_results == {"lost"}:
+            stored_result = "lost"
+        else:
+            stored_result = None
+
         group["stake_usdc"] = round(stake, 2)
         group["avg_entry_price"] = round(avg_entry_price, 6)
         group["stake_source"] = stake_source
+        group["stored_result"] = stored_result
 
         group.pop("_buy_shares", None)
         group.pop("_unknown_shares", None)
@@ -2281,19 +2293,14 @@ def remove_tracked_wallet(wallet: str) -> bool:
 
 
 def _compute_resolved_stats(position_rows: List[Dict[str, Any]], redeem_rows: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Shared won/lost/open-position accounting used by both the full wallet
-    profile and the tracked-wallets list summary.
+    """Build resolution evidence and open-position accounting.
 
-    WIN RATE uses condition_id-based grouping: 1 market = 1 bet, regardless
-    of how many outcome tokens the wallet held. If any redeem for a given
-    condition_id paid > $0.01, that market is "won"; if all redeems paid $0,
-    it is "lost". Open positions (no redeem yet) are excluded entirely.
-    This avoids the double-counting bug that occurred when asset IDs and
-    condition_ids were mixed in the same set.
-
-    ACTIVITY BADGE display (resolved_won_ids / resolved_lost_ids) keeps the
-    asset-level logic so each row in the İşlem Geçmişi table gets the correct
-    Kazandı / Kaybetti badge at the outcome-token level."""
+    resolved_won_ids / resolved_lost_ids are the asset-first evidence used by
+    activity badges and canonical-bet result accounting. The aggregate counters
+    returned here remain a fallback snapshot for callers that do not have the
+    tracked activity ledger. Bettor win rate itself is computed later in
+    _compute_wallet_activity_stats, one canonical entered outcome bet at a time.
+    """
 
     # ── Activity-badge sets (asset-level, unchanged) ─────────────────────
     resolved_won_assets = {
@@ -2428,8 +2435,9 @@ def _compute_wallet_activity_stats(
     """Build the profile/list summary from the same filtered ledger.
 
     trade_count is the canonical bettor-bet/position count, while fill_count
-    preserves the number of qualifying raw executions. Resolution metrics are
-    still market-level until PART 3.
+    preserves the number of qualifying raw executions. Win/loss and win rate
+    are also canonical-bet level: repeated fills count once, while opposite
+    outcome assets under the same condition remain distinct bets.
     """
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     resolved_won_ids = resolved["resolved_won_ids"]
@@ -2440,52 +2448,46 @@ def _compute_wallet_activity_stats(
         if p.get("asset")
     }
 
-    asset_to_condition: Dict[str, Any] = {}
-    for row in [*activity_rows, *position_rows, *redeem_rows]:
-        asset = row.get("asset")
-        condition_id = row.get("condition_id")
-        if asset and condition_id:
-            asset_to_condition[asset] = condition_id
-
-    def market_key(row: Dict[str, Any]) -> Optional[str]:
-        condition_id = row.get("condition_id")
-        if condition_id:
-            return f"condition:{condition_id}"
-        asset = row.get("asset")
-        if asset:
-            return f"condition:{asset_to_condition.get(asset, asset)}"
-        return None
-
-    result_by_market: Dict[str, set] = {}
-    for row in activity_rows:
-        asset = row.get("asset")
-        if asset in open_assets:
-            continue
-        key = market_key(row)
-        if not key:
-            continue
-        result = row.get("result")
-        condition_id = row.get("condition_id")
-        if result not in ("won", "lost"):
-            if asset and asset in resolved_won_ids or condition_id in resolved_won_ids:
-                result = "won"
-            elif asset and asset in resolved_lost_ids or condition_id in resolved_lost_ids:
-                result = "lost"
-        if result in ("won", "lost"):
-            result_by_market.setdefault(key, set()).add(result)
-
-    resolved_won = sum("won" in results for results in result_by_market.values())
-    resolved_lost = sum(
-        "won" not in results and "lost" in results
-        for results in result_by_market.values()
-    )
-    resolved_total = resolved_won + resolved_lost
     canonical_bets = _group_activity_into_canonical_bets(activity_rows)
     fill_count = sum(int(bet.get("fill_count") or 0) for bet in canonical_bets)
     entered_bets = [
         bet for bet in canonical_bets
         if float(bet.get("stake_usdc") or 0) > 0
     ]
+
+    def canonical_bet_result(bet: Dict[str, Any]) -> Optional[str]:
+        """Resolve exactly one canonical entered outcome bet."""
+        asset = bet.get("asset")
+        condition_id = bet.get("condition_id")
+
+        # A still-open position never belongs in resolved performance.
+        if asset and asset in open_assets:
+            return None
+
+        stored_result = bet.get("stored_result")
+        if stored_result in ("won", "lost"):
+            return stored_result
+
+        # Concrete assets use only asset-level evidence. Never fall back to the
+        # shared condition_id here or opposite outcomes would collapse.
+        if asset:
+            if asset in resolved_won_ids:
+                return "won"
+            if asset in resolved_lost_ids:
+                return "lost"
+            return None
+
+        # Legacy asset-less rows may use the condition-level evidence.
+        if condition_id in resolved_won_ids:
+            return "won"
+        if condition_id in resolved_lost_ids:
+            return "lost"
+        return None
+
+    resolved_results = [canonical_bet_result(bet) for bet in entered_bets]
+    resolved_won = sum(result == "won" for result in resolved_results)
+    resolved_lost = sum(result == "lost" for result in resolved_results)
+    resolved_total = resolved_won + resolved_lost
 
     # Investment is qualifying BUY cost only. SELL is exit proceeds and must
     # not inflate bettor stake or average bet size.

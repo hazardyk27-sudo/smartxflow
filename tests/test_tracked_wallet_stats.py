@@ -383,6 +383,143 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(stats["trade_count"], 2)
         self.assertEqual(stats["fill_count"], 3)
 
+    def test_repeated_winning_fills_count_as_one_resolved_bet(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+                "result": "won",
+            }
+            for _ in range(10)
+        ]
+
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["fill_count"], 10)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 0)
+        self.assertEqual(stats["resolved_total"], 1)
+        self.assertEqual(stats["win_rate"], 100.0)
+
+    def test_opposite_outcomes_same_condition_are_two_resolved_bets(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "Yes",
+                "action": "BUY",
+                "amount_usdc": 1200,
+                "price": 0.6,
+                "size": 2000,
+                "result": "won",
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-no",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "No",
+                "action": "BUY",
+                "amount_usdc": 1100,
+                "price": 0.55,
+                "size": 2000,
+                "result": "lost",
+            },
+        ]
+
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 1)
+        self.assertEqual(stats["resolved_total"], 2)
+        self.assertEqual(stats["win_rate"], 50.0)
+
+    def test_asset_resolution_does_not_fall_back_to_shared_condition_winner(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-no",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+            },
+        ]
+        redeems = [{
+            "condition_id": "france-market",
+            "asset": None,
+            "amount_usdc": 2000,
+        }]
+
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], redeems)
+
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["resolved_won"], 0)
+        self.assertEqual(stats["resolved_lost"], 0)
+        self.assertEqual(stats["resolved_total"], 0)
+        self.assertIsNone(stats["win_rate"])
+
+    def test_resolved_position_asset_counts_once_without_persisted_fill_result(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+                "result": None,
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 1200,
+                "price": 0.6,
+                "size": 2000,
+                "result": None,
+            },
+        ]
+        positions = [{
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "cur_price": 1.0,
+            "current_value": 4000,
+            "cash_pnl": 1800,
+            "redeemable": True,
+        }]
+
+        stats = polymarket_client._compute_wallet_activity_stats(activity, positions, [])
+
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["resolved_won"], 1)
+        self.assertEqual(stats["resolved_lost"], 0)
+        self.assertEqual(stats["resolved_total"], 1)
+        self.assertEqual(stats["win_rate"], 100.0)
+
     def test_open_position_is_not_counted_as_resolved_market(self):
         activity = [
             {
