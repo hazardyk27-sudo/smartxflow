@@ -87,7 +87,7 @@ def test_exact_hash_builds_settlement_and_roi():
     assert settlements[0]["metadata"]["match_method"] == "exact_match_id_hash"
 
 
-def test_recommended_market_is_used_when_present():
+def test_recommended_market_uses_its_own_frozen_odds():
     signals = [
         {
             "signal_id": "sig_test",
@@ -97,7 +97,8 @@ def test_recommended_market_is_used_when_present():
             "selection_code": "2",
             "recommended_market": "DC",
             "recommended_selection": "X2",
-            "trigger_odds": 1.55,
+            "trigger_odds": 3.40,
+            "recommended_odds": 1.60,
         }
     ]
     settlements, _ = build_settlements_from_hash_scores(
@@ -106,6 +107,39 @@ def test_recommended_market_is_used_when_present():
         settled_at="2026-10-02T20:00:00Z",
     )
     assert settlements[0]["outcome"] == "WIN"
+    assert settlements[0]["entry_odds"] == 1.60
+    assert abs(settlements[0]["pnl_units"] - 0.60) < 1e-9
+    assert (
+        settlements[0]["metadata"]["entry_odds_source"]
+        == "recommended_odds"
+    )
+
+
+def test_changed_market_without_recommended_odds_never_uses_source_price():
+    signals = [
+        {
+            "signal_id": "sig_test",
+            "match_id_hash": "a1b2c3d4e5f6",
+            "engine_version": "2.0.0",
+            "market_key": "1X2",
+            "selection_code": "2",
+            "recommended_market": "DC",
+            "recommended_selection": "X2",
+            "trigger_odds": 3.40,
+        }
+    ]
+    settlements, _ = build_settlements_from_hash_scores(
+        signals,
+        {"a1b2c3d4e5f6": "1-1"},
+        settled_at="2026-10-02T20:00:00Z",
+    )
+    assert settlements[0]["outcome"] == "WIN"
+    assert settlements[0]["entry_odds"] is None
+    assert settlements[0]["pnl_units"] is None
+    assert (
+        settlements[0]["metadata"]["entry_odds_source"]
+        == "missing_recommended_market_odds"
+    )
 
 
 def test_parse_score_shapes():
