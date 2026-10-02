@@ -563,6 +563,157 @@
     .source-note { display: none; }
     .refresh-btn { margin-left: 0; }
   }
+  /* ── Tracked Bettors V2 ─────────────────────────────── */
+  #walletsView, #walletProfileView { animation: twFadeIn .18s ease-out; }
+  @keyframes twFadeIn { from { opacity:.4; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  .tw-v2-hero {
+    display:flex; align-items:flex-end; justify-content:space-between; gap:18px;
+    padding:22px; margin:4px 0 16px; border:1px solid #242b3b; border-radius:16px;
+    background:
+      radial-gradient(circle at 92% 10%, rgba(76,125,255,.18), transparent 34%),
+      linear-gradient(145deg, #121824 0%, #0f141e 100%);
+    box-shadow: 0 18px 50px rgba(0,0,0,.18);
+  }
+  .tw-v2-eyebrow { color:#7ea6ff; font-size:10px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin-bottom:7px; }
+  .tw-v2-title { font-size:25px; font-weight:800; letter-spacing:-.03em; color:#f4f7fb; }
+  .tw-v2-copy { color:#8f99ad; font-size:12.5px; line-height:1.55; max-width:680px; margin-top:7px; }
+  .tw-v2-rule {
+    min-width:150px; padding:11px 13px; border:1px solid #2b354a; border-radius:12px;
+    background:rgba(12,17,26,.72); color:#8f99ad; font-size:10.5px; line-height:1.35;
+  }
+  .tw-v2-rule strong { display:block; color:#f3f6fb; font-size:17px; margin-bottom:2px; }
+  .tw-v2-panel {
+    background:#0f141d; border:1px solid #1f2736; border-radius:14px; padding:14px; margin-bottom:12px;
+  }
+  .tw-v2-panel-title { color:#cfd6e4; font-size:12px; font-weight:750; margin-bottom:10px; }
+  .tw-v2-controls {
+    display:grid; grid-template-columns:minmax(0,1fr) 230px; gap:10px; align-items:center;
+  }
+  .tw-v2-controls input, .tw-v2-controls select {
+    width:100%; background:#151b27; border:1px solid #293247; border-radius:10px;
+    color:#eef2f8; padding:11px 12px; outline:none; font-size:13px;
+  }
+  .tw-v2-controls input:focus, .tw-v2-controls select:focus { border-color:#4c7dff; box-shadow:0 0 0 3px rgba(76,125,255,.10); }
+  .tw-v2-note { color:#6f7a90; font-size:11.5px; line-height:1.5; margin-top:9px; }
+  #trackedWalletList {
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px;
+  }
+  #trackedWalletList > .loading { grid-column:1/-1; }
+  .tw-card {
+    margin:0; min-height:188px; padding:16px; border-radius:15px; overflow:hidden; position:relative;
+    background:linear-gradient(150deg,#131a25 0%,#10151e 100%); border-color:#222b3b;
+    box-shadow:0 12px 32px rgba(0,0,0,.14);
+  }
+  .tw-card::after {
+    content:""; position:absolute; width:150px; height:150px; right:-72px; top:-78px;
+    border-radius:50%; background:rgba(76,125,255,.07); pointer-events:none;
+  }
+  .tw-card:hover { transform:translateY(-1px); border-color:#466fcf; box-shadow:0 16px 38px rgba(0,0,0,.22); }
+  .tw-card-body { align-items:flex-start; }
+  .tw-avatar { width:48px; height:48px; border-radius:13px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.10); }
+  .tw-name { font-size:16px; letter-spacing:-.01em; }
+  .tw-addr { margin-top:2px; color:#69758a; }
+  .tw-status-pill {
+    margin-left:auto; padding:3px 7px; border-radius:999px; font-size:9.5px; font-weight:750;
+    border:1px solid #2a3448; color:#8fa1be; background:#141b27; white-space:nowrap;
+  }
+  .tw-status-pill.ready { color:#7dd3a6; border-color:#244638; background:#10241d; }
+  .tw-primary-metric { margin-top:13px; display:flex; align-items:flex-end; justify-content:space-between; gap:12px; }
+  .tw-primary-label { color:#6f7a90; font-size:10.5px; margin-bottom:3px; }
+  .tw-primary-value { color:#f6f8fb; font-weight:800; font-size:27px; line-height:1; letter-spacing:-.04em; }
+  .tw-primary-sub { color:#7b869a; font-size:10.5px; text-align:right; line-height:1.35; }
+  .tw-mini-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:12px; }
+  .tw-ms-box { min-width:0; padding:7px 8px; border-radius:8px; background:#111824; border-color:#232d40; }
+  .tw-ms-label { font-size:9.5px; }
+  .tw-ms-val { font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tw-actions { margin-top:13px; padding-top:11px; }
+  .tw-btn-profile { background:#1a2740; border-color:#35558e; color:#9cbcff; }
+  .tw-btn-profile:hover { background:#203252; }
+  .tw-v2-profile-hero {
+    display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:center;
+    padding:18px 20px; border:1px solid #242d3e; border-radius:16px;
+    background:linear-gradient(145deg,#121925,#0f141d); margin-bottom:10px;
+  }
+  .tw-v2-profile-name { font-size:22px; font-weight:800; letter-spacing:-.025em; color:#f4f7fb; }
+  .tw-v2-profile-address { color:#728098; font:11.5px/1.4 monospace; margin-top:4px; }
+  .tw-v2-profile-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .tw-meta-pill { padding:4px 7px; border:1px solid #293247; border-radius:999px; color:#8997ae; font-size:10px; background:#121925; }
+  .tw-meta-pill.good { color:#7dd3a6; border-color:#234637; background:#10231c; }
+  .tw-meta-pill.warn { color:#f4c56b; border-color:#55431c; background:#261f0f; }
+  .tw-v2-score {
+    min-width:118px; text-align:center; padding:12px 14px; border:1px solid #30405f; border-radius:13px; background:#121b2b;
+  }
+  .tw-v2-score-label { color:#7f90ad; font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .tw-v2-score-value { font-size:31px; font-weight:850; letter-spacing:-.05em; color:#f5f8ff; margin:2px 0; }
+  .tw-v2-score-sub { color:#68768f; font-size:9.5px; }
+  .tw-v2-quality {
+    display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin:10px 0 14px;
+    padding:10px 12px; border:1px solid #202a3a; border-radius:11px; background:#0e131b;
+    color:#7d899d; font-size:10.5px;
+  }
+  .tw-v2-quality strong { color:#cbd3e1; }
+  .tw-v2-insights {
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin:12px 0;
+  }
+  .tw-insight {
+    padding:12px; border:1px solid #222c3d; border-radius:11px; background:#111721;
+  }
+  .tw-insight-label { color:#6f7a90; font-size:10px; margin-bottom:6px; }
+  .tw-insight-value { color:#eef3fa; font-size:18px; font-weight:800; letter-spacing:-.02em; }
+  .tw-insight-help { color:#637087; font-size:9.5px; line-height:1.35; margin-top:4px; }
+  .wallet-stats-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; margin:12px 0; }
+  .wallet-stat-card { border-radius:11px; padding:12px; background:#111721; border-color:#222c3d; }
+  .wallet-stat-card .label { color:#6f7a90; font-size:10px; }
+  .wallet-stat-card .value { font-size:16px; letter-spacing:-.015em; }
+  .wallet-summary { background:#0f151f; border-color:#222c3d; border-radius:12px; color:#aab4c6; line-height:1.55; }
+  .wallet-section-title {
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:14px; margin:22px 0 8px; color:#e8edf5;
+  }
+  .tw-v2-explain { color:#68758b; font-size:10.5px; font-weight:400; }
+  .wallet-activity-table { min-width:1180px; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(1),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(1) { width:15%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(2),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(2) { width:11%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(3),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(3) { width:11%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(4),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(4) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(5),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(5) { width:12%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(6),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(6) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(7),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(7) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(8),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(8) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(9),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(9) { width:8%; }
+  .wallet-activity-table:not(.wallet-positions-table) th:nth-child(10),
+  .wallet-activity-table:not(.wallet-positions-table) td:nth-child(10) { width:11%; }
+  .clv-pos { color:#4ade80; font-weight:750; }
+  .clv-neg { color:#ff8080; font-weight:750; }
+  .clv-flat { color:#8b93a7; font-weight:650; }
+  .tw-info-dot {
+    display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    border:1px solid #354159; border-radius:50%; color:#8190a8; font-size:9px; cursor:help; margin-left:3px;
+  }
+  @media (max-width: 900px) {
+    #trackedWalletList { grid-template-columns:1fr; }
+    .tw-v2-insights, .wallet-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width: 640px) {
+    .tw-v2-hero { align-items:stretch; flex-direction:column; padding:16px; }
+    .tw-v2-rule { min-width:0; }
+    .tw-v2-controls { grid-template-columns:1fr; }
+    .tw-v2-profile-hero { grid-template-columns:1fr; padding:15px; }
+    .tw-v2-score { min-width:0; display:flex; align-items:center; justify-content:space-between; text-align:left; }
+    .tw-v2-score-value { font-size:26px; }
+    .tw-v2-insights, .wallet-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .tw-mini-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  }
+
 </style>
 </head>
 <body>
@@ -628,33 +779,53 @@
   </div>
 
   <div id="walletsView" style="display:none;">
-    <div class="sub" style="margin-bottom:16px;">Belirli bir Polymarket cüzdanını takibe alın; işlem geçmişi ve açık pozisyonları periyodik olarak toplanır ve profil sayfasında gösterilir.</div>
-    <div class="add-wallet-box">
-      <input type="text" id="addWalletAddress" placeholder="Cüzdan adresi (0x...)">
-      <input type="text" id="addWalletNickname" placeholder="Takma ad (örn. Sharp Bettor)">
-      <button id="addWalletBtn">+ Takibe Al</button>
+    <div class="tw-v2-hero">
+      <div>
+        <div class="tw-v2-eyebrow">Polymarket · Football only</div>
+        <div class="tw-v2-title">Takip Edilen Bahisçiler</div>
+        <div class="tw-v2-copy">Ham işlem satırları yerine aynı pozisyondaki BUY/SELL hareketlerini tek bahis yaşam döngüsünde birleştirir. Böylece bahis sayısı, yatırım ve sonuç performansı fill sayısıyla şişmez.</div>
+      </div>
+      <div class="tw-v2-rule"><strong>≥ $1.000</strong>Pozisyon toplam BUY girişi</div>
     </div>
-    <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
-    <div class="tracked-wallet-controls">
-      <input type="text" id="trackedWalletSearch" placeholder="Tahminci adına göre ara...">
-      <select id="trackedWalletSort" aria-label="Tahmincileri sırala">
-        <option value="default">Varsayılan sıralama</option>
-        <option value="win-desc">Başarı oranı: yüksekten düşüğe</option>
-        <option value="win-asc">Başarı oranı: düşükten yükseğe</option>
-      </select>
+
+    <div class="tw-v2-panel">
+      <div class="tw-v2-panel-title">Yeni cüzdan ekle</div>
+      <div class="add-wallet-box">
+        <input type="text" id="addWalletAddress" placeholder="Polymarket cüzdan adresi (0x...)">
+        <input type="text" id="addWalletNickname" placeholder="Görünen ad (örn. Sharp Bettor)">
+        <button id="addWalletBtn">+ Takibe Al</button>
+      </div>
+      <div id="addWalletError" class="add-wallet-error" style="display:none;"></div>
     </div>
-    <div class="tracked-wallet-note">Takipçi istatistikleri ve işlem geçmişi, aynı pozisyondaki toplam giriş yatırımı en az 1.000 USDC olan bahisleri kapsar.</div>
-    <div class="match-list" id="trackedWalletList">
+
+    <div class="tw-v2-panel">
+      <div class="tw-v2-controls">
+        <input type="text" id="trackedWalletSearch" placeholder="Bahisçi adına göre ara...">
+        <select id="trackedWalletSort" aria-label="Bahisçileri sırala">
+          <option value="default">En yeni takip</option>
+          <option value="resolved-desc">Sonuçlanan bahis: çoktan aza</option>
+          <option value="bets-desc">Toplam bahis: çoktan aza</option>
+          <option value="open-desc">Açık pozisyon: çoktan aza</option>
+          <option value="win-desc">İsabet: yüksekten düşüğe</option>
+          <option value="win-asc">İsabet: düşükten yükseğe</option>
+        </select>
+      </div>
+      <div class="tw-v2-note">İsabet oranı yalnız sonuçlanmış canonical bahisleri kullanır. Karttaki oran tek başına performans hükmü değildir; profil ekranında giriş olasılığı, CLV, gerçekleşmiş K/Z ve veri kapsamı birlikte gösterilir.</div>
+    </div>
+
+    <div id="trackedWalletList">
       <div class="loading">Yükleniyor...</div>
     </div>
   </div>
 
   <div id="walletProfileView" style="display:none;">
-    <button class="back-btn" id="walletBackBtn">&larr; Cüzdan listesine dön</button>
-    <div class="result-header" id="walletProfileHeader"></div>
+    <button class="back-btn" id="walletBackBtn">&larr; Bahisçi listesine dön</button>
+    <div id="walletProfileHeader"></div>
+    <div id="walletQualityBox"></div>
+    <div class="tw-v2-insights" id="walletInsightGrid"></div>
     <div class="wallet-stats-grid" id="walletStatsGrid"></div>
     <div class="wallet-summary" id="walletSummaryBox"></div>
-    <h3 class="wallet-section-title">Açık Pozisyonlar</h3>
+    <h3 class="wallet-section-title"><span>Açık Pozisyonlar</span><span class="tw-v2-explain">Henüz sonuçlanmamış canonical bahisler</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table wallet-positions-table">
         <thead>
@@ -671,7 +842,7 @@
         <tbody id="walletPositionsBody"></tbody>
       </table>
     </div>
-    <h3 class="wallet-section-title">İşlem Geçmişi</h3>
+    <h3 class="wallet-section-title"><span>Bahis Geçmişi</span><span class="tw-v2-explain">Closing line = maç başlamadan önceki son geçerli piyasa fiyatı</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table">
         <thead>
@@ -681,7 +852,9 @@
             <th class="sortable" data-sort="bet_label">Seçim <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="status_label">Durum <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="stake_usdc">Giriş / Çıkış <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="avg_entry_decimal">Ort. Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="avg_entry_decimal">Giriş Oranı <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="closing_decimal">Closing <span class="sort-arrow"></span><span class="tw-info-dot" title="Maç başlamadan önceki son geçerli midpoint oranı">i</span></th>
+            <th class="sortable" data-sort="clv_probability_pp">CLV <span class="sort-arrow"></span><span class="tw-info-dot" title="Closing olasılığı − giriş olasılığı. Pozitif değer, piyasadan daha iyi giriş anlamına gelir.">i</span></th>
             <th class="sortable" data-sort="pnl_usdc">K/Z <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="traded_at">Son İşlem <span class="sort-arrow"></span></th>
           </tr>
@@ -1220,6 +1393,8 @@ const addWalletBtn = document.getElementById('addWalletBtn');
 const addWalletError = document.getElementById('addWalletError');
 const walletBackBtn = document.getElementById('walletBackBtn');
 const walletProfileHeader = document.getElementById('walletProfileHeader');
+const walletQualityBox = document.getElementById('walletQualityBox');
+const walletInsightGrid = document.getElementById('walletInsightGrid');
 const walletStatsGrid = document.getElementById('walletStatsGrid');
 const walletSummaryBox = document.getElementById('walletSummaryBox');
 const walletPositionsBody = document.getElementById('walletPositionsBody');
@@ -1288,32 +1463,101 @@ function twWinColor(pct) {
   return '#ff6b6b';
 }
 
+function _twNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function _twClamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+function _twSigned(v, digits = 1, suffix = '') {
+  const n = _twNum(v);
+  if (n === null) return '—';
+  return `${n > 0 ? '+' : ''}${n.toFixed(digits)}${suffix}`;
+}
+function _twPct(v, digits = 1) {
+  const n = _twNum(v);
+  return n === null ? '—' : `%${n.toFixed(digits)}`;
+}
+function _twProfileMetrics(data) {
+  const s = data.stats || {};
+  const bets = data.bets || data.activity || [];
+  const won = Number(s.resolved_won) || 0;
+  const lost = Number(s.resolved_lost) || 0;
+  const resolved = Number(s.resolved_total) || (won + lost);
+  const winRate = _twNum(s.win_rate_pct);
+  const entryProbRaw = _twNum(s.avg_entry_probability ?? s.avg_price);
+  const entryProbPct = entryProbRaw !== null && entryProbRaw >= 0 && entryProbRaw <= 1 ? entryProbRaw * 100 : null;
+  const winEdge = winRate !== null && entryProbPct !== null ? winRate - entryProbPct : null;
+
+  const clvValues = bets
+    .map(b => _twNum(b.clv_probability_pp))
+    .filter(v => v !== null);
+  const avgClv = clvValues.length ? clvValues.reduce((a,b) => a + b, 0) / clvValues.length : null;
+
+  const realized = bets.filter(b =>
+    b.pnl_kind === 'realized' &&
+    _twNum(b.pnl_usdc) !== null &&
+    (_twNum(b.stake_usdc) || 0) > 0
+  );
+  const realizedPnl = realized.reduce((sum,b) => sum + (_twNum(b.pnl_usdc) || 0), 0);
+  const realizedStake = realized.reduce((sum,b) => sum + (_twNum(b.stake_usdc) || 0), 0);
+  const realizedRoi = realizedStake > 0 ? (realizedPnl / realizedStake) * 100 : null;
+
+  const sampleFactor = _twClamp(resolved / 25, 0, 1);
+  const dataSignals = (clvValues.length ? 1 : 0) + (realized.length ? 1 : 0) + (winEdge !== null ? 1 : 0);
+  const dataFactor = 0.65 + (Math.min(dataSignals, 3) / 3) * 0.35;
+  let smartScore = null;
+  if (resolved >= 5 && winEdge !== null) {
+    const raw =
+      50 +
+      _twClamp(winEdge, -15, 15) * 1.10 +
+      (avgClv === null ? 0 : _twClamp(avgClv, -8, 8) * 1.50) +
+      (realizedRoi === null ? 0 : _twClamp(realizedRoi, -30, 30) * 0.15);
+    smartScore = Math.round(_twClamp(50 + (raw - 50) * (0.45 + 0.55 * sampleFactor) * dataFactor, 0, 100));
+  }
+
+  return {
+    bets, won, lost, resolved, winRate, entryProbPct, winEdge,
+    avgClv, clvCount: clvValues.length,
+    realizedPnl, realizedStake, realizedRoi, realizedCount: realized.length,
+    smartScore
+  };
+}
+
 let trackedWalletRows = [];
 
 function renderTrackedWallets() {
   const query = (trackedWalletSearch.value || '').trim().toLocaleLowerCase('tr-TR');
   const sortMode = trackedWalletSort.value;
-  const filtered = trackedWalletRows.filter(w =>
+  const wallets = trackedWalletRows.filter(w =>
     (w.nickname || '').toLocaleLowerCase('tr-TR').includes(query)
-  );
-  const wallets = [...filtered];
+  ).slice();
 
-  if (sortMode !== 'default') {
-    wallets.sort((a, b) => {
-      const aPct = Number(a.win_rate_pct);
-      const bPct = Number(b.win_rate_pct);
-      const aValid = Number.isFinite(aPct);
-      const bValid = Number.isFinite(bPct);
-      if (aValid !== bValid) return aValid ? -1 : 1;
-      if (!aValid) return (a.nickname || '').localeCompare(b.nickname || '', 'tr');
-      const diff = sortMode === 'win-desc' ? bPct - aPct : aPct - bPct;
-      return diff || (a.nickname || '').localeCompare(b.nickname || '', 'tr');
-    });
-  }
+  wallets.sort((a, b) => {
+    const winA = _twNum(a.win_rate_pct);
+    const winB = _twNum(b.win_rate_pct);
+    const resolvedA = Number(a.resolved_total) || ((Number(a.resolved_won)||0) + (Number(a.resolved_lost)||0));
+    const resolvedB = Number(b.resolved_total) || ((Number(b.resolved_won)||0) + (Number(b.resolved_lost)||0));
+    const betsA = Number(a.bet_count ?? a.trade_count) || 0;
+    const betsB = Number(b.bet_count ?? b.trade_count) || 0;
+    const openA = Number(a.open_position_count) || 0;
+    const openB = Number(b.open_position_count) || 0;
+    if (sortMode === 'resolved-desc') return resolvedB - resolvedA;
+    if (sortMode === 'bets-desc') return betsB - betsA;
+    if (sortMode === 'open-desc') return openB - openA;
+    if (sortMode === 'win-desc' || sortMode === 'win-asc') {
+      if ((winA === null) !== (winB === null)) return winA === null ? 1 : -1;
+      if (winA === null) return 0;
+      return sortMode === 'win-desc' ? winB - winA : winA - winB;
+    }
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
 
   if (!wallets.length) {
     trackedWalletList.innerHTML = trackedWalletRows.length
-      ? '<div class="loading">Arama kriterine uyan tahminci bulunamadı.</div>'
+      ? '<div class="loading">Arama kriterine uyan bahisçi bulunamadı.</div>'
       : '<div class="loading">Henüz takip edilen bir cüzdan yok. Yukarıdan bir cüzdan adresi ekleyin.</div>';
     return;
   }
@@ -1323,41 +1567,47 @@ function renderTrackedWallets() {
     const item = document.createElement('div');
     item.className = 'tw-card';
     item.dataset.wallet = (w.wallet || '').toLowerCase();
-    const pct = w.win_rate_pct;
-    const grade = twGrade(pct);
-    const winColor = twWinColor(pct);
-    const openPos = w.open_position_count ?? 0;
+
+    const openPos = Number(w.open_position_count) || 0;
+    const openExposure = Number(w.open_exposure_usdc) || 0;
+    const won = Number(w.resolved_won) || 0;
+    const lost = Number(w.resolved_lost) || 0;
+    const resolved = Number(w.resolved_total) || (won + lost);
+    const bets = Number(w.bet_count ?? w.trade_count) || 0;
+    const pct = _twNum(w.win_rate_pct);
+    const ready = w.stats_status !== 'pending' && !!w.last_synced_at;
     const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
     const initials = twInitials(w.nickname || '?');
-    const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
-    const tot  = statsPending ? '…' : (w.bet_count != null ? w.bet_count : (w.trade_count != null ? w.trade_count : 0));
-    const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won   : 0);
-    const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost  : 0);
-    const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
-    const syncStatus = statsPending
-      ? '<span class="tw-sync-status" title="İlk wallet senkronizasyonu bekleniyor">Senkronizasyon bekleniyor</span>'
-      : '';
+    const pctText = ready && pct !== null ? `%${pct.toFixed(1)}` : '—';
+    const lastSync = ready ? fmtDateTime(w.last_synced_at) : 'İlk senkron bekleniyor';
+    const exposureText = openExposure > 0 ? fmtUsd(openExposure) : '$0';
+
     item.innerHTML = `
       <div class="tw-card-body">
         <div class="tw-avatar" style="background:${avatarBg}">${initials}</div>
         <div class="tw-info">
           <div class="tw-top-row">
             <span class="tw-name">${escapeAttr(w.nickname)}</span>
-            <span class="tw-grade" style="color:${grade.color};background:${grade.bg}">${grade.g}</span>
+            <span class="tw-status-pill ${ready ? 'ready' : ''}">${ready ? 'Güncel' : 'Hazırlanıyor'}</span>
           </div>
           <div class="tw-addr">${truncAddr(w.wallet)}</div>
-          <div class="tw-mini-stats">
-            <div class="tw-ms-box"><span class="tw-ms-label">Bahis</span><span class="tw-ms-val" data-stat="tot">${tot}</span></div>
-            <div class="tw-ms-box"><span class="tw-ms-label">Kazanan</span><span class="tw-ms-val tw-ms-won" data-stat="won">${won}</span></div>
-            <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost" data-stat="lost">${lost}</span></div>
-            <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" data-stat="pct" style="color:${winColor}">${pctText}</span></div>
-            ${openPos > 0 ? `<span class="tw-ms-open">${openPos} açık</span>` : ''}
-            ${syncStatus}
+          <div class="tw-primary-metric">
+            <div>
+              <div class="tw-primary-label">Sonuçlanan bahislerde isabet</div>
+              <div class="tw-primary-value">${pctText}</div>
+            </div>
+            <div class="tw-primary-sub">${bets} canonical bahis<br>${resolved} sonuçlanan</div>
           </div>
+          <div class="tw-mini-stats">
+            <div class="tw-ms-box"><span class="tw-ms-label">W / L</span><span class="tw-ms-val">${won} / ${lost}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">Açık pozisyon</span><span class="tw-ms-val">${openPos}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">Açık değer</span><span class="tw-ms-val">${exposureText}</span></div>
+          </div>
+          <div class="tw-v2-note" style="margin-top:8px;">Son senkron: ${escapeAttr(lastSync)}</div>
         </div>
       </div>
       <div class="tw-actions">
-        <button class="tw-btn tw-btn-profile" data-action="profile">Profil →</button>
+        <button class="tw-btn tw-btn-profile" data-action="profile">Profili İncele →</button>
         <button class="tw-btn tw-btn-remove" data-action="remove">Sil</button>
       </div>
     `;
@@ -1447,45 +1697,135 @@ function pnlSpan(v) {
 async function openWalletProfile(wallet) {
   walletsView.style.display = 'none';
   walletProfileView.style.display = 'block';
-  walletProfileHeader.textContent = 'Yükleniyor...';
+  walletProfileHeader.innerHTML = '<div class="loading">Profil yükleniyor...</div>';
+  walletQualityBox.innerHTML = '';
+  walletInsightGrid.innerHTML = '';
   walletStatsGrid.innerHTML = '';
   walletSummaryBox.innerHTML = '';
   walletPositionsBody.innerHTML = '';
   walletActivityBody.innerHTML = '';
+
   try {
     const res = await fetch(`/api/poly/tracked/${wallet}/profile`);
     const data = await res.json();
     if (!data.found) {
-      walletProfileHeader.textContent = 'Profil bulunamadı.';
+      walletProfileHeader.innerHTML = '<div class="error">Profil bulunamadı.</div>';
       return;
     }
-    const statsPending = data.stats_status === 'pending' || !data.last_synced_at;
-    const syncStatus = statsPending
-      ? '<span style="color:#fbbf24;font-size:11px;font-weight:500;margin-left:8px;">Senkronizasyon bekleniyor</span>'
-      : '';
-    walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>${syncStatus}`;
 
+    const statsPending = data.stats_status === 'pending' || !data.last_synced_at;
     const s = data.stats || {};
-    // trade_count is the canonical bettor-bet/position count. Raw execution
-    // fills remain a separate backend detail and must not inflate this number.
-    const wonCount = Number(s.resolved_won) || 0;
-    const lostCount = Number(s.resolved_lost) || 0;
+    const m = _twProfileMetrics(data);
+    const coverage = data.coverage || {};
+    const quality = data.quality || {};
+    const scoreText = m.smartScore === null ? '—' : String(m.smartScore);
+    const scoreSub = m.smartScore === null
+      ? (m.resolved < 5 ? 'En az 5 sonuçlanmış bahis gerekli' : 'Yeterli performans verisi yok')
+      : '0–100 açıklanabilir performans bileşimi';
+
+    const lastSync = data.last_synced_at ? fmtDateTime(data.last_synced_at) : 'Bekleniyor';
+    const trackedSince = data.tracked_since ? fmtDateTime(data.tracked_since) : '—';
+    const historyComplete = coverage.history_complete === true;
+    const qualityOk = quality.status === 'ok';
+    const returned = Number(coverage.returned_bet_count) || (data.bets || []).length;
+    const expected = Number(coverage.expected_bet_count) || Number(s.bet_count ?? s.trade_count) || 0;
+
+    walletProfileHeader.innerHTML = `
+      <div class="tw-v2-profile-hero">
+        <div>
+          <div class="tw-v2-eyebrow">Tracked bettor profile</div>
+          <div class="tw-v2-profile-name">${escapeAttr(data.nickname)}</div>
+          <div class="tw-v2-profile-address">
+            ${truncAddr(data.wallet)}
+            <button class="wallet-copy-btn" data-wallet="${escapeAttr(data.wallet)}" onclick="copyWallet(this)" title="Cüzdan adresini kopyala">⧉</button>
+          </div>
+          <div class="tw-v2-profile-meta">
+            <span class="tw-meta-pill ${statsPending ? 'warn' : 'good'}">${statsPending ? 'Senkron bekleniyor' : 'Son senkron: ' + escapeAttr(lastSync)}</span>
+            <span class="tw-meta-pill">Takibe alındı: ${escapeAttr(trackedSince)}</span>
+            <span class="tw-meta-pill">API: ${escapeAttr(data.contract_version || '—')}</span>
+          </div>
+        </div>
+        <div class="tw-v2-score" title="SmartScore; sonuç başarısını giriş olasılığına göre fark, ortalama CLV ve gerçekleşmiş ROI ile birleştirir. Küçük örneklemler 50 nötr noktasına doğru küçültülür.">
+          <div class="tw-v2-score-label">SmartScore</div>
+          <div class="tw-v2-score-value">${scoreText}</div>
+          <div class="tw-v2-score-sub">${scoreSub}</div>
+        </div>
+      </div>
+    `;
+
+    const historyLabel = historyComplete ? 'Tam canonical geçmiş' : 'Kısmi / fallback geçmiş';
+    const historyCls = historyComplete ? 'good' : 'warn';
+    const qualityLabel = qualityOk ? 'Kalite kontrolü OK' : `Kalite uyarısı: ${Number(quality.issue_count)||0}`;
+    const qualityCls = qualityOk ? 'good' : 'warn';
+    walletQualityBox.innerHTML = `
+      <div class="tw-v2-quality">
+        <span class="tw-meta-pill ${historyCls}">${historyLabel}</span>
+        <span class="tw-meta-pill ${qualityCls}">${qualityLabel}</span>
+        <span><strong>${returned}</strong> / ${expected || returned} bahis API'de</span>
+        <span>Kaynak: <strong>${escapeAttr(coverage.history_source || '—')}</strong></span>
+        <span>Minimum pozisyon: <strong>${fmtUsd(coverage.minimum_position_entry_usdc || 1000)}</strong></span>
+      </div>
+    `;
+
+    const clvCoverage = m.bets.length ? (m.clvCount / m.bets.length) * 100 : 0;
+    walletInsightGrid.innerHTML = `
+      <div class="tw-insight">
+        <div class="tw-insight-label">İsabet − giriş olasılığı</div>
+        <div class="tw-insight-value ${m.winEdge !== null && m.winEdge > 0 ? 'clv-pos' : m.winEdge !== null && m.winEdge < 0 ? 'clv-neg' : ''}">${_twSigned(m.winEdge, 1, ' pp')}</div>
+        <div class="tw-insight-help">Gerçekleşen isabet ile ortalama giriş implied probability farkı.</div>
+      </div>
+      <div class="tw-insight">
+        <div class="tw-insight-label">Ortalama CLV</div>
+        <div class="tw-insight-value ${m.avgClv !== null && m.avgClv > 0 ? 'clv-pos' : m.avgClv !== null && m.avgClv < 0 ? 'clv-neg' : ''}">${_twSigned(m.avgClv, 2, ' pp')}</div>
+        <div class="tw-insight-help">${m.clvCount} bahiste closing line mevcut. Pozitif değer daha iyi giriş demektir.</div>
+      </div>
+      <div class="tw-insight">
+        <div class="tw-insight-label">Gerçekleşmiş ROI</div>
+        <div class="tw-insight-value ${m.realizedRoi !== null && m.realizedRoi > 0 ? 'pnl-pos' : m.realizedRoi !== null && m.realizedRoi < 0 ? 'pnl-neg' : ''}">${_twSigned(m.realizedRoi, 1, '%')}</div>
+        <div class="tw-insight-help">${m.realizedCount} gerçekleşmiş K/Z kaydı; stake bazlı hesap.</div>
+      </div>
+      <div class="tw-insight">
+        <div class="tw-insight-label">CLV kapsamı</div>
+        <div class="tw-insight-value">${m.bets.length ? '%' + clvCoverage.toFixed(0) : '—'}</div>
+        <div class="tw-insight-help">${m.clvCount} / ${m.bets.length} canonical bahiste geçerli pre-match closing snapshot.</div>
+      </div>
+    `;
+
+    const avgEntryDecimal = _twNum(s.avg_entry_decimal ?? s.avg_price_decimal);
     const statCards = [
-      { label: 'Toplam Bahis', value: Number(s.bet_count ?? s.trade_count) || 0 },
-      { label: 'Kazanan', value: wonCount },
-      { label: 'Kaybeden', value: lostCount },
-      { label: 'İsabet Oranı', value: (wonCount + lostCount) > 0 ? `%${((wonCount / (wonCount + lostCount)) * 100).toFixed(1)}` : '-' },
-      { label: 'Toplam Yatırım (USDC)', value: fmtUsd(s.total_invested_usdc || 0) },
-      { label: 'Ort. Bahis (USDC)', value: fmtUsd(s.avg_bet_size_usdc || 0) },
-      { label: 'Ort. Oran', value: (s.avg_entry_decimal ?? s.avg_price_decimal) ? Number(s.avg_entry_decimal ?? s.avg_price_decimal).toFixed(2) : '-' },
-      { label: 'Açık Pozisyon', value: s.open_position_count ?? 0 },
-      { label: 'Açık Pozisyon Değeri', value: fmtUsd(s.open_exposure_usdc || 0) },
+      { label: 'Toplam canonical bahis', value: Number(s.bet_count ?? s.trade_count) || 0 },
+      { label: 'Sonuçlanan örneklem', value: m.resolved },
+      { label: 'Kazanan / Kaybeden', value: `${m.won} / ${m.lost}` },
+      { label: 'İsabet oranı', value: m.winRate === null ? '—' : `%${m.winRate.toFixed(1)}` },
+      { label: 'Toplam yatırım', value: fmtUsd(s.total_invested_usdc || 0) },
+      { label: 'Ortalama bahis', value: fmtUsd(s.avg_bet_size_usdc || 0) },
+      { label: 'Ortalama giriş oranı', value: avgEntryDecimal === null ? '—' : avgEntryDecimal.toFixed(2) },
+      { label: 'Açık pozisyon değeri', value: fmtUsd(s.open_exposure_usdc || 0) },
     ];
     walletStatsGrid.innerHTML = statCards.map(c => `
       <div class="wallet-stat-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>
     `).join('');
 
-    walletSummaryBox.innerHTML = (data.summary || []).map(line => `<div>• ${line}</div>`).join('') || '<div>Özet bilgisi yok.</div>';
+    const summaryLines = [];
+    summaryLines.push(`${Number(s.bet_count ?? s.trade_count) || 0} canonical futbol bahsi var; ${m.resolved} tanesi sonuçlandı, ${Number(s.open_position_count)||0} tanesi açık.`);
+    if (m.entryProbPct !== null && avgEntryDecimal !== null) {
+      summaryLines.push(`Ortalama giriş oranı ${avgEntryDecimal.toFixed(2)} (yaklaşık %${m.entryProbPct.toFixed(1)} implied probability).`);
+    }
+    if (m.avgClv !== null) {
+      summaryLines.push(`Geçerli closing line bulunan ${m.clvCount} bahiste ortalama CLV ${_twSigned(m.avgClv,2,' pp')}.`);
+    } else {
+      summaryLines.push('Henüz geçerli pre-match closing line verisi yok; CLV bu yüzden hesaplanmıyor.');
+    }
+    if (m.realizedRoi !== null) {
+      summaryLines.push(`Gerçekleşmiş K/Z kayıtlarında toplam P/L ${m.realizedPnl >= 0 ? '+' : ''}${fmtUsd(m.realizedPnl)}; ROI ${_twSigned(m.realizedRoi,1,'%')}.`);
+    }
+    if (!historyComplete) {
+      summaryLines.push('Geçmiş kapsamı tam değil: persistent canonical backfill/migration tamamlanana kadar bazı eski kayıtlar fallback kaynaktan geliyor olabilir.');
+    }
+    walletSummaryBox.innerHTML =
+      '<div style="font-weight:750;color:#d7deea;margin-bottom:7px;">Profil özeti</div>' +
+      summaryLines.map(line => `<div>• ${escapeAttr(line)}</div>`).join('') +
+      '<div style="margin-top:8px;color:#68758b;font-size:10.5px;">SmartScore bir bahis önerisi değildir; yalnız bu profilde görünen sonuç, giriş fiyatı, CLV ve gerçekleşmiş K/Z verilerini tek ekranda özetler.</div>';
 
     currentPositions = data.open_positions || [];
     renderPositionsTable();
@@ -1493,7 +1833,7 @@ async function openWalletProfile(wallet) {
     currentActivity = data.bets || data.activity || [];
     renderActivityTable();
   } catch (e) {
-    walletProfileHeader.textContent = 'Profil alınamadı.';
+    walletProfileHeader.innerHTML = '<div class="error">Profil alınamadı.</div>';
   }
 }
 
@@ -1558,7 +1898,7 @@ function renderPositionsTable() {
 function renderActivityTable() {
   const activity = currentActivity || [];
   if (!activity.length) {
-    walletActivityBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
+    walletActivityBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#6d7590;">Bahis geçmişi yok</td></tr>';
     return;
   }
   const sorted = [...activity].sort((a, b) => {
@@ -1570,15 +1910,15 @@ function renderActivityTable() {
       if (isNaN(vb)) vb = 0;
       return activitySortDir === 'asc' ? va - vb : vb - va;
     }
-    if (activitySortField === 'stake_usdc' || activitySortField === 'avg_entry_decimal' || activitySortField === 'pnl_usdc') {
+    if (['stake_usdc','avg_entry_decimal','closing_decimal','clv_probability_pp','pnl_usdc'].includes(activitySortField)) {
       va = activitySortField === 'avg_entry_decimal'
-        ? Number(a.avg_entry_decimal ?? a.price)
-        : Number(a[activitySortField]);
+        ? _twNum(a.avg_entry_decimal ?? a.price)
+        : _twNum(a[activitySortField]);
       vb = activitySortField === 'avg_entry_decimal'
-        ? Number(b.avg_entry_decimal ?? b.price)
-        : Number(b[activitySortField]);
-      if (!Number.isFinite(va)) va = -Infinity;
-      if (!Number.isFinite(vb)) vb = -Infinity;
+        ? _twNum(b.avg_entry_decimal ?? b.price)
+        : _twNum(b[activitySortField]);
+      if (va === null) va = -Infinity;
+      if (vb === null) vb = -Infinity;
       return activitySortDir === 'asc' ? va - vb : vb - va;
     }
     if (activitySortField === 'match') {
@@ -1617,8 +1957,14 @@ function renderActivityTable() {
       ? ` <span style="color:#6d7590;">/ ${fmtUsd(a.sell_proceeds_usdc)}</span>`
       : '';
 
-    const entryDecimal = a.avg_entry_decimal ?? a.price;
-    const oran = (entryDecimal === null || entryDecimal === undefined) ? '-' : Number(entryDecimal).toFixed(2);
+    const entryDecimal = _twNum(a.avg_entry_decimal ?? a.price);
+    const entryOdds = entryDecimal === null ? '—' : entryDecimal.toFixed(2);
+    const closingDecimal = _twNum(a.closing_decimal);
+    const closingOdds = closingDecimal === null ? '—' : closingDecimal.toFixed(2);
+    const clv = _twNum(a.clv_probability_pp);
+    const clvClass = clv === null ? 'clv-flat' : clv > 0 ? 'clv-pos' : clv < 0 ? 'clv-neg' : 'clv-flat';
+    const clvText = clv === null ? '—' : `${clv > 0 ? '+' : ''}${clv.toFixed(2)} pp`;
+
     let pnl = '—';
     let pnlStyle = '';
     if (a.pnl_usdc !== null && a.pnl_usdc !== undefined && Number.isFinite(Number(a.pnl_usdc))) {
@@ -1631,6 +1977,9 @@ function renderActivityTable() {
       : a.pnl_kind === 'realized'
         ? 'Gerçekleşmiş K/Z'
         : 'K/Z hesaplanamadı';
+    const closingTitle = a.closing_at
+      ? `Closing snapshot: ${fmtDateTime(a.closing_at)}`
+      : 'Geçerli pre-match closing snapshot yok';
 
     return `
     <tr>
@@ -1639,7 +1988,9 @@ function renderActivityTable() {
       <td title="${escapeAttr(selectionLabel)}">${escapeAttr(selectionLabel)}</td>
       <td>${statusCell}</td>
       <td title="Giriş stake / SELL çıkışı">${stake}${exit}${fillNote}</td>
-      <td>${oran}</td>
+      <td>${entryOdds}</td>
+      <td title="${escapeAttr(closingTitle)}">${closingOdds}</td>
+      <td class="${clvClass}" title="Closing olasılığı − giriş olasılığı">${clvText}</td>
       <td title="${escapeAttr(pnlTitle)}" style="${pnlStyle}">${pnl}</td>
       <td>${fmtDateTime(a.last_traded_at || a.traded_at)}</td>
     </tr>`;
