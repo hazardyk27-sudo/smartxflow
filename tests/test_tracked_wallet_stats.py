@@ -73,6 +73,8 @@ class TrackedWalletStatsTests(unittest.TestCase):
         }]
 
         def fake_get(url, **_kwargs):
+            if "tracked_wallet_bets" in url:
+                return FakeResponse(404, {"error": "migration pending"})
             if "tracked_wallets" in url:
                 return FakeResponse(200, [persisted])
             if "tracked_wallet_activity" in url:
@@ -99,6 +101,88 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(stats["win_rate_pct"], 69.2)
         self.assertEqual(stats["open_position_count"], 1)
         self.assertEqual(stats["open_exposure_usdc"], 1234.5)
+
+    def test_profile_prefers_persisted_bets_without_raw_activity_reads(self):
+        wallet = "0xwallet"
+        persisted_wallet = {
+            "wallet": wallet,
+            "nickname": "Tracked bettor",
+            "notes": None,
+            "created_at": "2026-09-08T00:00:00+00:00",
+            "last_synced_at": "2026-10-02T12:00:00+00:00",
+            "win_rate": 100.0,
+            "resolved_won": 1,
+            "resolved_lost": 0,
+            "resolved_total": 1,
+            "trade_count": 1,
+            "total_invested_usdc": 1000.0,
+            "avg_bet_size_usdc": 1000.0,
+            "avg_price": 0.5,
+            "avg_price_decimal": 2.0,
+            "open_position_count": 0,
+            "open_exposure_usdc": 0,
+        }
+        persisted_bets = [{
+            "bet_key": '["asset","0xwallet","france-yes"]',
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "event_id": "99",
+            "match_key": "event:99",
+            "match_name": "France - Spain",
+            "home": "France",
+            "away": "Spain",
+            "slug": "france-spain",
+            "market_type": "1x2",
+            "market_label": "1X2",
+            "selection": "France",
+            "selection_label": "France",
+            "bet_label": "France",
+            "lifecycle_status": "resolved",
+            "result": "won",
+            "status_label": "Kazandı",
+            "stake_usdc": 1000.0,
+            "sell_proceeds_usdc": 0.0,
+            "redeem_proceeds_usdc": 2000.0,
+            "avg_entry_price": 0.5,
+            "avg_entry_decimal": 2.0,
+            "pnl_usdc": 1000.0,
+            "pnl_kind": "realized",
+            "fill_count": 1,
+            "buy_fill_count": 1,
+            "sell_fill_count": 0,
+            "first_traded_at": "2026-10-02T15:00:00+00:00",
+            "last_traded_at": "2026-10-02T22:00:00+00:00",
+        }]
+        seen_urls = []
+
+        def fake_get(url, **_kwargs):
+            seen_urls.append(url)
+            if "tracked_wallet_bets" in url:
+                return FakeResponse(200, persisted_bets)
+            if "tracked_wallets" in url:
+                return FakeResponse(200, [persisted_wallet])
+            if "tracked_wallet_positions" in url:
+                return FakeResponse(200, [])
+            if "tracked_wallet_activity" in url or "tracked_wallet_redeems" in url:
+                raise AssertionError("raw ledger should not be read on persisted fast path")
+            raise AssertionError(url)
+
+        with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
+             patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
+             patch.object(polymarket_client.requests, "get", side_effect=fake_get):
+            profile = polymarket_client.get_wallet_profile(wallet)
+
+        self.assertIsNotNone(profile)
+        self.assertEqual(len(profile["activity"]), 1)
+        row = profile["activity"][0]
+        self.assertEqual(row["match"], "France - Spain")
+        self.assertEqual(row["amount_usdc"], 1000.0)
+        self.assertEqual(row["price"], 2.0)
+        self.assertEqual(row["status_label"], "Kazandı")
+        self.assertEqual(profile["stats"]["realized_pnl_usdc"], 1000.0)
+        self.assertEqual(profile["stats"]["total_redeemed_usdc"], 2000.0)
+        self.assertFalse(any("tracked_wallet_activity" in url for url in seen_urls))
+        self.assertFalse(any("tracked_wallet_redeems" in url for url in seen_urls))
 
     def test_tracked_wallet_threshold_is_applied_after_position_grouping(self):
         activity = [
