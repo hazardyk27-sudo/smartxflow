@@ -13,9 +13,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .classification import (
-    SUPPORTIVE_CLASSES if False else ClassificationConfig,
-)
-from .classification import (
     classification_to_signal_metadata,
     classify_market_movement,
 )
