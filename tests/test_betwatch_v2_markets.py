@@ -69,3 +69,17 @@ def test_unknown_market_is_not_synthesized():
     )
     assert key is None
     assert sels == []
+
+
+def test_betwatch_fixture_hash_uses_repository_canonical_contract():
+    from betwatch_prematch import make_match_id_hash as betwatch_hash
+    from core.hash_utils import make_match_id_hash as canonical_hash
+
+    cases = [
+        ("Alianza FC (SLV)", "CD Platense", "Salvadoran Primera Division"),
+        ("Tulsa Roughnecks FC", "New Mexico United", "US United Soccer League"),
+        ("Maccabi Ihud Bnei Avtin", "Hapoel Bnei Bi'ina", "Israeli Liga Bet"),
+        ("İstanbulspor FC", "Şanlıurfaspor SK", "Türkiye 1. Lig"),
+    ]
+    for home, away, league in cases:
+        assert betwatch_hash(home, away, league) == canonical_hash(home, away, league)
