@@ -9,6 +9,7 @@ No API key required - all endpoints used here are public read-only endpoints.
 
 import os
 import re
+import json
 import time
 import logging
 import threading
@@ -2159,6 +2160,18 @@ def _canonical_bet_identity(row: Dict[str, Any]) -> Optional[Tuple[Any, ...]]:
     return None
 
 
+def _canonical_bet_key_text(identity: Optional[Tuple[Any, ...]]) -> Optional[str]:
+    """Serialize one canonical bet identity into a deterministic DB text key."""
+    if identity is None:
+        return None
+    return json.dumps(
+        list(identity),
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=str,
+    )
+
+
 def _tracked_wallet_activity_action(row: Dict[str, Any]) -> str:
     """Normalize raw Polymarket direction for stake accounting.
 
@@ -2437,6 +2450,109 @@ def list_tracked_wallets() -> List[Dict[str, Any]]:
         return []
 
 
+def _persist_wallet_bet_rows(
+    base: str,
+    headers: Dict[str, str],
+    wallet: str,
+    lifecycle_rows: List[Dict[str, Any]],
+) -> bool:
+    """Upsert normalized bet lifecycles without deleting historical rows.
+
+    Raw fills remain the execution/audit ledger. Normalized bet rows are
+    durable and are only updated when that same canonical bet can be rebuilt
+    from verified current evidence.
+    """
+    if not lifecycle_rows:
+        return True
+
+    now = datetime.now(timezone.utc).isoformat()
+    payload: List[Dict[str, Any]] = []
+    for row in lifecycle_rows:
+        bet_key = row.get("bet_key")
+        if not bet_key:
+            continue
+        payload.append({
+            "wallet": wallet,
+            "bet_key": bet_key,
+            "asset": row.get("asset"),
+            "condition_id": row.get("condition_id"),
+            "event_id": row.get("event_id"),
+            "match_key": row.get("match_key"),
+            "match_name": row.get("match_name") or row.get("match"),
+            "home": row.get("home"),
+            "away": row.get("away"),
+            "slug": row.get("slug"),
+            "kickoff_utc": row.get("kickoff_utc"),
+            "title": row.get("title"),
+            "market_type": row.get("market_type"),
+            "market_label": row.get("market_label"),
+            "selection": row.get("selection"),
+            "side": row.get("side"),
+            "outcome_raw": row.get("outcome_raw"),
+            "selection_label": row.get("selection_label"),
+            "side_label": row.get("side_label"),
+            "bet_label": row.get("bet_label"),
+            "lifecycle_status": row.get("lifecycle_status"),
+            "result": row.get("result"),
+            "status_label": row.get("status_label"),
+            "stake_usdc": row.get("stake_usdc"),
+            "sell_proceeds_usdc": row.get("sell_proceeds_usdc"),
+            "redeem_proceeds_usdc": row.get("redeem_proceeds_usdc"),
+            "avg_entry_price": row.get("avg_entry_price"),
+            "avg_entry_decimal": row.get("avg_entry_decimal"),
+            "pnl_usdc": row.get("pnl_usdc"),
+            "pnl_kind": row.get("pnl_kind"),
+            "fill_count": int(row.get("fill_count") or 0),
+            "buy_fill_count": int(row.get("buy_fill_count") or 0),
+            "sell_fill_count": int(row.get("sell_fill_count") or 0),
+            "first_traded_at": row.get("first_traded_at"),
+            "last_traded_at": row.get("last_traded_at"),
+            "updated_at": now,
+        })
+
+    if not payload:
+        return True
+
+    try:
+        post_headers = {
+            **headers,
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates",
+        }
+        url = (
+            f"{base}/rest/v1/tracked_wallet_bets"
+            "?on_conflict=wallet,bet_key"
+        )
+        for offset in range(0, len(payload), 500):
+            response = requests.post(
+                url,
+                headers=post_headers,
+                json=payload[offset:offset + 500],
+                timeout=20,
+            )
+            if response.status_code not in (200, 201, 204):
+                print(
+                    f"[WalletBets] upsert failed for {wallet[:10]}... "
+                    f"HTTP {response.status_code}: {response.text[:160]}"
+                )
+                return False
+        return True
+    except Exception as exc:
+        print(f"[WalletBets] upsert error for {wallet[:10]}...: {exc}")
+        return False
+
+
+def _persisted_wallet_bet_to_display(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Restore compatibility aliases expected by the existing wallet UI."""
+    display = dict(row)
+    display["amount_usdc"] = row.get("stake_usdc")
+    display["price"] = row.get("avg_entry_decimal")
+    display["traded_at"] = row.get("last_traded_at")
+    display["is_open"] = row.get("lifecycle_status") == "open"
+    display["action"] = "Pozisyon"
+    return display
+
+
 def compute_and_save_wallet_stats(wallet: str) -> bool:
     """Compute per-wallet stats from stored DB data and PATCH them back to
     tracked_wallets. Called by the scraper after each sync so the profile
@@ -2451,7 +2567,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_redeems() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_redeems", headers=headers, params={
-                "select": "condition_id,asset,amount_usdc,traded_at",
+                "select": "condition_id,asset,event_id,title,slug,amount_usdc,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 5000,
             }, timeout=20)
@@ -2468,7 +2584,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_positions() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_positions", headers=headers, params={
-                "select": "condition_id,asset,cur_price,current_value,cash_pnl,redeemable",
+                "select": "condition_id,asset,event_id,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
                 "wallet": f"eq.{wallet}",
                 "limit": 500,
             }, timeout=20)
@@ -2482,7 +2598,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "asset,condition_id,result,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                "select": "wallet,asset,condition_id,event_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 10000,
             }, timeout=20)
@@ -2606,6 +2722,30 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
         position_rows,
         redeem_rows,
     )
+
+    if positions_ok:
+        lifecycle_rows = _build_display_activity(
+            activity_rows,
+            position_rows,
+            resolved_won_ids,
+            resolved_lost_ids,
+            redeem_rows,
+        )
+        if not _persist_wallet_bet_rows(
+            base,
+            headers,
+            wallet,
+            lifecycle_rows,
+        ):
+            print(
+                f"[WalletBets] normalized snapshot not persisted for "
+                f"{wallet[:10]}...; existing rows preserved"
+            )
+    else:
+        print(
+            f"[WalletBets] positions unavailable for {wallet[:10]}...; "
+            "normalized snapshot preserved"
+        )
 
     stats_payload = {
         "win_rate": activity_stats["win_rate"],
@@ -2985,8 +3125,8 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     Fast path: stats (win_rate, trade_count, etc.) are read from pre-computed
     columns in tracked_wallets (written by compute_and_save_wallet_stats after
-    each scraper sync). Display data (activity + positions + redeems for the
-    trade-history table) is fetched in parallel via ThreadPoolExecutor."""
+    each scraper sync). Trade history prefers durable tracked_wallet_bets rows; raw activity and
+    redeems are fetched only as a rollout/backfill fallback."""
     base = _supabase_base_url()
     if not base or not wallet:
         return None
@@ -3014,35 +3154,27 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     tracked_since = wallet_row.get("created_at")
 
-    # 2. Parallel fetch — display data only (activity + positions + redeems)
-    def _fetch_activity():
-        # Always use raw fills here. The tracked-wallet minimum must be applied
-        # before the display builder groups fills by market/outcome; the RPC
-        # summary would make sub-threshold fills indistinguishable from one
-        # qualifying fill after aggregation.
+    # 2. Prefer durable normalized bet rows. Raw fill/redeem reads remain as a
+    # rollout/backfill fallback while the new table is being populated.
+    def _fetch_bets():
         try:
-            activity_params = {
-                "select": "wallet,transaction_hash,asset,condition_id,event_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
-                "wallet": f"eq.{wallet}",
-                "order": "traded_at.desc,id.desc",
-                "limit": 10000,
-            }
-            if tracked_since:
-                activity_params["traded_at"] = f"gte.{tracked_since}"
             r2 = requests.get(
-                f"{base}/rest/v1/tracked_wallet_activity",
+                f"{base}/rest/v1/tracked_wallet_bets",
                 headers=headers,
-                params=activity_params,
+                params={
+                    "select": "bet_key,asset,condition_id,event_id,match_key,match_name,home,away,slug,kickoff_utc,title,market_type,market_label,selection,side,outcome_raw,selection_label,side_label,bet_label,lifecycle_status,result,status_label,stake_usdc,sell_proceeds_usdc,redeem_proceeds_usdc,avg_entry_price,avg_entry_decimal,pnl_usdc,pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,last_traded_at",
+                    "wallet": f"eq.{wallet}",
+                    "order": "last_traded_at.desc.nullslast",
+                    "limit": 5000,
+                },
                 timeout=15,
             )
-            if r2.status_code == 200:
-                rows = r2.json()
-                if isinstance(rows, list):
-                    return _filter_wallet_rows_since(rows, tracked_since), True
+            if r2.status_code != 200:
+                return [], False
+            rows = r2.json()
+            return (rows, True) if isinstance(rows, list) else ([], False)
         except Exception:
-            pass
-        print(f"[WalletProfile] activity fetch hatasi: {wallet[:10]}...")
-        return [], False
+            return [], False
 
     def _fetch_positions():
         try:
@@ -3060,62 +3192,140 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             if r2.status_code != 200:
                 return [], False
             rows = r2.json()
-            return rows, True
+            return (rows, True) if isinstance(rows, list) else ([], False)
         except Exception as e2:
             print(f"[WalletProfile] positions fetch hatasi: {e2}")
             return [], False
 
-    def _fetch_redeems():
-        try:
-            r2 = requests.get(
-                f"{base}/rest/v1/tracked_wallet_redeems",
-                headers=headers,
-                params={
-                    "select": "condition_id,asset,amount_usdc,traded_at",
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        f_bets = pool.submit(_fetch_bets)
+        f_pos = pool.submit(_fetch_positions)
+        bet_rows, bets_ok = f_bets.result()
+        position_rows, positions_ok = f_pos.result()
+
+    persisted_trade_count = int(wallet_row.get("trade_count") or 0)
+    persisted_snapshot_complete = (
+        persisted_trade_count == 0
+        or len(bet_rows) >= persisted_trade_count
+    )
+    use_persisted_bets = bets_ok and persisted_snapshot_complete
+
+    if use_persisted_bets:
+        display_activity = [
+            _persisted_wallet_bet_to_display(row)
+            for row in bet_rows
+        ]
+
+        open_assets = {
+            row.get("asset")
+            for row in bet_rows
+            if row.get("asset") and row.get("lifecycle_status") == "open"
+        }
+        open_positions = []
+        if positions_ok:
+            open_positions = [
+                _with_wallet_bet_display_metadata(position)
+                for position in position_rows
+                if position.get("asset") in open_assets
+            ]
+
+        realized_pnl_total = sum(
+            float(row.get("pnl_usdc") or 0)
+            for row in bet_rows
+            if row.get("pnl_kind") == "realized"
+        )
+        total_redeemed_usdc = sum(
+            float(row.get("redeem_proceeds_usdc") or 0)
+            for row in bet_rows
+        )
+    else:
+        # Migration not yet applied, normalized snapshot unavailable, or an
+        # existing wallet has not been backfilled into tracked_wallet_bets yet.
+        def _fetch_activity():
+            try:
+                activity_params = {
+                    "select": "wallet,transaction_hash,asset,condition_id,event_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                     "wallet": f"eq.{wallet}",
-                    "order": "traded_at.desc",
-                    "limit": 1000,
-                },
-                timeout=15,
-            )
-            if r2.status_code != 200:
-                return [], False
-            rows = r2.json()
-            return _filter_wallet_rows_since(rows, tracked_since), True
-        except Exception as e2:
-            print(f"[WalletProfile] redeem fetch hatasi: {e2}")
+                    "order": "traded_at.desc,id.desc",
+                    "limit": 10000,
+                }
+                if tracked_since:
+                    activity_params["traded_at"] = f"gte.{tracked_since}"
+                r2 = requests.get(
+                    f"{base}/rest/v1/tracked_wallet_activity",
+                    headers=headers,
+                    params=activity_params,
+                    timeout=15,
+                )
+                if r2.status_code == 200:
+                    rows = r2.json()
+                    if isinstance(rows, list):
+                        return _filter_wallet_rows_since(rows, tracked_since), True
+            except Exception:
+                pass
+            print(f"[WalletProfile] activity fetch hatasi: {wallet[:10]}...")
             return [], False
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
-        f_act = pool.submit(_fetch_activity)
-        f_pos = pool.submit(_fetch_positions)
-        f_red = pool.submit(_fetch_redeems)
-        activity_rows, activity_ok = f_act.result()
-        position_rows, positions_ok = f_pos.result()
-        redeem_rows, redeems_ok = f_red.result()
+        def _fetch_redeems():
+            try:
+                r2 = requests.get(
+                    f"{base}/rest/v1/tracked_wallet_redeems",
+                    headers=headers,
+                    params={
+                        "select": "condition_id,asset,amount_usdc,traded_at",
+                        "wallet": f"eq.{wallet}",
+                        "order": "traded_at.desc",
+                        "limit": 1000,
+                    },
+                    timeout=15,
+                )
+                if r2.status_code != 200:
+                    return [], False
+                rows = r2.json()
+                return _filter_wallet_rows_since(rows, tracked_since), True
+            except Exception as e2:
+                print(f"[WalletProfile] redeem fetch hatasi: {e2}")
+                return [], False
 
-    # 3. Strict football gate + badge sets for display.
-    if activity_ok:
-        activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
-        activity_rows, football_registry_ok = _filter_verified_football_items(activity_rows)
-        if not football_registry_ok:
-            logger.warning(
-                "[WalletProfile] soccer registry verification incomplete for %s; "
-                "showing only rows already verified in this pass",
-                wallet[:10],
-            )
-        activity_rows = _filter_tracked_wallet_activity_amount(activity_rows)
-        redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
-    if activity_ok and positions_ok:
-        position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
-    resolved = _compute_resolved_stats(position_rows, redeem_rows)
-    resolved_won_ids = resolved["resolved_won_ids"]
-    resolved_lost_ids = resolved["resolved_lost_ids"]
-    open_positions = [
-        _with_wallet_bet_display_metadata(position)
-        for position in resolved["open_positions"]
-    ]
-    realized_pnl_total = resolved["realized_pnl_total"]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            f_act = pool.submit(_fetch_activity)
+            f_red = pool.submit(_fetch_redeems)
+            activity_rows, activity_ok = f_act.result()
+            redeem_rows, redeems_ok = f_red.result()
+
+        if activity_ok:
+            activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+            activity_rows, football_registry_ok = _filter_verified_football_items(activity_rows)
+            if not football_registry_ok:
+                logger.warning(
+                    "[WalletProfile] soccer registry verification incomplete for %s; "
+                    "showing only rows already verified in this pass",
+                    wallet[:10],
+                )
+            activity_rows = _filter_tracked_wallet_activity_amount(activity_rows)
+            redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
+        if activity_ok and positions_ok:
+            position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
+
+        resolved = _compute_resolved_stats(position_rows, redeem_rows)
+        resolved_won_ids = resolved["resolved_won_ids"]
+        resolved_lost_ids = resolved["resolved_lost_ids"]
+        open_positions = [
+            _with_wallet_bet_display_metadata(position)
+            for position in resolved["open_positions"]
+        ]
+        realized_pnl_total = resolved["realized_pnl_total"]
+        total_redeemed_usdc = sum(
+            float(row.get("amount_usdc") or 0)
+            for row in redeem_rows
+        )
+        display_activity = _build_display_activity(
+            activity_rows,
+            position_rows,
+            resolved_won_ids,
+            resolved_lost_ids,
+            redeem_rows,
+        )
 
     # 4. The persisted tracked_wallets stats are the canonical snapshot shared
     # with the tracked-wallet list. The scraper computes them from canonical
@@ -3136,8 +3346,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     open_position_count = wallet_row.get("open_position_count") or 0
     open_exposure = float(wallet_row.get("open_exposure_usdc") or 0)
 
-    total_redeemed_usdc = sum(float(rw.get("amount_usdc") or 0) for rw in redeem_rows)
-
     summary_lines = []
     if trade_count == 0:
         summary_lines.append("Henüz futbol maçlarında kayıtlı bahsi bulunmuyor.")
@@ -3157,14 +3365,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 summary_lines.append("Genelde favoriye/yüksek ihtimalli tarafa oynuyor - güvenli/favori odaklı bir profil.")
         if open_position_count:
             summary_lines.append(f"Şu an {open_position_count} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
-
-    display_activity = _build_display_activity(
-        activity_rows,
-        position_rows,
-        resolved_won_ids,
-        resolved_lost_ids,
-        redeem_rows,
-    )
 
     return {
         "wallet": wallet_row.get("wallet"),
@@ -3416,6 +3616,7 @@ def _build_display_activity(
         )
 
         display_rows.append({
+            "bet_key": _canonical_bet_key_text(key),
             "title": source.get("title"),
             "match": enriched.get("match") or enriched.get("match_name") or source.get("title") or "-",
             "match_name": enriched.get("match_name"),
