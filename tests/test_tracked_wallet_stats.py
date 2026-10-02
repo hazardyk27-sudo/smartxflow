@@ -1862,6 +1862,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
                     "asset": "asset-a",
                     "kickoff_utc": "2026-10-02T20:00:00+00:00",
                     "first_traded_at": "2026-10-02T18:00:00+00:00",
+                    "last_traded_at": "2026-10-02T19:10:00+00:00",
                     "avg_entry_price": 0.50,
                 }]
 
@@ -1899,6 +1900,19 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(saved[2], 0.60)
         self.assertEqual(saved[4]["clv_probability_pp"], 10.0)
         self.assertEqual(saved[4]["clv_pct"], 20.0)
+
+    def test_clv_is_not_finalized_for_lifecycle_with_live_activity(self):
+        kickoff = polymarket_scraper.datetime.fromisoformat(
+            "2026-10-02T20:00:00+00:00"
+        )
+        bet = {
+            "first_traded_at": "2026-10-02T18:00:00+00:00",
+            "last_traded_at": "2026-10-02T20:03:00+00:00",
+        }
+
+        self.assertFalse(
+            polymarket_scraper._is_clv_eligible_lifecycle(bet, kickoff)
+        )
 
     def test_wallet_resume_checkpoint_prefers_last_successful_sync(self):
         writer = polymarket_scraper.PolymarketSupabaseWriter(

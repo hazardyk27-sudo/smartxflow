@@ -571,7 +571,7 @@ class PolymarketSupabaseWriter:
         floor = now - timedelta(hours=CLOSING_FINALIZE_LOOKBACK_HOURS)
         try:
             params = [
-                ("select", "wallet,bet_key,asset,kickoff_utc,first_traded_at,avg_entry_price"),
+                ("select", "wallet,bet_key,asset,kickoff_utc,first_traded_at,last_traded_at,avg_entry_price"),
                 ("asset", "not.is.null"),
                 ("closing_price", "is.null"),
                 ("kickoff_utc", f"gte.{floor.isoformat()}"),
@@ -687,6 +687,17 @@ def _is_prematch_bet(candidate: Dict[str, Any], kickoff: datetime) -> bool:
     return entered is not None and entered < kickoff
 
 
+def _is_clv_eligible_lifecycle(
+    bet: Dict[str, Any],
+    kickoff: datetime,
+) -> bool:
+    """Only compare a pure pre-kickoff lifecycle with the closing line."""
+    if not _is_prematch_bet(bet, kickoff):
+        return False
+    last = _parse_kickoff(bet.get("last_traded_at"))
+    return last is not None and last < kickoff
+
+
 def run_tracked_price_snapshots(
     writer: PolymarketSupabaseWriter,
     now: Optional[datetime] = None,
@@ -754,7 +765,11 @@ def run_tracked_price_snapshots(
     for bet in pending:
         asset = str(bet.get("asset") or "").strip()
         kickoff = _parse_kickoff(bet.get("kickoff_utc"))
-        if not asset or kickoff is None or not _is_prematch_bet(bet, kickoff):
+        if (
+            not asset
+            or kickoff is None
+            or not _is_clv_eligible_lifecycle(bet, kickoff)
+        ):
             continue
         cache_key = (asset, kickoff.isoformat())
         if cache_key not in snapshot_cache:
