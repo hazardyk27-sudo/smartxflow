@@ -68,6 +68,26 @@ def _number(value: Any) -> Optional[float]:
         return None
 
 
+def _timestamp(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        raw = str(value or "").strip()
+        if not raw:
+            raise ValueError("timestamp is required")
+        try:
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError(f"invalid ISO timestamp: {raw}") from exc
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat()
+
+
 def _normalize_text(value: Any) -> str:
     text = str(value or "").strip().casefold()
     text = unicodedata.normalize("NFKD", text)
@@ -593,10 +613,16 @@ class PolyConfirmationClient:
             f"{table} pagination limit reached"
         )
 
-    def fetch_event_payload(self, event_id: str) -> Dict[str, Any]:
+    def fetch_event_payload(
+        self,
+        event_id: str,
+        *,
+        as_of: Any,
+    ) -> Dict[str, Any]:
         event_id = str(event_id or "").strip()
         if not event_id:
             raise ValueError("exact Polymarket event_id is required")
+        cutoff = _timestamp(as_of)
 
         match_rows = self._get(
             "polymarket_matches",
@@ -610,11 +636,25 @@ class PolyConfirmationClient:
             return {
                 "found": False,
                 "event_id": event_id,
+                "as_of": _iso(cutoff),
+                "data_cutoff": _iso(cutoff),
                 "match": None,
                 "general_trades": [],
                 "wallet_activity": [],
                 "wallet_stats": [],
             }
+
+        match = match_rows[0]
+        effective_cutoff = cutoff
+        kickoff_raw = match.get("kickoff_utc")
+        if kickoff_raw:
+            try:
+                kickoff = _timestamp(kickoff_raw)
+                if kickoff < effective_cutoff:
+                    effective_cutoff = kickoff
+            except ValueError:
+                pass
+        cutoff_iso = _iso(effective_cutoff)
 
         general_trades = self._get_all(
             "polymarket_trades",
@@ -626,6 +666,7 @@ class PolyConfirmationClient:
                 "event_id": f"eq.{event_id}",
                 "match_phase": "eq.prematch",
                 "market_type": "eq.1x2",
+                "traded_at": f"lte.{cutoff_iso}",
                 "order": "traded_at.asc,id.asc",
             },
         )
@@ -639,6 +680,7 @@ class PolyConfirmationClient:
                 ),
                 "event_id": f"eq.{event_id}",
                 "market_type": "eq.1x2",
+                "traded_at": f"lte.{cutoff_iso}",
                 "order": "traded_at.asc,id.asc",
             },
         )
@@ -649,6 +691,7 @@ class PolyConfirmationClient:
                 "select": (
                     "wallet,win_rate,resolved_total,last_synced_at"
                 ),
+                "last_synced_at": f"lte.{cutoff_iso}",
                 "order": "created_at.asc",
             },
         )
@@ -656,7 +699,9 @@ class PolyConfirmationClient:
         return {
             "found": True,
             "event_id": event_id,
-            "match": match_rows[0],
+            "as_of": _iso(cutoff),
+            "data_cutoff": cutoff_iso,
+            "match": match,
             "general_trades": general_trades,
             "wallet_activity": wallet_activity,
             "wallet_stats": wallet_stats,
@@ -667,9 +712,10 @@ class PolyConfirmationClient:
         *,
         event_id: str,
         target_direction: str,
+        as_of: Any,
         config: Optional[PolyConfirmationConfig] = None,
     ) -> Dict[str, Any]:
-        payload = self.fetch_event_payload(event_id)
+        payload = self.fetch_event_payload(event_id, as_of=as_of)
         if not payload["found"]:
             return {
                 "poly_confirmation_version": POLY_CONFIRMATION_VERSION,
@@ -689,6 +735,8 @@ class PolyConfirmationClient:
                     config or PolyConfirmationConfig()
                 ),
                 "poly_event_id": str(event_id),
+                "as_of": payload.get("as_of"),
+                "data_cutoff": payload.get("data_cutoff"),
             }
 
         match = payload["match"]
@@ -703,4 +751,6 @@ class PolyConfirmationClient:
         )
         result["poly_event_id"] = str(event_id)
         result["poly_slug"] = match.get("slug")
+        result["as_of"] = payload.get("as_of")
+        result["data_cutoff"] = payload.get("data_cutoff")
         return result

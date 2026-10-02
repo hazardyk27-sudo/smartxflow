@@ -17,6 +17,19 @@ It deliberately does not fuzzy-match home/away team names to discover an event.
 This prevents Poly evidence from being attached to the wrong fixture. Event
 resolution can be added later as a separate audited identity layer.
 
+## Anti-leakage / trigger-time cutoff
+
+The Supabase client requires an explicit `as_of` timestamp. Every prematch
+trade and tracked-wallet activity query is capped at that instant. If `as_of`
+is after kickoff, the effective cutoff is capped at kickoff.
+
+Tracked-wallet performance rows are also accepted only when
+`last_synced_at <= effective_cutoff`. Because `tracked_wallets` stores the
+latest aggregate rather than a historical series, this deliberately makes old
+retroactive wallet consensus unavailable instead of leaking present-day wallet
+performance into a historical trigger. Live forward triggers freeze the
+point-in-time Poly result inside the immutable Part 2 signal.
+
 ## Component 1 — General Poly direction
 
 Only prematch 1X2 direct `BUY + YES` trades are used to infer a clear outcome

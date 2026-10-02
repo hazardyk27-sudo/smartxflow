@@ -284,7 +284,10 @@ def test_client_reads_by_exact_event_id():
         "read-key",
         session=session,
     )
-    payload = client.fetch_event_payload("evt-1")
+    payload = client.fetch_event_payload(
+        "evt-1",
+        as_of="2026-10-03T12:00:00Z",
+    )
     assert payload["found"] is True
     assert payload["event_id"] == "evt-1"
     assert all(
@@ -301,7 +304,10 @@ def test_client_requires_exact_event_id():
         session=session,
     )
     try:
-        client.fetch_event_payload("")
+        client.fetch_event_payload(
+            "",
+            as_of="2026-10-03T12:00:00Z",
+        )
     except ValueError:
         pass
     else:
@@ -315,3 +321,39 @@ def test_thresholds_are_explicit_forward_test_config():
     )
     assert cfg.big_trade_min_usdc == 7500
     assert cfg.successful_wallet_min_win_rate_pct == 60
+
+
+def test_client_applies_as_of_cutoff_to_trades_activity_and_wallet_stats():
+    session = _Session()
+    client = PolyConfirmationClient(
+        "https://example.supabase.co",
+        "read-key",
+        session=session,
+    )
+    client.fetch_event_payload(
+        "evt-1",
+        as_of="2026-10-03T12:00:00Z",
+    )
+
+    seen = {}
+    for url, kwargs in session.calls:
+        seen[url.rsplit("/", 1)[-1]] = kwargs["params"]
+
+    expected = "lte.2026-10-03T12:00:00+00:00"
+    assert seen["polymarket_trades"]["traded_at"] == expected
+    assert seen["tracked_wallet_activity"]["traded_at"] == expected
+    assert seen["tracked_wallets"]["last_synced_at"] == expected
+
+
+def test_client_caps_cutoff_at_kickoff_for_postmatch_evaluation():
+    session = _Session()
+    client = PolyConfirmationClient(
+        "https://example.supabase.co",
+        "read-key",
+        session=session,
+    )
+    payload = client.fetch_event_payload(
+        "evt-1",
+        as_of="2026-10-04T12:00:00Z",
+    )
+    assert payload["data_cutoff"] == "2026-10-03T18:00:00+00:00"
