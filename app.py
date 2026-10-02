@@ -678,8 +678,17 @@ def cleanup_old_matches():
 _cleanup_started_pids = set()
 
 def start_cleanup_scheduler():
-    """Start daily cleanup scheduler for old matches - runs at 05:00 Turkey time"""
+    """Start daily cleanup scheduler for old matches - runs at 05:00 Turkey time.
+
+    Set SMARTXFLOW_DISABLE_WEB_CLEANUP=1 for web-only processes (for example
+    Replit preview restarts) that must never delete Supabase retention data.
+    """
     global cleanup_thread
+
+    disable_cleanup = str(os.environ.get("SMARTXFLOW_DISABLE_WEB_CLEANUP", "")).strip().lower()
+    if disable_cleanup in {"1", "true", "yes", "on"}:
+        print("[Cleanup Scheduler] Disabled by SMARTXFLOW_DISABLE_WEB_CLEANUP; web process will not run DB cleanup", flush=True)
+        return
     
     pid = os.getpid()
     if pid in _cleanup_started_pids:
