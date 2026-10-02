@@ -714,6 +714,122 @@
     .tw-mini-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
   }
 
+
+  /* ── Tracked Bettor profile V2.1: readable + truthful states ── */
+  #walletProfileView { max-width: 1240px; margin: 0 auto; }
+  #walletProfileView .back-btn {
+    font-size: 14px; font-weight: 650; margin: 2px 0 14px; color:#79a2ff;
+  }
+  #walletProfileView .tw-v2-profile-hero {
+    padding: 24px 26px; border-radius: 18px; min-height: 132px;
+    background:
+      radial-gradient(circle at 92% 5%, rgba(76,125,255,.16), transparent 34%),
+      linear-gradient(145deg,#111824,#0e141e);
+  }
+  #walletProfileView .tw-v2-eyebrow { font-size:11px; letter-spacing:.14em; margin-bottom:7px; }
+  #walletProfileView .tw-v2-profile-name { font-size:27px; line-height:1.1; letter-spacing:-.02em; }
+  #walletProfileView .tw-v2-profile-address { font-size:13px; margin-top:7px; }
+  #walletProfileView .tw-v2-profile-meta { gap:7px; margin-top:14px; }
+  #walletProfileView .tw-meta-pill { font-size:11px; padding:5px 9px; border-radius:999px; }
+  #walletProfileView .tw-v2-score { min-width:190px; padding:16px 18px; border-radius:14px; }
+  #walletProfileView .tw-v2-score-label { font-size:11px; letter-spacing:.1em; }
+  #walletProfileView .tw-v2-score-value { font-size:34px; line-height:1.05; margin:4px 0; }
+  #walletProfileView .tw-v2-score-sub { font-size:11px; line-height:1.35; max-width:170px; }
+  .tw-v2-data-warning {
+    display:flex; gap:12px; align-items:flex-start; margin:12px 0 8px; padding:14px 16px;
+    border:1px solid rgba(245,158,11,.38); border-radius:12px;
+    background:linear-gradient(135deg,rgba(245,158,11,.10),rgba(245,158,11,.035));
+    color:#d9c79e; font-size:13px; line-height:1.48;
+  }
+  .tw-v2-data-warning-icon {
+    width:26px; height:26px; border-radius:8px; flex:0 0 26px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(245,158,11,.16); border:1px solid rgba(245,158,11,.35);
+    color:#fbbf24; font-weight:900; font-size:15px;
+  }
+  .tw-v2-data-warning strong { display:block; color:#ffd98a; font-size:13.5px; margin-bottom:2px; }
+  .tw-v2-data-warning span { display:block; }
+  #walletProfileView .tw-v2-quality {
+    margin:8px 0 14px; padding:0 2px; background:transparent; border:0;
+    font-size:12px; gap:9px 13px; color:#8f9bb2;
+  }
+  #walletProfileView .wallet-stats-grid {
+    grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:14px 0 12px;
+  }
+  #walletProfileView .wallet-stat-card {
+    min-height:108px; padding:16px 17px; border-radius:14px;
+    background:linear-gradient(145deg,#121a26,#101720); border-color:#273247;
+  }
+  #walletProfileView .wallet-stat-card .label {
+    font-size:11.5px; text-transform:uppercase; letter-spacing:.055em; color:#78869f;
+  }
+  #walletProfileView .wallet-stat-card .value {
+    font-size:25px; line-height:1.15; margin-top:8px; letter-spacing:-.025em;
+  }
+  #walletProfileView .wallet-stat-card .note {
+    margin-top:7px; font-size:11.5px; color:#7f8ba0; line-height:1.35;
+  }
+  #walletProfileView .tw-v2-insights {
+    grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px;
+  }
+  #walletProfileView .tw-insight {
+    min-height:112px; padding:15px 17px; border-radius:14px;
+    background:#101720; border-color:#253044;
+  }
+  #walletProfileView .tw-insight.is-pending { opacity:.78; }
+  #walletProfileView .tw-insight-label { font-size:11.5px; text-transform:uppercase; letter-spacing:.055em; }
+  #walletProfileView .tw-insight-value { font-size:22px; margin:7px 0 5px; }
+  #walletProfileView .tw-insight-help { font-size:11.5px; line-height:1.45; color:#748198; }
+  #walletProfileView .wallet-summary {
+    padding:16px 18px; margin:0 0 22px; border-radius:14px;
+    font-size:13.5px; line-height:1.6; background:#101720; border-color:#273247;
+  }
+  #walletProfileView .wallet-section-title {
+    margin:22px 0 9px; font-size:16px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  #walletProfileView .tw-v2-explain { font-size:11.5px; color:#75839c; font-weight:500; text-align:right; }
+  #walletProfileView .table-wrap {
+    border-radius:13px; background:#0e141d; border-color:#253044; overflow-x:hidden;
+  }
+  #walletProfileView .wallet-activity-table {
+    min-width:100%; font-size:12.5px;
+  }
+  #walletProfileView .wallet-activity-table th {
+    padding:10px 10px; font-size:11.5px; color:#8390a8; background:#101721;
+  }
+  #walletProfileView .wallet-activity-table td { padding:11px 10px; }
+  .tw-table-state {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; padding:18px 14px; white-space:normal; text-align:center; color:#7f8ba0;
+  }
+  .tw-table-state strong { color:#aeb8ca; font-size:13px; }
+  .tw-table-state span { font-size:11.5px; line-height:1.45; max-width:660px; }
+  .tw-table-state.warn strong { color:#f3c76d; }
+  .tw-table-state.warn { color:#aa9670; }
+  @media (max-width: 1100px) {
+    #walletProfileView .wallet-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    #walletProfileView .tw-v2-insights { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    #walletProfileView .wallet-activity-table:not(.wallet-positions-table) th:nth-child(2),
+    #walletProfileView .wallet-activity-table:not(.wallet-positions-table) td:nth-child(2),
+    #walletProfileView .wallet-activity-table:not(.wallet-positions-table) th:nth-child(10),
+    #walletProfileView .wallet-activity-table:not(.wallet-positions-table) td:nth-child(10) { display:none; }
+  }
+  @media (max-width: 760px) {
+    #walletProfileView .tw-v2-profile-hero { padding:18px; align-items:stretch; }
+    #walletProfileView .tw-v2-profile-name { font-size:23px; }
+    #walletProfileView .tw-v2-score { min-width:0; width:100%; }
+    #walletProfileView .wallet-stats-grid,
+    #walletProfileView .tw-v2-insights { grid-template-columns:1fr 1fr; }
+    #walletProfileView .wallet-section-title { align-items:flex-start; flex-direction:column; gap:3px; }
+    #walletProfileView .tw-v2-explain { text-align:left; }
+    #walletProfileView .table-wrap { overflow-x:auto; }
+    #walletProfileView .wallet-activity-table { min-width:780px; }
+  }
+  @media (max-width: 520px) {
+    #walletProfileView .wallet-stats-grid,
+    #walletProfileView .tw-v2-insights { grid-template-columns:1fr; }
+  }
+
 </style>
 </head>
 <body>
@@ -825,7 +941,7 @@
     <div class="tw-v2-insights" id="walletInsightGrid"></div>
     <div class="wallet-stats-grid" id="walletStatsGrid"></div>
     <div class="wallet-summary" id="walletSummaryBox"></div>
-    <h3 class="wallet-section-title"><span>Açık Pozisyonlar</span><span class="tw-v2-explain">Henüz sonuçlanmamış canonical bahisler</span></h3>
+    <h3 class="wallet-section-title"><span>Açık Pozisyonlar</span><span class="tw-v2-explain" id="walletOpenPositionMeta">Henüz sonuçlanmamış canonical bahisler</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table wallet-positions-table">
         <thead>
@@ -842,7 +958,7 @@
         <tbody id="walletPositionsBody"></tbody>
       </table>
     </div>
-    <h3 class="wallet-section-title"><span>Bahis Geçmişi</span><span class="tw-v2-explain">Closing line = maç başlamadan önceki son geçerli piyasa fiyatı</span></h3>
+    <h3 class="wallet-section-title"><span>Bahis Geçmişi</span><span class="tw-v2-explain" id="walletHistoryMeta">Closing line = maç başlamadan önceki son geçerli piyasa fiyatı</span></h3>
     <div class="table-wrap">
       <table class="wallet-activity-table">
         <thead>
@@ -1482,6 +1598,7 @@ function _twPct(v, digits = 1) {
 }
 function _twProfileMetrics(data) {
   const s = data.stats || {};
+  const coverage = data.coverage || {};
   const bets = data.bets || data.activity || [];
   const won = Number(s.resolved_won) || 0;
   const lost = Number(s.resolved_lost) || 0;
@@ -1490,6 +1607,11 @@ function _twProfileMetrics(data) {
   const entryProbRaw = _twNum(s.avg_entry_probability ?? s.avg_price);
   const entryProbPct = entryProbRaw !== null && entryProbRaw >= 0 && entryProbRaw <= 1 ? entryProbRaw * 100 : null;
   const winEdge = winRate !== null && entryProbPct !== null ? winRate - entryProbPct : null;
+
+  const expectedCount = Number(coverage.expected_bet_count) || Number(s.bet_count ?? s.trade_count) || 0;
+  const returnedCount = Number(coverage.returned_bet_count) || bets.length;
+  const detailCoverage = expectedCount > 0 ? Math.min(returnedCount / expectedCount, 1) : (bets.length ? 1 : 0);
+  const hasUsableDetailHistory = coverage.history_complete === true || (bets.length >= 5 && detailCoverage >= 0.5);
 
   const clvValues = bets
     .map(b => _twNum(b.clv_probability_pp))
@@ -1509,7 +1631,7 @@ function _twProfileMetrics(data) {
   const dataSignals = (clvValues.length ? 1 : 0) + (realized.length ? 1 : 0) + (winEdge !== null ? 1 : 0);
   const dataFactor = 0.65 + (Math.min(dataSignals, 3) / 3) * 0.35;
   let smartScore = null;
-  if (resolved >= 5 && winEdge !== null) {
+  if (hasUsableDetailHistory && resolved >= 5 && winEdge !== null) {
     const raw =
       50 +
       _twClamp(winEdge, -15, 15) * 1.10 +
@@ -1522,7 +1644,7 @@ function _twProfileMetrics(data) {
     bets, won, lost, resolved, winRate, entryProbPct, winEdge,
     avgClv, clvCount: clvValues.length,
     realizedPnl, realizedStake, realizedRoi, realizedCount: realized.length,
-    smartScore
+    smartScore, expectedCount, returnedCount, detailCoverage, hasUsableDetailHistory
   };
 }
 
@@ -1720,7 +1842,9 @@ async function openWalletProfile(wallet) {
     const quality = data.quality || {};
     const scoreText = m.smartScore === null ? '—' : String(m.smartScore);
     const scoreSub = m.smartScore === null
-      ? (m.resolved < 5 ? 'En az 5 sonuçlanmış bahis gerekli' : 'Yeterli performans verisi yok')
+      ? (!m.hasUsableDetailHistory && m.expectedCount > 0
+          ? 'Detay geçmiş tamamlanınca hesaplanacak'
+          : (m.resolved < 5 ? 'En az 5 sonuçlanmış bahis gerekli' : 'Yeterli performans verisi yok'))
       : '0–100 açıklanabilir performans bileşimi';
 
     const lastSync = data.last_synced_at ? fmtDateTime(data.last_synced_at) : 'Bekleniyor';
@@ -1757,11 +1881,21 @@ async function openWalletProfile(wallet) {
     const historyCls = historyComplete ? 'good' : 'warn';
     const qualityLabel = qualityOk ? 'Kalite kontrolü OK' : `Kalite uyarısı: ${Number(quality.issue_count)||0}`;
     const qualityCls = qualityOk ? 'good' : 'warn';
+    const detailMissing = expected > 0 && returned < expected;
     walletQualityBox.innerHTML = `
+      ${detailMissing ? `
+        <div class="tw-v2-data-warning">
+          <div class="tw-v2-data-warning-icon">!</div>
+          <div>
+            <strong>Detay geçmiş aktarımı tamamlanmadı.</strong>
+            <span>Üstteki toplamlar kayıtlı profil snapshot'ından geliyor; şu anda yalnız <b>${returned}/${expected}</b> canonical bahsin satır detayı erişilebilir. Bu yüzden geçmiş, CLV, ROI ve açık pozisyon detayı eksik olabilir.</span>
+          </div>
+        </div>
+      ` : ''}
       <div class="tw-v2-quality">
         <span class="tw-meta-pill ${historyCls}">${historyLabel}</span>
         <span class="tw-meta-pill ${qualityCls}">${qualityLabel}</span>
-        <span><strong>${returned}</strong> / ${expected || returned} bahis API'de</span>
+        <span><strong>${returned}</strong> / ${expected || returned} detay kayıt</span>
         <span>Kaynak: <strong>${escapeAttr(coverage.history_source || '—')}</strong></span>
         <span>Minimum pozisyon: <strong>${fmtUsd(coverage.minimum_position_entry_usdc || 1000)}</strong></span>
       </div>
@@ -1770,40 +1904,51 @@ async function openWalletProfile(wallet) {
     const clvCoverage = m.bets.length ? (m.clvCount / m.bets.length) * 100 : 0;
     walletInsightGrid.innerHTML = `
       <div class="tw-insight">
-        <div class="tw-insight-label">İsabet − giriş olasılığı</div>
+        <div class="tw-insight-label">Piyasaya göre giriş</div>
         <div class="tw-insight-value ${m.winEdge !== null && m.winEdge > 0 ? 'clv-pos' : m.winEdge !== null && m.winEdge < 0 ? 'clv-neg' : ''}">${_twSigned(m.winEdge, 1, ' pp')}</div>
-        <div class="tw-insight-help">Gerçekleşen isabet ile ortalama giriş implied probability farkı.</div>
+        <div class="tw-insight-help">İsabet oranı − ortalama giriş implied probability.</div>
       </div>
-      <div class="tw-insight">
+      <div class="tw-insight ${m.clvCount ? '' : 'is-pending'}">
         <div class="tw-insight-label">Ortalama CLV</div>
-        <div class="tw-insight-value ${m.avgClv !== null && m.avgClv > 0 ? 'clv-pos' : m.avgClv !== null && m.avgClv < 0 ? 'clv-neg' : ''}">${_twSigned(m.avgClv, 2, ' pp')}</div>
-        <div class="tw-insight-help">${m.clvCount} bahiste closing line mevcut. Pozitif değer daha iyi giriş demektir.</div>
+        <div class="tw-insight-value ${m.avgClv !== null && m.avgClv > 0 ? 'clv-pos' : m.avgClv !== null && m.avgClv < 0 ? 'clv-neg' : ''}">${m.avgClv === null ? 'Bekliyor' : _twSigned(m.avgClv, 2, ' pp')}</div>
+        <div class="tw-insight-help">${m.clvCount ? `${m.clvCount} bahiste closing line • kapsam %${clvCoverage.toFixed(0)}` : 'Detay geçmiş ve closing snapshot geldikçe hesaplanır.'}</div>
       </div>
-      <div class="tw-insight">
+      <div class="tw-insight ${m.realizedRoi !== null ? '' : 'is-pending'}">
         <div class="tw-insight-label">Gerçekleşmiş ROI</div>
-        <div class="tw-insight-value ${m.realizedRoi !== null && m.realizedRoi > 0 ? 'pnl-pos' : m.realizedRoi !== null && m.realizedRoi < 0 ? 'pnl-neg' : ''}">${_twSigned(m.realizedRoi, 1, '%')}</div>
-        <div class="tw-insight-help">${m.realizedCount} gerçekleşmiş K/Z kaydı; stake bazlı hesap.</div>
-      </div>
-      <div class="tw-insight">
-        <div class="tw-insight-label">CLV kapsamı</div>
-        <div class="tw-insight-value">${m.bets.length ? '%' + clvCoverage.toFixed(0) : '—'}</div>
-        <div class="tw-insight-help">${m.clvCount} / ${m.bets.length} canonical bahiste geçerli pre-match closing snapshot.</div>
+        <div class="tw-insight-value ${m.realizedRoi !== null && m.realizedRoi > 0 ? 'pnl-pos' : m.realizedRoi !== null && m.realizedRoi < 0 ? 'pnl-neg' : ''}">${m.realizedRoi === null ? 'Bekliyor' : _twSigned(m.realizedRoi, 1, '%')}</div>
+        <div class="tw-insight-help">${m.realizedCount ? `${m.realizedCount} gerçekleşmiş K/Z kaydı` : 'Bet-level K/Z kayıtları geldikçe hesaplanır.'}</div>
       </div>
     `;
 
     const avgEntryDecimal = _twNum(s.avg_entry_decimal ?? s.avg_price_decimal);
     const statCards = [
-      { label: 'Toplam canonical bahis', value: Number(s.bet_count ?? s.trade_count) || 0 },
-      { label: 'Sonuçlanan örneklem', value: m.resolved },
-      { label: 'Kazanan / Kaybeden', value: `${m.won} / ${m.lost}` },
-      { label: 'İsabet oranı', value: m.winRate === null ? '—' : `%${m.winRate.toFixed(1)}` },
-      { label: 'Toplam yatırım', value: fmtUsd(s.total_invested_usdc || 0) },
-      { label: 'Ortalama bahis', value: fmtUsd(s.avg_bet_size_usdc || 0) },
-      { label: 'Ortalama giriş oranı', value: avgEntryDecimal === null ? '—' : avgEntryDecimal.toFixed(2) },
-      { label: 'Açık pozisyon değeri', value: fmtUsd(s.open_exposure_usdc || 0) },
+      {
+        label: 'Canonical bahis',
+        value: Number(s.bet_count ?? s.trade_count) || 0,
+        note: `${m.resolved} sonuçlandı`
+      },
+      {
+        label: 'İsabet',
+        value: m.winRate === null ? '—' : `%${m.winRate.toFixed(1)}`,
+        note: `${m.won} kazanan · ${m.lost} kaybeden`
+      },
+      {
+        label: 'Toplam yatırım',
+        value: fmtUsd(s.total_invested_usdc || 0),
+        note: `Ort. bahis ${fmtUsd(s.avg_bet_size_usdc || 0)}`
+      },
+      {
+        label: 'Ortalama giriş',
+        value: avgEntryDecimal === null ? '—' : avgEntryDecimal.toFixed(2),
+        note: m.entryProbPct === null ? 'Implied probability yok' : `%${m.entryProbPct.toFixed(1)} implied probability`
+      },
     ];
     walletStatsGrid.innerHTML = statCards.map(c => `
-      <div class="wallet-stat-card"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>
+      <div class="wallet-stat-card">
+        <div class="label">${c.label}</div>
+        <div class="value">${c.value}</div>
+        <div class="note">${c.note}</div>
+      </div>
     `).join('');
 
     const summaryLines = [];
@@ -1827,6 +1972,23 @@ async function openWalletProfile(wallet) {
       summaryLines.map(line => `<div>• ${escapeAttr(line)}</div>`).join('') +
       '<div style="margin-top:8px;color:#68758b;font-size:10.5px;">SmartScore bir bahis önerisi değildir; yalnız bu profilde görünen sonuç, giriş fiyatı, CLV ve gerçekleşmiş K/Z verilerini tek ekranda özetler.</div>';
 
+    currentProfileStats = s;
+    currentProfileCoverage = coverage;
+    const openMeta = document.getElementById('walletOpenPositionMeta');
+    const historyMeta = document.getElementById('walletHistoryMeta');
+    if (openMeta) {
+      const openCount = Number(s.open_position_count) || 0;
+      const openExposure = Number(s.open_exposure_usdc) || 0;
+      openMeta.textContent = openCount
+        ? `Snapshot: ${openCount} açık pozisyon · ${fmtUsd(openExposure)}`
+        : 'Açık pozisyon bulunmuyor';
+    }
+    if (historyMeta) {
+      historyMeta.textContent = expected
+        ? `${returned}/${expected} detay kayıt · closing line maç öncesi son geçerli fiyat`
+        : 'Closing line = maç başlamadan önceki son geçerli piyasa fiyatı';
+    }
+
     currentPositions = data.open_positions || [];
     renderPositionsTable();
 
@@ -1838,6 +2000,8 @@ async function openWalletProfile(wallet) {
 }
 
 let currentActivity = [];
+let currentProfileStats = {};
+let currentProfileCoverage = {};
 let activitySortField = 'traded_at';
 let activitySortDir = 'desc';
 const RESULT_LABELS = { won: 'Kazandı', lost: 'Kaybetti', open: 'Açık', unknown: '-' };
@@ -1852,7 +2016,10 @@ function renderPositionsTable() {
   if (!walletPositionsBody) return;
   const positions = currentPositions || [];
   if (!positions.length) {
-    walletPositionsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
+    const snapshotOpen = Number(currentProfileStats.open_position_count) || 0;
+    walletPositionsBody.innerHTML = snapshotOpen
+      ? `<tr><td colspan="7"><div class="tw-table-state warn"><strong>${snapshotOpen} açık pozisyon snapshot'ta kayıtlı.</strong><span>Detay kayıt henüz profile aktarılmadığı için burada yanlışlıkla “yok” göstermiyoruz.</span></div></td></tr>`
+      : '<tr><td colspan="7"><div class="tw-table-state"><strong>Açık pozisyon yok.</strong><span>Güncel snapshot içinde açık canonical pozisyon bulunmuyor.</span></div></td></tr>';
   } else {
     const toDecimalOdds = (v) => {
       const p = Number(v) || 0;
@@ -1898,7 +2065,10 @@ function renderPositionsTable() {
 function renderActivityTable() {
   const activity = currentActivity || [];
   if (!activity.length) {
-    walletActivityBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#6d7590;">Bahis geçmişi yok</td></tr>';
+    const expected = Number(currentProfileCoverage.expected_bet_count) || Number(currentProfileStats.bet_count ?? currentProfileStats.trade_count) || 0;
+    walletActivityBody.innerHTML = expected
+      ? `<tr><td colspan="10"><div class="tw-table-state warn"><strong>${expected} canonical bahis snapshot'ta kayıtlı.</strong><span>Bahis satır geçmişi henüz durable ledger'a aktarılmadığı için detaylar burada gösterilemiyor; bu “bahis yok” anlamına gelmez.</span></div></td></tr>`
+      : '<tr><td colspan="10"><div class="tw-table-state"><strong>Bahis geçmişi yok.</strong><span>Bu profil için gösterilecek canonical bahis bulunmuyor.</span></div></td></tr>';
     return;
   }
   const sorted = [...activity].sort((a, b) => {
