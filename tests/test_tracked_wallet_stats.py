@@ -992,6 +992,66 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(rows[0]["pnl_usdc"], -750.0)
         self.assertEqual(rows[0]["pnl_kind"], "realized")
 
+    def test_fetch_clob_midpoints_parses_current_sdk_shape(self):
+        calls = []
+
+        def fake_post(url, **kwargs):
+            calls.append((url, kwargs["json"]))
+            return FakeResponse(200, {
+                "asset-a": "0.42",
+                "asset-b": "0.615",
+                "bad": "not-a-price",
+            })
+
+        with patch.object(polymarket_client.requests, "post", side_effect=fake_post):
+            prices, ok = polymarket_client._fetch_clob_midpoints(
+                ["asset-a", "asset-b", "asset-a"]
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual(prices, {
+            "asset-a": 0.42,
+            "asset-b": 0.615,
+        })
+        self.assertEqual(calls[0][0], f"{polymarket_client.CLOB_BASE}/midpoints")
+        self.assertEqual(
+            calls[0][1],
+            [{"token_id": "asset-a"}, {"token_id": "asset-b"}],
+        )
+
+    def test_fetch_clob_midpoints_keeps_partial_success(self):
+        responses = [
+            FakeResponse(200, {f"a{i}": "0.50" for i in range(100)}),
+            FakeResponse(503, {"error": "temporary"}),
+        ]
+
+        with patch.object(
+            polymarket_client.requests,
+            "post",
+            side_effect=responses,
+        ):
+            prices, ok = polymarket_client._fetch_clob_midpoints(
+                [f"a{i}" for i in range(101)]
+            )
+
+        self.assertFalse(ok)
+        self.assertEqual(len(prices), 100)
+        self.assertNotIn("a100", prices)
+
+    def test_closing_line_metrics_positive_when_market_moves_toward_bettor(self):
+        metrics = polymarket_client._closing_line_metrics(0.50, 0.60)
+
+        self.assertEqual(metrics["closing_decimal"], 1.67)
+        self.assertEqual(metrics["clv_probability_pp"], 10.0)
+        self.assertEqual(metrics["clv_pct"], 20.0)
+
+    def test_closing_line_metrics_negative_when_entry_price_worsens(self):
+        metrics = polymarket_client._closing_line_metrics(0.60, 0.50)
+
+        self.assertEqual(metrics["closing_decimal"], 2.0)
+        self.assertEqual(metrics["clv_probability_pp"], -10.0)
+        self.assertEqual(metrics["clv_pct"], -16.67)
+
     def test_persisted_wallet_bet_stats_keep_all_history(self):
         rows = [
             {

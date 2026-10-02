@@ -574,6 +574,87 @@ def _to_decimal_odds(price) -> Optional[float]:
     return round(1.0 / p, 2)
 
 
+def _fetch_clob_midpoints(
+    asset_ids: List[str],
+) -> Tuple[Dict[str, float], bool]:
+    """Fetch public CLOB midpoint prices for outcome token assets.
+
+    Current Polymarket SDK semantics for POST /midpoints are a JSON object
+    mapping token/asset id -> decimal-string midpoint. Partial successful
+    chunks are returned with ok=False so callers may persist valid observations
+    without pretending the whole batch succeeded.
+    """
+    clean_assets = list(dict.fromkeys(
+        str(asset).strip()
+        for asset in asset_ids
+        if str(asset or "").strip()
+    ))
+    if not clean_assets:
+        return {}, True
+
+    prices: Dict[str, float] = {}
+    complete = True
+    batch_size = 100
+    for offset in range(0, len(clean_assets), batch_size):
+        batch = clean_assets[offset:offset + batch_size]
+        try:
+            response = requests.post(
+                f"{CLOB_BASE}/midpoints",
+                headers=_HEADERS,
+                json=[{"token_id": asset} for asset in batch],
+                timeout=_HTTP_TIMEOUT,
+            )
+            if response.status_code != 200:
+                complete = False
+                continue
+            payload = response.json()
+            if not isinstance(payload, dict):
+                complete = False
+                continue
+            for asset, raw_price in payload.items():
+                try:
+                    price = float(raw_price)
+                except (TypeError, ValueError):
+                    continue
+                if 0.0 <= price <= 1.0:
+                    prices[str(asset)] = price
+        except Exception as exc:
+            complete = False
+            logger.warning("[Polymarket] midpoint batch fetch failed: %s", exc)
+    return prices, complete
+
+
+def _closing_line_metrics(
+    entry_price: Any,
+    closing_price: Any,
+) -> Dict[str, Optional[float]]:
+    """Compute bettor-facing closing-line value from probability prices.
+
+    Positive values mean the bettor entered at a cheaper probability than the
+    final observed pre-kickoff market price (favorable CLV).
+    """
+    try:
+        entry = float(entry_price)
+        close = float(closing_price)
+    except (TypeError, ValueError):
+        return {
+            "closing_decimal": None,
+            "clv_probability_pp": None,
+            "clv_pct": None,
+        }
+    if entry <= 0 or entry > 1 or close < 0 or close > 1:
+        return {
+            "closing_decimal": None,
+            "clv_probability_pp": None,
+            "clv_pct": None,
+        }
+    return {
+        "closing_decimal": _to_decimal_odds(close),
+        "clv_probability_pp": round((close - entry) * 100.0, 2),
+        "clv_pct": round(((close / entry) - 1.0) * 100.0, 2),
+    }
+
+
 def _fetch_events_paginated(base_params: Dict[str, Any], page_size: int = 100,
                              stop_check=None) -> List[Dict[str, Any]]:
     """Paginate Gamma API's /events/keyset endpoint (cursor-based via
@@ -3363,7 +3444,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 f"{base}/rest/v1/tracked_wallet_bets",
                 headers=headers,
                 params={
-                    "select": "bet_key,asset,condition_id,event_id,match_key,match_name,home,away,slug,kickoff_utc,title,market_type,market_label,selection,side,outcome_raw,selection_label,side_label,bet_label,lifecycle_status,result,status_label,stake_usdc,sell_proceeds_usdc,redeem_proceeds_usdc,avg_entry_price,avg_entry_decimal,pnl_usdc,pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,last_traded_at",
+                    "select": "bet_key,asset,condition_id,event_id,match_key,match_name,home,away,slug,kickoff_utc,title,market_type,market_label,selection,side,outcome_raw,selection_label,side_label,bet_label,lifecycle_status,result,status_label,stake_usdc,sell_proceeds_usdc,redeem_proceeds_usdc,avg_entry_price,avg_entry_decimal,pnl_usdc,pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,last_traded_at,latest_market_price,latest_market_decimal,latest_market_at,closing_price,closing_decimal,closing_observed_at,clv_probability_pp,clv_pct",
                     "wallet": f"eq.{wallet}",
                     "order": "last_traded_at.desc.nullslast",
                     "limit": 5000,
