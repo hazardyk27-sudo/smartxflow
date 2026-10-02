@@ -310,6 +310,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
 
         with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
              patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
+             patch.object(polymarket_client, "_filter_verified_football_items", side_effect=lambda rows: (rows, True)), \
              patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
              patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
             self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))
@@ -322,6 +323,217 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(saved["resolved_lost"], 1)
         self.assertEqual(saved["resolved_total"], 2)
         self.assertEqual(saved["win_rate"], 50.0)
+
+    def test_strict_football_registry_rejects_title_heuristic_false_positive(self):
+        items = [
+            {
+                "conditionId": "soccer-condition",
+                "title": "Club A vs. Club B",
+                "slug": "club-a-club-b",
+            },
+            {
+                "conditionId": "politics-condition",
+                # Deliberately football-looking title: title heuristics must
+                # never override Gamma's category registry.
+                "title": "France vs. Spain",
+                "slug": "france-vs-spain-politics",
+            },
+        ]
+
+        def fake_json(url, params=None):
+            self.assertTrue(url.endswith("/markets"))
+            self.assertEqual(params["tag_id"], polymarket_client.SOCCER_TAG_ID)
+            self.assertEqual(params["related_tags"], "false")
+            self.assertEqual(
+                set(params["condition_ids"]),
+                {"soccer-condition", "politics-condition"},
+            )
+            return [{"conditionId": "soccer-condition"}]
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            filtered, ok = polymarket_client._filter_verified_football_items(items)
+
+        self.assertTrue(ok)
+        self.assertEqual([row["conditionId"] for row in filtered], ["soccer-condition"])
+
+    def test_strict_football_registry_accepts_verified_event_id_fallback(self):
+        items = [{"eventId": "12345", "title": "Unknown formatting"}]
+
+        def fake_json(url, params=None):
+            self.assertTrue(url.endswith("/events"))
+            self.assertEqual(params["tag_id"], polymarket_client.SOCCER_TAG_ID)
+            self.assertEqual(params["id"], ["12345"])
+            return [{"id": "12345"}]
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            filtered, ok = polymarket_client._filter_verified_football_items(items)
+
+        self.assertTrue(ok)
+        self.assertEqual(filtered, items)
+
+    def test_registry_failure_is_not_treated_as_verified_nonfootball(self):
+        items = [{"conditionId": "soccer-condition", "title": "Club A vs. Club B"}]
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_get_json", return_value=None):
+            filtered, ok = polymarket_client._filter_verified_football_items(items)
+
+        self.assertFalse(ok)
+        self.assertEqual(filtered, [])
+
+    def test_wallet_activity_fetch_keeps_only_gamma_verified_soccer_rows(self):
+        raw = [
+            {
+                "conditionId": "soccer-condition",
+                "timestamp": 100,
+                "title": "Club A vs. Club B",
+            },
+            {
+                "conditionId": "crypto-condition",
+                "timestamp": 99,
+                "title": "Bitcoin above 100k?",
+            },
+        ]
+
+        def fake_json(url, params=None):
+            if url.endswith("/activity"):
+                return raw
+            if url.endswith("/markets"):
+                self.assertEqual(params["tag_id"], polymarket_client.SOCCER_TAG_ID)
+                return [{"conditionId": "soccer-condition"}]
+            raise AssertionError(url)
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            rows, truncated = polymarket_client.fetch_wallet_activity(
+                "0xwallet",
+                max_pages=1,
+            )
+
+        self.assertFalse(truncated)
+        self.assertEqual([row["conditionId"] for row in rows], ["soccer-condition"])
+
+    def test_positions_registry_failure_preserves_existing_snapshot_contract(self):
+        raw = [{
+            "conditionId": "soccer-condition",
+            "asset": "soccer-asset",
+            "title": "Club A vs. Club B",
+        }]
+
+        def fake_json(url, params=None):
+            if url.endswith("/positions"):
+                return raw
+            if url.endswith("/markets"):
+                return None
+            raise AssertionError(url)
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            rows, ok = polymarket_client.fetch_wallet_positions("0xwallet")
+
+        self.assertFalse(ok)
+        self.assertEqual(rows, [])
+
+    def test_stats_refresh_excludes_existing_nonfootball_db_rows(self):
+        wallet = "0xwallet"
+        activity = [
+            {
+                "wallet": wallet,
+                "asset": "soccer-asset",
+                "condition_id": "soccer-condition",
+                "action": "BUY",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+                "traded_at": "2026-09-10T00:00:00+00:00",
+            },
+            {
+                "wallet": wallet,
+                "asset": "soccer-asset",
+                "condition_id": "soccer-condition",
+                "action": "BUY",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+                "traded_at": "2026-09-10T00:01:00+00:00",
+            },
+            {
+                "wallet": wallet,
+                "asset": "politics-asset",
+                "condition_id": "politics-condition",
+                "action": "BUY",
+                "result": "won",
+                "amount_usdc": 5000,
+                "price": 0.5,
+                "size": 10000,
+                "traded_at": "2026-09-10T00:02:00+00:00",
+            },
+        ]
+        wallet_patches = []
+
+        def fake_get(url, **_kwargs):
+            if "tracked_wallets" in url:
+                return FakeResponse(200, [{"created_at": None}])
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(200, activity)
+            if "tracked_wallet_positions" in url:
+                return FakeResponse(200, [])
+            if "tracked_wallet_redeems" in url:
+                return FakeResponse(200, [])
+            raise AssertionError(url)
+
+        def fake_patch(url, **kwargs):
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(204, [])
+            if "tracked_wallets" in url:
+                wallet_patches.append(kwargs["json"])
+                return FakeResponse(204, [])
+            raise AssertionError(url)
+
+        def fake_registry_json(url, params=None):
+            if url.endswith("/markets"):
+                self.assertEqual(params["tag_id"], polymarket_client.SOCCER_TAG_ID)
+                return [{"conditionId": "soccer-condition"}]
+            raise AssertionError(url)
+
+        with polymarket_client._soccer_registry_lock:
+            polymarket_client._soccer_condition_registry_cache.clear()
+            polymarket_client._soccer_event_registry_cache.clear()
+
+        with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
+             patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
+             patch.object(polymarket_client, "_get_json", side_effect=fake_registry_json), \
+             patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
+             patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
+            self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))
+
+        self.assertEqual(len(wallet_patches), 1)
+        saved = wallet_patches[0]
+        self.assertEqual(saved["trade_count"], 1)
+        self.assertEqual(saved["total_invested_usdc"], 1200.0)
+        self.assertEqual(saved["resolved_won"], 1)
+        self.assertEqual(saved["resolved_lost"], 0)
+        self.assertEqual(saved["resolved_total"], 1)
+        self.assertEqual(saved["win_rate"], 100.0)
 
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
@@ -746,6 +958,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
         with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
              patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
              patch.object(polymarket_client, "_fetch_market_resolution", return_value=None), \
+             patch.object(polymarket_client, "_filter_verified_football_items", side_effect=lambda rows: (rows, True)), \
              patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
              patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
             self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))

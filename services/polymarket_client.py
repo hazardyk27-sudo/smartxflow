@@ -1357,35 +1357,183 @@ _POSITIONS_PAGE_LIMIT = 500
 _POSITIONS_MAX_PAGES = 20
 
 
-_DRAW_TITLE_RE = re.compile(
-    r"will\s+there\s+be\s+a\s+draw",
-    re.IGNORECASE,
-)
+_SOCCER_REGISTRY_CACHE_TTL = 15 * 60
+_SOCCER_REGISTRY_BATCH_SIZE = 75
+_soccer_condition_registry_cache: Dict[str, Tuple[bool, float]] = {}
+_soccer_event_registry_cache: Dict[str, Tuple[bool, float]] = {}
+_soccer_registry_lock = threading.Lock()
 
 
-def _is_football_item(item: Dict[str, Any]) -> bool:
-    """An /activity or /positions row is treated as a football (soccer) bet if:
-    1. Icon URL contains 'soccer' (primary), OR
-    2. Title matches 'Team A vs. Team B[...]' pattern, OR
-    3. Title matches 'Will X win on YYYY-MM-DD?' pattern, OR
-    4. Title matches 'Will there be a draw...' pattern, OR
-    5. Slug country codes are both in _FIFA_COUNTRY_CODES.
-    Non-football markets (politics, crypto, etc.) are excluded."""
-    icon = (item.get("icon") or "").lower()
-    if "soccer" in icon:
-        return True
-    title = item.get("title") or ""
-    base_title = title.split(":", 1)[0].strip()
-    if _parse_match_title(base_title) is not None:
-        return True
-    if _parse_will_win_title(title) is not None:
-        return True
-    if _DRAW_TITLE_RE.search(title):
-        return True
-    slug = (item.get("slug") or item.get("eventSlug") or "").lower()
-    if slug and _slug_codes_known(slug):
-        return True
-    return False
+def _registry_id(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _verified_soccer_condition_ids(
+    condition_ids: List[Any],
+    force_refresh: bool = False,
+) -> Tuple[set, bool]:
+    """Return condition IDs verified by Gamma's Soccer tag registry.
+
+    The query combines Gamma's condition_ids filter with tag_id=SOCCER_TAG_ID.
+    A successful response that omits a condition is a verified non-soccer
+    result. A request failure is different: callers receive ok=False so they
+    can retry instead of silently advancing checkpoints with incomplete data.
+    """
+    wanted = sorted({_registry_id(value) for value in condition_ids if _registry_id(value)})
+    if not wanted:
+        return set(), True
+
+    now = time.time()
+    verified: set = set()
+    pending: List[str] = []
+    with _soccer_registry_lock:
+        for condition_id in wanted:
+            cached = _soccer_condition_registry_cache.get(condition_id)
+            if (
+                not force_refresh
+                and cached is not None
+                and (now - cached[1]) < _SOCCER_REGISTRY_CACHE_TTL
+            ):
+                if cached[0]:
+                    verified.add(condition_id)
+            else:
+                pending.append(condition_id)
+
+    for offset in range(0, len(pending), _SOCCER_REGISTRY_BATCH_SIZE):
+        chunk = pending[offset:offset + _SOCCER_REGISTRY_BATCH_SIZE]
+        data = _get_json(
+            f"{GAMMA_BASE}/markets",
+            {
+                "condition_ids": chunk,
+                "tag_id": SOCCER_TAG_ID,
+                "related_tags": "false",
+                "limit": 100,
+            },
+        )
+        if not isinstance(data, list):
+            return verified, False
+
+        returned = {
+            _registry_id(market.get("conditionId"))
+            for market in data
+            if isinstance(market, dict) and market.get("conditionId")
+        }
+        returned &= set(chunk)
+
+        stamp = time.time()
+        with _soccer_registry_lock:
+            for condition_id in chunk:
+                is_soccer = condition_id in returned
+                _soccer_condition_registry_cache[condition_id] = (is_soccer, stamp)
+                if is_soccer:
+                    verified.add(condition_id)
+
+    return verified, True
+
+
+def _verified_soccer_event_ids(
+    event_ids: List[Any],
+    force_refresh: bool = False,
+) -> Tuple[set, bool]:
+    """Event-ID fallback for rows that carry reliable Gamma event identity."""
+    wanted = sorted({_registry_id(value) for value in event_ids if _registry_id(value)})
+    if not wanted:
+        return set(), True
+
+    now = time.time()
+    verified: set = set()
+    pending: List[str] = []
+    with _soccer_registry_lock:
+        for event_id in wanted:
+            cached = _soccer_event_registry_cache.get(event_id)
+            if (
+                not force_refresh
+                and cached is not None
+                and (now - cached[1]) < _SOCCER_REGISTRY_CACHE_TTL
+            ):
+                if cached[0]:
+                    verified.add(event_id)
+            else:
+                pending.append(event_id)
+
+    for offset in range(0, len(pending), _SOCCER_REGISTRY_BATCH_SIZE):
+        chunk = pending[offset:offset + _SOCCER_REGISTRY_BATCH_SIZE]
+        data = _get_json(
+            f"{GAMMA_BASE}/events",
+            {
+                "id": chunk,
+                "tag_id": SOCCER_TAG_ID,
+                "limit": 100,
+            },
+        )
+        if not isinstance(data, list):
+            return verified, False
+
+        returned = {
+            _registry_id(event.get("id"))
+            for event in data
+            if isinstance(event, dict) and event.get("id")
+        }
+        returned &= set(chunk)
+
+        stamp = time.time()
+        with _soccer_registry_lock:
+            for event_id in chunk:
+                is_soccer = event_id in returned
+                _soccer_event_registry_cache[event_id] = (is_soccer, stamp)
+                if is_soccer:
+                    verified.add(event_id)
+
+    return verified, True
+
+
+def _filter_verified_football_items(
+    items: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Keep only rows proven to belong to Gamma's Soccer registry.
+
+    Title, icon and slug heuristics are intentionally not accepted as proof.
+    conditionId/condition_id is primary. eventId/event_id is an independent
+    verified fallback when present. Rows with no verifiable identity are
+    excluded. ok=False means a registry request failed, not that a row was
+    positively identified as non-football.
+    """
+    if not items:
+        return [], True
+
+    condition_ids = [
+        item.get("conditionId") or item.get("condition_id")
+        for item in items
+        if item.get("conditionId") or item.get("condition_id")
+    ]
+    event_ids = [
+        item.get("eventId") or item.get("event_id")
+        for item in items
+        if item.get("eventId") or item.get("event_id")
+    ]
+
+    verified_conditions, conditions_ok = _verified_soccer_condition_ids(condition_ids)
+    verified_events, events_ok = _verified_soccer_event_ids(event_ids)
+
+    filtered: List[Dict[str, Any]] = []
+    verification_complete = True
+    for item in items:
+        condition_id = _registry_id(item.get("conditionId") or item.get("condition_id"))
+        event_id = _registry_id(item.get("eventId") or item.get("event_id"))
+
+        if (
+            (condition_id and condition_id in verified_conditions)
+            or (event_id and event_id in verified_events)
+        ):
+            filtered.append(item)
+            continue
+
+        # No identity at all is a deterministic strict exclusion. A lookup
+        # failure, however, is transient uncertainty and should be retried.
+        if (condition_id and not conditions_ok) or (event_id and not events_ok):
+            verification_complete = False
+
+    return filtered, verification_complete
 
 
 # Title suffix (after the first ':') -> our internal market_type key, mirroring
@@ -1484,7 +1632,7 @@ def _parse_activity_market(item: Dict[str, Any]):
 def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
     """Fully/incrementally paginate the Data API /activity endpoint for a single
     wallet, filtered server-side to TRADE-type entries and client-side to
-    football markets. Returns (rows, truncated) - `truncated=True` means the
+    markets verified by Gamma's Soccer tag registry. Returns (rows, truncated) - `truncated=True` means the
     page cap was hit before reaching `since_ts`, so the caller should skip
     storing this batch and retry the full range next cycle (same contract as
     _fetch_new_trades) to avoid a permanent gap.
@@ -1537,14 +1685,22 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
         hit_page_cap = since_ts is not None
 
     truncated = since_ts is not None and hit_page_cap
-    return rows, truncated
+    if truncated:
+        return rows, True
+
+    football_rows, registry_ok = _filter_verified_football_items(rows)
+    if not registry_ok:
+        # Treat registry uncertainty like an incomplete fetch so callers do
+        # not persist a partial category view or advance their checkpoint.
+        return [], True
+    return football_rows, False
 
 
 def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
     """Fully/incrementally paginate the Data API /activity endpoint for a
     single wallet, filtered server-side to REDEEM-type entries (a wallet
     cashing out a resolved/winning position) and client-side to football
-    markets. This is what makes win-rate durable: once a wallet redeems a
+    markets verified by Gamma's Soccer tag registry. This is what makes win-rate durable: once a wallet redeems a
     winning position it disappears from /positions forever, so the win must
     be recorded here at redeem-time or it becomes permanently invisible
     (Task #264). Same (rows, truncated) contract as fetch_wallet_activity."""
@@ -1593,12 +1749,18 @@ def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages:
         hit_page_cap = since_ts is not None
 
     truncated = since_ts is not None and hit_page_cap
-    return rows, truncated
+    if truncated:
+        return rows, True
+
+    football_rows, registry_ok = _filter_verified_football_items(rows)
+    if not registry_ok:
+        return [], True
+    return football_rows, False
 
 
 def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
     """Fetch ALL current positions (open + unredeemed-resolved) for a wallet via
-    the Data API /positions endpoint, filtered to football markets.
+    the Data API /positions endpoint, then strictly verified against Gamma's Soccer registry.
 
     Returns (rows, ok). `ok=False` means the API call itself failed (network
     error / non-200), as opposed to the wallet genuinely having zero
@@ -1624,7 +1786,13 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
         if len(page) < _POSITIONS_PAGE_LIMIT:
             break
         offset += _POSITIONS_PAGE_LIMIT
-    return rows, True
+
+    football_rows, registry_ok = _filter_verified_football_items(rows)
+    if not registry_ok:
+        # Do not let a temporary Gamma verification failure wipe the last
+        # known stored position snapshot.
+        return [], False
+    return football_rows, True
 
 
 # ---- Supabase CRUD: tracked_wallets / tracked_wallet_activity / tracked_wallet_positions ----
@@ -1977,9 +2145,11 @@ def _fetch_wallet_stat_summary(base: str, headers: Dict[str, str], wallet: str, 
     except Exception:
         redeem_rows = []
 
-    activity_rows = _filter_tracked_wallet_activity_amount(
-        _filter_wallet_rows_since(activity_rows, tracked_since)
-    )
+    activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+    activity_rows, football_registry_ok = _filter_verified_football_items(activity_rows)
+    if not football_registry_ok:
+        activity_rows = []
+    activity_rows = _filter_tracked_wallet_activity_amount(activity_rows)
     redeem_rows = _filter_wallet_rows_since(redeem_rows, tracked_since)
     redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
@@ -2069,9 +2239,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
                 return [], False
             rows = r.json()
             return (
-                _filter_tracked_wallet_activity_amount(
-                    _filter_wallet_rows_since(rows, tracked_since)
-                ),
+                _filter_wallet_rows_since(rows, tracked_since),
                 True,
             ) if isinstance(rows, list) else ([], False)
         except Exception:
@@ -2093,6 +2261,12 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     if not redeems_ok:
         print(f"[WalletStats] redeem fetch failed; keeping existing stats for {wallet[:10]}...")
         return False
+
+    activity_rows, football_registry_ok = _filter_verified_football_items(activity_rows)
+    if not football_registry_ok:
+        print(f"[WalletStats] soccer registry verification failed; keeping existing stats for {wallet[:10]}...")
+        return False
+    activity_rows = _filter_tracked_wallet_activity_amount(activity_rows)
 
     redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
@@ -2613,9 +2787,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             if r2.status_code == 200:
                 rows = r2.json()
                 if isinstance(rows, list):
-                    return _filter_tracked_wallet_activity_amount(
-                        _filter_wallet_rows_since(rows, tracked_since)
-                    ), True
+                    return _filter_wallet_rows_since(rows, tracked_since), True
         except Exception:
             pass
         print(f"[WalletProfile] activity fetch hatasi: {wallet[:10]}...")
@@ -2671,11 +2843,17 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         position_rows, positions_ok = f_pos.result()
         redeem_rows, redeems_ok = f_red.result()
 
-    # 3. Badge sets for display (fast pure-Python, no extra DB calls)
+    # 3. Strict football gate + badge sets for display.
     if activity_ok:
-        activity_rows = _filter_tracked_wallet_activity_amount(
-            _filter_wallet_rows_since(activity_rows, tracked_since)
-        )
+        activity_rows = _filter_wallet_rows_since(activity_rows, tracked_since)
+        activity_rows, football_registry_ok = _filter_verified_football_items(activity_rows)
+        if not football_registry_ok:
+            logger.warning(
+                "[WalletProfile] soccer registry verification incomplete for %s; "
+                "showing only rows already verified in this pass",
+                wallet[:10],
+            )
+        activity_rows = _filter_tracked_wallet_activity_amount(activity_rows)
         redeem_rows = _filter_wallet_redeems_to_activity(redeem_rows, activity_rows)
     if activity_ok and positions_ok:
         position_rows = _filter_positions_since_tracking(position_rows, activity_rows)
