@@ -611,12 +611,64 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             _log(f"[BW-Pre]   [HATA] {tbl}: (main={ok_main}, hist={ok_hist})")
             write_errors += 1
 
+    snapshots_written = False
     if all_snapshots:
         ok = writer.insert_snapshots("moneyway_snapshots", all_snapshots)
+        snapshots_written = bool(ok)
         tag = "OK" if ok else "HATA"
         _log(f"[BW-Pre]   [{tag}] moneyway_snapshots: {len(all_snapshots)}")
         if not ok:
             write_errors += 1
+
+    analysis_v2_enabled = str(
+        os.environ.get("ANALYSIS_V2_RUNTIME_ENABLED", "0")
+    ).strip().lower() in {"1", "true", "yes", "on"}
+
+    if analysis_v2_enabled and snapshots_written and all_fixtures:
+        try:
+            from analysis_v2.market_movement import SnapshotHistoryClient
+            from analysis_v2.runtime import run_runtime_batch
+            from analysis_v2.signal_store import SignalStore
+
+            try:
+                max_matches = int(
+                    os.environ.get("ANALYSIS_V2_MAX_MATCHES", "120")
+                )
+            except (TypeError, ValueError):
+                max_matches = 120
+            max_matches = max(1, min(max_matches, 500))
+
+            v2_result = run_runtime_batch(
+                snapshot_client=SnapshotHistoryClient(
+                    writer.url,
+                    writer.key,
+                ),
+                signal_store=SignalStore(
+                    writer.url,
+                    writer.key,
+                ),
+                fixtures=all_fixtures,
+                current_snapshot_rows=all_snapshots,
+                as_of=scraped_at_utc,
+                max_matches=max_matches,
+                logger=_log,
+            )
+            if v2_result.get("skipped"):
+                _log(
+                    "[BW-Pre] Analysis V2 runtime skip: "
+                    f"{v2_result.get('skip_reason')}"
+                )
+            else:
+                _log(
+                    "[BW-Pre] Analysis V2 runtime: "
+                    f"candidate={v2_result.get('candidate_count', 0)} "
+                    f"signal={v2_result.get('signal_count', 0)} "
+                    f"error={v2_result.get('error_count', 0)}"
+                )
+        except Exception as exc:
+            # V2 is isolated from the canonical scraper. A V2 failure must
+            # never make V1/current-market ingestion look dead.
+            _log(f"[BW-Pre] Analysis V2 runtime isolated error: {exc}")
 
     _log(
         f"[BW-Pre] Tamamlandı — {total_rows} satır, "
