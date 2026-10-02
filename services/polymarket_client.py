@@ -38,6 +38,12 @@ MIN_TRADE_AMOUNT_USDC = 100.0
 # The general match/trade search above intentionally keeps its 100 USDC rule.
 MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC = 1000.0
 
+# Stable public contract for tracked bettor profile/list endpoints.
+TRACKED_WALLET_API_CONTRACT_VERSION = "2026-10-02.v2"
+TRACKED_WALLET_RAW_RETENTION_DAYS = 365
+TRACKED_WALLET_CANONICAL_RETENTION = "durable"
+TRACKED_WALLET_CLOSING_LINE_SOURCE = "clob_midpoint"
+
 _HTTP_TIMEOUT = 10
 _HEADERS = {
     "User-Agent": "Mozilla/5.0 (SmartXFlow/poly)",
@@ -2691,6 +2697,199 @@ def _baseline_wallet_history_stats(
     }
 
 
+def _fetch_persisted_wallet_bets_for_profile(
+    base: str,
+    headers: Dict[str, str],
+    wallet: str,
+) -> Tuple[List[Dict[str, Any]], bool]:
+    """Read full normalized profile history; never silently stop at 5k rows."""
+    select_fields = (
+        "bet_key,asset,condition_id,event_id,match_key,match_name,home,away,"
+        "slug,kickoff_utc,title,market_type,market_label,selection,side,"
+        "outcome_raw,selection_label,side_label,bet_label,lifecycle_status,"
+        "result,status_label,stake_usdc,sell_proceeds_usdc,"
+        "redeem_proceeds_usdc,avg_entry_price,avg_entry_decimal,pnl_usdc,"
+        "pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,"
+        "last_traded_at,latest_market_price,latest_market_decimal,"
+        "latest_market_at,closing_price,closing_decimal,closing_observed_at,"
+        "clv_probability_pp,clv_pct"
+    )
+    rows: List[Dict[str, Any]] = []
+    page_size = 1000
+    max_pages = 100
+    try:
+        for page in range(max_pages):
+            response = requests.get(
+                f"{base}/rest/v1/tracked_wallet_bets",
+                headers=headers,
+                params={
+                    "select": select_fields,
+                    "wallet": f"eq.{wallet.lower()}",
+                    "order": "last_traded_at.desc.nullslast",
+                    "limit": page_size,
+                    "offset": page * page_size,
+                },
+                timeout=20,
+            )
+            if response.status_code != 200:
+                return [], False
+            page_rows = response.json()
+            if not isinstance(page_rows, list):
+                return [], False
+            rows.extend(page_rows)
+            if len(page_rows) < page_size:
+                return rows, True
+        logger.warning(
+            "[WalletProfile] normalized history pagination cap reached for %s",
+            wallet[:10],
+        )
+        return rows, False
+    except Exception:
+        return [], False
+
+
+def _wallet_bet_api_contract(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Canonical v2 bettor-bet object; raw BUY/SELL fields are intentionally absent."""
+    return {
+        "bet_id": row.get("bet_key"),
+        "asset_id": row.get("asset"),
+        "condition_id": row.get("condition_id"),
+        "event_id": row.get("event_id"),
+        "match_key": row.get("match_key"),
+        "match_name": row.get("match_name") or row.get("match") or row.get("title"),
+        "home": row.get("home"),
+        "away": row.get("away"),
+        "slug": row.get("slug"),
+        "kickoff_utc": row.get("kickoff_utc"),
+        "market_type": row.get("market_type"),
+        "market_label": row.get("market_label"),
+        "selection_label": row.get("selection_label"),
+        "side_label": row.get("side_label"),
+        "bet_label": row.get("bet_label"),
+        "lifecycle_status": row.get("lifecycle_status"),
+        "status_label": row.get("status_label"),
+        "result": row.get("result"),
+        "stake_usdc": row.get("stake_usdc"),
+        "sell_proceeds_usdc": row.get("sell_proceeds_usdc"),
+        "redeem_proceeds_usdc": row.get("redeem_proceeds_usdc"),
+        "avg_entry_probability": row.get("avg_entry_price"),
+        "avg_entry_decimal": row.get("avg_entry_decimal") or row.get("price"),
+        "pnl_usdc": row.get("pnl_usdc"),
+        "pnl_kind": row.get("pnl_kind"),
+        "latest_market_probability": row.get("latest_market_price"),
+        "latest_market_decimal": row.get("latest_market_decimal"),
+        "latest_market_at": row.get("latest_market_at"),
+        "closing_probability": row.get("closing_price"),
+        "closing_decimal": row.get("closing_decimal"),
+        "closing_at": row.get("closing_observed_at"),
+        "clv_probability_pp": row.get("clv_probability_pp"),
+        "clv_pct": row.get("clv_pct"),
+        "fill_count": int(row.get("fill_count") or 0),
+        "buy_fill_count": int(row.get("buy_fill_count") or 0),
+        "sell_fill_count": int(row.get("sell_fill_count") or 0),
+        "first_traded_at": row.get("first_traded_at"),
+        "last_traded_at": row.get("last_traded_at") or row.get("traded_at"),
+    }
+
+
+def _validate_wallet_profile_contract(
+    stats: Dict[str, Any],
+    bets: List[Dict[str, Any]],
+    coverage: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Return non-destructive API/data consistency warnings."""
+    issues: List[Dict[str, str]] = []
+    ids = [bet.get("bet_id") for bet in bets if bet.get("bet_id")]
+    if len(ids) != len(set(ids)):
+        issues.append({
+            "code": "duplicate_bet_id",
+            "message": "Canonical bet ids are not unique.",
+        })
+
+    if coverage.get("history_complete"):
+        expected = int(stats.get("bet_count") or 0)
+        if expected != len(bets):
+            issues.append({
+                "code": "bet_count_mismatch",
+                "message": f"stats.bet_count={expected}, bets={len(bets)}",
+            })
+
+    allowed_results = {"won", "lost", "open", "closed", "unknown", None}
+    allowed_statuses = {"resolved", "open", "closed", "unknown", None}
+    for bet in bets:
+        bet_id = str(bet.get("bet_id") or "?")
+        try:
+            stake = float(bet.get("stake_usdc") or 0)
+        except (TypeError, ValueError):
+            stake = 0.0
+        if stake + 1e-9 < MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC:
+            issues.append({
+                "code": "below_minimum_stake",
+                "message": f"{bet_id} stake={stake}",
+            })
+
+        result = bet.get("result")
+        status = bet.get("lifecycle_status")
+        if result not in allowed_results or status not in allowed_statuses:
+            issues.append({
+                "code": "invalid_lifecycle_state",
+                "message": f"{bet_id} result={result} status={status}",
+            })
+        if result in ("won", "lost") and status != "resolved":
+            issues.append({
+                "code": "resolved_state_mismatch",
+                "message": f"{bet_id} result={result} status={status}",
+            })
+
+        for field in (
+            "avg_entry_probability",
+            "latest_market_probability",
+            "closing_probability",
+        ):
+            value = bet.get(field)
+            if value is None:
+                continue
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                numeric = -1.0
+            if numeric < 0 or numeric > 1:
+                issues.append({
+                    "code": "invalid_probability",
+                    "message": f"{bet_id} {field}={value}",
+                })
+
+        close = bet.get("closing_probability")
+        entry = bet.get("avg_entry_probability")
+        stored_clv = bet.get("clv_probability_pp")
+        if close is not None and entry is not None and stored_clv is not None:
+            metrics = _closing_line_metrics(entry, close)
+            expected_clv = metrics.get("clv_probability_pp")
+            try:
+                delta = abs(float(stored_clv) - float(expected_clv))
+            except (TypeError, ValueError):
+                delta = 999.0
+            if expected_clv is None or delta > 0.02:
+                issues.append({
+                    "code": "clv_mismatch",
+                    "message": f"{bet_id} stored={stored_clv} expected={expected_clv}",
+                })
+
+        kickoff = _parse_wallet_datetime(bet.get("kickoff_utc"))
+        closing_at = _parse_wallet_datetime(bet.get("closing_at"))
+        if kickoff is not None and closing_at is not None and closing_at >= kickoff:
+            issues.append({
+                "code": "post_kickoff_closing_line",
+                "message": f"{bet_id} closing_at is not pre-kickoff",
+            })
+
+    return {
+        "status": "ok" if not issues else "warning",
+        "issue_count": len(issues),
+        "issues": issues[:50],
+    }
+
+
 def _persist_wallet_bet_rows(
     base: str,
     headers: Dict[str, str],
@@ -3087,6 +3286,7 @@ def list_tracked_wallets_with_stats() -> List[Dict[str, Any]]:
         wallets = r.json()
         for w in wallets:
             w["win_rate_pct"] = w.pop("win_rate", None)
+            w["bet_count"] = int(w.get("trade_count") or 0)
             w["stats_status"] = "ready" if w.get("last_synced_at") else "pending"
         return wallets
     except Exception as e:
@@ -3438,26 +3638,6 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     # 2. Prefer durable normalized bet rows. Raw fill/redeem reads remain as a
     # rollout/backfill fallback while the new table is being populated.
-    def _fetch_bets():
-        try:
-            r2 = requests.get(
-                f"{base}/rest/v1/tracked_wallet_bets",
-                headers=headers,
-                params={
-                    "select": "bet_key,asset,condition_id,event_id,match_key,match_name,home,away,slug,kickoff_utc,title,market_type,market_label,selection,side,outcome_raw,selection_label,side_label,bet_label,lifecycle_status,result,status_label,stake_usdc,sell_proceeds_usdc,redeem_proceeds_usdc,avg_entry_price,avg_entry_decimal,pnl_usdc,pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,last_traded_at,latest_market_price,latest_market_decimal,latest_market_at,closing_price,closing_decimal,closing_observed_at,clv_probability_pp,clv_pct",
-                    "wallet": f"eq.{wallet}",
-                    "order": "last_traded_at.desc.nullslast",
-                    "limit": 5000,
-                },
-                timeout=15,
-            )
-            if r2.status_code != 200:
-                return [], False
-            rows = r2.json()
-            return (rows, True) if isinstance(rows, list) else ([], False)
-        except Exception:
-            return [], False
-
     def _fetch_positions():
         try:
             r2 = requests.get(
@@ -3480,7 +3660,12 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
             return [], False
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        f_bets = pool.submit(_fetch_bets)
+        f_bets = pool.submit(
+            _fetch_persisted_wallet_bets_for_profile,
+            base,
+            headers,
+            wallet,
+        )
         f_pos = pool.submit(_fetch_positions)
         bet_rows, bets_ok = f_bets.result()
         position_rows, positions_ok = f_pos.result()
@@ -3491,6 +3676,11 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         or len(bet_rows) >= persisted_trade_count
     )
     use_persisted_bets = bets_ok and persisted_snapshot_complete
+    history_source = (
+        "tracked_wallet_bets"
+        if use_persisted_bets
+        else "raw_fallback"
+    )
 
     if use_persisted_bets:
         display_activity = [
@@ -3648,33 +3838,62 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         if open_position_count:
             summary_lines.append(f"Şu an {open_position_count} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
+    stats = {
+        "bet_count": trade_count,
+        "trade_count": trade_count,
+        "total_invested_usdc": round(total_invested, 2),
+        "avg_bet_size_usdc": round(avg_bet_size, 2),
+        "avg_entry_probability": avg_price,
+        "avg_entry_decimal": avg_price_decimal,
+        "avg_price": avg_price,
+        "avg_price_decimal": avg_price_decimal,
+        "win_rate_pct": win_rate,
+        "resolved_won": resolved_won,
+        "resolved_lost": resolved_lost,
+        "resolved_total": resolved_total,
+        "open_position_count": open_position_count,
+        "open_exposure_usdc": round(open_exposure, 2),
+        "realized_pnl_usdc": round(realized_pnl_total, 2),
+        "total_redeemed_usdc": round(total_redeemed_usdc, 2),
+    }
+    canonical_bets = [
+        _wallet_bet_api_contract(row)
+        for row in display_activity
+    ]
+    coverage = {
+        "history_source": history_source,
+        "history_complete": bool(use_persisted_bets),
+        "expected_bet_count": int(trade_count or 0),
+        "returned_bet_count": len(canonical_bets),
+        "football_only": True,
+        "minimum_position_entry_usdc": MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC,
+        "canonical_identity": "asset_first",
+        "canonical_history_retention": TRACKED_WALLET_CANONICAL_RETENTION,
+        "raw_activity_retention_days": TRACKED_WALLET_RAW_RETENTION_DAYS,
+        "closing_line_source": TRACKED_WALLET_CLOSING_LINE_SOURCE,
+    }
+    quality = _validate_wallet_profile_contract(
+        stats,
+        canonical_bets,
+        coverage,
+    )
+
     return {
+        "contract_version": TRACKED_WALLET_API_CONTRACT_VERSION,
         "wallet": wallet_row.get("wallet"),
         "nickname": wallet_row.get("nickname"),
         "notes": wallet_row.get("notes"),
         "tracked_since": wallet_row.get("created_at"),
         "last_synced_at": wallet_row.get("last_synced_at"),
         "stats_status": "ready" if wallet_row.get("last_synced_at") else "pending",
-        "stats": {
-            "trade_count": trade_count,
-            "total_invested_usdc": round(total_invested, 2),
-            "avg_bet_size_usdc": round(avg_bet_size, 2),
-            "avg_price": avg_price,
-            "avg_price_decimal": avg_price_decimal,
-            "win_rate_pct": win_rate,
-            "resolved_won": resolved_won,
-            "resolved_lost": resolved_lost,
-            "resolved_total": resolved_total,
-            "open_position_count": open_position_count,
-            "open_exposure_usdc": round(open_exposure, 2),
-            "realized_pnl_usdc": round(realized_pnl_total, 2),
-            "total_redeemed_usdc": round(total_redeemed_usdc, 2),
-        },
+        "coverage": coverage,
+        "quality": quality,
+        "stats": stats,
         "summary": summary_lines,
+        "bets": canonical_bets,
         "activity": display_activity,
         "open_positions": open_positions,
     }
-
 
 _ACTION_LABELS = {"buy": "Alım", "sell": "Satım"}
 

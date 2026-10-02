@@ -102,6 +102,106 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(stats["open_position_count"], 1)
         self.assertEqual(stats["open_exposure_usdc"], 1234.5)
 
+    def test_profile_bet_reader_paginates_beyond_5000_without_truncation(self):
+        page = [
+            {
+                "bet_key": f"bet-{i}",
+                "stake_usdc": 1000,
+                "last_traded_at": "2026-10-02T12:00:00+00:00",
+            }
+            for i in range(1000)
+        ]
+        calls = []
+
+        def fake_get(_url, **kwargs):
+            offset = kwargs["params"]["offset"]
+            calls.append(offset)
+            if offset < 5000:
+                return FakeResponse(200, page)
+            return FakeResponse(
+                200,
+                [{"bet_key": "bet-final", "stake_usdc": 1000}],
+            )
+
+        with patch.object(polymarket_client.requests, "get", side_effect=fake_get):
+            rows, ok = polymarket_client._fetch_persisted_wallet_bets_for_profile(
+                "https://supabase.test",
+                {"apikey": "test"},
+                "0xwallet",
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual(len(rows), 5001)
+        self.assertEqual(calls, [0, 1000, 2000, 3000, 4000, 5000])
+
+    def test_wallet_bet_api_contract_excludes_raw_execution_noise(self):
+        row = {
+            "bet_key": '["asset","0xwallet","france-yes"]',
+            "asset": "france-yes",
+            "condition_id": "condition",
+            "event_id": "event",
+            "match_name": "France - Spain",
+            "market_type": "1x2",
+            "market_label": "1X2",
+            "selection_label": "France",
+            "bet_label": "France",
+            "lifecycle_status": "resolved",
+            "status_label": "Kazandı",
+            "result": "won",
+            "stake_usdc": 1200,
+            "avg_entry_price": 0.5,
+            "avg_entry_decimal": 2.0,
+            "closing_price": 0.6,
+            "closing_decimal": 1.67,
+            "clv_probability_pp": 10,
+            "clv_pct": 20,
+            "action": "BUY",
+            "outcome_raw": "Yes",
+        }
+
+        bet = polymarket_client._wallet_bet_api_contract(row)
+
+        self.assertEqual(bet["bet_id"], row["bet_key"])
+        self.assertEqual(bet["match_name"], "France - Spain")
+        self.assertEqual(bet["avg_entry_probability"], 0.5)
+        self.assertEqual(bet["closing_probability"], 0.6)
+        self.assertEqual(bet["clv_pct"], 20)
+        self.assertNotIn("action", bet)
+        self.assertNotIn("outcome_raw", bet)
+
+    def test_wallet_profile_contract_validator_detects_core_invariants(self):
+        stats = {"bet_count": 2}
+        coverage = {"history_complete": True}
+        bets = [
+            {
+                "bet_id": "same",
+                "stake_usdc": 999,
+                "result": "won",
+                "lifecycle_status": "open",
+                "avg_entry_probability": 0.5,
+            },
+            {
+                "bet_id": "same",
+                "stake_usdc": 1000,
+                "result": "lost",
+                "lifecycle_status": "resolved",
+                "avg_entry_probability": 1.2,
+            },
+        ]
+
+        quality = polymarket_client._validate_wallet_profile_contract(
+            stats,
+            bets,
+            coverage,
+        )
+
+        codes = {issue["code"] for issue in quality["issues"]}
+        self.assertEqual(quality["status"], "warning")
+        self.assertIn("duplicate_bet_id", codes)
+        self.assertIn("below_minimum_stake", codes)
+        self.assertIn("resolved_state_mismatch", codes)
+        self.assertIn("invalid_probability", codes)
+
     def test_profile_prefers_persisted_bets_without_raw_activity_reads(self):
         wallet = "0xwallet"
         persisted_wallet = {
@@ -181,6 +281,22 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(row["status_label"], "Kazandı")
         self.assertEqual(profile["stats"]["realized_pnl_usdc"], 1000.0)
         self.assertEqual(profile["stats"]["total_redeemed_usdc"], 2000.0)
+        self.assertEqual(
+            profile["contract_version"],
+            polymarket_client.TRACKED_WALLET_API_CONTRACT_VERSION,
+        )
+        self.assertEqual(profile["stats"]["bet_count"], 1)
+        self.assertEqual(len(profile["bets"]), 1)
+        self.assertEqual(
+            profile["bets"][0]["bet_id"],
+            persisted_bets[0]["bet_key"],
+        )
+        self.assertEqual(
+            profile["coverage"]["history_source"],
+            "tracked_wallet_bets",
+        )
+        self.assertTrue(profile["coverage"]["history_complete"])
+        self.assertEqual(profile["quality"]["status"], "ok")
         self.assertFalse(any("tracked_wallet_activity" in url for url in seen_urls))
         self.assertFalse(any("tracked_wallet_redeems" in url for url in seen_urls))
 
