@@ -331,6 +331,19 @@ def present_signal(row: Mapping[str, Any]) -> Dict[str, Any]:
     classification = _classification(row)
     risk_items = _risk_items(row)
     outcome = str(row.get("outcome") or "").upper() or None
+    selector_features = _dict(_dict(row.get("features")).get("market_selector"))
+    selector_decision = str(selector_features.get("decision") or "").upper()
+    if not selector_decision:
+        selector_decision = (
+            "RECOMMEND"
+            if recommended_odds is not None
+            else "UNKNOWN"
+        )
+    direction_selection = str(row.get("selection_code") or "").upper()
+    if selector_decision == "WATCH_ONLY":
+        recommended_market = ""
+        recommended_selection = ""
+        recommended_odds = None
 
     return {
         "signal_id": str(row.get("signal_id") or ""),
@@ -348,10 +361,13 @@ def present_signal(row: Mapping[str, Any]) -> Dict[str, Any]:
         "outcome": outcome,
         "match": f"{row.get('home_team') or ''} — {row.get('away_team') or ''}",
         "recommendation": {
+            "decision": selector_decision,
             "market": recommended_market,
             "selection": recommended_selection,
             "odds": _round(recommended_odds, 3),
-            "direction_copy": _direction_copy(recommended_selection),
+            "direction_copy": _direction_copy(
+                recommended_selection or direction_selection
+            ),
         },
         "flow": _flow(row),
         "movement": _movement_summary(row),
