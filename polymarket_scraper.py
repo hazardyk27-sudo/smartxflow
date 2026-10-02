@@ -1585,9 +1585,10 @@ def retry_sport_quarantine(writer: PolymarketSupabaseWriter) -> int:
             wallet = str(meta.get("wallet") or "").lower()
             item_kind = str(meta.get("item_kind") or "")
             attempts = int(meta.get("attempt_count") or 0) + 1
-            reason = item.get("_sport_reason") or classification
+            final_classification = classification
+            reason = item.get("_sport_reason") or final_classification
 
-            if classification == FOOTBALL_CLASS_VERIFIED:
+            if final_classification == FOOTBALL_CLASS_VERIFIED:
                 stored = False
                 if item_kind == "activity":
                     row = _activity_item_to_row(wallet, item)
@@ -1601,19 +1602,19 @@ def retry_sport_quarantine(writer: PolymarketSupabaseWriter) -> int:
                     # its registry identity is verified.
                     stored = True
                 if not stored:
-                    classification = FOOTBALL_CLASS_UNCERTAIN
+                    final_classification = FOOTBALL_CLASS_UNCERTAIN
                     reason = "verified_but_storage_retry_needed"
                 else:
                     affected_wallets.add(wallet)
                     resolved_count += 1
-            elif classification == FOOTBALL_CLASS_NON_FOOTBALL:
+            elif final_classification == FOOTBALL_CLASS_NON_FOOTBALL:
                 resolved_count += 1
 
             writer.update_sport_quarantine(
                 wallet,
                 item_kind,
                 ref,
-                classification,
+                final_classification,
                 reason,
                 attempts,
             )

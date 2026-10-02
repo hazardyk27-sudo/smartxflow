@@ -1986,8 +1986,12 @@ def _classify_football_items(
     verified_conditions, conditions_soccer_ok = _verified_soccer_condition_ids(
         unresolved_conditions,
     )
+    negative_candidate_conditions = [
+        cid for cid in unresolved_conditions
+        if cid not in verified_conditions
+    ]
     direct_markets, direct_markets_ok = _fetch_direct_gamma_markets(
-        unresolved_conditions,
+        negative_candidate_conditions,
     )
 
     inferred_event_ids: set = set()
@@ -1999,7 +2003,13 @@ def _classify_football_items(
 
     all_event_ids = sorted(set(unresolved_events) | inferred_event_ids)
     verified_events, events_soccer_ok = _verified_soccer_event_ids(all_event_ids)
-    direct_events, direct_events_ok = _fetch_direct_gamma_events(all_event_ids)
+    negative_candidate_events = [
+        event_id for event_id in all_event_ids
+        if event_id not in verified_events
+    ]
+    direct_events, direct_events_ok = _fetch_direct_gamma_events(
+        negative_candidate_events,
+    )
 
     football: List[Dict[str, Any]] = []
     non_football: List[Dict[str, Any]] = []

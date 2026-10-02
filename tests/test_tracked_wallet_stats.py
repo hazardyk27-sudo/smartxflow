@@ -612,7 +612,10 @@ class TrackedWalletStatsTests(unittest.TestCase):
             if url.endswith("/events") and params.get("tag_id"):
                 return []
             if url.endswith("/events"):
-                return [{"id": "politics-event"}]
+                return [{
+                    "id": "politics-event",
+                    "tags": [{"id": "2", "slug": "politics", "label": "Politics"}],
+                }]
             raise AssertionError((url, params))
 
         with polymarket_client._soccer_registry_lock:
@@ -659,6 +662,61 @@ class TrackedWalletStatsTests(unittest.TestCase):
             result["uncertain"][0]["_sport_reason"],
             "parent_event_ambiguous",
         )
+
+    def test_v2_direct_soccer_tag_rescues_filter_omission(self):
+        items = [{"conditionId": "child-condition"}]
+
+        def fake_json(url, params=None):
+            if url.endswith("/markets") and params.get("tag_id"):
+                return []
+            if url.endswith("/markets"):
+                return [{
+                    "conditionId": "child-condition",
+                    "tags": [{"id": str(polymarket_client.SOCCER_TAG_ID), "slug": "soccer"}],
+                    "events": [{"id": "event-1"}],
+                }]
+            if url.endswith("/events") and params.get("tag_id"):
+                return []
+            if url.endswith("/events"):
+                return [{
+                    "id": "event-1",
+                    "tags": [{"id": str(polymarket_client.SOCCER_TAG_ID), "slug": "soccer"}],
+                }]
+            raise AssertionError((url, params))
+
+        with patch.object(polymarket_client, "_load_persisted_sport_registry", return_value={}), \
+             patch.object(polymarket_client, "_persist_sport_registry_records"), \
+             patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            result = polymarket_client._classify_football_items(items)
+
+        self.assertEqual(len(result["verified_football"]), 1)
+        self.assertEqual(result["verified_non_football"], [])
+
+    def test_v2_negative_without_explicit_parent_tags_stays_uncertain(self):
+        items = [{"conditionId": "maybe-football"}]
+
+        def fake_json(url, params=None):
+            if url.endswith("/markets") and params.get("tag_id"):
+                return []
+            if url.endswith("/markets"):
+                return [{
+                    "conditionId": "maybe-football",
+                    "events": [{"id": "event-1"}],
+                }]
+            if url.endswith("/events") and params.get("tag_id"):
+                return []
+            if url.endswith("/events"):
+                return [{"id": "event-1", "tags": []}]
+            raise AssertionError((url, params))
+
+        with patch.object(polymarket_client, "_load_persisted_sport_registry", return_value={}), \
+             patch.object(polymarket_client, "_persist_sport_registry_records"), \
+             patch.object(polymarket_client, "_get_json", side_effect=fake_json):
+            result = polymarket_client._classify_football_items(items)
+
+        self.assertEqual(result["verified_non_football"], [])
+        self.assertEqual(len(result["uncertain"]), 1)
+        self.assertEqual(result["uncertain"][0]["_sport_reason"], "event_tags_missing")
 
     def test_v2_gamma_failure_is_uncertain_and_never_negative(self):
         items = [{"conditionId": "soccer-condition", "title": "Club A vs. Club B"}]
@@ -710,7 +768,10 @@ class TrackedWalletStatsTests(unittest.TestCase):
             if url.endswith("/events") and params.get("tag_id"):
                 return [{"id": "soccer-event"}]
             if url.endswith("/events"):
-                return [{"id": "soccer-event"}, {"id": "politics-event"}]
+                return [{
+                    "id": "politics-event",
+                    "tags": [{"id": "2", "slug": "politics", "label": "Politics"}],
+                }]
             raise AssertionError((url, params))
 
         with polymarket_client._soccer_registry_lock:
@@ -778,10 +839,21 @@ class TrackedWalletStatsTests(unittest.TestCase):
         def fake_json(url, params=None):
             if url.endswith("/activity"):
                 return raw
-            if url.endswith("/markets"):
-                self.assertEqual(params["tag_id"], polymarket_client.SOCCER_TAG_ID)
+            if url.endswith("/markets") and params.get("tag_id"):
                 return [{"conditionId": "soccer-condition"}]
-            raise AssertionError(url)
+            if url.endswith("/markets"):
+                return [{
+                    "conditionId": "crypto-condition",
+                    "events": [{"id": "crypto-event"}],
+                }]
+            if url.endswith("/events") and params.get("tag_id"):
+                return []
+            if url.endswith("/events"):
+                return [{
+                    "id": "crypto-event",
+                    "tags": [{"id": "21", "slug": "crypto", "label": "Crypto"}],
+                }]
+            raise AssertionError((url, params))
 
         with polymarket_client._soccer_registry_lock:
             polymarket_client._soccer_condition_registry_cache.clear()
