@@ -30,8 +30,10 @@ SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Socc
 # Aggregate stats (total volume, per-selection market chips) still use ALL
 # trades regardless of size - this threshold only curates the trade ledger.
 MIN_TRADE_AMOUNT_USDC = 100.0
-# Only the tracked-wallet flow uses this higher threshold. The general
-# match/trade search above intentionally keeps its existing 100 USDC rule.
+# Only the tracked-wallet flow uses this higher threshold. This is a strict
+# PER-FILL threshold: each raw execution must independently be >= 1000 USDC.
+# Never aggregate several smaller fills first (e.g. 600 + 600 must stay hidden).
+# The general match/trade search above intentionally keeps its 100 USDC rule.
 MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC = 1000.0
 
 _HTTP_TIMEOUT = 10
@@ -1663,7 +1665,11 @@ def _filter_wallet_rows_since(
 def _filter_tracked_wallet_activity_amount(
     rows: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Keep qualifying fills before any wallet-history grouping happens."""
+    """Apply the tracked-wallet minimum to EACH raw fill before grouping.
+
+    This ordering is a product invariant: several sub-threshold executions on
+    the same outcome never combine to manufacture a qualifying bettor bet.
+    """
     qualifying = []
     for row in rows:
         try:

@@ -160,6 +160,139 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(polymarket_client.MIN_TRADE_AMOUNT_USDC, 100.0)
         self.assertEqual(polymarket_client.MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC, 1000.0)
 
+    def test_two_sub_threshold_buy_fills_never_combine_into_qualifying_bet(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+            },
+        ]
+
+        filtered = polymarket_client._filter_tracked_wallet_activity_amount(activity)
+        grouped = polymarket_client._group_activity_into_canonical_bets(filtered)
+        stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
+
+        self.assertEqual(filtered, [])
+        self.assertEqual(grouped, [])
+        self.assertEqual(stats["trade_count"], 0)
+        self.assertEqual(stats["fill_count"], 0)
+        self.assertEqual(stats["total_invested_usdc"], 0.0)
+
+    def test_tracked_wallet_threshold_is_inclusive_per_fill(self):
+        activity = [
+            {
+                "asset": "below",
+                "condition_id": "below-condition",
+                "action": "BUY",
+                "amount_usdc": 999.99,
+                "price": 0.5,
+                "size": 1999.98,
+            },
+            {
+                "asset": "exact",
+                "condition_id": "exact-condition",
+                "action": "BUY",
+                "amount_usdc": 1000.00,
+                "price": 0.5,
+                "size": 2000,
+            },
+        ]
+
+        filtered = polymarket_client._filter_tracked_wallet_activity_amount(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
+
+        self.assertEqual([row["asset"] for row in filtered], ["exact"])
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["fill_count"], 1)
+        self.assertEqual(stats["total_invested_usdc"], 1000.0)
+
+    def test_stats_refresh_filters_sub_threshold_fills_before_canonical_grouping(self):
+        wallet = "0xwallet"
+        activity = [
+            {
+                "wallet": wallet,
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+                "traded_at": "2026-09-10T00:00:00+00:00",
+            },
+            {
+                "wallet": wallet,
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "action": "BUY",
+                "result": "won",
+                "amount_usdc": 600,
+                "price": 0.5,
+                "size": 1200,
+                "traded_at": "2026-09-10T00:01:00+00:00",
+            },
+            {
+                "wallet": wallet,
+                "asset": "spain-yes",
+                "condition_id": "spain-market",
+                "action": "BUY",
+                "result": "lost",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+                "traded_at": "2026-09-10T00:02:00+00:00",
+            },
+        ]
+        wallet_patches = []
+
+        def fake_get(url, **_kwargs):
+            if "tracked_wallets" in url:
+                return FakeResponse(200, [{"created_at": None}])
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(200, activity)
+            if "tracked_wallet_positions" in url:
+                return FakeResponse(200, [])
+            if "tracked_wallet_redeems" in url:
+                return FakeResponse(200, [])
+            raise AssertionError(url)
+
+        def fake_patch(url, **kwargs):
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(204, [])
+            if "tracked_wallets" in url:
+                wallet_patches.append(kwargs["json"])
+                return FakeResponse(204, [])
+            raise AssertionError(url)
+
+        with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
+             patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
+             patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
+             patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
+            self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))
+
+        self.assertEqual(len(wallet_patches), 1)
+        saved = wallet_patches[0]
+        self.assertEqual(saved["trade_count"], 1)
+        self.assertEqual(saved["total_invested_usdc"], 1000.0)
+        self.assertEqual(saved["resolved_won"], 0)
+        self.assertEqual(saved["resolved_lost"], 1)
+        self.assertEqual(saved["resolved_total"], 1)
+        self.assertEqual(saved["win_rate"], 0.0)
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {
