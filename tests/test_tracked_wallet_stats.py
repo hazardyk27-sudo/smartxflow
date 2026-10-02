@@ -311,6 +311,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
         with patch.object(polymarket_client, "_supabase_base_url", return_value="https://supabase.test"), \
              patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
              patch.object(polymarket_client, "_filter_verified_football_items", side_effect=lambda rows: (rows, True)), \
+             patch.object(polymarket_client, "_persist_wallet_bet_rows", return_value=True), \
              patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
              patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
             self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))
@@ -907,6 +908,105 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(rows[0]["pnl_usdc"], -750.0)
         self.assertEqual(rows[0]["pnl_kind"], "realized")
 
+    def test_canonical_bet_key_is_deterministic_for_same_asset(self):
+        first = polymarket_client._canonical_bet_identity({
+            "wallet": "0xABC",
+            "asset": "france-yes",
+            "condition_id": "one",
+        })
+        second = polymarket_client._canonical_bet_identity({
+            "wallet": "0xabc",
+            "asset": "france-yes",
+            "condition_id": "different-metadata",
+        })
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            polymarket_client._canonical_bet_key_text(first),
+            '["asset","0xabc","france-yes"]',
+        )
+
+    def test_persist_wallet_bets_upserts_wallet_and_bet_key(self):
+        posts = []
+        lifecycle = [{
+            "bet_key": '["asset","0xwallet","france-yes"]',
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "event_id": "99",
+            "match_key": "event:99",
+            "match_name": "France - Spain",
+            "market_type": "1x2",
+            "market_label": "1X2",
+            "selection": "France",
+            "selection_label": "France",
+            "bet_label": "France",
+            "lifecycle_status": "closed",
+            "result": "closed",
+            "status_label": "Kapandı",
+            "stake_usdc": 1000.0,
+            "sell_proceeds_usdc": 1200.0,
+            "avg_entry_price": 0.5,
+            "avg_entry_decimal": 2.0,
+            "pnl_usdc": 200.0,
+            "pnl_kind": "realized",
+            "fill_count": 2,
+            "buy_fill_count": 1,
+            "sell_fill_count": 1,
+            "first_traded_at": "2026-10-02T15:00:00+00:00",
+            "last_traded_at": "2026-10-02T18:00:00+00:00",
+        }]
+
+        def fake_post(url, **kwargs):
+            posts.append((url, kwargs))
+            return FakeResponse(201, [])
+
+        with patch.object(polymarket_client.requests, "post", side_effect=fake_post):
+            ok = polymarket_client._persist_wallet_bet_rows(
+                "https://supabase.test",
+                {"apikey": "test"},
+                "0xwallet",
+                lifecycle,
+            )
+
+        self.assertTrue(ok)
+        self.assertEqual(len(posts), 1)
+        url, kwargs = posts[0]
+        self.assertIn("tracked_wallet_bets?on_conflict=wallet,bet_key", url)
+        saved = kwargs["json"][0]
+        self.assertEqual(saved["wallet"], "0xwallet")
+        self.assertEqual(saved["bet_key"], lifecycle[0]["bet_key"])
+        self.assertEqual(saved["stake_usdc"], 1000.0)
+        self.assertEqual(saved["sell_proceeds_usdc"], 1200.0)
+        self.assertEqual(saved["pnl_usdc"], 200.0)
+        self.assertEqual(saved["lifecycle_status"], "closed")
+
+    def test_display_lifecycle_contains_persistable_bet_key(self):
+        activity = [{
+            "wallet": "0xwallet",
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "title": "France vs. Spain",
+            "market_type": "1x2",
+            "selection": "France",
+            "action": "BUY",
+            "outcome_raw": "France",
+            "amount_usdc": 1000,
+            "price": 0.5,
+            "size": 2000,
+            "traded_at": "2026-10-02T15:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=[]):
+            rows = polymarket_client._build_display_activity(
+                activity, [], set(), set(), []
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0]["bet_key"],
+            '["asset","0xwallet","france-yes"]',
+        )
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {
@@ -1331,6 +1431,7 @@ class TrackedWalletStatsTests(unittest.TestCase):
              patch.object(polymarket_client, "_supabase_headers", return_value={"apikey": "test"}), \
              patch.object(polymarket_client, "_fetch_market_resolution", return_value=None), \
              patch.object(polymarket_client, "_filter_verified_football_items", side_effect=lambda rows: (rows, True)), \
+             patch.object(polymarket_client, "_persist_wallet_bet_rows", return_value=True), \
              patch.object(polymarket_client.requests, "get", side_effect=fake_get), \
              patch.object(polymarket_client.requests, "patch", side_effect=fake_patch):
             self.assertTrue(polymarket_client.compute_and_save_wallet_stats(wallet))
