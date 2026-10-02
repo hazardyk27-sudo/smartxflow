@@ -58,9 +58,10 @@ def test_renderer_has_three_detail_surfaces_and_no_demo_signals():
     assert "mockSignals" not in js
 
 
-def test_renderer_uses_read_only_v2_feed():
+def test_renderer_uses_read_only_v2_feed_and_exact_detail():
     js = read("static/js/analysis_v2.js")
-    assert "fetch('/api/analysis-v2/signals?limit=100'" in js
+    assert "/api/analysis-v2/signals?" in js
+    assert "/api/analysis-v2/signals/${encodeURIComponent(signalId)}" in js
     assert "method: 'POST'" not in js
     assert 'method: "POST"' not in js
     assert "method: 'PATCH'" not in js
@@ -83,3 +84,31 @@ def test_existing_analysis_page_links_to_v2_without_replacing_v1():
 
 def test_contract_version_is_explicit():
     assert UI_CONTRACT_VERSION == "analysis-v2-ui-1.0.0"
+
+
+def test_history_scope_and_detail_drawer_are_exposed():
+    html = read("templates/analysis_v2.html")
+    assert 'data-scope="active"' in html
+    assert 'data-scope="history"' in html
+    assert 'data-scope="all"' in html
+    assert 'id="signalSearch"' in html
+    assert 'id="marketFilter"' in html
+    assert 'id="signalDetailDrawer"' in html
+    assert 'id="loadMoreBtn"' in html
+
+
+def test_app_detail_endpoint_is_exact_signal_id_read_only():
+    app = read("app.py")
+    assert "@app.route('/api/analysis-v2/signals/<signal_id>', methods=['GET'])" in app
+    assert "r'sig_[0-9a-f]{32}'" in app
+    assert "analysis_v2_signal_state_events" in app
+    assert "analysis_v2_signal_settlements" in app
+    assert "present_signal_detail" in app
+
+
+def test_feed_endpoint_supports_safe_scope_market_and_offset():
+    app = read("app.py")
+    assert "scope not in {'active', 'history', 'all'}" in app
+    assert "requested_market not in {'1X2', 'DNB', 'DC', 'OU25', 'BTTS'}" in app
+    assert "requested_offset" in app
+    assert "payload['has_more']" in app
