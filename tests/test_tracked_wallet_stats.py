@@ -618,6 +618,102 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(rows[0]["slug"], "france-spain-2026-10-02")
         self.assertEqual(rows[0]["kickoff_utc"], "2026-10-02T20:00:00+00:00")
 
+    def test_wallet_bet_display_contract_1x2(self):
+        fields = polymarket_client._wallet_bet_display_contract({
+            "market_type": "1x2",
+            "selection": "France",
+            "outcome_raw": "France",
+        })
+        self.assertEqual(fields["market_label"], "1X2")
+        self.assertEqual(fields["selection_label"], "France")
+        self.assertEqual(fields["side_label"], "")
+        self.assertEqual(fields["bet_label"], "France")
+
+    def test_wallet_bet_display_contract_binary_1x2_keeps_yes_no_polarity(self):
+        fields = polymarket_client._wallet_bet_display_contract({
+            "market_type": "1x2",
+            "selection": "France",
+            "outcome_raw": "Yes",
+        })
+        self.assertEqual(fields["market_label"], "1X2")
+        self.assertEqual(fields["selection_label"], "France")
+        self.assertEqual(fields["side_label"], "Evet")
+        self.assertEqual(fields["bet_label"], "France · Evet")
+
+    def test_wallet_bet_display_contract_total_goals(self):
+        fields = polymarket_client._wallet_bet_display_contract({
+            "market_type": "ou25",
+            "selection": "Toplam Gol 2.5",
+            "outcome_raw": "Under",
+        })
+        self.assertEqual(fields["market_label"], "Toplam Gol 2.5")
+        self.assertEqual(fields["selection_label"], "Alt")
+        self.assertEqual(fields["bet_label"], "Alt")
+
+    def test_wallet_bet_display_contract_btts(self):
+        fields = polymarket_client._wallet_bet_display_contract({
+            "market_type": "btts",
+            "selection": "Karşılıklı Gol (KG)",
+            "outcome_raw": "Yes",
+        })
+        self.assertEqual(fields["market_label"], "Karşılıklı Gol")
+        self.assertEqual(fields["selection_label"], "Var")
+        self.assertEqual(fields["bet_label"], "Var")
+
+    def test_wallet_bet_display_contract_dynamic_total_and_handicap(self):
+        total = polymarket_client._wallet_bet_display_contract({
+            "market_type": "special",
+            "title": "France vs. Spain: O/U 3.5",
+            "selection": "O/U 3.5",
+            "outcome_raw": "Over",
+        })
+        handicap = polymarket_client._wallet_bet_display_contract({
+            "market_type": "special",
+            "title": "France vs. Spain: France (-1.5)",
+            "selection": "France -1.5",
+            "outcome_raw": "Yes",
+        })
+
+        self.assertEqual(total["market_label"], "Toplam Gol 3.5")
+        self.assertEqual(total["selection_label"], "Üst")
+        self.assertEqual(handicap["market_label"], "Handikap")
+        self.assertEqual(handicap["selection_label"], "France -1.5")
+        self.assertEqual(handicap["bet_label"], "France -1.5 · Evet")
+
+    def test_display_activity_includes_market_selection_contract(self):
+        activity = [{
+            "wallet": "0xwallet",
+            "asset": "france-under",
+            "condition_id": "france-total",
+            "event_id": "99",
+            "title": "France vs. Spain: O/U 2.5",
+            "slug": "france-spain-2026-10-02-more-markets",
+            "market_type": "ou25",
+            "selection": "Toplam Gol 2.5",
+            "side": "2.5 Alt",
+            "action": "BUY",
+            "outcome_raw": "Under",
+            "amount_usdc": 1200,
+            "price": 0.55,
+            "traded_at": "2026-10-02T17:00:00+00:00",
+            "result": "won",
+        }]
+        stored = [{
+            "event_id": "99",
+            "slug": "france-spain-2026-10-02",
+            "home": "France",
+            "away": "Spain",
+            "kickoff_utc": "2026-10-02T20:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=stored):
+            rows = polymarket_client._build_display_activity(activity, [], {"france-under"}, set())
+
+        self.assertEqual(rows[0]["market_label"], "Toplam Gol 2.5")
+        self.assertEqual(rows[0]["selection_label"], "Alt")
+        self.assertEqual(rows[0]["side_label"], "")
+        self.assertEqual(rows[0]["bet_label"], "Alt")
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {

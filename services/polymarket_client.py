@@ -1086,7 +1086,12 @@ _1X2_OUTCOME_LABELS = {"yes": "Evet", "no": "Hayır"}
 _OU25_OUTCOME_LABELS = {"over": "2.5 Üst", "under": "2.5 Alt"}
 _BTTS_OUTCOME_LABELS = {"yes": "KG Var", "no": "KG Yok"}
 _SIDE_LABELS = {"buy": "Alım", "sell": "Satım"}
-_MARKET_TYPE_LABELS = {"1x2": "1X2", "ou25": "2.5 Üst/Alt", "btts": "Karşılıklı Gol"}
+_MARKET_TYPE_LABELS = {
+    "1x2": "1X2",
+    "ou25": "Toplam Gol 2.5",
+    "btts": "Karşılıklı Gol",
+    "special": "Özel Market",
+}
 
 
 def _bet_display_fields(market_type: str, selection_raw: str, outcome_raw: str) -> Dict[str, str]:
@@ -1737,6 +1742,142 @@ def _parse_activity_market(item: Dict[str, Any]):
         away = ""
 
     return market_type, home, away, selection, side
+
+
+def _wallet_bet_display_contract(item: Dict[str, Any]) -> Dict[str, str]:
+    """Return one stable market/selection contract for tracked-wallet bets.
+
+    The frontend renders these labels directly instead of re-interpreting
+    Polymarket title/outcome strings. Existing selection/side fields remain
+    available for compatibility.
+    """
+    market_type = str(item.get("market_type") or "").strip().lower()
+    selection_raw = str(item.get("selection") or "").strip()
+    side_raw = str(item.get("side") or "").strip()
+    outcome_raw = str(item.get("outcome_raw") or item.get("outcome") or "").strip()
+    title = str(item.get("title") or "").strip()
+
+    if not market_type:
+        parsed_type, _home, _away, parsed_selection, parsed_side = _parse_activity_market({
+            "title": title,
+            "slug": item.get("slug"),
+            "eventSlug": item.get("eventSlug"),
+            "outcome": outcome_raw,
+        })
+        market_type = parsed_type
+        if not selection_raw:
+            selection_raw = str(parsed_selection or "").strip()
+        if not side_raw:
+            side_raw = str(parsed_side or "").strip()
+
+    if side_raw.upper() in ("BUY", "SELL"):
+        side_raw = ""
+
+    def _choice(value: str) -> str:
+        raw = str(value or "").strip()
+        low = raw.lower()
+        return {
+            "draw": "Beraberlik",
+            "yes": "Evet",
+            "no": "Hayır",
+            "over": "Üst",
+            "under": "Alt",
+            "kg var": "Var",
+            "kg yok": "Yok",
+            "btts yes": "Var",
+            "btts no": "Yok",
+        }.get(low, raw)
+
+    mt = market_type or "special"
+    market_label = _MARKET_TYPE_LABELS.get(mt, "Özel Market")
+    selection_label = ""
+    side_label = ""
+
+    if mt == "ou25":
+        market_label = "Toplam Gol 2.5"
+        source = outcome_raw or side_raw or selection_raw
+        low = source.lower()
+        if low in ("over", "2.5 üst", "üst"):
+            selection_label = "Üst"
+        elif low in ("under", "2.5 alt", "alt"):
+            selection_label = "Alt"
+        else:
+            selection_label = _choice(source) or "-"
+
+    elif mt == "btts":
+        market_label = "Karşılıklı Gol"
+        source = outcome_raw or side_raw or selection_raw
+        low = source.lower()
+        if low in ("yes", "kg var", "var"):
+            selection_label = "Var"
+        elif low in ("no", "kg yok", "yok"):
+            selection_label = "Yok"
+        else:
+            selection_label = _choice(source) or "-"
+
+    elif mt == "1x2":
+        market_label = "1X2"
+        candidate = selection_raw or outcome_raw or side_raw
+        selection_label = _choice(candidate) or "-"
+        polarity = _choice(outcome_raw)
+        if outcome_raw.lower() in ("yes", "no") and polarity != selection_label:
+            side_label = polarity
+        elif side_raw and _choice(side_raw) != selection_label:
+            side_label = _choice(side_raw)
+
+    else:
+        suffix = title.split(":", 1)[1].strip() if ":" in title else selection_raw
+        suffix_clean = re.sub(r'\(([-+]?\d+(?:\.\d+)?)\)', r'\1', suffix or "").strip()
+        total_match = re.search(
+            r'(?:o/u|over\s*/\s*under|total(?:\s+goals?)?)\s*([0-9]+(?:\.[0-9]+)?)',
+            suffix_clean,
+            re.IGNORECASE,
+        )
+        handicap_like = bool(
+            re.search(r'\b(?:spread|handicap)\b', suffix_clean, re.IGNORECASE)
+            or re.search(r'[-+]\d+(?:\.\d+)?', suffix_clean)
+        )
+
+        if total_match:
+            line = total_match.group(1)
+            market_label = f"Toplam Gol {line}"
+            source = outcome_raw or side_raw
+            low = source.lower()
+            if low in ("over", "üst"):
+                selection_label = "Üst"
+            elif low in ("under", "alt"):
+                selection_label = "Alt"
+            else:
+                selection_label = _choice(source or selection_raw) or "-"
+        elif handicap_like:
+            market_label = "Handikap"
+            selection_label = selection_raw or suffix_clean or _choice(outcome_raw) or "-"
+            normalized_outcome = _choice(outcome_raw)
+            if normalized_outcome and normalized_outcome != selection_label:
+                side_label = normalized_outcome
+        else:
+            market_label = suffix_clean or _MARKET_TYPE_LABELS["special"]
+            selection_label = _choice(outcome_raw or side_raw or selection_raw) or "-"
+            if selection_raw and _choice(selection_raw) != selection_label and not suffix_clean:
+                market_label = _choice(selection_raw)
+
+    bet_label = selection_label
+    if side_label and side_label != selection_label:
+        bet_label = f"{selection_label} · {side_label}"
+
+    return {
+        "market_type": mt,
+        "market_label": market_label,
+        "selection_label": selection_label or "-",
+        "side_label": side_label,
+        "bet_label": bet_label or "-",
+    }
+
+
+def _with_wallet_bet_display_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
+    enriched = _with_canonical_match_metadata(item)
+    enriched.update(_wallet_bet_display_contract(enriched))
+    return enriched
 
 
 def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
@@ -2971,7 +3112,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     resolved_won_ids = resolved["resolved_won_ids"]
     resolved_lost_ids = resolved["resolved_lost_ids"]
     open_positions = [
-        _with_canonical_match_metadata(position)
+        _with_wallet_bet_display_metadata(position)
         for position in resolved["open_positions"]
     ]
     realized_pnl_total = resolved["realized_pnl_total"]
@@ -3218,6 +3359,7 @@ def _build_display_activity(
     display_rows = []
     for g in closed_groups:
         avg_p = (g["_price_weight_sum"] / g["amount_usdc"]) if g["amount_usdc"] else 0.0
+        contract = _wallet_bet_display_contract(g)
         display_rows.append({
             "title": g["title"],
             "match": g["match"],
@@ -3228,7 +3370,11 @@ def _build_display_activity(
             "home": g["home"],
             "away": g["away"],
             "slug": g["slug"],
-            "market_type": g["market_type"],
+            "market_type": contract["market_type"],
+            "market_label": contract["market_label"],
+            "selection_label": contract["selection_label"],
+            "side_label": contract["side_label"],
+            "bet_label": contract["bet_label"],
             "selection": g["selection"],
             "side": g["side"],
             "action": g["action"],
@@ -3253,6 +3399,13 @@ def _build_display_activity(
         match_label = match_meta.get("match_name") or (
             f"{home} - {away}" if away else (home or p.get("title") or "-")
         )
+        contract = _wallet_bet_display_contract({
+            **p,
+            "market_type": mt,
+            "selection": selection,
+            "side": side,
+            "outcome_raw": p.get("outcome"),
+        })
         last_dt = open_asset_latest.get(asset)
         condition_id = p.get("condition_id")
         # A position still shows up in Polymarket's /positions snapshot even
@@ -3273,7 +3426,11 @@ def _build_display_activity(
             "home": home,
             "away": away,
             "slug": match_meta.get("event_slug") or p.get("slug"),
-            "market_type": mt,
+            "market_type": contract["market_type"],
+            "market_label": contract["market_label"],
+            "selection_label": contract["selection_label"],
+            "side_label": contract["side_label"],
+            "bet_label": contract["bet_label"],
             "selection": selection,
             "side": side,
             # A still-open position on Polymarket only exists because outcome

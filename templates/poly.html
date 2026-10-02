@@ -295,21 +295,23 @@
     word-break: break-word;
     line-height: 1.4;
   }
-  /* İşlem Geçmişi: Maç, Seçenek, İşlem, Sonuç, Tutar, Oran, Tarih / Saat (7 columns) */
+  /* İşlem Geçmişi: Maç, Market, Seçim, İşlem, Sonuç, Tutar, Oran, Tarih (8 columns) */
   .wallet-activity-table th:nth-child(1), .wallet-activity-table td:nth-child(1) { width: 15%; }
-  .wallet-activity-table th:nth-child(2), .wallet-activity-table td:nth-child(2) { width: 26%; }
-  .wallet-activity-table th:nth-child(3), .wallet-activity-table td:nth-child(3) { width: 10%; }
-  .wallet-activity-table th:nth-child(4), .wallet-activity-table td:nth-child(4) { width: 11%; }
-  .wallet-activity-table th:nth-child(5), .wallet-activity-table td:nth-child(5) { width: 15%; }
-  .wallet-activity-table th:nth-child(6), .wallet-activity-table td:nth-child(6) { width: 8%; }
-  .wallet-activity-table th:nth-child(7), .wallet-activity-table td:nth-child(7) { width: 15%; }
-  /* Açık Pozisyonlar: Maç, Seçenek, Ort. Oran, Güncel Oran, Değer (USDC), Kâr/Zarar (6 columns) */
-  .wallet-positions-table th:nth-child(1), .wallet-positions-table td:nth-child(1) { width: 17%; }
-  .wallet-positions-table th:nth-child(2), .wallet-positions-table td:nth-child(2) { width: 30%; }
-  .wallet-positions-table th:nth-child(3), .wallet-positions-table td:nth-child(3) { width: 13%; }
-  .wallet-positions-table th:nth-child(4), .wallet-positions-table td:nth-child(4) { width: 13%; }
-  .wallet-positions-table th:nth-child(5), .wallet-positions-table td:nth-child(5) { width: 15%; }
+  .wallet-activity-table th:nth-child(2), .wallet-activity-table td:nth-child(2) { width: 15%; }
+  .wallet-activity-table th:nth-child(3), .wallet-activity-table td:nth-child(3) { width: 18%; }
+  .wallet-activity-table th:nth-child(4), .wallet-activity-table td:nth-child(4) { width: 9%; }
+  .wallet-activity-table th:nth-child(5), .wallet-activity-table td:nth-child(5) { width: 10%; }
+  .wallet-activity-table th:nth-child(6), .wallet-activity-table td:nth-child(6) { width: 13%; }
+  .wallet-activity-table th:nth-child(7), .wallet-activity-table td:nth-child(7) { width: 7%; }
+  .wallet-activity-table th:nth-child(8), .wallet-activity-table td:nth-child(8) { width: 13%; }
+  /* Açık Pozisyonlar: Maç, Market, Seçim, Ort/Güncel Oran, Değer, K/Z (7 columns) */
+  .wallet-positions-table th:nth-child(1), .wallet-positions-table td:nth-child(1) { width: 16%; }
+  .wallet-positions-table th:nth-child(2), .wallet-positions-table td:nth-child(2) { width: 18%; }
+  .wallet-positions-table th:nth-child(3), .wallet-positions-table td:nth-child(3) { width: 22%; }
+  .wallet-positions-table th:nth-child(4), .wallet-positions-table td:nth-child(4) { width: 11%; }
+  .wallet-positions-table th:nth-child(5), .wallet-positions-table td:nth-child(5) { width: 11%; }
   .wallet-positions-table th:nth-child(6), .wallet-positions-table td:nth-child(6) { width: 12%; }
+  .wallet-positions-table th:nth-child(7), .wallet-positions-table td:nth-child(7) { width: 10%; }
   .open-badge {
     display: inline-block;
     padding: 1px 6px;
@@ -640,7 +642,7 @@
         <option value="win-asc">Başarı oranı: düşükten yükseğe</option>
       </select>
     </div>
-    <div class="tracked-wallet-note">Takipçi istatistikleri ve işlem geçmişi yalnızca 1.000 USDC ve üzerindeki tekil işlemleri kapsar.</div>
+    <div class="tracked-wallet-note">Takipçi istatistikleri ve işlem geçmişi, aynı pozisyondaki toplam giriş yatırımı en az 1.000 USDC olan bahisleri kapsar.</div>
     <div class="match-list" id="trackedWalletList">
       <div class="loading">Yükleniyor...</div>
     </div>
@@ -657,7 +659,8 @@
         <thead>
           <tr>
             <th>Maç</th>
-            <th>Seçenek</th>
+            <th class="sortable" data-sort="market_label">Market <span class="sort-arrow"></span></th>
+            <th>Seçim</th>
             <th class="sortable" data-sort="avg_price">Ort. Oran <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="cur_price">Güncel Oran <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="current_value">Değer (USDC) <span class="sort-arrow"></span></th>
@@ -673,7 +676,8 @@
         <thead>
           <tr>
             <th class="sortable" data-sort="match">Maç <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="selection">Seçenek <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="market_label">Market <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="bet_label">Seçim <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="action">İşlem <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="result">Sonuç <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="amount_usdc">Tutar (USDC) <span class="sort-arrow"></span></th>
@@ -1507,7 +1511,7 @@ function renderPositionsTable() {
   if (!walletPositionsBody) return;
   const positions = currentPositions || [];
   if (!positions.length) {
-    walletPositionsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
+    walletPositionsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6d7590;">Açık pozisyon yok</td></tr>';
   } else {
     const toDecimalOdds = (v) => {
       const p = Number(v) || 0;
@@ -1529,7 +1533,8 @@ function renderPositionsTable() {
     walletPositionsBody.innerHTML = sorted.map(p => `
       <tr>
         <td title="${escapeAttr(p.match_name || p.match || p.title || '-')}">${escapeAttr(p.match_name || p.match || p.title || '-')}</td>
-        <td title="${escapeAttr(p.outcome || '-')}">${escapeAttr(p.outcome || '-')}</td>
+        <td title="${escapeAttr(p.market_label || '-')}">${escapeAttr(p.market_label || '-')}</td>
+        <td title="${escapeAttr(p.bet_label || p.selection_label || p.outcome || '-')}">${escapeAttr(p.bet_label || p.selection_label || p.outcome || '-')}</td>
         <td>${toDecimalOdds(p.avg_price)}</td>
         <td>${toDecimalOdds(p.cur_price)}</td>
         <td>${fmtUsd(p.current_value || 0)}</td>
@@ -1552,7 +1557,7 @@ function renderPositionsTable() {
 function renderActivityTable() {
   const activity = currentActivity || [];
   if (!activity.length) {
-    walletActivityBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
+    walletActivityBody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6d7590;">İşlem geçmişi yok</td></tr>';
     return;
   }
   const sorted = [...activity].sort((a, b) => {
@@ -1577,9 +1582,9 @@ function renderActivityTable() {
     if (activitySortField === 'match') {
       va = (a.match || a.title || '').toLowerCase();
       vb = (b.match || b.title || '').toLowerCase();
-    } else if (activitySortField === 'selection') {
-      va = (a.selection || a.side || a.outcome_raw || '').toLowerCase();
-      vb = (b.selection || b.side || b.outcome_raw || '').toLowerCase();
+    } else if (activitySortField === 'bet_label') {
+      va = (a.bet_label || a.selection_label || a.selection || a.side || a.outcome_raw || '').toLowerCase();
+      vb = (b.bet_label || b.selection_label || b.selection || b.side || b.outcome_raw || '').toLowerCase();
     } else {
       va = (a[activitySortField] || '').toString().toLowerCase();
       vb = (b[activitySortField] || '').toString().toLowerCase();
@@ -1592,7 +1597,7 @@ function renderActivityTable() {
   const _sellsByKeyA = {};
   sorted.forEach(a => {
     if (a.action === 'Satım') {
-      const k = (a.match||a.title||'').toLowerCase()+'|'+(a.selection||'').toLowerCase()+'|'+(a.side||'').toLowerCase();
+      const k = (a.asset || ((a.match||a.title||'').toLowerCase()+'|'+(a.market_label||'').toLowerCase()+'|'+(a.bet_label||a.selection||'').toLowerCase()));
       if (!_sellsByKeyA[k]) _sellsByKeyA[k] = [];
       _sellsByKeyA[k].push(a);
     }
@@ -1602,8 +1607,8 @@ function renderActivityTable() {
     if (a.action === 'Satım') return;
     const fillNote = a.fill_count > 1 ? ` <span style="color:#6d7590;font-size:11px;">(${a.fill_count} işlem)</span>` : '';
     const oran = (a.price === null || a.price === undefined) ? '-' : Number(a.price).toFixed(2);
-    const selectionLabel = a.selection || a.side || a.outcome_raw || '-';
-    const sideSuffix = (a.side && a.side !== a.selection) ? ` · ${escapeAttr(a.side)}` : '';
+    const marketLabel = a.market_label || a.market_type || '-';
+    const selectionLabel = a.bet_label || a.selection_label || a.selection || a.side || a.outcome_raw || '-';
     const resultKey = RESULT_LABELS[a.result] ? a.result : 'unknown';
     const resultCell = resultKey === 'unknown'
       ? '<span class="result-badge unknown">-</span>'
@@ -1611,14 +1616,15 @@ function renderActivityTable() {
     _actRows.push(`
     <tr>
       <td title="${escapeAttr(a.match || a.title || '-')}">${escapeAttr(a.match || a.title || '-')}</td>
-      <td title="${escapeAttr(selectionLabel)}${sideSuffix}">${escapeAttr(selectionLabel)}${sideSuffix}</td>
+      <td title="${escapeAttr(marketLabel)}">${escapeAttr(marketLabel)}</td>
+      <td title="${escapeAttr(selectionLabel)}">${escapeAttr(selectionLabel)}</td>
       <td>${escapeAttr(a.action || 'Alım')}</td>
       <td>${resultCell}</td>
       <td>${fmtUsd(a.amount_usdc || 0)}${fillNote}</td>
       <td>${oran}</td>
       <td>${fmtDateTime(a.traded_at)}</td>
     </tr>`);
-    const k = (a.match||a.title||'').toLowerCase()+'|'+(a.selection||'').toLowerCase()+'|'+(a.side||'').toLowerCase();
+    const k = (a.asset || ((a.match||a.title||'').toLowerCase()+'|'+(a.market_label||'').toLowerCase()+'|'+(a.bet_label||a.selection||'').toLowerCase()));
     const _ms = _sellsByKeyA[k] || [];
     while (_ms.length > 0) {
       const s = _ms.shift();
@@ -1627,7 +1633,8 @@ function renderActivityTable() {
       _actRows.push(`
     <tr class="row-sell-sub">
       <td title="${escapeAttr(s.match || s.title || '-')}"><span class="sell-sub-indent">└</span>${escapeAttr(s.match || s.title || '-')}</td>
-      <td>${escapeAttr(selectionLabel)}${sideSuffix}</td>
+      <td>${escapeAttr(s.market_label || marketLabel)}</td>
+      <td>${escapeAttr(s.bet_label || s.selection_label || selectionLabel)}</td>
       <td style="color:#f59e0b;">Satım</td>
       <td>—</td>
       <td class="sell-sub-amount">${fmtUsd(s.amount_usdc || 0)}${sFillNote}</td>
@@ -1646,7 +1653,7 @@ document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) t
       activitySortDir = activitySortDir === 'asc' ? 'desc' : 'asc';
     } else {
       activitySortField = field;
-      activitySortDir = (field === 'match' || field === 'selection' || field === 'action') ? 'asc' : 'desc';
+      activitySortDir = (field === 'match' || field === 'market_label' || field === 'bet_label' || field === 'action') ? 'asc' : 'desc';
     }
     document.querySelectorAll('.wallet-activity-table:not(.wallet-positions-table) th.sortable').forEach(h => {
       h.classList.remove('active');
