@@ -1687,7 +1687,67 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(computed, ["0xwallet"])
         self.assertFalse(writer.positions_replaced)
 
-    def test_poly_cleanup_keeps_last_seven_days_of_wallet_history(self):
+    def test_wallet_resume_checkpoint_prefers_last_successful_sync(self):
+        writer = polymarket_scraper.PolymarketSupabaseWriter(
+            "https://supabase.test",
+            "key",
+        )
+
+        def fake_get(url, **_kwargs):
+            if "tracked_wallet_activity" in url:
+                return FakeResponse(200, [])
+            if "tracked_wallet_redeems" in url:
+                return FakeResponse(200, [])
+            if "tracked_wallets" in url:
+                return FakeResponse(200, [{
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "last_synced_at": "2026-10-01T12:34:56+00:00",
+                }])
+            raise AssertionError(url)
+
+        expected = int(
+            polymarket_scraper.datetime.fromisoformat(
+                "2026-10-01T12:34:56+00:00"
+            ).timestamp()
+        )
+        with patch.object(
+            polymarket_scraper.requests,
+            "get",
+            side_effect=fake_get,
+        ):
+            self.assertEqual(
+                writer.get_wallet_activity_checkpoint("0xwallet"),
+                expected,
+            )
+            self.assertEqual(
+                writer.get_wallet_redeem_checkpoint("0xwallet"),
+                expected,
+            )
+
+    def test_wallet_resume_checkpoint_first_sync_falls_back_to_created_at(self):
+        writer = polymarket_scraper.PolymarketSupabaseWriter(
+            "https://supabase.test",
+            "key",
+        )
+
+        with patch.object(
+            polymarket_scraper.requests,
+            "get",
+            return_value=FakeResponse(200, [{
+                "created_at": "2026-09-01T00:00:00+00:00",
+                "last_synced_at": None,
+            }]),
+        ):
+            checkpoint = writer.get_wallet_resume_checkpoint("0xwallet")
+
+        expected = int(
+            polymarket_scraper.datetime.fromisoformat(
+                "2026-09-01T00:00:00+00:00"
+            ).timestamp()
+        )
+        self.assertEqual(checkpoint, expected)
+
+    def test_poly_cleanup_uses_tiered_retention_and_never_deletes_bets(self):
         class FakeWriter:
             def __init__(self):
                 self.deletes = []
@@ -1711,16 +1771,32 @@ class TrackedWalletStatsTests(unittest.TestCase):
         ):
             self.assertEqual(polymarket_scraper.cleanup_old_poly_data(writer), 0)
 
-        self.assertEqual(timedelta_calls, [((), {"days": 7})])
+        days = [kwargs.get("days") for _args, kwargs in timedelta_calls]
         self.assertEqual(
-            [table for table, _column, _cutoff in writer.deletes],
+            days,
             [
-                "tracked_wallet_activity",
-                "tracked_wallet_redeems",
-                "polymarket_trades",
+                polymarket_scraper.POLYMARKET_TRADE_RETENTION_DAYS,
+                polymarket_scraper.TRACKED_WALLET_RAW_RETENTION_DAYS,
             ],
         )
-        self.assertTrue(all(column == "traded_at" for _table, column, _cutoff in writer.deletes))
+        deleted_tables = [
+            table for table, _column, _cutoff in writer.deletes
+        ]
+        self.assertEqual(
+            deleted_tables,
+            [
+                "polymarket_trades",
+                "tracked_wallet_activity",
+                "tracked_wallet_redeems",
+            ],
+        )
+        self.assertNotIn("tracked_wallet_bets", deleted_tables)
+        self.assertTrue(
+            all(
+                column == "traded_at"
+                for _table, column, _cutoff in writer.deletes
+            )
+        )
 
 
 if __name__ == "__main__":
