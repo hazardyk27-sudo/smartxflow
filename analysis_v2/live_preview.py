@@ -33,16 +33,6 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _fixture(row: Mapping[str, Any]) -> Dict[str, Any]:
-    return {
-        "match_id_hash": str(row.get("match_id_hash") or ""),
-        "home_team": str(row.get("home_team") or ""),
-        "away_team": str(row.get("away_team") or ""),
-        "league": str(row.get("league") or ""),
-        "kickoff_utc": row.get("kickoff_utc") or row.get("match_date"),
-    }
-
-
 def _current_cycle_rows(rows: Iterable[Mapping[str, Any]]) -> List[Dict[str, Any]]:
     """Keep the latest scrape timestamp per exact match+market+selection."""
     latest: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
@@ -78,6 +68,15 @@ def _rank_matches(current_rows: Iterable[Mapping[str, Any]], limit: int) -> List
             totals.items(), key=lambda item: item[1], reverse=True
         )[: max(1, int(limit))]
     ]
+
+
+def select_live_match_hashes(
+    recent_snapshot_rows: Iterable[Mapping[str, Any]],
+    *,
+    limit: int = 24,
+) -> List[str]:
+    """Return a bounded exact-hash candidate list from the newest real cycle."""
+    return _rank_matches(_current_cycle_rows(recent_snapshot_rows), limit)
 
 
 def compute_live_cards(
@@ -138,8 +137,6 @@ def compute_live_cards(
                     if payload is None:
                         continue
 
-                    # Presenters expect a ledger-like row. Live preview rows are
-                    # explicitly marked and never get settlement/history claims.
                     payload = dict(payload)
                     payload["signal_id"] = (
                         "live_" + match_hash[:12] + "_" + source_market.lower() + "_" + selection.lower()
@@ -157,8 +154,6 @@ def compute_live_cards(
         except Exception as exc:
             errors.append({"match_id_hash": match_hash, "error": str(exc)})
 
-    # Deduplicate by match+recommended expression, preferring the strongest
-    # user-facing state then the newest trigger.
     priority = {"FIRSAT": 3, "IZLE": 2, "UZAK_DUR": 1, "UNKNOWN": 0}
     dedup: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
     for card in cards:
