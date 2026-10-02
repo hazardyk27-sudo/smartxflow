@@ -1967,9 +1967,14 @@ def _classify_football_items(
         "condition",
         condition_ids,
     )
+    persisted_parent_event_ids = sorted({
+        _registry_id(row.get("event_id"))
+        for row in persisted_conditions.values()
+        if _registry_id(row.get("event_id"))
+    })
     persisted_events = _load_persisted_sport_registry(
         "event",
-        explicit_event_ids,
+        sorted(set(explicit_event_ids) | set(persisted_parent_event_ids)),
     )
 
     unresolved_conditions = [
@@ -1978,7 +1983,7 @@ def _classify_football_items(
         not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
     ]
     unresolved_events = [
-        eid for eid in explicit_event_ids
+        eid for eid in sorted(set(explicit_event_ids) | set(persisted_parent_event_ids))
         if persisted_events.get(eid, {}).get("classification")
         not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
     ]
@@ -2023,20 +2028,20 @@ def _classify_football_items(
         persisted_condition_class = (
             persisted_conditions.get(cid, {}).get("classification") if cid else None
         )
+        persisted_parent_eid = _registry_id(
+            persisted_conditions.get(cid, {}).get("event_id")
+        ) if cid else ""
+        persisted_effective_eid = explicit_eid or persisted_parent_eid
         persisted_event_class = (
-            persisted_events.get(explicit_eid, {}).get("classification")
-            if explicit_eid else None
+            persisted_events.get(persisted_effective_eid, {}).get("classification")
+            if persisted_effective_eid else None
         )
 
         if (
             persisted_condition_class == FOOTBALL_CLASS_VERIFIED
             or persisted_event_class == FOOTBALL_CLASS_VERIFIED
         ):
-            resolved_eid = (
-                explicit_eid
-                or persisted_conditions.get(cid, {}).get("event_id")
-                or None
-            )
+            resolved_eid = persisted_effective_eid or None
             football.append(_with_sport_classification(
                 item,
                 FOOTBALL_CLASS_VERIFIED,
