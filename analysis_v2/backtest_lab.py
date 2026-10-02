@@ -17,7 +17,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 import requests
 
-from .entry_price import resolve_entry_odds_with_source
+from .entry_price import flat_stake_pnl_units, resolve_entry_odds_with_source
 
 
 BACKTEST_LAB_VERSION = "analysis-v2-part9-1.0.0"
@@ -124,23 +124,6 @@ def _config_fingerprint(row: Mapping[str, Any]) -> str:
     ).hexdigest()[:12]
 
 
-def _flat_pnl(
-    entry_odds: Optional[float],
-    outcome: str,
-) -> Optional[float]:
-    if outcome == "WIN":
-        return (
-            entry_odds - 1.0
-            if entry_odds is not None and entry_odds > 1
-            else None
-        )
-    if outcome == "LOSS":
-        return -1.0
-    if outcome in {"PUSH", "VOID"}:
-        return 0.0
-    return None
-
-
 def _clv_pct(
     entry_odds: Optional[float],
     closing_odds: Optional[float],
@@ -205,7 +188,7 @@ def prepare_backtest_records(
         )
 
         pnl = _number(row.get("pnl_units"))
-        calculated = _flat_pnl(entry_odds, outcome)
+        calculated = flat_stake_pnl_units(entry_odds, outcome)
         pnl_mismatch = (
             price_mismatch
             or (
