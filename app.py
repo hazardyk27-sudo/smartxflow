@@ -1118,6 +1118,101 @@ def analysis_page():
     plan = session.get('license_plan', 'core')
     return render_template('analysis.html', pro_required=(plan not in ('pro', 'premium') or plan == 'test'))
 
+@app.route('/analysis-v2')
+def analysis_v2_page():
+    """Analysis V2 - explainable market behaviour UI."""
+    plan = session.get('license_plan', 'core')
+    return render_template(
+        'analysis_v2.html',
+        pro_required=(plan not in ('pro', 'premium') or plan == 'test'),
+    )
+
+
+@app.route('/api/analysis-v2/signals', methods=['GET'])
+@license_required
+def analysis_v2_signals_endpoint():
+    """Read-only Analysis V2 card feed from the immutable ledger."""
+    try:
+        requested_limit = int(request.args.get('limit', 80))
+    except (TypeError, ValueError):
+        requested_limit = 80
+    limit = max(1, min(requested_limit, 200))
+
+    supabase = get_supabase_client()
+    if not supabase or not supabase.is_available:
+        return jsonify({
+            'available': False,
+            'contract_version': 'analysis-v2-ui-1.0.0',
+            'signals': [],
+            'count': 0,
+            'counts': {'FIRSAT': 0, 'IZLE': 0, 'UZAK_DUR': 0, 'UNKNOWN': 0},
+            'reason': 'SUPABASE_UNAVAILABLE',
+        }), 200
+
+    try:
+        url = (
+            f"{supabase._rest_url('analysis_v2_signal_current')}"
+            f"?select=*&order=trigger_at.desc,id.desc&limit={limit}"
+        )
+        response = supabase._get_http_client().get(
+            url,
+            headers=supabase._headers(),
+            timeout=15,
+        )
+        if response.status_code != 200:
+            body = (response.text or '')[:500]
+            lowered = body.lower()
+            table_missing = (
+                response.status_code in (400, 404)
+                and (
+                    'analysis_v2_signal_current' in lowered
+                    or 'does not exist' in lowered
+                    or 'pgrst205' in lowered
+                )
+            )
+            return jsonify({
+                'available': False,
+                'contract_version': 'analysis-v2-ui-1.0.0',
+                'signals': [],
+                'count': 0,
+                'counts': {'FIRSAT': 0, 'IZLE': 0, 'UZAK_DUR': 0, 'UNKNOWN': 0},
+                'reason': (
+                    'V2_LEDGER_NOT_DEPLOYED'
+                    if table_missing
+                    else 'V2_LEDGER_READ_FAILED'
+                ),
+            }), 200
+
+        rows = response.json()
+        if not isinstance(rows, list):
+            rows = []
+
+        from analysis_v2.presenter import present_signal_rows
+        payload = present_signal_rows(rows)
+        payload['available'] = True
+
+        requested_state = str(request.args.get('state') or '').strip().upper()
+        if requested_state in {'FIRSAT', 'IZLE', 'UZAK_DUR'}:
+            payload['signals'] = [
+                card for card in payload['signals']
+                if card.get('state') == requested_state
+            ]
+            payload['count'] = len(payload['signals'])
+            payload['filter_state'] = requested_state
+
+        return jsonify(payload)
+    except Exception as exc:
+        print(f"[AnalysisV2] signal feed error: {exc}")
+        return jsonify({
+            'available': False,
+            'contract_version': 'analysis-v2-ui-1.0.0',
+            'signals': [],
+            'count': 0,
+            'counts': {'FIRSAT': 0, 'IZLE': 0, 'UZAK_DUR': 0, 'UNKNOWN': 0},
+            'reason': 'V2_FEED_ERROR',
+        }), 200
+
+
 @app.route('/terms')
 def terms_page():
     content = """
