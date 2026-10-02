@@ -25,6 +25,7 @@ from betwatch_client import (
     normalize_kickoff,
     map_market,
 )
+from analysis_v2.market_contract import has_real_provider_payload
 
 try:
     import certifi
@@ -418,7 +419,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             elif market_key == "DC":
                 mw_row = _build_mw_dc(home, away, league, date, runners_by_sel)
                 # Store only real provider rows with at least one usable quote/amount.
-                if any(mw_row.get(k) for k in ("odds1x", "oddsx2", "odds12", "amt1x", "amtx2", "amt12")):
+                if has_real_provider_payload("DC", mw_row):
                     mw_dc_rows.append(mw_row)
 
                     r1x = runners_by_sel.get("1X", {})
@@ -446,7 +447,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
             elif market_key == "DNB":
                 mw_row = _build_mw_dnb(home, away, league, date, runners_by_sel)
-                if any(mw_row.get(k) for k in ("odds1", "odds2", "amt1", "amt2")):
+                if has_real_provider_payload("DNB", mw_row):
                     mw_dnb_rows.append(mw_row)
 
                     r1 = runners_by_sel.get("1", {})
