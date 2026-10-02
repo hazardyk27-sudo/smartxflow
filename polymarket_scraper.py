@@ -44,6 +44,13 @@ except Exception:
 
 INTERVAL_MINUTES = 5
 INTERVAL_SECONDS = INTERVAL_MINUTES * 60
+
+# General market tape is high-volume and only powers recent match analytics.
+POLYMARKET_TRADE_RETENTION_DAYS = 7
+# Tracked bettor raw fills/redeems are an audit/reconciliation buffer. Durable
+# bettor history lives in tracked_wallet_bets and is intentionally not cleaned.
+TRACKED_WALLET_RAW_RETENTION_DAYS = 365
+
 MAX_RETRIES = 3
 RETRY_DELAYS = [3, 6, 12]
 
@@ -150,6 +157,50 @@ class PolymarketSupabaseWriter:
             log(f"[Wallet Tracked-Since GET] Hata: {e}")
             return None
 
+    def get_wallet_resume_checkpoint(self, wallet: str) -> Optional[int]:
+        """Return the safest floor after raw retention has removed old rows.
+
+        last_synced_at is preferred because it marks the previous completed
+        wallet sync. On a never-synced wallet we fall back to created_at so no
+        pre-tracking history is accidentally imported.
+        """
+        try:
+            headers = self._headers()
+            url = (
+                f"{self._rest_url('tracked_wallets')}"
+                f"?wallet=eq.{wallet}&select=created_at,last_synced_at&limit=1"
+            )
+            resp = requests.get(
+                url,
+                headers=headers,
+                timeout=15,
+                verify=SSL_VERIFY,
+            )
+            if resp.status_code != 200:
+                log(
+                    f"[Wallet Resume-Floor GET] HTTP "
+                    f"{resp.status_code}: {resp.text[:200]}"
+                )
+                return None
+            rows = resp.json()
+            if not rows:
+                return None
+            row = rows[0]
+            for value in (row.get("last_synced_at"), row.get("created_at")):
+                if not value:
+                    continue
+                try:
+                    dt = datetime.fromisoformat(
+                        str(value).replace("Z", "+00:00")
+                    )
+                    return int(dt.timestamp())
+                except (TypeError, ValueError):
+                    continue
+            return None
+        except Exception as e:
+            log(f"[Wallet Resume-Floor GET] Hata: {e}")
+            return None
+
     def get_wallet_activity_checkpoint(self, wallet: str) -> Optional[int]:
         """Return unix ts (seconds) of the most recent stored activity row for
         this tracked wallet. If nothing is stored yet, fall back to the
@@ -172,9 +223,10 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            # First sync: never backfill fills from before the wallet was
-            # added to the watch list.
-            return self.get_wallet_tracked_since(wallet)
+            # Raw rows may legitimately be empty after retention. Resume
+            # from the previous successful sync instead of falling all the way
+            # back to created_at and re-downloading historical pages forever.
+            return self.get_wallet_resume_checkpoint(wallet)
         except Exception as e:
             log(f"[Wallet Checkpoint GET] Hata: {e}")
             return None
@@ -233,7 +285,7 @@ class PolymarketSupabaseWriter:
                 if traded_at_str:
                     dt = datetime.fromisoformat(traded_at_str.replace("Z", "+00:00"))
                     return int(dt.timestamp())
-            return self.get_wallet_tracked_since(wallet)
+            return self.get_wallet_resume_checkpoint(wallet)
         except Exception as e:
             log(f"[Wallet Redeem Checkpoint GET] Hata: {e}")
             return None
@@ -845,20 +897,43 @@ def run_backfill(writer: PolymarketSupabaseWriter):
 
 
 def cleanup_old_poly_data(writer: PolymarketSupabaseWriter) -> int:
-    """Poly tarafinda sadece son 7 gun + gelecek veriler kalsin: D-7 oncesi (traded_at bazli)
-    tum satirlar silinir (orphan dahil, match_id eslestirmesi yok). tracked_wallet_positions
-    her cycle'da tamamen yeniden yazildigi icin (replace_wallet_positions) burada ayrica
-    temizlenmesine gerek yok - kendiliginden guncel kalir."""
-    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=7)
-    cutoff_iso = cutoff_dt.strftime('%Y-%m-%dT00:00:00')
-    log(f"[Cleanup] Poly D-7 silme: {cutoff_iso} oncesi silinecek (son 7 gun + gelecek korunur)")
+    """Apply tiered retention without touching durable bettor history.
+
+    - polymarket_trades: short recent-match tape.
+    - tracked_wallet_activity/redeems: long raw audit/reconciliation buffer.
+    - tracked_wallet_bets: NEVER cleaned here; it is the durable all-history
+      canonical bettor ledger introduced by PART 9.
+    - tracked_wallet_positions: current snapshot, replaced every sync.
+    """
+    now = datetime.now(timezone.utc)
+    market_cutoff = (
+        now - timedelta(days=POLYMARKET_TRADE_RETENTION_DAYS)
+    ).strftime('%Y-%m-%dT00:00:00')
+    wallet_cutoff = (
+        now - timedelta(days=TRACKED_WALLET_RAW_RETENTION_DAYS)
+    ).strftime('%Y-%m-%dT00:00:00')
+
+    policies = (
+        ("polymarket_trades", market_cutoff, POLYMARKET_TRADE_RETENTION_DAYS),
+        ("tracked_wallet_activity", wallet_cutoff, TRACKED_WALLET_RAW_RETENTION_DAYS),
+        ("tracked_wallet_redeems", wallet_cutoff, TRACKED_WALLET_RAW_RETENTION_DAYS),
+    )
+    log(
+        "[Cleanup] Poly retention: "
+        f"market tape={POLYMARKET_TRADE_RETENTION_DAYS}g, "
+        f"tracked raw={TRACKED_WALLET_RAW_RETENTION_DAYS}g, "
+        "tracked_wallet_bets=suresiz"
+    )
 
     total_deleted = 0
-    for table in ("tracked_wallet_activity", "tracked_wallet_redeems", "polymarket_trades"):
+    for table, cutoff_iso, days in policies:
         try:
             count = writer.delete_before(table, "traded_at", cutoff_iso)
             if count:
-                log(f"  [Cleanup] {table}: {count} satir silindi (D-7+)")
+                log(
+                    f"  [Cleanup] {table}: {count} satir silindi "
+                    f"(D-{days} oncesi)"
+                )
                 total_deleted += count
         except Exception as e:
             log(f"  [Cleanup] {table}: Hata - {e}")
