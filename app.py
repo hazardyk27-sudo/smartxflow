@@ -997,7 +997,7 @@ def api_poly_tracked_list():
         })
     except Exception as e:
         print(f"[Poly] /api/poly/tracked GET error: {e}")
-        return jsonify({'wallets': [], 'error': 'Liste alinamadi'}), 502
+        return jsonify({'contract_version': POLY_TRACKED_CONTRACT_VERSION, 'wallets': [], 'error': 'Liste alinamadi'}), 502
 
 @app.route('/api/poly/tracked', methods=['POST'])
 def api_poly_tracked_add():

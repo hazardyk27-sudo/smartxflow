@@ -102,6 +102,40 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(stats["open_position_count"], 1)
         self.assertEqual(stats["open_exposure_usdc"], 1234.5)
 
+    def test_tracked_wallet_list_exposes_bet_count_alias(self):
+        rows = [{
+            "wallet": "0xwallet",
+            "nickname": "A",
+            "notes": None,
+            "created_at": "2026-10-01T00:00:00+00:00",
+            "win_rate": 50.0,
+            "resolved_won": 1,
+            "resolved_lost": 1,
+            "resolved_total": 2,
+            "trade_count": 7,
+            "open_position_count": 0,
+            "open_exposure_usdc": 0,
+            "last_synced_at": "2026-10-02T12:00:00+00:00",
+        }]
+
+        with patch.object(
+            polymarket_client.requests,
+            "get",
+            return_value=FakeResponse(200, rows),
+        ), patch.object(
+            polymarket_client,
+            "_supabase_base_url",
+            return_value="https://supabase.test",
+        ), patch.object(
+            polymarket_client,
+            "_supabase_headers",
+            return_value={"apikey": "test"},
+        ):
+            wallets = polymarket_client.list_tracked_wallets_with_stats()
+
+        self.assertEqual(wallets[0]["bet_count"], 7)
+        self.assertEqual(wallets[0]["trade_count"], 7)
+
     def test_profile_bet_reader_paginates_beyond_5000_without_truncation(self):
         page = [
             {

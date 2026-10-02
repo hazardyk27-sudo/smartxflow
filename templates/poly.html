@@ -681,7 +681,7 @@
             <th class="sortable" data-sort="bet_label">Seçim <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="status_label">Durum <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="stake_usdc">Giriş / Çıkış <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="price">Ort. Oran <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="avg_entry_decimal">Ort. Oran <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="pnl_usdc">K/Z <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="traded_at">Son İşlem <span class="sort-arrow"></span></th>
           </tr>
@@ -1330,7 +1330,7 @@ function renderTrackedWallets() {
     const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
     const initials = twInitials(w.nickname || '?');
     const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
-    const tot  = statsPending ? '…' : (w.trade_count     != null ? w.trade_count    : 0);
+    const tot  = statsPending ? '…' : (w.bet_count != null ? w.bet_count : (w.trade_count != null ? w.trade_count : 0));
     const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won   : 0);
     const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost  : 0);
     const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
@@ -1570,9 +1570,13 @@ function renderActivityTable() {
       if (isNaN(vb)) vb = 0;
       return activitySortDir === 'asc' ? va - vb : vb - va;
     }
-    if (activitySortField === 'stake_usdc' || activitySortField === 'price' || activitySortField === 'pnl_usdc') {
-      va = Number(a[activitySortField]);
-      vb = Number(b[activitySortField]);
+    if (activitySortField === 'stake_usdc' || activitySortField === 'avg_entry_decimal' || activitySortField === 'pnl_usdc') {
+      va = activitySortField === 'avg_entry_decimal'
+        ? Number(a.avg_entry_decimal ?? a.price)
+        : Number(a[activitySortField]);
+      vb = activitySortField === 'avg_entry_decimal'
+        ? Number(b.avg_entry_decimal ?? b.price)
+        : Number(b[activitySortField]);
       if (!Number.isFinite(va)) va = -Infinity;
       if (!Number.isFinite(vb)) vb = -Infinity;
       return activitySortDir === 'asc' ? va - vb : vb - va;
