@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.analysis_v2_signal_events (
     selection_code TEXT NOT NULL,
     recommended_market TEXT NOT NULL,
     recommended_selection TEXT NOT NULL,
+    recommended_odds NUMERIC,
     trigger_at TIMESTAMPTZ NOT NULL,
     opening_odds NUMERIC,
     trigger_odds NUMERIC,
@@ -169,16 +170,22 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     expected_match_id_hash TEXT;
-    expected_trigger_odds NUMERIC;
+    expected_entry_odds NUMERIC;
     expected_engine_version TEXT;
 BEGIN
     SELECT
         match_id_hash,
-        trigger_odds,
+        CASE
+            WHEN recommended_odds IS NOT NULL THEN recommended_odds
+            WHEN recommended_market = market_key
+                 AND recommended_selection = selection_code
+                THEN trigger_odds
+            ELSE NULL
+        END AS entry_odds,
         engine_version
     INTO
         expected_match_id_hash,
-        expected_trigger_odds,
+        expected_entry_odds,
         expected_engine_version
     FROM public.analysis_v2_signal_events
     WHERE signal_id = NEW.signal_id;
@@ -197,9 +204,9 @@ BEGIN
             NEW.match_id_hash;
     END IF;
 
-    IF expected_trigger_odds IS DISTINCT FROM NEW.entry_odds THEN
+    IF expected_entry_odds IS DISTINCT FROM NEW.entry_odds THEN
         RAISE EXCEPTION
-            'Settlement entry_odds must equal immutable trigger_odds for signal %',
+            'Settlement entry_odds must equal immutable recommended entry odds for signal %',
             NEW.signal_id;
     END IF;
 
