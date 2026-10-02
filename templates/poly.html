@@ -1325,7 +1325,7 @@ function renderTrackedWallets() {
     const avatarBg = twAvatarColor(w.nickname || w.wallet || '');
     const initials = twInitials(w.nickname || '?');
     const statsPending = w.stats_status === 'pending' || !w.last_synced_at;
-    const tot  = statsPending ? '…' : (w.resolved_total  != null ? w.resolved_total : 0);
+    const tot  = statsPending ? '…' : (w.trade_count     != null ? w.trade_count    : 0);
     const won  = statsPending ? '…' : (w.resolved_won    != null ? w.resolved_won   : 0);
     const lost = statsPending ? '…' : (w.resolved_lost   != null ? w.resolved_lost  : 0);
     const pctText = statsPending ? 'Bekliyor' : (pct != null ? `%${pct}` : '-');
@@ -1342,7 +1342,7 @@ function renderTrackedWallets() {
           </div>
           <div class="tw-addr">${truncAddr(w.wallet)}</div>
           <div class="tw-mini-stats">
-            <div class="tw-ms-box"><span class="tw-ms-label">Toplam</span><span class="tw-ms-val" data-stat="tot">${tot}</span></div>
+            <div class="tw-ms-box"><span class="tw-ms-label">Bahis</span><span class="tw-ms-val" data-stat="tot">${tot}</span></div>
             <div class="tw-ms-box"><span class="tw-ms-label">Kazanan</span><span class="tw-ms-val tw-ms-won" data-stat="won">${won}</span></div>
             <div class="tw-ms-box"><span class="tw-ms-label">Kaybeden</span><span class="tw-ms-val tw-ms-lost" data-stat="lost">${lost}</span></div>
             <div class="tw-ms-box"><span class="tw-ms-label">İsabet</span><span class="tw-ms-val" data-stat="pct" style="color:${winColor}">${pctText}</span></div>
@@ -1461,13 +1461,12 @@ async function openWalletProfile(wallet) {
     walletProfileHeader.innerHTML = `${escapeAttr(data.nickname)} <span style="color:#6d7590;font-size:13px;font-weight:400;font-family:monospace;">(${truncAddr(data.wallet)})</span>${syncStatus}`;
 
     const s = data.stats || {};
-    // The history table is intentionally grouped by market/outcome, while
-    // trade_count is the raw fill count. Use the canonical backend summary
-    // here; counting rendered rows made the cards disagree with the ledger.
+    // trade_count is the canonical bettor-bet/position count. Raw execution
+    // fills remain a separate backend detail and must not inflate this number.
     const wonCount = Number(s.resolved_won) || 0;
     const lostCount = Number(s.resolved_lost) || 0;
     const statCards = [
-      { label: 'Toplam İşlem', value: Number(s.trade_count) || 0 },
+      { label: 'Toplam Bahis', value: Number(s.trade_count) || 0 },
       { label: 'Kazanan', value: wonCount },
       { label: 'Kaybeden', value: lostCount },
       { label: 'İsabet Oranı', value: (wonCount + lostCount) > 0 ? `%${((wonCount / (wonCount + lostCount)) * 100).toFixed(1)}` : '-' },

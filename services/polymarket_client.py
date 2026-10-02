@@ -1675,6 +1675,101 @@ def _filter_tracked_wallet_activity_amount(
     return qualifying
 
 
+def _canonical_bet_identity(row: Dict[str, Any]) -> Optional[Tuple[Any, ...]]:
+    """Return the stable position identity used for bettor-level bet counts.
+
+    A Polymarket outcome token (asset) is the strongest identity because YES
+    and NO under the same condition have different assets. Legacy rows that
+    predate reliable asset storage fall back to condition + market/selection
+    metadata so repeated fills of the same outcome still collapse without
+    merging opposite outcomes.
+    """
+    wallet = str(row.get("wallet") or "").strip().lower() or None
+
+    asset = str(row.get("asset") or "").strip()
+    if asset:
+        return ("asset", wallet, asset)
+
+    condition_id = str(row.get("condition_id") or "").strip()
+    market_type = _normalize(str(row.get("market_type") or ""))
+    selection = _normalize(str(row.get("selection") or ""))
+
+    raw_outcome = row.get("outcome_raw")
+    if not raw_outcome:
+        legacy_side = str(row.get("side") or "").strip()
+        if legacy_side.upper() not in ("BUY", "SELL"):
+            raw_outcome = legacy_side
+    outcome = _normalize(str(raw_outcome or ""))
+
+    if condition_id and (market_type or selection or outcome):
+        return ("condition", wallet, condition_id, market_type, selection, outcome)
+
+    # If a legacy row has a condition but no outcome identity at all, do not
+    # collapse every token under that condition into one false "bet".
+    tx_hash = str(row.get("transaction_hash") or "").strip()
+    traded_at = str(row.get("traded_at") or "").strip()
+    if condition_id:
+        return ("condition-unknown", wallet, condition_id, tx_hash or traded_at)
+
+    market_hint = _normalize(str(row.get("slug") or row.get("title") or ""))
+    if market_hint or selection or outcome:
+        return ("legacy", wallet, market_hint, market_type, selection, outcome)
+
+    if tx_hash:
+        return ("tx", wallet, tx_hash)
+    return None
+
+
+def _group_activity_into_canonical_bets(
+    activity_rows: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Collapse raw fills into one bettor bet/position per outcome identity."""
+    grouped: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+
+    for idx, row in enumerate(activity_rows):
+        key = _canonical_bet_identity(row)
+        if key is None:
+            # Never silently drop an old malformed row from the count. Without
+            # enough identity data it stays a standalone fill/bet.
+            key = ("unidentified-fill", idx)
+
+        group = grouped.get(key)
+        if group is None:
+            group = {
+                "bet_key": key,
+                "wallet": row.get("wallet"),
+                "condition_id": row.get("condition_id"),
+                "asset": row.get("asset"),
+                "market_type": row.get("market_type"),
+                "selection": row.get("selection"),
+                "side": row.get("side"),
+                "outcome_raw": row.get("outcome_raw"),
+                "fill_count": 0,
+                # PART 1 intentionally keeps this as gross fill volume. PART 2
+                # will split BUY stake from SELL exit proceeds.
+                "gross_fill_volume_usdc": 0.0,
+            }
+            grouped[key] = group
+
+        try:
+            row_fill_count = int(row.get("fill_count") or 1)
+        except (TypeError, ValueError):
+            row_fill_count = 1
+        try:
+            amount = float(row.get("amount_usdc") or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
+
+        group["fill_count"] += max(row_fill_count, 1)
+        group["gross_fill_volume_usdc"] += amount
+
+    for group in grouped.values():
+        group["gross_fill_volume_usdc"] = round(
+            group["gross_fill_volume_usdc"], 2
+        )
+    return list(grouped.values())
+
+
 def _filter_wallet_redeems_to_activity(
     redeem_rows: List[Dict[str, Any]],
     activity_rows: List[Dict[str, Any]],
@@ -1842,7 +1937,7 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     def _fetch_activity_summary() -> Tuple[List[Dict[str, Any]], bool]:
         try:
             r = requests.get(f"{base}/rest/v1/tracked_wallet_activity", headers=headers, params={
-                "select": "asset,condition_id,result,amount_usdc,price,traded_at",
+                "select": "asset,condition_id,result,market_type,selection,side,outcome_raw,amount_usdc,price,traded_at",
                 "wallet": f"eq.{wallet}",
                 "limit": 10000,
             }, timeout=20)
@@ -2240,9 +2335,9 @@ def _compute_wallet_activity_stats(
 ) -> Dict[str, Any]:
     """Build the profile/list summary from the same filtered ledger.
 
-    Fill count and volume remain fill-level metrics. Resolution metrics are
-    market-level: several fills, or both outcome assets in one condition,
-    cannot create several wins for the same market.
+    trade_count is the canonical bettor-bet/position count, while fill_count
+    preserves the number of qualifying raw executions. Resolution metrics are
+    still market-level until PART 3.
     """
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     resolved_won_ids = resolved["resolved_won_ids"]
@@ -2293,8 +2388,12 @@ def _compute_wallet_activity_stats(
         for results in result_by_market.values()
     )
     resolved_total = resolved_won + resolved_lost
+    canonical_bets = _group_activity_into_canonical_bets(activity_rows)
+    fill_count = sum(int(bet.get("fill_count") or 0) for bet in canonical_bets)
     total_invested = sum(float(row.get("amount_usdc") or 0) for row in activity_rows)
-    trade_count = len(activity_rows)
+    # Legacy DB/API field name retained for compatibility; its semantics are
+    # now canonical bettor bets/positions rather than raw execution fills.
+    trade_count = len(canonical_bets)
     weighted_price_sum = sum(
         float(row.get("price") or 0) * float(row.get("amount_usdc") or 0)
         for row in activity_rows
@@ -2307,6 +2406,7 @@ def _compute_wallet_activity_stats(
         "resolved_total": resolved_total,
         "win_rate": round((resolved_won / resolved_total) * 100, 1) if resolved_total else None,
         "trade_count": trade_count,
+        "fill_count": fill_count,
         "total_invested_usdc": round(total_invested, 2),
         "avg_bet_size_usdc": round(total_invested / trade_count, 2) if trade_count else 0.0,
         "avg_price": round(avg_price, 4),
@@ -2483,9 +2583,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
 
     summary_lines = []
     if trade_count == 0:
-        summary_lines.append("Henüz futbol maçlarında kayıtlı işlemi bulunmuyor.")
+        summary_lines.append("Henüz futbol maçlarında kayıtlı bahsi bulunmuyor.")
     else:
-        summary_lines.append(f"{trade_count} futbol işlemi, toplam {round(total_invested, 0):,.0f} USDC hacim.".replace(",", "."))
+        summary_lines.append(f"{trade_count} futbol bahsi, toplam {round(total_invested, 0):,.0f} USDC hacim.".replace(",", "."))
         if win_rate is not None:
             if win_rate >= 60:
                 summary_lines.append(f"Sonuçlanan {resolved_total} bahisin %{win_rate}'ini kazandı - isabet oranı yüksek.")

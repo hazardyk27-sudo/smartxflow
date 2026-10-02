@@ -150,13 +150,15 @@ class TrackedWalletStatsTests(unittest.TestCase):
         stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
 
         self.assertEqual(len(filtered), 3)
-        self.assertEqual(stats["trade_count"], 3)
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["fill_count"], 3)
         self.assertEqual(stats["total_invested_usdc"], 3500.01)
         self.assertEqual(stats["resolved_won"], 1)
         self.assertEqual(stats["resolved_lost"], 1)
         self.assertEqual(stats["resolved_total"], 2)
         self.assertEqual(stats["win_rate"], 50.0)
         self.assertEqual(polymarket_client.MIN_TRADE_AMOUNT_USDC, 100.0)
+        self.assertEqual(polymarket_client.MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC, 1000.0)
 
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
@@ -200,12 +202,77 @@ class TrackedWalletStatsTests(unittest.TestCase):
         )
         stats = polymarket_client._compute_wallet_activity_stats(filtered, [], [])
 
-        self.assertEqual(stats["trade_count"], 3)
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["fill_count"], 3)
         self.assertEqual(stats["total_invested_usdc"], 35)
         self.assertEqual(stats["resolved_won"], 1)
         self.assertEqual(stats["resolved_lost"], 1)
         self.assertEqual(stats["resolved_total"], 2)
         self.assertEqual(stats["win_rate"], 50.0)
+
+    def test_ten_repeated_fills_of_same_outcome_count_as_one_bet(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "Yes",
+                "action": "BUY",
+                "amount_usdc": 1000,
+                "price": 0.5,
+            }
+            for _ in range(10)
+        ]
+
+        grouped = polymarket_client._group_activity_into_canonical_bets(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(len(grouped), 1)
+        self.assertEqual(grouped[0]["fill_count"], 10)
+        self.assertEqual(grouped[0]["gross_fill_volume_usdc"], 10000.0)
+        self.assertEqual(stats["trade_count"], 1)
+        self.assertEqual(stats["fill_count"], 10)
+
+    def test_legacy_same_condition_keeps_opposite_outcomes_separate(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "Yes",
+                "amount_usdc": 1000,
+                "price": 0.5,
+            },
+            {
+                "wallet": "0xwallet",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "Yes",
+                "amount_usdc": 1200,
+                "price": 0.55,
+            },
+            {
+                "wallet": "0xwallet",
+                "condition_id": "france-market",
+                "market_type": "moneyline",
+                "selection": "France",
+                "outcome_raw": "No",
+                "amount_usdc": 1300,
+                "price": 0.45,
+            },
+        ]
+
+        grouped = polymarket_client._group_activity_into_canonical_bets(activity)
+        stats = polymarket_client._compute_wallet_activity_stats(activity, [], [])
+
+        self.assertEqual(len(grouped), 2)
+        self.assertEqual(sorted(group["fill_count"] for group in grouped), [1, 2])
+        self.assertEqual(stats["trade_count"], 2)
+        self.assertEqual(stats["fill_count"], 3)
 
     def test_open_position_is_not_counted_as_resolved_market(self):
         activity = [
