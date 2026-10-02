@@ -323,8 +323,9 @@ def test_store_settlement_uses_recommended_odds_when_market_changed():
         final_away_score=1,
         outcome="WIN",
         settled_at="2026-10-02T20:00:00Z",
-        pnl_units=0.44,
+        pnl_units=2.40,
     )
 
     assert settled["entry_odds"] == 1.44
+    assert abs(settled["pnl_units"] - 0.44) < 1e-9
     assert len(session.tables["analysis_v2_signal_settlements"]) == 1
