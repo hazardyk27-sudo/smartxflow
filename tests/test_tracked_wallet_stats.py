@@ -1747,6 +1747,159 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(computed, ["0xwallet"])
         self.assertFalse(writer.positions_replaced)
 
+    def test_price_snapshot_cadence_tightens_near_kickoff(self):
+        self.assertEqual(
+            polymarket_scraper._price_snapshot_cadence_minutes(24),
+            60,
+        )
+        self.assertEqual(
+            polymarket_scraper._price_snapshot_cadence_minutes(3),
+            15,
+        )
+        self.assertEqual(
+            polymarket_scraper._price_snapshot_cadence_minutes(0.5),
+            5,
+        )
+
+    def test_price_snapshot_bucket_is_deterministic(self):
+        now = polymarket_scraper.datetime.fromisoformat(
+            "2026-10-02T19:58:41+00:00"
+        )
+        bucket = polymarket_scraper._price_snapshot_bucket(now, 5)
+        self.assertEqual(
+            bucket.isoformat(),
+            "2026-10-02T19:55:00+00:00",
+        )
+
+    def test_price_snapshot_runner_dedupes_assets_and_finalizes_clv(self):
+        now = polymarket_scraper.datetime.fromisoformat(
+            "2026-10-02T19:30:00+00:00"
+        )
+
+        class FakeWriter:
+            def __init__(self):
+                self.snapshots = []
+                self.latest = []
+                self.finalized = []
+
+            def get_price_snapshot_candidates(self, _now, _horizon):
+                return [
+                    {
+                        "asset": "asset-a",
+                        "condition_id": "condition-a",
+                        "event_id": "event-a",
+                        "kickoff_utc": "2026-10-02T20:00:00+00:00",
+                        "first_traded_at": "2026-10-02T17:00:00+00:00",
+                    },
+                    {
+                        "asset": "asset-a",
+                        "condition_id": "condition-a",
+                        "event_id": "event-a",
+                        "kickoff_utc": "2026-10-02T20:00:00+00:00",
+                        "first_traded_at": "2026-10-02T18:00:00+00:00",
+                    },
+                ]
+
+            def upsert_price_snapshots(self, rows):
+                self.snapshots.extend(rows)
+                return True
+
+            def update_latest_market_price(self, asset, price, observed_at):
+                self.latest.append((asset, price, observed_at))
+                return True
+
+            def get_pending_closing_bets(self, _now):
+                return []
+
+            def get_last_pre_kickoff_snapshot(self, _asset, _kickoff):
+                raise AssertionError("no closing lookup expected")
+
+            def finalize_bet_closing_line(self, *_args):
+                raise AssertionError("no finalize expected")
+
+        writer = FakeWriter()
+        with patch.object(
+            polymarket_scraper,
+            "_fetch_clob_midpoints",
+            return_value=({"asset-a": 0.60}, True),
+        ):
+            count = polymarket_scraper.run_tracked_price_snapshots(
+                writer,
+                now=now,
+            )
+
+        self.assertEqual(count, 1)
+        self.assertEqual(len(writer.snapshots), 1)
+        row = writer.snapshots[0]
+        self.assertEqual(row["asset"], "asset-a")
+        self.assertEqual(row["market_price"], 0.60)
+        self.assertEqual(row["decimal_odds"], 1.67)
+        self.assertEqual(row["cadence_minutes"], 5)
+        self.assertEqual(len(writer.latest), 1)
+
+    def test_closing_line_uses_recent_pre_kickoff_snapshot_only(self):
+        now = polymarket_scraper.datetime.fromisoformat(
+            "2026-10-02T20:05:00+00:00"
+        )
+
+        class FakeWriter:
+            def __init__(self):
+                self.finalized = []
+
+            def get_price_snapshot_candidates(self, _now, _horizon):
+                return []
+
+            def upsert_price_snapshots(self, _rows):
+                return True
+
+            def update_latest_market_price(self, *_args):
+                return True
+
+            def get_pending_closing_bets(self, _now):
+                return [{
+                    "wallet": "0xwallet",
+                    "bet_key": '["asset","0xwallet","asset-a"]',
+                    "asset": "asset-a",
+                    "kickoff_utc": "2026-10-02T20:00:00+00:00",
+                    "first_traded_at": "2026-10-02T18:00:00+00:00",
+                    "avg_entry_price": 0.50,
+                }]
+
+            def get_last_pre_kickoff_snapshot(self, asset, kickoff):
+                self.lookup = (asset, kickoff)
+                return {
+                    "market_price": 0.60,
+                    "observed_at": "2026-10-02T19:58:00+00:00",
+                    "source": "clob_midpoint",
+                }
+
+            def finalize_bet_closing_line(
+                self,
+                wallet,
+                bet_key,
+                closing_price,
+                observed_at,
+                metrics,
+            ):
+                self.finalized.append(
+                    (wallet, bet_key, closing_price, observed_at, metrics)
+                )
+                return True
+
+        writer = FakeWriter()
+        with patch.object(
+            polymarket_scraper,
+            "_fetch_clob_midpoints",
+            return_value=({}, True),
+        ):
+            polymarket_scraper.run_tracked_price_snapshots(writer, now=now)
+
+        self.assertEqual(len(writer.finalized), 1)
+        saved = writer.finalized[0]
+        self.assertEqual(saved[2], 0.60)
+        self.assertEqual(saved[4]["clv_probability_pp"], 10.0)
+        self.assertEqual(saved[4]["clv_pct"], 20.0)
+
     def test_wallet_resume_checkpoint_prefers_last_successful_sync(self):
         writer = polymarket_scraper.PolymarketSupabaseWriter(
             "https://supabase.test",

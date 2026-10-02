@@ -34,6 +34,9 @@ from services.polymarket_client import (
     fetch_wallet_positions,
     _parse_activity_market,
     _canonical_match_metadata,
+    _fetch_clob_midpoints,
+    _closing_line_metrics,
+    _to_decimal_odds,
     compute_and_save_wallet_stats,
 )
 
@@ -50,6 +53,11 @@ POLYMARKET_TRADE_RETENTION_DAYS = 7
 # Tracked bettor raw fills/redeems are an audit/reconciliation buffer. Durable
 # bettor history lives in tracked_wallet_bets and is intentionally not cleaned.
 TRACKED_WALLET_RAW_RETENTION_DAYS = 365
+
+# Price snapshots only need the approach to kickoff, not months of 5-minute data.
+PRICE_SNAPSHOT_LOOKAHEAD_HOURS = 48
+CLOSING_SNAPSHOT_MAX_AGE_MINUTES = 30
+CLOSING_FINALIZE_LOOKBACK_HOURS = 6
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [3, 6, 12]
@@ -469,6 +477,184 @@ class PolymarketSupabaseWriter:
             log(f"[Wallet Positions SYNC] Hata: {e}")
             return False
 
+    def get_price_snapshot_candidates(
+        self,
+        now: datetime,
+        horizon: datetime,
+    ) -> List[Dict[str, Any]]:
+        """Load pre-kickoff tracked bet assets that still need market tracking."""
+        try:
+            params = [
+                ("select", "asset,condition_id,event_id,kickoff_utc,first_traded_at"),
+                ("asset", "not.is.null"),
+                ("kickoff_utc", f"gte.{now.isoformat()}"),
+                ("kickoff_utc", f"lte.{horizon.isoformat()}"),
+                ("order", "kickoff_utc.asc"),
+                ("limit", "5000"),
+            ]
+            resp = requests.get(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params=params,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            if resp.status_code != 200:
+                if resp.status_code != 404:
+                    log(f"[PriceSnapshot candidates] HTTP {resp.status_code}: {resp.text[:160]}")
+                return []
+            rows = resp.json()
+            return rows if isinstance(rows, list) else []
+        except Exception as e:
+            log(f"[PriceSnapshot candidates] Hata: {e}")
+            return []
+
+    def upsert_price_snapshots(self, rows: List[Dict[str, Any]]) -> bool:
+        if not rows:
+            return True
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = (
+                f"{self._rest_url('polymarket_price_snapshots')}"
+                "?on_conflict=asset,bucket_at"
+            )
+            for offset in range(0, len(rows), 500):
+                resp = requests.post(
+                    url,
+                    headers=headers,
+                    json=rows[offset:offset + 500],
+                    timeout=30,
+                    verify=SSL_VERIFY,
+                )
+                if resp.status_code not in (200, 201, 204):
+                    if resp.status_code != 404:
+                        log(f"[PriceSnapshot UPSERT] HTTP {resp.status_code}: {resp.text[:160]}")
+                    return False
+            return True
+        except Exception as e:
+            log(f"[PriceSnapshot UPSERT] Hata: {e}")
+            return False
+
+    def update_latest_market_price(
+        self,
+        asset: str,
+        price: float,
+        observed_at: str,
+    ) -> bool:
+        try:
+            payload = {
+                "latest_market_price": round(price, 6),
+                "latest_market_decimal": _to_decimal_odds(price),
+                "latest_market_at": observed_at,
+            }
+            url = (
+                f"{self._rest_url('tracked_wallet_bets')}"
+                f"?asset=eq.{asset}"
+            )
+            resp = requests.patch(
+                url,
+                headers=self._headers(),
+                json=payload,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            return resp.status_code in (200, 204)
+        except Exception:
+            return False
+
+    def get_pending_closing_bets(
+        self,
+        now: datetime,
+    ) -> List[Dict[str, Any]]:
+        """Bets whose kickoff just passed and closing line is still missing."""
+        floor = now - timedelta(hours=CLOSING_FINALIZE_LOOKBACK_HOURS)
+        try:
+            params = [
+                ("select", "wallet,bet_key,asset,kickoff_utc,first_traded_at,avg_entry_price"),
+                ("asset", "not.is.null"),
+                ("closing_price", "is.null"),
+                ("kickoff_utc", f"gte.{floor.isoformat()}"),
+                ("kickoff_utc", f"lte.{now.isoformat()}"),
+                ("limit", "5000"),
+            ]
+            resp = requests.get(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params=params,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            if resp.status_code != 200:
+                return []
+            rows = resp.json()
+            return rows if isinstance(rows, list) else []
+        except Exception:
+            return []
+
+    def get_last_pre_kickoff_snapshot(
+        self,
+        asset: str,
+        kickoff: datetime,
+    ) -> Optional[Dict[str, Any]]:
+        """Return only a recent snapshot; stale prices are never called close."""
+        earliest = kickoff - timedelta(minutes=CLOSING_SNAPSHOT_MAX_AGE_MINUTES)
+        try:
+            params = [
+                ("select", "market_price,decimal_odds,observed_at,source"),
+                ("asset", f"eq.{asset}"),
+                ("observed_at", f"gte.{earliest.isoformat()}"),
+                ("observed_at", f"lt.{kickoff.isoformat()}"),
+                ("order", "observed_at.desc"),
+                ("limit", "1"),
+            ]
+            resp = requests.get(
+                self._rest_url("polymarket_price_snapshots"),
+                headers=self._headers(),
+                params=params,
+                timeout=15,
+                verify=SSL_VERIFY,
+            )
+            if resp.status_code != 200:
+                return None
+            rows = resp.json()
+            return rows[0] if isinstance(rows, list) and rows else None
+        except Exception:
+            return None
+
+    def finalize_bet_closing_line(
+        self,
+        wallet: str,
+        bet_key: str,
+        closing_price: float,
+        observed_at: str,
+        metrics: Dict[str, Optional[float]],
+    ) -> bool:
+        try:
+            payload = {
+                "closing_price": round(closing_price, 6),
+                "closing_decimal": metrics.get("closing_decimal"),
+                "closing_observed_at": observed_at,
+                "clv_probability_pp": metrics.get("clv_probability_pp"),
+                "clv_pct": metrics.get("clv_pct"),
+            }
+            params = [
+                ("wallet", f"eq.{wallet}"),
+                ("bet_key", f"eq.{bet_key}"),
+                ("closing_price", "is.null"),
+            ]
+            resp = requests.patch(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params=params,
+                json=payload,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            return resp.status_code in (200, 204)
+        except Exception:
+            return False
+
 
 def _parse_kickoff(kickoff_utc: Optional[str]):
     if not kickoff_utc:
@@ -477,6 +663,133 @@ def _parse_kickoff(kickoff_utc: Optional[str]):
         return datetime.fromisoformat(kickoff_utc.replace("Z", "+00:00"))
     except Exception:
         return None
+
+
+def _price_snapshot_cadence_minutes(hours_to_kickoff: float) -> int:
+    if hours_to_kickoff > 6:
+        return 60
+    if hours_to_kickoff > 1:
+        return 15
+    return 5
+
+
+def _price_snapshot_bucket(now: datetime, cadence_minutes: int) -> datetime:
+    seconds = max(int(cadence_minutes), 1) * 60
+    epoch = int(now.timestamp())
+    return datetime.fromtimestamp(
+        (epoch // seconds) * seconds,
+        tz=timezone.utc,
+    )
+
+
+def _is_prematch_bet(candidate: Dict[str, Any], kickoff: datetime) -> bool:
+    entered = _parse_kickoff(candidate.get("first_traded_at"))
+    return entered is not None and entered < kickoff
+
+
+def run_tracked_price_snapshots(
+    writer: PolymarketSupabaseWriter,
+    now: Optional[datetime] = None,
+) -> int:
+    """Capture shared market midpoint history and finalize closing lines."""
+    now = now or datetime.now(timezone.utc)
+    horizon = now + timedelta(hours=PRICE_SNAPSHOT_LOOKAHEAD_HOURS)
+    candidates = writer.get_price_snapshot_candidates(now, horizon)
+
+    # One token has one market price even if several tracked wallets own it.
+    by_asset: Dict[str, Dict[str, Any]] = {}
+    for candidate in candidates:
+        asset = str(candidate.get("asset") or "").strip()
+        kickoff = _parse_kickoff(candidate.get("kickoff_utc"))
+        if not asset or kickoff is None or not _is_prematch_bet(candidate, kickoff):
+            continue
+        existing = by_asset.get(asset)
+        if existing is None:
+            by_asset[asset] = candidate
+
+    prices, complete = _fetch_clob_midpoints(list(by_asset.keys()))
+    if not complete:
+        log("[PriceSnapshot] CLOB midpoint batch kismi/eksik dondu")
+
+    observed_at = now.isoformat()
+    snapshot_rows: List[Dict[str, Any]] = []
+    for asset, candidate in by_asset.items():
+        price = prices.get(asset)
+        if price is None:
+            continue
+        kickoff = _parse_kickoff(candidate.get("kickoff_utc"))
+        if kickoff is None or now >= kickoff:
+            continue
+        hours_to_kickoff = max((kickoff - now).total_seconds() / 3600.0, 0.0)
+        cadence = _price_snapshot_cadence_minutes(hours_to_kickoff)
+        bucket = _price_snapshot_bucket(now, cadence)
+        snapshot_rows.append({
+            "asset": asset,
+            "bucket_at": bucket.isoformat(),
+            "observed_at": observed_at,
+            "condition_id": candidate.get("condition_id"),
+            "event_id": candidate.get("event_id"),
+            "kickoff_utc": kickoff.isoformat(),
+            "market_price": round(price, 6),
+            "decimal_odds": _to_decimal_odds(price),
+            "source": "clob_midpoint",
+            "cadence_minutes": cadence,
+            "is_pre_kickoff": True,
+            "hours_to_kickoff": round(hours_to_kickoff, 4),
+        })
+
+    if snapshot_rows and writer.upsert_price_snapshots(snapshot_rows):
+        for row in snapshot_rows:
+            writer.update_latest_market_price(
+                row["asset"],
+                float(row["market_price"]),
+                row["observed_at"],
+            )
+
+    # Closing price is the LAST observed pre-kickoff midpoint, and only if it
+    # was captured within the freshness tolerance. Never use post-kickoff 0/1.
+    pending = writer.get_pending_closing_bets(now)
+    snapshot_cache: Dict[tuple, Optional[Dict[str, Any]]] = {}
+    finalized = 0
+    for bet in pending:
+        asset = str(bet.get("asset") or "").strip()
+        kickoff = _parse_kickoff(bet.get("kickoff_utc"))
+        if not asset or kickoff is None or not _is_prematch_bet(bet, kickoff):
+            continue
+        cache_key = (asset, kickoff.isoformat())
+        if cache_key not in snapshot_cache:
+            snapshot_cache[cache_key] = writer.get_last_pre_kickoff_snapshot(
+                asset,
+                kickoff,
+            )
+        snapshot = snapshot_cache[cache_key]
+        if not snapshot:
+            continue
+        try:
+            close_price = float(snapshot.get("market_price"))
+        except (TypeError, ValueError):
+            continue
+        metrics = _closing_line_metrics(
+            bet.get("avg_entry_price"),
+            close_price,
+        )
+        if metrics.get("clv_probability_pp") is None:
+            continue
+        if writer.finalize_bet_closing_line(
+            str(bet.get("wallet") or ""),
+            str(bet.get("bet_key") or ""),
+            close_price,
+            str(snapshot.get("observed_at") or ""),
+            metrics,
+        ):
+            finalized += 1
+
+    if snapshot_rows or finalized:
+        log(
+            f"[PriceSnapshot] {len(snapshot_rows)} snapshot, "
+            f"{finalized} closing line finalize"
+        )
+    return len(snapshot_rows)
 
 
 def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> int:
@@ -998,6 +1311,12 @@ def main() -> bool:
         run_tracked_wallets(writer)
     except Exception as e:
         log(f"[Takip Edilen Cuzdanlar] Hata: {e}")
+        traceback.print_exc()
+
+    try:
+        run_tracked_price_snapshots(writer)
+    except Exception as e:
+        log(f"[PriceSnapshot] Hata: {e}")
         traceback.print_exc()
 
     return scrape_ok
