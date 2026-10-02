@@ -55,3 +55,19 @@ def resolve_entry_odds_with_source(
 
 def resolve_entry_odds(signal: Mapping[str, Any]) -> Optional[float]:
     return resolve_entry_odds_with_source(signal)[0]
+
+
+def flat_stake_pnl_units(
+    entry_odds: Any,
+    outcome: str,
+) -> Optional[float]:
+    """Return canonical one-unit flat-stake PnL for a settled outcome."""
+    normalized = str(outcome or "").strip().upper()
+    if normalized in {"PUSH", "VOID"}:
+        return 0.0
+    if normalized == "LOSS":
+        return -1.0
+    if normalized != "WIN":
+        return None
+    price = _number(entry_odds)
+    return price - 1.0 if price is not None else None
