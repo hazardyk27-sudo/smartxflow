@@ -33,6 +33,7 @@ from services.polymarket_client import (
     fetch_wallet_redeems,
     fetch_wallet_positions,
     _parse_activity_market,
+    _canonical_match_metadata,
     compute_and_save_wallet_stats,
 )
 
@@ -555,6 +556,7 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
                 continue
 
             market_type, home, away, selection, side = _parse_activity_market(item)
+            match_meta = _canonical_match_metadata(item)
             try:
                 price = float(item.get("price") or 0)
             except (TypeError, ValueError):
@@ -580,9 +582,9 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
                 "transaction_hash": tx_hash,
                 "asset": asset,
                 "condition_id": item.get("conditionId"),
-                "event_id": None,
+                "event_id": match_meta.get("event_id"),
                 "title": item.get("title"),
-                "slug": item.get("slug"),
+                "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
                 "market_type": market_type,
                 "selection": selection,
                 # NULL is never equal to NULL for UNIQUE constraint purposes in
@@ -625,14 +627,15 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
                 amount_usdc = float(item.get("usdcSize") or 0)
             except (TypeError, ValueError):
                 amount_usdc = 0.0
+            match_meta = _canonical_match_metadata(item)
             redeem_rows.append({
                 "wallet": wallet,
                 "transaction_hash": tx_hash,
                 "condition_id": condition_id,
                 "asset": item.get("asset"),
                 "title": item.get("title"),
-                "slug": item.get("slug"),
-                "event_id": None,
+                "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
+                "event_id": match_meta.get("event_id"),
                 "amount_usdc": round(amount_usdc, 4),
                 "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
             })
@@ -650,13 +653,14 @@ def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[st
     else:
         position_rows = []
         for p in positions:
+            match_meta = _canonical_match_metadata(p)
             position_rows.append({
                 "wallet": wallet,
                 "condition_id": p.get("conditionId"),
                 "asset": p.get("asset"),
                 "title": p.get("title"),
-                "slug": p.get("slug"),
-                "event_id": p.get("eventId"),
+                "slug": match_meta.get("event_slug") or p.get("eventSlug") or p.get("slug"),
+                "event_id": match_meta.get("event_id") or p.get("eventId"),
                 "outcome": p.get("outcome"),
                 "size": p.get("size"),
                 "avg_price": p.get("avgPrice"),
@@ -716,6 +720,7 @@ def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[s
         if not tx_hash or not asset:
             continue
         market_type, home, away, selection, side = _parse_activity_market(item)
+        match_meta = _canonical_match_metadata(item)
         try:
             price = float(item.get("price") or 0)
         except (TypeError, ValueError):
@@ -733,9 +738,9 @@ def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[s
             "transaction_hash": tx_hash,
             "asset": asset,
             "condition_id": item.get("conditionId"),
-            "event_id": None,
+            "event_id": match_meta.get("event_id"),
             "title": item.get("title"),
-            "slug": item.get("slug"),
+            "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
             "market_type": market_type,
             "selection": selection,
             "side": side if side is not None else "",
@@ -775,14 +780,15 @@ def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[s
             amount_usdc = float(item.get("usdcSize") or 0)
         except (TypeError, ValueError):
             amount_usdc = 0.0
+        match_meta = _canonical_match_metadata(item)
         redeem_rows.append({
             "wallet": wallet,
             "transaction_hash": tx_hash,
             "condition_id": condition_id,
             "asset": item.get("asset"),
             "title": item.get("title"),
-            "slug": item.get("slug"),
-            "event_id": None,
+            "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
+            "event_id": match_meta.get("event_id"),
             "amount_usdc": round(amount_usdc, 4),
             "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
         })

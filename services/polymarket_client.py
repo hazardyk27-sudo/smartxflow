@@ -419,9 +419,6 @@ def _lookup_stored_match_by_slug(slug: Optional[str]):
     rows = _fetch_stored_matches()
     if not rows:
         return None
-    # Activity/position payloads sometimes carry the sibling
-    # '<slug>-more-markets' event's slug instead of the base event slug
-    # stored in polymarket_matches (or vice versa) - check both.
     if slug.endswith("-more-markets"):
         candidates = {slug, slug[: -len("-more-markets")]}
     else:
@@ -432,6 +429,119 @@ def _lookup_stored_match_by_slug(slug: Optional[str]):
             if home and away:
                 return home, away
     return None
+
+
+def _canonical_base_event_slug(slug: Optional[str]) -> Optional[str]:
+    """Normalize sibling event slugs to the main fixture slug."""
+    value = str(slug or "").strip()
+    if not value:
+        return None
+    suffix = "-more-markets"
+    if value.endswith(suffix):
+        value = value[:-len(suffix)]
+    return value or None
+
+
+def _canonical_match_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
+    """Resolve one wallet row to SmartXFlow's canonical football match.
+
+    The scraper-populated `polymarket_matches` registry is authoritative for
+    event_id, home/away and kickoff. Raw Data API eventId/eventSlug are used as
+    stable lookup keys, while title parsing is only a display fallback when an
+    old row cannot be linked to the registry.
+    """
+    raw_event_id = item.get("eventId") or item.get("event_id")
+    event_id = str(raw_event_id).strip() if raw_event_id not in (None, "") else None
+    raw_slug = item.get("eventSlug") or item.get("event_slug") or item.get("slug")
+    base_slug = _canonical_base_event_slug(raw_slug)
+
+    stored_match = None
+    rows = _fetch_stored_matches()
+    if rows:
+        if event_id:
+            for row in rows:
+                if str(row.get("event_id") or "").strip() == event_id:
+                    stored_match = row
+                    break
+        if stored_match is None and base_slug:
+            slug_candidates = {base_slug, f"{base_slug}-more-markets"}
+            for row in rows:
+                row_slug = str(row.get("slug") or "").strip()
+                if row_slug in slug_candidates or _canonical_base_event_slug(row_slug) == base_slug:
+                    stored_match = row
+                    break
+
+    if stored_match is not None:
+        canonical_event_id = str(stored_match.get("event_id") or event_id or "").strip() or None
+        canonical_slug = _canonical_base_event_slug(stored_match.get("slug")) or base_slug
+        home = str(stored_match.get("home") or "").strip()
+        away = str(stored_match.get("away") or "").strip()
+        kickoff_utc = stored_match.get("kickoff_utc")
+        match_name = f"{home} - {away}" if home and away else (home or away or None)
+        match_key = (
+            f"event:{canonical_event_id}"
+            if canonical_event_id
+            else (f"slug:{canonical_slug}" if canonical_slug else None)
+        )
+        return {
+            "match_key": match_key,
+            "event_id": canonical_event_id,
+            "event_slug": canonical_slug,
+            "match_name": match_name,
+            "home": home or None,
+            "away": away or None,
+            "kickoff_utc": kickoff_utc,
+            "source": "polymarket_matches",
+        }
+
+    # Legacy fallback: keep a stable raw event identity if available, but do
+    # not pretend title parsing is authoritative event metadata.
+    try:
+        _mt, home, away, _selection, _side = _parse_activity_market({
+            "title": item.get("title"),
+            "slug": raw_slug,
+            "outcome": item.get("outcome") or item.get("outcome_raw"),
+        })
+    except Exception:
+        home, away = None, None
+
+    home = str(home or "").strip() or None
+    away = str(away or "").strip() or None
+    match_name = f"{home} - {away}" if home and away else (home or item.get("title") or None)
+    condition_id = item.get("conditionId") or item.get("condition_id")
+    match_key = (
+        f"event:{event_id}"
+        if event_id
+        else (f"slug:{base_slug}" if base_slug else (f"condition:{condition_id}" if condition_id else None))
+    )
+    return {
+        "match_key": match_key,
+        "event_id": event_id,
+        "event_slug": base_slug,
+        "match_name": match_name,
+        "home": home,
+        "away": away,
+        "kickoff_utc": item.get("kickoff_utc") or item.get("endDate") or item.get("end_date"),
+        "source": "legacy_fallback",
+    }
+
+
+def _with_canonical_match_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
+    enriched = dict(item)
+    meta = _canonical_match_metadata(item)
+    enriched.update({
+        "match_key": meta.get("match_key"),
+        "match_name": meta.get("match_name"),
+        "match": meta.get("match_name"),
+        "home": meta.get("home"),
+        "away": meta.get("away"),
+        "kickoff_utc": meta.get("kickoff_utc"),
+    })
+    if meta.get("event_id"):
+        enriched["event_id"] = meta["event_id"]
+    if meta.get("event_slug"):
+        enriched["slug"] = meta["event_slug"]
+    return enriched
 
 
 _WILL_WIN_TITLE_RE = re.compile(r'^will\s+(.+?)\s+win\b', re.IGNORECASE)
@@ -2771,7 +2881,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         # qualifying fill after aggregation.
         try:
             activity_params = {
-                "select": "wallet,transaction_hash,asset,condition_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
+                "select": "wallet,transaction_hash,asset,condition_id,event_id,result,title,slug,market_type,selection,side,action,outcome_raw,amount_usdc,price,size,traded_at",
                 "wallet": f"eq.{wallet}",
                 "order": "traded_at.desc,id.desc",
                 "limit": 10000,
@@ -2799,7 +2909,7 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
                 f"{base}/rest/v1/tracked_wallet_positions",
                 headers=headers,
                 params={
-                    "select": "condition_id,asset,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
+                    "select": "condition_id,asset,event_id,title,slug,outcome,size,avg_price,cur_price,initial_value,current_value,cash_pnl,percent_pnl,redeemable,end_date",
                     "wallet": f"eq.{wallet}",
                     "order": "current_value.desc",
                     "limit": 200,
@@ -2860,7 +2970,10 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     resolved = _compute_resolved_stats(position_rows, redeem_rows)
     resolved_won_ids = resolved["resolved_won_ids"]
     resolved_lost_ids = resolved["resolved_lost_ids"]
-    open_positions = resolved["open_positions"]
+    open_positions = [
+        _with_canonical_match_metadata(position)
+        for position in resolved["open_positions"]
+    ]
     realized_pnl_total = resolved["realized_pnl_total"]
 
     # 4. The persisted tracked_wallets stats are the canonical snapshot shared
@@ -3054,16 +3167,10 @@ def _build_display_activity(
             continue
 
         action_label = _ACTION_LABELS.get(raw_action, a.get("action") or a.get("side") or "-")
-        # Re-derive home/away from the already-stored title/slug/outcome_raw
-        # (no schema change needed) so the Match column always has a team
-        # name pair, with the eventSlug country-code fallback for one-off
-        # markets like "Spread: France (-1.5)" (Task #264 requirement #3).
-        _mt, home, away, _sel, _side = _parse_activity_market({
-            "title": a.get("title"),
-            "slug": a.get("slug"),
-            "outcome": a.get("outcome_raw"),
-        })
-        match_label = f"{home} - {away}" if away else (home or a.get("title") or "-")
+        match_meta = _canonical_match_metadata(a)
+        home = match_meta.get("home")
+        away = match_meta.get("away")
+        match_label = match_meta.get("match_name") or a.get("title") or "-"
         # Group by asset (uniquely identifies market+outcome) when available,
         # falling back to condition_id/title/selection/side for older rows
         # scraped before the `asset` column was selected here.
@@ -3075,9 +3182,13 @@ def _build_display_activity(
             closed_groups.append({
                 "title": a.get("title"),
                 "match": match_label,
+                "match_name": match_label,
+                "match_key": match_meta.get("match_key"),
+                "event_id": match_meta.get("event_id"),
+                "kickoff_utc": match_meta.get("kickoff_utc"),
                 "home": home,
                 "away": away,
-                "slug": a.get("slug"),
+                "slug": match_meta.get("event_slug") or a.get("slug"),
                 "market_type": a.get("market_type"),
                 "selection": a.get("selection"),
                 "side": a.get("side"),
@@ -3110,6 +3221,10 @@ def _build_display_activity(
         display_rows.append({
             "title": g["title"],
             "match": g["match"],
+            "match_name": g["match_name"],
+            "match_key": g["match_key"],
+            "event_id": g["event_id"],
+            "kickoff_utc": g["kickoff_utc"],
             "home": g["home"],
             "away": g["away"],
             "slug": g["slug"],
@@ -3127,12 +3242,17 @@ def _build_display_activity(
         })
 
     for asset, p in position_by_asset.items():
-        mt, home, away, selection, side = _parse_activity_market({
+        mt, _fallback_home, _fallback_away, selection, side = _parse_activity_market({
             "title": p.get("title"),
             "slug": p.get("slug"),
             "outcome": p.get("outcome"),
         })
-        match_label = f"{home} - {away}" if away else (home or p.get("title") or "-")
+        match_meta = _canonical_match_metadata(p)
+        home = match_meta.get("home") or _fallback_home
+        away = match_meta.get("away") or _fallback_away
+        match_label = match_meta.get("match_name") or (
+            f"{home} - {away}" if away else (home or p.get("title") or "-")
+        )
         last_dt = open_asset_latest.get(asset)
         condition_id = p.get("condition_id")
         # A position still shows up in Polymarket's /positions snapshot even
@@ -3146,9 +3266,13 @@ def _build_display_activity(
         display_rows.append({
             "title": p.get("title"),
             "match": match_label,
+            "match_name": match_label,
+            "match_key": match_meta.get("match_key"),
+            "event_id": match_meta.get("event_id"),
+            "kickoff_utc": match_meta.get("kickoff_utc"),
             "home": home,
             "away": away,
-            "slug": p.get("slug"),
+            "slug": match_meta.get("event_slug") or p.get("slug"),
             "market_type": mt,
             "selection": selection,
             "side": side,

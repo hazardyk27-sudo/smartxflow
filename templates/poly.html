@@ -1528,7 +1528,7 @@ function renderPositionsTable() {
     });
     walletPositionsBody.innerHTML = sorted.map(p => `
       <tr>
-        <td title="${escapeAttr(p.title || '-')}">${escapeAttr(p.title || '-')}</td>
+        <td title="${escapeAttr(p.match_name || p.match || p.title || '-')}">${escapeAttr(p.match_name || p.match || p.title || '-')}</td>
         <td title="${escapeAttr(p.outcome || '-')}">${escapeAttr(p.outcome || '-')}</td>
         <td>${toDecimalOdds(p.avg_price)}</td>
         <td>${toDecimalOdds(p.cur_price)}</td>

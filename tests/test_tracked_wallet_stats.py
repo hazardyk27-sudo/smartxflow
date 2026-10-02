@@ -535,6 +535,89 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(saved["resolved_total"], 1)
         self.assertEqual(saved["win_rate"], 100.0)
 
+    def test_canonical_match_metadata_prefers_event_registry_over_raw_title(self):
+        row = {
+            "event_id": "42",
+            "slug": "wrong-market-slug",
+            "title": "Misleading Raw Market Title",
+        }
+        stored = [{
+            "event_id": "42",
+            "slug": "barcelona-real-madrid-2026-10-02",
+            "home": "Barcelona",
+            "away": "Real Madrid",
+            "kickoff_utc": "2026-10-02T19:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=stored):
+            meta = polymarket_client._canonical_match_metadata(row)
+
+        self.assertEqual(meta["match_key"], "event:42")
+        self.assertEqual(meta["event_id"], "42")
+        self.assertEqual(meta["event_slug"], "barcelona-real-madrid-2026-10-02")
+        self.assertEqual(meta["match_name"], "Barcelona - Real Madrid")
+        self.assertEqual(meta["home"], "Barcelona")
+        self.assertEqual(meta["away"], "Real Madrid")
+        self.assertEqual(meta["kickoff_utc"], "2026-10-02T19:00:00+00:00")
+        self.assertEqual(meta["source"], "polymarket_matches")
+
+    def test_canonical_match_metadata_collapses_more_markets_slug(self):
+        row = {
+            "slug": "france-spain-2026-10-02-more-markets",
+            "title": "France vs. Spain: O/U 2.5",
+        }
+        stored = [{
+            "event_id": "99",
+            "slug": "france-spain-2026-10-02",
+            "home": "France",
+            "away": "Spain",
+            "kickoff_utc": "2026-10-02T20:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=stored):
+            meta = polymarket_client._canonical_match_metadata(row)
+
+        self.assertEqual(meta["match_key"], "event:99")
+        self.assertEqual(meta["event_slug"], "france-spain-2026-10-02")
+        self.assertEqual(meta["match_name"], "France - Spain")
+
+    def test_display_activity_exposes_canonical_match_identity(self):
+        activity = [{
+            "wallet": "0xwallet",
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "event_id": "99",
+            "title": "Will France win on 2026-10-02?",
+            "slug": "france-spain-2026-10-02-more-markets",
+            "market_type": "1x2",
+            "selection": "France",
+            "side": "",
+            "action": "BUY",
+            "outcome_raw": "Yes",
+            "amount_usdc": 1200,
+            "price": 0.5,
+            "traded_at": "2026-10-02T17:00:00+00:00",
+            "result": "won",
+        }]
+        stored = [{
+            "event_id": "99",
+            "slug": "france-spain-2026-10-02",
+            "home": "France",
+            "away": "Spain",
+            "kickoff_utc": "2026-10-02T20:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=stored):
+            rows = polymarket_client._build_display_activity(activity, [], {"france-yes"}, set())
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["match"], "France - Spain")
+        self.assertEqual(rows[0]["match_name"], "France - Spain")
+        self.assertEqual(rows[0]["match_key"], "event:99")
+        self.assertEqual(rows[0]["event_id"], "99")
+        self.assertEqual(rows[0]["slug"], "france-spain-2026-10-02")
+        self.assertEqual(rows[0]["kickoff_utc"], "2026-10-02T20:00:00+00:00")
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {
