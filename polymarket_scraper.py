@@ -11,6 +11,8 @@ cekilir (tam yeniden tarama yapilmaz). match_phase (prematch/live) trade'in
 kendi zaman damgasi ile maçin kickoff zamani kiyaslanarak belirlenir.
 """
 import argparse
+import hashlib
+import json
 import os
 import sys
 import time
@@ -37,6 +39,10 @@ from services.polymarket_client import (
     _fetch_clob_midpoints,
     _closing_line_metrics,
     _to_decimal_odds,
+    _classify_football_items,
+    FOOTBALL_CLASS_VERIFIED,
+    FOOTBALL_CLASS_NON_FOOTBALL,
+    FOOTBALL_CLASS_UNCERTAIN,
     compute_and_save_wallet_stats,
 )
 
@@ -66,6 +72,39 @@ RETRY_DELAYS = [3, 6, 12]
 def log(msg: str):
     ts = datetime.now(timezone.utc).strftime('%H:%M:%S')
     print(f"[Poly {ts}] {msg}", flush=True)
+
+
+def _sport_quarantine_item_key(item_kind: str, item: Dict[str, Any]) -> str:
+    if item_kind in ("activity", "redeem"):
+        identity = [
+            item_kind,
+            item.get("transactionHash") or item.get("transaction_hash"),
+            item.get("asset"),
+            item.get("conditionId") or item.get("condition_id"),
+            item.get("side"),
+            item.get("timestamp") or item.get("traded_at"),
+        ]
+    else:
+        identity = [
+            item_kind,
+            item.get("asset"),
+            item.get("conditionId") or item.get("condition_id"),
+            item.get("eventId") or item.get("event_id"),
+            item.get("outcome"),
+        ]
+    raw = json.dumps(identity, ensure_ascii=False, separators=(",", ":"), default=str)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _source_timestamp_iso(item: Dict[str, Any]) -> Optional[str]:
+    raw = item.get("timestamp")
+    if raw is not None:
+        try:
+            return datetime.fromtimestamp(int(raw), tz=timezone.utc).isoformat()
+        except (TypeError, ValueError, OSError):
+            pass
+    traded_at = item.get("traded_at")
+    return str(traded_at) if traded_at else None
 
 
 class PolymarketSupabaseWriter:
@@ -325,6 +364,209 @@ class PolymarketSupabaseWriter:
             return True
         except Exception as e:
             log(f"[Wallet Redeem UPSERT] Hata: {e}")
+            return False
+
+    def upsert_sport_quarantine(
+        self,
+        wallet: str,
+        item_kind: str,
+        items: List[Dict[str, Any]],
+    ) -> bool:
+        if not items:
+            return True
+        now = datetime.now(timezone.utc)
+        rows = []
+        for item in items:
+            clean = {
+                key: value
+                for key, value in item.items()
+                if not str(key).startswith("_sport_")
+            }
+            rows.append({
+                "wallet": wallet,
+                "item_kind": item_kind,
+                "item_key": _sport_quarantine_item_key(item_kind, item),
+                "asset": item.get("asset"),
+                "condition_id": item.get("conditionId") or item.get("condition_id"),
+                "event_id": (
+                    item.get("_sport_resolved_event_id")
+                    or item.get("eventId")
+                    or item.get("event_id")
+                ),
+                "title": item.get("title"),
+                "slug": item.get("eventSlug") or item.get("slug"),
+                "traded_at": _source_timestamp_iso(item),
+                "classification": FOOTBALL_CLASS_UNCERTAIN,
+                "reason": item.get("_sport_reason") or "classification_uncertain",
+                "raw_payload": clean,
+                "last_seen_at": now.isoformat(),
+                "next_retry_at": (now + timedelta(minutes=15)).isoformat(),
+            })
+        try:
+            headers = self._headers()
+            headers["Prefer"] = "resolution=merge-duplicates"
+            url = (
+                f"{self._rest_url('tracked_wallet_sport_quarantine')}"
+                "?on_conflict=wallet,item_kind,item_key"
+            )
+            for offset in range(0, len(rows), 500):
+                response = requests.post(
+                    url,
+                    headers=headers,
+                    json=rows[offset:offset + 500],
+                    timeout=30,
+                    verify=SSL_VERIFY,
+                )
+                if response.status_code not in (200, 201, 204):
+                    if response.status_code != 404:
+                        log(
+                            f"[Sport Quarantine UPSERT] HTTP "
+                            f"{response.status_code}: {response.text[:160]}"
+                        )
+                    return False
+            return True
+        except Exception as exc:
+            log(f"[Sport Quarantine UPSERT] Hata: {exc}")
+            return False
+
+    def get_pending_sport_quarantine(
+        self,
+        limit: int = 500,
+    ) -> List[Dict[str, Any]]:
+        try:
+            response = requests.get(
+                self._rest_url("tracked_wallet_sport_quarantine"),
+                headers=self._headers(),
+                params={
+                    "select": "wallet,item_kind,item_key,raw_payload,attempt_count,reason",
+                    "classification": f"eq.{FOOTBALL_CLASS_UNCERTAIN}",
+                    "next_retry_at": f"lte.{datetime.now(timezone.utc).isoformat()}",
+                    "order": "next_retry_at.asc",
+                    "limit": limit,
+                },
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            if response.status_code != 200:
+                return []
+            rows = response.json()
+            return rows if isinstance(rows, list) else []
+        except Exception:
+            return []
+
+    def update_sport_quarantine(
+        self,
+        wallet: str,
+        item_kind: str,
+        item_key: str,
+        classification: str,
+        reason: str,
+        attempt_count: int,
+    ) -> bool:
+        now = datetime.now(timezone.utc)
+        payload: Dict[str, Any] = {
+            "classification": classification,
+            "reason": reason,
+            "attempt_count": attempt_count,
+            "last_seen_at": now.isoformat(),
+        }
+        if classification == FOOTBALL_CLASS_UNCERTAIN:
+            delay_minutes = min(24 * 60, 15 * (2 ** min(attempt_count, 6)))
+            payload["next_retry_at"] = (
+                now + timedelta(minutes=delay_minutes)
+            ).isoformat()
+            payload["resolved_at"] = None
+        else:
+            payload["next_retry_at"] = None
+            payload["resolved_at"] = now.isoformat()
+        try:
+            response = requests.patch(
+                self._rest_url("tracked_wallet_sport_quarantine"),
+                headers=self._headers(),
+                params={
+                    "wallet": f"eq.{wallet}",
+                    "item_kind": f"eq.{item_kind}",
+                    "item_key": f"eq.{item_key}",
+                },
+                json=payload,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            return response.status_code in (200, 204)
+        except Exception:
+            return False
+
+    def get_bets_needing_sport_classification(
+        self,
+        limit: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        try:
+            response = requests.get(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params={
+                    "select": "wallet,bet_key,condition_id,event_id,title,slug,sport_classification",
+                    "or": "(sport_classification.is.null,sport_classification.eq.uncertain)",
+                    "order": "last_traded_at.desc.nullslast",
+                    "limit": limit,
+                },
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            if response.status_code != 200:
+                return []
+            rows = response.json()
+            return rows if isinstance(rows, list) else []
+        except Exception:
+            return []
+
+    def update_bet_sport_classification(
+        self,
+        wallet: str,
+        bet_key: str,
+        classification: str,
+        source: str,
+    ) -> bool:
+        payload = {
+            "sport_classification": classification,
+            "sport_verified_at": datetime.now(timezone.utc).isoformat(),
+            "sport_classification_source": source,
+        }
+        try:
+            response = requests.patch(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params={
+                    "wallet": f"eq.{wallet}",
+                    "bet_key": f"eq.{bet_key}",
+                },
+                json=payload,
+                timeout=20,
+                verify=SSL_VERIFY,
+            )
+            return response.status_code in (200, 204)
+        except Exception:
+            return False
+
+    def wallet_sport_classification_complete(self, wallet: str) -> bool:
+        try:
+            response = requests.get(
+                self._rest_url("tracked_wallet_bets"),
+                headers=self._headers(),
+                params={
+                    "select": "bet_key",
+                    "wallet": f"eq.{wallet}",
+                    "or": "(sport_classification.is.null,sport_classification.eq.uncertain)",
+                    "limit": 1,
+                },
+                timeout=15,
+                verify=SSL_VERIFY,
+            )
+            if response.status_code != 200:
+                return False
+            rows = response.json()
+            return isinstance(rows, list) and not rows
+        except Exception:
             return False
 
     def delete_before(self, table: str, date_col: str, cutoff_date: str,
@@ -927,161 +1169,259 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
     return total_new
 
 
+def _activity_item_to_row(
+    wallet: str,
+    item: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    try:
+        ts = int(item.get("timestamp") or 0)
+    except (TypeError, ValueError):
+        return None
+    tx_hash = item.get("transactionHash")
+    asset = item.get("asset")
+    if ts <= 0 or not tx_hash or not asset:
+        return None
+
+    market_type, _home, _away, selection, side = _parse_activity_market(item)
+    match_meta = _canonical_match_metadata(item)
+    try:
+        price = float(item.get("price") or 0)
+    except (TypeError, ValueError):
+        price = 0.0
+    try:
+        size = float(item.get("size") or 0)
+    except (TypeError, ValueError):
+        size = 0.0
+    try:
+        amount_usdc = (
+            float(item.get("usdcSize"))
+            if item.get("usdcSize") is not None
+            else size * price
+        )
+    except (TypeError, ValueError):
+        amount_usdc = size * price
+
+    return {
+        "wallet": wallet,
+        "transaction_hash": tx_hash,
+        "asset": asset,
+        "condition_id": item.get("conditionId"),
+        "event_id": (
+            item.get("_sport_resolved_event_id")
+            or match_meta.get("event_id")
+        ),
+        "title": item.get("title"),
+        "slug": (
+            match_meta.get("event_slug")
+            or item.get("eventSlug")
+            or item.get("slug")
+        ),
+        "market_type": market_type,
+        "selection": selection,
+        "side": side if side is not None else "",
+        "action": (item.get("side") or "").strip().upper() or None,
+        "outcome_raw": item.get("outcome"),
+        "amount_usdc": round(amount_usdc, 4),
+        "price": price,
+        "size": size,
+        "traded_at": datetime.fromtimestamp(
+            ts,
+            tz=timezone.utc,
+        ).isoformat(),
+    }
+
+
+def _redeem_item_to_row(
+    wallet: str,
+    item: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    try:
+        ts = int(item.get("timestamp") or 0)
+    except (TypeError, ValueError):
+        return None
+    tx_hash = item.get("transactionHash")
+    condition_id = item.get("conditionId")
+    if ts <= 0 or not tx_hash or not condition_id:
+        return None
+    try:
+        amount_usdc = float(item.get("usdcSize") or 0)
+    except (TypeError, ValueError):
+        amount_usdc = 0.0
+    match_meta = _canonical_match_metadata(item)
+    return {
+        "wallet": wallet,
+        "transaction_hash": tx_hash,
+        "condition_id": condition_id,
+        "asset": item.get("asset"),
+        "title": item.get("title"),
+        "slug": (
+            match_meta.get("event_slug")
+            or item.get("eventSlug")
+            or item.get("slug")
+        ),
+        "event_id": (
+            item.get("_sport_resolved_event_id")
+            or match_meta.get("event_id")
+        ),
+        "amount_usdc": round(amount_usdc, 4),
+        "traded_at": datetime.fromtimestamp(
+            ts,
+            tz=timezone.utc,
+        ).isoformat(),
+    }
+
+
+def _position_item_to_row(
+    wallet: str,
+    item: Dict[str, Any],
+) -> Dict[str, Any]:
+    match_meta = _canonical_match_metadata(item)
+    return {
+        "wallet": wallet,
+        "condition_id": item.get("conditionId"),
+        "asset": item.get("asset"),
+        "title": item.get("title"),
+        "slug": (
+            match_meta.get("event_slug")
+            or item.get("eventSlug")
+            or item.get("slug")
+        ),
+        "event_id": (
+            item.get("_sport_resolved_event_id")
+            or match_meta.get("event_id")
+            or item.get("eventId")
+        ),
+        "outcome": item.get("outcome"),
+        "size": item.get("size"),
+        "avg_price": item.get("avgPrice"),
+        "cur_price": item.get("curPrice"),
+        "initial_value": item.get("initialValue"),
+        "current_value": item.get("currentValue"),
+        "cash_pnl": item.get("cashPnl"),
+        "percent_pnl": item.get("percentPnl"),
+        "redeemable": item.get("redeemable"),
+        "end_date": item.get("endDate"),
+    }
+
+
 def process_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:
-    """Fully sync one tracked wallet's sports activity ledger (incremental,
-    checkpoint-based like process_match) and its current open positions
-    (full-replace snapshot each cycle)."""
+    """Sync one tracked wallet through the three-state Football Gate V2."""
     wallet = (wallet_row.get("wallet") or "").lower()
     if not wallet:
         return 0
+    nickname = wallet_row.get("nickname") or wallet[:10]
 
     since_ts = writer.get_wallet_activity_checkpoint(wallet)
-    new_items, truncated = fetch_wallet_activity(wallet, since_ts)
+    (
+        football_items,
+        truncated,
+        uncertain_items,
+        nonfootball_items,
+    ) = fetch_wallet_activity(
+        wallet,
+        since_ts,
+        classification_details=True,
+    )
     if truncated:
-        # A truncated page can leave a checkpoint gap. Do not persist partial
-        # results; the next cycle will retry from the same checkpoint.
-        log(f"  [Wallet {wallet[:10]}...] fetch truncated (page cap), skipping this run")
+        log(f"  [Wallet {wallet[:10]}...] activity fetch truncated, skipping batch")
     else:
-        rows = []
-        for item in reversed(new_items):
-            try:
-                ts = int(item.get("timestamp") or 0)
-            except (TypeError, ValueError):
-                continue
-            if ts <= 0:
-                continue
-            tx_hash = item.get("transactionHash")
-            asset = item.get("asset")
-            if not tx_hash or not asset:
-                continue
+        if uncertain_items:
+            writer.upsert_sport_quarantine(
+                wallet,
+                "activity",
+                uncertain_items,
+            )
+            log(
+                f"  [Wallet {nickname}] {len(uncertain_items)} activity "
+                "karantinaya alindi"
+            )
+        if nonfootball_items:
+            log(
+                f"  [Wallet {nickname}] {len(nonfootball_items)} kesin "
+                "futbol-disi activity elendi"
+            )
 
-            market_type, home, away, selection, side = _parse_activity_market(item)
-            match_meta = _canonical_match_metadata(item)
-            try:
-                price = float(item.get("price") or 0)
-            except (TypeError, ValueError):
-                price = 0.0
-            try:
-                size = float(item.get("size") or 0)
-            except (TypeError, ValueError):
-                size = 0.0
-            try:
-                amount_usdc = float(item.get("usdcSize")) if item.get("usdcSize") is not None else size * price
-            except (TypeError, ValueError):
-                amount_usdc = size * price
-
-            # `side` = outcome-polarity label (Üst/Alt, Var/Yok, or None for
-            # 1x2 where `selection` already IS the team name). `action` = raw
-            # BUY/SELL from Polymarket, stored separately so it never gets
-            # overwritten by the outcome label (Task #264 bug #2 - previously
-            # `side or item.get("side")` clobbered the raw action for
-            # non-1x2 markets, and 1x2 rows had their raw action mislabeled
-            # as "side").
-            rows.append({
-                "wallet": wallet,
-                "transaction_hash": tx_hash,
-                "asset": asset,
-                "condition_id": item.get("conditionId"),
-                "event_id": match_meta.get("event_id"),
-                "title": item.get("title"),
-                "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
-                "market_type": market_type,
-                "selection": selection,
-                # NULL is never equal to NULL for UNIQUE constraint purposes in
-                # Postgres, so a nullable `side` in the conflict key would let
-                # repeated scraper runs insert duplicate 1x2 rows (side is
-                # always None for 1x2). Use "" as a non-null sentinel instead.
-                "side": side if side is not None else "",
-                "action": (item.get("side") or "").strip().upper() or None,
-                "outcome_raw": item.get("outcome"),
-                "amount_usdc": round(amount_usdc, 4),
-                "price": price,
-                "size": size,
-                "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
-            })
-
+        rows = [
+            row
+            for item in reversed(football_items)
+            if (row := _activity_item_to_row(wallet, item)) is not None
+        ]
         if rows and writer.upsert_wallet_activity(rows):
-            log(f"  [Wallet {wallet_row.get('nickname')}] +{len(rows)} yeni islem")
+            log(f"  [Wallet {nickname}] +{len(rows)} yeni futbol islemi")
 
-    # REDEEM olaylarini kalici olarak biriktir - kazanip nakde cevrilen
-    # pozisyonlar /positions'tan tamamen kaybolur, bu yuzden Isabet Orani'nin
-    # dogru kalmasi icin redeem anini burada kaydetmek sart (Task #264).
     redeem_since_ts = writer.get_wallet_redeem_checkpoint(wallet)
-    redeem_items, redeem_truncated = fetch_wallet_redeems(wallet, redeem_since_ts)
+    (
+        football_redeems,
+        redeem_truncated,
+        uncertain_redeems,
+        nonfootball_redeems,
+    ) = fetch_wallet_redeems(
+        wallet,
+        redeem_since_ts,
+        classification_details=True,
+    )
     if redeem_truncated:
-        log(f"  [Wallet {wallet[:10]}...] redeem fetch truncated before checkpoint, skipping this run")
+        log(f"  [Wallet {wallet[:10]}...] redeem fetch truncated, skipping batch")
     else:
-        redeem_rows = []
-        for item in reversed(redeem_items):
-            try:
-                ts = int(item.get("timestamp") or 0)
-            except (TypeError, ValueError):
-                continue
-            if ts <= 0:
-                continue
-            tx_hash = item.get("transactionHash")
-            condition_id = item.get("conditionId")
-            if not tx_hash or not condition_id:
-                continue
-            try:
-                amount_usdc = float(item.get("usdcSize") or 0)
-            except (TypeError, ValueError):
-                amount_usdc = 0.0
-            match_meta = _canonical_match_metadata(item)
-            redeem_rows.append({
-                "wallet": wallet,
-                "transaction_hash": tx_hash,
-                "condition_id": condition_id,
-                "asset": item.get("asset"),
-                "title": item.get("title"),
-                "slug": match_meta.get("event_slug") or item.get("eventSlug") or item.get("slug"),
-                "event_id": match_meta.get("event_id"),
-                "amount_usdc": round(amount_usdc, 4),
-                "traded_at": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat(),
-            })
-
+        if uncertain_redeems:
+            writer.upsert_sport_quarantine(
+                wallet,
+                "redeem",
+                uncertain_redeems,
+            )
+        if nonfootball_redeems:
+            log(
+                f"  [Wallet {nickname}] {len(nonfootball_redeems)} kesin "
+                "futbol-disi redeem elendi"
+            )
+        redeem_rows = [
+            row
+            for item in reversed(football_redeems)
+            if (row := _redeem_item_to_row(wallet, item)) is not None
+        ]
         if redeem_rows and writer.upsert_wallet_redeems(redeem_rows):
-            log(f"  [Wallet {wallet_row.get('nickname')}] +{len(redeem_rows)} yeni redeem")
+            log(f"  [Wallet {nickname}] +{len(redeem_rows)} yeni futbol redeem")
 
-    position_rows = []
-    positions, positions_ok = fetch_wallet_positions(wallet)
+    (
+        positions,
+        positions_ok,
+        uncertain_positions,
+        nonfootball_positions,
+    ) = fetch_wallet_positions(
+        wallet,
+        classification_details=True,
+    )
+    if uncertain_positions:
+        writer.upsert_sport_quarantine(
+            wallet,
+            "position",
+            uncertain_positions,
+        )
+    if nonfootball_positions:
+        log(
+            f"  [Wallet {nickname}] {len(nonfootball_positions)} kesin "
+            "futbol-disi pozisyon elendi"
+        )
+
+    position_rows: List[Dict[str, Any]] = []
     if not positions_ok:
-        # Keep the last known snapshot, but still compute activity statistics
-        # below. A transient positions API failure must not leave a new wallet
-        # stuck at zero until a later cycle.
-        log(f"  [Wallet {wallet_row.get('nickname')}] pozisyon cekme hatasi, mevcut kayitli pozisyonlar korunuyor (replace atlandi)")
+        log(
+            f"  [Wallet {nickname}] pozisyon siniflandirmasi/API eksik; "
+            "mevcut verified snapshot korunuyor"
+        )
     else:
-        position_rows = []
-        for p in positions:
-            match_meta = _canonical_match_metadata(p)
-            position_rows.append({
-                "wallet": wallet,
-                "condition_id": p.get("conditionId"),
-                "asset": p.get("asset"),
-                "title": p.get("title"),
-                "slug": match_meta.get("event_slug") or p.get("eventSlug") or p.get("slug"),
-                "event_id": match_meta.get("event_id") or p.get("eventId"),
-                "outcome": p.get("outcome"),
-                "size": p.get("size"),
-                "avg_price": p.get("avgPrice"),
-                "cur_price": p.get("curPrice"),
-                "initial_value": p.get("initialValue"),
-                "current_value": p.get("currentValue"),
-                "cash_pnl": p.get("cashPnl"),
-                "percent_pnl": p.get("percentPnl"),
-                "redeemable": p.get("redeemable"),
-                "end_date": p.get("endDate"),
-            })
+        position_rows = [
+            _position_item_to_row(wallet, item)
+            for item in positions
+        ]
         writer.replace_wallet_positions(wallet, position_rows)
 
-    # Pre-compute and save stats to tracked_wallets so the profile endpoint
-    # can read them instantly without re-computing on every request.
     try:
         compute_and_save_wallet_stats(wallet)
-    except Exception as e:
-        log(f"  [Wallet {wallet_row.get('nickname')}] stats kaydetme hatasi: {e}")
+    except Exception as exc:
+        log(f"  [Wallet {nickname}] stats kaydetme hatasi: {exc}")
 
-    return len(position_rows) if positions_ok else len(new_items)
+    return len(position_rows) if positions_ok else len(football_items)
 
 
 def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[str, Any]) -> int:
@@ -1209,6 +1549,150 @@ def backfill_tracked_wallet(writer: PolymarketSupabaseWriter, wallet_row: Dict[s
         log(f"  [Backfill] {nickname} — stats hatasi: {e}")
 
     return len(activity_rows)
+
+
+def retry_sport_quarantine(writer: PolymarketSupabaseWriter) -> int:
+    pending = writer.get_pending_sport_quarantine()
+    if not pending:
+        return 0
+
+    source_items: List[Dict[str, Any]] = []
+    meta_by_ref: Dict[str, Dict[str, Any]] = {}
+    for row in pending:
+        raw = row.get("raw_payload")
+        if not isinstance(raw, dict):
+            continue
+        ref = row.get("item_key")
+        item = dict(raw)
+        item["_quarantine_ref"] = ref
+        source_items.append(item)
+        meta_by_ref[str(ref)] = row
+
+    classified = _classify_football_items(source_items)
+    affected_wallets: set = set()
+    resolved_count = 0
+
+    for classification, key in (
+        (FOOTBALL_CLASS_VERIFIED, "verified_football"),
+        (FOOTBALL_CLASS_NON_FOOTBALL, "verified_non_football"),
+        (FOOTBALL_CLASS_UNCERTAIN, "uncertain"),
+    ):
+        for item in classified[key]:
+            ref = str(item.get("_quarantine_ref") or "")
+            meta = meta_by_ref.get(ref)
+            if not meta:
+                continue
+            wallet = str(meta.get("wallet") or "").lower()
+            item_kind = str(meta.get("item_kind") or "")
+            attempts = int(meta.get("attempt_count") or 0) + 1
+            final_classification = classification
+            reason = item.get("_sport_reason") or final_classification
+
+            if final_classification == FOOTBALL_CLASS_VERIFIED:
+                stored = False
+                if item_kind == "activity":
+                    row = _activity_item_to_row(wallet, item)
+                    stored = bool(row and writer.upsert_wallet_activity([row]))
+                elif item_kind == "redeem":
+                    row = _redeem_item_to_row(wallet, item)
+                    stored = bool(row and writer.upsert_wallet_redeems([row]))
+                elif item_kind == "position":
+                    # Positions are snapshots; never resurrect an old position.
+                    # The next live full-position sync will include it now that
+                    # its registry identity is verified.
+                    stored = True
+                if not stored:
+                    final_classification = FOOTBALL_CLASS_UNCERTAIN
+                    reason = "verified_but_storage_retry_needed"
+                else:
+                    affected_wallets.add(wallet)
+                    resolved_count += 1
+            elif final_classification == FOOTBALL_CLASS_NON_FOOTBALL:
+                resolved_count += 1
+
+            writer.update_sport_quarantine(
+                wallet,
+                item_kind,
+                ref,
+                final_classification,
+                reason,
+                attempts,
+            )
+
+    for wallet in affected_wallets:
+        try:
+            compute_and_save_wallet_stats(wallet)
+        except Exception:
+            pass
+
+    if resolved_count:
+        log(f"[Sport Quarantine] {resolved_count} kayit kesin siniflandirildi")
+    return resolved_count
+
+
+def run_persisted_bet_sport_audit(
+    writer: PolymarketSupabaseWriter,
+) -> int:
+    rows = writer.get_bets_needing_sport_classification()
+    if not rows:
+        return 0
+
+    items: List[Dict[str, Any]] = []
+    meta_by_ref: Dict[str, Dict[str, Any]] = {}
+    for row in rows:
+        ref = f"{row.get('wallet')}|{row.get('bet_key')}"
+        item = {
+            "condition_id": row.get("condition_id"),
+            "event_id": row.get("event_id"),
+            "title": row.get("title"),
+            "slug": row.get("slug"),
+            "_audit_ref": ref,
+        }
+        items.append(item)
+        meta_by_ref[ref] = row
+
+    classified = _classify_football_items(items)
+    touched_wallets: set = set()
+    changed = 0
+    for classification, key in (
+        (FOOTBALL_CLASS_VERIFIED, "verified_football"),
+        (FOOTBALL_CLASS_NON_FOOTBALL, "verified_non_football"),
+        (FOOTBALL_CLASS_UNCERTAIN, "uncertain"),
+    ):
+        for item in classified[key]:
+            ref = str(item.get("_audit_ref") or "")
+            meta = meta_by_ref.get(ref)
+            if not meta:
+                continue
+            wallet = str(meta.get("wallet") or "").lower()
+            bet_key = str(meta.get("bet_key") or "")
+            if not wallet or not bet_key:
+                continue
+            if writer.update_bet_sport_classification(
+                wallet,
+                bet_key,
+                classification,
+                item.get("_sport_reason") or "gamma-soccer-v2",
+            ):
+                changed += 1
+                touched_wallets.add(wallet)
+
+    # Rebase totals downward only after every durable bet for that wallet has a
+    # final classification. One uncertain row keeps the old larger snapshot.
+    for wallet in touched_wallets:
+        if not writer.wallet_sport_classification_complete(wallet):
+            continue
+        try:
+            compute_and_save_wallet_stats(
+                wallet,
+                allow_verified_sport_rebase=True,
+            )
+        except Exception as exc:
+            log(f"[Sport Audit] {wallet[:10]} stats rebase hatasi: {exc}")
+
+    if changed:
+        log(f"[Sport Audit] {changed} persistent bahis siniflandirildi")
+    return changed
 
 
 def run_tracked_wallets(writer: PolymarketSupabaseWriter):
@@ -1341,6 +1825,18 @@ def main() -> bool:
             delay = RETRY_DELAYS[attempt]
             log(f"{delay} saniye bekleniyor...")
             time.sleep(delay)
+
+    try:
+        retry_sport_quarantine(writer)
+    except Exception as e:
+        log(f"[Sport Quarantine] Hata: {e}")
+        traceback.print_exc()
+
+    try:
+        run_persisted_bet_sport_audit(writer)
+    except Exception as e:
+        log(f"[Sport Audit] Hata: {e}")
+        traceback.print_exc()
 
     try:
         run_tracked_wallets(writer)

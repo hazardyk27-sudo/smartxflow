@@ -15,7 +15,7 @@ import logging
 import threading
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -1562,6 +1562,11 @@ _POSITIONS_MAX_PAGES = 20
 
 _SOCCER_REGISTRY_CACHE_TTL = 15 * 60
 _SOCCER_REGISTRY_BATCH_SIZE = 75
+
+FOOTBALL_CLASS_VERIFIED = "verified_football"
+FOOTBALL_CLASS_NON_FOOTBALL = "verified_non_football"
+FOOTBALL_CLASS_UNCERTAIN = "uncertain"
+FOOTBALL_CLASSIFIER_VERSION = "gamma-soccer-v2"
 _soccer_condition_registry_cache: Dict[str, Tuple[bool, float]] = {}
 _soccer_event_registry_cache: Dict[str, Tuple[bool, float]] = {}
 _soccer_registry_lock = threading.Lock()
@@ -1690,53 +1695,553 @@ def _verified_soccer_event_ids(
     return verified, True
 
 
+def _gamma_tag_rows(obj: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(obj, dict):
+        return []
+    tags = obj.get("tags")
+    return [tag for tag in tags if isinstance(tag, dict)] if isinstance(tags, list) else []
+
+
+def _gamma_object_has_soccer_tag(obj: Optional[Dict[str, Any]]) -> bool:
+    for tag in _gamma_tag_rows(obj):
+        tag_id = _registry_id(tag.get("id"))
+        slug = _registry_id(tag.get("slug"))
+        label = _registry_id(tag.get("label"))
+        if tag_id == str(SOCCER_TAG_ID) or slug == "soccer" or label == "soccer":
+            return True
+    return False
+
+
+def _gamma_object_has_explicit_non_soccer_tags(
+    obj: Optional[Dict[str, Any]],
+) -> bool:
+    tags = _gamma_tag_rows(obj)
+    return bool(tags) and not _gamma_object_has_soccer_tag(obj)
+
+
+def _market_parent_event_ids(market: Dict[str, Any]) -> List[str]:
+    event_ids: List[str] = []
+    direct = _registry_id(market.get("eventId") or market.get("event_id"))
+    if direct:
+        event_ids.append(direct)
+    events = market.get("events")
+    if isinstance(events, list):
+        for event in events:
+            if isinstance(event, dict):
+                event_id = _registry_id(event.get("id"))
+                if event_id and event_id not in event_ids:
+                    event_ids.append(event_id)
+    return event_ids
+
+
+def _load_persisted_sport_registry(
+    identity_type: str,
+    identity_ids: List[str],
+) -> Dict[str, Dict[str, Any]]:
+    """Best-effort read of durable classification evidence.
+
+    Missing migration/table is intentionally treated as an empty registry so
+    rollout never blocks the existing live Gamma verification path.
+    """
+    ids = sorted({_registry_id(value) for value in identity_ids if _registry_id(value)})
+    if not ids:
+        return {}
+    base = _supabase_base_url()
+    if not base:
+        return {}
+
+    found: Dict[str, Dict[str, Any]] = {}
+    try:
+        for offset in range(0, len(ids), 75):
+            chunk = ids[offset:offset + 75]
+            quoted = ",".join(chunk)
+            response = requests.get(
+                f"{base}/rest/v1/polymarket_sport_registry",
+                headers=_supabase_headers(),
+                params={
+                    "select": "identity_type,identity_id,event_id,classification,source,last_checked_at,next_retry_at,evidence",
+                    "identity_type": f"eq.{identity_type}",
+                    "identity_id": f"in.({quoted})",
+                },
+                timeout=10,
+            )
+            if response.status_code != 200:
+                return found
+            rows = response.json()
+            if not isinstance(rows, list):
+                return found
+            for row in rows:
+                identity_id = _registry_id(row.get("identity_id"))
+                if identity_id:
+                    found[identity_id] = row
+    except Exception:
+        return found
+    return found
+
+
+def _persist_sport_registry_records(records: List[Dict[str, Any]]) -> None:
+    if not records:
+        return
+    base = _supabase_base_url()
+    if not base:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+    payload = []
+    for record in records:
+        identity_type = record.get("identity_type")
+        identity_id = _registry_id(record.get("identity_id"))
+        classification = record.get("classification")
+        if identity_type not in ("event", "condition") or not identity_id:
+            continue
+        if classification not in (
+            FOOTBALL_CLASS_VERIFIED,
+            FOOTBALL_CLASS_NON_FOOTBALL,
+            FOOTBALL_CLASS_UNCERTAIN,
+        ):
+            continue
+        payload.append({
+            "identity_type": identity_type,
+            "identity_id": identity_id,
+            "event_id": _registry_id(record.get("event_id")) or None,
+            "classification": classification,
+            "classifier_version": FOOTBALL_CLASSIFIER_VERSION,
+            "source": record.get("source") or "gamma",
+            "evidence": record.get("evidence") or {},
+            "last_checked_at": now,
+            "next_retry_at": (
+                (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+                if classification == FOOTBALL_CLASS_UNCERTAIN
+                else None
+            ),
+        })
+    if not payload:
+        return
+
+    # Never downgrade an already verified football identity because a later
+    # request became uncertain. Read-before-write also allows a corrected
+    # positive Soccer proof to upgrade an older non-football classification.
+    by_type: Dict[str, List[str]] = {"event": [], "condition": []}
+    for row in payload:
+        by_type[row["identity_type"]].append(row["identity_id"])
+    existing: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    for identity_type, ids in by_type.items():
+        for identity_id, row in _load_persisted_sport_registry(identity_type, ids).items():
+            existing[(identity_type, identity_id)] = row
+
+    safe_payload = []
+    for row in payload:
+        old = existing.get((row["identity_type"], row["identity_id"]))
+        old_class = old.get("classification") if old else None
+        new_class = row["classification"]
+        if old_class == FOOTBALL_CLASS_VERIFIED and new_class != FOOTBALL_CLASS_VERIFIED:
+            continue
+        if (
+            old_class == FOOTBALL_CLASS_NON_FOOTBALL
+            and new_class == FOOTBALL_CLASS_UNCERTAIN
+        ):
+            continue
+        safe_payload.append(row)
+    if not safe_payload:
+        return
+
+    try:
+        headers = {
+            **_supabase_headers(),
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates",
+        }
+        for offset in range(0, len(safe_payload), 500):
+            requests.post(
+                f"{base}/rest/v1/polymarket_sport_registry"
+                "?on_conflict=identity_type,identity_id",
+                headers=headers,
+                json=safe_payload[offset:offset + 500],
+                timeout=15,
+            )
+    except Exception:
+        pass
+
+
+def _fetch_direct_gamma_markets(
+    condition_ids: List[str],
+) -> Tuple[Dict[str, Dict[str, Any]], bool]:
+    wanted = sorted({_registry_id(value) for value in condition_ids if _registry_id(value)})
+    result: Dict[str, Dict[str, Any]] = {}
+    if not wanted:
+        return result, True
+    for offset in range(0, len(wanted), _SOCCER_REGISTRY_BATCH_SIZE):
+        chunk = wanted[offset:offset + _SOCCER_REGISTRY_BATCH_SIZE]
+        data = _get_json(
+            f"{GAMMA_BASE}/markets",
+            {
+                "condition_ids": chunk,
+                "related_tags": "true",
+                "limit": 100,
+            },
+        )
+        if not isinstance(data, list):
+            return result, False
+        for market in data:
+            if not isinstance(market, dict):
+                continue
+            condition_id = _registry_id(market.get("conditionId"))
+            if condition_id in chunk:
+                result[condition_id] = market
+    return result, True
+
+
+def _fetch_direct_gamma_events(
+    event_ids: List[str],
+) -> Tuple[Dict[str, Dict[str, Any]], bool]:
+    wanted = sorted({_registry_id(value) for value in event_ids if _registry_id(value)})
+    result: Dict[str, Dict[str, Any]] = {}
+    if not wanted:
+        return result, True
+    for offset in range(0, len(wanted), _SOCCER_REGISTRY_BATCH_SIZE):
+        chunk = wanted[offset:offset + _SOCCER_REGISTRY_BATCH_SIZE]
+        data = _get_json(
+            f"{GAMMA_BASE}/events",
+            {
+                "id": chunk,
+                "related_tags": "true",
+                "limit": 100,
+            },
+        )
+        if not isinstance(data, list):
+            return result, False
+        for event in data:
+            if not isinstance(event, dict):
+                continue
+            event_id = _registry_id(event.get("id"))
+            if event_id in chunk:
+                result[event_id] = event
+    return result, True
+
+
+def _with_sport_classification(
+    item: Dict[str, Any],
+    classification: str,
+    reason: str,
+    resolved_event_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    enriched = dict(item)
+    enriched["_sport_classification"] = classification
+    enriched["_sport_reason"] = reason
+    if resolved_event_id:
+        enriched["_sport_resolved_event_id"] = resolved_event_id
+    return enriched
+
+
+def _classify_football_items(
+    items: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Three-state football gate with conservative negative proof.
+
+    Positive Soccer proof wins immediately. A condition is only called
+    VERIFIED_NON_FOOTBALL when its direct Gamma market exists, its parent event
+    is resolved, and BOTH the condition and that parent event are absent from
+    successful Soccer-tag queries. Missing IDs, lookup failures, conflicting
+    parent identities and incomplete metadata become UNCERTAIN instead.
+    """
+    if not items:
+        return {
+            "verified_football": [],
+            "verified_non_football": [],
+            "uncertain": [],
+            "verification_complete": True,
+        }
+
+    condition_ids = sorted({
+        _registry_id(item.get("conditionId") or item.get("condition_id"))
+        for item in items
+        if _registry_id(item.get("conditionId") or item.get("condition_id"))
+    })
+    explicit_event_ids = sorted({
+        _registry_id(item.get("eventId") or item.get("event_id"))
+        for item in items
+        if _registry_id(item.get("eventId") or item.get("event_id"))
+    })
+
+    persisted_conditions = _load_persisted_sport_registry(
+        "condition",
+        condition_ids,
+    )
+    persisted_parent_event_ids = sorted({
+        _registry_id(row.get("event_id"))
+        for row in persisted_conditions.values()
+        if _registry_id(row.get("event_id"))
+    })
+    persisted_events = _load_persisted_sport_registry(
+        "event",
+        sorted(set(explicit_event_ids) | set(persisted_parent_event_ids)),
+    )
+
+    unresolved_conditions = [
+        cid for cid in condition_ids
+        if persisted_conditions.get(cid, {}).get("classification")
+        not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
+    ]
+    unresolved_events = [
+        eid for eid in sorted(set(explicit_event_ids) | set(persisted_parent_event_ids))
+        if persisted_events.get(eid, {}).get("classification")
+        not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
+    ]
+
+    verified_conditions, conditions_soccer_ok = _verified_soccer_condition_ids(
+        unresolved_conditions,
+    )
+    negative_candidate_conditions = [
+        cid for cid in unresolved_conditions
+        if cid not in verified_conditions
+    ]
+    direct_markets, direct_markets_ok = _fetch_direct_gamma_markets(
+        negative_candidate_conditions,
+    )
+
+    inferred_event_ids: set = set()
+    parent_by_condition: Dict[str, Optional[str]] = {}
+    for cid, market in direct_markets.items():
+        parents = _market_parent_event_ids(market)
+        parent_by_condition[cid] = parents[0] if len(parents) == 1 else None
+        inferred_event_ids.update(parents)
+
+    all_event_ids = sorted(set(unresolved_events) | inferred_event_ids)
+    verified_events, events_soccer_ok = _verified_soccer_event_ids(all_event_ids)
+    negative_candidate_events = [
+        event_id for event_id in all_event_ids
+        if event_id not in verified_events
+    ]
+    direct_events, direct_events_ok = _fetch_direct_gamma_events(
+        negative_candidate_events,
+    )
+
+    football: List[Dict[str, Any]] = []
+    non_football: List[Dict[str, Any]] = []
+    uncertain: List[Dict[str, Any]] = []
+    registry_records: List[Dict[str, Any]] = []
+
+    for item in items:
+        cid = _registry_id(item.get("conditionId") or item.get("condition_id"))
+        explicit_eid = _registry_id(item.get("eventId") or item.get("event_id"))
+
+        persisted_condition_class = (
+            persisted_conditions.get(cid, {}).get("classification") if cid else None
+        )
+        persisted_parent_eid = _registry_id(
+            persisted_conditions.get(cid, {}).get("event_id")
+        ) if cid else ""
+        persisted_effective_eid = explicit_eid or persisted_parent_eid
+        persisted_event_class = (
+            persisted_events.get(persisted_effective_eid, {}).get("classification")
+            if persisted_effective_eid else None
+        )
+
+        if (
+            persisted_condition_class == FOOTBALL_CLASS_VERIFIED
+            or persisted_event_class == FOOTBALL_CLASS_VERIFIED
+        ):
+            resolved_eid = persisted_effective_eid or None
+            football.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_VERIFIED,
+                "persisted_verified_soccer",
+                resolved_eid,
+            ))
+            continue
+
+        if (
+            persisted_condition_class == FOOTBALL_CLASS_NON_FOOTBALL
+            or (
+                not cid
+                and persisted_event_class == FOOTBALL_CLASS_NON_FOOTBALL
+            )
+        ):
+            non_football.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_NON_FOOTBALL,
+                "persisted_verified_non_football",
+                explicit_eid or None,
+            ))
+            continue
+
+        market = direct_markets.get(cid) if cid else None
+        parents = _market_parent_event_ids(market) if market else []
+        parent_eid = parents[0] if len(parents) == 1 else None
+
+        # Explicit event identity and direct market parent must agree. A
+        # mismatch is evidence corruption/ambiguity, never a negative verdict.
+        if explicit_eid and parent_eid and explicit_eid != parent_eid:
+            uncertain.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_UNCERTAIN,
+                "conflicting_event_identity",
+                explicit_eid,
+            ))
+            continue
+
+        resolved_eid = explicit_eid or parent_eid
+
+        direct_event = direct_events.get(resolved_eid) if resolved_eid else None
+        direct_soccer_tag = (
+            _gamma_object_has_soccer_tag(market)
+            or _gamma_object_has_soccer_tag(direct_event)
+        )
+
+        if (
+            (cid and cid in verified_conditions)
+            or (resolved_eid and resolved_eid in verified_events)
+            or direct_soccer_tag
+        ):
+            football.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_VERIFIED,
+                "gamma_soccer_registry",
+                resolved_eid,
+            ))
+            if cid:
+                registry_records.append({
+                    "identity_type": "condition",
+                    "identity_id": cid,
+                    "event_id": resolved_eid,
+                    "classification": FOOTBALL_CLASS_VERIFIED,
+                    "source": "gamma_soccer_registry",
+                    "evidence": {"condition_soccer": cid in verified_conditions},
+                })
+            if resolved_eid:
+                registry_records.append({
+                    "identity_type": "event",
+                    "identity_id": resolved_eid,
+                    "event_id": resolved_eid,
+                    "classification": FOOTBALL_CLASS_VERIFIED,
+                    "source": "gamma_soccer_registry",
+                    "evidence": {"event_soccer": resolved_eid in verified_events},
+                })
+            continue
+
+        if not cid and not resolved_eid:
+            uncertain.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_UNCERTAIN,
+                "missing_gamma_identity",
+            ))
+            continue
+
+        # Conservative NON_FOOTBALL proof for a market/condition:
+        #  1) soccer-filtered condition query completed and omitted it,
+        #  2) unfiltered condition lookup resolved the exact market,
+        #  3) exactly one parent event was resolved,
+        #  4) unfiltered parent event lookup resolved,
+        #  5) soccer-filtered parent event query completed and omitted it.
+        condition_negative_proven = bool(
+            cid
+            and conditions_soccer_ok
+            and direct_markets_ok
+            and market is not None
+            and parent_eid
+            and direct_events_ok
+            and parent_eid in direct_events
+            and events_soccer_ok
+            and parent_eid not in verified_events
+            and cid not in verified_conditions
+            and _gamma_object_has_explicit_non_soccer_tags(
+                direct_events.get(parent_eid)
+            )
+        )
+
+        # Event-only rows require both a direct event lookup and a successful
+        # Soccer-tag event query before they can be rejected.
+        event_negative_proven = bool(
+            not cid
+            and resolved_eid
+            and direct_events_ok
+            and resolved_eid in direct_events
+            and events_soccer_ok
+            and resolved_eid not in verified_events
+            and _gamma_object_has_explicit_non_soccer_tags(
+                direct_events.get(resolved_eid)
+            )
+        )
+
+        if condition_negative_proven or event_negative_proven:
+            non_football.append(_with_sport_classification(
+                item,
+                FOOTBALL_CLASS_NON_FOOTBALL,
+                "gamma_double_negative",
+                resolved_eid,
+            ))
+            if cid:
+                registry_records.append({
+                    "identity_type": "condition",
+                    "identity_id": cid,
+                    "event_id": resolved_eid,
+                    "classification": FOOTBALL_CLASS_NON_FOOTBALL,
+                    "source": "gamma_double_negative",
+                    "evidence": {
+                        "direct_market": True,
+                        "condition_soccer": False,
+                        "direct_parent_event": True,
+                        "parent_event_soccer": False,
+                    },
+                })
+            if resolved_eid:
+                registry_records.append({
+                    "identity_type": "event",
+                    "identity_id": resolved_eid,
+                    "event_id": resolved_eid,
+                    "classification": FOOTBALL_CLASS_NON_FOOTBALL,
+                    "source": "gamma_double_negative",
+                    "evidence": {
+                        "direct_event": True,
+                        "event_soccer": False,
+                    },
+                })
+            continue
+
+        reason = "gamma_lookup_incomplete"
+        if cid and market is None and direct_markets_ok:
+            reason = "condition_not_resolved"
+        elif cid and market is not None and len(parents) != 1:
+            reason = "parent_event_ambiguous"
+        elif resolved_eid and direct_events_ok and resolved_eid not in direct_events:
+            reason = "event_not_resolved"
+        elif resolved_eid and not _gamma_tag_rows(direct_events.get(resolved_eid)):
+            reason = "event_tags_missing"
+
+        uncertain.append(_with_sport_classification(
+            item,
+            FOOTBALL_CLASS_UNCERTAIN,
+            reason,
+            resolved_eid,
+        ))
+        if cid:
+            registry_records.append({
+                "identity_type": "condition",
+                "identity_id": cid,
+                "event_id": resolved_eid,
+                "classification": FOOTBALL_CLASS_UNCERTAIN,
+                "source": reason,
+                "evidence": {},
+            })
+
+    _persist_sport_registry_records(registry_records)
+    return {
+        "verified_football": football,
+        "verified_non_football": non_football,
+        "uncertain": uncertain,
+        "verification_complete": not uncertain,
+    }
+
+
 def _filter_verified_football_items(
     items: List[Dict[str, Any]],
 ) -> Tuple[List[Dict[str, Any]], bool]:
-    """Keep only rows proven to belong to Gamma's Soccer registry.
-
-    Title, icon and slug heuristics are intentionally not accepted as proof.
-    conditionId/condition_id is primary. eventId/event_id is an independent
-    verified fallback when present. Rows with no verifiable identity are
-    excluded. ok=False means a registry request failed, not that a row was
-    positively identified as non-football.
-    """
-    if not items:
-        return [], True
-
-    condition_ids = [
-        item.get("conditionId") or item.get("condition_id")
-        for item in items
-        if item.get("conditionId") or item.get("condition_id")
-    ]
-    event_ids = [
-        item.get("eventId") or item.get("event_id")
-        for item in items
-        if item.get("eventId") or item.get("event_id")
-    ]
-
-    verified_conditions, conditions_ok = _verified_soccer_condition_ids(condition_ids)
-    verified_events, events_ok = _verified_soccer_event_ids(event_ids)
-
-    filtered: List[Dict[str, Any]] = []
-    verification_complete = True
-    for item in items:
-        condition_id = _registry_id(item.get("conditionId") or item.get("condition_id"))
-        event_id = _registry_id(item.get("eventId") or item.get("event_id"))
-
-        if (
-            (condition_id and condition_id in verified_conditions)
-            or (event_id and event_id in verified_events)
-        ):
-            filtered.append(item)
-            continue
-
-        # No identity at all is a deterministic strict exclusion. A lookup
-        # failure, however, is transient uncertainty and should be retried.
-        if (condition_id and not conditions_ok) or (event_id and not events_ok):
-            verification_complete = False
-
-    return filtered, verification_complete
+    """Compatibility wrapper around the conservative three-state V2 gate."""
+    classified = _classify_football_items(items)
+    return (
+        classified["verified_football"],
+        bool(classified["verification_complete"]),
+    )
 
 
 # Title suffix (after the first ':') -> our internal market_type key, mirroring
@@ -1968,7 +2473,12 @@ def _with_wallet_bet_display_metadata(item: Dict[str, Any]) -> Dict[str, Any]:
     return enriched
 
 
-def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+def fetch_wallet_activity(
+    wallet: str,
+    since_ts: Optional[int] = None,
+    max_pages: Optional[int] = None,
+    classification_details: bool = False,
+):
     """Fully/incrementally paginate the Data API /activity endpoint for a single
     wallet, filtered server-side to TRADE-type entries and client-side to
     markets verified by Gamma's Soccer tag registry. Returns (rows, truncated) - `truncated=True` means the
@@ -2025,17 +2535,27 @@ def fetch_wallet_activity(wallet: str, since_ts: Optional[int] = None, max_pages
 
     truncated = since_ts is not None and hit_page_cap
     if truncated:
+        if classification_details:
+            return rows, True, [], []
         return rows, True
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
-        # Treat registry uncertainty like an incomplete fetch so callers do
-        # not persist a partial category view or advance their checkpoint.
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, False, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], True
     return football_rows, False
 
 
-def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages: Optional[int] = None):
+def fetch_wallet_redeems(
+    wallet: str,
+    since_ts: Optional[int] = None,
+    max_pages: Optional[int] = None,
+    classification_details: bool = False,
+):
     """Fully/incrementally paginate the Data API /activity endpoint for a
     single wallet, filtered server-side to REDEEM-type entries (a wallet
     cashing out a resolved/winning position) and client-side to football
@@ -2089,15 +2609,25 @@ def fetch_wallet_redeems(wallet: str, since_ts: Optional[int] = None, max_pages:
 
     truncated = since_ts is not None and hit_page_cap
     if truncated:
+        if classification_details:
+            return rows, True, [], []
         return rows, True
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, False, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], True
     return football_rows, False
 
 
-def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
+def fetch_wallet_positions(
+    wallet: str,
+    classification_details: bool = False,
+):
     """Fetch ALL current positions (open + unredeemed-resolved) for a wallet via
     the Data API /positions endpoint, then strictly verified against Gamma's Soccer registry.
 
@@ -2126,10 +2656,13 @@ def fetch_wallet_positions(wallet: str) -> Tuple[List[Dict[str, Any]], bool]:
             break
         offset += _POSITIONS_PAGE_LIMIT
 
-    football_rows, registry_ok = _filter_verified_football_items(rows)
-    if not registry_ok:
-        # Do not let a temporary Gamma verification failure wipe the last
-        # known stored position snapshot.
+    classified = _classify_football_items(rows)
+    football_rows = classified["verified_football"]
+    uncertain_rows = classified["uncertain"]
+    non_football_rows = classified["verified_non_football"]
+    if classification_details:
+        return football_rows, not uncertain_rows, uncertain_rows, non_football_rows
+    if uncertain_rows:
         return [], False
     return football_rows, True
 
@@ -2592,9 +3125,10 @@ def _fetch_persisted_wallet_bets_for_stats(
                 params={
                     "select": (
                         "bet_key,stake_usdc,avg_entry_price,result,lifecycle_status,"
-                        "fill_count,first_traded_at,last_traded_at"
+                        "fill_count,first_traded_at,last_traded_at,sport_classification"
                     ),
                     "wallet": f"eq.{wallet.lower()}",
+                    "sport_classification": f"eq.{FOOTBALL_CLASS_VERIFIED}",
                     "order": "first_traded_at.asc.nullsfirst",
                     "limit": page_size,
                     "offset": page * page_size,
@@ -2712,7 +3246,8 @@ def _fetch_persisted_wallet_bets_for_profile(
         "pnl_kind,fill_count,buy_fill_count,sell_fill_count,first_traded_at,"
         "last_traded_at,latest_market_price,latest_market_decimal,"
         "latest_market_at,closing_price,closing_decimal,closing_observed_at,"
-        "clv_probability_pp,clv_pct"
+        "clv_probability_pp,clv_pct,sport_classification,sport_verified_at,"
+        "sport_classification_source"
     )
     rows: List[Dict[str, Any]] = []
     page_size = 1000
@@ -2725,6 +3260,7 @@ def _fetch_persisted_wallet_bets_for_profile(
                 params={
                     "select": select_fields,
                     "wallet": f"eq.{wallet.lower()}",
+                    "sport_classification": f"eq.{FOOTBALL_CLASS_VERIFIED}",
                     "order": "last_traded_at.desc.nullslast",
                     "limit": page_size,
                     "offset": page * page_size,
@@ -2789,6 +3325,9 @@ def _wallet_bet_api_contract(row: Dict[str, Any]) -> Dict[str, Any]:
         "sell_fill_count": int(row.get("sell_fill_count") or 0),
         "first_traded_at": row.get("first_traded_at"),
         "last_traded_at": row.get("last_traded_at") or row.get("traded_at"),
+        "sport_classification": row.get("sport_classification") or FOOTBALL_CLASS_VERIFIED,
+        "sport_verified_at": row.get("sport_verified_at"),
+        "sport_classification_source": row.get("sport_classification_source"),
     }
 
 
@@ -2947,6 +3486,9 @@ def _persist_wallet_bet_rows(
             "sell_fill_count": int(row.get("sell_fill_count") or 0),
             "first_traded_at": row.get("first_traded_at"),
             "last_traded_at": row.get("last_traded_at"),
+            "sport_classification": FOOTBALL_CLASS_VERIFIED,
+            "sport_verified_at": now,
+            "sport_classification_source": FOOTBALL_CLASSIFIER_VERSION,
             "updated_at": now,
         })
 
@@ -2993,7 +3535,10 @@ def _persisted_wallet_bet_to_display(row: Dict[str, Any]) -> Dict[str, Any]:
     return display
 
 
-def compute_and_save_wallet_stats(wallet: str) -> bool:
+def compute_and_save_wallet_stats(
+    wallet: str,
+    allow_verified_sport_rebase: bool = False,
+) -> bool:
     """Compute per-wallet stats from stored DB data and PATCH them back to
     tracked_wallets. Called by the scraper after each sync so the profile
     endpoint reads pre-computed values instead of recalculating on every request."""
@@ -3205,18 +3750,21 @@ def compute_and_save_wallet_stats(wallet: str) -> bool:
     raw_count = int(activity_stats.get("trade_count") or 0)
     raw_invested = float(activity_stats.get("total_invested_usdc") or 0)
 
+    persisted_floor_count = 0 if allow_verified_sport_rebase else baseline_count
+    persisted_floor_invested = 0.0 if allow_verified_sport_rebase else baseline_invested
     persisted_complete = bool(
         persisted_stats is not None
         and int(persisted_stats.get("trade_count") or 0)
-            >= max(baseline_count, raw_count)
+            >= max(persisted_floor_count, raw_count)
         and float(persisted_stats.get("total_invested_usdc") or 0)
-            + 0.01 >= max(baseline_invested, raw_invested)
+            + 0.01 >= max(persisted_floor_invested, raw_invested)
     )
 
     if persisted_complete:
         history_stats = persisted_stats
     elif (
-        baseline.get("last_synced_at")
+        not allow_verified_sport_rebase
+        and baseline.get("last_synced_at")
         and baseline_count >= raw_count
         and baseline_invested + 0.01 >= raw_invested
     ):
