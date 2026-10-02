@@ -1567,6 +1567,10 @@ FOOTBALL_CLASS_VERIFIED = "verified_football"
 FOOTBALL_CLASS_NON_FOOTBALL = "verified_non_football"
 FOOTBALL_CLASS_UNCERTAIN = "uncertain"
 FOOTBALL_CLASSIFIER_VERSION = "gamma-soccer-v2"
+# Positive Soccer proof is durable. Negative proof is deliberately short-lived
+# and must be revalidated so stale taxonomy/mapping cannot permanently hide a
+# real football market.
+FOOTBALL_NON_FOOTBALL_RECHECK_SECONDS = 60 * 60
 _soccer_condition_registry_cache: Dict[str, Tuple[bool, float]] = {}
 _soccer_event_registry_cache: Dict[str, Tuple[bool, float]] = {}
 _soccer_registry_lock = threading.Lock()
@@ -1734,6 +1738,40 @@ def _market_parent_event_ids(market: Dict[str, Any]) -> List[str]:
     return event_ids
 
 
+def _parse_registry_time(value: Any) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
+def _persisted_classification_is_trusted(
+    row: Optional[Dict[str, Any]],
+    now: Optional[datetime] = None,
+) -> bool:
+    if not isinstance(row, dict):
+        return False
+    classification = row.get("classification")
+    if classification == FOOTBALL_CLASS_VERIFIED:
+        return True
+    if classification != FOOTBALL_CLASS_NON_FOOTBALL:
+        return False
+    if row.get("classifier_version") not in (None, FOOTBALL_CLASSIFIER_VERSION):
+        return False
+    checked = _parse_registry_time(row.get("last_checked_at"))
+    if checked is None:
+        return False
+    now = now or datetime.now(timezone.utc)
+    return (
+        now - checked
+    ).total_seconds() <= FOOTBALL_NON_FOOTBALL_RECHECK_SECONDS
+
+
 def _load_persisted_sport_registry(
     identity_type: str,
     identity_ids: List[str],
@@ -1759,7 +1797,7 @@ def _load_persisted_sport_registry(
                 f"{base}/rest/v1/polymarket_sport_registry",
                 headers=_supabase_headers(),
                 params={
-                    "select": "identity_type,identity_id,event_id,classification,source,last_checked_at,next_retry_at,evidence",
+                    "select": "identity_type,identity_id,event_id,classification,classifier_version,source,last_checked_at,next_retry_at,evidence",
                     "identity_type": f"eq.{identity_type}",
                     "identity_id": f"in.({quoted})",
                 },
@@ -1979,13 +2017,15 @@ def _classify_football_items(
 
     unresolved_conditions = [
         cid for cid in condition_ids
-        if persisted_conditions.get(cid, {}).get("classification")
-        not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
+        if not _persisted_classification_is_trusted(
+            persisted_conditions.get(cid)
+        )
     ]
     unresolved_events = [
         eid for eid in sorted(set(explicit_event_ids) | set(persisted_parent_event_ids))
-        if persisted_events.get(eid, {}).get("classification")
-        not in (FOOTBALL_CLASS_VERIFIED, FOOTBALL_CLASS_NON_FOOTBALL)
+        if not _persisted_classification_is_trusted(
+            persisted_events.get(eid)
+        )
     ]
 
     verified_conditions, conditions_soccer_ok = _verified_soccer_condition_ids(
@@ -2025,16 +2065,24 @@ def _classify_football_items(
         cid = _registry_id(item.get("conditionId") or item.get("condition_id"))
         explicit_eid = _registry_id(item.get("eventId") or item.get("event_id"))
 
+        persisted_condition_row = persisted_conditions.get(cid) if cid else None
         persisted_condition_class = (
-            persisted_conditions.get(cid, {}).get("classification") if cid else None
+            persisted_condition_row.get("classification")
+            if _persisted_classification_is_trusted(persisted_condition_row)
+            else None
         )
         persisted_parent_eid = _registry_id(
-            persisted_conditions.get(cid, {}).get("event_id")
-        ) if cid else ""
+            persisted_condition_row.get("event_id")
+        ) if persisted_condition_row else ""
         persisted_effective_eid = explicit_eid or persisted_parent_eid
-        persisted_event_class = (
-            persisted_events.get(persisted_effective_eid, {}).get("classification")
+        persisted_event_row = (
+            persisted_events.get(persisted_effective_eid)
             if persisted_effective_eid else None
+        )
+        persisted_event_class = (
+            persisted_event_row.get("classification")
+            if _persisted_classification_is_trusted(persisted_event_row)
+            else None
         )
 
         if (
