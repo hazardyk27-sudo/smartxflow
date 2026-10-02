@@ -34,20 +34,28 @@ def test_flat_stake_units():
 
 
 def test_exact_hash_only_no_team_fuzzy_fallback():
-    signals = [{
-        "signal_uid": "sig_test",
-        "match_id_hash": "a1b2c3d4e5f6",
-        "home_team": "Manchester United",
-        "away_team": "Chelsea",
-        "market_key": "DC",
-        "selection_code": "1X",
-        "trigger_odds": 1.45,
-    }]
-    # A human can see this is probably the same game, but there is deliberately
-    # no exact hash key; V2 must leave it unsettled.
+    signals = [
+        {
+            "signal_id": "sig_test",
+            "match_id_hash": "a1b2c3d4e5f6",
+            "home_team": "Manchester United",
+            "away_team": "Chelsea",
+            "engine_version": "2.0.0",
+            "market_key": "DC",
+            "selection_code": "1X",
+            "trigger_odds": 1.45,
+        }
+    ]
     settlements, skipped = build_settlements_from_hash_scores(
         signals,
-        {"ffffffffffff": {"home": 1, "away": 0, "home_team": "Man Utd", "away_team": "Chelsea"}},
+        {
+            "ffffffffffff": {
+                "home": 1,
+                "away": 0,
+                "home_team": "Man Utd",
+                "away_team": "Chelsea",
+            }
+        },
         settled_at="2026-10-02T20:00:00Z",
     )
     assert settlements == []
@@ -55,23 +63,49 @@ def test_exact_hash_only_no_team_fuzzy_fallback():
 
 
 def test_exact_hash_builds_settlement_and_roi():
-    signals = [{
-        "signal_uid": "sig_test",
-        "match_id_hash": "a1b2c3d4e5f6",
-        "market_key": "DC",
-        "selection_code": "X2",
-        "trigger_odds": 1.60,
-    }]
+    signals = [
+        {
+            "signal_id": "sig_test",
+            "match_id_hash": "a1b2c3d4e5f6",
+            "engine_version": "2.0.0",
+            "market_key": "DC",
+            "selection_code": "X2",
+            "trigger_odds": 1.60,
+        }
+    ]
     settlements, skipped = build_settlements_from_hash_scores(
         signals,
         {"a1b2c3d4e5f6": "1-1"},
         settled_at="2026-10-02T20:00:00Z",
     )
+
     assert skipped == []
     assert len(settlements) == 1
-    assert settlements[0]["selection_result"] == "WIN"
-    assert abs(settlements[0]["flat_stake_units"] - 0.6) < 1e-9
-    assert settlements[0]["evidence"]["match_method"] == "exact_match_id_hash"
+    assert settlements[0]["outcome"] == "WIN"
+    assert abs(settlements[0]["pnl_units"] - 0.6) < 1e-9
+    assert settlements[0]["entry_odds"] == 1.60
+    assert settlements[0]["metadata"]["match_method"] == "exact_match_id_hash"
+
+
+def test_recommended_market_is_used_when_present():
+    signals = [
+        {
+            "signal_id": "sig_test",
+            "match_id_hash": "a1b2c3d4e5f6",
+            "engine_version": "2.0.0",
+            "market_key": "1X2",
+            "selection_code": "2",
+            "recommended_market": "DC",
+            "recommended_selection": "X2",
+            "trigger_odds": 1.55,
+        }
+    ]
+    settlements, _ = build_settlements_from_hash_scores(
+        signals,
+        {"a1b2c3d4e5f6": "1-1"},
+        settled_at="2026-10-02T20:00:00Z",
+    )
+    assert settlements[0]["outcome"] == "WIN"
 
 
 def test_parse_score_shapes():
