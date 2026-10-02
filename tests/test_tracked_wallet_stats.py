@@ -2024,6 +2024,109 @@ class TrackedWalletStatsTests(unittest.TestCase):
 
         self.assertEqual(patches, [])
 
+    def test_quarantine_key_is_stable_for_same_source_item(self):
+        item = {
+            "transactionHash": "0xtx",
+            "asset": "asset",
+            "conditionId": "condition",
+            "side": "BUY",
+            "timestamp": 123,
+        }
+        first = polymarket_scraper._sport_quarantine_item_key(
+            "activity",
+            item,
+        )
+        second = polymarket_scraper._sport_quarantine_item_key(
+            "activity",
+            dict(item),
+        )
+        self.assertEqual(first, second)
+
+    def test_scraper_quarantines_uncertain_without_dropping_verified_activity(self):
+        class FakeWriter:
+            def __init__(self):
+                self.activity = []
+                self.quarantine = []
+                self.positions = None
+
+            def get_wallet_activity_checkpoint(self, _wallet):
+                return None
+
+            def get_wallet_redeem_checkpoint(self, _wallet):
+                return None
+
+            def upsert_wallet_activity(self, rows):
+                self.activity.extend(rows)
+                return True
+
+            def upsert_wallet_redeems(self, _rows):
+                return True
+
+            def upsert_sport_quarantine(self, wallet, kind, rows):
+                self.quarantine.append((wallet, kind, rows))
+                return True
+
+            def replace_wallet_positions(self, _wallet, rows):
+                self.positions = rows
+                return True
+
+        verified = {
+            "transactionHash": "0xfootball",
+            "asset": "football-asset",
+            "conditionId": "football-condition",
+            "eventId": "football-event",
+            "title": "Club A vs. Club B",
+            "outcome": "Club A",
+            "side": "BUY",
+            "timestamp": 100,
+            "price": 0.5,
+            "size": 2000,
+            "_sport_classification": "verified_football",
+            "_sport_resolved_event_id": "football-event",
+        }
+        uncertain = {
+            "transactionHash": "0xmystery",
+            "asset": "mystery-asset",
+            "conditionId": "mystery-condition",
+            "title": "Unknown",
+            "side": "BUY",
+            "timestamp": 99,
+            "_sport_classification": "uncertain",
+            "_sport_reason": "event_tags_missing",
+        }
+
+        writer = FakeWriter()
+        with patch.object(
+            polymarket_scraper,
+            "fetch_wallet_activity",
+            return_value=([verified], False, [uncertain], []),
+        ), patch.object(
+            polymarket_scraper,
+            "fetch_wallet_redeems",
+            return_value=([], False, [], []),
+        ), patch.object(
+            polymarket_scraper,
+            "fetch_wallet_positions",
+            return_value=([], True, [], []),
+        ), patch.object(
+            polymarket_scraper,
+            "compute_and_save_wallet_stats",
+            return_value=True,
+        ):
+            polymarket_scraper.process_tracked_wallet(
+                writer,
+                {"wallet": "0xwallet", "nickname": "bettor"},
+            )
+
+        self.assertEqual(len(writer.activity), 1)
+        self.assertEqual(writer.activity[0]["asset"], "football-asset")
+        self.assertEqual(len(writer.quarantine), 1)
+        self.assertEqual(writer.quarantine[0][1], "activity")
+        self.assertEqual(
+            writer.quarantine[0][2][0]["_sport_reason"],
+            "event_tags_missing",
+        )
+
     def test_scraper_computes_stats_when_positions_api_fails(self):
         class FakeWriter:
             def __init__(self):
@@ -2035,15 +2138,18 @@ class TrackedWalletStatsTests(unittest.TestCase):
             def get_wallet_redeem_checkpoint(self, _wallet):
                 return None
 
+            def upsert_sport_quarantine(self, _wallet, _kind, _rows):
+                return True
+
             def replace_wallet_positions(self, _wallet, _rows):
                 self.positions_replaced = True
 
         writer = FakeWriter()
         computed = []
 
-        with patch.object(polymarket_scraper, "fetch_wallet_activity", return_value=([], False)), \
-             patch.object(polymarket_scraper, "fetch_wallet_redeems", return_value=([], False)), \
-             patch.object(polymarket_scraper, "fetch_wallet_positions", return_value=([], False)), \
+        with patch.object(polymarket_scraper, "fetch_wallet_activity", return_value=([], False, [], [])), \
+             patch.object(polymarket_scraper, "fetch_wallet_redeems", return_value=([], False, [], [])), \
+             patch.object(polymarket_scraper, "fetch_wallet_positions", return_value=([], False, [], [])), \
              patch.object(
                  polymarket_scraper,
                  "compute_and_save_wallet_stats",
