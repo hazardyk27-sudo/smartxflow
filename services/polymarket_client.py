@@ -3158,7 +3158,13 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         if open_position_count:
             summary_lines.append(f"Şu an {open_position_count} açık pozisyonu var, toplam {round(open_exposure, 0):,.0f} USDC değerinde.".replace(",", "."))
 
-    display_activity = _build_display_activity(activity_rows, position_rows, resolved_won_ids, resolved_lost_ids)
+    display_activity = _build_display_activity(
+        activity_rows,
+        position_rows,
+        resolved_won_ids,
+        resolved_lost_ids,
+        redeem_rows,
+    )
 
     return {
         "wallet": wallet_row.get("wallet"),
@@ -3196,259 +3202,263 @@ def _build_display_activity(
     position_rows: Optional[List[Dict[str, Any]]] = None,
     resolved_won_ids: Optional[set] = None,
     resolved_lost_ids: Optional[set] = None,
+    redeem_rows: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
-    """Turn raw per-fill activity rows into display-ready summary rows - ONE
-    row per position (Task #266), not one row per on-chain fill.
+    """Build one lifecycle row per canonical bettor position.
 
-    Two strategies, depending on whether the asset is still an open (or
-    resolved-but-unredeemed) position:
-
-    - Still in `position_rows` (current /positions snapshot): use the
-      already-aggregated `initial_value`/`avg_price`/`size` fields directly
-      as the display row - this IS Polymarket's own "toplam deger" for the
-      position, so there is no need to re-sum fills and risk drifting from
-      it (the old 120s aggregation window used to fragment this into dozens
-      of tiny rows for positions built up over hours/days).
-    - No longer in `position_rows` (fully sold or redeemed): sum ALL matching
-      fills for that asset + buy/sell action, with NO time limit, since
-      that's the only place the total ever existed.
+    BUY and SELL executions are accounting events inside the same bet, not
+    separate bets. The row exposes entry stake, exit proceeds, average entry
+    odds, current/final P&L, result/status and the latest lifecycle event.
     """
-    position_by_asset: Dict[str, Dict[str, Any]] = {}
-    for p in (position_rows or []):
-        asset = p.get("asset")
-        if asset:
-            position_by_asset[asset] = p
-
-    open_asset_latest: Dict[str, datetime] = {}
-    open_asset_fill_count: Dict[str, int] = {}
-
-    closed_groups: List[Dict[str, Any]] = []
-    closed_group_index: Dict[Tuple[Any, ...], int] = {}
+    position_rows = position_rows or []
+    redeem_rows = redeem_rows or []
     resolved_won_ids = resolved_won_ids or set()
     resolved_lost_ids = resolved_lost_ids or set()
 
-    # Some Polymarket "Redeem All" transactions batch-claim many resolved
-    # positions at once and come back from the Data API with an empty
-    # `asset` and one aggregate `conditionId` (often not even the market the
-    # payout is really for). Trusting that ambiguous conditionId as a blanket
-    # "won" for the market would wrongly paint EVERY outcome sharing that
-    # conditionId - including the actual loser - as a winner too (this is
-    # exactly what caused e.g. both "Mexico" and "England" to show Kazandı
-    # in a single-winner "Team to Advance" market). To guard against that: if
-    # we can identify, via a clean asset-level signal, which specific asset
-    # under a conditionId actually won, then ANY other asset under that same
-    # conditionId is a certain loser - no matter what an ambiguous
-    # conditionId-level redeem entry claims.
-    known_winner_asset_by_condition: Dict[Any, Any] = {}
-    distinct_assets_by_condition: Dict[Any, set] = {}
-    for a in activity_rows:
-        asset = a.get("asset")
-        cid = a.get("condition_id")
-        if asset and cid:
-            distinct_assets_by_condition.setdefault(cid, set()).add(asset)
-        if asset and cid and asset in resolved_won_ids:
-            known_winner_asset_by_condition[cid] = asset
-    for p in (position_rows or []):
-        asset = p.get("asset")
-        cid = p.get("condition_id")
-        if asset and cid:
-            distinct_assets_by_condition.setdefault(cid, set()).add(asset)
-        if asset and cid and asset in resolved_won_ids:
-            known_winner_asset_by_condition[cid] = asset
+    position_by_asset: Dict[str, Dict[str, Any]] = {
+        p.get("asset"): p for p in position_rows if p.get("asset")
+    }
 
-    # CLOB API web server tarafında çağrılmıyor.
-    # Scraper zaten result kolonunu yazıyor; NULL satırlar "bilinmiyor"
-    # gösterilir, scraper arka planda doldurur.
+    raw_rows_by_key: Dict[Tuple[Any, ...], List[Dict[str, Any]]] = {}
+    for idx, row in enumerate(activity_rows):
+        key = _canonical_bet_identity(row)
+        if key is None:
+            key = ("unidentified-fill", idx)
+        raw_rows_by_key.setdefault(key, []).append(row)
 
-    def _row_result(condition_id: Any, asset: Any = None) -> str:
-        # `asset` (specific outcome token) is checked first since it's
-        # unambiguous; `condition_id` (shared by all outcomes of a market)
-        # is only a fallback for rows scraped before the asset column
-        # existed - see comment above resolved_won_assets in the caller.
-        if asset and asset in resolved_won_ids:
-            return "won"
-        if asset and asset in resolved_lost_ids:
-            return "lost"
-        known_winner = known_winner_asset_by_condition.get(condition_id)
-        if known_winner:
-            return "won" if asset == known_winner else "lost"
+    canonical_bets = _group_activity_into_canonical_bets(activity_rows)
+
+    assets_by_condition: Dict[Any, set] = {}
+    for bet in canonical_bets:
+        cid = bet.get("condition_id")
+        asset = bet.get("asset")
+        if cid and asset:
+            assets_by_condition.setdefault(cid, set()).add(asset)
+
+    def _resolved_result(bet: Dict[str, Any]) -> str:
+        asset = bet.get("asset")
+        cid = bet.get("condition_id")
+        stored = bet.get("stored_result")
+        if stored in ("won", "lost"):
+            return stored
         if asset:
+            if asset in resolved_won_ids:
+                return "won"
+            if asset in resolved_lost_ids:
+                return "lost"
             return "unknown"
-        # A market can only have ONE winning outcome. If we've actually seen
-        # more than one distinct asset traded under this conditionId (e.g.
-        # both "Over" and "Under") but have no asset for this row (legacy
-        # rows scraped before the asset column existed) an ambiguous
-        # conditionId-level redeem entry is NOT reliable enough to call
-        # every side a winner - so we report "unknown" rather than risk a
-        # false "Kazandı" for the side that actually lost. The blanket
-        # conditionId fallback below is only safe when at most one outcome
-        # was ever traded under it.
-        if len(distinct_assets_by_condition.get(condition_id, set())) > 1:
+        if len(assets_by_condition.get(cid, set())) > 1:
             return "unknown"
-        if condition_id in resolved_won_ids:
+        if cid in resolved_won_ids:
             return "won"
-        if condition_id in resolved_lost_ids:
+        if cid in resolved_lost_ids:
             return "lost"
         return "unknown"
 
-    for a in activity_rows:
+    redeem_by_asset: Dict[str, float] = {}
+    redeem_time_by_asset: Dict[str, Optional[str]] = {}
+    redeem_by_condition: Dict[Any, float] = {}
+    redeem_time_by_condition: Dict[Any, Optional[str]] = {}
+    for redeem in redeem_rows:
         try:
-            traded_dt = datetime.fromisoformat(str(a.get("traded_at")).replace("Z", "+00:00"))
-        except Exception:
-            traded_dt = None
+            amount = float(redeem.get("amount_usdc") or 0)
+        except (TypeError, ValueError):
+            amount = 0.0
+        asset = redeem.get("asset")
+        cid = redeem.get("condition_id")
+        traded_at = redeem.get("traded_at")
+        if asset:
+            redeem_by_asset[asset] = redeem_by_asset.get(asset, 0.0) + amount
+            if traded_at and (
+                not redeem_time_by_asset.get(asset)
+                or str(traded_at) > str(redeem_time_by_asset.get(asset))
+            ):
+                redeem_time_by_asset[asset] = traded_at
+        elif cid and len(assets_by_condition.get(cid, set())) <= 1:
+            redeem_by_condition[cid] = redeem_by_condition.get(cid, 0.0) + amount
+            if traded_at and (
+                not redeem_time_by_condition.get(cid)
+                or str(traded_at) > str(redeem_time_by_condition.get(cid))
+            ):
+                redeem_time_by_condition[cid] = traded_at
 
-        asset = a.get("asset")
-        raw_action = (a.get("action") or "").strip().lower()
-
-        if asset and asset in position_by_asset:
-            row_fill_count = int(a.get("fill_count") or 1)
-            open_asset_fill_count[asset] = open_asset_fill_count.get(asset, 0) + row_fill_count
-            if traded_dt is not None and (asset not in open_asset_latest or traded_dt > open_asset_latest[asset]):
-                open_asset_latest[asset] = traded_dt
+    display_rows: List[Dict[str, Any]] = []
+    for bet in canonical_bets:
+        key = bet.get("bet_key")
+        rows = raw_rows_by_key.get(key, [])
+        if not rows:
             continue
 
-        action_label = _ACTION_LABELS.get(raw_action, a.get("action") or a.get("side") or "-")
-        match_meta = _canonical_match_metadata(a)
-        home = match_meta.get("home")
-        away = match_meta.get("away")
-        match_label = match_meta.get("match_name") or a.get("title") or "-"
-        # Group by asset (uniquely identifies market+outcome) when available,
-        # falling back to condition_id/title/selection/side for older rows
-        # scraped before the `asset` column was selected here.
-        group_key = asset or (a.get("condition_id"), a.get("title"), a.get("selection"), a.get("side"))
-        key = (group_key, raw_action)
-        idx = closed_group_index.get(key)
-        amount = float(a.get("amount_usdc") or 0)
-        if idx is None:
-            closed_groups.append({
-                "title": a.get("title"),
-                "match": match_label,
-                "match_name": match_label,
-                "match_key": match_meta.get("match_key"),
-                "event_id": match_meta.get("event_id"),
-                "kickoff_utc": match_meta.get("kickoff_utc"),
-                "home": home,
-                "away": away,
-                "slug": match_meta.get("event_slug") or a.get("slug"),
-                "market_type": a.get("market_type"),
-                "selection": a.get("selection"),
-                "side": a.get("side"),
-                "action": action_label,
-                "condition_id": a.get("condition_id"),
-                "asset": asset,
-                "outcome_raw": a.get("outcome_raw"),
-                "amount_usdc": amount,
-                "_price_weight_sum": float(a.get("price") or 0) * amount,
-                "traded_at": a.get("traded_at"),
-                "fill_count": int(a.get("fill_count") or 1),
-                "_last_dt": traded_dt,
-                "_stored_result": a.get("result") if a.get("result") in ("won", "lost") else None,
-            })
-            closed_group_index[key] = len(closed_groups) - 1
-        else:
-            g = closed_groups[idx]
-            g["amount_usdc"] += amount
-            g["_price_weight_sum"] += float(a.get("price") or 0) * amount
-            g["fill_count"] += 1
-            if traded_dt and (g["_last_dt"] is None or traded_dt > g["_last_dt"]):
-                g["_last_dt"] = traded_dt
-                g["traded_at"] = a.get("traded_at")
-            if g.get("_stored_result") is None and a.get("result") in ("won", "lost"):
-                g["_stored_result"] = a["result"]
+        stake = float(bet.get("stake_usdc") or 0)
+        if stake <= 0:
+            continue
 
-    display_rows = []
-    for g in closed_groups:
-        avg_p = (g["_price_weight_sum"] / g["amount_usdc"]) if g["amount_usdc"] else 0.0
-        contract = _wallet_bet_display_contract(g)
-        display_rows.append({
-            "title": g["title"],
-            "match": g["match"],
-            "match_name": g["match_name"],
-            "match_key": g["match_key"],
-            "event_id": g["event_id"],
-            "kickoff_utc": g["kickoff_utc"],
-            "home": g["home"],
-            "away": g["away"],
-            "slug": g["slug"],
-            "market_type": contract["market_type"],
-            "market_label": contract["market_label"],
-            "selection_label": contract["selection_label"],
-            "side_label": contract["side_label"],
-            "bet_label": contract["bet_label"],
-            "selection": g["selection"],
-            "side": g["side"],
-            "action": g["action"],
-            "is_open": False,
-            "result": g.get("_stored_result") or _row_result(g["condition_id"], g.get("asset")),
-            "outcome_raw": g["outcome_raw"],
-            "amount_usdc": round(g["amount_usdc"], 2),
-            "price": _to_decimal_odds(avg_p),
-            "traded_at": g["traded_at"],
-            "fill_count": g["fill_count"],
-        })
+        latest_row = rows[0]
+        first_traded_at: Optional[str] = None
+        last_traded_at: Optional[str] = None
+        buy_shares = 0.0
+        sell_shares = 0.0
 
-    for asset, p in position_by_asset.items():
-        mt, _fallback_home, _fallback_away, selection, side = _parse_activity_market({
-            "title": p.get("title"),
-            "slug": p.get("slug"),
-            "outcome": p.get("outcome"),
-        })
-        match_meta = _canonical_match_metadata(p)
-        home = match_meta.get("home") or _fallback_home
-        away = match_meta.get("away") or _fallback_away
-        match_label = match_meta.get("match_name") or (
-            f"{home} - {away}" if away else (home or p.get("title") or "-")
+        for row in rows:
+            traded_at = row.get("traded_at")
+            if traded_at:
+                traded_s = str(traded_at)
+                if first_traded_at is None or traded_s < first_traded_at:
+                    first_traded_at = traded_s
+                if last_traded_at is None or traded_s > last_traded_at:
+                    last_traded_at = traded_s
+                    latest_row = row
+
+            try:
+                amount = float(row.get("amount_usdc") or 0)
+            except (TypeError, ValueError):
+                amount = 0.0
+            try:
+                price = float(row.get("price") or 0)
+            except (TypeError, ValueError):
+                price = 0.0
+            try:
+                size = float(row.get("size") or 0)
+            except (TypeError, ValueError):
+                size = 0.0
+            shares = size if size > 0 else (
+                amount / price if amount > 0 and price > 0 else 0.0
+            )
+
+            action = _tracked_wallet_activity_action(row)
+            if action == "BUY":
+                buy_shares += shares
+            elif action == "SELL":
+                sell_shares += shares
+
+        asset = bet.get("asset")
+        cid = bet.get("condition_id")
+        current_position = position_by_asset.get(asset) if asset else None
+        result = _resolved_result(bet)
+
+        redeem_proceeds = 0.0
+        redeem_time = None
+        if asset and asset in redeem_by_asset:
+            redeem_proceeds = redeem_by_asset[asset]
+            redeem_time = redeem_time_by_asset.get(asset)
+        elif cid in redeem_by_condition:
+            redeem_proceeds = redeem_by_condition[cid]
+            redeem_time = redeem_time_by_condition.get(cid)
+
+        if redeem_time and (
+            last_traded_at is None or str(redeem_time) > last_traded_at
+        ):
+            last_traded_at = str(redeem_time)
+
+        sell_proceeds = float(bet.get("sell_proceeds_usdc") or 0)
+        fully_sold = (
+            buy_shares > 0
+            and sell_shares >= (buy_shares * 0.995)
         )
-        contract = _wallet_bet_display_contract({
-            **p,
-            "market_type": mt,
-            "selection": selection,
-            "side": side,
-            "outcome_raw": p.get("outcome"),
-        })
-        last_dt = open_asset_latest.get(asset)
-        condition_id = p.get("condition_id")
-        # A position still shows up in Polymarket's /positions snapshot even
-        # after its market has resolved, until the wallet actually redeems
-        # it. `resolved_won_ids`/`resolved_lost_ids` (computed by the caller
-        # from `redeemable` + `cur_price` thresholds) tell us whether that
-        # has already happened, so a resolved-but-unredeemed row shows its
-        # real Kazandı/Kaybetti result instead of "Açık" (Task #268).
-        row_result = _row_result(condition_id, asset)
-        is_still_open = row_result == "unknown"
+
+        if result == "won":
+            lifecycle_status = "resolved"
+            status_label = "Kazandı"
+        elif result == "lost":
+            lifecycle_status = "resolved"
+            status_label = "Kaybetti"
+        elif current_position is not None:
+            lifecycle_status = "open"
+            status_label = "Açık"
+            result = "open"
+        elif fully_sold:
+            lifecycle_status = "closed"
+            status_label = "Kapandı"
+            result = "closed"
+        else:
+            lifecycle_status = "unknown"
+            status_label = "Bilinmiyor"
+            result = "unknown"
+
+        pnl_usdc: Optional[float] = None
+        pnl_kind = "unknown"
+        if current_position is not None:
+            try:
+                cash_pnl = current_position.get("cash_pnl")
+                if cash_pnl is not None:
+                    pnl_usdc = float(cash_pnl)
+                    pnl_kind = "current"
+            except (TypeError, ValueError):
+                pnl_usdc = None
+        elif fully_sold:
+            pnl_usdc = sell_proceeds + redeem_proceeds - stake
+            pnl_kind = "realized"
+        elif result == "lost":
+            pnl_usdc = sell_proceeds + redeem_proceeds - stake
+            pnl_kind = "realized"
+        elif result == "won" and redeem_proceeds > 0:
+            pnl_usdc = sell_proceeds + redeem_proceeds - stake
+            pnl_kind = "realized"
+
+        source = dict(latest_row)
+        for field in (
+            "wallet", "condition_id", "asset", "market_type",
+            "selection", "side", "outcome_raw",
+        ):
+            if not source.get(field) and bet.get(field) is not None:
+                source[field] = bet.get(field)
+
+        if current_position is not None:
+            for field in ("title", "slug", "event_id"):
+                if current_position.get(field):
+                    source[field] = current_position.get(field)
+
+        enriched = _with_wallet_bet_display_metadata(source)
+        avg_entry_probability = float(bet.get("avg_entry_price") or 0)
+        avg_entry_decimal = (
+            _to_decimal_odds(avg_entry_probability)
+            if avg_entry_probability else None
+        )
+
         display_rows.append({
-            "title": p.get("title"),
-            "match": match_label,
-            "match_name": match_label,
-            "match_key": match_meta.get("match_key"),
-            "event_id": match_meta.get("event_id"),
-            "kickoff_utc": match_meta.get("kickoff_utc"),
-            "home": home,
-            "away": away,
-            "slug": match_meta.get("event_slug") or p.get("slug"),
-            "market_type": contract["market_type"],
-            "market_label": contract["market_label"],
-            "selection_label": contract["selection_label"],
-            "side_label": contract["side_label"],
-            "bet_label": contract["bet_label"],
-            "selection": selection,
-            "side": side,
-            # A still-open position on Polymarket only exists because outcome
-            # shares were bought (and not fully sold/redeemed yet) - there is
-            # no "short" mechanic - so the transaction the user actually made
-            # is always a Buy. "Open"/"Kazandı"/"Kaybetti" is a separate
-            # status, not an action; it's surfaced to the frontend via
-            # `is_open`/`result` so it can render a distinct badge instead of
-            # overwriting the Alım/Satım column.
-            "action": _ACTION_LABELS["buy"],
-            "is_open": is_still_open,
-            "result": "open" if is_still_open else row_result,
-            "outcome_raw": p.get("outcome"),
-            "amount_usdc": round(float(p.get("initial_value") or 0), 2),
-            "price": _to_decimal_odds(float(p.get("avg_price") or 0)),
-            "traded_at": last_dt.isoformat() if last_dt else None,
-            "fill_count": open_asset_fill_count.get(asset, 0),
+            "title": source.get("title"),
+            "match": enriched.get("match") or enriched.get("match_name") or source.get("title") or "-",
+            "match_name": enriched.get("match_name"),
+            "match_key": enriched.get("match_key"),
+            "event_id": enriched.get("event_id"),
+            "kickoff_utc": enriched.get("kickoff_utc"),
+            "home": enriched.get("home"),
+            "away": enriched.get("away"),
+            "slug": enriched.get("slug"),
+            "market_type": enriched.get("market_type"),
+            "market_label": enriched.get("market_label"),
+            "selection_label": enriched.get("selection_label"),
+            "side_label": enriched.get("side_label"),
+            "bet_label": enriched.get("bet_label"),
+            "selection": source.get("selection"),
+            "side": source.get("side"),
+            "asset": asset,
+            "condition_id": cid,
+            "action": "Pozisyon",
+            "is_open": lifecycle_status == "open",
+            "result": result,
+            "lifecycle_status": lifecycle_status,
+            "status_label": status_label,
+            "outcome_raw": source.get("outcome_raw") or source.get("outcome"),
+            "stake_usdc": round(stake, 2),
+            "sell_proceeds_usdc": round(sell_proceeds, 2),
+            "redeem_proceeds_usdc": round(redeem_proceeds, 2),
+            "amount_usdc": round(stake, 2),
+            "avg_entry_price": round(avg_entry_probability, 6),
+            "avg_entry_decimal": avg_entry_decimal,
+            "price": avg_entry_decimal,
+            "pnl_usdc": round(pnl_usdc, 2) if pnl_usdc is not None else None,
+            "pnl_kind": pnl_kind,
+            "first_traded_at": first_traded_at,
+            "last_traded_at": last_traded_at,
+            "traded_at": last_traded_at,
+            "fill_count": int(bet.get("fill_count") or 0),
+            "buy_fill_count": int(bet.get("buy_fill_count") or 0),
+            "sell_fill_count": int(bet.get("sell_fill_count") or 0),
         })
 
-    display_rows.sort(key=lambda r: r.get("traded_at") or "", reverse=True)
+    display_rows.sort(
+        key=lambda row: row.get("last_traded_at") or "",
+        reverse=True,
+    )
     return display_rows

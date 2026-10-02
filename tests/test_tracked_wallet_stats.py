@@ -714,6 +714,199 @@ class TrackedWalletStatsTests(unittest.TestCase):
         self.assertEqual(rows[0]["side_label"], "")
         self.assertEqual(rows[0]["bet_label"], "Alt")
 
+    def test_display_activity_merges_buy_and_sell_into_one_lifecycle_row(self):
+        activity = [
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "event_id": "99",
+                "title": "France vs. Spain",
+                "slug": "france-spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "BUY",
+                "outcome_raw": "France",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+                "traded_at": "2026-10-02T15:00:00+00:00",
+            },
+            {
+                "wallet": "0xwallet",
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "event_id": "99",
+                "title": "France vs. Spain",
+                "slug": "france-spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "SELL",
+                "outcome_raw": "France",
+                "amount_usdc": 1200,
+                "price": 0.6,
+                "size": 2000,
+                "traded_at": "2026-10-02T18:00:00+00:00",
+            },
+        ]
+        stored = [{
+            "event_id": "99",
+            "slug": "france-spain",
+            "home": "France",
+            "away": "Spain",
+            "kickoff_utc": "2026-10-02T20:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=stored):
+            rows = polymarket_client._build_display_activity(activity, [], set(), set(), [])
+
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["asset"], "france-yes")
+        self.assertEqual(row["stake_usdc"], 1000.0)
+        self.assertEqual(row["sell_proceeds_usdc"], 1200.0)
+        self.assertEqual(row["buy_fill_count"], 1)
+        self.assertEqual(row["sell_fill_count"], 1)
+        self.assertEqual(row["fill_count"], 2)
+        self.assertEqual(row["status_label"], "Kapandı")
+        self.assertEqual(row["lifecycle_status"], "closed")
+        self.assertEqual(row["result"], "closed")
+        self.assertEqual(row["price"], 2.0)
+        self.assertEqual(row["pnl_usdc"], 200.0)
+        self.assertEqual(row["pnl_kind"], "realized")
+        self.assertEqual(row["traded_at"], "2026-10-02T18:00:00+00:00")
+
+    def test_open_lifecycle_keeps_sell_inside_same_row_and_uses_current_pnl(self):
+        activity = [
+            {
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "title": "France vs. Spain",
+                "slug": "france-spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "BUY",
+                "outcome_raw": "France",
+                "amount_usdc": 1200,
+                "price": 0.6,
+                "size": 2000,
+                "traded_at": "2026-10-02T15:00:00+00:00",
+            },
+            {
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "title": "France vs. Spain",
+                "slug": "france-spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "SELL",
+                "outcome_raw": "France",
+                "amount_usdc": 300,
+                "price": 0.75,
+                "size": 400,
+                "traded_at": "2026-10-02T16:00:00+00:00",
+            },
+        ]
+        positions = [{
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "title": "France vs. Spain",
+            "slug": "france-spain",
+            "outcome": "France",
+            "cash_pnl": 150,
+            "current_value": 1050,
+            "redeemable": False,
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=[]):
+            rows = polymarket_client._build_display_activity(activity, positions, set(), set(), [])
+
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["status_label"], "Açık")
+        self.assertEqual(row["result"], "open")
+        self.assertEqual(row["stake_usdc"], 1200.0)
+        self.assertEqual(row["sell_proceeds_usdc"], 300.0)
+        self.assertEqual(row["pnl_usdc"], 150.0)
+        self.assertEqual(row["pnl_kind"], "current")
+
+    def test_redeemed_winner_lifecycle_uses_payout_for_realized_pnl(self):
+        activity = [{
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "title": "France vs. Spain",
+            "slug": "france-spain",
+            "market_type": "1x2",
+            "selection": "France",
+            "action": "BUY",
+            "outcome_raw": "France",
+            "amount_usdc": 1000,
+            "price": 0.5,
+            "size": 2000,
+            "traded_at": "2026-10-02T15:00:00+00:00",
+            "result": "won",
+        }]
+        redeems = [{
+            "asset": "france-yes",
+            "condition_id": "france-market",
+            "amount_usdc": 2000,
+            "traded_at": "2026-10-02T22:00:00+00:00",
+        }]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=[]):
+            rows = polymarket_client._build_display_activity(
+                activity, [], {"france-yes"}, set(), redeems
+            )
+
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["status_label"], "Kazandı")
+        self.assertEqual(row["result"], "won")
+        self.assertEqual(row["redeem_proceeds_usdc"], 2000.0)
+        self.assertEqual(row["pnl_usdc"], 1000.0)
+        self.assertEqual(row["pnl_kind"], "realized")
+        self.assertEqual(row["traded_at"], "2026-10-02T22:00:00+00:00")
+
+    def test_lost_lifecycle_realized_pnl_includes_prior_sell_proceeds(self):
+        activity = [
+            {
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "title": "France vs. Spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "BUY",
+                "outcome_raw": "France",
+                "amount_usdc": 1000,
+                "price": 0.5,
+                "size": 2000,
+                "traded_at": "2026-10-02T15:00:00+00:00",
+            },
+            {
+                "asset": "france-yes",
+                "condition_id": "france-market",
+                "title": "France vs. Spain",
+                "market_type": "1x2",
+                "selection": "France",
+                "action": "SELL",
+                "outcome_raw": "France",
+                "amount_usdc": 250,
+                "price": 0.5,
+                "size": 500,
+                "traded_at": "2026-10-02T16:00:00+00:00",
+            },
+        ]
+
+        with patch.object(polymarket_client, "_fetch_stored_matches", return_value=[]):
+            rows = polymarket_client._build_display_activity(
+                activity, [], set(), {"france-yes"}, []
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["status_label"], "Kaybetti")
+        self.assertEqual(rows[0]["pnl_usdc"], -750.0)
+        self.assertEqual(rows[0]["pnl_kind"], "realized")
+
     def test_summary_filters_tracking_boundary_and_groups_fills_by_market(self):
         activity = [
             {
