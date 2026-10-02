@@ -453,6 +453,22 @@ def run_runtime_batch(
     """Evaluate a bounded post-scrape batch and persist immutable triggers."""
     cfg = runtime_config or RuntimeConfig()
     log = logger or (lambda _message: None)
+
+    try:
+        signal_store.list_signals(limit=1)
+    except Exception as exc:
+        log(f"[AnalysisV2] runtime skipped — ledger unavailable: {exc}")
+        return {
+            "runtime_version": RUNTIME_VERSION,
+            "skipped": True,
+            "skip_reason": "V2_LEDGER_UNAVAILABLE",
+            "candidate_count": 0,
+            "signal_count": 0,
+            "signals": [],
+            "error_count": 0,
+            "errors": [],
+        }
+
     candidates = _latest_cycle_candidates(
         current_snapshot_rows,
         max_matches=max_matches,
