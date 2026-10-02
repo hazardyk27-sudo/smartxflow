@@ -87,8 +87,33 @@
             </div>
         </section>
 
+        <section class="v2-controls" aria-label="Analiz filtreleri">
+            <div class="scope-tabs" role="tablist" aria-label="Sinyal zamanı">
+                <button class="scope-btn active" data-scope="active" type="button">Aktif</button>
+                <button class="scope-btn" data-scope="history" type="button">Geçmiş</button>
+                <button class="scope-btn" data-scope="all" type="button">Tümü</button>
+            </div>
+            <div class="control-fields">
+                <label class="search-field">
+                    <span class="sr-only">Maç veya lig ara</span>
+                    <input id="signalSearch" type="search" maxlength="80" placeholder="Maç veya lig ara">
+                </label>
+                <label class="market-field">
+                    <span class="sr-only">Market filtresi</span>
+                    <select id="marketFilter">
+                        <option value="">Tüm marketler</option>
+                        <option value="1X2">1X2</option>
+                        <option value="DNB">DNB</option>
+                        <option value="DC">Double Chance</option>
+                        <option value="OU25">O/U 2.5</option>
+                        <option value="BTTS">BTTS</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+
         <section class="v2-toolbar">
-            <div class="v2-filters" role="tablist" aria-label="Sinyal filtreleri">
+            <div class="v2-filters" role="tablist" aria-label="Sinyal durumları">
                 <button class="filter-btn active" data-filter="ALL" type="button">Tümü</button>
                 <button class="filter-btn" data-filter="FIRSAT" type="button">Fırsat</button>
                 <button class="filter-btn" data-filter="IZLE" type="button">İzle</button>
@@ -117,6 +142,18 @@
             </div>
         </article>
     </template>
+
+    <div id="signalDetailBackdrop" class="detail-backdrop" hidden></div>
+    <aside id="signalDetailDrawer" class="detail-drawer" aria-hidden="true" aria-label="Sinyal detayları">
+        <div class="detail-drawer-head">
+            <div>
+                <span class="detail-drawer-kicker">IMMUTABLE SIGNAL</span>
+                <h2 id="detailDrawerTitle">Sinyal Detayı</h2>
+            </div>
+            <button id="detailDrawerClose" class="detail-close" type="button" aria-label="Detayı kapat">×</button>
+        </div>
+        <div id="detailDrawerBody" class="detail-drawer-body"></div>
+    </aside>
 
     {% if pro_required %}
     <div id="proGateOverlay" class="pro-gate">
