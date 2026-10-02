@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from .entry_price import resolve_entry_odds_with_source
 from .signal_store import build_settlement_event, validate_match_id_hash
 
 
@@ -137,7 +138,7 @@ def build_settlements_from_hash_scores(
         outcome = evaluate_selection(
             market_key, selection_code, home_score, away_score
         )
-        entry_odds = signal.get("trigger_odds")
+        entry_odds, entry_odds_source = resolve_entry_odds_with_source(signal)
 
         settlements.append(
             build_settlement_event(
@@ -151,7 +152,10 @@ def build_settlements_from_hash_scores(
                 settled_at=settled_at,
                 settlement_source=settlement_source,
                 engine_version=signal.get("engine_version", ""),
-                metadata={"match_method": "exact_match_id_hash"},
+                metadata={
+                    "match_method": "exact_match_id_hash",
+                    "entry_odds_source": entry_odds_source,
+                },
             )
         )
 
