@@ -301,7 +301,7 @@ def test_runtime_batch_persists_real_candidate_from_current_snapshot_cycle():
         max_matches=10,
         runtime_config=RuntimeConfig(),
     )
-    assert result["skipped"] if "skipped" in result else False is False
+    assert result.get("skipped") is not True
     assert result["signal_count"] >= 1
     assert any(
         payload["engine_key"] == "underdog_pressure_v2"
