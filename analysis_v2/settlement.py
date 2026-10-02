@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, Optional, Tuple
 
-from .entry_price import resolve_entry_odds_with_source
+from .entry_price import flat_stake_pnl_units, resolve_entry_odds_with_source
 from .signal_store import build_settlement_event, validate_match_id_hash
 
 
@@ -97,18 +97,7 @@ def evaluate_selection(
 
 
 def flat_stake_units(odds: Any, outcome: str) -> Optional[float]:
-    outcome = str(outcome or "").upper()
-    if outcome in ("PUSH", "VOID"):
-        return 0.0
-    if outcome == "LOSS":
-        return -1.0
-    if outcome != "WIN":
-        return None
-    try:
-        price = float(odds)
-    except (TypeError, ValueError):
-        return None
-    return price - 1.0 if price > 1 else None
+    return flat_stake_pnl_units(odds, outcome)
 
 
 def build_settlements_from_hash_scores(
