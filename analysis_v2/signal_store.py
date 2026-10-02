@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from .entry_price import resolve_entry_odds
+from .entry_price import flat_stake_pnl_units, resolve_entry_odds
 
 
 _HASH_RE = re.compile(r"^[0-9a-f]{12}$")
@@ -580,14 +580,19 @@ class SignalStore:
                 "fallback is forbidden"
             )
 
+        entry_odds = resolve_entry_odds(signal)
+        canonical_pnl_units = flat_stake_pnl_units(
+            entry_odds,
+            outcome,
+        )
         settlement = build_settlement_event(
             signal_id=signal_id,
             match_id_hash=exact_hash,
             final_home_score=final_home_score,
             final_away_score=final_away_score,
             outcome=outcome,
-            entry_odds=resolve_entry_odds(signal),
-            pnl_units=pnl_units,
+            entry_odds=entry_odds,
+            pnl_units=canonical_pnl_units,
             settled_at=settled_at,
             settlement_source=settlement_source,
             engine_version=signal.get("engine_version", ""),
