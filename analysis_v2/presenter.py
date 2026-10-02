@@ -392,3 +392,95 @@ def present_signal_rows(rows: Iterable[Mapping[str, Any]]) -> Dict[str, Any]:
         "counts": counts,
         "signals": cards,
     }
+
+
+
+STATE_LABELS_TR = {
+    "TRIGGERED": "Tetiklendi",
+    "ACTIVE": "Aktif",
+    "CONFIRMED": "Teyit Edildi",
+    "WEAKENED": "Zayıfladı",
+    "INVALIDATED": "Geçersizleşti",
+    "SETTLED": "Sonuçlandı",
+}
+
+
+def _state_timeline_item(row: Mapping[str, Any]) -> Dict[str, Any]:
+    state = str(row.get("state") or "").upper()
+    return {
+        "state": state,
+        "label": STATE_LABELS_TR.get(state, state or "Bilinmiyor"),
+        "state_at": _timestamp(row.get("state_at")),
+        "current_odds": _round(row.get("current_odds"), 3),
+        "current_pct": _round(row.get("current_pct"), 2),
+        "current_amount": _round(row.get("current_amount"), 2),
+        "current_volume": _round(row.get("current_volume"), 2),
+        "reason_code": str(row.get("reason_code") or ""),
+        "reason": _dict(row.get("reason")),
+    }
+
+
+def present_signal_detail(
+    current_row: Mapping[str, Any],
+    state_rows: Iterable[Mapping[str, Any]] = (),
+    settlement_row: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Build an auditable exact-signal detail payload for the V2 drawer."""
+    card = present_signal(current_row)
+    timeline = [_state_timeline_item(row) for row in state_rows]
+    timeline.sort(
+        key=lambda item: (
+            item.get("state_at") or "",
+            item.get("state") or "",
+        )
+    )
+
+    settlement_source = settlement_row or current_row
+    outcome = str(settlement_source.get("outcome") or "").upper()
+    settlement = None
+    if outcome or settlement_source.get("settled_at"):
+        settlement = {
+            "outcome": outcome or None,
+            "final_home_score": (
+                int(settlement_source["final_home_score"])
+                if settlement_source.get("final_home_score") is not None
+                else None
+            ),
+            "final_away_score": (
+                int(settlement_source["final_away_score"])
+                if settlement_source.get("final_away_score") is not None
+                else None
+            ),
+            "entry_odds": _round(settlement_source.get("entry_odds"), 3),
+            "pnl_units": _round(settlement_source.get("pnl_units"), 3),
+            "settled_at": _timestamp(settlement_source.get("settled_at")),
+            "settlement_source": str(
+                settlement_source.get("settlement_source") or ""
+            ),
+        }
+
+    return {
+        "contract_version": UI_CONTRACT_VERSION,
+        "signal_id": card["signal_id"],
+        "card": card,
+        "timeline": timeline,
+        "settlement": settlement,
+        "audit": {
+            "match_id_hash": str(current_row.get("match_id_hash") or ""),
+            "engine_key": str(current_row.get("engine_key") or ""),
+            "engine_version": str(current_row.get("engine_version") or ""),
+            "source_market": str(current_row.get("market_key") or "").upper(),
+            "source_selection": str(
+                current_row.get("selection_code") or ""
+            ).upper(),
+            "trigger_at": _timestamp(current_row.get("trigger_at")),
+            "trigger_odds": _round(current_row.get("trigger_odds"), 3),
+            "trigger_pct": _round(current_row.get("trigger_pct"), 2),
+            "trigger_amount": _round(current_row.get("trigger_amount"), 2),
+            "trigger_volume": _round(current_row.get("trigger_volume"), 2),
+            "recommended_market": card["recommendation"]["market"],
+            "recommended_selection": card["recommendation"]["selection"],
+            "recommended_odds": card["recommendation"]["odds"],
+            "config_snapshot": _dict(current_row.get("config_snapshot")),
+        },
+    }
