@@ -30,9 +30,10 @@ SOCCER_TAG_ID = 100350  # Verified via GET /tags -> {"id":"100350","label":"Socc
 # Aggregate stats (total volume, per-selection market chips) still use ALL
 # trades regardless of size - this threshold only curates the trade ledger.
 MIN_TRADE_AMOUNT_USDC = 100.0
-# Only the tracked-wallet flow uses this higher threshold. This is a strict
-# PER-FILL threshold: each raw execution must independently be >= 1000 USDC.
-# Never aggregate several smaller fills first (e.g. 600 + 600 must stay hidden).
+# Only the tracked-wallet flow uses this higher threshold. It applies to the
+# canonical POSITION'S total entry stake (sum of BUY fills), not to each fill.
+# Example: 600 + 600 BUY on the same outcome = a qualifying 1200 USDC bet.
+# SELL proceeds never help a position reach the threshold.
 # The general match/trade search above intentionally keeps its 100 USDC rule.
 MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC = 1000.0
 
@@ -1665,18 +1666,31 @@ def _filter_wallet_rows_since(
 def _filter_tracked_wallet_activity_amount(
     rows: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Apply the tracked-wallet minimum to EACH raw fill before grouping.
+    """Keep raw fills whose canonical position has >= the tracked minimum.
 
-    This ordering is a product invariant: several sub-threshold executions on
-    the same outcome never combine to manufacture a qualifying bettor bet.
+    Qualification is based on total ENTRY stake for one canonical outcome
+    position (sum of BUY fills). SELL proceeds are exits, not investment, and
+    cannot make an otherwise-small position qualify. Once a position qualifies,
+    all of its raw fills are retained for result/display/accounting continuity.
     """
+    if not rows:
+        return []
+
+    grouped = _group_activity_into_canonical_bets(rows)
+    qualifying_keys = {
+        bet.get("bet_key")
+        for bet in grouped
+        if float(bet.get("stake_usdc") or 0) >= MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC
+    }
+    if not qualifying_keys:
+        return []
+
     qualifying = []
-    for row in rows:
-        try:
-            amount = float(row.get("amount_usdc") or 0)
-        except (TypeError, ValueError):
-            amount = 0.0
-        if amount >= MIN_TRACKED_WALLET_TRADE_AMOUNT_USDC:
+    for idx, row in enumerate(rows):
+        key = _canonical_bet_identity(row)
+        if key is None:
+            key = ("unidentified-fill", idx)
+        if key in qualifying_keys:
             qualifying.append(row)
     return qualifying
 
@@ -2672,8 +2686,9 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
     realized_pnl_total = resolved["realized_pnl_total"]
 
     # 4. The persisted tracked_wallets stats are the canonical snapshot shared
-    # with the tracked-wallet list. The scraper computes them from the filtered
-    # (>= 1000 USDC) activity ledger and persists the result after resolution.
+    # with the tracked-wallet list. The scraper computes them from canonical
+    # positions whose total BUY entry stake is >= 1000 USDC, then persists the
+    # result after resolution.
     # Do not replace them with a second live calculation here: that calculation
     # can observe a different resolution snapshot and was the reason the card
     # and profile showed different win rates for the same wallet.
