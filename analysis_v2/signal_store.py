@@ -20,6 +20,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
+from .entry_price import resolve_entry_odds
+
 
 _HASH_RE = re.compile(r"^[0-9a-f]{12}$")
 
@@ -36,6 +38,7 @@ VALID_OUTCOMES = {"WIN", "LOSS", "PUSH", "VOID", "UNKNOWN"}
 TRIGGER_NUMERIC_FIELDS = {
     "opening_odds",
     "trigger_odds",
+    "recommended_odds",
     "trigger_pct",
     "trigger_amount",
     "trigger_volume",
@@ -583,7 +586,7 @@ class SignalStore:
             final_home_score=final_home_score,
             final_away_score=final_away_score,
             outcome=outcome,
-            entry_odds=signal.get("trigger_odds"),
+            entry_odds=resolve_entry_odds(signal),
             pnl_units=pnl_units,
             settled_at=settled_at,
             settlement_source=settlement_source,
