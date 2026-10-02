@@ -3204,7 +3204,11 @@ def get_wallet_profile(wallet: str) -> Optional[Dict[str, Any]]:
         position_rows, positions_ok = f_pos.result()
 
     persisted_trade_count = int(wallet_row.get("trade_count") or 0)
-    use_persisted_bets = bets_ok and (bool(bet_rows) or persisted_trade_count == 0)
+    persisted_snapshot_complete = (
+        persisted_trade_count == 0
+        or len(bet_rows) >= persisted_trade_count
+    )
+    use_persisted_bets = bets_ok and persisted_snapshot_complete
 
     if use_persisted_bets:
         display_activity = [
