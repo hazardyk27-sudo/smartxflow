@@ -1,5 +1,6 @@
 from analysis_v2.presenter import (
     present_signal,
+    present_signal_detail,
     present_signal_rows,
 )
 
@@ -242,3 +243,64 @@ def test_rows_are_counted_and_sorted():
     assert result["counts"]["FIRSAT"] == 1
     assert result["counts"]["IZLE"] == 1
     assert result["signals"][0]["signal_id"] == "sig_2"
+
+
+
+def test_detail_presenter_sorts_lifecycle_and_keeps_settlement():
+    current = base_row()
+    current.update({
+        "outcome": "WIN",
+        "final_home_score": 1,
+        "final_away_score": 1,
+        "entry_odds": 1.62,
+        "pnl_units": 0.62,
+        "settled_at": "2026-10-03T20:00:00Z",
+        "settlement_source": "exact_match_id_hash",
+    })
+    states = [
+        {
+            "state": "CONFIRMED",
+            "state_at": "2026-10-03T13:00:00Z",
+            "current_odds": 3.05,
+            "current_pct": 70,
+            "current_amount": 15400,
+            "current_volume": 22000,
+            "reason_code": "PRICE_CONFIRMED",
+            "reason": {},
+        },
+        {
+            "state": "TRIGGERED",
+            "state_at": "2026-10-03T12:00:00Z",
+            "current_odds": 3.40,
+            "current_pct": 56,
+            "current_amount": 7000,
+            "current_volume": 16000,
+            "reason_code": "TRIGGERED",
+            "reason": {},
+        },
+    ]
+
+    detail = present_signal_detail(current, state_rows=states)
+    assert [item["state"] for item in detail["timeline"]] == [
+        "TRIGGERED",
+        "CONFIRMED",
+    ]
+    assert detail["settlement"]["outcome"] == "WIN"
+    assert detail["settlement"]["entry_odds"] == 1.62
+    assert detail["settlement"]["pnl_units"] == 0.62
+    assert detail["audit"]["match_id_hash"] == "a1b2c3d4e5f6"
+    assert detail["audit"]["recommended_market"] == "DC"
+
+
+def test_detail_presenter_has_no_settlement_for_active_signal():
+    detail = present_signal_detail(
+        base_row(),
+        state_rows=[
+            {
+                "state": "TRIGGERED",
+                "state_at": "2026-10-03T12:00:00Z",
+            }
+        ],
+    )
+    assert detail["settlement"] is None
+    assert detail["timeline"][0]["label"] == "Tetiklendi"
