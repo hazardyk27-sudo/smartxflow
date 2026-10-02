@@ -246,6 +246,7 @@ def test_trigger_merge_preserves_part4_metadata():
     merged = apply_market_selection_to_trigger(original, selector)
     assert merged["recommended_market"] == "DC"
     assert merged["recommended_selection"] == "X2"
+    assert merged["recommended_odds"] == 1.60
     assert merged["engine_reason"]["primary_class"] == "CONFIRMED_MOVE"
     assert "market_selector" in merged["engine_reason"]
     assert "classification" in merged["config_snapshot"]
