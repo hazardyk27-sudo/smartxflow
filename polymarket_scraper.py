@@ -484,27 +484,37 @@ class PolymarketSupabaseWriter:
     ) -> List[Dict[str, Any]]:
         """Load pre-kickoff tracked bet assets that still need market tracking."""
         try:
-            params = [
-                ("select", "asset,condition_id,event_id,kickoff_utc,first_traded_at"),
-                ("asset", "not.is.null"),
-                ("kickoff_utc", f"gte.{now.isoformat()}"),
-                ("kickoff_utc", f"lte.{horizon.isoformat()}"),
-                ("order", "kickoff_utc.asc"),
-                ("limit", "5000"),
-            ]
-            resp = requests.get(
-                self._rest_url("tracked_wallet_bets"),
-                headers=self._headers(),
-                params=params,
-                timeout=20,
-                verify=SSL_VERIFY,
-            )
-            if resp.status_code != 200:
-                if resp.status_code != 404:
-                    log(f"[PriceSnapshot candidates] HTTP {resp.status_code}: {resp.text[:160]}")
-                return []
-            rows = resp.json()
-            return rows if isinstance(rows, list) else []
+            rows: List[Dict[str, Any]] = []
+            page_size = 1000
+            for page in range(100):
+                params = [
+                    ("select", "asset,condition_id,event_id,kickoff_utc,first_traded_at"),
+                    ("asset", "not.is.null"),
+                    ("kickoff_utc", f"gte.{now.isoformat()}"),
+                    ("kickoff_utc", f"lte.{horizon.isoformat()}"),
+                    ("order", "kickoff_utc.asc"),
+                    ("limit", str(page_size)),
+                    ("offset", str(page * page_size)),
+                ]
+                resp = requests.get(
+                    self._rest_url("tracked_wallet_bets"),
+                    headers=self._headers(),
+                    params=params,
+                    timeout=20,
+                    verify=SSL_VERIFY,
+                )
+                if resp.status_code != 200:
+                    if resp.status_code != 404:
+                        log(f"[PriceSnapshot candidates] HTTP {resp.status_code}: {resp.text[:160]}")
+                    return rows
+                page_rows = resp.json()
+                if not isinstance(page_rows, list):
+                    return rows
+                rows.extend(page_rows)
+                if len(page_rows) < page_size:
+                    return rows
+            log("[PriceSnapshot candidates] pagination safety cap reached")
+            return rows
         except Exception as e:
             log(f"[PriceSnapshot candidates] Hata: {e}")
             return []
@@ -570,25 +580,35 @@ class PolymarketSupabaseWriter:
         """Bets whose kickoff just passed and closing line is still missing."""
         floor = now - timedelta(hours=CLOSING_FINALIZE_LOOKBACK_HOURS)
         try:
-            params = [
-                ("select", "wallet,bet_key,asset,kickoff_utc,first_traded_at,last_traded_at,avg_entry_price"),
-                ("asset", "not.is.null"),
-                ("closing_price", "is.null"),
-                ("kickoff_utc", f"gte.{floor.isoformat()}"),
-                ("kickoff_utc", f"lte.{now.isoformat()}"),
-                ("limit", "5000"),
-            ]
-            resp = requests.get(
-                self._rest_url("tracked_wallet_bets"),
-                headers=self._headers(),
-                params=params,
-                timeout=20,
-                verify=SSL_VERIFY,
-            )
-            if resp.status_code != 200:
-                return []
-            rows = resp.json()
-            return rows if isinstance(rows, list) else []
+            rows: List[Dict[str, Any]] = []
+            page_size = 1000
+            for page in range(100):
+                params = [
+                    ("select", "wallet,bet_key,asset,kickoff_utc,first_traded_at,last_traded_at,avg_entry_price"),
+                    ("asset", "not.is.null"),
+                    ("closing_price", "is.null"),
+                    ("kickoff_utc", f"gte.{floor.isoformat()}"),
+                    ("kickoff_utc", f"lte.{now.isoformat()}"),
+                    ("limit", str(page_size)),
+                    ("offset", str(page * page_size)),
+                ]
+                resp = requests.get(
+                    self._rest_url("tracked_wallet_bets"),
+                    headers=self._headers(),
+                    params=params,
+                    timeout=20,
+                    verify=SSL_VERIFY,
+                )
+                if resp.status_code != 200:
+                    return rows
+                page_rows = resp.json()
+                if not isinstance(page_rows, list):
+                    return rows
+                rows.extend(page_rows)
+                if len(page_rows) < page_size:
+                    return rows
+            log("[PriceSnapshot closing] pagination safety cap reached")
+            return rows
         except Exception:
             return []
 
