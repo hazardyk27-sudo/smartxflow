@@ -1,7 +1,12 @@
 """
 betwatch_prematch.py — Betwatch API v1 prematch scraper (server-side, Replit)
-Betwatch /football/prematch endpoint'inden veri çeker, 6 tabloya yazar.
-Markets: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
+Betwatch /football/prematch endpoint'inden veri çeker.
+Core markets: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
+Analysis V2 optional markets: Double Chance (DC), Draw no Bet (DNB).
+
+DC/DNB tabloları additive migration ile hazırlandıktan sonra provider bu marketleri
+gönderdiği anda aynı current+history sözleşmesiyle saklanır. Provider marketi
+göndermiyorsa veri sentetik olarak üretilmez.
 """
 
 import os
@@ -193,6 +198,44 @@ def _build_mw_btts(home, away, league, date, runners_by_sel) -> dict:
     }
 
 
+def _build_mw_dc(home, away, league, date, runners_by_sel) -> dict:
+    """Build real provider Double Chance money/odds row.
+
+    No synthetic 1X/X2/12 odds or money share is ever derived from 1X2.
+    """
+    r1x = runners_by_sel.get("1X", {})
+    rx2 = runners_by_sel.get("X2", {})
+    r12 = runners_by_sel.get("12", {})
+    v1x = float(r1x.get("volume") or 0)
+    vx2 = float(rx2.get("volume") or 0)
+    v12 = float(r12.get("volume") or 0)
+    total = v1x + vx2 + v12
+    return {
+        "league": league, "date": date, "home": home, "away": away,
+        "odds1x": _coef(r1x.get("odd")), "oddsx2": _coef(rx2.get("odd")), "odds12": _coef(r12.get("odd")),
+        "pct1x": _vol_pct(v1x, total), "amt1x": _vol_amt(v1x),
+        "pctx2": _vol_pct(vx2, total), "amtx2": _vol_amt(vx2),
+        "pct12": _vol_pct(v12, total), "amt12": _vol_amt(v12),
+        "volume": _vol_amt(total),
+    }
+
+
+def _build_mw_dnb(home, away, league, date, runners_by_sel) -> dict:
+    """Build provider Draw-No-Bet money/odds row."""
+    r1 = runners_by_sel.get("1", {})
+    r2 = runners_by_sel.get("2", {})
+    v1 = float(r1.get("volume") or 0)
+    v2 = float(r2.get("volume") or 0)
+    total = v1 + v2
+    return {
+        "league": league, "date": date, "home": home, "away": away,
+        "odds1": _coef(r1.get("odd")), "odds2": _coef(r2.get("odd")),
+        "pct1": _vol_pct(v1, total), "amt1": _vol_amt(v1),
+        "pct2": _vol_pct(v2, total), "amt2": _vol_amt(v2),
+        "volume": _vol_amt(total),
+    }
+
+
 def _build_do_1x2(home, away, league, date, runners_by_sel, prev: dict) -> dict:
     r1 = runners_by_sel.get("1", {})
     rx = runners_by_sel.get("X", {})
@@ -294,6 +337,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     all_fixtures = {}
 
     mw_1x2_rows, mw_ou25_rows, mw_btts_rows = [], [], []
+    mw_dc_rows, mw_dnb_rows = [], []
     do_1x2_rows, do_ou25_rows, do_btts_rows = [], [], []
     all_snapshots = []
 
@@ -334,7 +378,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             mkt_name = mkt.get("name", "")
             runners = mkt.get("runners", []) or []
 
-            market_key, sels = map_market(mkt_name, runners)
+            market_key, sels = map_market(mkt_name, runners, home=home, away=away)
             if market_key is None:
                 continue
 
@@ -370,6 +414,61 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                             "share": shr_f,
                             "scraped_at_utc": scraped_at_utc,
                         })
+
+            elif market_key == "DC":
+                mw_row = _build_mw_dc(home, away, league, date, runners_by_sel)
+                # Store only real provider rows with at least one usable quote/amount.
+                if any(mw_row.get(k) for k in ("odds1x", "oddsx2", "odds12", "amt1x", "amtx2", "amt12")):
+                    mw_dc_rows.append(mw_row)
+
+                    r1x = runners_by_sel.get("1X", {})
+                    rx2 = runners_by_sel.get("X2", {})
+                    r12 = runners_by_sel.get("12", {})
+                    v1x = float(r1x.get("volume") or 0)
+                    vx2 = float(rx2.get("volume") or 0)
+                    v12 = float(r12.get("volume") or 0)
+                    total = v1x + vx2 + v12
+                    for sel, r, v in [("1X", r1x, v1x), ("X2", rx2, vx2), ("12", r12, v12)]:
+                        odd_f = r.get("odd")
+                        odd_f = float(odd_f) if odd_f else None
+                        vol_f = v if v > 0 else None
+                        shr_f = round(v / total * 100, 1) if total > 0 and v > 0 else None
+                        if odd_f or vol_f:
+                            all_snapshots.append({
+                                "match_id_hash": mhash,
+                                "market": "DC",
+                                "selection": sel,
+                                "odds": odd_f,
+                                "volume": vol_f,
+                                "share": shr_f,
+                                "scraped_at_utc": scraped_at_utc,
+                            })
+
+            elif market_key == "DNB":
+                mw_row = _build_mw_dnb(home, away, league, date, runners_by_sel)
+                if any(mw_row.get(k) for k in ("odds1", "odds2", "amt1", "amt2")):
+                    mw_dnb_rows.append(mw_row)
+
+                    r1 = runners_by_sel.get("1", {})
+                    r2 = runners_by_sel.get("2", {})
+                    v1 = float(r1.get("volume") or 0)
+                    v2 = float(r2.get("volume") or 0)
+                    total = v1 + v2
+                    for sel, r, v in [("1", r1, v1), ("2", r2, v2)]:
+                        odd_f = r.get("odd")
+                        odd_f = float(odd_f) if odd_f else None
+                        vol_f = v if v > 0 else None
+                        shr_f = round(v / total * 100, 1) if total > 0 and v > 0 else None
+                        if odd_f or vol_f:
+                            all_snapshots.append({
+                                "match_id_hash": mhash,
+                                "market": "DNB",
+                                "selection": sel,
+                                "odds": odd_f,
+                                "volume": vol_f,
+                                "share": shr_f,
+                                "scraped_at_utc": scraped_at_utc,
+                            })
 
             elif market_key == "OU25":
                 mw_row = _build_mw_ou25(home, away, league, date, runners_by_sel)
@@ -440,14 +539,18 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         return list(seen.values())
 
     pre_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
+                  len(mw_dc_rows), len(mw_dnb_rows),
                   len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
     mw_1x2_rows  = _dedup(mw_1x2_rows)
     mw_ou25_rows = _dedup(mw_ou25_rows)
     mw_btts_rows = _dedup(mw_btts_rows)
+    mw_dc_rows   = _dedup(mw_dc_rows)
+    mw_dnb_rows  = _dedup(mw_dnb_rows)
     do_1x2_rows  = _dedup(do_1x2_rows)
     do_ou25_rows = _dedup(do_ou25_rows)
     do_btts_rows = _dedup(do_btts_rows)
     post_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
+                   len(mw_dc_rows), len(mw_dnb_rows),
                    len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
     removed = sum(a - b for a, b in zip(pre_counts, post_counts))
     if removed:
@@ -455,7 +558,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
     _log(
         f"[BW-Pre] İşlendi: {len(all_fixtures)} fixture | "
-        f"MW 1X2={len(mw_1x2_rows)} OU25={len(mw_ou25_rows)} BTTS={len(mw_btts_rows)} | "
+        f"MW 1X2={len(mw_1x2_rows)} OU25={len(mw_ou25_rows)} BTTS={len(mw_btts_rows)} "
+        f"DC={len(mw_dc_rows)} DNB={len(mw_dnb_rows)} | "
         f"DO 1X2={len(do_1x2_rows)} OU25={len(do_ou25_rows)} BTTS={len(do_btts_rows)} | "
         f"Snap={len(all_snapshots)}"
     )
@@ -468,6 +572,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         "moneyway_1x2": "moneyway_1x2_history",
         "moneyway_ou25": "moneyway_ou25_history",
         "moneyway_btts": "moneyway_btts_history",
+        "moneyway_double_chance": "moneyway_double_chance_history",
+        "moneyway_draw_no_bet": "moneyway_draw_no_bet_history",
         "dropping_1x2": "dropping_1x2_history",
         "dropping_ou25": "dropping_ou25_history",
         "dropping_btts": "dropping_btts_history",
@@ -477,6 +583,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         ("moneyway_1x2", mw_1x2_rows),
         ("moneyway_ou25", mw_ou25_rows),
         ("moneyway_btts", mw_btts_rows),
+        ("moneyway_double_chance", mw_dc_rows),
+        ("moneyway_draw_no_bet", mw_dnb_rows),
         ("dropping_1x2", do_1x2_rows),
         ("dropping_ou25", do_ou25_rows),
         ("dropping_btts", do_btts_rows),
