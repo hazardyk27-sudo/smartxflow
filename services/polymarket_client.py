@@ -1695,6 +1695,30 @@ def _verified_soccer_event_ids(
     return verified, True
 
 
+def _gamma_tag_rows(obj: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(obj, dict):
+        return []
+    tags = obj.get("tags")
+    return [tag for tag in tags if isinstance(tag, dict)] if isinstance(tags, list) else []
+
+
+def _gamma_object_has_soccer_tag(obj: Optional[Dict[str, Any]]) -> bool:
+    for tag in _gamma_tag_rows(obj):
+        tag_id = _registry_id(tag.get("id"))
+        slug = _registry_id(tag.get("slug"))
+        label = _registry_id(tag.get("label"))
+        if tag_id == str(SOCCER_TAG_ID) or slug == "soccer" or label == "soccer":
+            return True
+    return False
+
+
+def _gamma_object_has_explicit_non_soccer_tags(
+    obj: Optional[Dict[str, Any]],
+) -> bool:
+    tags = _gamma_tag_rows(obj)
+    return bool(tags) and not _gamma_object_has_soccer_tag(obj)
+
+
 def _market_parent_event_ids(market: Dict[str, Any]) -> List[str]:
     event_ids: List[str] = []
     direct = _registry_id(market.get("eventId") or market.get("event_id"))
@@ -2043,9 +2067,16 @@ def _classify_football_items(
 
         resolved_eid = explicit_eid or parent_eid
 
+        direct_event = direct_events.get(resolved_eid) if resolved_eid else None
+        direct_soccer_tag = (
+            _gamma_object_has_soccer_tag(market)
+            or _gamma_object_has_soccer_tag(direct_event)
+        )
+
         if (
             (cid and cid in verified_conditions)
             or (resolved_eid and resolved_eid in verified_events)
+            or direct_soccer_tag
         ):
             football.append(_with_sport_classification(
                 item,
@@ -2098,6 +2129,9 @@ def _classify_football_items(
             and events_soccer_ok
             and parent_eid not in verified_events
             and cid not in verified_conditions
+            and _gamma_object_has_explicit_non_soccer_tags(
+                direct_events.get(parent_eid)
+            )
         )
 
         # Event-only rows require both a direct event lookup and a successful
@@ -2109,6 +2143,9 @@ def _classify_football_items(
             and resolved_eid in direct_events
             and events_soccer_ok
             and resolved_eid not in verified_events
+            and _gamma_object_has_explicit_non_soccer_tags(
+                direct_events.get(resolved_eid)
+            )
         )
 
         if condition_negative_proven or event_negative_proven:
@@ -2153,6 +2190,8 @@ def _classify_football_items(
             reason = "parent_event_ambiguous"
         elif resolved_eid and direct_events_ok and resolved_eid not in direct_events:
             reason = "event_not_resolved"
+        elif resolved_eid and not _gamma_tag_rows(direct_events.get(resolved_eid)):
+            reason = "event_tags_missing"
 
         uncertain.append(_with_sport_classification(
             item,
