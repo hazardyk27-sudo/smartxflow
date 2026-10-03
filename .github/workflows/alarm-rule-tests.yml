@@ -6,6 +6,7 @@ on:
     paths:
       - 'alarm_engine.py'
       - 'scheduled_scraper.py'
+      - 'live_scraper.py'
       - 'betwatch_prematch.py'
       - 'betwatch_client.py'
       - 'desktop/scraper_standalone/betwatch_client.py'
@@ -40,6 +41,7 @@ jobs:
         run: |
           python -m py_compile alarm_engine.py
           python -m py_compile scheduled_scraper.py
+          python -m py_compile live_scraper.py
           python -m py_compile betwatch_prematch.py
           python -m py_compile betwatch_client.py
           python -m py_compile desktop/scraper_standalone/betwatch_client.py
