@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 from .github_backend import ArchiveWriteResult, GitHubArchiveBackend
 from .package import ArchivePackage, build_archive_package, verify_package_checksums
+from .retention import RetentionHoldError, release_retention_hold, retention_holds_enabled
 from .validator import validate_case
 
 
@@ -55,6 +56,16 @@ class LearningArchiveExporter:
         write = self.backend.write_case(package, case)
         if not write.archive_reference or not write.commit_sha:
             raise ArchiveFinalizationError("archive write did not return durable reference/commit")
+
+        if retention_holds_enabled():
+            try:
+                release_retention_hold(case["case_id"], write.archive_reference, package.checksum_summary)
+            except RetentionHoldError as exc:
+                # Archive data is immutable and can be retried idempotently; do not claim DONE
+                # until the protection hold has also been verified/released.
+                raise ArchiveFinalizationError(
+                    "archive verified but retention hold release failed; case remains retryable"
+                ) from exc
 
         return FinalizationResult(
             status="DONE",
