@@ -245,7 +245,7 @@ User=$APP_USER
 Group=$APP_USER
 WorkingDirectory=$APP_DIR
 EnvironmentFile=$APP_DIR/.env
-ExecStart=$APP_DIR/venv/bin/python sinyal_engine.py
+ExecStart=$APP_DIR/venv/bin/python sinyal_engine_runtime.py
 Restart=always
 RestartSec=30
 StandardOutput=append:$APP_DIR/logs/sinyal.log
@@ -302,6 +302,7 @@ systemctl start smartxflow-scraper
 systemctl start smartxflow-alarm
 systemctl start smartxflow-live
 systemctl start smartxflow-poly
+systemctl start smartxflow-sinyal
 
 sleep 3
 echo ""
@@ -313,6 +314,7 @@ systemctl is-active smartxflow-scraper && echo "  ✓ smartxflow-scraper  ÇALI�
 systemctl is-active smartxflow-alarm   && echo "  ✓ smartxflow-alarm    ÇALIŞIYOR" || echo "  ✗ smartxflow-alarm    DURDU"
 systemctl is-active smartxflow-live    && echo "  ✓ smartxflow-live     ÇALIŞIYOR" || echo "  ✗ smartxflow-live     DURDU"
 systemctl is-active smartxflow-poly    && echo "  ✓ smartxflow-poly     ÇALIŞIYOR" || echo "  ✗ smartxflow-poly     DURDU"
+systemctl is-active smartxflow-sinyal  && echo "  ✓ smartxflow-sinyal   ÇALIŞIYOR" || echo "  ✗ smartxflow-sinyal   DURDU"
 
 echo ""
 echo "============================================"
