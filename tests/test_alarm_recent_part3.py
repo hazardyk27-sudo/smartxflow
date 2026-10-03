@@ -112,6 +112,7 @@ class NoPrefetchCalculator:
         self._matches_cache = {}
         self._active_hashes_cache = []
         self._active_hashes_checked = False
+        self._incremental_cleanup_at = -part3.CLEANUP_INTERVAL_SECONDS
         self.calls = []
 
     def refresh_configs(self):

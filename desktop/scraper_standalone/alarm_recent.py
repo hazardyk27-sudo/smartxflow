@@ -6,6 +6,7 @@ Part 3: Sharp + Dropping + no-prefetch six-alarm runner.
 """
 
 import alarm_recent_base as _base
+import alarm_recent_part3 as _part3
 
 for _name in dir(_base):
     if not _name.startswith("__"):
@@ -15,10 +16,6 @@ from alarm_recent_part2 import (
     clear_part2_alarm_cache as _clear_part2_alarm_cache,
     install_part2_alarm_overrides as _install_part2_alarm_overrides,
 )
-from alarm_recent_part3 import (
-    clear_part3_alarm_cache as _clear_part3_alarm_cache,
-    install_part3_alarm_overrides as _install_part3_alarm_overrides,
-)
 
 _install_part1_alarm_overrides = _base.install_recent_alarm_overrides
 _clear_part1_alarm_cache = _base.clear_recent_alarm_cache
@@ -27,10 +24,13 @@ _clear_part1_alarm_cache = _base.clear_recent_alarm_cache
 def install_recent_alarm_overrides(calculator_cls):
     _install_part1_alarm_overrides(calculator_cls)
     _install_part2_alarm_overrides(calculator_cls)
-    _install_part3_alarm_overrides(calculator_cls)
+    # Force the first active-signal cycle to run expired-alarm cleanup once.
+    # Later cycles are throttled to the normal one-hour interval by part 3.
+    calculator_cls._incremental_cleanup_at = -_part3.CLEANUP_INTERVAL_SECONDS
+    _part3.install_part3_alarm_overrides(calculator_cls)
 
 
 def clear_recent_alarm_cache(calculator):
     _clear_part1_alarm_cache(calculator)
     _clear_part2_alarm_cache(calculator)
-    _clear_part3_alarm_cache(calculator)
+    _part3.clear_part3_alarm_cache(calculator)
