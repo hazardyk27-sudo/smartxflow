@@ -26,6 +26,58 @@ print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
 SCRAPER_SOURCE = "replit"
+_HEARTBEAT_TABLE_AVAILABLE = None
+_HEARTBEAT_MISSING_LOGGED = False
+
+
+def _heartbeat_table_missing(response) -> bool:
+    text = getattr(response, "text", "") or ""
+    return response.status_code == 404 and (
+        "scraper_heartbeat" in text or "PGRST205" in text
+    )
+
+
+def _log_heartbeat_missing_once() -> None:
+    global _HEARTBEAT_MISSING_LOGGED
+    if not _HEARTBEAT_MISSING_LOGGED:
+        print("[Heartbeat] scraper_heartbeat yok; scraper_signal tabanlı liveness fallback aktif")
+        _HEARTBEAT_MISSING_LOGGED = True
+
+
+def _check_master_from_signals(supabase_url: str, supabase_key: str) -> tuple:
+    """Heartbeat tablosu yoksa son scrape_complete sinyalinden duplicate-master koruması."""
+    try:
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}"
+        }
+        url = (
+            f"{supabase_url}/rest/v1/scraper_signal"
+            f"?signal_type=eq.scrape_complete"
+            f"&source=neq.{SCRAPER_SOURCE}"
+            f"&order=created_at.desc&limit=1&select=source,created_at"
+        )
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return True, f"signal_fallback_http_{r.status_code}"
+        rows = r.json()
+        if not rows:
+            return True, "signal_fallback_no_external_master"
+        row = rows[0]
+        raw = str(row.get("created_at") or "")
+        if not raw:
+            return True, "signal_fallback_missing_timestamp"
+        beat_time = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if beat_time.tzinfo is None:
+            beat_time = beat_time.replace(tzinfo=timezone.utc)
+        diff_minutes = (datetime.now(timezone.utc) - beat_time.astimezone(timezone.utc)).total_seconds() / 60
+        if 0 <= diff_minutes < 5:
+            return False, f"{row.get('source', 'external')} recent scrape ({diff_minutes:.1f} min ago)"
+        return True, f"signal_fallback_stale ({diff_minutes:.1f} min ago)"
+    except Exception as e:
+        print(f"[Master Check] scraper_signal fallback hatası: {e}")
+        return True, "signal_fallback_error"
+
 
 def send_telegram(message: str, is_error: bool = False) -> bool:
     bot_token = os.environ.get('PAYMENT_BOT_TOKEN')
@@ -48,6 +100,7 @@ def send_telegram(message: str, is_error: bool = False) -> bool:
     except Exception as e:
         print(f"[Telegram] Hata: {e}")
         return False
+
 
 def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: int, snapshot_count: int = 0) -> bool:
     """Alarm Engine'e sinyal gönder - scrape tamamlandığında çağrılır"""
@@ -80,7 +133,11 @@ def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: 
         print(f"[Signal] Hata: {e}")
         return False
 
+
 def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_count: int = 0, error_msg: Optional[str] = None) -> bool:
+    global _HEARTBEAT_TABLE_AVAILABLE
+    if _HEARTBEAT_TABLE_AVAILABLE is False:
+        return False
     try:
         now = datetime.now(timezone.utc).isoformat()
         data = {
@@ -92,7 +149,6 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
             "updated_at": now
         }
         
-        # Supabase REST API - UPSERT
         url = f"{supabase_url}/rest/v1/scraper_heartbeat?on_conflict=source"
         headers = {
             "apikey": supabase_key,
@@ -104,18 +160,23 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
         r = requests.post(url, json=data, headers=headers, timeout=10)
         success = r.status_code in [200, 201]
         if success:
+            _HEARTBEAT_TABLE_AVAILABLE = True
             print(f"[Heartbeat] {status} - {match_count} matches ✓")
+        elif _heartbeat_table_missing(r):
+            _HEARTBEAT_TABLE_AVAILABLE = False
+            _log_heartbeat_missing_once()
         else:
-            if r.status_code == 404 and "scraper_heartbeat" in r.text:
-                print("[Heartbeat] scraper_heartbeat tablosu bulunamadı; "
-                      "migrations/2026_06_20_indexes_and_heartbeat.sql uygulanmalı")
             print(f"[Heartbeat] {status} - HTTP {r.status_code}: {r.text[:100]}")
         return success
     except Exception as e:
         print(f"[Heartbeat] Hata: {e}")
         return False
 
+
 def check_master_status(supabase_url: str, supabase_key: str) -> tuple:
+    global _HEARTBEAT_TABLE_AVAILABLE
+    if _HEARTBEAT_TABLE_AVAILABLE is False:
+        return _check_master_from_signals(supabase_url, supabase_key)
     try:
         url = f"{supabase_url}/rest/v1/scraper_heartbeat?select=*"
         headers = {
@@ -125,10 +186,12 @@ def check_master_status(supabase_url: str, supabase_key: str) -> tuple:
         
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
-            if r.status_code == 404 and "scraper_heartbeat" in r.text:
-                return True, "heartbeat_unavailable"
-            return True, "api_error_fallback"
-        
+            if _heartbeat_table_missing(r):
+                _HEARTBEAT_TABLE_AVAILABLE = False
+                _log_heartbeat_missing_once()
+            return _check_master_from_signals(supabase_url, supabase_key)
+
+        _HEARTBEAT_TABLE_AVAILABLE = True
         rows = r.json()
         if not rows:
             return True, "no_master"
@@ -152,11 +215,13 @@ def check_master_status(supabase_url: str, supabase_key: str) -> tuple:
         
         return True, "i_am_master"
     except Exception as e:
-        print(f"[Master Check] Hata: {e}, devam ediyorum")
-        return True, "error_fallback"
+        print(f"[Master Check] Hata: {e}; scraper_signal fallback deneniyor")
+        return _check_master_from_signals(supabase_url, supabase_key)
+
 
 def log_callback(message: str):
     print(f"[Scraper] {message}")
+
 
 def run_with_retry(writer: SupabaseWriter) -> tuple:
     last_error = None
@@ -194,13 +259,13 @@ def run_with_retry(writer: SupabaseWriter) -> tuple:
     
     return 0, last_error
 
+
 def main():
     print("=" * 60)
     print("SmartXFlow Scheduled Scraper (Replit)")
     print(f"Time: {datetime.now(timezone.utc).isoformat()}")
     print("=" * 60)
     
-    # Supabase credentials
     supabase_url = os.environ.get('SUPABASE_URL')
     supabase_key = os.environ.get('SUPABASE_ANON_KEY')
     
@@ -210,7 +275,6 @@ def main():
         send_telegram(f"SCRAPER FATAL: {error_msg}", is_error=True)
         return False
     
-    # Master/Slave kontrolü
     is_master, reason = check_master_status(supabase_url, supabase_key)
     if not is_master:
         print(f"[Master] Başka bir scraper aktif: {reason}")
@@ -221,7 +285,6 @@ def main():
     print(f"[Master] Ben master oluyorum: {reason}")
     update_heartbeat(supabase_url, supabase_key, "starting", 0)
     
-    # Supabase writer oluştur
     try:
         writer = SupabaseWriter(supabase_url, supabase_key)
         print("[Supabase] Writer oluşturuldu")
@@ -232,7 +295,6 @@ def main():
         update_heartbeat(supabase_url, supabase_key, "error", 0, error_msg[:200])
         return False
     
-    # Scrape with retry
     rows, error = run_with_retry(writer)
     
     if error:
@@ -252,7 +314,6 @@ def main():
             )
         else:
             update_heartbeat(supabase_url, supabase_key, "active", rows)
-        # Alarm Engine'e sinyal gönder
         send_alarm_engine_signal(supabase_url, supabase_key, rows, rows)
     
     print("=" * 60)
@@ -263,8 +324,9 @@ def main():
     
     return error is None
 
+
 def get_last_signal_time() -> Optional[datetime]:
-    """Supabase'den son scraper_signal zamanını al"""
+    """Supabase'den son başarılı replit scrape_complete sinyal zamanını al."""
     try:
         supabase_url = os.environ.get('SUPABASE_URL')
         supabase_key = os.environ.get('SUPABASE_ANON_KEY')
@@ -274,7 +336,10 @@ def get_last_signal_time() -> Optional[datetime]:
             "apikey": supabase_key,
             "Authorization": f"Bearer {supabase_key}"
         }
-        url = f"{supabase_url}/rest/v1/scraper_signal?source=eq.replit&order=created_at.desc&limit=1&select=created_at"
+        url = (
+            f"{supabase_url}/rest/v1/scraper_signal?source=eq.replit"
+            f"&signal_type=eq.scrape_complete&order=created_at.desc&limit=1&select=created_at"
+        )
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
@@ -287,6 +352,7 @@ def get_last_signal_time() -> Optional[datetime]:
     except Exception as e:
         print(f"[Loop] Son sinyal zamanı alınamadı: {e}")
     return None
+
 
 def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_holder: list):
     """Günde 1 kez cleanup_old_matches'i çalıştır (D-8+ siler, son 7 gün korunur).
@@ -306,6 +372,7 @@ def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_hol
     except Exception as e:
         print(f"[Cleanup] Hata: {e}")
         traceback.print_exc()
+
 
 def run_loop():
     """9 dakikada bir scrape döngüsü + 10 dk watchdog + guarded günlük cleanup"""
@@ -378,6 +445,7 @@ def run_loop():
         
         print(f"\n[Loop] Sonraki çalışma {INTERVAL_MINUTES} dakika sonra...")
         time.sleep(INTERVAL_SECONDS)
+
 
 if __name__ == "__main__":
     run_loop()
