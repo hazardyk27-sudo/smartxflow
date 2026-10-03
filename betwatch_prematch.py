@@ -262,9 +262,17 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     """
     Betwatch API v1 prematch → Supabase.
     Döndürür: toplam yazılan satır sayısı (0 = hata veya boş veri).
+    Exact fixture/snapshot counters are exposed on writer.last_scrape_stats.
     """
     _log = logger_callback if logger_callback else log
     writer.last_write_errors = []
+    writer.last_scrape_stats = {
+        "match_count": 0,
+        "snapshot_count": 0,
+        "row_count": 0,
+        "scraped_at_utc": None,
+        "write_errors": 0,
+    }
 
     _log("[BW-Pre] Scrape başlıyor — Betwatch API v1 /football/prematch")
 
@@ -347,7 +355,6 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 do_row = _build_do_1x2(home, away, league, date, runners_by_sel, prev)
                 do_1x2_rows.append(do_row)
 
-                # Snapshots (moneyway only)
                 r1 = runners_by_sel.get("1", {})
                 rx = runners_by_sel.get("X", {})
                 r2 = runners_by_sel.get("2", {})
@@ -430,7 +437,6 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     if skipped:
         _log(f"[BW-Pre] {skipped} maç skip (eksik home/away)")
 
-    # 3b. Deduplicate rows by (league, home, away, date) — prevents Supabase 21000 error
     def _dedup(rows):
         seen = {}
         for row in rows:
@@ -441,10 +447,10 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
     pre_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
                   len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
-    mw_1x2_rows  = _dedup(mw_1x2_rows)
+    mw_1x2_rows = _dedup(mw_1x2_rows)
     mw_ou25_rows = _dedup(mw_ou25_rows)
     mw_btts_rows = _dedup(mw_btts_rows)
-    do_1x2_rows  = _dedup(do_1x2_rows)
+    do_1x2_rows = _dedup(do_1x2_rows)
     do_ou25_rows = _dedup(do_ou25_rows)
     do_btts_rows = _dedup(do_btts_rows)
     post_counts = [len(mw_1x2_rows), len(mw_ou25_rows), len(mw_btts_rows),
@@ -460,7 +466,6 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         f"Snap={len(all_snapshots)}"
     )
 
-    # 4. Write to Supabase
     total_rows = 0
     write_errors = 0
 
@@ -497,9 +502,6 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         ok_main = writer.replace_table(tbl, rows)
         ok_hist = writer.append_history(hist_tbl, rows, scraped_at)
         if ok_main:
-            # Main tables are the current-data source.  Count them even when
-            # append-only history is degraded so the watchdog and alarm
-            # engine do not mistake a history timeout for a dead scraper.
             total_rows += len(rows)
         if ok_main and ok_hist:
             _log(f"[BW-Pre]   [OK] {tbl}: {len(rows)} satır")
@@ -513,6 +515,14 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         _log(f"[BW-Pre]   [{tag}] moneyway_snapshots: {len(all_snapshots)}")
         if not ok:
             write_errors += 1
+
+    writer.last_scrape_stats = {
+        "match_count": len(all_fixtures),
+        "snapshot_count": len(all_snapshots),
+        "row_count": total_rows,
+        "scraped_at_utc": scraped_at_utc,
+        "write_errors": write_errors,
+    }
 
     _log(
         f"[BW-Pre] Tamamlandı — {total_rows} satır, "
