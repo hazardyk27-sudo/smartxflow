@@ -62,23 +62,30 @@
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
             .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
-    function num(value) {
+    function decNum(value) {
+        if (value === null || value === undefined || value === '' || value === '-') return null;
+        var s = String(value).replace(/[£€$%\s]/g,'').trim();
+        if (!s) return null;
+        if (s.indexOf(',') !== -1 && s.indexOf('.') === -1) s = s.replace(',','.');
+        else if (s.indexOf(',') !== -1) s = s.replace(/,/g,'');
+        var n = Number(s);
+        return isFinite(n) ? n : null;
+    }
+    function moneyNum(value) {
         if (value === null || value === undefined || value === '' || value === '-') return null;
         var s = String(value).replace(/[£€$%\s]/g,'').trim();
         if (!s) return null;
         if (s.indexOf(',') !== -1 && s.indexOf('.') === -1) {
-            if (/^-?\d+,\d{1,3}$/.test(s)) s = s.replace(',','.');
-            else s = s.replace(/,/g,'');
-        } else if (s.indexOf(',') !== -1) {
-            s = s.replace(/,/g,'');
-        }
+            if (/^-?\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g,'');
+            else s = s.replace(',','.');
+        } else if (s.indexOf(',') !== -1) s = s.replace(/,/g,'');
         var n = Number(s);
         return isFinite(n) ? n : null;
     }
-    function fmtOdds(value) { var n=num(value); return n==null?'—':n.toFixed(2); }
-    function fmtPct(value) { var n=num(value); return n==null?'—':n.toFixed(Math.abs(n%1)<0.001?0:1)+'%'; }
+    function fmtOdds(value) { var n=decNum(value); return n==null?'—':n.toFixed(2); }
+    function fmtPct(value) { var n=decNum(value); return n==null?'—':n.toFixed(Math.abs(n%1)<0.001?0:1)+'%'; }
     function fmtMoney(value) {
-        var n=num(value); if(n==null)return '—';
+        var n=moneyNum(value); if(n==null)return '—';
         var a=Math.abs(n),body;
         if(a>=1000000)body=(a/1000000).toFixed(a>=10000000?0:1)+'M';
         else if(a>=1000)body=(a/1000).toFixed(a>=100000?0:1)+'K';
@@ -157,28 +164,28 @@
         var selection=String(first(row,['selection_code','selection'])||'').toUpperCase();
 
         if(engine.key==='underdog_pressure_v1') {
-            triggerOdds=num(row.odds); currentOdds=num(row.current_odds!=null?row.current_odds:row.odds);
-            pct=num(row.current_pct!=null?row.current_pct:row.pct);
-            volume=num(row.current_volume!=null?row.current_volume:row.volume);
-            amount=num(row.current_amt!=null?row.current_amt:row.amt);
+            triggerOdds=decNum(row.odds); currentOdds=decNum(row.current_odds!=null?row.current_odds:row.odds);
+            pct=decNum(row.current_pct!=null?row.current_pct:row.pct);
+            volume=moneyNum(row.current_volume!=null?row.current_volume:row.volume);
+            amount=moneyNum(row.current_amt!=null?row.current_amt:row.amt);
             reason=c.underdogReason; label=c.tracked; actionKind='TRACK';
             if(triggerOdds!=null&&currentOdds!=null&&triggerOdds>0)move=(triggerOdds-currentOdds)/triggerOdds*100;
         } else if(engine.key==='confirmed_money_v1') {
-            triggerOdds=num(row.odds_now); currentOdds=num(row.current_odds!=null?row.current_odds:row.odds_now);
-            pct=num(row.current_pct!=null?row.current_pct:row.pct_now);
-            volume=num(row.current_volume!=null?row.current_volume:row.volume_now);
-            amount=num(first(row,['amount','amt_now','current_amt']));
-            move=num(row.odds_drop_pct);
+            triggerOdds=decNum(row.odds_now); currentOdds=decNum(row.current_odds!=null?row.current_odds:row.odds_now);
+            pct=decNum(row.current_pct!=null?row.current_pct:row.pct_now);
+            volume=moneyNum(row.current_volume!=null?row.current_volume:row.volume_now);
+            amount=moneyNum(first(row,['amount','amt_now','current_amt']));
+            move=decNum(row.odds_drop_pct);
             reason=c.cmReason; label=c.candidate; actionKind='CANDIDATE';
         } else if(engine.key==='early_money_lock_v1') {
-            triggerOdds=null; currentOdds=null; pct=num(row.pct_now); volume=num(row.volume_now); amount=num(row.amt_now);
+            triggerOdds=null; currentOdds=null; pct=decNum(row.pct_now); volume=moneyNum(row.volume_now); amount=moneyNum(row.amt_now);
             reason=c.emlReason; label=c.candidate; actionKind='CANDIDATE';
         } else {
-            triggerOdds=num(row.odds_now); currentOdds=num(row.current_odds!=null?row.current_odds:row.odds_now);
-            pct=num(row.current_pct!=null?row.current_pct:row.pct_now);
-            volume=num(row.current_volume!=null?row.current_volume:row.volume_now);
-            amount=num(first(row,['amount','amt_now','current_amt']));
-            move=num(row.odds_rise_pct);
+            triggerOdds=decNum(row.odds_now); currentOdds=decNum(row.current_odds!=null?row.current_odds:row.odds_now);
+            pct=decNum(row.current_pct!=null?row.current_pct:row.pct_now);
+            volume=moneyNum(row.current_volume!=null?row.current_volume:row.volume_now);
+            amount=moneyNum(first(row,['amount','amt_now','current_amt']));
+            move=decNum(row.odds_rise_pct);
             state='UZAK_DUR'; tone='avoid'; reason=c.divReason; label=c.noBet; actionKind='NO_BET';
         }
 
@@ -190,7 +197,7 @@
             rawDate:dateRaw(row), dateKey:dateKey(row), selection:selection,
             triggerOdds:triggerOdds,currentOdds:currentOdds,pct:pct,volume:volume,amount:amount,move:move,
             state:state,tone:tone,statusLabel:label,actionKind:actionKind,reason:reason,sweet:sweet,result:result,
-            selectionLabel:row.selection_label||'',sourceId:row.id||'',hoursBefore:num(row.hours_before_kickoff),updatedAt:rowTimestamp(row)
+            selectionLabel:row.selection_label||'',sourceId:row.id||'',hoursBefore:decNum(row.hours_before_kickoff),updatedAt:rowTimestamp(row)
         };
     }
 
