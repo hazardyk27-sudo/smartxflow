@@ -18,7 +18,7 @@ from math import inf
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 
-EDGE_MATRIX_VERSION = "analysis-v2-edge-matrix-1.0.0"
+EDGE_MATRIX_VERSION = "analysis-v2-edge-matrix-1.0.1"
 DEFAULT_MIN_SAMPLE = 30
 
 
@@ -98,6 +98,7 @@ DIMENSION_FIELDS: Dict[str, Tuple[str, ...]] = {
 
 
 def _number(value: Any) -> Optional[float]:
+    """Parse matrix metrics; comma without dot is treated as decimal comma."""
     if value in (None, "", "-"):
         return None
     try:
@@ -107,10 +108,16 @@ def _number(value: Any) -> Optional[float]:
                 .replace("€", "")
                 .replace("$", "")
                 .replace("%", "")
-                .replace(",", "")
+                .replace(" ", "")
                 .strip()
             )
-            return float(cleaned) if cleaned else None
+            if not cleaned:
+                return None
+            if "," in cleaned and "." not in cleaned:
+                cleaned = cleaned.replace(",", ".")
+            elif "," in cleaned and "." in cleaned:
+                cleaned = cleaned.replace(",", "")
+            return float(cleaned)
         return float(value)
     except (TypeError, ValueError):
         return None
