@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_s
 import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, cleanup_old_matches
 from betwatch_prematch import run_scrape_betwatch as run_scrape
+from core.retention_guard import retention_cleanup_disabled
 
 print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
@@ -290,6 +291,9 @@ def get_last_signal_time() -> Optional[datetime]:
 def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_holder: list):
     """Günde 1 kez cleanup_old_matches'i çalıştır (D-8+ siler, son 7 gün korunur).
     last_cleanup_date_holder: [last_date or None] - mutable holder for state."""
+    if retention_cleanup_disabled():
+        print("[Retention Guard] Scheduled scraper cleanup skipped")
+        return
     try:
         today = datetime.now(timezone.utc).date()
         if last_cleanup_date_holder[0] == today:
@@ -304,17 +308,21 @@ def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_hol
         traceback.print_exc()
 
 def run_loop():
-    """9 dakikada bir scrape döngüsü + 10 dk watchdog + günlük cleanup (D-8+ siler)"""
+    """9 dakikada bir scrape döngüsü + 10 dk watchdog + guarded günlük cleanup"""
     INTERVAL_MINUTES = 9
     INTERVAL_SECONDS = INTERVAL_MINUTES * 60
     WATCHDOG_MINUTES = 10
     WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
+    cleanup_disabled = retention_cleanup_disabled()
     print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
     print(f"[Watchdog] {WATCHDOG_MINUTES} dk veri gelmezse Telegram uyarısı gönderilecek")
-    print(f"[Cleanup] Günlük cleanup aktif (D-8+ silinir, son 7 gün korunur)")
+    if cleanup_disabled:
+        print("[Retention Guard] Günlük cleanup DEVRE DIŞI; scraping devam edecek")
+    else:
+        print(f"[Cleanup] Günlük cleanup aktif (D-8+ silinir, son 7 gün korunur)")
     
-    supabase_url_for_cleanup = os.environ.get('SUPABASE_URL')
-    supabase_key_for_cleanup = os.environ.get('SUPABASE_ANON_KEY')
+    supabase_url_for_cleanup = None if cleanup_disabled else os.environ.get('SUPABASE_URL')
+    supabase_key_for_cleanup = None if cleanup_disabled else os.environ.get('SUPABASE_ANON_KEY')
     last_cleanup_date_holder = [None]
     
     last_successful_scrape = None
