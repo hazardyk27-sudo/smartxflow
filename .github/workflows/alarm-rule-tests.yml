@@ -1,0 +1,35 @@
+name: Alarm Rule Tests
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - 'desktop/scraper_standalone/alarm_calculator.py'
+      - 'desktop/scraper_standalone/alarm_calculator_legacy.py'
+      - 'tests/test_alarm_calculator_rule_guards.py'
+      - '.github/workflows/alarm-rule-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  alarm-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest httpx requests pytz
+
+      - name: Compile alarm modules
+        run: |
+          python -m py_compile desktop/scraper_standalone/alarm_calculator.py
+          python -m py_compile desktop/scraper_standalone/alarm_calculator_legacy.py
+
+      - name: Run alarm rule regression tests
+        run: python -m pytest -q tests/test_alarm_calculator_rule_guards.py
