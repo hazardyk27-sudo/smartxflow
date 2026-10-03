@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-SmartXFlow Alarm Engine v2.2 - 24/7 Signal-Based Alarm Calculator.
+SmartXFlow Alarm Engine v2.3 - 24/7 signal-based incremental calculator.
 
 Signal flow:
 Scraper -> scraper_signal (Supabase) -> Alarm Engine -> alarm tables
 
-Incremental rollout:
+All six alarms are incremental:
 - BigMoney: recent 3-snapshot window.
 - MIM: recent 2-snapshot window + current market total.
 - VolumeLeader: last 2 complete market states.
 - VolumeShock: last 6 snapshots.
-- Sharp and Dropping keep the existing calculator path until their turn.
+- Sharp: last 21 snapshots per changed selection.
+- Dropping: immutable opening odds + persistence window + median/recovery guard.
+
+The active-signal path no longer runs the legacy full matches/history prefetch.
 """
 
 import os
@@ -153,9 +156,9 @@ def process_signal(signal):
 
 def run_engine():
     print("=" * 60)
-    print("SMARTXFLOW ALARM ENGINE v2.2")
-    print("Incremental: BigMoney + MIM + VolumeLeader + VolumeShock")
-    print("Existing path: Sharp + Dropping")
+    print("SMARTXFLOW ALARM ENGINE v2.3")
+    print("Incremental: BigMoney + MIM + VolumeLeader + VolumeShock + Sharp + Dropping")
+    print("Legacy full history prefetch: OFF for active scraper signals")
     print(f"Poll interval: {POLL_INTERVAL}s")
     print(f"Supabase URL: {SUPABASE_URL[:30]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)

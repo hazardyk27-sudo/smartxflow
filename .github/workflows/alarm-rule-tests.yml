@@ -10,9 +10,11 @@ on:
       - 'desktop/scraper_standalone/alarm_recent.py'
       - 'desktop/scraper_standalone/alarm_recent_base.py'
       - 'desktop/scraper_standalone/alarm_recent_part2.py'
+      - 'desktop/scraper_standalone/alarm_recent_part3.py'
       - 'tests/test_alarm_calculator_rule_guards.py'
       - 'tests/test_alarm_recent_incremental.py'
       - 'tests/test_alarm_recent_part2.py'
+      - 'tests/test_alarm_recent_part3.py'
       - '.github/workflows/alarm-rule-tests.yml'
   workflow_dispatch:
 
@@ -37,9 +39,11 @@ jobs:
           python -m py_compile desktop/scraper_standalone/alarm_recent.py
           python -m py_compile desktop/scraper_standalone/alarm_recent_base.py
           python -m py_compile desktop/scraper_standalone/alarm_recent_part2.py
+          python -m py_compile desktop/scraper_standalone/alarm_recent_part3.py
       - name: Run alarm rule regression tests
         run: >-
           python -m pytest -q
           tests/test_alarm_calculator_rule_guards.py
           tests/test_alarm_recent_incremental.py
           tests/test_alarm_recent_part2.py
+          tests/test_alarm_recent_part3.py
