@@ -14,6 +14,12 @@ from dataclasses import dataclass, asdict
 from typing import Optional
 from enum import Enum
 
+from core.retention_guard import install_supabase_cleanup_guard
+
+# Preview/Replit safety: when SMARTXFLOW_DISABLE_RETENTION_CLEANUP is enabled,
+# protect the web-side Supabase retention delete path before app startup.
+install_supabase_cleanup_guard()
+
 
 class AppMode(Enum):
     SERVER = "server"
