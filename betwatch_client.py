@@ -53,11 +53,14 @@ def normalize_kickoff(ko: str) -> str:
     return ko
 
 
-def map_market(mkt_name: str, runners: list):
+def map_market(mkt_name: str, runners: list, *, home=None, away=None, **_legacy_kwargs):
     """
     Betwatch market adını ve runner listesini (market_key, [(sel_code, runner)]) formatına dönüştürür.
     Desteklenen marketler: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
     Diğerleri için (None, []) döner.
+
+    ``home``/``away`` ve bilinmeyen keyword argümanları eski scraper snapshot'larıyla
+    geriye uyumluluk için kabul edilir; market eşlemesini etkilemez.
     """
     name = (mkt_name or "").strip()
 
