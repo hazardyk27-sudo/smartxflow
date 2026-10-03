@@ -57,12 +57,24 @@ class FakeSession:
         self.headers = {}
         self.response = response or FakeResponse(200, {
             "match_id_hash": "abc123def456",
-            "snapshots": [
-                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:20:00+03:00", "market": "1X2"},
-                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:00:00+03:00", "market": "OU25"},
-            ],
-            "source_tables": ["moneyway_snapshots", "dropping_odds_snapshots"],
-            "unavailable_optional_tables": [],
+            "match": {
+                "match_id_hash": "abc123def456",
+                "home": "Home",
+                "away": "Away",
+                "league": "Test",
+                "kickoff_utc": "2026-10-03T18:00:00Z",
+                "fixture_date": "2026-10-03",
+            },
+            "histories": {
+                "moneyway_1x2_history": [
+                    {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:20:00+03:00", "odds1": 2.1},
+                ],
+                "dropping_1x2_history": [
+                    {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:00:00+03:00", "odds1": 2.2},
+                ],
+            },
+            "source_tables": ["moneyway_1x2_history", "dropping_1x2_history"],
+            "unavailable_optional_tables": ["moneyway_double_chance_history"],
         })
         self.last_url = None
         self.last_timeout = None
@@ -117,14 +129,18 @@ class LearningArchiveTests(unittest.TestCase):
         }, clear=False):
             result = fetch_selected_match_history("abc123def456", session=session)
         self.assertEqual(len(result.snapshots), 2)
-        self.assertEqual(result.source_tables, ("moneyway_snapshots", "dropping_odds_snapshots"))
-        self.assertEqual(result.unavailable_optional_tables, ())
-        self.assertEqual(session.headers["X-SmartXFlow-Learning-Key"], "service-test-token")
-        self.assertEqual(session.last_url, "https://preview.smartxflow.test/api/internal/learning/match/abc123def456/history")
-        self.assertEqual(result.snapshots[0]["market"], "OU25")
+        self.assertEqual(result.source_tables, ("moneyway_1x2_history", "dropping_1x2_history"))
+        self.assertEqual(result.unavailable_optional_tables, ("moneyway_double_chance_history",))
+        self.assertEqual(session.headers["Authorization"], "Bearer service-test-token")
+        self.assertEqual(
+            session.last_url,
+            "https://preview.smartxflow.test/api/internal/learning-archive/match/abc123def456/history",
+        )
+        self.assertEqual(result.snapshots[0]["_archive_source_table"], "dropping_1x2_history")
+        self.assertEqual(result.snapshots[1]["_archive_source_table"], "moneyway_1x2_history")
 
     def test_history_reader_auth_failure_is_explicit(self):
-        session = FakeSession(FakeResponse(403, {"error": "forbidden"}))
+        session = FakeSession(FakeResponse(401, {"error": "unauthorized"}))
         with patch.dict(os.environ, {
             "SMARTXFLOW_LEARNING_API_BASE_URL": "https://preview.smartxflow.test",
             "SMARTXFLOW_LEARNING_API_TOKEN": "wrong-token",
@@ -135,8 +151,12 @@ class LearningArchiveTests(unittest.TestCase):
     def test_history_reader_rejects_wrong_match_payload(self):
         session = FakeSession(FakeResponse(200, {
             "match_id_hash": "different123",
-            "snapshots": [{"match_id_hash": "different123", "scraped_at": "2026-10-03T15:00:00Z"}],
-            "source_tables": [],
+            "histories": {
+                "moneyway_1x2_history": [
+                    {"match_id_hash": "different123", "scraped_at": "2026-10-03T15:00:00Z"},
+                ],
+            },
+            "source_tables": ["moneyway_1x2_history"],
             "unavailable_optional_tables": [],
         }))
         with patch.dict(os.environ, {
