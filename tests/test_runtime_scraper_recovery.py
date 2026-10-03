@@ -263,6 +263,79 @@ def test_prematch_exposes_fixture_and_snapshot_counts(monkeypatch):
     assert writer.last_scrape_stats["row_count"] == 2
 
 
+def _load_live_scraper(monkeypatch):
+    monkeypatch.delenv("SMARTXFLOW_LIVE_INSTANCE_ID", raising=False)
+    return _load_module("live_scraper_runtime_test", ROOT / "live_scraper.py")
+
+
+def test_live_scraper_missing_heartbeat_switches_to_signal_lease(monkeypatch):
+    mod = _load_live_scraper(monkeypatch)
+    mod._HEARTBEAT_TABLE_AVAILABLE = None
+    mod._LIVE_SIGNAL_SOURCE = "replit-live-aaaaaaaa"
+    mod._LIVE_INSTANCE_ID = "aaaaaaaa"
+    monkeypatch.setattr(mod.time, "sleep", lambda *_: None)
+
+    missing = Mock()
+    missing.status_code = 404
+    missing.text = '{"code":"PGRST205","message":"Could not find the table public.scraper_heartbeat"}'
+
+    signals = Mock()
+    signals.status_code = 200
+    signals.json.return_value = [
+        {
+            "source": mod._LIVE_SIGNAL_SOURCE,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ]
+
+    lease_posted = Mock()
+    lease_posted.status_code = 201
+    lease_posted.text = ""
+
+    get = Mock(side_effect=[missing, signals])
+    post = Mock(return_value=lease_posted)
+    monkeypatch.setattr(mod.requests, "get", get)
+    monkeypatch.setattr(mod.requests, "post", post)
+
+    is_master, reason = mod.check_live_master_status("https://example.supabase.co", "key")
+    assert is_master is True
+    assert reason.startswith("signal_fallback_master")
+    assert mod._HEARTBEAT_TABLE_AVAILABLE is False
+    assert post.call_count == 1
+    assert post.call_args.kwargs["json"]["signal_type"] == "live_heartbeat"
+    assert post.call_args.kwargs["json"]["processed"] is True
+
+    before = post.call_count
+    assert mod.update_heartbeat("https://example.supabase.co", "key", "active", 3) is False
+    assert post.call_count == before
+
+
+def test_live_scraper_signal_lease_selects_single_master(monkeypatch):
+    mod = _load_live_scraper(monkeypatch)
+    mod._HEARTBEAT_TABLE_AVAILABLE = False
+    mod._LIVE_SIGNAL_SOURCE = "replit-live-ffffffff"
+    mod._LIVE_INSTANCE_ID = "ffffffff"
+    monkeypatch.setattr(mod.time, "sleep", lambda *_: None)
+
+    posted = Mock()
+    posted.status_code = 201
+    posted.text = ""
+    monkeypatch.setattr(mod.requests, "post", Mock(return_value=posted))
+
+    now = datetime.now(timezone.utc).isoformat()
+    response = Mock()
+    response.status_code = 200
+    response.json.return_value = [
+        {"source": "replit-live-00000000", "created_at": now},
+        {"source": mod._LIVE_SIGNAL_SOURCE, "created_at": now},
+    ]
+    monkeypatch.setattr(mod.requests, "get", Mock(return_value=response))
+
+    is_master, reason = mod.check_live_master_status("https://example.supabase.co", "key")
+    assert is_master is False
+    assert "replit-live-00000000" in reason
+
+
 def _load_alarm_engine_with_stubs(monkeypatch):
     calculator_module = types.ModuleType("alarm_calculator")
 
