@@ -80,11 +80,7 @@ class GitHubArchiveBackend:
         encoded_path = quote(path, safe="/")
         response = self.session.put(
             self._url(f"/contents/{encoded_path}"),
-            json={
-                "message": message,
-                "content": base64.b64encode(payload).decode("ascii"),
-                "branch": self.branch,
-            },
+            json={"message": message, "content": base64.b64encode(payload).decode("ascii"), "branch": self.branch},
             timeout=self.timeout,
         )
         if response.status_code not in (200, 201):
@@ -95,12 +91,7 @@ class GitHubArchiveBackend:
         encoded_path = quote(path, safe="/")
         response = self.session.put(
             self._url(f"/contents/{encoded_path}"),
-            json={
-                "message": message,
-                "content": base64.b64encode(payload).decode("ascii"),
-                "sha": sha,
-                "branch": self.branch,
-            },
+            json={"message": message, "content": base64.b64encode(payload).decode("ascii"), "sha": sha, "branch": self.branch},
             timeout=self.timeout,
         )
         if response.status_code != 200:
@@ -119,7 +110,7 @@ class GitHubArchiveBackend:
             "checksum_summary": package.checksum_summary,
         }
 
-    def _write_manifest(self, package: ArchivePackage, case: dict[str, Any]) -> str:
+    def _write_manifest(self, package: ArchivePackage, case: dict[str, Any]) -> tuple[str, bool]:
         current = self._read("manifest.jsonl")
         raw, sha = current if current else (b"", None)
         entries = []
@@ -134,12 +125,12 @@ class GitHubArchiveBackend:
             if entry.get("case_id") == package.case_id:
                 if entry != new_entry:
                     raise ArchiveConflictError(f"case_id {package.case_id} has conflicting manifest metadata")
-                return self._head_sha()
+                return self._head_sha(), False
         line = json.dumps(new_entry, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         updated = raw + (b"" if not raw or raw.endswith(b"\n") else b"\n") + line.encode("utf-8") + b"\n"
         if sha:
-            return self._update("manifest.jsonl", updated, sha, f"Index archive case {package.case_id}")
-        return self._put_new("manifest.jsonl", updated, f"Create archive manifest with {package.case_id}")
+            return self._update("manifest.jsonl", updated, sha, f"Index archive case {package.case_id}"), True
+        return self._put_new("manifest.jsonl", updated, f"Create archive manifest with {package.case_id}"), True
 
     def _head_sha(self) -> str:
         response = self.session.get(self._url(f"/git/ref/heads/{self.branch}"), timeout=self.timeout)
@@ -148,40 +139,28 @@ class GitHubArchiveBackend:
         return response.json()["object"]["sha"]
 
     def write_case(self, package: ArchivePackage, case: dict[str, Any]) -> ArchiveWriteResult:
-        existing_checksums = self._read(package.file_path("checksums.sha256"))
-        if existing_checksums:
-            if existing_checksums[0] != package.files["checksums.sha256"]:
-                raise ArchiveConflictError(
-                    f"case_id {package.case_id} already exists with different payload; corrections must be append-only"
-                )
-            for name, payload in package.files.items():
-                remote = self._read(package.file_path(name))
-                if remote is None or remote[0] != payload:
-                    raise ArchiveConflictError(f"finalized case {package.case_id} is incomplete or differs at {name}")
-            commit = self._head_sha()
-            return ArchiveWriteResult(
-                archive_reference=f"https://github.com/{self.repository}/tree/{commit}/{package.case_path}",
-                commit_sha=commit,
-                idempotent=True,
-            )
-
-        last_commit = ""
+        missing: list[tuple[str, bytes]] = []
         for name, payload in sorted(package.files.items()):
             path = package.file_path(name)
             existing = self._read(path)
-            if existing is not None:
-                if existing[0] != payload:
-                    raise ArchiveConflictError(f"partial case {package.case_id} conflicts at {name}")
+            if existing is None:
+                missing.append((name, payload))
                 continue
-            last_commit = self._put_new(path, payload, f"Archive {package.case_id}: {name}")
+            if existing[0] != payload:
+                raise ArchiveConflictError(
+                    f"case_id {package.case_id} conflicts at {name}; corrections must be append-only"
+                )
 
-        last_commit = self._write_manifest(package, case) or last_commit
+        for name, payload in missing:
+            self._put_new(package.file_path(name), payload, f"Archive {package.case_id}: {name}")
+
+        _, manifest_written = self._write_manifest(package, case)
         self.verify_case(package, case)
         commit = self._head_sha()
         return ArchiveWriteResult(
             archive_reference=f"https://github.com/{self.repository}/tree/{commit}/{package.case_path}",
             commit_sha=commit,
-            idempotent=False,
+            idempotent=not missing and not manifest_written,
         )
 
     def verify_case(self, package: ArchivePackage, case: dict[str, Any]) -> None:
