@@ -8,6 +8,7 @@ SMARTXFLOW_MODE environment variable controls the application behavior:
 Default: "server" when running on Replit, "client" when running as EXE
 """
 
+import inspect
 import os
 import json
 from dataclasses import dataclass, asdict
@@ -33,7 +34,7 @@ def get_app_mode() -> AppMode:
     Priority:
     1. SMARTXFLOW_MODE environment variable (explicit override)
     2. REPL_ID exists -> server mode (running on Replit)
-    3. Otherwise -> client mode (running as EXE on user's machine)
+    3. Otherwise -> client mode (running as EXE)
     """
     mode_env = os.environ.get("SMARTXFLOW_MODE", "").lower()
     
@@ -83,8 +84,32 @@ def get_supabase_poll_interval_seconds() -> int:
         return 30
 
 
+def _register_learning_archive_api_from_caller() -> bool:
+    """Attach the internal archive route to the Flask app that called init_mode().
+
+    app.py constructs its Flask instance immediately before calling init_mode(). Keeping the
+    registration here avoids coupling the Learning Archive package to user/session routes while
+    leaving the public /api/match/... auth contract untouched.
+    """
+    frame = inspect.currentframe()
+    try:
+        caller = frame.f_back.f_back if frame and frame.f_back else None
+        flask_app = caller.f_globals.get("app") if caller is not None else None
+        if flask_app is None or not hasattr(flask_app, "add_url_rule"):
+            return False
+        from learning_archive.server_api import register_learning_archive_routes
+        register_learning_archive_routes(flask_app)
+        return True
+    except Exception as exc:
+        print(f"[LearningArchive] Internal API registration skipped: {exc}")
+        return False
+    finally:
+        # Avoid retaining frame references longer than necessary.
+        del frame
+
+
 def init_mode():
-    """Initialize and log the application mode"""
+    """Initialize/log the application mode and register server-only internal APIs."""
     mode = get_app_mode()
     scraper_disabled = is_scraper_disabled()
     
@@ -102,6 +127,8 @@ def init_mode():
             print(f"  - Scraper: ENABLED (every {interval} minutes)")
             print(f"  - SQLite: ENABLED (local cache)")
             print(f"  - Supabase: WRITE + READ")
+        if _register_learning_archive_api_from_caller():
+            print(f"  - Learning Archive API: REGISTERED")
     else:
         poll = get_supabase_poll_interval_seconds()
         print(f"  - Scraper: DISABLED")
