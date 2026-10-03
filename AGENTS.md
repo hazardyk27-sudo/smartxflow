@@ -9,6 +9,14 @@
 - Reread it only when one of these conditions is true: the user says repository rules changed, the `AGENTS.md` blob/SHA changed, the repository or branch context changed, or an instruction conflict/ambiguity appears.
 - If the file changes during an active session, the newer version becomes authoritative immediately after rereading it.
 
+## Specialized learning-agent routing
+
+- This `main` file remains the canonical repository/release/safety rule supplement and must continue to be respected.
+- For specialized SmartXFlow learning conversations, the active `PREDICTOR` and `DEVELOPMENT` role instructions and their `Current Milestones` are read from the current `preview` branch.
+- When the user says a short command such as “Predictor olarak başla, GitHub'daki kendi kurallarını oku” or the Development equivalent, resolve the specialized role from `preview`: first read `preview:/AGENTS.md`, then only `preview:/.agents/roles/<ROLE>.md`, then only `preview:/.agents/milestones/<ROLE>.md`.
+- Do not treat an older or missing role definition on `main` as authoritative over the active specialized role files on `preview`.
+- Do not preload the other specialized role. Keep this `main` repository/release/safety layer and the selected `preview` role layer together in session context.
+
 ## Source and environment roles
 
 - GitHub-tracked source and history are canonical.
