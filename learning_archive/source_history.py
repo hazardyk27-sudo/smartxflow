@@ -20,11 +20,18 @@ class HistoryFetchResult:
 
 def _api_config() -> tuple[str, str]:
     base_url = os.environ.get("SMARTXFLOW_LEARNING_API_BASE_URL", "").strip().rstrip("/")
-    token = os.environ.get("SMARTXFLOW_LEARNING_API_TOKEN", "").strip()
+    if not base_url:
+        replit_domain = os.environ.get("REPLIT_DEV_DOMAIN", "").strip()
+        if replit_domain:
+            base_url = f"https://{replit_domain}"
+    token = (
+        os.environ.get("SMARTXFLOW_LEARNING_API_TOKEN", "").strip()
+        or os.environ.get("LEARNING_ARCHIVE_ACCESS_SECRET", "").strip()
+    )
     if not base_url:
         raise SXFHistoryError("SMARTXFLOW_LEARNING_API_BASE_URL is not configured")
     if not token:
-        raise SXFHistoryError("SMARTXFLOW_LEARNING_API_TOKEN is not configured")
+        raise SXFHistoryError("Learning Archive API token is not configured")
     return base_url, token
 
 
