@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Mapping, Optional, Tuple
 
 
-ENGINE_FIRST_VERSION = "analysis-v2-engine-first-1.0.0"
+ENGINE_FIRST_VERSION = "analysis-v2-engine-first-1.0.1"
 
 ENGINE_ALIASES = {
     "underdog": "underdog_pressure_v1",
@@ -73,7 +73,34 @@ def _upper(value: Any) -> str:
     return _text(value).upper()
 
 
-def _number(value: Any) -> Optional[float]:
+def _decimal_number(value: Any) -> Optional[float]:
+    """Parse odds/percent values where comma may be a decimal separator."""
+    if value in (None, "", "-"):
+        return None
+    try:
+        if isinstance(value, str):
+            cleaned = (
+                value.replace("£", "")
+                .replace("€", "")
+                .replace("$", "")
+                .replace("%", "")
+                .replace(" ", "")
+                .strip()
+            )
+            if not cleaned:
+                return None
+            if "," in cleaned and "." not in cleaned:
+                cleaned = cleaned.replace(",", ".")
+            elif "," in cleaned and "." in cleaned:
+                cleaned = cleaned.replace(",", "")
+            return float(cleaned)
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _money_number(value: Any) -> Optional[float]:
+    """Parse monetary/volume fields where comma is a thousands separator."""
     if value in (None, "", "-"):
         return None
     try:
@@ -84,6 +111,7 @@ def _number(value: Any) -> Optional[float]:
                 .replace("$", "")
                 .replace("%", "")
                 .replace(",", "")
+                .replace(" ", "")
                 .strip()
             )
             return float(cleaned) if cleaned else None
@@ -169,9 +197,7 @@ def candidate_from_v1_signal(
     canonical = canonical_engine_key(engine_key)
     definition = ENGINE_DEFINITIONS[canonical]
 
-    selection = _upper(
-        _first(row, "selection_code", "selection", "sel", "pick")
-    )
+    selection = _upper(_first(row, "selection_code", "selection", "sel", "pick"))
     if selection not in definition["allowed_selections"]:
         raise ValueError(
             f"INVALID_SOURCE_SELECTION:{canonical}:{selection or 'missing'}"
@@ -190,16 +216,16 @@ def candidate_from_v1_signal(
     if not signal_id:
         raise ValueError("SOURCE_SIGNAL_ID_REQUIRED")
 
-    trigger_odds = _number(
+    trigger_odds = _decimal_number(
         _first(row, "trigger_odds", "odds", "odds_now", "current_odds")
     )
-    trigger_pct = _number(
+    trigger_pct = _decimal_number(
         _first(row, "trigger_pct", "pct", "pct_now", "current_pct")
     )
-    trigger_amount = _number(
+    trigger_amount = _money_number(
         _first(row, "trigger_amount", "amount", "amt_now", "current_amt")
     )
-    trigger_volume = _number(
+    trigger_volume = _money_number(
         _first(row, "trigger_volume", "volume", "volume_now", "current_volume")
     )
 
