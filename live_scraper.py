@@ -11,6 +11,7 @@ import time
 import re
 import json
 import hashlib
+import uuid
 import requests
 import traceback
 from datetime import datetime, timezone, timedelta
@@ -42,6 +43,12 @@ WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
 MAX_RETRIES = 3
 RETRY_DELAYS = [3, 6, 12]
 SCRAPER_SOURCE = "replit-live"
+LIVE_SIGNAL_TYPE = "live_heartbeat"
+LIVE_LEASE_TTL_SECONDS = 150
+_LIVE_INSTANCE_ID = os.environ.get("SMARTXFLOW_LIVE_INSTANCE_ID") or uuid.uuid4().hex[:8]
+_LIVE_SIGNAL_SOURCE = f"{SCRAPER_SOURCE}-{_LIVE_INSTANCE_ID}"
+_HEARTBEAT_TABLE_AVAILABLE = None
+_HEARTBEAT_MISSING_LOGGED = False
 
 _kickoff_cache = {}
 
@@ -87,8 +94,6 @@ def make_live_match_hash(home: str, away: str, league: str) -> str:
     l = normalize_field(league)
     canonical = f"{l}|{h}|{a}"
     return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
-
-
 
 
 class LiveSupabaseWriter:
@@ -243,7 +248,111 @@ class LiveSupabaseWriter:
         return marked
 
 
+def _heartbeat_table_missing(response) -> bool:
+    text = getattr(response, "text", "") or ""
+    return response.status_code == 404 and (
+        "scraper_heartbeat" in text or "PGRST205" in text
+    )
+
+
+def _log_heartbeat_missing_once() -> None:
+    global _HEARTBEAT_MISSING_LOGGED
+    if not _HEARTBEAT_MISSING_LOGGED:
+        log("[Heartbeat] scraper_heartbeat yok; scraper_signal live lease fallback aktif")
+        _HEARTBEAT_MISSING_LOGGED = True
+
+
+def _live_signal_headers(supabase_key: str) -> Dict[str, str]:
+    return {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+    }
+
+
+def _publish_live_lease(supabase_url: str, supabase_key: str) -> bool:
+    """Publish an append-only live-instance lease without feeding Alarm Engine."""
+    try:
+        headers = _live_signal_headers(supabase_key)
+        headers["Prefer"] = "return=minimal"
+        payload = {
+            "source": _LIVE_SIGNAL_SOURCE,
+            "signal_type": LIVE_SIGNAL_TYPE,
+            "match_count": 0,
+            "snapshot_count": 0,
+            "processed": True,
+        }
+        r = requests.post(
+            f"{supabase_url.rstrip('/')}/rest/v1/scraper_signal",
+            headers=headers,
+            json=payload,
+            timeout=10,
+        )
+        if r.status_code in (200, 201, 204):
+            return True
+        log(f"[Live Lease] publish HTTP {r.status_code}: {r.text[:120]}")
+    except Exception as e:
+        log(f"[Live Lease] publish hatası: {e}")
+    return False
+
+
+def _check_live_master_from_signals(supabase_url: str, supabase_key: str) -> tuple:
+    """Use scraper_signal as a lightweight lease table when scraper_heartbeat is absent."""
+    published = _publish_live_lease(supabase_url, supabase_key)
+    if published:
+        # Give concurrently-starting instances a small window to publish their claim,
+        # then all contenders deterministically choose the same winner.
+        time.sleep(0.20)
+
+    try:
+        headers = _live_signal_headers(supabase_key)
+        url = (
+            f"{supabase_url.rstrip('/')}/rest/v1/scraper_signal"
+            f"?signal_type=eq.{LIVE_SIGNAL_TYPE}"
+            f"&order=created_at.desc&limit=100&select=source,created_at"
+        )
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return True, f"signal_fallback_http_{r.status_code}"
+
+        now = datetime.now(timezone.utc)
+        active_sources = set()
+        for row in r.json():
+            src = str(row.get("source") or "")
+            if "-live-" not in src:
+                continue
+            raw = str(row.get("created_at") or "")
+            if not raw:
+                continue
+            try:
+                created_at = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                if created_at.tzinfo is None:
+                    created_at = created_at.replace(tzinfo=timezone.utc)
+                age = (now - created_at.astimezone(timezone.utc)).total_seconds()
+            except Exception:
+                continue
+            if -10 <= age <= LIVE_LEASE_TTL_SECONDS:
+                active_sources.add(src)
+
+        if not active_sources:
+            reason = "signal_fallback_no_peer"
+            if not published:
+                reason += "_publish_failed"
+            return True, reason
+
+        winner = min(active_sources)
+        if winner == _LIVE_SIGNAL_SOURCE:
+            return True, f"signal_fallback_master ({_LIVE_INSTANCE_ID})"
+        return False, f"{winner} signal master"
+    except Exception as e:
+        log(f"[Master Check] scraper_signal fallback hatası: {e}")
+        return True, "signal_fallback_error"
+
+
 def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_count: int = 0, error_msg: Optional[str] = None) -> bool:
+    global _HEARTBEAT_TABLE_AVAILABLE
+    if _HEARTBEAT_TABLE_AVAILABLE is False:
+        return False
     try:
         now = datetime.now(timezone.utc).isoformat()
         data = {
@@ -264,7 +373,13 @@ def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_co
         r = requests.post(url, json=data, headers=headers, timeout=10)
         success = r.status_code in [200, 201]
         if success:
+            _HEARTBEAT_TABLE_AVAILABLE = True
             log(f"[Heartbeat] {status} - {match_count} canlı maç")
+        elif _heartbeat_table_missing(r):
+            _HEARTBEAT_TABLE_AVAILABLE = False
+            _log_heartbeat_missing_once()
+        else:
+            log(f"[Heartbeat] {status} - HTTP {r.status_code}: {r.text[:120]}")
         return success
     except Exception as e:
         log(f"[Heartbeat] Hata: {e}")
@@ -392,10 +507,7 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
     all_snapshots = []
     match_count = 0
     dup_skipped = 0
-    # Deduplication: aynı maç Betwatch'ta farklı liga adlarıyla gelebilir
-    # (örn. "Primera C" ve "Argentinian Primera C"). Normalize edilmiş
-    # home|away bazlı dedup: daha yüksek hacimli/dakikalı entry kazanır.
-    seen_teams: Dict[str, Dict] = {}  # norm_home|norm_away → {h, vol, minute_num}
+    seen_teams: Dict[str, Dict] = {}
 
     for match in matches:
         teams = match.get("teams", {}) or {}
@@ -415,7 +527,6 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
         score = _bw_v1_score(live_info)
         status = "ft" if live_info.get("finished") else "live"
 
-        # Tüm market hacmini hesapla (dedup kalite kriteri)
         markets = match.get("markets", []) or []
         total_match_vol = 0.0
         for mkt in markets:
@@ -423,17 +534,14 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
                 total_match_vol += float(r.get("volume") or 0)
         minute_num = live_info.get("time", 0) or 0
 
-        # Dedup kontrolü
         norm_key = normalize_field(home) + "|" + normalize_field(away)
         if norm_key in seen_teams:
             prev = seen_teams[norm_key]
-            # Mevcut entry daha iyiyse bu duplikasyonu atla
             if total_match_vol <= prev["vol"] and minute_num <= prev["minute_num"]:
                 dup_skipped += 1
                 prev_league = prev["league"]
                 log(f"  [DEDUP] Atlandı: {home[:20]} vs {away[:20]} | league='{league}' (prev='{prev_league}')")
                 continue
-            # Bu entry daha iyiyse eskisini sil
             old_h = prev["h"]
             all_fixtures.pop(old_h, None)
             all_snapshots = [s for s in all_snapshots if s["match_id_hash"] != old_h]
@@ -638,6 +746,10 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
 
 def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
     """Check if another live scraper instance is active (master/slave arbitration)."""
+    global _HEARTBEAT_TABLE_AVAILABLE
+    if _HEARTBEAT_TABLE_AVAILABLE is False:
+        return _check_live_master_from_signals(supabase_url, supabase_key)
+
     try:
         url = f"{supabase_url}/rest/v1/scraper_heartbeat?select=*"
         headers = {
@@ -646,8 +758,12 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
         }
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code != 200:
-            return True, "api_error_fallback"
+            if _heartbeat_table_missing(r):
+                _HEARTBEAT_TABLE_AVAILABLE = False
+                _log_heartbeat_missing_once()
+            return _check_live_master_from_signals(supabase_url, supabase_key)
 
+        _HEARTBEAT_TABLE_AVAILABLE = True
         rows = r.json()
         if not rows:
             return True, "no_master"
@@ -675,8 +791,8 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
 
         return True, "i_am_master"
     except Exception as e:
-        log(f"[Master Check] Hata: {e}, devam ediyorum")
-        return True, "error_fallback"
+        log(f"[Master Check] Hata: {e}; scraper_signal fallback deneniyor")
+        return _check_live_master_from_signals(supabase_url, supabase_key)
 
 
 def main():
