@@ -4,9 +4,12 @@ on:
   push:
     branches: [preview]
     paths:
+      - 'alarm_engine.py'
       - 'desktop/scraper_standalone/alarm_calculator.py'
       - 'desktop/scraper_standalone/alarm_calculator_legacy.py'
+      - 'desktop/scraper_standalone/alarm_recent.py'
       - 'tests/test_alarm_calculator_rule_guards.py'
+      - 'tests/test_alarm_recent_incremental.py'
       - '.github/workflows/alarm-rule-tests.yml'
   workflow_dispatch:
 
@@ -28,8 +31,13 @@ jobs:
 
       - name: Compile alarm modules
         run: |
+          python -m py_compile alarm_engine.py
           python -m py_compile desktop/scraper_standalone/alarm_calculator.py
           python -m py_compile desktop/scraper_standalone/alarm_calculator_legacy.py
+          python -m py_compile desktop/scraper_standalone/alarm_recent.py
 
       - name: Run alarm rule regression tests
-        run: python -m pytest -q tests/test_alarm_calculator_rule_guards.py
+        run: >-
+          python -m pytest -q
+          tests/test_alarm_calculator_rule_guards.py
+          tests/test_alarm_recent_incremental.py

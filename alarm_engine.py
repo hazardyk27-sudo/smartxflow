@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-SmartXFlow Alarm Engine v2.0 - 24/7 Signal-Based Alarm Calculator
-Scraper'dan gelen sinyalleri dinler ve alarm hesaplamalarını tetikler.
-Signal flow: Scraper -> scraper_signal (Supabase) -> Alarm Engine -> alarm tables
+SmartXFlow Alarm Engine v2.1 - 24/7 Signal-Based Alarm Calculator
+Scraper'dan gelen sinyalleri dinler ve alarm hesaplamalarini tetikler.
 
-Uses: scraper_standalone/alarm_calculator.py (AlarmCalculator class)
-This is the SAME alarm calculator used by the Admin Panel (PC-based).
+Signal flow:
+Scraper -> scraper_signal (Supabase) -> Alarm Engine -> alarm tables
+
+v2.1 incremental rollout:
+- BigMoney reads only the current/previous snapshots it needs.
+- MIM reads only the current/previous snapshots it needs.
+- Other alarm types keep the existing calculator path for now.
 """
 
 import os
@@ -17,7 +21,11 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
+
 from alarm_calculator import AlarmCalculator
+from alarm_recent import install_recent_alarm_overrides, clear_recent_alarm_cache
+
+install_recent_alarm_overrides(AlarmCalculator)
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY')
@@ -58,12 +66,9 @@ def get_calculator():
 def check_unprocessed_signals():
     """Fetch the NEWEST unprocessed signal, not the oldest.
 
-    run_all_calculations() always recomputes from the current state of the
-    match/odds tables in Supabase - it does not use any per-signal payload.
-    So replaying a backlog of stale scrape_complete signals oldest-first
-    recalculates the exact same thing over and over with no benefit, just
-    burns CPU/RAM. If the engine ever falls behind (e.g. after a crash-loop),
-    jump straight to the latest signal; skip_stale_signals() clears the rest.
+    run_all_calculations() still recalculates the non-incremental alarm types
+    from current DB state. BigMoney and MIM are patched to use the active
+    signal's small recent snapshot window.
     """
     try:
         url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&order=created_at.desc&limit=1"
@@ -71,20 +76,15 @@ def check_unprocessed_signals():
         if r.status_code == 200:
             signals = r.json()
             return signals[0] if signals else None
-        else:
-            print(f"[Signal Check] HTTP {r.status_code}: {r.text[:200]}")
-            return None
+        print(f"[Signal Check] HTTP {r.status_code}: {r.text[:200]}")
+        return None
     except Exception as e:
         print(f"[Signal Check] Hata: {e}")
         return None
 
 
 def skip_stale_signals(before_id):
-    """Mark every unprocessed signal older than before_id as processed
-    WITHOUT running a calculation for it. Safe because run_all_calculations()
-    reads live DB state, so only the newest pending signal is ever worth
-    computing. Returns the number of rows skipped.
-    """
+    """Mark older pending signals processed without replaying stale full scans."""
     try:
         now = datetime.now(timezone.utc).isoformat()
         url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&id=lt.{before_id}"
@@ -98,8 +98,10 @@ def skip_stale_signals(before_id):
             except Exception:
                 skipped = 0
             if skipped:
-                print(f"[Signal] Backlog: {skipped} eski sinyal (id<{before_id}) "
-                      f"hesaplanmadan processed olarak isaretlendi")
+                print(
+                    f"[Signal] Backlog: {skipped} eski sinyal (id<{before_id}) "
+                    "hesaplanmadan processed olarak isaretlendi"
+                )
             return skipped
         print(f"[Signal] Backlog atlama hata: HTTP {r.status_code}: {r.text[:200]}")
         return 0
@@ -119,9 +121,8 @@ def mark_signal_processed(signal_id):
         if r.status_code in [200, 204]:
             print(f"[Signal] #{signal_id} processed olarak isaretlendi")
             return True
-        else:
-            print(f"[Signal] Mark processed hata: HTTP {r.status_code}")
-            return False
+        print(f"[Signal] Mark processed hata: HTTP {r.status_code}")
+        return False
     except Exception as e:
         print(f"[Signal] Mark processed exception: {e}")
         return False
@@ -149,41 +150,67 @@ def update_engine_heartbeat(status, alarm_count=0, error_msg=None):
         return False
 
 
+def _signal_queue_wait_seconds(signal):
+    try:
+        created = datetime.fromisoformat(str(signal.get('created_at', '')).replace('Z', '+00:00'))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - created.astimezone(timezone.utc)).total_seconds())
+    except Exception:
+        return None
+
+
 def process_signal(signal):
     signal_id = signal.get('id')
     match_count = signal.get('match_count', 0)
     source = signal.get('source', 'unknown')
+    queue_wait = _signal_queue_wait_seconds(signal)
 
     print("\n" + "=" * 60)
     print(f"SINYAL ALGILANDI - #{signal_id}")
     print(f"Kaynak: {source} | Mac sayisi: {match_count}")
     print(f"Zaman: {signal.get('created_at', 'N/A')}")
+    if queue_wait is not None:
+        print(f"[Timing] queue_wait={queue_wait:.3f}s")
     print("=" * 60)
 
     update_engine_heartbeat("calculating")
+    calculation_started = time.monotonic()
+    calc = None
 
     try:
         calc = get_calculator()
+        calc._active_signal = signal
         total_alarms = calc.run_all_calculations()
+        calculation_seconds = time.monotonic() - calculation_started
 
         mark_signal_processed(signal_id)
 
-        print(f"\n[Engine] Hesaplama tamamlandi - {total_alarms} alarm uretildi")
+        print(
+            f"\n[Engine] Hesaplama tamamlandi - {total_alarms} alarm uretildi | "
+            f"calculation={calculation_seconds:.3f}s"
+        )
         update_engine_heartbeat("idle", alarm_count=total_alarms)
         return True
 
     except Exception as e:
-        print(f"[Engine] Hesaplama hatasi: {e}")
+        calculation_seconds = time.monotonic() - calculation_started
+        print(f"[Engine] Hesaplama hatasi ({calculation_seconds:.3f}s): {e}")
         import traceback
         traceback.print_exc()
         update_engine_heartbeat("error", error_msg=str(e)[:200])
         return False
 
+    finally:
+        if calc is not None:
+            clear_recent_alarm_cache(calc)
+
 
 def run_engine():
     print("=" * 60)
-    print("SMARTXFLOW ALARM ENGINE v2.0")
-    print("Using: scraper_standalone/alarm_calculator.py (AlarmCalculator)")
+    print("SMARTXFLOW ALARM ENGINE v2.1")
+    print("BigMoney + MIM: incremental recent-snapshot mode")
+    print("Other alarms: existing calculation path")
     print(f"Poll interval: {POLL_INTERVAL}s")
     print(f"Supabase URL: {SUPABASE_URL[:30]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)
@@ -198,12 +225,20 @@ def run_engine():
             if url and key:
                 globals()['SUPABASE_URL'] = url
                 globals()['SUPABASE_ANON_KEY'] = key
-                globals()['HEADERS_READ'] = {"apikey": key, "Authorization": f"Bearer {key}"}
+                globals()['HEADERS_READ'] = {
+                    "apikey": key,
+                    "Authorization": f"Bearer {key}"
+                }
                 svc = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
                 if svc:
                     globals()['SUPABASE_SERVICE_KEY'] = svc
-                    globals()['HEADERS_WRITE'] = {"apikey": svc, "Authorization": f"Bearer {svc}", "Content-Type": "application/json", "Prefer": "return=minimal"}
-                print("[Engine] Supabase credentials bulundu, yeniden başlatılıyor")
+                    globals()['HEADERS_WRITE'] = {
+                        "apikey": svc,
+                        "Authorization": f"Bearer {svc}",
+                        "Content-Type": "application/json",
+                        "Prefer": "return=minimal"
+                    }
+                print("[Engine] Supabase credentials bulundu, yeniden baslatiliyor")
                 return run_engine()
             print("[Engine] Supabase credentials hala eksik, bekleniyor...")
 
