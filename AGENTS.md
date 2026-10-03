@@ -22,7 +22,9 @@
 
 ## Safety rules
 
-- **Never access, inspect, control, or perform any operation on the user's personal computer/local workstation under any circumstance.** Do not use Desktop Commander, Remote Desktop Commander, PowerShell, CMD, local SSH, local filesystem access, process inspection, or any equivalent mechanism against the user's PC. Do not use the user's PC as a bridge to GitHub, Replit, Hetzner, databases, APIs, or any other service. If a task would require PC access, stop that route and use only authorized cloud/server connectors or ask for a non-PC alternative.
+- **The user's personal computer must never be used as a work target.** Do not browse, inspect, read, write, modify, delete, enumerate, or otherwise interact with local PC files, folders, browser tabs/windows, applications, processes, settings, clipboard, personal data, or UI. Do not open browser tabs or GUI applications on the PC. Do not create notes, logs, scripts, downloads, or any other files on the PC. Do not make local configuration changes.
+- **Desktop Commander / Remote Desktop Commander is allowed only as a transport bridge to authorized remote targets** such as Hetzner, Replit, GitHub, SmartXFlow APIs/data, databases, or other explicitly authorized cloud/server services. Commands issued through Desktop Commander must target the remote service/server and must not operate on the local PC, except for the minimal shell invocation strictly necessary to establish or maintain that outbound remote connection. Do not inspect the local machine as part of that process.
+- When Desktop Commander is used as a bridge, keep all substantive reads, writes, searches, tests, code changes, data queries, and file operations on the remote target only. Never store intermediate or final artifacts on the local PC.
 - Never overwrite or delete secrets, local `.env` files, logs, virtual environments, caches, uploads, or untracked runtime data during source sync.
 - If refs, tracked trees, counts, or fingerprints diverge, stop and compare; never sync blindly.
 - No force-push, rebase, reset, or improvised merge. Use only reviewed, controlled fast-forward/promotion; stop on divergence.
