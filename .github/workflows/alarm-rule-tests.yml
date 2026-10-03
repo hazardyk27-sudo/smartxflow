@@ -7,6 +7,9 @@ on:
       - 'alarm_engine.py'
       - 'scheduled_scraper.py'
       - 'live_scraper.py'
+      - 'sinyal_engine.py'
+      - 'sinyal_engine_runtime.py'
+      - 'run_services.sh'
       - 'betwatch_prematch.py'
       - 'betwatch_client.py'
       - 'desktop/scraper_standalone/betwatch_client.py'
@@ -21,6 +24,7 @@ on:
       - 'tests/test_alarm_recent_part2.py'
       - 'tests/test_alarm_recent_part3.py'
       - 'tests/test_runtime_scraper_recovery.py'
+      - 'tests/test_sinyal_engine_runtime.py'
       - '.github/workflows/alarm-rule-tests.yml'
   workflow_dispatch:
 
@@ -42,6 +46,8 @@ jobs:
           python -m py_compile alarm_engine.py
           python -m py_compile scheduled_scraper.py
           python -m py_compile live_scraper.py
+          python -m py_compile sinyal_engine.py
+          python -m py_compile sinyal_engine_runtime.py
           python -m py_compile betwatch_prematch.py
           python -m py_compile betwatch_client.py
           python -m py_compile desktop/scraper_standalone/betwatch_client.py
@@ -59,3 +65,4 @@ jobs:
           tests/test_alarm_recent_part2.py
           tests/test_alarm_recent_part3.py
           tests/test_runtime_scraper_recovery.py
+          tests/test_sinyal_engine_runtime.py
