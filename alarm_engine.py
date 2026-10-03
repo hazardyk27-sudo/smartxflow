@@ -40,6 +40,20 @@ ERROR_WAIT = 60
 HEADERS_READ = {'apikey': SUPABASE_ANON_KEY, 'Authorization': f'Bearer {SUPABASE_ANON_KEY}', 'Content-Type': 'application/json'}
 HEADERS_WRITE = {'apikey': SUPABASE_SERVICE_KEY, 'Authorization': f'Bearer {SUPABASE_SERVICE_KEY}', 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}
 _calculator = None
+_HEARTBEAT_TABLE_AVAILABLE = None
+_HEARTBEAT_MISSING_LOGGED = False
+
+
+def _heartbeat_table_missing(response):
+    text = getattr(response, 'text', '') or ''
+    return response.status_code == 404 and ('scraper_heartbeat' in text or 'PGRST205' in text)
+
+
+def _log_missing_heartbeat_once():
+    global _HEARTBEAT_MISSING_LOGGED
+    if not _HEARTBEAT_MISSING_LOGGED:
+        print('[Heartbeat] scraper_heartbeat yok; engine liveness scraper_signal processed_at ile izlenecek')
+        _HEARTBEAT_MISSING_LOGGED = True
 
 
 def get_calculator():
@@ -52,7 +66,11 @@ def get_calculator():
 
 def check_unprocessed_signals():
     try:
-        url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&order=created_at.desc&limit=1"
+        url = (
+            f"{SUPABASE_URL}/rest/v1/scraper_signal"
+            "?processed=eq.false&signal_type=eq.scrape_complete"
+            "&order=created_at.desc&limit=1"
+        )
         r = requests.get(url, headers=HEADERS_READ, timeout=15)
         if r.status_code == 200:
             signals = r.json()
@@ -66,7 +84,10 @@ def check_unprocessed_signals():
 def skip_stale_signals(before_id):
     try:
         now = datetime.now(timezone.utc).isoformat()
-        url = f"{SUPABASE_URL}/rest/v1/scraper_signal?processed=eq.false&id=lt.{before_id}"
+        url = (
+            f"{SUPABASE_URL}/rest/v1/scraper_signal"
+            f"?processed=eq.false&signal_type=eq.scrape_complete&id=lt.{before_id}"
+        )
         headers = {**HEADERS_WRITE, 'Prefer': 'return=representation'}
         r = requests.patch(url, json={'processed': True, 'processed_at': now}, headers=headers, timeout=20)
         if r.status_code in (200, 204):
@@ -76,7 +97,7 @@ def skip_stale_signals(before_id):
             except Exception:
                 skipped = 0
             if skipped:
-                print(f"[Signal] Backlog: {skipped} eski sinyal hesaplanmadan processed")
+                print(f"[Signal] Backlog: {skipped} eski scrape_complete sinyali hesaplanmadan processed")
             return skipped
         print(f"[Signal] Backlog atlama hata: HTTP {r.status_code}")
     except Exception as e:
@@ -99,14 +120,33 @@ def mark_signal_processed(signal_id):
 
 
 def update_engine_heartbeat(status, alarm_count=0, error_msg=None):
+    global _HEARTBEAT_TABLE_AVAILABLE
+    if _HEARTBEAT_TABLE_AVAILABLE is False:
+        return False
     try:
         now = datetime.now(timezone.utc).isoformat()
-        data = {'source': 'alarm_engine', 'last_heartbeat': now, 'status': status, 'match_count': alarm_count, 'error_message': error_msg, 'updated_at': now}
+        data = {
+            'source': 'alarm_engine',
+            'last_heartbeat': now,
+            'status': status,
+            'match_count': alarm_count,
+            'error_message': error_msg,
+            'updated_at': now,
+        }
         url = f"{SUPABASE_URL}/rest/v1/scraper_heartbeat?on_conflict=source"
         headers = {**HEADERS_WRITE, 'Prefer': 'return=representation,resolution=merge-duplicates'}
         r = requests.post(url, json=data, headers=headers, timeout=10)
-        return r.status_code in (200, 201)
-    except Exception:
+        if r.status_code in (200, 201):
+            _HEARTBEAT_TABLE_AVAILABLE = True
+            return True
+        if _heartbeat_table_missing(r):
+            _HEARTBEAT_TABLE_AVAILABLE = False
+            _log_missing_heartbeat_once()
+            return False
+        print(f"[Heartbeat] HTTP {r.status_code}: {r.text[:160]}")
+        return False
+    except Exception as e:
+        print(f"[Heartbeat] Hata: {e}")
         return False
 
 
