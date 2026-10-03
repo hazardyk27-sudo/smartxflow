@@ -8,7 +8,7 @@ from unittest.mock import patch
 from learning_archive.exporter import LearningArchiveExporter
 from learning_archive.github_backend import ArchiveWriteResult
 from learning_archive.package import build_archive_package, verify_package_checksums
-from learning_archive.source_history import fetch_selected_match_history
+from learning_archive.source_history import SXFHistoryError, fetch_selected_match_history
 from learning_archive.validator import classify_evidence_phase, validate_case
 
 
@@ -53,15 +53,23 @@ class FakeResponse:
 
 
 class FakeSession:
-    def __init__(self):
+    def __init__(self, response=None):
         self.headers = {}
-    def get(self, url, params=None, timeout=None):
-        table = url.rsplit('/', 1)[-1]
-        if table == "moneyway_double_chance_history":
-            return FakeResponse(404, {"code": "PGRST205", "message": "Could not find the table"})
-        if table == "moneyway_1x2_history":
-            return FakeResponse(200, [{"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:00:00+03:00"}])
-        return FakeResponse(200, [])
+        self.response = response or FakeResponse(200, {
+            "match_id_hash": "abc123def456",
+            "snapshots": [
+                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:20:00+03:00", "market": "1X2"},
+                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-03T15:00:00+03:00", "market": "OU25"},
+            ],
+            "source_tables": ["moneyway_snapshots", "dropping_odds_snapshots"],
+            "unavailable_optional_tables": [],
+        })
+        self.last_url = None
+        self.last_timeout = None
+    def get(self, url, timeout=None):
+        self.last_url = url
+        self.last_timeout = timeout
+        return self.response
 
 
 class LearningArchiveTests(unittest.TestCase):
@@ -101,15 +109,42 @@ class LearningArchiveTests(unittest.TestCase):
     def test_empty_history_fails_closed(self):
         self.assertFalse(validate_case(sample_case(), []).ok)
 
-    def test_existing_history_reader_and_optional_market_table(self):
-        with patch.dict(os.environ, {"SUPABASE_URL": "https://example.supabase.co", "SUPABASE_KEY": "test-key"}, clear=False):
-            result = fetch_selected_match_history(
-                "abc123def456",
-                tables=("moneyway_1x2_history", "moneyway_double_chance_history"),
-                session=FakeSession(),
-            )
-        self.assertEqual(len(result.snapshots), 1)
-        self.assertEqual(result.unavailable_optional_tables, ("moneyway_double_chance_history",))
+    def test_history_reader_uses_smartxflow_api_not_supabase(self):
+        session = FakeSession()
+        with patch.dict(os.environ, {
+            "SMARTXFLOW_LEARNING_API_BASE_URL": "https://preview.smartxflow.test",
+            "SMARTXFLOW_LEARNING_API_TOKEN": "service-test-token",
+        }, clear=False):
+            result = fetch_selected_match_history("abc123def456", session=session)
+        self.assertEqual(len(result.snapshots), 2)
+        self.assertEqual(result.source_tables, ("moneyway_snapshots", "dropping_odds_snapshots"))
+        self.assertEqual(result.unavailable_optional_tables, ())
+        self.assertEqual(session.headers["X-SmartXFlow-Learning-Key"], "service-test-token")
+        self.assertEqual(session.last_url, "https://preview.smartxflow.test/api/internal/learning/match/abc123def456/history")
+        self.assertEqual(result.snapshots[0]["market"], "OU25")
+
+    def test_history_reader_auth_failure_is_explicit(self):
+        session = FakeSession(FakeResponse(403, {"error": "forbidden"}))
+        with patch.dict(os.environ, {
+            "SMARTXFLOW_LEARNING_API_BASE_URL": "https://preview.smartxflow.test",
+            "SMARTXFLOW_LEARNING_API_TOKEN": "wrong-token",
+        }, clear=False):
+            with self.assertRaisesRegex(SXFHistoryError, "authentication failed"):
+                fetch_selected_match_history("abc123def456", session=session)
+
+    def test_history_reader_rejects_wrong_match_payload(self):
+        session = FakeSession(FakeResponse(200, {
+            "match_id_hash": "different123",
+            "snapshots": [{"match_id_hash": "different123", "scraped_at": "2026-10-03T15:00:00Z"}],
+            "source_tables": [],
+            "unavailable_optional_tables": [],
+        }))
+        with patch.dict(os.environ, {
+            "SMARTXFLOW_LEARNING_API_BASE_URL": "https://preview.smartxflow.test",
+            "SMARTXFLOW_LEARNING_API_TOKEN": "service-test-token",
+        }, clear=False):
+            with self.assertRaisesRegex(SXFHistoryError, "different match_id_hash"):
+                fetch_selected_match_history("abc123def456", session=session)
 
 
 if __name__ == "__main__":
