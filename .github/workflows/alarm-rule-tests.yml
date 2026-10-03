@@ -10,6 +10,8 @@ on:
       - 'sinyal_engine.py'
       - 'sinyal_engine_runtime.py'
       - 'run_services.sh'
+      - 'deploy/setup_hetzner.sh'
+      - 'deploy/smartxflow-sinyal.service'
       - 'betwatch_prematch.py'
       - 'betwatch_client.py'
       - 'desktop/scraper_standalone/betwatch_client.py'
@@ -57,6 +59,12 @@ jobs:
           python -m py_compile desktop/scraper_standalone/alarm_recent_base.py
           python -m py_compile desktop/scraper_standalone/alarm_recent_part2.py
           python -m py_compile desktop/scraper_standalone/alarm_recent_part3.py
+      - name: Validate service supervisor shell syntax
+        run: |
+          bash -n run_services.sh
+          bash -n deploy/setup_hetzner.sh
+          grep -q 'sinyal_engine_runtime.py' run_services.sh
+          grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
       - name: Run alarm and runtime regression tests
         run: >-
           python -m pytest -q
