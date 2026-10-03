@@ -109,9 +109,28 @@ At the end of the settled slate, summarize:
 - research candidates
 - one or more explicit focus points for the next day's analysis
 
+## Journal write-back requirement
+
+After the daily postmortem summary, update the current day's journal according to `.agents/match_analyst/JOURNAL_STANDARD.md`.
+
+The journal close must explicitly record:
+- what happened today
+- what worked and why
+- what failed and why
+- best process decision, even if it lost
+- worst process decision, even if it won
+- process/model errors versus variance
+- observations, process fixes, and research candidates
+- what currently appears promising
+- what currently appears misleading or harmful
+- unresolved questions
+- tomorrow's focus
+
+Do not close the journal before these fields are sufficiently complete. Once the journal is marked `CLOSED`, later corrections are addenda only.
+
 ## Next-day focus
 
-The next day's Match Analyst should read the latest daily lessons and deliberately test the identified weak point, without allowing one bad day to override the base methodology.
+The next day's Match Analyst should read the latest closed daily journal and latest daily lessons, then deliberately test the identified weak point without allowing one bad day to override the base methodology.
 
 Example:
 - If `LINEUP_MISS` repeated, increase lineup verification discipline.
