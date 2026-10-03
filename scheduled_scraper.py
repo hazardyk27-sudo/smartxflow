@@ -13,6 +13,11 @@ from datetime import datetime, timezone
 from typing import Optional
 import traceback
 
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Replit runtime is Linux
+    fcntl = None
+
 # standalone_scraper modülünü import et (SupabaseWriter + cleanup için)
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
@@ -26,6 +31,8 @@ print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
 SCRAPER_SOURCE = "replit"
+SIGNAL_DEDUP_WINDOW_SECONDS = 120
+_SIGNAL_LOCK_PATH = "/tmp/smartxflow_scraper_signal.lock"
 _HEARTBEAT_TABLE_AVAILABLE = None
 _HEARTBEAT_MISSING_LOGGED = False
 
@@ -79,6 +86,50 @@ def _check_master_from_signals(supabase_url: str, supabase_key: str) -> tuple:
         return True, "signal_fallback_error"
 
 
+def _is_recent_duplicate_signal(
+    supabase_url: str,
+    supabase_key: str,
+    match_count: int,
+    snapshot_count: int,
+) -> bool:
+    """Aynı scrape sayılarıyla çok kısa sürede ikinci signal üretimini engelle."""
+    try:
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+        }
+        url = (
+            f"{supabase_url}/rest/v1/scraper_signal"
+            f"?source=eq.{SCRAPER_SOURCE}"
+            f"&signal_type=eq.scrape_complete"
+            f"&order=created_at.desc&limit=1"
+            f"&select=id,created_at,match_count,snapshot_count"
+        )
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            print(f"[Signal] Duplicate kontrolü HTTP {r.status_code}; fail-open")
+            return False
+        rows = r.json()
+        if not rows:
+            return False
+        row = rows[0]
+        if int(row.get("match_count") or 0) != int(match_count):
+            return False
+        if int(row.get("snapshot_count") or 0) != int(snapshot_count):
+            return False
+        raw = str(row.get("created_at") or "")
+        if not raw:
+            return False
+        created = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - created.astimezone(timezone.utc)).total_seconds()
+        return 0 <= age <= SIGNAL_DEDUP_WINDOW_SECONDS
+    except Exception as e:
+        print(f"[Signal] Duplicate kontrolü hata: {e}; fail-open")
+        return False
+
+
 def send_telegram(message: str, is_error: bool = False) -> bool:
     bot_token = os.environ.get('PAYMENT_BOT_TOKEN')
     chat_id = os.environ.get('PAYMENT_CHAT_ID')
@@ -103,13 +154,30 @@ def send_telegram(message: str, is_error: bool = False) -> bool:
 
 
 def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: int, snapshot_count: int = 0) -> bool:
-    """Alarm Engine'e sinyal gönder - scrape tamamlandığında çağrılır"""
+    """Alarm Engine'e tekil scrape_complete sinyali gönder."""
+    lock_handle = None
     try:
+        if fcntl is not None:
+            lock_handle = open(_SIGNAL_LOCK_PATH, "a+", encoding="utf-8")
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+
+        if _is_recent_duplicate_signal(
+            supabase_url,
+            supabase_key,
+            match_count,
+            snapshot_count,
+        ):
+            print(
+                f"[Signal] Duplicate scrape_complete atlandı "
+                f"({match_count} maç, {snapshot_count} snapshot)"
+            )
+            return True
+
         data = {
             "source": SCRAPER_SOURCE,
             "signal_type": "scrape_complete",
-            "match_count": match_count,
-            "snapshot_count": snapshot_count,
+            "match_count": int(match_count),
+            "snapshot_count": int(snapshot_count),
             "processed": False
         }
         
@@ -125,13 +193,23 @@ def send_alarm_engine_signal(supabase_url: str, supabase_key: str, match_count: 
         print(f"[Signal] HTTP {r.status_code}: {r.text[:200]}")
         success = r.status_code in [200, 201] and len(r.text) > 10
         if success:
-            print(f"[Signal] Alarm Engine'e sinyal gönderildi ✓ ({match_count} maç)")
+            print(
+                f"[Signal] Alarm Engine'e sinyal gönderildi ✓ "
+                f"({match_count} maç, {snapshot_count} snapshot)"
+            )
         else:
             print(f"[Signal] Sinyal gönderilemedi - HTTP {r.status_code}")
         return success
     except Exception as e:
         print(f"[Signal] Hata: {e}")
         return False
+    finally:
+        if lock_handle is not None:
+            try:
+                if fcntl is not None:
+                    fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
+            finally:
+                lock_handle.close()
 
 
 def update_heartbeat(supabase_url: str, supabase_key: str, status: str, match_count: int = 0, error_msg: Optional[str] = None) -> bool:
@@ -296,10 +374,16 @@ def main():
         return False
     
     rows, error = run_with_retry(writer)
+    stats = getattr(writer, "last_scrape_stats", {}) or {}
+    match_count = int(stats.get("match_count") or 0)
+    snapshot_count = int(stats.get("snapshot_count") or 0)
+    if rows > 0 and match_count <= 0:
+        print("[Signal] Exact match_count unavailable; row-count fallback kullanılıyor")
+        match_count = int(rows)
     
     if error:
         send_telegram(f"SCRAPER HATA (3 retry sonrası):\n{error}", is_error=True)
-        update_heartbeat(supabase_url, supabase_key, "error", rows, error[:200])
+        update_heartbeat(supabase_url, supabase_key, "error", match_count, error[:200])
     else:
         history_errors = getattr(writer, "last_write_errors", [])
         if history_errors:
@@ -309,15 +393,23 @@ def main():
                 supabase_url,
                 supabase_key,
                 "active_degraded",
-                rows,
+                match_count,
                 degraded_msg[:500]
             )
         else:
-            update_heartbeat(supabase_url, supabase_key, "active", rows)
-        send_alarm_engine_signal(supabase_url, supabase_key, rows, rows)
+            update_heartbeat(supabase_url, supabase_key, "active", match_count)
+        send_alarm_engine_signal(
+            supabase_url,
+            supabase_key,
+            match_count,
+            snapshot_count,
+        )
     
     print("=" * 60)
-    print(f"Tamamlandı: {rows} satır")
+    print(
+        f"Tamamlandı: {rows} satır | "
+        f"{match_count} maç | {snapshot_count} snapshot"
+    )
     if error:
         print(f"Son hata: {error}")
     print("=" * 60)
