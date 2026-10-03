@@ -22,6 +22,7 @@
 
 ## Safety rules
 
+- **Never access, inspect, control, or perform any operation on the user's personal computer/local workstation under any circumstance.** Do not use Desktop Commander, Remote Desktop Commander, PowerShell, CMD, local SSH, local filesystem access, process inspection, or any equivalent mechanism against the user's PC. Do not use the user's PC as a bridge to GitHub, Replit, Hetzner, databases, APIs, or any other service. If a task would require PC access, stop that route and use only authorized cloud/server connectors or ask for a non-PC alternative.
 - Never overwrite or delete secrets, local `.env` files, logs, virtual environments, caches, uploads, or untracked runtime data during source sync.
 - If refs, tracked trees, counts, or fingerprints diverge, stop and compare; never sync blindly.
 - No force-push, rebase, reset, or improvised merge. Use only reviewed, controlled fast-forward/promotion; stop on divergence.
