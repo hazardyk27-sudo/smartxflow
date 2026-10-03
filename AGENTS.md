@@ -9,6 +9,13 @@
 - Reread it only when one of these conditions is true: the user says repository rules changed, the `AGENTS.md` blob/SHA changed, the repository or branch context changed, or an instruction conflict/ambiguity appears.
 - If the file changes during an active session, the newer version becomes authoritative immediately after rereading it.
 
+## Specialized agent bootstrap
+
+- `SXF-MATCH-ANALYST` starts the dedicated daily football Match Analyst role.
+- On a new Match Analyst session, after reading this root file once, read `.agents/roles/MATCH_ANALYST.md` and then follow its bootstrap order for methodology, source policy, output/postmortem standards, and state.
+- Specialized role files are session-cached the same way as this root file: read once per session, and reread only if their SHA/rules change, the repository/branch changes, or an instruction conflict appears.
+- The Match Analyst is a research/prediction role only. It must not independently edit/deploy SmartXFlow application code or promote research observations into production engine rules.
+
 ## Source and environment roles
 
 - GitHub-tracked source and history are canonical.

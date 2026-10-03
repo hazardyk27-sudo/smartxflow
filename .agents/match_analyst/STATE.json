@@ -1,0 +1,37 @@
+{
+  "agent": "MATCH_ANALYST",
+  "trigger": "SXF-MATCH-ANALYST",
+  "status": "READY",
+  "methodology_version": "1.0.0",
+  "last_daily_run": null,
+  "last_prediction_date": null,
+  "last_postmortem_date": null,
+  "latest_daily_lessons_path": null,
+  "active_focus": [
+    "price-money relationship before raw money share",
+    "cause research with causal timing",
+    "explicit counterevidence",
+    "immutable pre-kickoff prediction records",
+    "postmortem separation of process error and variance"
+  ],
+  "source_priority": [
+    "official club/federation/competition sources",
+    "Flashscore",
+    "FotMob",
+    "Sofascore",
+    "Transfermarkt and registration sources",
+    "reputable international/national/local news",
+    "social/community discovery only"
+  ],
+  "final_statuses": [
+    "FIRSAT",
+    "IZLE",
+    "UZAK DUR"
+  ],
+  "pre_research_statuses": [
+    "RESEARCH",
+    "WATCH",
+    "REJECT"
+  ],
+  "notes": "This state file is operational context, not prediction history. Update it only when the Match Analyst workflow state or methodology version materially changes. Prediction and postmortem records must remain append-only/immutable at the record level."
+}
