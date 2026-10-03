@@ -1,27 +1,36 @@
 # Development Current Milestone
 
-MILESTONE_VERSION: 3
+MILESTONE_VERSION: 4
 STATUS: ACTIVE
 
 ## Objective
-Finish the minimum reliable selected-match Learning Archive pipeline before model training.
+Finish and verify the minimum reliable selected-match Learning Archive pipeline before model training.
+
+## Implemented on `preview`
+
+- Existing SXF stored-history reader; no second live collector.
+- Deterministic case packaging with `case.json`, `evidence.json`, `settlement.json`, `sxf_snapshots.json.gz`, SHA-256 checksums.
+- PRE/POST evidence classification from immutable `observed_at <= prediction_at` cutoff.
+- Validator with required metadata checks, secret rejection and Poly/Polymarket exclusion.
+- Configurable dedicated private GitHub archive backend with append-only conflict handling, retry-safe partial writes, idempotent identical reruns, manifest and post-write verification.
+- Bootstrap/finalize CLI interfaces.
+- Retention-hold registry code and SQL migration.
+- Web cleanup guard that blocks cleanup while any Learning Archive case is pending and fails closed if hold state cannot be verified.
+- Finalizer does not return `DONE` while enabled hold release is unverified.
+- Unit coverage for cutoff, secrets, Poly, deterministic checksums, empty history, idempotent finalization and optional market-history handling.
 
 ## Required now
 
-1. Implement/validate final case export from existing SmartXFlow stored history; no second live collector.
-2. Enforce immutable prediction cutoff and evidence timing.
-3. Add explicit retention protection so source SXF history required by a selected learning case cannot be removed before verified archive finalization.
-4. Validate required case metadata, snapshot provenance, settlement/decision outcome, checksums and post-write manifest integrity.
-5. Make the dedicated private GitHub archive repository the configurable destination.
-6. Make finalization idempotent and duplicate-safe: same `case_id` must not duplicate or overwrite finalized payloads; identical re-runs return the existing archive identity; materially different re-runs fail closed into explicit correction/version handling.
-7. Add secret exclusion checks so API keys, tokens, cookies, auth headers, passwords, private keys, `.env` values and equivalent credentials cannot enter archive payloads or logs.
-8. A case is not complete until validator `PASS`, archive write success, post-write manifest/checksum verification and durable archive path/reference confirmation all succeed.
-9. Fail clearly on missing/inconsistent fields or incomplete source history; never mutate history while validating. Failed finalization remains explicit and retryable.
-10. Keep Poly/Polymarket outside the dataset.
+1. Create/connect the actual private `smartxflow-learning-archive` GitHub repository and initialize it with `README.md`, `manifest.jsonl`, and `schema/match_case_v1.schema.json` using the bootstrap command.
+2. Apply `migrations/2026_10_03_learning_archive_retention_holds.sql` to the **SmartXFlow** Supabase project, not any unrelated project.
+3. Configure the runtime archive destination/token and enable retention holds.
+4. Run one real selected `BET|WATCH|PASS` case through: immutable case -> hold -> stored SXF history -> settlement/review -> validator -> archive write -> manifest/checksum verification -> hold release.
+5. Re-run that same finalized case and verify deterministic idempotent behavior returns the existing archive identity without duplicate case/manifest rows.
+6. Verify a materially changed rerun of the same `case_id` fails closed and requires explicit append-only correction/version handling.
 
 ## Acceptance
 
-One settled/reviewed selected `BET|WATCH|PASS` case can be exported into a self-contained reproducible archive case, and:
+One real settled/reviewed selected `BET|WATCH|PASS` case is self-contained and reproducible in the dedicated private archive, and:
 - retention protection preserves required source history until finalization,
 - validator returns deterministic PASS/FAIL with reasons,
 - duplicate/idempotent re-run behavior is deterministic,
