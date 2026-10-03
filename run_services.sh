@@ -50,10 +50,10 @@ start_live() {
 
 start_sinyal() {
     while true; do
-        echo "[run_services] $(date '+%H:%M:%S') Starting sinyal_engine.py..."
-        python sinyal_engine.py
+        echo "[run_services] $(date '+%H:%M:%S') Starting sinyal_engine_runtime.py..."
+        python sinyal_engine_runtime.py
         EXIT_CODE=$?
-        echo "[run_services] $(date '+%H:%M:%S') sinyal_engine.py exited (code=$EXIT_CODE), restarting in 5s..."
+        echo "[run_services] $(date '+%H:%M:%S') sinyal_engine_runtime.py exited (code=$EXIT_CODE), restarting in 5s..."
         sleep 5
     done
 }
