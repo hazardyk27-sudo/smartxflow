@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartxflow.local/schemas/learning_archive_match_v1.schema.json",
+  "title": "SmartXFlow Learning Archive Match Case v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "archive_schema_version",
+    "case_id",
+    "match",
+    "prediction",
+    "evidence",
+    "settlement",
+    "provenance"
+  ],
+  "properties": {
+    "archive_schema_version": {"const": 1},
+    "case_id": {"type": "string", "minLength": 8},
+    "match": {
+      "type": "object",
+      "required": ["match_id_hash", "home", "away", "kickoff_at"],
+      "properties": {
+        "match_id_hash": {"type": "string", "minLength": 1},
+        "league": {"type": ["string", "null"]},
+        "home": {"type": "string"},
+        "away": {"type": "string"},
+        "kickoff_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "required": ["prediction_at", "decision", "market", "selection", "entry_odds", "rationale"],
+      "properties": {
+        "prediction_at": {"type": "string", "format": "date-time"},
+        "decision": {"enum": ["BET", "WATCH", "PASS"]},
+        "market": {"type": "string"},
+        "selection": {"type": "string"},
+        "entry_odds": {"type": ["number", "null"], "exclusiveMinimum": 1},
+        "confidence": {"type": ["number", "string", "null"]},
+        "rationale": {"type": "string"},
+        "counterargument": {"type": ["string", "null"]}
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "observed_at", "note"],
+        "properties": {
+          "source": {"type": "string"},
+          "url": {"type": ["string", "null"]},
+          "published_at": {"type": ["string", "null"], "format": "date-time"},
+          "observed_at": {"type": "string", "format": "date-time"},
+          "category": {"type": ["string", "null"]},
+          "relationship": {"enum": ["SUPPORTS", "CONTRADICTS", "NEUTRAL", "UNKNOWN"]},
+          "note": {"type": "string"}
+        }
+      }
+    },
+    "settlement": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["PENDING", "WIN", "LOSS", "VOID"]},
+        "final_score": {"type": ["string", "null"]},
+        "ht_score": {"type": ["string", "null"]},
+        "closing_odds": {"type": ["number", "null"]},
+        "clv": {"type": ["number", "null"]},
+        "pnl_units": {"type": ["number", "null"]},
+        "roi": {"type": ["number", "null"]},
+        "postmortem_class": {"type": ["string", "null"]}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["archive_created_at", "source_repo", "source_commit"],
+      "properties": {
+        "archive_created_at": {"type": "string", "format": "date-time"},
+        "archive_finalized_at": {"type": ["string", "null"], "format": "date-time"},
+        "source_repo": {"type": "string"},
+        "source_commit": {"type": "string"},
+        "snapshot_payload": {"type": ["string", "null"]},
+        "checksum_sha256": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
