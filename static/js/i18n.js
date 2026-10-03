@@ -112,26 +112,8 @@
     apply: applyDOM
   };
 
-  function loadAnalysisV2ModalAssets() {
-    if (!document.getElementById('analysis-v2-modal-css')) {
-      var link = document.createElement('link');
-      link.id = 'analysis-v2-modal-css';
-      link.rel = 'stylesheet';
-      link.href = '/static/css/analysis_v2_modal.css?v=1';
-      (document.head || document.documentElement).appendChild(link);
-    }
-    if (!document.getElementById('analysis-v2-modal-js')) {
-      var script = document.createElement('script');
-      script.id = 'analysis-v2-modal-js';
-      script.src = '/static/js/analysis_v2_modal.js?v=1';
-      script.defer = true;
-      (document.head || document.documentElement).appendChild(script);
-    }
-  }
-
   var init = detectLang();
   load(init).catch(function () {
     if (init !== DEFAULT_LANG) load(DEFAULT_LANG).catch(function () {});
   });
-  loadAnalysisV2ModalAssets();
 })();

@@ -53,81 +53,13 @@ def normalize_kickoff(ko: str) -> str:
     return ko
 
 
-def _norm_market_label(value: str) -> str:
-    """Normalize Betwatch market/runner labels for resilient matching."""
-    return " ".join(str(value or "").strip().lower().replace("&", " and ").split())
-
-
-def _runner_matches_team(label: str, team: str) -> bool:
-    """Best-effort exact-ish team label match without fuzzy cross-team guessing."""
-    if not label or not team:
-        return False
-    nl = _norm_market_label(label)
-    nt = _norm_market_label(team)
-    return nl == nt or nl.startswith(nt + " ") or nl.endswith(" " + nt)
-
-
-def _double_chance_code(label: str, home: str = "", away: str = ""):
-    """Map a Double Chance runner label to 1X / X2 / 12.
-
-    Supports generic labels (Home or Draw, Draw or Away, Home or Away),
-    compact labels (1X/X2/12), and team-aware labels such as
-    "Arsenal or Draw" / "Draw or Chelsea".
+def map_market(mkt_name: str, runners: list):
     """
-    n = _norm_market_label(label)
-    compact = n.replace(" ", "").replace("/", "").replace("-", "")
-    if compact in ("1x", "x1"):
-        return "1X"
-    if compact in ("x2", "2x"):
-        return "X2"
-    if compact in ("12", "21"):
-        return "12"
-
-    has_draw = "draw" in n or "tie" in n
-    home_hit = _runner_matches_team(n.replace(" or ", " "), home) or "home" in n
-    away_hit = _runner_matches_team(n.replace(" or ", " "), away) or "away" in n
-
-    # Team-aware matching for common "<team> or Draw" labels.
-    if home:
-        nh = _norm_market_label(home)
-        home_hit = home_hit or nh in n
-    if away:
-        na = _norm_market_label(away)
-        away_hit = away_hit or na in n
-
-    if has_draw and home_hit and not away_hit:
-        return "1X"
-    if has_draw and away_hit and not home_hit:
-        return "X2"
-    if home_hit and away_hit and not has_draw:
-        return "12"
-
-    if n in ("home or draw", "draw or home"):
-        return "1X"
-    if n in ("draw or away", "away or draw"):
-        return "X2"
-    if n in ("home or away", "away or home"):
-        return "12"
-    return None
-
-
-def map_market(mkt_name: str, runners: list, home: str = "", away: str = ""):
-    """
-    Betwatch market adını ve runner listesini (market_key, [(sel_code, runner)])
-    formatına dönüştürür.
-
-    Canonical V2 market keys:
-      - 1X2: Match Odds
-      - DC: Double Chance (optional provider market)
-      - DNB: Draw no Bet
-      - OU25: Over/Under 2.5 Goals
-      - BTTS: Both teams to Score?
-
-    IMPORTANT: Double Chance is optional. If the provider does not expose the
-    market, SmartXFlow must not synthesize odds, matched amount or money share.
+    Betwatch market adını ve runner listesini (market_key, [(sel_code, runner)]) formatına dönüştürür.
+    Desteklenen marketler: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
+    Diğerleri için (None, []) döner.
     """
     name = (mkt_name or "").strip()
-    nname = _norm_market_label(name)
 
     if name == "Match Odds":
         if len(runners) < 2:
@@ -137,10 +69,6 @@ def map_market(mkt_name: str, runners: list, home: str = "", away: str = ""):
             r_name = (r.get("name") or "").lower()
             if "draw" in r_name:
                 sels.append(("X", r))
-            elif home and _runner_matches_team(r.get("name", ""), home):
-                sels.append(("1", r))
-            elif away and _runner_matches_team(r.get("name", ""), away):
-                sels.append(("2", r))
             elif not sels or (sels and "X" not in [s[0] for s in sels] and i == 0):
                 sels.append(("1", r))
             else:
@@ -149,29 +77,7 @@ def map_market(mkt_name: str, runners: list, home: str = "", away: str = ""):
             sels[1] = ("X", sels[1][1])
         return "1X2", sels
 
-    if nname.startswith("double chance"):
-        sels = []
-        for r in runners:
-            code = _double_chance_code(r.get("name", ""), home, away)
-            if code:
-                sels.append((code, r))
-        return ("DC", sels) if sels else (None, [])
-
-    if nname.startswith("draw no bet"):
-        sels = []
-        for i, r in enumerate(runners):
-            label = r.get("name", "")
-            if home and _runner_matches_team(label, home):
-                sels.append(("1", r))
-            elif away and _runner_matches_team(label, away):
-                sels.append(("2", r))
-            elif i == 0:
-                sels.append(("1", r))
-            elif i == 1:
-                sels.append(("2", r))
-        return ("DNB", sels) if len(sels) >= 2 else (None, [])
-
-    if name.startswith("Over/Under 2.5"):
+    elif name.startswith("Over/Under 2.5"):
         sels = []
         for r in runners:
             r_name = (r.get("name") or "").lower()
@@ -181,7 +87,7 @@ def map_market(mkt_name: str, runners: list, home: str = "", away: str = ""):
                 sels.append(("U", r))
         return ("OU25", sels) if sels else (None, [])
 
-    if name == "Both teams to Score?":
+    elif name == "Both teams to Score?":
         sels = []
         for r in runners:
             r_name = (r.get("name") or "").lower()
@@ -192,6 +98,7 @@ def map_market(mkt_name: str, runners: list, home: str = "", away: str = ""):
         return ("BTTS", sels) if sels else (None, [])
 
     return None, []
+
 
 def betwatch_live_minute(live_info: dict) -> str:
     """live_info dict'inden dakika string'i üret."""
