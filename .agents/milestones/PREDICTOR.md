@@ -1,31 +1,20 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 1
+MILESTONE_VERSION: 2
 STATUS: ACTIVE
 
-## Current objective
-Operate the first clean prediction-to-archive workflow without changing the production prediction engine.
+## Objective
+Run the first clean prediction -> settlement -> archive workflow on selected football matches.
 
 ## Required now
-1. Analyze only selected football matches; do not archive the entire slate.
-2. For every final prediction, preserve `prediction_at`, entry odds, market, selection, confidence, rationale and evidence observed by cutoff.
-3. At settlement/end-of-day, review the result and create one final Learning Archive package containing the full SXF prematch history for that match plus the immutable prediction/evidence/result record.
-4. Keep PRE and POST strictly separated by actual observation time.
-5. Record research lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
-6. Do not use Poly/Polymarket inputs.
 
-## Definition of done for each match
-- prediction record exists and is immutable,
-- external evidence has source + `observed_at`,
-- final result is settled,
-- full SXF prematch timeline has been exported into the final archive package,
-- archive package passes the Learning Archive contract,
-- archive file is stored in the dedicated private Learning Archive repository,
-- no post-result information has been backfilled into PRE rationale.
+1. Research only selected matches; do not archive the whole slate.
+2. Preserve immutable `prediction_at`, entry odds, market, selection, confidence, rationale, counterargument and actually observed evidence.
+3. Keep PRE/POST separated by `observed_at` vs `prediction_at`.
+4. At settlement/end-of-day, complete result/postmortem and trigger one final archive package containing the full available SXF prematch timeline plus prediction/evidence/settlement.
+5. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
+6. No Poly/Polymarket inputs.
 
-## Not in this milestone
-- model training,
-- production rule promotion,
-- automatic betting,
-- whole-market archival,
-- a separate Collector Agent.
+## Done per case
+
+Prediction is immutable; evidence timing exists; result is settled; final archive package passes the Learning Archive contract and is written to the dedicated archive repository.
