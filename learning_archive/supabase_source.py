@@ -15,10 +15,9 @@ REQUIRED_HISTORY_TABLES = (
     "dropping_ou25_history",
     "dropping_btts_history",
 )
-OPTIONAL_HISTORY_TABLES = (
-    "moneyway_double_chance_history",
-    "moneyway_draw_no_bet_history",
-)
+# Double Chance / Draw No Bet storage is intentionally not part of SmartXFlow.
+# Do not probe, synthesize, or report those tables as missing optional sources.
+OPTIONAL_HISTORY_TABLES: tuple[str, ...] = ()
 FALLBACK_HISTORY_TABLE = "moneyway_snapshots"
 
 # Explicit response allow-list. Database/internal credential fields are never serialized.
@@ -49,13 +48,6 @@ TABLE_FIELDS = {
     "dropping_btts_history": COMMON_FIELDS | {
         "opening_yes", "opening_no", "oddsyes", "oddsyes_prev", "oddsno", "oddsno_prev",
         "trendyes", "trendno", "drop_yes", "drop_no", "pctyes", "amtyes", "pctno", "amtno",
-    },
-    "moneyway_double_chance_history": COMMON_FIELDS | {
-        "odds1x", "odds12", "oddsx2", "amt1x", "amt12", "amtx2", "pct1x", "pct12", "pctx2",
-        "trend1x", "trend12", "trendx2",
-    },
-    "moneyway_draw_no_bet_history": COMMON_FIELDS | {
-        "odds1", "odds2", "amt1", "amt2", "pct1", "pct2", "trend1", "trend2",
     },
     FALLBACK_HISTORY_TABLE: COMMON_FIELDS | {"odds", "share"},
 }
@@ -95,20 +87,6 @@ class LearningArchiveHistoryPayload:
         }
 
 
-def _is_missing_table_response(response: Any) -> bool:
-    if getattr(response, "status_code", None) == 404:
-        return True
-    try:
-        body = response.json()
-    except Exception:
-        return False
-    if not isinstance(body, dict):
-        return False
-    code = str(body.get("code") or "")
-    message = str(body.get("message") or "").lower()
-    return code in {"42P01", "PGRST205"} or "could not find the table" in message or "does not exist" in message
-
-
 def _safe_row(table: str, row: dict[str, Any]) -> dict[str, Any]:
     allowed = TABLE_FIELDS[table]
     return {key: row.get(key) for key in allowed if key in row}
@@ -127,8 +105,6 @@ def _fetch_history_table(client: Any, table: str, match_hash: str, page_size: in
         )
         response = http.get(url, headers=headers, timeout=20)
         if response.status_code != 200:
-            if table in OPTIONAL_HISTORY_TABLES and _is_missing_table_response(response):
-                raise KeyError(table)
             raise LearningArchiveSourceUnavailable(
                 f"history table read failed: {table} ({response.status_code})"
             )
@@ -189,15 +165,9 @@ def read_learning_archive_match_history(
 
     histories: dict[str, list[dict[str, Any]]] = {}
     source_tables: list[str] = []
-    unavailable_optional: list[str] = []
 
-    for table in REQUIRED_HISTORY_TABLES + OPTIONAL_HISTORY_TABLES:
-        try:
-            rows = _fetch_history_table(client, table, match_hash)
-        except KeyError:
-            unavailable_optional.append(table)
-            histories[table] = []
-            continue
+    for table in REQUIRED_HISTORY_TABLES:
+        rows = _fetch_history_table(client, table, match_hash)
         histories[table] = rows
         if rows:
             source_tables.append(table)
@@ -228,5 +198,5 @@ def read_learning_archive_match_history(
         match=match,
         histories=histories,
         source_tables=tuple(source_tables),
-        unavailable_optional_tables=tuple(sorted(set(unavailable_optional))),
+        unavailable_optional_tables=(),
     )
