@@ -1,4 +1,5 @@
 - [Supabase time-based cleanup deletes](supabase-cleanup-deletes.md) — daily D-8 cleanup must DELETE by each table's own date col via single-statement PostgREST (orphans incl.); paged-by-id over non-indexed date col hangs; main market tables have no match_id_hash, use `date`.
+- [SmartXFlow Supabase read path](smartxflow-supabase-read-path.md) — the available Supabase MCP points to BOKGAME, not match data; use the app client for SmartXFlow read-only queries.
 - [Betwatch API v1 integration](betwatch-v1-integration.md) — scraper migrated to v1; secret name typo, runner name mapping, live_info fields documented.
 - [Main table vs history table odds source](main-table-vs-history-odds.md) — read latest odds from main market tables (upserted, 1 row/match), not history tables (append-only, batch-limit starves stale matches).
 - [History table fetch strategy (superseded)](history-fetch-strategy.md) — old two-phase hash-based approach, replaced 2026-07-03; kept for historical context.
@@ -13,6 +14,7 @@
 - [Wallet activity result storage](wallet-activity-result.md) — tracked_wallet_activity.result col stores won/lost per asset; scraper writes via compute_and_save_wallet_stats (CLOB-based); profile reads from DB; CLOB only as fallback for null rows.
 - [Hetzner SSH access](hetzner-ssh-access.md) — Web repo `/opt/smartxflow` and scraper repo `/root/smartxflow` are separate; verify status and restart only the requested service.
 - [JS bundle generation](js-bundle-generation.md) — app.js.src and served app.js have drifted; compare minifier output before regenerating to avoid replacing runtime-only fixes.
+- [Web workflow reload behavior](web-workflow-reload.md) — compare active process start times with source commits; Python workers keep imported modules until restart.
 - [Cleanup DELETE timeout + chunked fallback](supabase-cleanup-deletes.md) — large-table single-statement DELETE can 500 on PostgREST timeout; retry+day-chunked fallback fixes it; 3 separate cleanup implementations exist (web app, Hetzner scraper, poly scraper) - keep them in sync.
 - [Supabase email/password auth migration](supabase-email-auth-migration.md) — profile table design, Resend-via-dashboard-SMTP, membership self-edit trigger, auth callback token-in-hash pattern, no exec_sql/DB URL blocker.
 - [Legacy debug route leftover UI](legacy-debug-route-leftover-ui.md) — a retired screen can resurface via an orphaned debug/test route serving the old markup verbatim; grep backend source for old literal strings, not just templates/nav links.
