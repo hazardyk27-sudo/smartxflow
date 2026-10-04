@@ -99,6 +99,7 @@ jobs:
             import json
             import os
             import sys
+            from types import SimpleNamespace
 
             batch_file = sys.argv[1]
 
@@ -123,7 +124,11 @@ jobs:
                 sys.path.insert(0, '/opt/smartxflow')
 
             from learning_archive.exporter import ArchiveFinalizationError, LearningArchiveExporter
-            from learning_archive.supabase_source import read_learning_archive_match_history
+            from learning_archive.supabase_source import (
+                LearningArchiveMatchNotFound,
+                read_learning_archive_match_history,
+            )
+            from services.supabase_client import get_supabase_client
 
             payload = json.load(open(batch_file, 'r', encoding='utf-8'))
             cases = payload['cases'] if isinstance(payload, dict) and isinstance(payload.get('cases'), list) else payload
@@ -133,6 +138,59 @@ jobs:
             exporter = LearningArchiveExporter.from_env()
             receipts = []
             failures = []
+
+            def snapshot_fallback(match_hash):
+                client = get_supabase_client()
+                if not client or not getattr(client, 'is_available', False):
+                    raise RuntimeError('SmartXFlow database is unavailable')
+                http = client._get_http_client()
+                headers = client._headers()
+                rows = []
+                offset = 0
+                page_size = 1000
+                while True:
+                    url = (
+                        f"{client._rest_url('moneyway_snapshots')}"
+                        '?select=match_id_hash,market,selection,odds,volume,share,scraped_at_utc'
+                        f'&match_id_hash=eq.{match_hash}'
+                        f'&order=scraped_at_utc.asc&limit={page_size}&offset={offset}'
+                    )
+                    response = http.get(url, headers=headers, timeout=20)
+                    if response.status_code != 200:
+                        raise RuntimeError(f'moneyway_snapshots fallback failed ({response.status_code})')
+                    page = response.json()
+                    if not isinstance(page, list):
+                        raise RuntimeError('moneyway_snapshots fallback returned invalid payload')
+                    for row in page:
+                        if not isinstance(row, dict):
+                            raise RuntimeError('moneyway_snapshots fallback returned invalid row')
+                        row_hash = str(row.get('match_id_hash') or '').strip().lower()
+                        if row_hash and row_hash != match_hash:
+                            raise RuntimeError('moneyway_snapshots fallback identity mismatch')
+                        rows.append({
+                            key: row.get(key)
+                            for key in ('match_id_hash', 'market', 'selection', 'odds', 'volume', 'share', 'scraped_at_utc')
+                            if key in row
+                        })
+                    if len(page) < page_size:
+                        break
+                    offset += page_size
+                if not rows:
+                    raise LearningArchiveMatchNotFound(match_hash)
+                return SimpleNamespace(
+                    histories={'moneyway_snapshots': rows},
+                    source_tables=('moneyway_snapshots',),
+                    unavailable_optional_tables=(
+                        'moneyway_double_chance_history',
+                        'moneyway_draw_no_bet_history',
+                    ),
+                )
+
+            def read_history(match_hash):
+                try:
+                    return read_learning_archive_match_history(match_hash)
+                except LearningArchiveMatchNotFound:
+                    return snapshot_fallback(match_hash)
 
             def flatten_history(history_payload):
                 rows = []
@@ -150,9 +208,9 @@ jobs:
             for index, case in enumerate(cases):
                 case_id = str(case.get('case_id') or f'index:{index}')
                 try:
-                    match_hash = case['match']['match_id_hash']
+                    match_hash = str(case['match']['match_id_hash']).strip().lower()
                     observed_at = case['provenance']['archive_created_at']
-                    history = read_learning_archive_match_history(match_hash)
+                    history = read_history(match_hash)
                     snapshots = flatten_history(history)
                     if not snapshots:
                         raise RuntimeError(f'no stored SXF history found for {match_hash}')
