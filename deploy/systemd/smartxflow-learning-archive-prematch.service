@@ -1,5 +1,5 @@
 [Unit]
-Description=SmartXFlow Learning Archive prematch capture enqueue
+Description=SmartXFlow Learning Archive prematch capture and mirror
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=/opt/smartxflow/scripts/enqueue_due_learning_revisit.py
@@ -11,9 +11,11 @@ Group=smartxflow
 WorkingDirectory=/opt/smartxflow
 Environment=PYTHONPATH=/opt/smartxflow
 Environment=SMARTXFLOW_PREMATCH_QUEUE=/var/lib/smartxflow-prematch/request.json
+Environment=LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519
 StateDirectory=smartxflow-prematch
 StateDirectoryMode=0750
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/enqueue_due_learning_revisit.py --dotenv /opt/smartxflow/.env
-TimeoutStartSec=120
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/drain_due_learning_revisit_queue.py --dotenv /opt/smartxflow/.env
+TimeoutStartSec=240
 NoNewPrivileges=true
 PrivateTmp=true
