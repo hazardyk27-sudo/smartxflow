@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 import sys
 
+from learning_archive.package import capture_filename
+
 
 class DueCaptureError(RuntimeError):
     pass
@@ -28,12 +30,13 @@ def _parse_utc(value: str, field: str) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
-def _manifest_state(manifest_path: Path) -> tuple[set[str], set[str], set[str]]:
+def _manifest_state(manifest_path: Path) -> tuple[set[str], set[str], set[str], set[tuple[str, str]]]:
     recorded: set[str] = set()
     captured: set[str] = set()
     finalized: set[str] = set()
+    captured_events: set[tuple[str, str]] = set()
     if not manifest_path.exists():
-        return recorded, captured, finalized
+        return recorded, captured, finalized, captured_events
     for lineno, raw in enumerate(manifest_path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw.strip():
             continue
@@ -45,15 +48,18 @@ def _manifest_state(manifest_path: Path) -> tuple[set[str], set[str], set[str]]:
             raise DueCaptureError(f"manifest line {lineno} must be an object")
         case_id = str(entry.get("case_id") or "").strip()
         event = str(entry.get("event") or "").strip()
+        event_key = str(entry.get("event_key") or "").strip()
         if not case_id:
             continue
         if event == "RECORDED":
             recorded.add(case_id)
         elif event == "CAPTURED":
             captured.add(case_id)
+            if event_key:
+                captured_events.add((case_id, event_key))
         elif event == "FINALIZED":
             finalized.add(case_id)
-    return recorded, captured, finalized
+    return recorded, captured, finalized, captured_events
 
 
 def build_due_batch(
@@ -65,10 +71,11 @@ def build_due_batch(
     now = _parse_utc(observed_at, "observed_at")
     selected = {str(case_id).strip() for case_id in (case_ids or set()) if str(case_id).strip()}
     explicit_selection = bool(selected)
+    requested_event_key = capture_filename(observed_at)
 
     data_root = archive_root / "learning_archive_data"
     cases_root = data_root / "cases"
-    recorded, captured, finalized = _manifest_state(data_root / "manifest.jsonl")
+    recorded, captured, finalized, captured_events = _manifest_state(data_root / "manifest.jsonl")
 
     captures = []
     found: set[str] = set()
@@ -86,6 +93,8 @@ def build_due_batch(
             continue
         if explicit_selection:
             found.add(case_id)
+            if (case_id, requested_event_key) in captured_events:
+                continue
 
         if case_id not in recorded:
             if explicit_selection:

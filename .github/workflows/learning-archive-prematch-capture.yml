@@ -11,15 +11,19 @@ on:
       - 'learning_archive/retention.py'
       - 'scripts/build_due_learning_revisit_batch.py'
       - 'scripts/build_learning_revisit_request_batch.py'
+      - 'scripts/enqueue_due_learning_revisit.py'
       - 'scripts/record_learning_case.py'
       - 'scripts/record_learning_revisit_batch.py'
       - 'tests/test_learning_archive_due_capture.py'
       - 'tests/test_learning_archive_capture_request.py'
+      - 'tests/test_learning_archive_enqueue.py'
       - 'tests/test_learning_archive_revisit.py'
       - 'tests/test_learning_archive_retention.py'
+      - 'deploy/systemd/smartxflow-learning-archive-prematch.service'
+      - 'deploy/systemd/smartxflow-learning-archive-prematch.timer'
       - 'learning_archive_capture_requests/**'
   schedule:
-    - cron: '2/5 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       observed_at:
@@ -35,7 +39,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: learning-archive-prematch-capture-${{ github.event_name }}-${{ github.ref_name }}
+  group: learning-archive-prematch-capture
   cancel-in-progress: false
 
 jobs:
@@ -55,6 +59,7 @@ jobs:
             tests.test_learning_archive_revisit \
             tests.test_learning_archive_due_capture \
             tests.test_learning_archive_capture_request \
+            tests.test_learning_archive_enqueue \
             tests.test_learning_archive_retention
 
       - name: Compile runtime scripts
@@ -64,6 +69,7 @@ jobs:
             learning_archive/retention.py \
             scripts/build_due_learning_revisit_batch.py \
             scripts/build_learning_revisit_request_batch.py \
+            scripts/enqueue_due_learning_revisit.py \
             scripts/record_learning_case.py \
             scripts/record_learning_revisit_batch.py
 
@@ -85,8 +91,8 @@ jobs:
           path: archive
           fetch-depth: 1
 
-      - name: Checkout explicit capture request
-        if: github.event_name == 'push' && github.ref_name == 'learning-archive-capture-requests'
+      - name: Checkout durable capture request queue
+        if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'learning-archive-capture-requests')
         uses: actions/checkout@v4
         with:
           ref: learning-archive-capture-requests
@@ -104,18 +110,33 @@ jobs:
           MAIN_SHA="$(git -C "$GITHUB_WORKSPACE/app" rev-parse HEAD)"
           echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
 
-          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" = "learning-archive-capture-requests" ]; then
+          REQUEST_MODE=false
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ] || { [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" = "learning-archive-capture-requests" ]; }; then
             REQUEST_FILE="$GITHUB_WORKSPACE/request/learning_archive_capture_requests/request.json"
-            if [ ! -f "$REQUEST_FILE" ]; then
+            if [ -f "$REQUEST_FILE" ]; then
+              PYTHONPATH="$GITHUB_WORKSPACE/app" python app/scripts/build_learning_revisit_request_batch.py \
+                "$GITHUB_WORKSPACE/archive" \
+                "$REQUEST_FILE" \
+                --output "$RUNNER_TEMP/request-revisits.json"
+              REQUEST_COUNT="$(python - "$RUNNER_TEMP/request-revisits.json" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding='utf-8'))
+          print(len(payload.get('captures') or []))
+          PY
+              )"
+              if [ "$REQUEST_COUNT" -gt 0 ]; then
+                cp "$RUNNER_TEMP/request-revisits.json" "$RUNNER_TEMP/due-revisits.json"
+                OBSERVED_AT="REQUEST_QUEUE"
+                REQUEST_MODE=true
+                echo "PREMATCH_CAPTURE_QUEUE pending=$REQUEST_COUNT"
+              fi
+            elif [ "${GITHUB_EVENT_NAME}" = "push" ]; then
               echo "PREMATCH_CAPTURE_STOP: request.json missing on request branch"
               exit 1
             fi
-            PYTHONPATH="$GITHUB_WORKSPACE/app" python app/scripts/build_learning_revisit_request_batch.py \
-              "$GITHUB_WORKSPACE/archive" \
-              "$REQUEST_FILE" \
-              --output "$RUNNER_TEMP/due-revisits.json"
-            OBSERVED_AT="REQUEST_BATCH"
-          else
+          fi
+
+          if [ "$REQUEST_MODE" != "true" ]; then
             ARGS=()
             if [ -n "$INPUT_OBSERVED_AT" ] || [ -n "$INPUT_CASE_IDS" ]; then
               if [ -z "$INPUT_OBSERVED_AT" ] || [ -z "$INPUT_CASE_IDS" ]; then

@@ -76,6 +76,45 @@ jobs:
 
             chmod -R o+rx /opt/smartxflow/static/
 
+            # The Hetzner timer is the primary prematch trigger. It only enqueues
+            # immutable observed_at/case_id requests; GitHub remains the durable archive writer.
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service \
+              /etc/systemd/system/smartxflow-learning-archive-prematch.service
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.timer \
+              /etc/systemd/system/smartxflow-learning-archive-prematch.timer
+            sudo /bin/systemctl daemon-reload
+
+            # Fail closed unless the production Git identity can write the request
+            # branch. This is a no-op dry-run against the branch's current SHA.
+            sudo -u smartxflow git fetch origin learning-archive-capture-requests
+            REQUEST_SHA="$(sudo -u smartxflow git rev-parse origin/learning-archive-capture-requests)"
+            if ! sudo -u smartxflow git push --dry-run origin \
+              "$REQUEST_SHA:refs/heads/learning-archive-capture-requests" >/tmp/sxf-prematch-write-probe.log 2>&1; then
+              echo "DEPLOY STOP: production Git credential cannot write prematch request branch"
+              cat /tmp/sxf-prematch-write-probe.log
+              rm -f /tmp/sxf-prematch-write-probe.log
+              exit 1
+            fi
+            rm -f /tmp/sxf-prematch-write-probe.log
+            echo "PREMATCH_GIT_WRITE_PROBE_OK"
+
+            sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
+            sudo /bin/systemctl start smartxflow-learning-archive-prematch.service
+            TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-prematch.timer)"
+            TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-prematch.timer)"
+            SERVICE_RESULT="$(sudo /bin/systemctl show -p Result --value smartxflow-learning-archive-prematch.service)"
+            if [ "$TIMER_ENABLED" != "enabled" ] || [ "$TIMER_ACTIVE" != "active" ] || [ "$SERVICE_RESULT" != "success" ]; then
+              echo "DEPLOY STOP: prematch systemd automation verification failed"
+              sudo /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager || true
+              sudo /bin/systemctl status smartxflow-learning-archive-prematch.service --no-pager || true
+              sudo /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 30 --no-pager || true
+              exit 1
+            fi
+            echo "PREMATCH_SYSTEMD_OK enabled=$TIMER_ENABLED active=$TIMER_ACTIVE service_result=$SERVICE_RESULT"
+            sudo /bin/systemctl list-timers smartxflow-learning-archive-prematch.timer --no-pager
+
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
             sudo /bin/systemctl restart smartxflow-alarm

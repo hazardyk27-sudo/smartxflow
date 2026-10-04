@@ -75,7 +75,7 @@ class DueLearningCaptureTests(unittest.TestCase):
             self._write_case(root, case_id, "2026-10-04T16:00:00Z")
             self._write_manifest(root, [
                 {"case_id": case_id, "event": "RECORDED"},
-                {"case_id": case_id, "event": "CAPTURED"},
+                {"case_id": case_id, "event": "CAPTURED", "event_key": "captures/20261004T152000Z.json.gz"},
             ])
             payload = build_due_batch(root, "2026-10-04T15:30:00Z")
             self.assertEqual(payload["captures"], [])
@@ -87,7 +87,7 @@ class DueLearningCaptureTests(unittest.TestCase):
             self._write_case(root, case_id, "2026-10-04T16:00:00Z")
             self._write_manifest(root, [
                 {"case_id": case_id, "event": "RECORDED"},
-                {"case_id": case_id, "event": "CAPTURED"},
+                {"case_id": case_id, "event": "CAPTURED", "event_key": "captures/20261004T152000Z.json.gz"},
             ])
             payload = build_due_batch(
                 root,
@@ -96,6 +96,19 @@ class DueLearningCaptureTests(unittest.TestCase):
             )
             self.assertEqual(len(payload["captures"]), 1)
             self.assertEqual(payload["captures"][0]["observed_at"], "2026-10-04T15:10:00Z")
+
+    def test_explicit_replay_of_same_capture_event_is_noop_even_after_finalization(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            case_id = "20261004-test-watch"
+            self._write_case(root, case_id, "2026-10-04T16:00:00Z")
+            self._write_manifest(root, [
+                {"case_id": case_id, "event": "RECORDED"},
+                {"case_id": case_id, "event": "CAPTURED", "event_key": "captures/20261004T151000Z.json.gz"},
+                {"case_id": case_id, "event": "FINALIZED"},
+            ])
+            payload = build_due_batch(root, "2026-10-04T15:10:00Z", case_ids={case_id})
+            self.assertEqual(payload["captures"], [])
 
     def test_explicit_backfill_rejects_post_kickoff_timestamp(self):
         with tempfile.TemporaryDirectory() as tmp:
