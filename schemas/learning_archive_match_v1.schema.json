@@ -4,42 +4,47 @@
   "title": "SmartXFlow Learning Archive Match Case v1",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "archive_schema_version",
-    "case_id",
-    "match",
-    "prediction",
-    "evidence",
-    "settlement",
-    "provenance"
-  ],
+  "required": ["archive_schema_version", "case_id", "match", "prediction", "evidence", "settlement", "provenance"],
   "properties": {
     "archive_schema_version": {"const": 1},
     "case_id": {"type": "string", "minLength": 8},
     "match": {
       "type": "object",
-      "required": ["match_id_hash", "home", "away", "kickoff_at"],
+      "required": ["match_id_hash", "league", "home", "away", "kickoff_at"],
       "properties": {
         "match_id_hash": {"type": "string", "minLength": 1},
-        "league": {"type": ["string", "null"]},
-        "home": {"type": "string"},
-        "away": {"type": "string"},
+        "league": {"type": "string", "minLength": 1},
+        "home": {"type": "string", "minLength": 1},
+        "away": {"type": "string", "minLength": 1},
         "kickoff_at": {"type": "string", "format": "date-time"}
       }
     },
     "prediction": {
       "type": "object",
-      "required": ["prediction_at", "decision", "market", "selection", "entry_odds", "rationale"],
+      "required": ["prediction_at", "decision", "confidence", "rationale", "counterargument"],
       "properties": {
         "prediction_at": {"type": "string", "format": "date-time"},
         "decision": {"enum": ["BET", "WATCH", "PASS"]},
-        "market": {"type": "string"},
-        "selection": {"type": "string"},
+        "market": {"type": ["string", "null"]},
+        "selection": {"type": ["string", "null"]},
         "entry_odds": {"type": ["number", "null"], "exclusiveMinimum": 1},
-        "confidence": {"type": ["number", "string", "null"]},
-        "rationale": {"type": "string"},
-        "counterargument": {"type": ["string", "null"]}
-      }
+        "confidence": {"type": ["number", "string"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "counterargument": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"decision": {"const": "BET"}}},
+          "then": {
+            "required": ["market", "selection", "entry_odds"],
+            "properties": {
+              "market": {"type": "string", "minLength": 1},
+              "selection": {"type": "string", "minLength": 1},
+              "entry_odds": {"type": "number", "exclusiveMinimum": 1}
+            }
+          }
+        }
+      ]
     },
     "evidence": {
       "type": "array",
@@ -47,13 +52,13 @@
         "type": "object",
         "required": ["source", "observed_at", "note"],
         "properties": {
-          "source": {"type": "string"},
+          "source": {"type": "string", "minLength": 1},
           "url": {"type": ["string", "null"]},
           "published_at": {"type": ["string", "null"], "format": "date-time"},
           "observed_at": {"type": "string", "format": "date-time"},
           "category": {"type": ["string", "null"]},
           "relationship": {"enum": ["SUPPORTS", "CONTRADICTS", "NEUTRAL", "UNKNOWN"]},
-          "note": {"type": "string"}
+          "note": {"type": "string", "minLength": 1}
         }
       }
     },
@@ -68,7 +73,8 @@
         "clv": {"type": ["number", "null"]},
         "pnl_units": {"type": ["number", "null"]},
         "roi": {"type": ["number", "null"]},
-        "postmortem_class": {"type": ["string", "null"]}
+        "postmortem_class": {"type": ["string", "null"]},
+        "postmortem": {"type": ["string", "null"]}
       }
     },
     "provenance": {
@@ -78,9 +84,7 @@
         "archive_created_at": {"type": "string", "format": "date-time"},
         "archive_finalized_at": {"type": ["string", "null"], "format": "date-time"},
         "source_repo": {"type": "string"},
-        "source_commit": {"type": "string"},
-        "snapshot_payload": {"type": ["string", "null"]},
-        "checksum_sha256": {"type": ["string", "null"]}
+        "source_commit": {"type": "string"}
       }
     }
   }
