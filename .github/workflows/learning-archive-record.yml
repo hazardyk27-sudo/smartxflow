@@ -35,8 +35,34 @@ jobs:
           fi
           FILE="${FILES[0]}"
           python -m json.tool "$FILE" >/dev/null
-          B64="$(base64 -w0 "$FILE")"
+
+          RESOLVED="$(python - "$FILE" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          changed = pathlib.Path(sys.argv[1])
+          payload = json.loads(changed.read_text(encoding='utf-8'))
+          retry_of = payload.get('retry_of') if isinstance(payload, dict) else None
+          target = pathlib.Path(retry_of) if retry_of else changed
+          if target.is_absolute() or '..' in target.parts:
+              raise SystemExit('ARCHIVE_GATE_STOP: invalid retry_of path')
+          if target.suffix != '.json' or not str(target).startswith('learning_archive_queue/'):
+              raise SystemExit('ARCHIVE_GATE_STOP: retry_of must reference learning_archive_queue/*.json')
+          if not target.exists():
+              raise SystemExit('ARCHIVE_GATE_STOP: retry_of target does not exist')
+          target_payload = json.loads(target.read_text(encoding='utf-8'))
+          cases = target_payload.get('cases') if isinstance(target_payload, dict) else None
+          if not isinstance(cases, list) or not cases:
+              raise SystemExit('ARCHIVE_GATE_STOP: resolved queue contains no cases')
+          print(target)
+          PY
+          )"
+
+          python -m json.tool "$RESOLVED" >/dev/null
+          B64="$(base64 -w0 "$RESOLVED")"
           echo "QUEUE_FILE=$FILE" >> "$GITHUB_ENV"
+          echo "RESOLVED_QUEUE_FILE=$RESOLVED" >> "$GITHUB_ENV"
           echo "QUEUE_B64=$B64" >> "$GITHUB_ENV"
 
       - name: Record all formal cases with durable receipts
@@ -107,4 +133,4 @@ jobs:
 
       - name: Gate result
         run: |
-          echo "ARCHIVE_GATE_OK queue=$QUEUE_FILE"
+          echo "ARCHIVE_GATE_OK queue=$QUEUE_FILE resolved=$RESOLVED_QUEUE_FILE"
