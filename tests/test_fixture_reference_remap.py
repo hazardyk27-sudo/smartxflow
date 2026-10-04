@@ -156,33 +156,27 @@ def test_volumeshock_collision_blocks_key_mismatch():
     assert "volumeshock_key_mismatch" in errors[0]
 
 
+def _live_row(row_id, match_hash, updated_at, **overrides):
+    row = {
+        "id": row_id,
+        "match_id_hash": match_hash,
+        "home_team": "Home",
+        "away_team": "Away",
+        "league": "League",
+        "kickoff_utc": "2026-10-04T19:00:00+00:00",
+        "fixture_date": "2026-10-04",
+        "status": "live",
+        "score": "0-1",
+        "minute": "19'",
+        "updated_at": updated_at,
+    }
+    row.update(overrides)
+    return row
+
+
 def test_live_fixture_collision_allows_identical_older_stale_row():
-    stale = [{
-        "id": 1,
-        "match_id_hash": "aaaaaaaaaaaa",
-        "home_team": "Home",
-        "away_team": "Away",
-        "league": "League",
-        "kickoff_utc": "2026-10-04T19:00:00+00:00",
-        "fixture_date": "2026-10-04",
-        "status": "live",
-        "score": "0-1",
-        "minute": "19'",
-        "updated_at": "2026-10-04T19:20:13+00:00",
-    }]
-    canonical = [{
-        "id": 2,
-        "match_id_hash": "bbbbbbbbbbbb",
-        "home_team": "Home",
-        "away_team": "Away",
-        "league": "League",
-        "kickoff_utc": "2026-10-04T19:00:00+00:00",
-        "fixture_date": "2026-10-04",
-        "status": "live",
-        "score": "0-1",
-        "minute": "19'",
-        "updated_at": "2026-10-04T19:20:23+00:00",
-    }]
+    stale = [_live_row(1, "aaaaaaaaaaaa", "2026-10-04T19:20:13+00:00")]
+    canonical = [_live_row(2, "bbbbbbbbbbbb", "2026-10-04T19:20:23+00:00")]
 
     operation, errors = plan_live_fixture_collision(
         "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
@@ -191,29 +185,42 @@ def test_live_fixture_collision_allows_identical_older_stale_row():
     assert errors == []
     assert operation is not None
     assert operation["kind"] == "live_fixture_drop_stale"
-    assert operation["stale_id"] == 1
-    assert operation["canonical_id"] == 2
+    assert operation["mutable_differences"] == []
 
 
-def test_live_fixture_collision_blocks_functional_difference_or_older_canonical():
-    stale = [{
-        "id": 1,
-        "match_id_hash": "aaaaaaaaaaaa",
-        "home_team": "Home",
-        "away_team": "Away",
-        "status": "live",
-        "score": "1-1",
-        "updated_at": "2026-10-04T19:20:23+00:00",
-    }]
-    canonical = [{
-        "id": 2,
-        "match_id_hash": "bbbbbbbbbbbb",
-        "home_team": "Home",
-        "away_team": "Away",
-        "status": "live",
-        "score": "0-1",
-        "updated_at": "2026-10-04T19:20:13+00:00",
-    }]
+def test_live_fixture_collision_allows_newer_mutable_state():
+    stale = [_live_row(
+        1,
+        "aaaaaaaaaaaa",
+        "2026-10-04T19:20:13+00:00",
+        score="0-0",
+        minute="16'",
+    )]
+    canonical = [_live_row(
+        2,
+        "bbbbbbbbbbbb",
+        "2026-10-04T19:20:23+00:00",
+        score="0-1",
+        minute="19'",
+    )]
+
+    operation, errors = plan_live_fixture_collision(
+        "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
+    )
+
+    assert errors == []
+    assert operation is not None
+    assert operation["mutable_differences"] == ["minute", "score"]
+
+
+def test_live_fixture_collision_blocks_static_difference():
+    stale = [_live_row(1, "aaaaaaaaaaaa", "2026-10-04T19:20:13+00:00")]
+    canonical = [_live_row(
+        2,
+        "bbbbbbbbbbbb",
+        "2026-10-04T19:20:23+00:00",
+        kickoff_utc="2026-10-04T20:00:00+00:00",
+    )]
 
     operation, errors = plan_live_fixture_collision(
         "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
@@ -221,4 +228,27 @@ def test_live_fixture_collision_blocks_functional_difference_or_older_canonical(
 
     assert operation is None
     assert len(errors) == 1
-    assert "live_fixture_functional_difference" in errors[0]
+    assert "live_fixture_static_difference" in errors[0]
+
+
+def test_live_fixture_collision_blocks_older_canonical_even_if_only_live_state_differs():
+    stale = [_live_row(
+        1,
+        "aaaaaaaaaaaa",
+        "2026-10-04T19:20:23+00:00",
+        minute="20'",
+    )]
+    canonical = [_live_row(
+        2,
+        "bbbbbbbbbbbb",
+        "2026-10-04T19:20:13+00:00",
+        minute="19'",
+    )]
+
+    operation, errors = plan_live_fixture_collision(
+        "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
+    )
+
+    assert operation is None
+    assert len(errors) == 1
+    assert "live_fixture_canonical_older" in errors[0]
