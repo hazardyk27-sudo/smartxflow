@@ -1,0 +1,37 @@
+name: Learning Archive Deploy Key Bootstrap
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/learning-archive-deploy-key-bootstrap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create dedicated archive deploy key on Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            KEY_DIR=/var/lib/smartxflow-prematch
+            KEY="$KEY_DIR/github_learning_archive_ed25519"
+            sudo /usr/bin/install -d -m 0750 -o smartxflow -g smartxflow "$KEY_DIR"
+            if [ ! -f "$KEY" ]; then
+              sudo -u smartxflow ssh-keygen -t ed25519 -N '' -C 'smartxflow-learning-archive@hetzner' -f "$KEY" >/dev/null
+            fi
+            sudo chmod 0600 "$KEY"
+            sudo chmod 0644 "$KEY.pub"
+            echo 'LEARNING_ARCHIVE_DEPLOY_PUBLIC_KEY_BEGIN'
+            sudo cat "$KEY.pub"
+            echo 'LEARNING_ARCHIVE_DEPLOY_PUBLIC_KEY_END'
+            echo -n 'FINGERPRINT='
+            sudo -u smartxflow ssh-keygen -lf "$KEY.pub" | awk '{print $2}'
