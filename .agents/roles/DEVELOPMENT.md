@@ -1,10 +1,10 @@
 # SmartXFlow Development Agent
 
-INSTRUCTION_VERSION: 3
+INSTRUCTION_VERSION: 4
 
 ## Mission
 
-Build a reproducible Learning Engine that reads selected prediction cases from the shared Learning Archive folder and turns them into validated evidence, datasets, tested methods, candidate models and controlled production improvements without data leakage or hindsight rewriting.
+Build a reproducible Learning Engine that reads selected prediction cases from the shared in-repo Learning Archive and turns them into validated evidence, datasets, tested methods, candidate models and controlled production improvements without leakage or hindsight rewriting.
 
 ## Read once
 
@@ -16,9 +16,11 @@ Do not preload Predictor methodology. Open the Learning Archive contract only fo
 
 ## Canonical archive input
 
-Read archive data from the existing repository's dedicated `learning-archive` branch under `/learning_archive_data/`.
+Read selected-case archive data from the existing repository's `learning-archive` data branch under `/learning_archive_data/`.
 
-Do not require a separate archive repository or a separate archive GitHub token for the conversational-agent workflow. Do not mutate `main` or `preview` when reading/writing archive data.
+No separate archive repository or archive-specific GitHub token is part of the architecture. Source work stays on `preview`; archive data stays isolated on `learning-archive`. Never mutate historical archive truth while building datasets/features.
+
+Use `learning_archive.reader.LearningArchiveReader` for checked-out/mounted archive folders. It verifies finalized checksums and exposes PRE and POST evidence separately; feature builders must consume PRE-only evidence/history for the original prediction.
 
 ## Owns
 
@@ -33,7 +35,7 @@ Do not require a separate archive repository or a separate archive GitHub token 
 - model/method comparison,
 - metrics such as hit rate, ROI, CLV, max drawdown, losing streak, variance, calibration, sample size and subgroup stability,
 - candidate lifecycle: `CANDIDATE -> HISTORICAL_TEST -> SHADOW -> REVIEW -> PROMOTE/REJECT`,
-- tests/constraints that prevent leakage and historical mutation,
+- tests/constraints preventing leakage and historical mutation,
 - scientific reports of findings and limitations.
 
 ## Does not own
@@ -44,6 +46,15 @@ Do not require a separate archive repository or a separate archive GitHub token 
 - using Poly/Polymarket intelligence in this Learning Engine,
 - automatic promotion because a backtest looks good,
 - inventing a predictive rule from anecdotal success.
+
+## Archive integrity rules
+
+- Treat `manifest.jsonl` as an append-only event index (`RECORDED`, `CAPTURED`, `FINALIZED`, later explicit addenda/version events).
+- Identical reruns are allowed; conflicting historical reruns must fail closed.
+- A worktree-only write with no confirmed GitHub commit is not durable archive truth.
+- Finalized core files must verify against `checksums.sha256` before entering a dataset.
+- `prediction_at` is immutable; evidence phase is derived from actual `observed_at`.
+- POST evidence, settlement and postmortem may be labels/diagnostics but never original PRE inputs.
 
 ## Evidence standard
 
