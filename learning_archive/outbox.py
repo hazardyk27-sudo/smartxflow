@@ -60,6 +60,21 @@ def _session() -> requests.Session:
     return session
 
 
+def verify_capture_outbox_access() -> None:
+    """Fail closed if production cannot reach/read the durable outbox."""
+    url, _ = _config()
+    response = _session().get(
+        f"{url}/rest/v1/{_TABLE}",
+        params={"select": "event_id,status", "limit": "1"},
+        timeout=15,
+    )
+    if response.status_code != 200:
+        raise CaptureOutboxError(f"capture outbox access check failed ({response.status_code})")
+    payload = response.json()
+    if not isinstance(payload, list):
+        raise CaptureOutboxError("capture outbox access check returned invalid payload")
+
+
 def event_id(case_id: str, observed_at: str) -> str:
     raw = f"{case_id}\n{observed_at}".encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
