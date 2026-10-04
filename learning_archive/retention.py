@@ -28,9 +28,20 @@ def retention_holds_enabled() -> bool:
 
 def _config() -> tuple[str, str]:
     url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-    key = os.environ.get("SUPABASE_KEY", "").strip()
+    # The retention-control table is intentionally restricted to service_role.
+    # Prefer the explicit service-role credential used by production. Keep the
+    # legacy aliases only as backwards-compatible fallbacks for environments
+    # where SUPABASE_KEY itself is already the service-role key.
+    key = (
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+        or os.environ.get("SUPABASE_KEY", "").strip()
+    )
     if not url or not key:
-        raise RetentionHoldError("SUPABASE_URL/SUPABASE_KEY are required for Learning Archive retention holds")
+        raise RetentionHoldError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or a service-role legacy alias) "
+            "are required for Learning Archive retention holds"
+        )
     return url, key
 
 
