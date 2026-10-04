@@ -1,0 +1,38 @@
+name: Learning Archive SSH Backend Tests
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/learning-archive-ssh-backend-tests.yml'
+      - 'learning_archive/github_backend.py'
+      - 'learning_archive/exporter.py'
+      - 'scripts/drain_due_learning_revisit_queue.py'
+      - 'deploy/systemd/smartxflow-learning-archive-prematch.service'
+      - 'tests/test_learning_archive_ssh_backend.py'
+      - 'tests/test_learning_archive.py'
+      - 'tests/test_learning_archive_drain.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+          fetch-depth: 1
+      - name: Run SSH archive backend regressions
+        run: |
+          python -m unittest \
+            tests.test_learning_archive_ssh_backend \
+            tests.test_learning_archive_drain \
+            tests.test_learning_archive
+      - name: Compile runtime files
+        run: |
+          python -m py_compile \
+            learning_archive/github_backend.py \
+            learning_archive/exporter.py \
+            scripts/drain_due_learning_revisit_queue.py
