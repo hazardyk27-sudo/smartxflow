@@ -27,13 +27,57 @@ def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _parse_utc_date(value: str) -> tuple[int, int, int]:
+def _parse_utc(value: str, field: str) -> datetime:
     raw = value[:-1] + "+00:00" if value.endswith("Z") else value
     dt = datetime.fromisoformat(raw)
     if dt.tzinfo is None or dt.utcoffset() is None:
-        raise ValueError("prediction_at must include timezone")
-    utc = dt.astimezone(timezone.utc)
-    return utc.year, utc.month, utc.day
+        raise ValueError(f"{field} must include timezone")
+    return dt.astimezone(timezone.utc)
+
+
+def _parse_utc_date(value: str) -> tuple[int, int, int]:
+    dt = _parse_utc(value, "prediction_at")
+    return dt.year, dt.month, dt.day
+
+
+def _case_path(case: dict[str, Any]) -> str:
+    case_id = str(case["case_id"])
+    year, month, day = _parse_utc_date(case["prediction"]["prediction_at"])
+    return f"cases/{year:04d}/{month:02d}/{day:02d}/{case_id}"
+
+
+def _case_doc(case: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "archive_schema_version": case["archive_schema_version"],
+        "case_id": case["case_id"],
+        "match": case["match"],
+        "prediction": case["prediction"],
+        "provenance": case["provenance"],
+    }
+
+
+def _ordered_snapshots(snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    indexed = list(enumerate(snapshots))
+    indexed.sort(key=lambda pair: (
+        str(pair[1].get("scraped_at_utc") or pair[1].get("scraped_at") or pair[1].get("observed_at") or pair[1].get("created_at") or ""),
+        str(pair[1].get("_archive_source_table") or pair[1].get("market") or ""),
+        pair[0],
+    ))
+    return [item for _, item in indexed]
+
+
+def _payload_summary(payloads: dict[str, bytes]) -> str:
+    lines = [f"{sha256_hex(payloads[name])}  {name}" for name in sorted(payloads)]
+    return sha256_hex(("\n".join(lines) + "\n").encode("utf-8"))
+
+
+def capture_filename(observed_at: str) -> str:
+    dt = _parse_utc(observed_at, "observed_at")
+    stamp = dt.strftime("%Y%m%dT%H%M%S")
+    if dt.microsecond:
+        stamp += "." + f"{dt.microsecond:06d}".rstrip("0")
+    stamp += "Z"
+    return f"captures/{stamp}.json.gz"
 
 
 @dataclass(frozen=True)
@@ -42,44 +86,56 @@ class ArchivePackage:
     case_path: str
     files: dict[str, bytes]
     checksum_summary: str
+    package_kind: str = "FINALIZED"
+    event_key: str = "final"
 
     def file_path(self, filename: str) -> str:
         return f"{self.case_path}/{filename}"
 
 
+def build_record_package(
+    case: dict[str, Any],
+    snapshots: list[dict[str, Any]],
+    observed_at: str,
+    *,
+    revisit: bool = False,
+) -> ArchivePackage:
+    case_id = str(case["case_id"])
+    capture_path = capture_filename(observed_at)
+    payloads = {
+        "case.json": canonical_json_bytes(_case_doc(case)),
+        "evidence.json": canonical_json_bytes(classify_evidence_phase(case)),
+        capture_path: deterministic_gzip_json(_ordered_snapshots(snapshots)),
+    }
+    return ArchivePackage(
+        case_id=case_id,
+        case_path=_case_path(case),
+        files=payloads,
+        checksum_summary=_payload_summary(payloads),
+        package_kind="CAPTURED" if revisit else "RECORDED",
+        event_key=capture_path,
+    )
+
+
 def build_archive_package(case: dict[str, Any], snapshots: list[dict[str, Any]]) -> ArchivePackage:
     case_id = str(case["case_id"])
-    year, month, day = _parse_utc_date(case["prediction"]["prediction_at"])
-    case_path = f"cases/{year:04d}/{month:02d}/{day:02d}/{case_id}"
-
-    case_doc = {
-        "archive_schema_version": case["archive_schema_version"],
-        "case_id": case["case_id"],
-        "match": case["match"],
-        "prediction": case["prediction"],
-        "provenance": case["provenance"],
-    }
-    evidence_doc = classify_evidence_phase(case)
-    settlement_doc = case["settlement"]
-
-    indexed = list(enumerate(snapshots))
-    indexed.sort(key=lambda pair: (
-        str(pair[1].get("scraped_at_utc") or pair[1].get("scraped_at") or pair[1].get("observed_at") or pair[1].get("created_at") or ""),
-        pair[0],
-    ))
-    ordered_snapshots = [item for _, item in indexed]
-
     payloads = {
-        "case.json": canonical_json_bytes(case_doc),
-        "evidence.json": canonical_json_bytes(evidence_doc),
-        "settlement.json": canonical_json_bytes(settlement_doc),
-        "sxf_snapshots.json.gz": deterministic_gzip_json(ordered_snapshots),
+        "case.json": canonical_json_bytes(_case_doc(case)),
+        "evidence.json": canonical_json_bytes(classify_evidence_phase(case)),
+        "settlement.json": canonical_json_bytes(case["settlement"]),
+        "sxf_snapshots.json.gz": deterministic_gzip_json(_ordered_snapshots(snapshots)),
     }
     checksum_lines = [f"{sha256_hex(payloads[name])}  {name}" for name in sorted(payloads)]
     checksums = ("\n".join(checksum_lines) + "\n").encode("utf-8")
     payloads["checksums.sha256"] = checksums
-    summary = sha256_hex(checksums)
-    return ArchivePackage(case_id=case_id, case_path=case_path, files=payloads, checksum_summary=summary)
+    return ArchivePackage(
+        case_id=case_id,
+        case_path=_case_path(case),
+        files=payloads,
+        checksum_summary=sha256_hex(checksums),
+        package_kind="FINALIZED",
+        event_key="final",
+    )
 
 
 def verify_package_checksums(package: ArchivePackage) -> tuple[bool, tuple[str, ...]]:
