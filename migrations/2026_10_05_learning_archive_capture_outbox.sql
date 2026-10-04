@@ -22,7 +22,7 @@ create index if not exists learning_archive_capture_outbox_match_pending_idx
     on public.learning_archive_capture_outbox (match_id_hash, status);
 
 alter table public.learning_archive_capture_outbox enable row level security;
-revoke all on table public.learning_archive_capture_outbox from anon, authenticated;
+revoke all privileges on table public.learning_archive_capture_outbox from anon, authenticated, service_role;
 grant select, insert, update on table public.learning_archive_capture_outbox to service_role;
 
 create or replace function public.protect_learning_archive_pending_delete()
