@@ -13,6 +13,7 @@
 - [Wallet activity result storage](wallet-activity-result.md) — tracked_wallet_activity.result col stores won/lost per asset; scraper writes via compute_and_save_wallet_stats (CLOB-based); profile reads from DB; CLOB only as fallback for null rows.
 - [Hetzner SSH access](hetzner-ssh-access.md) — Web repo `/opt/smartxflow` and scraper repo `/root/smartxflow` are separate; verify status and restart only the requested service.
 - [JS bundle generation](js-bundle-generation.md) — app.js.src and served app.js have drifted; compare minifier output before regenerating to avoid replacing runtime-only fixes.
+- [Web workflow reload behavior](web-workflow-reload.md) — compare active process start times with source commits; Python workers keep imported modules until restart.
 - [Cleanup DELETE timeout + chunked fallback](supabase-cleanup-deletes.md) — large-table single-statement DELETE can 500 on PostgREST timeout; retry+day-chunked fallback fixes it; 3 separate cleanup implementations exist (web app, Hetzner scraper, poly scraper) - keep them in sync.
 - [Supabase email/password auth migration](supabase-email-auth-migration.md) — profile table design, Resend-via-dashboard-SMTP, membership self-edit trigger, auth callback token-in-hash pattern, no exec_sql/DB URL blocker.
 - [Legacy debug route leftover UI](legacy-debug-route-leftover-ui.md) — a retired screen can resurface via an orphaned debug/test route serving the old markup verbatim; grep backend source for old literal strings, not just templates/nav links.
