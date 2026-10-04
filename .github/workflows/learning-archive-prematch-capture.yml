@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/learning-archive-prematch-capture.yml'
       - 'learning_archive/revisit.py'
+      - 'learning_archive/retention.py'
       - 'scripts/build_due_learning_revisit_batch.py'
       - 'scripts/build_learning_revisit_request_batch.py'
       - 'scripts/record_learning_case.py'
@@ -15,6 +16,7 @@ on:
       - 'tests/test_learning_archive_due_capture.py'
       - 'tests/test_learning_archive_capture_request.py'
       - 'tests/test_learning_archive_revisit.py'
+      - 'tests/test_learning_archive_retention.py'
       - 'learning_archive_capture_requests/**'
   schedule:
     - cron: '2/5 * * * *'
@@ -52,12 +54,14 @@ jobs:
           python -m unittest \
             tests.test_learning_archive_revisit \
             tests.test_learning_archive_due_capture \
-            tests.test_learning_archive_capture_request
+            tests.test_learning_archive_capture_request \
+            tests.test_learning_archive_retention
 
       - name: Compile runtime scripts
         run: |
           python -m py_compile \
             learning_archive/revisit.py \
+            learning_archive/retention.py \
             scripts/build_due_learning_revisit_batch.py \
             scripts/build_learning_revisit_request_batch.py \
             scripts/record_learning_case.py \
