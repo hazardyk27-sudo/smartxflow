@@ -72,6 +72,12 @@ def _clear_queue(queue_file: Path) -> None:
     )
 
 
+def _archive_credentials_available() -> bool:
+    token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
+    ssh_key = os.environ.get("LEARNING_ARCHIVE_GIT_SSH_KEY", "").strip()
+    return bool(token or ssh_key)
+
+
 def drain_queue(
     app_root: Path,
     queue_file: Path,
@@ -81,7 +87,6 @@ def drain_queue(
     _assert_production_checkout(app_root)
     if dotenv is not None:
         load_dotenv_literal(str(dotenv))
-    token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
 
     # Supabase outbox is the external durable source of truth for pending mirror
     # work. The local queue is retained as a second independent copy.
@@ -133,8 +138,11 @@ def drain_queue(
                     "outbox_pending": len(outbox_event_ids),
                     "captures": 0,
                 }
-            if not token:
-                raise PrematchDrainError("GITHUB_TOKEN/GH_TOKEN is required to mirror durable archive queue")
+            if not _archive_credentials_available():
+                raise PrematchDrainError(
+                    "canonical archive credentials are required to mirror durable queue "
+                    "(GitHub token or LEARNING_ARCHIVE_GIT_SSH_KEY)"
+                )
 
             batch_file = temp_root / "due-revisits.json"
             batch_file.write_text(
