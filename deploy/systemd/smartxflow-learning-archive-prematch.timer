@@ -1,0 +1,12 @@
+[Unit]
+Description=Run SmartXFlow Learning Archive prematch enqueue every 5 minutes
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=5min
+AccuracySec=15s
+Persistent=true
+Unit=smartxflow-learning-archive-prematch.service
+
+[Install]
+WantedBy=timers.target

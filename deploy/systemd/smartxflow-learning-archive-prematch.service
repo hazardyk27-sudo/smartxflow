@@ -1,0 +1,16 @@
+[Unit]
+Description=SmartXFlow Learning Archive prematch capture enqueue
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/smartxflow/scripts/enqueue_due_learning_revisit.py
+
+[Service]
+Type=oneshot
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+Environment=PYTHONPATH=/opt/smartxflow
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/enqueue_due_learning_revisit.py
+TimeoutStartSec=120
+NoNewPrivileges=true
+PrivateTmp=true
