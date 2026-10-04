@@ -20,9 +20,9 @@ from scripts.enqueue_due_learning_revisit import (
     _assert_production_checkout,
     _queue_lock,
     _read_queue,
-    _remove_worktree,
     _run,
     _write_queue_atomic,
+    export_archive_snapshot,
 )
 
 
@@ -63,14 +63,8 @@ def drain_queue(
         with tempfile.TemporaryDirectory(prefix="sxf-prematch-drain-") as tmp:
             temp_root = Path(tmp)
             archive_root = temp_root / "archive"
-            _run(
-                ["git", "worktree", "add", "--detach", str(archive_root), f"origin/{ARCHIVE_BRANCH}"],
-                cwd=app_root,
-            )
-            try:
-                batch = build_request_batch(archive_root, queue_file)
-            finally:
-                _remove_worktree(app_root, archive_root)
+            export_archive_snapshot(app_root, archive_root)
+            batch = build_request_batch(archive_root, queue_file)
 
             captures = batch.get("captures") if isinstance(batch, dict) else None
             if not isinstance(captures, list):
