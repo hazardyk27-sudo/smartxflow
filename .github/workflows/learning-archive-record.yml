@@ -1,0 +1,81 @@
+name: Learning Archive Record Gate
+
+on:
+  push:
+    branches:
+      - preview
+    paths:
+      - 'learning_archive_queue/*.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learning-archive-record-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Resolve exactly one queue payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^learning_archive_queue/.*\.json$' || true)
+          if [ "${#FILES[@]}" -ne 1 ]; then
+            echo "ARCHIVE_GATE_STOP: expected exactly one learning_archive_queue/*.json change, got ${#FILES[@]}"
+            printf '%s\n' "${FILES[@]:-}"
+            exit 1
+          fi
+          FILE="${FILES[0]}"
+          python -m json.tool "$FILE" >/dev/null
+          B64="$(base64 -w0 "$FILE")"
+          echo "QUEUE_FILE=$FILE" >> "$GITHUB_ENV"
+          echo "QUEUE_B64=$B64" >> "$GITHUB_ENV"
+
+      - name: Record all formal cases with durable receipts
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          QUEUE_B64: ${{ env.QUEUE_B64 }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: QUEUE_B64,GH_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+
+            BRANCH="$(git branch --show-current)"
+            if [ "$BRANCH" != "main" ]; then
+              echo "ARCHIVE_GATE_STOP: production runtime branch is '$BRANCH', expected main"
+              exit 1
+            fi
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "ARCHIVE_GATE_STOP: tracked production worktree is dirty"
+              git status --short
+              exit 1
+            fi
+
+            TMP="$(mktemp /tmp/sxf-stage3-batch.XXXXXX.json)"
+            trap 'rm -f "$TMP"' EXIT
+            printf '%s' "$QUEUE_B64" | base64 -d > "$TMP"
+
+            set -a
+            . /opt/smartxflow/.env
+            set +a
+            export SMARTXFLOW_LEARNING_API_BASE_URL="http://127.0.0.1:8000"
+            export GITHUB_TOKEN="$GH_TOKEN"
+
+            /opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/record_learning_batch.py "$TMP"
+
+      - name: Gate result
+        run: |
+          echo "ARCHIVE_GATE_OK queue=$QUEUE_FILE"
