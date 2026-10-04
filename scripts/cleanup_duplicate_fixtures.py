@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Conservative cleanup for stale duplicate fixture rows.
 
-A duplicate group is defined by normalized home/away plus kickoff minute.  The
+A duplicate group is defined by normalized home/away plus kickoff minute. The
 current Betwatch fixture hash (md5("league|home|away")[:12]) is preferred as the
-canonical row.  A non-canonical fixture row is deleted only when none of the
+canonical row. A non-canonical fixture row is deleted only when none of the
 known hash-based snapshot/history/alarm/signal tables references it.
 
 The script is dry-run by default. Set FIXTURE_DUPLICATE_APPLY=1 to allow DELETE.
+It also refuses to run unless SUPABASE_URL points at the expected SmartXFlow
+project ref.
 """
 
 from __future__ import annotations
@@ -16,13 +18,16 @@ import os
 import re
 from collections import defaultdict
 from datetime import datetime
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import requests
 
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+EXPECTED_PROJECT_REF = os.environ.get(
+    "SMARTXFLOW_SUPABASE_PROJECT_REF", "pswdvnmqjjnjodwzkmkp"
+).strip()
 APPLY = os.environ.get("FIXTURE_DUPLICATE_APPLY", "0") == "1"
 MAX_DELETE = int(os.environ.get("FIXTURE_DUPLICATE_MAX_DELETE", "200"))
 PAGE_SIZE = 1000
@@ -61,6 +66,17 @@ def _headers(prefer: str | None = None) -> dict[str, str]:
     if prefer:
         headers["Prefer"] = prefer
     return headers
+
+
+def _validate_target() -> None:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise SystemExit("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing")
+    host = (urlparse(SUPABASE_URL).hostname or "").lower()
+    expected_host = f"{EXPECTED_PROJECT_REF}.supabase.co".lower()
+    if host != expected_host:
+        raise SystemExit(
+            f"REFUSE_WRONG_SUPABASE_TARGET host={host or 'missing'} expected={expected_host}"
+        )
 
 
 def _norm(value) -> str:
@@ -162,12 +178,18 @@ def delete_fixture(match_hash: str) -> bool:
     if response.status_code not in (200, 204):
         print(f"DELETE_SKIP hash={match_hash} status={response.status_code}")
         return False
+    try:
+        rows = response.json() if response.text else []
+    except Exception:
+        rows = []
+    if response.status_code == 200 and not rows:
+        print(f"DELETE_SKIP hash={match_hash} status=200 reason=no_row_returned")
+        return False
     return True
 
 
 def main() -> int:
-    if not SUPABASE_URL or not SUPABASE_KEY:
-        raise SystemExit("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing")
+    _validate_target()
 
     fixtures = fetch_all_fixtures()
     groups: dict[tuple, list[dict]] = defaultdict(list)
