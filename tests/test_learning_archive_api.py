@@ -51,10 +51,40 @@ class FakeHTTP:
         return FakeResponse(200, [])
 
 
+class FakeSnapshotOnlyHTTP:
+    def __init__(self):
+        self.calls = []
+    def get(self, url, headers=None, timeout=None):
+        self.calls.append((url, headers, timeout))
+        if "/fixtures?" in url:
+            return FakeResponse(200, [{
+                "match_id_hash": "abc123def456",
+                "home_team": "Home",
+                "away_team": "Away",
+                "league": "Test League",
+                "kickoff_utc": "2026-10-03T18:00:00Z",
+                "fixture_date": "2026-10-03",
+            }])
+        if "moneyway_double_chance_history" in url or "moneyway_draw_no_bet_history" in url:
+            return FakeResponse(404, {"code": "PGRST205", "message": "Could not find the table"})
+        if "moneyway_snapshots" in url:
+            return FakeResponse(200, [{
+                "match_id_hash": "abc123def456",
+                "market": "1X2",
+                "selection": "2",
+                "odds": 2.82,
+                "volume": 123.45,
+                "share": 67.8,
+                "scraped_at_utc": "2026-10-03T15:10:00Z",
+                "service_role": "must-not-leak",
+            }])
+        return FakeResponse(200, [])
+
+
 class FakeSupabase:
     is_available = True
-    def __init__(self):
-        self.http = FakeHTTP()
+    def __init__(self, http=None):
+        self.http = http or FakeHTTP()
     def _get_http_client(self):
         return self.http
     def _headers(self):
@@ -138,6 +168,23 @@ class LearningArchiveAPITests(unittest.TestCase):
         row = result.histories["moneyway_1x2_history"][0]
         self.assertEqual(row["odds1"], 2.10)
         self.assertNotIn("api_key", row)
+
+    def test_source_falls_back_to_moneyway_snapshots_when_legacy_histories_are_empty(self):
+        http = FakeSnapshotOnlyHTTP()
+        result = read_learning_archive_match_history("abc123def456", client=FakeSupabase(http=http))
+        self.assertEqual(result.source_tables, ("moneyway_snapshots",))
+        self.assertEqual(
+            result.unavailable_optional_tables,
+            ("moneyway_double_chance_history", "moneyway_draw_no_bet_history"),
+        )
+        row = result.histories["moneyway_snapshots"][0]
+        self.assertEqual(row["market"], "1X2")
+        self.assertEqual(row["selection"], "2")
+        self.assertEqual(row["odds"], 2.82)
+        self.assertNotIn("service_role", row)
+        snapshot_urls = [url for url, _, _ in http.calls if "moneyway_snapshots" in url]
+        self.assertEqual(len(snapshot_urls), 1)
+        self.assertIn("order=scraped_at_utc.asc", snapshot_urls[0])
 
 
 if __name__ == "__main__":
