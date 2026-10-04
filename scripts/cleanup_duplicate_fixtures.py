@@ -144,31 +144,43 @@ def _missing_table_or_column(response: requests.Response) -> bool:
     return any(token in text for token in ("pgrst205", "pgrst204", "does not exist", "could not find"))
 
 
-def references_for_hash(match_hash: str) -> tuple[list[str], list[str]]:
-    found: list[str] = []
+def build_reference_map(match_hashes: list[str]) -> tuple[dict[str, list[str]], list[str]]:
+    """Check all candidate hashes table-by-table instead of hash-by-hash."""
+    refs: dict[str, list[str]] = {h: [] for h in match_hashes}
     errors: list[str] = []
-    encoded = quote(match_hash, safe="")
+    if not match_hashes:
+        return refs, errors
+
+    # Hashes are fixed 12-char lowercase hex from our fixture identity algorithm.
+    safe_hashes = [h for h in match_hashes if re.fullmatch(r"[0-9a-f]{12}", h)]
+    if len(safe_hashes) != len(match_hashes):
+        errors.append("candidate_hash_validation_failed")
+        return refs, errors
+
+    in_filter = ",".join(safe_hashes)
     for table in REFERENCE_TABLES:
         url = (
             f"{SUPABASE_URL}/rest/v1/{table}"
-            f"?select=match_id_hash&match_id_hash=eq.{encoded}&limit=1"
+            f"?select=match_id_hash&match_id_hash=in.({in_filter})&limit=1000"
         )
         try:
-            response = requests.get(url, headers=_headers(), timeout=15)
+            response = requests.get(url, headers=_headers(), timeout=30)
         except Exception as exc:
             errors.append(f"{table}:request:{type(exc).__name__}")
             continue
         if response.status_code == 200:
             try:
-                if response.json():
-                    found.append(table)
+                for row in response.json() or []:
+                    h = str(row.get("match_id_hash") or "")
+                    if h in refs and table not in refs[h]:
+                        refs[h].append(table)
             except Exception:
                 errors.append(f"{table}:json")
         elif _missing_table_or_column(response):
             continue
         else:
             errors.append(f"{table}:http{response.status_code}")
-    return found, errors
+    return refs, errors
 
 
 def delete_fixture(match_hash: str) -> bool:
@@ -216,41 +228,44 @@ def main() -> int:
             if stale_hash and stale_hash != keep_hash:
                 candidates.append((stale_hash, keep_hash))
 
+    candidate_hashes = [stale_hash for stale_hash, _ in candidates]
+    reference_map, reference_errors = build_reference_map(candidate_hashes)
+
     deleted = 0
     referenced = 0
     failed_closed = 0
     dry_run_ready = 0
 
-    for stale_hash, keep_hash in candidates:
-        refs, errors = references_for_hash(stale_hash)
-        if errors:
-            failed_closed += 1
-            print(
-                f"FIXTURE_DUPLICATE_SKIP hash={stale_hash} canonical={keep_hash} "
-                f"reason=reference_check_error details={','.join(errors[:3])}"
-            )
-            continue
-        if refs:
-            referenced += 1
-            print(
-                f"FIXTURE_DUPLICATE_KEEP hash={stale_hash} canonical={keep_hash} "
-                f"references={','.join(refs)}"
-            )
-            continue
+    if reference_errors:
+        print(
+            "FIXTURE_DUPLICATE_REFERENCE_CHECK_FAILED "
+            f"errors={','.join(reference_errors[:8])}"
+        )
+        failed_closed = len(candidates)
+    else:
+        for stale_hash, keep_hash in candidates:
+            refs = reference_map.get(stale_hash, [])
+            if refs:
+                referenced += 1
+                print(
+                    f"FIXTURE_DUPLICATE_KEEP hash={stale_hash} canonical={keep_hash} "
+                    f"references={','.join(refs)}"
+                )
+                continue
 
-        dry_run_ready += 1
-        if not APPLY:
-            print(f"FIXTURE_DUPLICATE_DRY_RUN hash={stale_hash} canonical={keep_hash}")
-            continue
-        if deleted >= MAX_DELETE:
-            failed_closed += 1
-            print("FIXTURE_DUPLICATE_STOP max delete safety limit reached")
-            break
-        if delete_fixture(stale_hash):
-            deleted += 1
-            print(f"FIXTURE_DUPLICATE_DELETED hash={stale_hash} canonical={keep_hash}")
-        else:
-            failed_closed += 1
+            dry_run_ready += 1
+            if not APPLY:
+                print(f"FIXTURE_DUPLICATE_DRY_RUN hash={stale_hash} canonical={keep_hash}")
+                continue
+            if deleted >= MAX_DELETE:
+                failed_closed += 1
+                print("FIXTURE_DUPLICATE_STOP max delete safety limit reached")
+                break
+            if delete_fixture(stale_hash):
+                deleted += 1
+                print(f"FIXTURE_DUPLICATE_DELETED hash={stale_hash} canonical={keep_hash}")
+            else:
+                failed_closed += 1
 
     print(
         "FIXTURE_DUPLICATE_RESULT "
@@ -259,7 +274,7 @@ def main() -> int:
         f"referenced_kept={referenced} safe_candidates={dry_run_ready} "
         f"deleted={deleted} failed_closed={failed_closed} apply={int(APPLY)}"
     )
-    return 0
+    return 0 if failed_closed == 0 else 2
 
 
 if __name__ == "__main__":
