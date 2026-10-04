@@ -100,18 +100,36 @@ def test_master_fallback_uses_recent_external_scrape_signal(monkeypatch):
     assert "recent scrape" in reason
 
 
+def test_master_fallback_keeps_preview_standby_for_nine_minute_external_signal(monkeypatch):
+    mod = _load_scheduled_scraper_with_stubs(monkeypatch)
+    mod.SCRAPER_SOURCE = "replit-preview"
+    mod._HEARTBEAT_TABLE_AVAILABLE = False
+    created_at = (datetime.now(timezone.utc) - timedelta(minutes=9)).isoformat()
+
+    response = Mock()
+    response.status_code = 200
+    response.json.return_value = [{"source": "replit", "created_at": created_at}]
+    monkeypatch.setattr(mod.requests, "get", Mock(return_value=response))
+
+    is_master, reason = mod.check_master_status("https://example.supabase.co", "key")
+    assert is_master is False
+    assert "recent scrape" in reason
+
+
 def test_send_signal_skips_recent_duplicate(monkeypatch):
     mod = _load_scheduled_scraper_with_stubs(monkeypatch)
     monkeypatch.setattr(mod, "fcntl", None)
+    mod.SCRAPER_SOURCE = "replit-preview"
 
     response = Mock()
     response.status_code = 200
     response.json.return_value = [
         {
             "id": 101,
+            "source": "replit",
             "created_at": (datetime.now(timezone.utc) - timedelta(seconds=5)).isoformat(),
-            "match_count": 614,
-            "snapshot_count": 1327,
+            "match_count": 3186,
+            "snapshot_count": 3186,
         }
     ]
     monkeypatch.setattr(mod.requests, "get", Mock(return_value=response))

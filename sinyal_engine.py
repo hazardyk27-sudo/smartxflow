@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
 SmartXFlow Sinyal Engine v1.3
-İki sinyal tipini aynı anda tarar:
-  1. Underdog Pressure: odds >= 2.90, pct >= 50%, volume >= £2,000
-  2. Confirmed Money: pct > 80%, oran >= %4 düşüş (10 saat), volume >= £2,000, stabilite onaylı
+Beş sinyal tipini aynı anda tarar:
+  1. Underdog Pressure: odds >= 2.90; volume £800-£4,999 ise pct >= 55%, volume >= £5,000 ise pct >= 50%; sadece 1/2
+  2. Confirmed Money: volume >= £5,000, pct > 80% son 3 snapshot, odds 1.35-2.20, ilk geçerli orana göre >= %5 düşüş
+  3. Confirmed Money V2: volume >= £5,000, pct >= 88% son 3 snapshot, odds 1.55-2.20, >= %7 düşüş; sadece 1/2
+  4. Fake Sharp: volume >= £5,000, pct > 75% son 3 snapshot, odds 1.35-2.20, ilk geçerli orana göre >= %5 yükseliş; sadece 1/2
+  5. Early Money Lock: kickoff >= 24 saat, volume >= £5,000, aynı seçimde 5 ardışık snapshot pct >= 85%
 
 Çalışma modu: scraper_signal tablosundan tetiklenir (alarm_engine ile aynı model).
   - Her 30 saniyede bir yeni sinyal kontrol edilir.

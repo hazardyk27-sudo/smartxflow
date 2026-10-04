@@ -826,7 +826,7 @@ function renderUnderdogPressureView(data) {
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Underdog Pressure</div>';
     html += '<div style="font-size:9px;color:#d29922;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
-    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Oran ≥ 3.00 olan underdog tarafa para akışının ≥ %50 olduğu bugün/gelecek maçları tespit eder.</div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">' + _t('app.j.rv_underdog_desc','Oran ≥2.90. Hacim £800–£4.999 ise para yüzdesi ≥%55; hacim ≥£5.000 ise ≥%50. Yalnız 1/2 seçimleri.') + '</div>';
     html += '<div class="sig-stat-grid" style="display:flex;gap:4px;flex-wrap:wrap;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#d29922;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_odds','Ort. Oran') + '</div></div>';
@@ -1041,7 +1041,7 @@ function renderConfirmedMoneyView(data) {
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money</div>';
     html += '<div style="font-size:9px;color:#34d399;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
-    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%80, oran 16 saat içinde monoton düşen (≥%4), hacim ≥£2,000 olan maçları tespit eder.</div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">' + _t('app.j.rv_confirmed_desc','Hacim ≥£5.000, para yüzdesi >%80 ve son 3 snapshot boyunca >%80; oran 1.35–2.20 ve ilk geçerli orana göre ≥%5 düşüş.') + '</div>';
     html += '<div class="sig-stat-grid" style="display:flex;gap:4px;flex-wrap:wrap;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#93c5fd;">' + avgOdds + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_odds','Ort. Oran') + '</div></div>';
@@ -1229,7 +1229,7 @@ function renderConfirmedMoneyV2View(data) {
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Confirmed Money V2</div>';
     html += '<div style="font-size:9px;color:#6366f1;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
-    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı ≥%88, oran 1.55-2.20, ≥%7 düşüş — 3 günlük araştırmada sıfır kayıp. Sadece 1/2 seçimleri.</div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">' + _t('app.j.rv_confirmed_v2_desc','Hacim ≥£5.000, para yüzdesi ≥%88 ve son 3 snapshot boyunca ≥%88; oran 1.55–2.20 ve ilk geçerli orana göre ≥%7 düşüş. Yalnız 1/2 seçimleri.') + '</div>';
     html += '<div class="sig-stat-grid" style="display:flex;gap:4px;flex-wrap:wrap;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#6366f1;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f87171;">-%' + avgDrop + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_drop','Ort. Düşüş') + '</div></div>';
@@ -1419,7 +1419,7 @@ function renderEarlyMoneyLockView(data) {
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Early Money Lock</div>';
     html += '<div style="font-size:9px;color:#58a6ff;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
-    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışı erken kilitlenmiş ve birbirini izleyen anlık görüntülerde sabit kalan maçları tespit eder.</div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">' + _t('app.j.rv_early_desc','Maça ≥24 saat kala, hacim ≥£5.000 ve aynı seçimde son 5 ardışık snapshot boyunca para yüzdesi ≥%85 olduğunda tetiklenir.') + '</div>';
     html += '<div class="sig-stat-grid" style="display:flex;gap:4px;flex-wrap:wrap;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#58a6ff;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">%' + avgPct + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_money_pct','Ort. Para %') + '</div></div>';
@@ -1829,7 +1829,7 @@ function renderFakeSharpView(data) {
     html += '<div style="font-size:14px;font-weight:700;color:#e0e4e8;letter-spacing:-0.2px;">Fake Sharp</div>';
     html += '<div style="font-size:9px;color:#f85149;letter-spacing:0.8px;font-weight:600;margin-top:2px;">' + _t('app.j.auto_signal','OTOMATİK SİNYAL') + '</div>';
     html += '</div></div>';
-    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">Para akışına rağmen oran yükselen — yani sharp olmayan, halk parası olduğu anlaşılan maçları tespit eder.</div>';
+    html += '<div style="font-size:12px;color:#5c636b;line-height:1.6;margin-bottom:14px;">' + _t('app.j.rv_fake_desc','Hacim ≥£5.000 ve para yüzdesi >%75 iken son 3 snapshot da >%75; oran 1.35–2.20 ve ilk geçerli orana göre ≥%5 yükseliyorsa tetiklenir. Yalnız 1/2 seçimleri.') + '</div>';
     html += '<div class="sig-stat-grid" style="display:flex;gap:4px;flex-wrap:wrap;">';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#f85149;">' + count + '</div><div style="' + labelStyle + '">' + _t('app.j.active_signal','Aktif Sinyal') + '</div></div>';
     html += '<div style="' + statBox + '"><div style="' + numStyle + 'color:#34d399;">+%' + avgRise + '</div><div style="' + labelStyle + '">' + _t('app.j.avg_rise','Ort. Yükseliş') + '</div></div>';

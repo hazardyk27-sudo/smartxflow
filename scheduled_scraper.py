@@ -35,6 +35,7 @@ SCRAPER_SOURCE = (
     or ("replit-preview" if (os.environ.get("REPL_ID") or os.environ.get("REPL_SLUG") or os.environ.get("REPL_OWNER")) else "replit")
 )
 SIGNAL_DEDUP_WINDOW_SECONDS = 120
+EXTERNAL_MASTER_WINDOW_SECONDS = int(os.environ.get("SMARTXFLOW_EXTERNAL_MASTER_WINDOW_SECONDS", "720"))
 _SIGNAL_LOCK_PATH = "/tmp/smartxflow_scraper_signal.lock"
 _HEARTBEAT_TABLE_AVAILABLE = None
 _HEARTBEAT_MISSING_LOGGED = False
@@ -80,8 +81,9 @@ def _check_master_from_signals(supabase_url: str, supabase_key: str) -> tuple:
         beat_time = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         if beat_time.tzinfo is None:
             beat_time = beat_time.replace(tzinfo=timezone.utc)
-        diff_minutes = (datetime.now(timezone.utc) - beat_time.astimezone(timezone.utc)).total_seconds() / 60
-        if 0 <= diff_minutes < 5:
+        diff_seconds = (datetime.now(timezone.utc) - beat_time.astimezone(timezone.utc)).total_seconds()
+        diff_minutes = diff_seconds / 60
+        if 0 <= diff_seconds < EXTERNAL_MASTER_WINDOW_SECONDS:
             return False, f"{row.get('source', 'external')} recent scrape ({diff_minutes:.1f} min ago)"
         return True, f"signal_fallback_stale ({diff_minutes:.1f} min ago)"
     except Exception as e:
@@ -95,7 +97,7 @@ def _is_recent_duplicate_signal(
     match_count: int,
     snapshot_count: int,
 ) -> bool:
-    """Aynı scrape sayılarıyla çok kısa sürede ikinci signal üretimini engelle."""
+    """Herhangi bir kaynaktan yeni scrape_complete varsa ikinci signal üretimini engelle."""
     try:
         headers = {
             "apikey": supabase_key,
@@ -103,8 +105,7 @@ def _is_recent_duplicate_signal(
         }
         url = (
             f"{supabase_url}/rest/v1/scraper_signal"
-            f"?source=eq.{SCRAPER_SOURCE}"
-            f"&signal_type=eq.scrape_complete"
+            f"?signal_type=eq.scrape_complete"
             f"&order=created_at.desc&limit=1"
             f"&select=id,created_at,match_count,snapshot_count"
         )
@@ -116,10 +117,6 @@ def _is_recent_duplicate_signal(
         if not rows:
             return False
         row = rows[0]
-        if int(row.get("match_count") or 0) != int(match_count):
-            return False
-        if int(row.get("snapshot_count") or 0) != int(snapshot_count):
-            return False
         raw = str(row.get("created_at") or "")
         if not raw:
             return False
@@ -421,7 +418,7 @@ def main():
 
 
 def get_last_signal_time() -> Optional[datetime]:
-    """Supabase'den son başarılı replit scrape_complete sinyal zamanını al."""
+    """Supabase'den herhangi bir kaynağın son başarılı scrape_complete zamanını al."""
     try:
         supabase_url = os.environ.get('SUPABASE_URL')
         supabase_key = os.environ.get('SUPABASE_ANON_KEY')
@@ -432,8 +429,8 @@ def get_last_signal_time() -> Optional[datetime]:
             "Authorization": f"Bearer {supabase_key}"
         }
         url = (
-            f"{supabase_url}/rest/v1/scraper_signal?source=eq.replit"
-            f"&signal_type=eq.scrape_complete&order=created_at.desc&limit=1&select=created_at"
+            f"{supabase_url}/rest/v1/scraper_signal?signal_type=eq.scrape_complete"
+            f"&order=created_at.desc&limit=1&select=created_at"
         )
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
