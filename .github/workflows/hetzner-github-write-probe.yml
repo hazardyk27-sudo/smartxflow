@@ -1,0 +1,31 @@
+name: Hetzner GitHub Write Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hetzner-github-write-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dry-run GitHub SSH push from Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+            sudo -u smartxflow env \
+              GIT_SSH_COMMAND='ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10' \
+              git push --dry-run \
+              git@github.com:hazardyk27-sudo/smartxflow.git \
+              HEAD:refs/heads/sxf-prematch-write-probe
+            echo HETZNER_GITHUB_WRITE_DRY_RUN_OK
