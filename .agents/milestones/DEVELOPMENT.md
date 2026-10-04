@@ -1,47 +1,51 @@
 # Development Current Milestone
 
-MILESTONE_VERSION: 5
+MILESTONE_VERSION: 6
 STATUS: ACTIVE
 
 ## Objective
-Finish and verify the minimum reliable selected-match Learning Archive pipeline before model training.
+Finish and verify the minimum reliable selected-match Learning Archive workflow using the shared archive folder before model training.
 
 ## Implemented on `preview`
 
 - Existing SXF stored-history reader; no second live collector.
-- Learning Archive no longer needs direct Supabase credentials for SXF history. It reads selected-match history through a dedicated SmartXFlow server-to-server read-only API; SmartXFlow backend remains the only owner of the database connection.
+- Learning Archive history access through the SmartXFlow backend remains available for selected-match stored history.
 - Internal API contract: `GET /api/internal/learning-archive/match/<match_id_hash>/history`, Bearer-authenticated by `LEARNING_ARCHIVE_ACCESS_SECRET`, with fail-closed `401/400/404/503` behavior and allow-listed response fields.
-- Six existing prematch history tables are required; Moneyway Double Chance and Draw No Bet history are optional when present.
-- Deterministic case packaging with `case.json`, `evidence.json`, `settlement.json`, `sxf_snapshots.json.gz`, SHA-256 checksums.
+- Six existing prematch history tables are required by the current reader; Moneyway Double Chance and Draw No Bet history are optional when present.
+- Deterministic case packaging support with prediction/evidence/settlement/history/checksum validation.
 - PRE/POST evidence classification from immutable `observed_at <= prediction_at` cutoff.
 - Validator with required metadata checks, secret rejection and Poly/Polymarket exclusion.
-- Configurable dedicated private GitHub archive backend with append-only conflict handling, retry-safe partial writes, idempotent identical reruns, manifest and post-write verification.
-- Bootstrap/finalize CLI interfaces.
-- Retention-hold registry code and SQL migration.
-- Web cleanup guard that blocks cleanup while any Learning Archive case is pending and fails closed if hold state cannot be verified.
-- Finalizer does not return `DONE` while enabled hold release is unverified.
-- Unit coverage for cutoff, secrets, Poly, deterministic checksums, empty history, API authentication/source behavior, idempotent finalization and optional market-history handling.
+- Unit coverage for cutoff, secrets, Poly, deterministic checksums, empty history, API authentication/source behavior, idempotency and optional market-history handling.
+- A dedicated `learning-archive` branch now exists inside the existing `hazardyk27-sudo/smartxflow` repository.
+- Canonical archive root is `learning-archive:/learning_archive_data/` with a manifest and per-case folders.
+
+## Simplified archive architecture
+
+There is no separate archive repository and no extra archive GitHub token requirement for the conversational Predictor/Development workflow.
+
+Predictor writes selected-match cases directly to `learning-archive:/learning_archive_data/` as part of the prediction workflow. Development reads the same branch/folder. Archive writes are isolated from `main` and `preview` and are never deployed.
+
+Existing SmartXFlow systems continue collecting market history. The archive does not run a second scraper. A first stored-history capture is preserved when a formal case is recorded; later substantive revisits append captures; settlement adds the final full available prematch timeline.
 
 ## Required now
 
-1. Create/connect the actual private `smartxflow-learning-archive` GitHub repository and initialize it with `README.md`, `manifest.jsonl`, and `schema/match_case_v1.schema.json` using the bootstrap command.
-2. Verify the new internal SmartXFlow history endpoint on the canonical GitHub `preview` SHA in Replit Preview using the configured `LEARNING_ARCHIVE_ACCESS_SECRET`: unauthorized request -> 401; authorized real match -> 200 with complete expected history payload.
-3. Apply `migrations/2026_10_03_learning_archive_retention_holds.sql` to the **SmartXFlow** Supabase project through the authorized SmartXFlow runtime path, not any unrelated project.
-4. Configure the runtime archive destination/token and enable retention holds.
-5. Run one real selected `BET|WATCH|PASS` case through: immutable case -> hold -> SmartXFlow internal history API -> settlement/review -> validator -> archive write -> manifest/checksum verification -> hold release.
-6. Re-run that same finalized case and verify deterministic idempotent behavior returns the existing archive identity without duplicate case/manifest rows.
-7. Verify a materially changed rerun of the same `case_id` fails closed and requires explicit append-only correction/version handling.
+1. Run one real formal `BET|WATCH|PASS` case and verify Predictor automatically creates the case folder and manifest entry without a separate user command.
+2. Verify the first archive write preserves immutable prediction/evidence plus a SmartXFlow history capture.
+3. Revisit that case once before kickoff and verify a new capture is appended rather than replacing the first.
+4. Settle the case and verify final result/postmortem plus the final full prematch history are present.
+5. Verify Development can read the case directly from the `learning-archive` branch and derive PRE-only features without touching POST evidence.
+6. Re-run an identical archive action and verify idempotent behavior; conflicting historical rewrites must fail/require an append-only addendum.
 
 ## Acceptance
 
-One real settled/reviewed selected `BET|WATCH|PASS` case is self-contained and reproducible in the dedicated private archive, and:
-- Learning Archive itself never needs SmartXFlow Supabase credentials to fetch SXF history,
-- retention protection preserves required source history until finalization,
-- validator returns deterministic PASS/FAIL with reasons,
-- duplicate/idempotent re-run behavior is deterministic,
-- secret material is rejected before write,
-- successful write is verified by manifest/checksums and returns a durable archive reference,
-- failure never produces a false `DONE` state.
+One real settled/reviewed selected `BET|WATCH|PASS` case is self-contained and reproducible under `learning-archive:/learning_archive_data/`, and:
+- no separate archive repo/token setup is required,
+- the original prediction and evidence timing remain immutable,
+- selected-match SmartXFlow history is preserved in organized captures,
+- Development can read the same files directly,
+- duplicate/idempotent behavior is deterministic,
+- secret material is excluded,
+- failures never produce a false `DONE` state.
 
 ## Later, not now
 
