@@ -20,7 +20,12 @@ import sys
 import tempfile
 from typing import Any, Iterator
 
-from learning_archive.outbox import CaptureOutboxError, enqueue_capture_events, load_dotenv_literal
+from learning_archive.outbox import (
+    CaptureOutboxError,
+    enqueue_capture_events,
+    load_dotenv_literal,
+    verify_capture_outbox_access,
+)
 from scripts.build_due_learning_revisit_batch import build_due_batch
 
 
@@ -160,6 +165,11 @@ def enqueue_due(
     max_minutes_before_kickoff: int = 35,
 ) -> dict[str, Any]:
     _assert_production_checkout(app_root)
+
+    # Correctness does not depend on there being a due match. Every timer run
+    # must prove the external durable outbox is reachable with production creds.
+    verify_capture_outbox_access()
+
     _run(["git", "fetch", "origin", ARCHIVE_BRANCH], cwd=app_root)
 
     with tempfile.TemporaryDirectory(prefix="sxf-prematch-enqueue-") as tmp:
@@ -186,6 +196,7 @@ def enqueue_due(
             "due": 0,
             "queued": 0,
             "outbox_events": 0,
+            "outbox_access": "OK",
         }
 
     # External durable receipt is mandatory. If this fails, the timer fails
@@ -203,6 +214,7 @@ def enqueue_due(
             "due": len(due_case_ids),
             "queued": len(added),
             "outbox_events": len(outbox_ids),
+            "outbox_access": "OK",
             "case_ids": added,
         }
 
