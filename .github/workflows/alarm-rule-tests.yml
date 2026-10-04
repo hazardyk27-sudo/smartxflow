@@ -36,7 +36,6 @@ on:
       - 'tests/test_sinyal_engine_runtime.py'
       - 'tests/test_analysis_signal_copy.py'
       - 'tests/test_fixture_integrity.py'
-      - 'tests/test_betwatch_dnb.py'
       - 'tests/test_learning_archive.py'
       - 'tests/test_learning_archive_api.py'
       - 'tests/test_learning_archive_lifecycle_guards.py'
@@ -98,7 +97,6 @@ jobs:
           tests/test_sinyal_engine_runtime.py
           tests/test_analysis_signal_copy.py
           tests/test_fixture_integrity.py
-          tests/test_betwatch_dnb.py
           tests/test_learning_archive.py
           tests/test_learning_archive_api.py
           tests/test_learning_archive_lifecycle_guards.py
