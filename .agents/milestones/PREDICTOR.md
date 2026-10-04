@@ -1,27 +1,57 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 7
+MILESTONE_VERSION: 8
 STATUS: ACTIVE
 
 ## Objective
-Run the first clean prediction -> automatic in-repo archive -> revisit capture -> settlement workflow on selected football matches, with archive completion enforced before a prediction report is considered complete.
+Run the first clean three-stage Predictor workflow on selected football matches: Stage 1 SmartXFlow-only discovery/analysis -> Stage 2 user-triggered external cause research -> Stage 3 user-triggered final decision -> automatic in-repo archive -> revisit capture -> settlement.
+
+## Mandatory stage order
+
+1. **Stage 1 — SXF ONLY**
+   - Start from SmartXFlow data, not from public fixtures/news/odds sites.
+   - Find candidate matches using stored SmartXFlow money, odds, history, timing, liquidity/volume and cross-market behavior.
+   - Explain only what the SmartXFlow data itself shows.
+   - Send the SXF-only candidate report to the user and STOP.
+   - No web research and no final `BET | WATCH | PASS` decision in this stage.
+
+2. **Stage 2 — EXTERNAL CAUSE RESEARCH**
+   - Start only after the user explicitly asks to research why the Stage 1 moves may be happening.
+   - Research news, injuries, suspensions, squad/lineup information, form, tactics, motivation, schedule, weather when material and reliable statistics.
+   - Test both the supporting and opposing explanations for each Stage 1 move.
+   - Keep `SXF SAYS` and `RESEARCH SAYS` separate.
+   - Report `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED` and STOP.
+   - No final `BET | WATCH | PASS` decision unless the user explicitly asks for Stage 3.
+
+3. **Stage 3 — FINAL MERGE/DECISION**
+   - Start only after the user explicitly asks for the final decision.
+   - Merge the frozen Stage 1 SXF view with Stage 2 external evidence.
+   - Consider the opposite case/failure condition.
+   - Choose the best actually available market, including Double Chance/DNB when structurally better than a direct underdog side.
+   - Produce final `BET | WATCH | PASS`, market/selection/entry odds, confidence, rationale and counterargument.
+   - Freeze `prediction_at` and archive every formal final case automatically.
+
+Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 
 ## Required now
 
 1. Research only selected matches; do not archive the whole slate.
-2. Formal materially researched `BET`, `WATCH`, and `PASS` decisions are learning cases; never retroactively change the original decision after the result.
-3. Preserve immutable `prediction_at`, confidence, rationale, counterargument, and market/selection/entry odds when applicable.
-4. Keep PRE/POST separated by `observed_at` vs `prediction_at`.
-5. As part of completing a formal prediction, automatically create its case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` and preserve a current SmartXFlow stored-history capture. Do not require a separate user command.
-6. A report containing N formal cases must produce N durable `RECORDED` archive receipts before the report is considered complete. Multi-case reports must use `scripts/record_learning_batch.py` (or an equivalent same-turn durable batch operation) rather than relying on N manually remembered per-case commands.
-7. The first durable write appends a `RECORDED` manifest event. An identical retry is idempotent. A materially conflicting historical rewrite fails closed.
-8. When that selected case is materially revisited before kickoff, append a new timestamped capture and `CAPTURED` manifest event; never rewrite an earlier capture.
-9. At settlement/end-of-day, add result/postmortem plus final full available SXF prematch timeline, checksums and a `FINALIZED` manifest event.
-10. If any archive write fails, identify that case as `ARCHIVE_PENDING`/retryable; never silently omit it, never claim the report was fully archived, and never fabricate a missing match identity/history later.
-11. Existing SmartXFlow systems remain the collector. Never create a second market collector and never manually rewrite stored snapshot history.
-12. Never include API keys, tokens, cookies, auth headers, passwords, `.env` values or other credentials in archive content.
-13. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
-14. No Poly/Polymarket inputs.
+2. Stage 1 must use real SmartXFlow match identity/history. Do not discover candidates from external odds/news first and then retrofit them into SXF.
+3. Stage 1 observations must remain frozen when Stage 2 research is performed; external research must not rewrite what SXF originally showed.
+4. Stage 2 evidence must have real `observed_at` timing and remain separate from SmartXFlow evidence.
+5. Only Stage 3 final `BET`, `WATCH`, and `PASS` decisions are formal learning cases. Never retroactively change the original final decision after the result.
+6. Preserve immutable `prediction_at`, confidence, rationale, counterargument, and market/selection/entry odds when applicable.
+7. Keep PRE/POST separated by `observed_at` vs `prediction_at`.
+8. As part of completing Stage 3, automatically create each formal case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` and preserve the SmartXFlow stored-history capture. Do not require a separate user command.
+9. A Stage 3 report containing N formal cases must produce N durable `RECORDED` archive receipts before the final report is considered complete. Multi-case reports must use `scripts/record_learning_batch.py` or an equivalent same-turn durable batch operation.
+10. The first durable write appends a `RECORDED` manifest event. An identical retry is idempotent. A materially conflicting historical rewrite fails closed.
+11. When a final selected case is materially revisited before kickoff, append a new timestamped capture and `CAPTURED` manifest event; never rewrite an earlier capture.
+12. At settlement/end-of-day, add result/postmortem plus final full available SXF prematch timeline, checksums and a `FINALIZED` manifest event.
+13. If any archive write fails, identify that case as `ARCHIVE_PENDING`/retryable; never silently omit it, never claim the final report was fully archived, and never fabricate a missing match identity/history later.
+14. Existing SmartXFlow systems remain the collector. Never create a second market collector and never manually rewrite stored snapshot history.
+15. Never include API keys, tokens, cookies, auth headers, passwords, `.env` values or other credentials in archive content.
+16. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
+17. No Poly/Polymarket inputs.
 
 ## Archive destination
 
@@ -33,15 +63,35 @@ Run the first clean prediction -> automatic in-repo archive -> revisit capture -
 - Archive data commits never go to `main` or `preview` and are never deployed.
 - A runtime/worktree-only file write is not durable and is never `DONE`.
 
-## Done per report
+## Done per Stage 1 report
 
-A report is complete only when every formal case has a durable `RECORDED` receipt. If even one formal case lacks a receipt, the report's archive state is incomplete and must be explicit.
+A Stage 1 report is complete when:
+- the candidate list came from SmartXFlow data,
+- real SmartXFlow identity/history was used,
+- the market movement was described using SXF evidence only,
+- no external research contaminated the analysis,
+- no final `BET | WATCH | PASS` decision was issued,
+- the user has received the SXF-only report and the Predictor has stopped for Stage 2 instruction.
+
+## Done per Stage 2 report
+
+A Stage 2 report is complete when:
+- external causes were researched only for Stage 1-selected matches,
+- supporting and contradicting evidence were checked,
+- SXF and external evidence remain visibly separate,
+- each move is classified as confirmed/partial/contradicted/unexplained,
+- the Predictor stops for explicit Stage 3 instruction.
+
+## Done per Stage 3 report
+
+A Stage 3 report is complete only when every formal final case has a durable `RECORDED` receipt. If even one formal case lacks a receipt, the final report's archive state is incomplete and must be explicit.
 
 ## Done per case
 
 A case is `DONE` only when:
-- the original decision/prediction is immutable,
-- evidence timing exists,
+- the Stage 1 SXF observation is preserved,
+- Stage 2 external evidence is preserved with timing,
+- the Stage 3 original decision/prediction is immutable,
 - required stored-history captures exist,
 - result/decision outcome is settled/reviewed as applicable,
 - final archive files/checksums are coherent,
