@@ -75,7 +75,7 @@ class FakeSession:
                 ],
             },
             "source_tables": ["moneyway_1x2_history", "dropping_1x2_history"],
-            "unavailable_optional_tables": ["moneyway_double_chance_history"],
+            "unavailable_optional_tables": [],
         })
         self.last_url = None
         self.last_timeout = None
@@ -177,7 +177,7 @@ class LearningArchiveTests(unittest.TestCase):
             result = fetch_selected_match_history("abc123def456", session=session)
         self.assertEqual(len(result.snapshots), 2)
         self.assertEqual(result.source_tables, ("moneyway_1x2_history", "dropping_1x2_history"))
-        self.assertEqual(result.unavailable_optional_tables, ("moneyway_double_chance_history",))
+        self.assertEqual(result.unavailable_optional_tables, ())
         self.assertEqual(session.headers["Authorization"], "Bearer service-test-token")
         self.assertEqual(session.last_url, "https://preview.smartxflow.test/api/internal/learning-archive/match/abc123def456/history")
 
