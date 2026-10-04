@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 
 from learning_archive.exporter import ArchiveFinalizationError, LearningArchiveExporter
+from learning_archive.revisit import RevisitCaptureError, prepare_revisit_snapshots
 from learning_archive.source_history import SXFHistoryError, fetch_selected_match_history
 
 
@@ -25,13 +26,24 @@ def main() -> int:
         if args.revisit and not args.observed_at:
             raise ValueError("--revisit requires explicit --observed-at for deterministic capture identity")
         history = fetch_selected_match_history(match_hash)
+        snapshots = history.snapshots
+        if args.revisit:
+            snapshots = prepare_revisit_snapshots(case, snapshots, observed_at)
         result = LearningArchiveExporter.from_env().record_case(
             case,
-            history.snapshots,
+            snapshots,
             observed_at=observed_at,
             revisit=args.revisit,
         )
-    except (OSError, ValueError, KeyError, SXFHistoryError, ArchiveFinalizationError, RuntimeError) as exc:
+    except (
+        OSError,
+        ValueError,
+        KeyError,
+        SXFHistoryError,
+        RevisitCaptureError,
+        ArchiveFinalizationError,
+        RuntimeError,
+    ) as exc:
         print(f"FAIL archive record: {exc}", file=sys.stderr)
         return 1
 

@@ -1,0 +1,171 @@
+name: Learning Archive Prematch Capture
+
+on:
+  push:
+    branches:
+      - preview
+    paths:
+      - '.github/workflows/learning-archive-prematch-capture.yml'
+      - 'learning_archive/revisit.py'
+      - 'scripts/build_due_learning_revisit_batch.py'
+      - 'scripts/record_learning_case.py'
+      - 'scripts/record_learning_revisit_batch.py'
+      - 'tests/test_learning_archive_due_capture.py'
+      - 'tests/test_learning_archive_revisit.py'
+  schedule:
+    # Avoid the top-of-hour scheduler hotspot while scanning frequently enough
+    # to land one durable revisit inside the final 35 minutes before kickoff.
+    - cron: '2/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      observed_at:
+        description: 'Optional historical prematch cutoff, ISO-8601. Use only with case_ids.'
+        required: false
+        type: string
+      case_ids:
+        description: 'Optional comma-separated formal case_ids for deterministic backfill. Use only with observed_at.'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learning-archive-prematch-capture-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview
+          fetch-depth: 1
+
+      - name: Run prematch capture regression tests
+        run: |
+          python -m unittest \
+            tests.test_learning_archive_revisit \
+            tests.test_learning_archive_due_capture
+
+      - name: Compile runtime scripts
+        run: |
+          python -m py_compile \
+            learning_archive/revisit.py \
+            scripts/build_due_learning_revisit_batch.py \
+            scripts/record_learning_case.py \
+            scripts/record_learning_revisit_batch.py
+
+  capture:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout production code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: app
+          fetch-depth: 1
+
+      - name: Checkout durable Learning Archive state
+        uses: actions/checkout@v4
+        with:
+          ref: learning-archive
+          path: archive
+          fetch-depth: 1
+
+      - name: Build due prematch capture batch
+        id: due
+        shell: bash
+        env:
+          INPUT_OBSERVED_AT: ${{ inputs.observed_at || '' }}
+          INPUT_CASE_IDS: ${{ inputs.case_ids || '' }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+
+          if [ -n "$INPUT_OBSERVED_AT" ] || [ -n "$INPUT_CASE_IDS" ]; then
+            if [ -z "$INPUT_OBSERVED_AT" ] || [ -z "$INPUT_CASE_IDS" ]; then
+              echo "PREMATCH_CAPTURE_STOP: historical backfill requires both observed_at and case_ids"
+              exit 1
+            fi
+            OBSERVED_AT="$INPUT_OBSERVED_AT"
+            IFS=',' read -ra RAW_CASE_IDS <<< "$INPUT_CASE_IDS"
+            for raw_case_id in "${RAW_CASE_IDS[@]}"; do
+              case_id="$(printf '%s' "$raw_case_id" | xargs)"
+              if [ -z "$case_id" ]; then
+                echo "PREMATCH_CAPTURE_STOP: empty case_id in workflow input"
+                exit 1
+              fi
+              ARGS+=(--case-id "$case_id")
+            done
+          else
+            OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+
+          python app/scripts/build_due_learning_revisit_batch.py \
+            "$GITHUB_WORKSPACE/archive" \
+            --observed-at "$OBSERVED_AT" \
+            --max-minutes-before-kickoff 35 \
+            "${ARGS[@]}" \
+            --output "$RUNNER_TEMP/due-revisits.json"
+
+          COUNT="$(python - "$RUNNER_TEMP/due-revisits.json" <<'PY'
+          import json, sys
+          payload = json.load(open(sys.argv[1], encoding='utf-8'))
+          print(len(payload.get('captures') or []))
+          PY
+          )"
+          echo "observed_at=$OBSERVED_AT" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has_due=true" >> "$GITHUB_OUTPUT"
+            echo "batch_b64=$(base64 -w0 "$RUNNER_TEMP/due-revisits.json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_due=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "PREMATCH_CAPTURE_SCAN observed_at=$OBSERVED_AT due=$COUNT"
+
+      - name: Append due captures with durable receipts
+        if: steps.due.outputs.has_due == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          BATCH_B64: ${{ steps.due.outputs.batch_b64 }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: BATCH_B64,GH_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+
+            BRANCH="$(git branch --show-current)"
+            if [ "$BRANCH" != "main" ]; then
+              echo "PREMATCH_CAPTURE_STOP: production runtime branch is '$BRANCH', expected main"
+              exit 1
+            fi
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "PREMATCH_CAPTURE_STOP: tracked production worktree is dirty"
+              git status --short
+              exit 1
+            fi
+
+            TMP="$(mktemp /tmp/sxf-prematch-revisit.XXXXXX.json)"
+            trap 'rm -f "$TMP"' EXIT
+            printf '%s' "$BATCH_B64" | base64 -d > "$TMP"
+
+            export GH_TOKEN
+            export GITHUB_TOKEN="$GH_TOKEN"
+            /opt/smartxflow/venv/bin/python \
+              /opt/smartxflow/scripts/record_learning_revisit_batch.py \
+              "$TMP" \
+              --dotenv /opt/smartxflow/.env
+
+      - name: Gate result
+        run: |
+          echo "PREMATCH_CAPTURE_GATE_OK observed_at=${{ steps.due.outputs.observed_at }} due=${{ steps.due.outputs.count }}"
