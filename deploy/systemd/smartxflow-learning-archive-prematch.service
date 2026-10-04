@@ -13,7 +13,7 @@ Environment=PYTHONPATH=/opt/smartxflow
 Environment=SMARTXFLOW_PREMATCH_QUEUE=/var/lib/smartxflow-prematch/request.json
 StateDirectory=smartxflow-prematch
 StateDirectoryMode=0750
-ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/enqueue_due_learning_revisit.py
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/enqueue_due_learning_revisit.py --dotenv /opt/smartxflow/.env
 TimeoutStartSec=120
 NoNewPrivileges=true
 PrivateTmp=true

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Persist due prematch capture requests on the production host.
+"""Persist due prematch capture requests durably.
 
-The Hetzner systemd timer is the primary clock. It snapshots the exact observed_at
-and case_ids into a durable local queue. A GitHub Actions run later drains that
-queue with an ephemeral repository token, so GitHub scheduler delays cannot alter
-the prematch cutoff.
+Hetzner systemd is the primary clock. Every due case is written to both the
+local queue and a service-role-only Supabase outbox with the exact observed_at.
+The outbox is independent of GitHub Actions scheduling and protects source
+history from cleanup until the event is mirrored to Learning Archive.
 """
 from __future__ import annotations
 
@@ -20,6 +20,12 @@ import sys
 import tempfile
 from typing import Any, Iterator
 
+from learning_archive.outbox import (
+    CaptureOutboxError,
+    enqueue_capture_events,
+    load_dotenv_literal,
+    verify_capture_outbox_access,
+)
 from scripts.build_due_learning_revisit_batch import build_due_batch
 
 
@@ -159,6 +165,11 @@ def enqueue_due(
     max_minutes_before_kickoff: int = 35,
 ) -> dict[str, Any]:
     _assert_production_checkout(app_root)
+
+    # Correctness does not depend on there being a due match. Every timer run
+    # must prove the external durable outbox is reachable with production creds.
+    verify_capture_outbox_access()
+
     _run(["git", "fetch", "origin", ARCHIVE_BRANCH], cwd=app_root)
 
     with tempfile.TemporaryDirectory(prefix="sxf-prematch-enqueue-") as tmp:
@@ -170,31 +181,41 @@ def enqueue_due(
             max_minutes_before_kickoff=max_minutes_before_kickoff,
         )
 
+    captures = due.get("captures") if isinstance(due, dict) else None
+    if not isinstance(captures, list):
+        raise PrematchEnqueueError("due capture batch is invalid")
     due_case_ids = [
         str(item.get("case", {}).get("case_id") or "").strip()
-        for item in (due.get("captures") or [])
+        for item in captures
     ]
     due_case_ids = [case_id for case_id in due_case_ids if case_id]
     if not due_case_ids:
-        return {"status": "NO_DUE", "observed_at": observed_at, "due": 0, "queued": 0}
+        return {
+            "status": "NO_DUE",
+            "observed_at": observed_at,
+            "due": 0,
+            "queued": 0,
+            "outbox_events": 0,
+            "outbox_access": "OK",
+        }
+
+    # External durable receipt is mandatory. If this fails, the timer fails
+    # closed and retries on the next run rather than pretending capture is safe.
+    outbox_ids = enqueue_capture_events(captures, observed_at)
 
     with _queue_lock(queue_file):
         existing = _read_queue(queue_file)
         merged, added = merge_request_payload(existing, observed_at, due_case_ids)
         if added:
             _write_queue_atomic(queue_file, merged)
-            return {
-                "status": "QUEUED_LOCAL",
-                "observed_at": observed_at,
-                "due": len(due_case_ids),
-                "queued": len(added),
-                "case_ids": added,
-            }
         return {
-            "status": "ALREADY_QUEUED",
+            "status": "QUEUED_DURABLE" if added else "ALREADY_QUEUED",
             "observed_at": observed_at,
             "due": len(due_case_ids),
-            "queued": 0,
+            "queued": len(added),
+            "outbox_events": len(outbox_ids),
+            "outbox_access": "OK",
+            "case_ids": added,
         }
 
 
@@ -204,17 +225,20 @@ def main() -> int:
     parser.add_argument("--queue-file", default=str(DEFAULT_QUEUE), help="Durable local request queue")
     parser.add_argument("--observed-at", help="Optional deterministic UTC/offset timestamp")
     parser.add_argument("--max-minutes-before-kickoff", type=int, default=35)
+    parser.add_argument("--dotenv", help="Production dotenv loaded literally before durable outbox access")
     args = parser.parse_args()
 
     observed_at = args.observed_at or utc_now_iso()
     try:
+        if args.dotenv:
+            load_dotenv_literal(args.dotenv)
         result = enqueue_due(
             Path(args.root),
             Path(args.queue_file),
             observed_at,
             max_minutes_before_kickoff=args.max_minutes_before_kickoff,
         )
-    except (OSError, ValueError, PrematchEnqueueError) as exc:
+    except (OSError, ValueError, PrematchEnqueueError, CaptureOutboxError) as exc:
         print(f"PREMATCH_ENQUEUE_FAIL: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
