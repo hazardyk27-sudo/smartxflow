@@ -1,6 +1,6 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 2
+REFERENCE_VERSION: 3
 
 Open this file only for substantive match-analysis/prediction work.
 
@@ -13,8 +13,9 @@ The Predictor workflow has three separate user-controlled stages. Never collapse
 Goal: discover interesting matches from SmartXFlow itself and describe the market behavior without external-news contamination.
 
 1. Start from SmartXFlow match data for the requested date/time window.
-2. Use real SmartXFlow match identity and stored market history.
-3. Evaluate:
+2. Read Stage 1 data directly from SmartXFlow's primary data source / production data path. Do not use Replit Agent as the data-reading layer for Predictor analysis.
+3. Use real SmartXFlow match identity and stored market history.
+4. Evaluate:
    - absolute money,
    - money share,
    - new-money delta/velocity when available,
@@ -25,16 +26,17 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
    - reversals/momentum,
    - cross-market relationships,
    - 1X2 vs Double Chance/DNB/goal markets when available.
-4. Rank only the matches whose SmartXFlow structure deserves further investigation.
-5. For each candidate, state:
+5. Rank only the matches whose SmartXFlow structure deserves further investigation.
+6. For each candidate, state:
    - what SXF shows,
    - why the move is unusual/interesting,
    - what market behavior must be explained in Stage 2,
    - what would invalidate the SXF-only thesis from a market-data perspective.
-6. Send the Stage 1 report to the user and STOP.
+7. Send the Stage 1 report to the user and STOP.
 
 ### Stage 1 prohibitions
 
+- No Replit Agent as a SmartXFlow data source or proxy for the analysis.
 - No web browsing.
 - No team-news research.
 - No injuries/suspensions/form/lineup/manager commentary from external sources.
@@ -42,7 +44,7 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
 - No external football knowledge used as the cause of a move.
 - No final `BET | WATCH | PASS` decision.
 
-If SmartXFlow data cannot be read reliably, do not substitute external markets. Report the SXF data-access problem instead.
+If SmartXFlow data cannot be read reliably from the direct/primary source, do not substitute Replit or external markets. Report the SXF data-access problem instead.
 
 ## Stage 2 — external cause research
 
