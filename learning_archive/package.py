@@ -47,12 +47,18 @@ def _case_path(case: dict[str, Any]) -> str:
 
 
 def _case_doc(case: dict[str, Any]) -> dict[str, Any]:
+    provenance = case["provenance"]
+    immutable_provenance = {
+        key: provenance[key]
+        for key in ("archive_created_at", "source_repo", "source_commit")
+        if key in provenance
+    }
     return {
         "archive_schema_version": case["archive_schema_version"],
         "case_id": case["case_id"],
         "match": case["match"],
         "prediction": case["prediction"],
-        "provenance": case["provenance"],
+        "provenance": immutable_provenance,
     }
 
 
