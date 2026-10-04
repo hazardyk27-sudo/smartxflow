@@ -1,0 +1,53 @@
+{
+  "report_id": "2026-10-04-stage3-final-171836-trt-internacional-identity-correction",
+  "correction_of": "learning_archive_queue/2026-10-04-stage3-final-171836-trt.json",
+  "prediction_at": "2026-10-04T14:18:36Z",
+  "cases": [
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-internacional-once-caldas-pass",
+      "match": {
+        "match_id_hash": "b531f18a946a",
+        "league": "Colombian Primera A",
+        "home": "Internacional de Bogotá",
+        "away": "Once Caldas",
+        "kickoff_at": "2026-10-04T21:05:00Z"
+      },
+      "prediction": {
+        "prediction_at": "2026-10-04T14:18:36Z",
+        "decision": "PASS",
+        "market": null,
+        "selection": null,
+        "entry_odds": null,
+        "confidence": 72,
+        "rationale": "The 1X2 relationship was interesting but postponement/travel disruption and stale SXF flow made the history hard to interpret as a clean edge.",
+        "counterargument": "Once Caldas shortened on low share and Over 2.5 had cleaner confirmation, so a real repricing may still exist."
+      },
+      "evidence": [
+        {
+          "source": "SmartXFlow Stage 1 direct primary history",
+          "observed_at": "2026-10-04T13:28:00Z",
+          "phase": "PRE",
+          "relationship": "NEUTRAL",
+          "note": "Draw ~60.7% while drifting; Once Caldas about 2.86→2.66 on much lower share; no fresh 1X2 money in the final observed hour."
+        },
+        {
+          "source": "Win Sports / Stage 2 research bundle",
+          "observed_at": "2026-10-04T14:18:00Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "url": "https://www.winsports.co/futbol-colombiano/noticias/inter-bogota-vs-once-caldas-fue-reprogramado-en-la-liga-betplay-457487",
+          "note": "Match was rescheduled after Once Caldas could not fly to Bogotá due to weather/travel problems, plausibly creating stale/reopened-market artifacts."
+        }
+      ],
+      "settlement": {
+        "status": "PENDING"
+      },
+      "provenance": {
+        "archive_created_at": "2026-10-04T15:17:55Z",
+        "source_repo": "hazardyk27-sudo/smartxflow",
+        "source_commit": "518d0f8dd614ef0872dde9c260443ed722c8727a"
+      }
+    }
+  ]
+}
