@@ -1,201 +1,78 @@
 #!/usr/bin/env python3
-"""
-Hash Sistemi Dogrulama Testleri
-4 zorunlu test - hepsi gecmeli
-CI'da her push'ta calisir
-Bagimsiz - dis bagimlilik yok
-"""
+"""Canonical SmartXFlow match identity regression tests."""
 
-import sys
 import os
+import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'core'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from hash_utils import make_match_id_hash, normalize_field, normalize_kickoff
-
-
-def test_a_same_match_two_scrapes():
-    """Test A: Ayni mac, 2 scrape (10 dk arayla)"""
-    print("\n" + "="*60)
-    print("TEST A: Ayni mac, 2 scrape (10 dk arayla)")
-    print("="*60)
-    
-    hash1 = make_match_id_hash(
-        home="Manchester City",
-        away="Arsenal",
-        league="Premier League",
-        kickoff_utc="2025-01-15T20:00:00Z",
-        debug=True
-    )
-    
-    hash2 = make_match_id_hash(
-        home="Manchester City",
-        away="Arsenal",
-        league="Premier League",
-        kickoff_utc="2025-01-15T20:00:00Z",
-        debug=True
-    )
-    
-    result = hash1 == hash2
-    print(f"\nSONUC: {'OK' if result else 'FAIL'}")
-    print(f"Run1: {hash1}")
-    print(f"Run2: {hash2}")
-    assert result, f"Hash mismatch: {hash1} != {hash2}"
-    return result
+from core.hash_utils import make_fixture_identity_key, make_match_id_hash
 
 
-def test_b_name_variation():
-    """Test B: Ayni mac, isim varyasyonu - suffix stripped"""
-    print("\n" + "="*60)
-    print("TEST B: Ayni mac, isim varyasyonu (suffix stripped)")
-    print("="*60)
-    
-    hash1 = make_match_id_hash(
-        home="Galatasaray",
-        away="Fenerbahce",
-        league="Super Lig",
-        kickoff_utc="2025-01-20T19:00:00Z",
-        debug=True
-    )
-    
-    hash2 = make_match_id_hash(
-        home="GALATASARAY  ",
-        away="  Fenerbahce",
-        league="Super Lig",
-        kickoff_utc="2025-01-20T19:00:00Z",
-        debug=True
-    )
-    
-    hash3 = make_match_id_hash(
-        home="Galatasaray SK.",
-        away="Fenerbahce FC",
-        league="Super Lig!",
-        kickoff_utc="2025-01-20T19:00:00Z",
-        debug=True
-    )
-    
-    result = hash1 == hash2 == hash3
-    print(f"\nSONUC: {'OK' if result else 'FAIL'}")
-    print(f"Var1 (clean): {hash1}")
-    print(f"Var2 (spaces): {hash2}")
-    print(f"Var3 (suffix): {hash3}")
-    assert result, f"Hash mismatch: {hash1}, {hash2}, {hash3}"
-    return result
+def test_same_match_two_scrapes():
+    a = make_match_id_hash("Manchester City", "Arsenal", "Premier League", "2026-10-15T20:00:00Z")
+    b = make_match_id_hash("Manchester City", "Arsenal", "Premier League", "2026-10-15T20:00:00+00:00")
+    assert a == b
 
 
-def test_c_utc_tr_difference():
-    """Test C: UTC/TR farki - timezone normalization"""
-    print("\n" + "="*60)
-    print("TEST C: UTC/TR farki")
-    print("="*60)
-    
-    hash1 = make_match_id_hash(
-        home="Liverpool",
-        away="Chelsea",
-        league="Premier League",
-        kickoff_utc="2025-01-25T15:00:00Z",
-        debug=True
-    )
-    
-    hash2 = make_match_id_hash(
-        home="Liverpool",
-        away="Chelsea",
-        league="Premier League",
-        kickoff_utc="2025-01-25T15:00:00+00:00",
-        debug=True
-    )
-    
-    hash3 = make_match_id_hash(
-        home="Liverpool",
-        away="Chelsea",
-        league="Premier League",
-        kickoff_utc="2025-01-25T15:00",
-        debug=True
-    )
-    
-    result = hash1 == hash2 == hash3
-    print(f"\nSONUC: {'OK' if result else 'FAIL'}")
-    print(f"UTC Z: {hash1}")
-    print(f"UTC +00:00: {hash2}")
-    print(f"No seconds: {hash3}")
-    assert result, f"Hash mismatch: {hash1}, {hash2}, {hash3}"
-    return result
+def test_case_whitespace_and_suffix_variations():
+    clean = make_match_id_hash("Galatasaray", "Fenerbahce", "Super Lig")
+    spaces = make_match_id_hash("  GALATASARAY  ", " fenerbahce ", " SUPER   LIG ")
+    suffixes = make_match_id_hash("Galatasaray SK.", "Fenerbahce FC", "Super Lig!")
+    assert clean == spaces == suffixes
 
 
-def test_d_join_test():
-    """Test D: Join testi (simulasyon)"""
-    print("\n" + "="*60)
-    print("TEST D: Join testi (simulasyon)")
-    print("="*60)
-    
-    fixture = {
-        'match_id_hash': make_match_id_hash("Real Madrid", "Barcelona", "La Liga", "2025-02-01T20:00:00Z"),
-        'home_team': "Real Madrid",
-        'away_team': "Barcelona",
-        'league': "La Liga",
-        'kickoff_utc': "2025-02-01T20:00:00Z"
+def test_turkiye_ascii_equivalence():
+    accented = make_match_id_hash("Italy", "Türkiye", "UEFA Nations League A")
+    ascii_name = make_match_id_hash("Italy", "Turkiye", "UEFA Nations League A")
+    assert accented == ascii_name == "f26381742135"
+
+
+def test_ceuta_suffix_equivalence():
+    with_suffix = make_match_id_hash("CD Castellon", "AD Ceuta FC", "Spanish Segunda Division")
+    without_suffix = make_match_id_hash("CD Castellon", "AD Ceuta", "Spanish Segunda Division")
+    assert with_suffix == without_suffix == "d0666bbeb294"
+
+
+def test_same_kickoff_teams_league_same_hash():
+    variants = {
+        make_match_id_hash("Italy", "Türkiye", "UEFA Nations League A", "2026-10-05T18:45:00Z"),
+        make_match_id_hash(" italy ", " TURKIYE ", "uefa nations league a", "2026-10-05T18:45:00+00:00"),
+        make_match_id_hash("ITALY", "Turkiye", "UEFA  Nations League A", "2026-10-05T21:45:00+03:00"),
     }
-    
-    alarm = {
-        'match_id_hash': make_match_id_hash("Real Madrid", "Barcelona", "La Liga", "2025-02-01T20:00:00Z"),
-        'market': '1X2',
-        'selection': '1',
-        'alarm_type': 'volumeshock'
-    }
-    
-    hash_match = fixture['match_id_hash'] == alarm['match_id_hash']
-    assert hash_match, "Hash mismatch between fixture and alarm"
-    
-    joined = {
-        **alarm,
-        'home_team': fixture['home_team'],
-        'away_team': fixture['away_team'],
-        'league': fixture['league'],
-        'kickoff_utc': fixture['kickoff_utc']
-    }
-    
-    has_home = 'home_team' in joined and joined['home_team']
-    has_away = 'away_team' in joined and joined['away_team']
-    has_league = 'league' in joined and joined['league']
-    has_kickoff = 'kickoff_utc' in joined and joined['kickoff_utc']
-    
-    result = has_home and has_away and has_league and has_kickoff
-    print(f"\nSONUC: {'OK' if result else 'FAIL'}")
-    assert result, "Missing metadata in joined record"
-    return result
+    assert variants == {"f26381742135"}
+
+
+def test_physical_identity_normalizes_timezone_to_utc_minute():
+    utc = make_fixture_identity_key("Italy", "Türkiye", "UEFA Nations League A", "2026-10-05T18:45:00Z")
+    tr = make_fixture_identity_key(" italy ", "Turkiye", "UEFA Nations League A", "2026-10-05T21:45:00+03:00")
+    assert utc == tr
+    assert utc[-1] == "2026-10-05T18:45Z"
+
+
+def test_physical_identity_includes_league_and_kickoff():
+    base = make_fixture_identity_key("Home FC", "Away FC", "League A", "2026-10-05T18:45:00Z")
+    other_league = make_fixture_identity_key("Home", "Away", "League B", "2026-10-05T18:45:00Z")
+    other_kickoff = make_fixture_identity_key("Home", "Away", "League A", "2026-10-05T18:46:00Z")
+    assert base != other_league
+    assert base != other_kickoff
 
 
 def run_all_tests():
-    """Tum testleri calistir"""
-    print("\n" + "#"*60)
-    print("# HASH SISTEMI DOGRULAMA TESTLERI")
-    print("#"*60)
-    
-    results = {
-        'A': test_a_same_match_two_scrapes(),
-        'B': test_b_name_variation(),
-        'C': test_c_utc_tr_difference(),
-        'D': test_d_join_test()
-    }
-    
-    print("\n" + "="*60)
-    print("OZET RAPOR")
-    print("="*60)
-    
-    all_passed = all(results.values())
-    
-    for test, passed in results.items():
-        status = "OK" if passed else "FAIL"
-        print(f"Test {test}: {status}")
-    
-    print("\n" + "-"*60)
-    final_status = "TUM TESTLER GECTI" if all_passed else "BAZI TESTLER BASARISIZ!"
-    print(f"GENEL SONUC: {final_status}")
-    print("-"*60)
-    
-    return all_passed
+    tests = [
+        test_same_match_two_scrapes,
+        test_case_whitespace_and_suffix_variations,
+        test_turkiye_ascii_equivalence,
+        test_ceuta_suffix_equivalence,
+        test_same_kickoff_teams_league_same_hash,
+        test_physical_identity_normalizes_timezone_to_utc_minute,
+        test_physical_identity_includes_league_and_kickoff,
+    ]
+    for test in tests:
+        test()
+        print(f"PASS {test.__name__}")
+    print(f"PASS all {len(tests)} canonical hash tests")
 
 
 if __name__ == "__main__":
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
+    run_all_tests()

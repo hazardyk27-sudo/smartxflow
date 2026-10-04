@@ -6,7 +6,8 @@ untouched. It only hardens process/runtime concerns:
 - one signal-engine instance per host;
 - react only to scraper_signal.signal_type=scrape_complete;
 - coalesce multiple pending scrape_complete rows to the newest one;
-- stop retrying the missing scraper_heartbeat table after PGRST205/404.
+- stop retrying the missing scraper_heartbeat table after PGRST205/404;
+- bind signal-engine match hashing to core.hash_utils.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from urllib.parse import quote as url_quote
 
 import requests
 
+from core.hash_utils import make_match_id_hash
 import sinyal_engine as engine
 
 try:
@@ -129,9 +131,15 @@ def _acquire_singleton_lock() -> bool:
     return True
 
 
+def _canonical_signal_hash(home: str, away: str, league: str) -> str:
+    return make_match_id_hash(home, away, league)
+
+
 def _install_runtime_guards() -> None:
     engine.update_heartbeat = update_heartbeat
     engine.check_new_scraper_signal = check_new_scraper_signal
+    # EML/fixture joins must use the exact same helper as every producer.
+    engine._make_match_id_hash = _canonical_signal_hash
 
 
 def main() -> int:

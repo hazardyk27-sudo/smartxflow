@@ -1,128 +1,119 @@
 #!/usr/bin/env python3
-"""
-Hash Utilities - Minimal, standalone hash functions
-No external dependencies - only hashlib and re (built-in)
+"""Canonical SmartXFlow match identity helpers.
+
+Stable `match_id_hash` contract:
+    md5("<league_norm>|<home_norm>|<away_norm>")[:12]
+
+Kickoff deliberately stays out of `match_id_hash` for backward compatibility.
+Use `make_fixture_identity_key()` when deciding whether two fixture rows are the
+same physical match; that key also includes canonical kickoff minute.
 """
 
 import hashlib
 import re
+from datetime import datetime, timezone
 
 
 def normalize_field(value: str) -> str:
-    """
-    String normalizasyonu:
-    1. Trim
-    2. Turkce karakter normalizasyonu
-    3. Lowercase
-    4. Ozel karakterleri kaldir
-    5. Coklu bosluk -> tek bosluk
-    6. Suffix kaldir (FC, SK, etc.)
-    """
+    """Normalize team/league text for canonical match identity."""
     if not value:
         return ""
-    
-    value = value.strip()
-    
-    # Turkce karakter normalizasyonu
+
+    value = str(value).strip()
     tr_map = {
-        'ş': 's', 'Ş': 'S',
-        'ğ': 'g', 'Ğ': 'G',
-        'ü': 'u', 'Ü': 'U',
-        'ı': 'i', 'İ': 'I',
-        'ö': 'o', 'Ö': 'O',
-        'ç': 'c', 'Ç': 'C'
+        "ş": "s", "Ş": "S", "ğ": "g", "Ğ": "G", "ü": "u", "Ü": "U",
+        "ı": "i", "İ": "I", "ö": "o", "Ö": "O", "ç": "c", "Ç": "C",
     }
     for tr_char, en_char in tr_map.items():
         value = value.replace(tr_char, en_char)
-    
+
     value = value.lower()
-    
-    # Ozel karakterleri kaldir (sadece harf, rakam, bosluk)
-    value = re.sub(r'[^a-z0-9\s]', '', value)
-    value = ' '.join(value.split())
-    
-    # Suffix kaldir (birden fazla kez kontrol et)
-    suffixes = ['fc', 'fk', 'sk', 'sc', 'afc', 'cf', 'ac', 'as']
+    value = re.sub(r"[^a-z0-9\s]", "", value)
+    value = " ".join(value.split())
+
+    suffixes = ("fc", "fk", "sk", "sc", "afc", "cf", "ac", "as")
     changed = True
     while changed:
         changed = False
         for suffix in suffixes:
-            if value.endswith(' ' + suffix):
-                value = value[:-len(suffix)-1].strip()
+            token = " " + suffix
+            if value.endswith(token):
+                value = value[:-len(token)].strip()
                 changed = True
                 break
-    
     return value
 
 
 def normalize_kickoff(kickoff: str) -> str:
-    """
-    Kickoff normalizasyonu:
-    Hedef: YYYY-MM-DDTHH:MM (UTC, saniye yok)
-    
-    Desteklenen formatlar:
-    1. ISO 8601: "2025-12-21T13:30:00+00:00" -> "2025-12-21T13:30"
-    2. History format: "21.Dec 13:30:00" -> "2025-12-21T13:30"
-    """
+    """Legacy-compatible kickoff normalizer retained for existing callers."""
     if not kickoff:
         return ""
-    
     kickoff = str(kickoff).strip()
-    
-    # Timezone offset'leri kaldir
-    kickoff = re.sub(r'[+-]\d{2}:\d{2}$', '', kickoff)
-    kickoff = kickoff.replace('Z', '')
-    
-    # ISO 8601 formati: ilk 16 karakter
-    if 'T' in kickoff and len(kickoff) >= 16:
+    kickoff = re.sub(r"[+-]\d{2}:\d{2}$", "", kickoff)
+    kickoff = kickoff.replace("Z", "")
+    if "T" in kickoff and len(kickoff) >= 16:
         return kickoff[:16]
-    
-    # History format: "21.Dec 13:30:00" veya "21.Dec 13:30"
+
     month_map = {
-        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+        "jan": "01", "feb": "02", "mar": "03", "apr": "04",
+        "may": "05", "jun": "06", "jul": "07", "aug": "08",
+        "sep": "09", "oct": "10", "nov": "11", "dec": "12",
     }
-    
-    history_match = re.match(r'^(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})', kickoff)
-    if history_match:
-        day = history_match.group(1).zfill(2)
-        month_str = history_match.group(2).lower()
-        hour = history_match.group(3).zfill(2)
-        minute = history_match.group(4)
-        
-        month = month_map.get(month_str, '01')
-        
-        from datetime import datetime
-        current_year = datetime.utcnow().year
-        
-        return f"{current_year}-{month}-{day}T{hour}:{minute}"
-    
-    # Fallback: YYYY-MM-DD format
-    if len(kickoff) >= 10 and kickoff[4] == '-':
+    match = re.match(r"^(\d{1,2})\.([A-Za-z]{3})\s+(\d{1,2}):(\d{2})", kickoff)
+    if match:
+        day = match.group(1).zfill(2)
+        month = month_map.get(match.group(2).lower(), "01")
+        hour = match.group(3).zfill(2)
+        minute = match.group(4)
+        year = datetime.now(timezone.utc).year
+        return f"{year}-{month}-{day}T{hour}:{minute}"
+
+    if len(kickoff) >= 10 and kickoff[4] == "-":
         return kickoff[:16] if len(kickoff) >= 16 else kickoff[:10] + "T00:00"
-    
     return kickoff
 
 
+def normalize_kickoff_identity(kickoff: str) -> str:
+    """Normalize ISO kickoff variants to one UTC minute for duplicate detection."""
+    if not kickoff:
+        return ""
+    raw = str(kickoff).strip()
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is not None:
+            parsed = parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(second=0, microsecond=0)
+        if parsed.tzinfo is not None:
+            return parsed.strftime("%Y-%m-%dT%H:%MZ")
+        return parsed.strftime("%Y-%m-%dT%H:%M")
+    except (TypeError, ValueError):
+        return normalize_kickoff(raw)
+
+
 def make_match_id_hash(home: str, away: str, league: str, kickoff_utc: str = None, debug: bool = False) -> str:
-    """
-    12 karakterlik MD5 hash uret
-    Format: league|home|away (kickoff KULLANILMIYOR)
-    
-    NOT: kickoff_utc parametresi geriye uyumluluk icin tutuldu ama KULLANILMIYOR.
-    Hash sadece league, home, away bilgilerine gore uretilir.
+    """Generate the canonical 12-character match hash.
+
+    `kickoff_utc` remains accepted for backward compatibility but is
+    intentionally not part of the stable hash contract.
     """
     home_norm = normalize_field(home)
     away_norm = normalize_field(away)
     league_norm = normalize_field(league)
-    
     canonical = f"{league_norm}|{home_norm}|{away_norm}"
-    
     if debug:
         print(f"  Home: '{home}' -> '{home_norm}'")
         print(f"  Away: '{away}' -> '{away_norm}'")
         print(f"  League: '{league}' -> '{league_norm}'")
         print(f"  Canonical: '{canonical}'")
-    
-    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+    return hashlib.md5(canonical.encode("utf-8")).hexdigest()[:12]
+
+
+def make_fixture_identity_key(home: str, away: str, league: str, kickoff_utc: str):
+    """Return a physical-fixture dedupe key, or None if identity is incomplete."""
+    home_norm = normalize_field(home)
+    away_norm = normalize_field(away)
+    league_norm = normalize_field(league)
+    kickoff_norm = normalize_kickoff_identity(kickoff_utc)
+    if not home_norm or not away_norm or not league_norm or not kickoff_norm:
+        return None
+    return league_norm, home_norm, away_norm, kickoff_norm

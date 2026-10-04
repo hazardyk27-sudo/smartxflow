@@ -2,28 +2,52 @@ name: Hash System Tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [preview, main, master]
+    paths:
+      - 'core/hash_utils.py'
+      - 'services/**'
+      - 'betwatch_prematch.py'
+      - 'live_scraper.py'
+      - 'sinyal_engine.py'
+      - 'sinyal_engine_runtime.py'
+      - 'sql/backfill_history_hash.py'
+      - 'scripts/cleanup_duplicate_fixtures.py'
+      - 'desktop/scraper_standalone/**'
+      - 'tests/test_hash.py'
+      - 'tests/test_fixture_integrity.py'
+      - '.github/workflows/hash_tests.yml'
   pull_request:
-    branches: [main, master]
+    branches: [preview, main, master]
+  workflow_dispatch:
 
 jobs:
   hash-tests:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
-    - name: Run Hash System Tests
+
+    - name: Install test dependencies
+      run: python -m pip install --disable-pip-version-check pytest httpx requests
+
+    - name: Compile hash producers and consumers
       run: |
-        echo "Running Hash System Validation Tests..."
-        python tests/test_hash.py
-        
-    - name: Verify Test Results
-      run: |
-        echo "All hash tests passed - system is locked"
+        python -m py_compile core/hash_utils.py
+        python -m py_compile betwatch_prematch.py
+        python -m py_compile live_scraper.py
+        python -m py_compile services/supabase_client.py
+        python -m py_compile sql/backfill_history_hash.py
+        python -m py_compile scripts/cleanup_duplicate_fixtures.py
+        python -m py_compile desktop/scraper_standalone/backfill_hashes.py
+
+    - name: Run canonical hash regressions
+      run: python tests/test_hash.py
+
+    - name: Run fixture identity regressions
+      run: python -m pytest -q tests/test_fixture_integrity.py

@@ -1,59 +1,46 @@
 #!/usr/bin/env python3
-"""Conservative cleanup for stale duplicate fixture rows.
+"""Conservative cleanup/audit for stale duplicate fixture rows.
 
-A duplicate group is defined by normalized home/away plus kickoff minute. The
-current Betwatch fixture hash (md5("league|home|away")[:12]) is preferred as the
-canonical row. A non-canonical fixture row is deleted only when none of the
-known hash-based snapshot/history/alarm/signal tables references it.
-
-The script is dry-run by default. Set FIXTURE_DUPLICATE_APPLY=1 to allow DELETE.
-It also refuses to run unless SUPABASE_URL points at the expected SmartXFlow
-project ref.
+Identity and canonical hash calculation are delegated to `core.hash_utils`.
+Dry-run is the default. A stale fixture is deletable only when no known table
+still references its hash. This script deliberately does NOT remap references;
+that requires a separate reviewed migration because several alarm tables have
+unique constraints that can collide during stale->canonical updates.
 """
 
 from __future__ import annotations
 
-import hashlib
 import os
 import re
+import sys
 from collections import defaultdict
-from datetime import datetime
+from pathlib import Path
 from urllib.parse import quote, urlparse
 
 import requests
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from core.hash_utils import make_fixture_identity_key, make_match_id_hash
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-EXPECTED_PROJECT_REF = os.environ.get(
-    "SMARTXFLOW_SUPABASE_PROJECT_REF", "pswdvnmqjjnjodwzkmkp"
-).strip()
+EXPECTED_PROJECT_REF = os.environ.get("SMARTXFLOW_SUPABASE_PROJECT_REF", "pswdvnmqjjnjodwzkmkp").strip()
 APPLY = os.environ.get("FIXTURE_DUPLICATE_APPLY", "0") == "1"
 MAX_DELETE = int(os.environ.get("FIXTURE_DUPLICATE_MAX_DELETE", "200"))
 PAGE_SIZE = 1000
 
 REFERENCE_TABLES = (
-    "moneyway_snapshots",
-    "dropping_odds_snapshots",
-    "live_snapshots",
-    "moneyway_1x2_history",
-    "moneyway_ou25_history",
-    "moneyway_btts_history",
-    "dropping_1x2_history",
-    "dropping_ou25_history",
-    "dropping_btts_history",
-    "sharp_alarms",
-    "bigmoney_alarms",
+    "analyses", "bigmoney_alarms", "dropping_1x2_history", "dropping_alarms",
+    "dropping_btts_history", "dropping_ou25_history", "free_matches",
+    "insider_alarms", "live_fixtures", "live_snapshots", "matchbook_1x2_history",
+    "matchbook_btts_history", "matchbook_fixtures", "matchbook_ou25_history",
+    "mim_alarms", "moneyway_1x2_history", "moneyway_btts_history",
+    "moneyway_ou25_history", "moneyway_snapshots", "publicmove_alarms",
+    "sharp_alarms", "telegram_sent_log", "volume_leader_alarms",
     "volumeshock_alarms",
-    "volumeleader_alarms",
-    "mim_alarms",
-    "dropping_alarms",
-    "underdog_signals",
-    "confirmed_money_signals",
-    "confirmed_money_v2_signals",
-    "fake_sharp_signals",
-    "early_money_lock_signals",
-    "approved_signals",
 )
 
 
@@ -74,44 +61,21 @@ def _validate_target() -> None:
     host = (urlparse(SUPABASE_URL).hostname or "").lower()
     expected_host = f"{EXPECTED_PROJECT_REF}.supabase.co".lower()
     if host != expected_host:
-        raise SystemExit(
-            f"REFUSE_WRONG_SUPABASE_TARGET host={host or 'missing'} expected={expected_host}"
-        )
-
-
-def _norm(value) -> str:
-    return re.sub(r"\s+", " ", str(value or "").strip().lower())
-
-
-def _kickoff_minute(value) -> str:
-    raw = str(value or "").strip()
-    if not raw:
-        return ""
-    try:
-        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-        return dt.replace(second=0, microsecond=0).isoformat()
-    except Exception:
-        return raw[:16]
+        raise SystemExit(f"REFUSE_WRONG_SUPABASE_TARGET host={host or 'missing'} expected={expected_host}")
 
 
 def canonical_hash(row: dict) -> str:
-    canonical = "|".join(
-        (
-            _norm(row.get("league")),
-            _norm(row.get("home_team")),
-            _norm(row.get("away_team")),
-        )
+    return make_match_id_hash(
+        row.get("home_team", ""), row.get("away_team", ""),
+        row.get("league", ""), row.get("kickoff_utc", ""),
     )
-    return hashlib.md5(canonical.encode("utf-8")).hexdigest()[:12]
 
 
 def identity_key(row: dict):
-    home = _norm(row.get("home_team"))
-    away = _norm(row.get("away_team"))
-    kickoff = _kickoff_minute(row.get("kickoff_utc"))
-    if not home or not away or not kickoff:
-        return None
-    return home, away, kickoff
+    return make_fixture_identity_key(
+        row.get("home_team", ""), row.get("away_team", ""),
+        row.get("league", ""), row.get("kickoff_utc", ""),
+    )
 
 
 def fetch_all_fixtures() -> list[dict]:
@@ -145,17 +109,14 @@ def _missing_table_or_column(response: requests.Response) -> bool:
 
 
 def build_reference_map(match_hashes: list[str]) -> tuple[dict[str, list[str]], list[str]]:
-    """Check all candidate hashes table-by-table instead of hash-by-hash."""
     refs: dict[str, list[str]] = {h: [] for h in match_hashes}
     errors: list[str] = []
     if not match_hashes:
         return refs, errors
 
-    # Hashes are fixed 12-char lowercase hex from our fixture identity algorithm.
     safe_hashes = [h for h in match_hashes if re.fullmatch(r"[0-9a-f]{12}", h)]
     if len(safe_hashes) != len(match_hashes):
-        errors.append("candidate_hash_validation_failed")
-        return refs, errors
+        return refs, ["candidate_hash_validation_failed"]
 
     in_filter = ",".join(safe_hashes)
     for table in REFERENCE_TABLES:
@@ -176,9 +137,7 @@ def build_reference_map(match_hashes: list[str]) -> tuple[dict[str, list[str]], 
                         refs[h].append(table)
             except Exception:
                 errors.append(f"{table}:json")
-        elif _missing_table_or_column(response):
-            continue
-        else:
+        elif not _missing_table_or_column(response):
             errors.append(f"{table}:http{response.status_code}")
     return refs, errors
 
@@ -191,10 +150,10 @@ def delete_fixture(match_hash: str) -> bool:
         print(f"DELETE_SKIP hash={match_hash} status={response.status_code}")
         return False
     try:
-        rows = response.json() if response.text else []
+        returned = response.json() if response.text else []
     except Exception:
-        rows = []
-    if response.status_code == 200 and not rows:
+        returned = []
+    if response.status_code == 200 and not returned:
         print(f"DELETE_SKIP hash={match_hash} status=200 reason=no_row_returned")
         return False
     return True
@@ -202,7 +161,6 @@ def delete_fixture(match_hash: str) -> bool:
 
 def main() -> int:
     _validate_target()
-
     fixtures = fetch_all_fixtures()
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for row in fixtures:
@@ -214,11 +172,7 @@ def main() -> int:
     candidates: list[tuple[str, str]] = []
     ambiguous = 0
     for rows in duplicate_groups:
-        canonical_rows = [
-            row
-            for row in rows
-            if str(row.get("match_id_hash") or "") == canonical_hash(row)
-        ]
+        canonical_rows = [row for row in rows if str(row.get("match_id_hash") or "") == canonical_hash(row)]
         if len(canonical_rows) != 1:
             ambiguous += 1
             continue
@@ -228,31 +182,19 @@ def main() -> int:
             if stale_hash and stale_hash != keep_hash:
                 candidates.append((stale_hash, keep_hash))
 
-    candidate_hashes = [stale_hash for stale_hash, _ in candidates]
-    reference_map, reference_errors = build_reference_map(candidate_hashes)
-
-    deleted = 0
-    referenced = 0
-    failed_closed = 0
-    dry_run_ready = 0
+    reference_map, reference_errors = build_reference_map([stale for stale, _ in candidates])
+    deleted = referenced = failed_closed = dry_run_ready = 0
 
     if reference_errors:
-        print(
-            "FIXTURE_DUPLICATE_REFERENCE_CHECK_FAILED "
-            f"errors={','.join(reference_errors[:8])}"
-        )
+        print("FIXTURE_DUPLICATE_REFERENCE_CHECK_FAILED errors=" + ",".join(reference_errors[:8]))
         failed_closed = len(candidates)
     else:
         for stale_hash, keep_hash in candidates:
             refs = reference_map.get(stale_hash, [])
             if refs:
                 referenced += 1
-                print(
-                    f"FIXTURE_DUPLICATE_KEEP hash={stale_hash} canonical={keep_hash} "
-                    f"references={','.join(refs)}"
-                )
+                print(f"FIXTURE_DUPLICATE_KEEP hash={stale_hash} canonical={keep_hash} references={','.join(refs)}")
                 continue
-
             dry_run_ready += 1
             if not APPLY:
                 print(f"FIXTURE_DUPLICATE_DRY_RUN hash={stale_hash} canonical={keep_hash}")

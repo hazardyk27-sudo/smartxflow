@@ -10,7 +10,6 @@ import sys
 import time
 import re
 import json
-import hashlib
 import uuid
 import requests
 import traceback
@@ -20,6 +19,8 @@ from typing import Optional, List, Dict, Any
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'scraper_standalone'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'desktop', 'scraper_standalone'))
+
+from core.hash_utils import make_match_id_hash, normalize_field
 
 try:
     import certifi
@@ -80,20 +81,9 @@ def send_telegram(message: str, is_error: bool = False) -> bool:
         return False
 
 
-def normalize_field(s: str) -> str:
-    if not s:
-        return ""
-    s = s.strip().lower()
-    s = re.sub(r'\s+', ' ', s)
-    return s
-
-
 def make_live_match_hash(home: str, away: str, league: str) -> str:
-    h = normalize_field(home)
-    a = normalize_field(away)
-    l = normalize_field(league)
-    canonical = f"{l}|{h}|{a}"
-    return hashlib.md5(canonical.encode('utf-8')).hexdigest()[:12]
+    """Compatibility wrapper around the repository canonical helper."""
+    return make_match_id_hash(home, away, league)
 
 
 class LiveSupabaseWriter:
@@ -300,8 +290,6 @@ def _check_live_master_from_signals(supabase_url: str, supabase_key: str) -> tup
     """Use scraper_signal as a lightweight lease table when scraper_heartbeat is absent."""
     published = _publish_live_lease(supabase_url, supabase_key)
     if published:
-        # Give concurrently-starting instances a small window to publish their claim,
-        # then all contenders deterministically choose the same winner.
         time.sleep(0.20)
 
     try:
@@ -435,7 +423,6 @@ def _fetch_betwatch_v1_live() -> list:
 
 
 def _bw_v1_minute(live_info: dict) -> str:
-    """live_info → dakika string."""
     if not live_info:
         return ""
     if live_info.get("finished"):
@@ -450,7 +437,6 @@ def _bw_v1_minute(live_info: dict) -> str:
 
 
 def _bw_v1_score(live_info: dict) -> str:
-    """live_info → skor string."""
     if not live_info:
         return ""
     g1 = live_info.get("goal_v1", 0) or 0
@@ -459,7 +445,6 @@ def _bw_v1_score(live_info: dict) -> str:
 
 
 def _map_live_market(mkt_name: str, runners: list):
-    """Betwatch v1 market adı → (market_key, [(sel_code, runner), ...])"""
     name = (mkt_name or "").strip()
     if name == "Match Odds":
         if len(runners) < 2:
@@ -500,9 +485,6 @@ def _map_live_market(mkt_name: str, runners: list):
 
 
 def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tuple:
-    """Betwatch v1 live maçları → (all_fixtures, all_snapshots, match_count).
-    live_info'dan skor ve dakika doğrudan okunur — tek kaynak Betwatch.
-    """
     all_fixtures = {}
     all_snapshots = []
     match_count = 0
@@ -567,25 +549,20 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
         for mkt in markets:
             mkt_name = mkt.get("name", "")
             runners = mkt.get("runners", []) or []
-
             mapped = _map_live_market(mkt_name, runners)
             if mapped[0] is None:
                 continue
-
             if mapped[0] == "OU":
                 market_key, sels, ou_line = mapped
             else:
                 market_key, sels = mapped
                 ou_line = None
-
             mkt_vol = sum(float(r.get("volume") or 0) for r in runners)
-
             for sel_code, runner in sels:
                 vol = float(runner.get("volume") or 0)
                 odd = runner.get("odd")
                 odd_f = float(odd) if odd is not None else None
                 share = round(vol / mkt_vol * 100, 1) if mkt_vol > 0 else 0.0
-
                 all_snapshots.append({
                     "match_id_hash": h,
                     "snapshot_at": now_utc,
@@ -604,17 +581,13 @@ def _process_betwatch_v1_live(matches: list, now_utc: str, today_str: str) -> tu
 
 
 def run_live_scrape(writer: LiveSupabaseWriter) -> int:
-    """Betwatch API v1'den canlı maçları çeker (oranlar + para + skor + dakika).
-    Tüm veri Betwatch API v1'den gelir — live_info ile skor/dakika dahil."""
     log("CANLI SCRAPE BAŞLIYOR...")
     now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S+00:00')
     today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
     log("  Betwatch v1 live verisi çekiliyor...")
     matches = _fetch_betwatch_v1_live()
-
     bw_result = {"fetch_ok": bool(matches)}
-
     all_fixtures, all_snapshots, total_matches = _process_betwatch_v1_live(matches, now_utc, today_str)
 
     if all_fixtures:
@@ -745,7 +718,6 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
 
 
 def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
-    """Check if another live scraper instance is active (master/slave arbitration)."""
     global _HEARTBEAT_TABLE_AVAILABLE
     if _HEARTBEAT_TABLE_AVAILABLE is False:
         return _check_live_master_from_signals(supabase_url, supabase_key)
@@ -769,7 +741,6 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
             return True, "no_master"
 
         now = datetime.now(timezone.utc)
-
         for row in rows:
             src = row.get("source", "")
             if src == SCRAPER_SOURCE:
@@ -788,7 +759,6 @@ def check_live_master_status(supabase_url: str, supabase_key: str) -> tuple:
                     return False, f"{src} is master ({diff_minutes:.1f} min ago)"
             except:
                 continue
-
         return True, "i_am_master"
     except Exception as e:
         log(f"[Master Check] Hata: {e}; scraper_signal fallback deneniyor")

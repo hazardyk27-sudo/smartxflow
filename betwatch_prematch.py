@@ -14,6 +14,7 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_ROOT, "desktop", "scraper_standalone"))
 sys.path.insert(0, os.path.join(_ROOT, "scraper_standalone"))
 
+from core.hash_utils import make_match_id_hash
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
     fetch_prematch,
@@ -97,22 +98,6 @@ def _parse_pct(pct_str: str) -> float:
         return float(str(pct_str).replace("%", "").strip())
     except Exception:
         return 0.0
-
-
-def _normalize_hash_field(s: str) -> str:
-    import hashlib as _hlib
-    if not s:
-        return ""
-    return re.sub(r"\s+", " ", s.strip().lower())
-
-
-def make_match_id_hash(home: str, away: str, league: str) -> str:
-    import hashlib
-    h = _normalize_hash_field(home)
-    a = _normalize_hash_field(away)
-    l = _normalize_hash_field(league)
-    canonical = f"{l}|{h}|{a}"
-    return hashlib.md5(canonical.encode("utf-8")).hexdigest()[:12]
 
 
 # ── Previous odds reader (for dropping trend) ─────────────────────────────────
@@ -321,9 +306,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             continue
 
         kickoff_utc = normalize_kickoff(kickoff_raw)
-        date = kickoff_utc  # ISO "YYYY-MM-DDTHH:MM:SS+00:00"
-
-        mhash = make_match_id_hash(home, away, league)
+        date = kickoff_utc
+        mhash = make_match_id_hash(home, away, league, kickoff_utc)
 
         if mhash not in all_fixtures:
             all_fixtures[mhash] = {
