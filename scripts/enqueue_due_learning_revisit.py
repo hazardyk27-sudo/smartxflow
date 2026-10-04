@@ -89,16 +89,6 @@ def _run(argv: list[str], *, cwd: Path, check: bool = True) -> subprocess.Comple
     return result
 
 
-def _remove_worktree(app_root: Path, worktree: Path) -> None:
-    if not worktree.exists():
-        return
-    result = _run(["git", "worktree", "remove", str(worktree)], cwd=app_root, check=False)
-    if result.returncode != 0:
-        raise PrematchEnqueueError(
-            f"failed to remove temporary worktree {worktree}: {(result.stderr or result.stdout).strip()}"
-        )
-
-
 def _assert_production_checkout(app_root: Path) -> None:
     branch = _run(["git", "branch", "--show-current"], cwd=app_root).stdout.strip()
     if branch != "main":
@@ -107,6 +97,27 @@ def _assert_production_checkout(app_root: Path) -> None:
         raise PrematchEnqueueError("production tracked worktree is dirty")
     if _run(["git", "diff", "--cached", "--quiet"], cwd=app_root, check=False).returncode != 0:
         raise PrematchEnqueueError("production index is dirty")
+
+
+def export_archive_snapshot(app_root: Path, destination: Path) -> None:
+    """Export learning-archive read-only without creating a git worktree."""
+    destination.mkdir(parents=True, exist_ok=True)
+    tar_path = destination.parent / "learning-archive.tar"
+    _run(
+        [
+            "git",
+            "archive",
+            "--format=tar",
+            f"--output={tar_path}",
+            f"origin/{ARCHIVE_BRANCH}",
+            "learning_archive_data",
+        ],
+        cwd=app_root,
+    )
+    try:
+        _run(["tar", "-xf", str(tar_path), "-C", str(destination)], cwd=app_root)
+    finally:
+        tar_path.unlink(missing_ok=True)
 
 
 @contextmanager
@@ -152,15 +163,12 @@ def enqueue_due(
 
     with tempfile.TemporaryDirectory(prefix="sxf-prematch-enqueue-") as tmp:
         archive_root = Path(tmp) / "archive"
-        _run(["git", "worktree", "add", "--detach", str(archive_root), f"origin/{ARCHIVE_BRANCH}"], cwd=app_root)
-        try:
-            due = build_due_batch(
-                archive_root,
-                observed_at,
-                max_minutes_before_kickoff=max_minutes_before_kickoff,
-            )
-        finally:
-            _remove_worktree(app_root, archive_root)
+        export_archive_snapshot(app_root, archive_root)
+        due = build_due_batch(
+            archive_root,
+            observed_at,
+            max_minutes_before_kickoff=max_minutes_before_kickoff,
+        )
 
     due_case_ids = [
         str(item.get("case", {}).get("case_id") or "").strip()
