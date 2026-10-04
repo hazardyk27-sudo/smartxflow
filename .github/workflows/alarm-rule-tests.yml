@@ -40,6 +40,7 @@ on:
       - 'tests/test_learning_archive_api.py'
       - 'tests/test_learning_archive_lifecycle_guards.py'
       - '.github/workflows/alarm-rule-tests.yml'
+      - '.github/workflows/learning-archive-record.yml'
   workflow_dispatch:
 
 permissions:
