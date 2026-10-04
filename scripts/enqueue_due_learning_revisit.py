@@ -1,29 +1,36 @@
 #!/usr/bin/env python3
-"""Enqueue due prematch Learning Archive captures from the production host.
+"""Persist due prematch capture requests on the production host.
 
-This is the primary scheduler path. It does not write archive truth directly;
-it snapshots the intended observed_at/case_ids into the dedicated request branch.
-The GitHub capture workflow consumes that queue with normal repository credentials.
+The Hetzner systemd timer is the primary clock. It snapshots the exact observed_at
+and case_ids into a durable local queue. A GitHub Actions run later drains that
+queue with an ephemeral repository token, so GitHub scheduler delays cannot alter
+the prematch cutoff.
 """
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from datetime import datetime, timezone
+import fcntl
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from typing import Any, Iterator
 
 from scripts.build_due_learning_revisit_batch import build_due_batch
 
 
 ARCHIVE_BRANCH = "learning-archive"
-REQUEST_BRANCH = "learning-archive-capture-requests"
-REQUEST_RELATIVE_PATH = Path("learning_archive_capture_requests/request.json")
 DEFAULT_ROOT = Path(os.environ.get("SMARTXFLOW_ROOT", "/opt/smartxflow"))
+DEFAULT_QUEUE = Path(
+    os.environ.get(
+        "SMARTXFLOW_PREMATCH_QUEUE",
+        "/var/lib/smartxflow-prematch/request.json",
+    )
+)
 
 
 class PrematchEnqueueError(RuntimeError):
@@ -63,17 +70,12 @@ def merge_request_payload(
     if added:
         normalized_requests.append({"observed_at": observed_at, "case_ids": added})
 
-    payload["request_id"] = "prematch-capture-queue"
+    payload["request_id"] = "hetzner-prematch-queue"
     payload["requests"] = normalized_requests
     return payload, added
 
 
-def _run(
-    argv: list[str],
-    *,
-    cwd: Path,
-    check: bool = True,
-) -> subprocess.CompletedProcess[str]:
+def _run(argv: list[str], *, cwd: Path, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         argv,
         cwd=str(cwd),
@@ -107,31 +109,49 @@ def _assert_production_checkout(app_root: Path) -> None:
         raise PrematchEnqueueError("production index is dirty")
 
 
-def _read_request_payload(request_root: Path) -> dict[str, Any]:
-    target = request_root / REQUEST_RELATIVE_PATH
-    if not target.exists():
-        return {"request_id": "prematch-capture-queue", "requests": []}
+@contextmanager
+def _queue_lock(queue_file: Path) -> Iterator[None]:
+    queue_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = queue_file.with_suffix(queue_file.suffix + ".lock")
+    with lock_path.open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
+def _read_queue(queue_file: Path) -> dict[str, Any]:
+    if not queue_file.exists():
+        return {"request_id": "hetzner-prematch-queue", "requests": []}
     try:
-        value = json.loads(target.read_text(encoding="utf-8"))
+        value = json.loads(queue_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise PrematchEnqueueError("request queue JSON is invalid") from exc
+        raise PrematchEnqueueError("local prematch queue JSON is invalid") from exc
     if not isinstance(value, dict):
-        raise PrematchEnqueueError("request queue must be a JSON object")
+        raise PrematchEnqueueError("local prematch queue must be a JSON object")
     return value
+
+
+def _write_queue_atomic(queue_file: Path, payload: dict[str, Any]) -> None:
+    queue_file.parent.mkdir(parents=True, exist_ok=True)
+    temporary = queue_file.with_name(queue_file.name + ".tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    os.replace(temporary, queue_file)
 
 
 def enqueue_due(
     app_root: Path,
+    queue_file: Path,
     observed_at: str,
     *,
     max_minutes_before_kickoff: int = 35,
 ) -> dict[str, Any]:
     _assert_production_checkout(app_root)
-    _run(["git", "fetch", "origin", "main", ARCHIVE_BRANCH, REQUEST_BRANCH], cwd=app_root)
+    _run(["git", "fetch", "origin", ARCHIVE_BRANCH], cwd=app_root)
 
     with tempfile.TemporaryDirectory(prefix="sxf-prematch-enqueue-") as tmp:
-        temp_root = Path(tmp)
-        archive_root = temp_root / "archive"
+        archive_root = Path(tmp) / "archive"
         _run(["git", "worktree", "add", "--detach", str(archive_root), f"origin/{ARCHIVE_BRANCH}"], cwd=app_root)
         try:
             due = build_due_batch(
@@ -142,60 +162,38 @@ def enqueue_due(
         finally:
             _remove_worktree(app_root, archive_root)
 
-        due_case_ids = [
-            str(item.get("case", {}).get("case_id") or "").strip()
-            for item in (due.get("captures") or [])
-        ]
-        due_case_ids = [case_id for case_id in due_case_ids if case_id]
-        if not due_case_ids:
-            return {"status": "NO_DUE", "observed_at": observed_at, "due": 0, "queued": 0}
+    due_case_ids = [
+        str(item.get("case", {}).get("case_id") or "").strip()
+        for item in (due.get("captures") or [])
+    ]
+    due_case_ids = [case_id for case_id in due_case_ids if case_id]
+    if not due_case_ids:
+        return {"status": "NO_DUE", "observed_at": observed_at, "due": 0, "queued": 0}
 
-        last_error = ""
-        for attempt in range(1, 4):
-            _run(["git", "fetch", "origin", REQUEST_BRANCH], cwd=app_root)
-            request_root = temp_root / f"request-{attempt}"
-            _run(["git", "worktree", "add", "--detach", str(request_root), f"origin/{REQUEST_BRANCH}"], cwd=app_root)
-            try:
-                existing = _read_request_payload(request_root)
-                merged, added = merge_request_payload(existing, observed_at, due_case_ids)
-                if not added:
-                    return {
-                        "status": "ALREADY_QUEUED",
-                        "observed_at": observed_at,
-                        "due": len(due_case_ids),
-                        "queued": 0,
-                    }
-
-                target = request_root / REQUEST_RELATIVE_PATH
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_text(json.dumps(merged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-                _run(["git", "config", "user.name", "smartxflow-prematch-timer"], cwd=request_root)
-                _run(["git", "config", "user.email", "smartxflow-prematch-timer@localhost"], cwd=request_root)
-                _run(["git", "add", REQUEST_RELATIVE_PATH.as_posix()], cwd=request_root)
-                _run(["git", "commit", "-m", f"Queue prematch capture {observed_at}"], cwd=request_root)
-                pushed = _run(
-                    ["git", "push", "origin", f"HEAD:refs/heads/{REQUEST_BRANCH}"],
-                    cwd=request_root,
-                    check=False,
-                )
-                if pushed.returncode == 0:
-                    return {
-                        "status": "QUEUED",
-                        "observed_at": observed_at,
-                        "due": len(due_case_ids),
-                        "queued": len(added),
-                        "case_ids": added,
-                    }
-                last_error = (pushed.stderr or pushed.stdout or "push failed").strip()
-            finally:
-                _remove_worktree(app_root, request_root)
-
-        raise PrematchEnqueueError(f"request queue push failed after retries: {last_error}")
+    with _queue_lock(queue_file):
+        existing = _read_queue(queue_file)
+        merged, added = merge_request_payload(existing, observed_at, due_case_ids)
+        if added:
+            _write_queue_atomic(queue_file, merged)
+            return {
+                "status": "QUEUED_LOCAL",
+                "observed_at": observed_at,
+                "due": len(due_case_ids),
+                "queued": len(added),
+                "case_ids": added,
+            }
+        return {
+            "status": "ALREADY_QUEUED",
+            "observed_at": observed_at,
+            "due": len(due_case_ids),
+            "queued": 0,
+        }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=str(DEFAULT_ROOT), help="Production SmartXFlow checkout")
+    parser.add_argument("--queue-file", default=str(DEFAULT_QUEUE), help="Durable local request queue")
     parser.add_argument("--observed-at", help="Optional deterministic UTC/offset timestamp")
     parser.add_argument("--max-minutes-before-kickoff", type=int, default=35)
     args = parser.parse_args()
@@ -204,6 +202,7 @@ def main() -> int:
     try:
         result = enqueue_due(
             Path(args.root),
+            Path(args.queue_file),
             observed_at,
             max_minutes_before_kickoff=args.max_minutes_before_kickoff,
         )

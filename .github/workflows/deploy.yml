@@ -14,11 +14,12 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           DEPLOY_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: DEPLOY_SHA
+          envs: DEPLOY_SHA,GH_TOKEN
           script: |
             set -euo pipefail
 
@@ -76,8 +77,8 @@ jobs:
 
             chmod -R o+rx /opt/smartxflow/static/
 
-            # The Hetzner timer is the primary prematch trigger. It only enqueues
-            # immutable observed_at/case_id requests; GitHub remains the durable archive writer.
+            # Hetzner systemd is the primary prematch clock. It only persists
+            # immutable observed_at/case_id requests locally under /var/lib.
             sudo /usr/bin/install -m 0644 \
               /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service \
               /etc/systemd/system/smartxflow-learning-archive-prematch.service
@@ -85,23 +86,9 @@ jobs:
               /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.timer \
               /etc/systemd/system/smartxflow-learning-archive-prematch.timer
             sudo /bin/systemctl daemon-reload
-
-            # Fail closed unless the production Git identity can write the request
-            # branch. This is a no-op dry-run against the branch's current SHA.
-            sudo -u smartxflow git fetch origin learning-archive-capture-requests
-            REQUEST_SHA="$(sudo -u smartxflow git rev-parse origin/learning-archive-capture-requests)"
-            if ! sudo -u smartxflow git push --dry-run origin \
-              "$REQUEST_SHA:refs/heads/learning-archive-capture-requests" >/tmp/sxf-prematch-write-probe.log 2>&1; then
-              echo "DEPLOY STOP: production Git credential cannot write prematch request branch"
-              cat /tmp/sxf-prematch-write-probe.log
-              rm -f /tmp/sxf-prematch-write-probe.log
-              exit 1
-            fi
-            rm -f /tmp/sxf-prematch-write-probe.log
-            echo "PREMATCH_GIT_WRITE_PROBE_OK"
-
             sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
             sudo /bin/systemctl start smartxflow-learning-archive-prematch.service
+
             TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-prematch.timer)"
             TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-prematch.timer)"
             SERVICE_RESULT="$(sudo /bin/systemctl show -p Result --value smartxflow-learning-archive-prematch.service)"
@@ -114,6 +101,16 @@ jobs:
             fi
             echo "PREMATCH_SYSTEMD_OK enabled=$TIMER_ENABLED active=$TIMER_ACTIVE service_result=$SERVICE_RESULT"
             sudo /bin/systemctl list-timers smartxflow-learning-archive-prematch.timer --no-pager
+
+            # Deployment itself is a second independent drain opportunity. The
+            # ephemeral Actions token is used only for this run and is not stored.
+            sudo -u smartxflow env \
+              PYTHONPATH=/opt/smartxflow \
+              GITHUB_TOKEN="$GH_TOKEN" \
+              GH_TOKEN="$GH_TOKEN" \
+              /opt/smartxflow/venv/bin/python \
+              /opt/smartxflow/scripts/drain_due_learning_revisit_queue.py \
+              --dotenv /opt/smartxflow/.env
 
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
