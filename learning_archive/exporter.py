@@ -7,7 +7,12 @@ from typing import Any, Protocol
 
 from .github_backend import ArchiveWriteResult, GitHubArchiveBackend
 from .package import ArchivePackage, build_archive_package, build_record_package, verify_package_checksums
-from .retention import RetentionHoldError, release_retention_hold, retention_holds_enabled
+from .retention import (
+    RetentionHoldError,
+    create_retention_hold,
+    release_retention_hold,
+    retention_holds_enabled,
+)
 from .validator import validate_case
 
 
@@ -64,6 +69,22 @@ class LearningArchiveExporter:
             raise ArchiveFinalizationError("validator FAIL: " + "; ".join(validation.errors))
         if case["settlement"]["status"] != "PENDING":
             raise ArchiveFinalizationError("record/capture requires PENDING settlement; settled cases must use finalization")
+
+        # Retention protection is part of the archive contract, not an optional
+        # caller responsibility. The hold stays PENDING across RECORDED and
+        # CAPTURED events and is released only by finalize_case after settlement.
+        if retention_holds_enabled():
+            try:
+                create_retention_hold(
+                    case["case_id"],
+                    case["match"]["match_id_hash"],
+                    case["prediction"]["prediction_at"],
+                )
+            except RetentionHoldError as exc:
+                raise ArchiveFinalizationError(
+                    "retention hold creation failed; case must not be recorded without source-history protection"
+                ) from exc
+
         package = build_record_package(case, snapshots, observed_at, revisit=revisit)
         write = self.backend.write_case(package, case)
         if not write.archive_reference or not write.commit_sha:
