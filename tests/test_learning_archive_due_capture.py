@@ -109,7 +109,9 @@ class DueLearningCaptureTests(unittest.TestCase):
     def test_explicit_backfill_rejects_unknown_case(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            self._write_manifest(root, [])
+            known_case = "20261004-known-watch"
+            self._write_case(root, known_case, "2026-10-04T16:00:00Z")
+            self._write_manifest(root, [{"case_id": known_case, "event": "RECORDED"}])
             with self.assertRaisesRegex(DueCaptureError, "selected case_id not found"):
                 build_due_batch(root, "2026-10-04T15:10:00Z", case_ids={"missing-case"})
 
