@@ -1,21 +1,94 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 1
+REFERENCE_VERSION: 2
 
 Open this file only for substantive match-analysis/prediction work.
 
-## Ordered workflow
+## Core rule
 
-1. **SXF first** — read the market without external-news contamination.
-2. **Candidate filter** — decide whether the match deserves research.
-3. **Cause research** — investigate injuries, lineups, suspensions, tactical/context factors, schedule, weather and reliable statistics/sources.
-4. **Opposite case** — actively seek evidence that could invalidate the first thesis.
-5. **Merge evidence** — label `CONFIRMED`, `PARTIALLY_CONFIRMED`, `UNEXPLAINED_MARKET_MOVE`, `CONFLICT`, or `NO_EDGE`.
-6. **Choose market** — use an actually available market; prefer safer structures such as Double Chance/DNB when evidence supports them rather than blindly taking a high-odds underdog.
-7. **Decision** — `BET`, `WATCH`, or `PASS`.
-8. **Freeze prediction** — record cutoff, market, selection, entry odds, confidence, rationale, counterargument and evidence observed by cutoff.
-9. **Settlement/postmortem** — after result, diagnose process separately from football variance.
-10. **Archive** — finalize one selected-case package; do not recollect all market data.
+The Predictor workflow has three separate user-controlled stages. Never collapse them into a single unsolicited analysis. Each stage has its own evidence boundary and stopping point.
+
+## Stage 1 — SmartXFlow-only candidate analysis
+
+Goal: discover interesting matches from SmartXFlow itself and describe the market behavior without external-news contamination.
+
+1. Start from SmartXFlow match data for the requested date/time window.
+2. Use real SmartXFlow match identity and stored market history.
+3. Evaluate:
+   - absolute money,
+   - money share,
+   - new-money delta/velocity when available,
+   - odds opening/current/path,
+   - whether price confirms or resists the money,
+   - liquidity/volume quality,
+   - timing of the move,
+   - reversals/momentum,
+   - cross-market relationships,
+   - 1X2 vs Double Chance/DNB/goal markets when available.
+4. Rank only the matches whose SmartXFlow structure deserves further investigation.
+5. For each candidate, state:
+   - what SXF shows,
+   - why the move is unusual/interesting,
+   - what market behavior must be explained in Stage 2,
+   - what would invalidate the SXF-only thesis from a market-data perspective.
+6. Send the Stage 1 report to the user and STOP.
+
+### Stage 1 prohibitions
+
+- No web browsing.
+- No team-news research.
+- No injuries/suspensions/form/lineup/manager commentary from external sources.
+- No public odds sites used to discover or justify candidates.
+- No external football knowledge used as the cause of a move.
+- No final `BET | WATCH | PASS` decision.
+
+If SmartXFlow data cannot be read reliably, do not substitute external markets. Report the SXF data-access problem instead.
+
+## Stage 2 — external cause research
+
+Enter only after the user explicitly asks to investigate the Stage 1 candidates/moves.
+
+Goal: determine whether real football information explains, supports, contradicts, or fails to explain what SmartXFlow showed.
+
+For each selected Stage 1 match:
+
+1. Research injuries and suspensions.
+2. Research squad selection and expected/confirmed lineups where available.
+3. Research recent form and performance context.
+4. Research tactical/context factors, motivation, schedule/congestion, travel and weather when material.
+5. Check official team/competition sources first, then reliable reporters/data sources.
+6. Actively search for the opposite case, not only confirmation.
+7. Keep the original Stage 1 market observation frozen.
+8. Label the external finding:
+   - `CONFIRMED`
+   - `PARTIALLY_CONFIRMED`
+   - `CONTRADICTED`
+   - `UNEXPLAINED`
+9. Send the Stage 2 report and STOP.
+
+Stage 2 must show `SXF SAYS` and `RESEARCH SAYS` separately. Do not issue the final betting decision unless the user explicitly requests Stage 3.
+
+## Stage 3 — final merge and decision
+
+Enter only after the user explicitly asks for the final decision/merge.
+
+1. Merge the frozen Stage 1 market evidence with the Stage 2 external research.
+2. Evaluate the strongest supporting case and strongest counterargument.
+3. Decide whether the market has already consumed the edge.
+4. Compare actually available structures such as 1X2, Double Chance, DNB and relevant totals/BTTS markets.
+5. Prefer the structure with the best risk/value profile rather than blindly taking the highest odds.
+6. Output `BET`, `WATCH`, or `PASS`.
+7. Freeze:
+   - `prediction_at`,
+   - market,
+   - selection,
+   - entry odds,
+   - confidence,
+   - rationale,
+   - counterargument/failure condition,
+   - Stage 1 SXF evidence,
+   - Stage 2 external evidence with `observed_at`.
+8. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
 
 ## Market principles
 
@@ -28,23 +101,51 @@ Open this file only for substantive match-analysis/prediction work.
 - 1X2 should be compared with Double Chance/DNB where available.
 - Always state the failure condition/counterargument.
 
-## External evidence
+## External evidence rules
+
+These rules apply only in Stage 2 and Stage 3.
 
 Prefer official team/competition sources for lineups, injuries/suspensions and announcements; then reliable reporters/data sources. Record source identity/reference, `published_at` when known, mandatory `observed_at`, factual note, evidence category and whether it supports/contradicts/is neutral.
 
-## Output minimum
+Never backfill Stage 1 with information learned later in Stage 2.
+
+## Output minimum by stage
+
+### Stage 1
+
+For every candidate show:
+- match + SmartXFlow match identity when available,
+- key market(s),
+- money/volume/liquidity facts available in SXF,
+- odds path and timing,
+- price-vs-money interpretation,
+- cross-market confirmation/divergence,
+- why the match deserves Stage 2 research,
+- SXF-only failure condition.
+
+### Stage 2
+
+For every researched candidate show:
+- frozen `SXF SAYS`,
+- `RESEARCH SAYS`,
+- strongest supporting evidence,
+- strongest contradictory evidence,
+- `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED`,
+- source timing/observed timing.
+
+### Stage 3
 
 For every final view show:
-
-- `SXF SAYS`
-- `RESEARCH SAYS`
-- `MERGED VIEW`
-- decision (`BET | WATCH | PASS`)
-- market + selection + entry odds
-- confidence if used
-- strongest supporting evidence
-- strongest counterargument/failure condition
-- `prediction_at`
+- `SXF SAYS`,
+- `RESEARCH SAYS`,
+- `MERGED VIEW`,
+- decision (`BET | WATCH | PASS`),
+- market + selection + entry odds,
+- confidence if used,
+- strongest supporting evidence,
+- strongest counterargument/failure condition,
+- `prediction_at`,
+- archive receipt state.
 
 ## Postmortem
 
