@@ -1,31 +1,38 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 3
+CONTRACT_VERSION: 4
 
 ## Purpose
-The Learning Archive is the historical evidence store for selected SmartXFlow prediction cases. It is not the live SmartXFlow database and it is not a second scraper.
 
-Live/current market data continues to be collected by existing SmartXFlow systems. Only matches actually materially researched by Predictor and recorded as formal `BET`, `WATCH`, or `PASS` cases are archived for learning. Do not archive the whole daily slate by default.
+The Learning Archive is the historical evidence store for selected SmartXFlow prediction cases. It is not the live database and is not a second scraper.
+
+Only matches materially researched by Predictor and formalized as `BET`, `WATCH`, or `PASS` are archived. Whole-market archiving and Poly/Polymarket inputs are excluded.
 
 ## Storage target
-Canonical target: the existing `hazardyk27-sudo/smartxflow` repository, dedicated branch `learning-archive`, root folder `/learning_archive_data/`.
 
-Do not create or require a separate archive repository. Do not require an extra archive GitHub token for the conversational Predictor/Development workflow. Archive writes never go to `main` or `preview` and never participate in deployment.
+Canonical storage is inside the existing repository:
 
-## Canonical instruction source
-For the active specialized learning workflow, `PREDICTOR` and `DEVELOPMENT` role instructions and Current Milestones are canonical on the `preview` branch. The root `main:/AGENTS.md` remains the repository/release/safety supplement and must also be respected.
+- repository: `hazardyk27-sudo/smartxflow`
+- data branch: `learning-archive`
+- root folder: `/learning_archive_data/`
+
+Do not create or require another repository. Do not require `SMARTXFLOW_LEARNING_ARCHIVE_REPO` or an archive-specific GitHub token. Durable programmatic writes may reuse normal SmartXFlow repository GitHub credentials (`GITHUB_TOKEN`/`GH_TOKEN`) or the authorized GitHub connector.
+
+`preview` remains source development. `main` remains user-approved production. `learning-archive` contains archive data only and is never deployed/promoted.
+
+A file written only to a runtime/worktree is not durable archive truth. Final `DONE` requires a confirmed GitHub commit/reference on the archive data branch.
 
 ## Automatic case lifecycle
-1. Predictor publishes a formal `BET`, `WATCH`, or `PASS` case with immutable `prediction_at`.
-2. As part of completing that prediction task, Predictor immediately creates the case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` and writes the immutable prediction/evidence record.
-3. Predictor also preserves a current capture of the already-stored SmartXFlow history for that selected match. This is a copy of existing stored data, not a second market-data collector.
-4. If the selected case is materially revisited before kickoff, append a new timestamped history capture. Never overwrite an earlier capture.
-5. At settlement/end-of-day, Predictor adds result/postmortem and a final full available prematch SXF history capture.
-6. Validator/integrity checks confirm timing, secret exclusion, checksums and immutable history rules.
-7. `manifest.jsonl` is updated with the final case identity/path/status.
-8. Finalized payload becomes immutable. Corrections are append-only addenda/versioned metadata.
 
-No separate user command should be required merely to remember/archive a formal selected case.
+1. Predictor publishes a formal `BET`, `WATCH`, or `PASS` case with immutable `prediction_at`, confidence, rationale and counterargument; market/selection/entry odds are included when applicable.
+2. Predictor immediately reads that selected match's already-stored SmartXFlow history through the internal Learning Archive API.
+3. The first durable archive operation writes immutable `case.json`, `evidence.json`, and `captures/<observed_at>.json.gz`, then appends a `RECORDED` manifest event.
+4. If materially revisited before kickoff, a new deterministic capture is appended with a `CAPTURED` manifest event. Earlier captures are never overwritten.
+5. At settlement/end-of-day, Predictor adds `settlement.json`, final full prematch `sxf_snapshots.json.gz`, deterministic `checksums.sha256`, and appends `FINALIZED`.
+6. Validator/integrity checks confirm timing, secret exclusion, Poly exclusion, checksums and immutable-history rules.
+7. Identical retries are idempotent. A same case/event key with different historical content fails closed. Corrections are append-only addenda/versioned records.
+
+No separate user command is required merely to remember/archive a formal selected case.
 
 ## Canonical archive layout
 
@@ -33,10 +40,12 @@ No separate user command should be required merely to remember/archive a formal 
 learning_archive_data/
   README.md
   manifest.jsonl
+  schema/
+    match_case_v1.schema.json
   cases/
-    2026/
-      10/
-        04/
+    YYYY/
+      MM/
+        DD/
           <case_id>/
             case.json
             evidence.json
@@ -48,104 +57,86 @@ learning_archive_data/
             addenda/
 ```
 
-One `case_id` represents one prediction/decision case. If the same match has multiple materially separate predictions/decisions, each gets its own case ID and references the same canonical match identity.
+One `case_id` represents one prediction/decision case. Separate materially distinct decisions for the same match use separate case IDs but the same canonical match identity.
 
 ## Required case metadata
-`case.json` must include at minimum:
+
+`case.json` must preserve at minimum:
 - `archive_schema_version`
 - `case_id`
-- canonical `match_id_hash` or successor identity key
+- `match_id_hash`
 - league/home/away/kickoff
-- `prediction_at` in UTC
-- time-to-kickoff at prediction
-- decision: `BET|WATCH|PASS`
-- market and selection when applicable
-- entry odds when applicable
-- confidence/calibration field if used
-- original rationale
+- immutable `prediction_at` in UTC/offset-aware ISO-8601
+- decision `BET|WATCH|PASS`
+- market/selection/entry odds when applicable
+- confidence
+- rationale
 - counterargument/failure condition
-- source SmartXFlow commit/version metadata when available
-- archive created/finalized timestamps
+- source SmartXFlow commit/version metadata
+- archive creation timestamp
 
 ## Snapshot/capture archive
-`captures/<observed_at>.json.gz` stores append-only SmartXFlow history as observed when the selected case was recorded or materially revisited.
 
-`sxf_snapshots.json.gz` stores the final full available prematch SXF timeline for the selected match at settlement/finalization time.
+`captures/<observed_at>.json.gz` is append-only SmartXFlow stored history as observed when the case was recorded or materially revisited.
 
-Do not rewrite source snapshot timestamps or values. Keep source table/market identifiers or enough provenance to reconstruct origin.
+`sxf_snapshots.json.gz` is the final full available prematch SXF timeline at settlement/finalization.
 
-The archive should support deriving, when source data exists:
-- opening/current movement,
-- 15m/30m/60m/180m money deltas,
-- odds movement/velocity,
-- money velocity/acceleration,
-- price reaction after money flow,
-- divergence,
-- liquidity/volume path,
-- reversal/momentum,
-- cross-market relations.
+Do not rewrite source snapshot timestamps or values. Preserve source table/market provenance. Existing SmartXFlow systems remain the collector; Learning Archive only copies selected-case stored history.
 
-## Evidence archive
-`evidence.json` stores external research items actually used or considered.
+Double Chance and Draw No Bet history may remain explicitly unavailable until their optional history tables are implemented; absence must be recorded, never fabricated.
 
-Each item must include:
-- source identity/name,
-- URL or stable source reference when available,
-- `published_at` when known,
-- mandatory `observed_at`,
-- evidence type/category,
-- short factual note,
-- whether it supported, contradicted or was neutral to the thesis.
+## Evidence archive and PRE/POST cutoff
 
-For PRE/POST classification, `observed_at <= prediction_at` is PRE. Otherwise it is POST regardless of publication time.
+`evidence.json` stores external research actually used/considered. Each item requires source identity, mandatory `observed_at`, factual note, relationship to thesis, and URL/publication time when available.
+
+PRE iff `observed_at <= prediction_at`; otherwise POST. Publication time does not override actual observation time.
+
+Original evidence is immutable after record. Later evidence/corrections must be append-only rather than rewriting historical evidence timing.
 
 ## Settlement archive
-`settlement.json` must include when applicable/available:
-- final score,
-- HT score if relevant,
-- WIN/LOSS/VOID for bet cases,
-- closing odds,
-- CLV,
-- P/L using declared stake convention,
-- ROI,
-- favorable/adverse post-entry price movement,
-- postmortem classification,
-- whether failure/success was attributed to process, execution/price, missing/stale data, or normal variance.
 
-For `WATCH`/`PASS`, preserve the original decision outcome and enough market/result context to evaluate whether rejecting or delaying the opportunity was justified, without retroactively converting the original decision into a bet.
+`settlement.json` records result/review fields such as final score, HT score when relevant, WIN/LOSS/VOID for bet cases, closing odds, CLV, P/L/ROI convention when available, price movement and postmortem classification.
 
-## Idempotency and duplicate safety
-- The same `case_id` must not create multiple case directories/manifest entries.
-- Re-running an identical write must be safe/idempotent.
-- Finalized prediction/evidence/history/settlement payloads are never overwritten in place.
-- New factual corrections require append-only addenda/versioned metadata.
-- A materially different rewrite for an existing finalized `case_id` must fail closed or be stored explicitly as an addendum/version.
+For `WATCH`/`PASS`, preserve the original decision and evaluate it without retroactively converting it into a bet.
+
+Finalization with settlement status `PENDING` is forbidden.
+
+## Manifest semantics
+
+`manifest.jsonl` is append-only event history, not an in-place mutable row table.
+
+Current event types:
+- `RECORDED` — first immutable case + capture
+- `CAPTURED` — later append-only prematch capture
+- `FINALIZED` — settled/reviewed final package
+
+Each event carries case identity, archive path, prediction/decision identity and deterministic checksum/fingerprint metadata. Identical event reruns are idempotent. Same event key with materially different content is a conflict and fails closed.
+
+## Checksums and DONE gate
+
+Finalized core payloads use deterministic SHA-256 checksums. Development must verify checksums before using a finalized case in a dataset.
+
+A case is not `DONE` merely because files exist locally or settlement was reviewed. `DONE` requires:
+1. immutable original case/evidence present,
+2. required selected-match history captures present,
+3. final settlement/review present,
+4. validator PASS,
+5. checksum and manifest verification PASS,
+6. durable GitHub commit/reference on `learning-archive` confirmed,
+7. retention hold release when retention protection is enabled.
+
+Failure remains explicit and retryable.
 
 ## Secret exclusion
-No archive payload, evidence item, note, log, manifest, capture or addendum may contain secrets or credentials.
 
-Forbidden examples include API keys, auth/access/refresh tokens, cookies/session identifiers, Authorization headers, passwords, private keys, `.env` values, database credentials or equivalent authentication material.
+No payload, manifest event, evidence item, note, capture, log or addendum may contain API keys, auth/access/refresh tokens, cookies/session identifiers, Authorization headers, passwords, private keys, `.env` values, database credentials or equivalent secrets.
 
-## Integrity and finalization gate
-Each finalized case must have deterministic checksums for its payload files. The manifest records case ID, date, match identity, prediction time, decision, settlement status, archive path, schema version and checksum summary.
+## Retention
 
-A case is not `DONE` merely because settlement/postmortem exists. `DONE` requires:
-1. immutable original prediction/evidence present,
-2. required selected-match SmartXFlow history captures present,
-3. final settlement/review when applicable,
-4. validator/integrity checks pass,
-5. manifest/checksum verification succeeds,
-6. durable path on the `learning-archive` branch is confirmed.
-
-## Immutability
-Finalized archive cases are append-only historical evidence. Do not overwrite a finalized prediction, rationale, result, raw snapshot or evidence timestamp.
-
-If a factual correction is required, add a dated addendum describing exactly what changed and why. Training code must be able to choose whether to use original or corrected metadata explicitly.
-
-## Poly exclusion
-Polymarket/Poly trader intelligence must not appear in Learning Archive training inputs, feature generation or model labels for this system. Keep Poly work separate.
+The retention-hold code/migration may exist, but production migration must not be applied without explicit user permission. Until approved/applied, do not pretend retention protection is active. Archive durability and retention migration are separate gates.
 
 ## Access by role
-- Predictor: creates prediction/evidence/settlement content and writes selected cases to `learning-archive:/learning_archive_data/` automatically as part of the workflow.
-- Development: reads the same folder, validates integrity and builds datasets/features/models; never rewrites historical truth.
-- No separate Collector Agent exists.
+
+- Predictor creates/records/revisits/settles selected cases automatically as part of its workflow.
+- Development reads the same archive, validates integrity and builds PRE-only features/datasets/models; it never rewrites historical truth.
+- No separate Collector Agent or Match Analyst Agent exists.
