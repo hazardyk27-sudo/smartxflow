@@ -122,6 +122,8 @@ jobs:
 
             env['SMARTXFLOW_LEARNING_API_BASE_URL'] = 'http://127.0.0.1:8000'
             env['GITHUB_TOKEN'] = os.environ['GH_TOKEN']
+            existing_path = env.get('PYTHONPATH', '')
+            env['PYTHONPATH'] = '/opt/smartxflow' + (':' + existing_path if existing_path else '')
 
             cmd = [
                 '/opt/smartxflow/venv/bin/python',
