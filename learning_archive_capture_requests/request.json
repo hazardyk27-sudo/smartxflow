@@ -1,5 +1,6 @@
 {
   "request_id": "backfill-20261004-scheduled-prematch-revisits",
+  "retry_attempt": 3,
   "requests": [
     {
       "observed_at": "2026-10-04T15:36:49Z",
