@@ -46,8 +46,6 @@ class FakeHTTP:
                 "odds1": 2.10,
                 "api_key": "must-not-leak",
             }])
-        if "moneyway_double_chance_history" in url or "moneyway_draw_no_bet_history" in url:
-            return FakeResponse(404, {"code": "PGRST205", "message": "Could not find the table"})
         return FakeResponse(200, [])
 
 
@@ -65,8 +63,6 @@ class FakeSnapshotOnlyHTTP:
                 "kickoff_utc": "2026-10-03T18:00:00Z",
                 "fixture_date": "2026-10-03",
             }])
-        if "moneyway_double_chance_history" in url or "moneyway_draw_no_bet_history" in url:
-            return FakeResponse(404, {"code": "PGRST205", "message": "Could not find the table"})
         if "moneyway_snapshots" in url:
             return FakeResponse(200, [{
                 "match_id_hash": "abc123def456",
@@ -131,7 +127,7 @@ class LearningArchiveAPITests(unittest.TestCase):
             },
             histories={"moneyway_1x2_history": [{"match_id_hash": "abc123def456", "odds1": 2.1}]},
             source_tables=("moneyway_1x2_history",),
-            unavailable_optional_tables=("moneyway_double_chance_history",),
+            unavailable_optional_tables=(),
         )
         with patch.dict(os.environ, {"LEARNING_ARCHIVE_ACCESS_SECRET": self.secret}, clear=False), patch(
             "learning_archive.server_api.read_learning_archive_match_history", return_value=payload
@@ -144,6 +140,7 @@ class LearningArchiveAPITests(unittest.TestCase):
         body = response.get_json()
         self.assertEqual(body["match_id_hash"], "abc123def456")
         self.assertEqual(body["source_tables"], ["moneyway_1x2_history"])
+        self.assertEqual(body["unavailable_optional_tables"], [])
         self.assertEqual(response.headers.get("Cache-Control"), "no-store")
 
     def test_endpoint_unknown_match_is_404(self):
@@ -158,13 +155,12 @@ class LearningArchiveAPITests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_source_reads_existing_history_and_filters_unknown_fields(self):
-        result = read_learning_archive_match_history("abc123def456", client=FakeSupabase())
+        http = FakeHTTP()
+        result = read_learning_archive_match_history("abc123def456", client=FakeSupabase(http=http))
         self.assertEqual(result.match["home"], "Home")
         self.assertEqual(result.source_tables, ("moneyway_1x2_history",))
-        self.assertEqual(
-            result.unavailable_optional_tables,
-            ("moneyway_double_chance_history", "moneyway_draw_no_bet_history"),
-        )
+        self.assertEqual(result.unavailable_optional_tables, ())
+        self.assertFalse(any("double_chance" in url or "draw_no_bet" in url for url, _, _ in http.calls))
         row = result.histories["moneyway_1x2_history"][0]
         self.assertEqual(row["odds1"], 2.10)
         self.assertNotIn("api_key", row)
@@ -173,10 +169,8 @@ class LearningArchiveAPITests(unittest.TestCase):
         http = FakeSnapshotOnlyHTTP()
         result = read_learning_archive_match_history("abc123def456", client=FakeSupabase(http=http))
         self.assertEqual(result.source_tables, ("moneyway_snapshots",))
-        self.assertEqual(
-            result.unavailable_optional_tables,
-            ("moneyway_double_chance_history", "moneyway_draw_no_bet_history"),
-        )
+        self.assertEqual(result.unavailable_optional_tables, ())
+        self.assertFalse(any("double_chance" in url or "draw_no_bet" in url for url, _, _ in http.calls))
         row = result.histories["moneyway_snapshots"][0]
         self.assertEqual(row["market"], "1X2")
         self.assertEqual(row["selection"], "2")
