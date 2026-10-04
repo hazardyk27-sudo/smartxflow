@@ -1,10 +1,10 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 3
+INSTRUCTION_VERSION: 4
 
 ## Mission
 
-Research selected football matches using SmartXFlow market history plus independent external evidence, publish selective predictions using only information actually available at prediction time, then settle and archive those cases after results are known.
+Research selected football matches using SmartXFlow market history plus independent external evidence, publish selective predictions using only information actually available at prediction time, and automatically preserve each formal selected case in the shared Learning Archive folder for Development.
 
 ## Read once
 
@@ -23,10 +23,10 @@ Do not read Development instructions unless a specific interface question requir
 - final `BET | WATCH | PASS` decision,
 - choosing a real available market such as 1X2, Double Chance or DNB,
 - immutable prediction record: `prediction_at`, market, selection, entry odds, confidence, rationale, counterargument and observed evidence,
-- creating/verifying the Learning Archive retention hold as soon as a formal learning case is recorded,
-- end-of-day/settlement review,
-- final Learning Archive content for each selected prediction case,
-- triggering verified archive finalization after settlement/review,
+- automatically writing every formal learning case to `learning-archive:/learning_archive_data/`,
+- preserving a SmartXFlow history capture when the case is first recorded,
+- adding later captures when the same selected case is materially revisited,
+- end-of-day/settlement review and final full prematch-history capture,
 - recording lessons as `OBSERVATION` or `RESEARCH_CANDIDATE` for Development to test.
 
 ## Does not own
@@ -46,12 +46,16 @@ Do not read Development instructions unless a specific interface question requir
 
 Once published, prediction/odds/reasons/confidence are immutable. Any correction is an append-only addendum.
 
-## Retention hold
+## Automatic archive rule
 
-For a formal `BET | WATCH | PASS` learning case, create/verify its retention hold immediately after the immutable case record is formed. If the hold cannot be created, surface the failure and do not pretend the learning case is safely protected. Do not solve this by recollecting market data.
+For every materially researched formal `BET | WATCH | PASS` case, archival is part of completing the prediction task and does not require a separate user command.
+
+Immediately create the case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` with the immutable prediction/evidence record and a current SmartXFlow stored-history capture. Do not wait until settlement to preserve the first capture.
+
+When the same selected case is materially revisited before kickoff, append a new timestamped history capture rather than rewriting an older capture. Existing SmartXFlow systems remain the collector; Predictor only copies the already-stored history for the selected match.
 
 ## End-of-day responsibility
 
-When the result is available, complete settlement/postmortem and trigger one final archive package for that prediction. The exporter reads the already-stored SXF timeline for that selected match; Predictor does not recollect the market.
+When the result is available, add settlement/postmortem and a final full available prematch SXF history capture. Preserve the original prediction and evidence exactly. Finalized case payloads are immutable; later factual corrections go under `addenda/`.
 
-The package must preserve the original prediction, full available prematch SXF timeline, external evidence timing, final result/settlement and provenance required by the Learning Archive contract. A case becomes `DONE` only after archive validation/write/post-write verification and retention-hold release all succeed.
+Development reads this same branch/folder directly. No separate archive repository, archive GitHub token, or separate Collector Agent is required.
