@@ -6,7 +6,7 @@ import os
 from typing import Any, Protocol
 
 from .github_backend import ArchiveWriteResult, GitHubArchiveBackend
-from .package import ArchivePackage, build_archive_package, verify_package_checksums
+from .package import ArchivePackage, build_archive_package, build_record_package, verify_package_checksums
 from .retention import RetentionHoldError, release_retention_hold, retention_holds_enabled
 from .validator import validate_case
 
@@ -16,7 +16,17 @@ class ArchiveFinalizationError(RuntimeError):
 
 
 class ArchiveBackend(Protocol):
+    durable: bool
     def write_case(self, package: ArchivePackage, case: dict[str, Any]) -> ArchiveWriteResult: ...
+
+
+@dataclass(frozen=True)
+class RecordResult:
+    status: str
+    archive_reference: str
+    archive_commit: str
+    checksum_summary: str
+    idempotent: bool
 
 
 @dataclass(frozen=True)
@@ -34,19 +44,45 @@ class LearningArchiveExporter:
 
     @classmethod
     def from_env(cls) -> "LearningArchiveExporter":
-        repository = os.environ.get("SMARTXFLOW_LEARNING_ARCHIVE_REPO", "").strip()
-        token = os.environ.get("SMARTXFLOW_LEARNING_ARCHIVE_GITHUB_TOKEN", "").strip()
-        branch = os.environ.get("SMARTXFLOW_LEARNING_ARCHIVE_BRANCH", "main").strip() or "main"
-        if not repository:
-            raise ArchiveFinalizationError("SMARTXFLOW_LEARNING_ARCHIVE_REPO is not configured")
+        token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
         if not token:
-            raise ArchiveFinalizationError("SMARTXFLOW_LEARNING_ARCHIVE_GITHUB_TOKEN is not configured")
-        return cls(GitHubArchiveBackend(repository=repository, token=token, branch=branch))
+            raise ArchiveFinalizationError(
+                "normal repository GitHub credentials are not configured (GITHUB_TOKEN or GH_TOKEN)"
+            )
+        return cls(GitHubArchiveBackend(token=token))
+
+    def record_case(
+        self,
+        case: dict[str, Any],
+        snapshots: list[dict[str, Any]],
+        *,
+        observed_at: str,
+        revisit: bool = False,
+    ) -> RecordResult:
+        validation = validate_case(case, snapshots)
+        if not validation.ok:
+            raise ArchiveFinalizationError("validator FAIL: " + "; ".join(validation.errors))
+        package = build_record_package(case, snapshots, observed_at, revisit=revisit)
+        write = self.backend.write_case(package, case)
+        if not write.archive_reference or not write.commit_sha:
+            raise ArchiveFinalizationError("archive write did not return reference/commit state")
+        status = "CAPTURED" if revisit else "RECORDED"
+        if getattr(self.backend, "durable", False) is False:
+            status += "_UNCOMMITTED"
+        return RecordResult(
+            status=status,
+            archive_reference=write.archive_reference,
+            archive_commit=write.commit_sha,
+            checksum_summary=package.checksum_summary,
+            idempotent=write.idempotent,
+        )
 
     def finalize_case(self, case: dict[str, Any], snapshots: list[dict[str, Any]]) -> FinalizationResult:
         validation = validate_case(case, snapshots)
         if not validation.ok:
             raise ArchiveFinalizationError("validator FAIL: " + "; ".join(validation.errors))
+        if case["settlement"]["status"] == "PENDING":
+            raise ArchiveFinalizationError("settlement is still PENDING; final archive cannot be DONE")
 
         package = build_archive_package(case, snapshots)
         checksum_ok, checksum_errors = verify_package_checksums(package)
@@ -56,13 +92,15 @@ class LearningArchiveExporter:
         write = self.backend.write_case(package, case)
         if not write.archive_reference or not write.commit_sha:
             raise ArchiveFinalizationError("archive write did not return durable reference/commit")
+        if getattr(self.backend, "durable", False) is False:
+            raise ArchiveFinalizationError(
+                "archive files exist only in an uncommitted worktree; case is not DONE"
+            )
 
         if retention_holds_enabled():
             try:
                 release_retention_hold(case["case_id"], write.archive_reference, package.checksum_summary)
             except RetentionHoldError as exc:
-                # Archive data is immutable and can be retried idempotently; do not claim DONE
-                # until the protection hold has also been verified/released.
                 raise ArchiveFinalizationError(
                     "archive verified but retention hold release failed; case remains retryable"
                 ) from exc
