@@ -63,6 +63,12 @@ def _load_scheduled_scraper_with_stubs(monkeypatch):
     return _load_module("scheduled_scraper_runtime_test", ROOT / "scheduled_scraper.py")
 
 
+def test_replit_runtime_uses_distinct_scraper_source(monkeypatch):
+    monkeypatch.setenv("REPL_ID", "preview-runtime")
+    mod = _load_scheduled_scraper_with_stubs(monkeypatch)
+    assert mod.SCRAPER_SOURCE == "replit-preview"
+
+
 def test_missing_heartbeat_table_switches_to_signal_fallback(monkeypatch):
     mod = _load_scheduled_scraper_with_stubs(monkeypatch)
 

@@ -30,7 +30,10 @@ print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
-SCRAPER_SOURCE = "replit"
+SCRAPER_SOURCE = (
+    os.environ.get("SMARTXFLOW_SCRAPER_SOURCE")
+    or ("replit-preview" if (os.environ.get("REPL_ID") or os.environ.get("REPL_SLUG") or os.environ.get("REPL_OWNER")) else "replit")
+)
 SIGNAL_DEDUP_WINDOW_SECONDS = 120
 _SIGNAL_LOCK_PATH = "/tmp/smartxflow_scraper_signal.lock"
 _HEARTBEAT_TABLE_AVAILABLE = None
