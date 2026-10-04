@@ -47,21 +47,24 @@ Do not preload the other role or long reference documents. Open a detailed refer
 
 1. **Instruction branch lock:** active specialized role instructions come from `preview`; `main` supplies the general repository/release/safety supplement.
 2. **Retention protection:** once a case is selected for learning, the SXF history required to build that case must not be allowed to disappear through cleanup/retention before a valid final archive package has been created and verified. Development owns the technical protection; Predictor must surface a case that cannot be safely finalized.
-3. **No false completion:** a case is not `DONE` merely because settlement was reviewed. Finalization requires deterministic validator `PASS`, successful write to the dedicated archive repository, manifest/checksum verification, and a durable archive path/reference. Failure must remain explicit and retryable; never silently mark success.
+3. **No false completion:** a case is not `DONE` merely because settlement was reviewed. Finalization requires deterministic validator `PASS`, successful write to the canonical Learning Archive folder, manifest/checksum verification, and a durable archive path/reference. Failure must remain explicit and retryable; never silently mark success.
 4. **Idempotency and duplicate safety:** the same `case_id` must not create duplicate finalized cases or overwrite an existing finalized payload. Re-running export for an already-finalized identical case must be safe/idempotent; materially different corrections require append-only addenda/versioned metadata.
 5. **Secret exclusion:** archive payloads, evidence, notes, logs and manifests must never contain API keys, auth tokens, cookies, authorization headers, passwords, private credentials, `.env` values or equivalent secrets. Store only non-secret provenance needed for reproducibility.
 
 ## Learning Archive
 
-Finalized selected-match cases belong in a dedicated private GitHub repository named `smartxflow-learning-archive`, not as bulk data in this application repository.
+The Learning Archive stays inside this same repository on the dedicated `learning-archive` branch under `/learning_archive_data/`.
 
-The source repository contains only the archive contract, schema, exporter/validator code and learning-engine implementation. See `/.agents/contracts/LEARNING_ARCHIVE.md` only when archive work requires it.
+Predictor writes selected-match cases there as part of the prediction/settlement workflow; Development reads the same folder for learning work. No separate archive repository and no extra archive GitHub token are required for this conversational-agent workflow. Archive writes must never touch `main` or `preview` source state.
+
+See `/.agents/contracts/LEARNING_ARCHIVE.md` only when archive work requires it.
 
 ## Source and release essentials
 
 - GitHub source/history is canonical.
 - `main` = latest user-approved production SHA.
 - `preview` = development/Preview branch and canonical active specialized-agent instruction branch.
+- `learning-archive` = selected-match archive data branch only; it is not deployed and does not participate in source promotion.
 - Replit Preview is only a runner for the exact GitHub `preview` SHA; never use Replit Agent to independently edit/sync source.
 - Hetzner is production runtime; never edit production files in place.
 - User approval is required before promoting `preview` to `main` or deploying production.
