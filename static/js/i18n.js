@@ -17,6 +17,60 @@
   var BASE_PATH = '/static/i18n/';
   var FLAGS = { tr: '<img class="flag-icon" src="/static/flags/tr.svg" alt="">', en: '<img class="flag-icon" src="/static/flags/gb.svg" alt="">', de: '<img class="flag-icon" src="/static/flags/de.svg" alt="">', fr: '<img class="flag-icon" src="/static/flags/fr.svg" alt="">', nl: '<img class="flag-icon" src="/static/flags/nl.svg" alt="">', it: '<img class="flag-icon" src="/static/flags/it.svg" alt="">', es: '<img class="flag-icon" src="/static/flags/es.svg" alt="">' };
 
+  // These descriptions mirror the live constants in sinyal_engine.py. Keeping
+  // them here prevents stale locale JSON from showing retired thresholds.
+  var RULE_OVERRIDES = {
+    tr: {
+      'app.j.rv_underdog_desc': 'Oran ≥2.90. Hacim £800–£4.999 ise para yüzdesi ≥%55; hacim ≥£5.000 ise ≥%50. Yalnız 1/2 seçimleri.',
+      'app.j.rv_confirmed_desc': 'Hacim ≥£5.000, para yüzdesi >%80 ve son 3 snapshot boyunca >%80; oran 1.35–2.20 ve ilk geçerli orana göre ≥%5 düşüş.',
+      'app.j.rv_confirmed_v2_desc': 'Hacim ≥£5.000, para yüzdesi ≥%88 ve son 3 snapshot boyunca ≥%88; oran 1.55–2.20 ve ilk geçerli orana göre ≥%7 düşüş. Yalnız 1/2 seçimleri.',
+      'app.j.rv_early_desc': 'Maça ≥24 saat kala, hacim ≥£5.000 ve aynı seçimde son 5 ardışık snapshot boyunca para yüzdesi ≥%85 olduğunda tetiklenir.',
+      'app.j.rv_fake_desc': 'Hacim ≥£5.000 ve para yüzdesi >%75 iken son 3 snapshot da >%75; oran 1.35–2.20 ve ilk geçerli orana göre ≥%5 yükseliyorsa tetiklenir. Yalnız 1/2 seçimleri.'
+    },
+    en: {
+      'app.j.rv_underdog_desc': 'Odds ≥2.90. At £800–£4,999 volume, money share must be ≥55%; at ≥£5,000, ≥50%. Home/away selections only.',
+      'app.j.rv_confirmed_desc': 'Volume ≥£5,000, money share >80% and >80% for the last 3 snapshots; odds 1.35–2.20 with a ≥5% drop from the first valid odds.',
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5,000, money share ≥88% for the last 3 snapshots; odds 1.55–2.20 with a ≥7% drop from the first valid odds. Home/away only.',
+      'app.j.rv_early_desc': 'Triggers ≥24 hours before kickoff when volume is ≥£5,000 and the same selection holds ≥85% money share for 5 consecutive snapshots.',
+      'app.j.rv_fake_desc': 'Volume ≥£5,000 and money share >75% for the last 3 snapshots; odds 1.35–2.20 and ≥5% higher than the first valid odds. Home/away only.'
+    },
+    de: {
+      'app.j.rv_underdog_desc': 'Quote ≥2,90. Bei £800–£4.999 Volumen gilt Geldanteil ≥55 %, ab £5.000 ≥50 %. Nur Heim/Auswärts.',
+      'app.j.rv_confirmed_desc': 'Volumen ≥£5.000, Geldanteil >80 % und in den letzten 3 Snapshots >80 %; Quote 1,35–2,20 und ≥5 % Rückgang gegenüber der ersten gültigen Quote.',
+      'app.j.rv_confirmed_v2_desc': 'Volumen ≥£5.000, Geldanteil in den letzten 3 Snapshots ≥88 %; Quote 1,55–2,20 und ≥7 % Rückgang gegenüber der ersten gültigen Quote. Nur Heim/Auswärts.',
+      'app.j.rv_early_desc': 'Auslösung ≥24 Stunden vor Anpfiff bei Volumen ≥£5.000 und ≥85 % Geldanteil derselben Auswahl in 5 aufeinanderfolgenden Snapshots.',
+      'app.j.rv_fake_desc': 'Volumen ≥£5.000 und Geldanteil >75 % in den letzten 3 Snapshots; Quote 1,35–2,20 und ≥5 % über der ersten gültigen Quote. Nur Heim/Auswärts.'
+    },
+    fr: {
+      'app.j.rv_underdog_desc': 'Cote ≥2,90. Pour £800–£4 999 de volume, part d’argent ≥55 % ; à partir de £5 000, ≥50 %. Sélections domicile/extérieur uniquement.',
+      'app.j.rv_confirmed_desc': 'Volume ≥£5 000, part d’argent >80 % sur les 3 derniers snapshots ; cote 1,35–2,20 avec baisse ≥5 % depuis la première cote valide.',
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5 000, part d’argent ≥88 % sur les 3 derniers snapshots ; cote 1,55–2,20 avec baisse ≥7 % depuis la première cote valide. Domicile/extérieur uniquement.',
+      'app.j.rv_early_desc': 'Déclenché ≥24 h avant le coup d’envoi avec volume ≥£5 000 et part d’argent ≥85 % sur la même sélection pendant 5 snapshots consécutifs.',
+      'app.j.rv_fake_desc': 'Volume ≥£5 000 et part d’argent >75 % sur les 3 derniers snapshots ; cote 1,35–2,20 et hausse ≥5 % depuis la première cote valide. Domicile/extérieur uniquement.'
+    },
+    nl: {
+      'app.j.rv_underdog_desc': 'Odds ≥2,90. Bij £800–£4.999 volume moet het geldpercentage ≥55% zijn; vanaf £5.000 ≥50%. Alleen thuis/uit.',
+      'app.j.rv_confirmed_desc': 'Volume ≥£5.000, geldpercentage >80% in de laatste 3 snapshots; odds 1,35–2,20 met ≥5% daling vanaf de eerste geldige odds.',
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, geldpercentage ≥88% in de laatste 3 snapshots; odds 1,55–2,20 met ≥7% daling vanaf de eerste geldige odds. Alleen thuis/uit.',
+      'app.j.rv_early_desc': 'Triggert ≥24 uur voor aftrap bij volume ≥£5.000 en ≥85% geldpercentage op dezelfde selectie gedurende 5 opeenvolgende snapshots.',
+      'app.j.rv_fake_desc': 'Volume ≥£5.000 en geldpercentage >75% in de laatste 3 snapshots; odds 1,35–2,20 en ≥5% hoger dan de eerste geldige odds. Alleen thuis/uit.'
+    },
+    it: {
+      'app.j.rv_underdog_desc': 'Quota ≥2,90. Con volume £800–£4.999 la quota denaro deve essere ≥55%; da £5.000, ≥50%. Solo casa/trasferta.',
+      'app.j.rv_confirmed_desc': 'Volume ≥£5.000, quota denaro >80% negli ultimi 3 snapshot; quota 1,35–2,20 con calo ≥5% dalla prima quota valida.',
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, quota denaro ≥88% negli ultimi 3 snapshot; quota 1,55–2,20 con calo ≥7% dalla prima quota valida. Solo casa/trasferta.',
+      'app.j.rv_early_desc': 'Si attiva ≥24 ore prima del calcio d’inizio con volume ≥£5.000 e quota denaro ≥85% sulla stessa selezione per 5 snapshot consecutivi.',
+      'app.j.rv_fake_desc': 'Volume ≥£5.000 e quota denaro >75% negli ultimi 3 snapshot; quota 1,35–2,20 e aumento ≥5% dalla prima quota valida. Solo casa/trasferta.'
+    },
+    es: {
+      'app.j.rv_underdog_desc': 'Cuota ≥2,90. Con volumen £800–£4.999, el porcentaje de dinero debe ser ≥55%; desde £5.000, ≥50%. Solo local/visitante.',
+      'app.j.rv_confirmed_desc': 'Volumen ≥£5.000, porcentaje de dinero >80% en los últimos 3 snapshots; cuota 1,35–2,20 con caída ≥5% desde la primera cuota válida.',
+      'app.j.rv_confirmed_v2_desc': 'Volumen ≥£5.000, porcentaje de dinero ≥88% en los últimos 3 snapshots; cuota 1,55–2,20 con caída ≥7% desde la primera cuota válida. Solo local/visitante.',
+      'app.j.rv_early_desc': 'Se activa ≥24 h antes del inicio con volumen ≥£5.000 y ≥85% del dinero en la misma selección durante 5 snapshots consecutivos.',
+      'app.j.rv_fake_desc': 'Volumen ≥£5.000 y porcentaje de dinero >75% en los últimos 3 snapshots; cuota 1,35–2,20 y subida ≥5% desde la primera cuota válida. Solo local/visitante.'
+    }
+  };
+
   var dict = {};
   var currentLang = DEFAULT_LANG;
   var listeners = [];
@@ -31,6 +85,8 @@
 
   function get(key) {
     if (!key) return '';
+    var overrides = RULE_OVERRIDES[currentLang] || RULE_OVERRIDES[DEFAULT_LANG] || {};
+    if (Object.prototype.hasOwnProperty.call(overrides, key)) return overrides[key];
     var parts = key.split('.');
     var v = dict;
     for (var i = 0; i < parts.length; i++) {
