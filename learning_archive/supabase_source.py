@@ -19,6 +19,7 @@ OPTIONAL_HISTORY_TABLES = (
     "moneyway_double_chance_history",
     "moneyway_draw_no_bet_history",
 )
+FALLBACK_HISTORY_TABLE = "moneyway_snapshots"
 
 # Explicit response allow-list. Database/internal credential fields are never serialized.
 COMMON_FIELDS = {
@@ -56,6 +57,7 @@ TABLE_FIELDS = {
     "moneyway_draw_no_bet_history": COMMON_FIELDS | {
         "odds1", "odds2", "amt1", "amt2", "pct1", "pct2", "trend1", "trend2",
     },
+    FALLBACK_HISTORY_TABLE: COMMON_FIELDS | {"odds", "share"},
 }
 
 
@@ -117,10 +119,11 @@ def _fetch_history_table(client: Any, table: str, match_hash: str, page_size: in
     offset = 0
     http = client._get_http_client()
     headers = client._headers()
+    order_field = "scraped_at_utc" if table == FALLBACK_HISTORY_TABLE else "scraped_at"
     while True:
         url = (
             f"{client._rest_url(table)}?select=*&match_id_hash=eq.{match_hash}"
-            f"&order=scraped_at.asc&limit={page_size}&offset={offset}"
+            f"&order={order_field}.asc&limit={page_size}&offset={offset}"
         )
         response = http.get(url, headers=headers, timeout=20)
         if response.status_code != 200:
@@ -198,6 +201,16 @@ def read_learning_archive_match_history(
         histories[table] = rows
         if rows:
             source_tables.append(table)
+
+    # Some SmartXFlow fixtures have full timestamped money history in moneyway_snapshots
+    # even when the legacy per-market *_history tables contain no rows. Treat that table as
+    # a canonical stored-history fallback so a valid Stage 3 case cannot be silently skipped
+    # solely because of storage layout.
+    if not source_tables:
+        snapshot_rows = _fetch_history_table(client, FALLBACK_HISTORY_TABLE, match_hash)
+        histories[FALLBACK_HISTORY_TABLE] = snapshot_rows
+        if snapshot_rows:
+            source_tables.append(FALLBACK_HISTORY_TABLE)
 
     if not source_tables:
         raise LearningArchiveMatchNotFound(match_hash)
