@@ -180,10 +180,7 @@ jobs:
                 return SimpleNamespace(
                     histories={'moneyway_snapshots': rows},
                     source_tables=('moneyway_snapshots',),
-                    unavailable_optional_tables=(
-                        'moneyway_double_chance_history',
-                        'moneyway_draw_no_bet_history',
-                    ),
+                    unavailable_optional_tables=(),
                 )
 
             def read_history(match_hash):
