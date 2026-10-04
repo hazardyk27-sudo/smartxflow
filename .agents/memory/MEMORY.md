@@ -1,4 +1,5 @@
 - [Supabase time-based cleanup deletes](supabase-cleanup-deletes.md) — daily D-8 cleanup must DELETE by each table's own date col via single-statement PostgREST (orphans incl.); paged-by-id over non-indexed date col hangs; main market tables have no match_id_hash, use `date`.
+- [SmartXFlow Supabase read path](smartxflow-supabase-read-path.md) — the available Supabase MCP points to BOKGAME, not match data; use the app client for SmartXFlow read-only queries.
 - [Betwatch API v1 integration](betwatch-v1-integration.md) — scraper migrated to v1; secret name typo, runner name mapping, live_info fields documented.
 - [Main table vs history table odds source](main-table-vs-history-odds.md) — read latest odds from main market tables (upserted, 1 row/match), not history tables (append-only, batch-limit starves stale matches).
 - [History table fetch strategy (superseded)](history-fetch-strategy.md) — old two-phase hash-based approach, replaced 2026-07-03; kept for historical context.
