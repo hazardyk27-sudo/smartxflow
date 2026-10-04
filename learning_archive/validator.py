@@ -61,6 +61,13 @@ def _require_text(mapping: dict[str, Any], key: str, prefix: str, errors: list[s
     return value.strip()
 
 
+def _optional_text(mapping: dict[str, Any], key: str, prefix: str, errors: list[str]) -> None:
+    if key not in mapping or mapping.get(key) is None:
+        return
+    if not isinstance(mapping.get(key), str) or not str(mapping.get(key)).strip():
+        errors.append(f"{prefix}.{key}: must be null or non-empty string")
+
+
 def _walk(value: Any, path: str = "$") -> Iterable[tuple[str, str | None, Any]]:
     if isinstance(value, dict):
         for key, child in value.items():
@@ -115,6 +122,7 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
     match = _require_mapping(case.get("match"), "match", errors)
     if match is not None:
         _require_text(match, "match_id_hash", "match", errors)
+        _require_text(match, "league", "match", errors)
         _require_text(match, "home", "match", errors)
         _require_text(match, "away", "match", errors)
         _parse_datetime(match.get("kickoff_at"), "match.kickoff_at", errors)
@@ -123,14 +131,24 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
     prediction_at: datetime | None = None
     if prediction is not None:
         prediction_at = _parse_datetime(prediction.get("prediction_at"), "prediction.prediction_at", errors)
-        if prediction.get("decision") not in _DECISIONS:
+        decision = prediction.get("decision")
+        if decision not in _DECISIONS:
             errors.append("prediction.decision: must be BET, WATCH, or PASS")
-        _require_text(prediction, "market", "prediction", errors)
-        _require_text(prediction, "selection", "prediction", errors)
         _require_text(prediction, "rationale", "prediction", errors)
+        _require_text(prediction, "counterargument", "prediction", errors)
+        if "confidence" not in prediction or prediction.get("confidence") is None:
+            errors.append("prediction.confidence: required")
         entry_odds = prediction.get("entry_odds")
-        if entry_odds is not None and (not isinstance(entry_odds, (int, float)) or isinstance(entry_odds, bool) or entry_odds <= 1):
-            errors.append("prediction.entry_odds: must be null or a number > 1")
+        if decision == "BET":
+            _require_text(prediction, "market", "prediction", errors)
+            _require_text(prediction, "selection", "prediction", errors)
+            if not isinstance(entry_odds, (int, float)) or isinstance(entry_odds, bool) or entry_odds <= 1:
+                errors.append("prediction.entry_odds: BET requires a number > 1")
+        else:
+            _optional_text(prediction, "market", "prediction", errors)
+            _optional_text(prediction, "selection", "prediction", errors)
+            if entry_odds is not None and (not isinstance(entry_odds, (int, float)) or isinstance(entry_odds, bool) or entry_odds <= 1):
+                errors.append("prediction.entry_odds: must be null or a number > 1")
 
     evidence = case.get("evidence")
     if not isinstance(evidence, list):
