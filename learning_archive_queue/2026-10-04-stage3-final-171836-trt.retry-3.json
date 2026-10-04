@@ -1,0 +1,4 @@
+{
+  "retry_of": "learning_archive_queue/2026-10-04-stage3-final-171836-trt.json",
+  "reason": "Retry unchanged frozen Stage 3 batch using canonical local SmartXFlow stored-history reader inside production runtime"
+}
