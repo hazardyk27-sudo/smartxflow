@@ -14,6 +14,9 @@ on:
       - 'deploy/smartxflow-sinyal.service'
       - 'betwatch_prematch.py'
       - 'betwatch_client.py'
+      - 'services/supabase_client.py'
+      - 'scripts/apply_fixture_integrity_patch.py'
+      - 'scripts/cleanup_duplicate_fixtures.py'
       - 'desktop/scraper_standalone/betwatch_client.py'
       - 'desktop/scraper_standalone/alarm_calculator.py'
       - 'desktop/scraper_standalone/alarm_calculator_legacy.py'
@@ -30,8 +33,12 @@ on:
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_sinyal_engine_runtime.py'
       - 'tests/test_analysis_signal_copy.py'
+      - 'tests/test_fixture_integrity.py'
       - '.github/workflows/alarm-rule-tests.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   alarm-rules:
@@ -40,12 +47,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Install test dependencies
         run: python -m pip install --disable-pip-version-check pytest httpx requests pytz
+      - name: Apply fixture integrity source patch
+        run: python scripts/apply_fixture_integrity_patch.py
       - name: Compile alarm and scraper modules
         run: |
           python -m py_compile alarm_engine.py
@@ -55,6 +66,8 @@ jobs:
           python -m py_compile sinyal_engine_runtime.py
           python -m py_compile betwatch_prematch.py
           python -m py_compile betwatch_client.py
+          python -m py_compile services/supabase_client.py
+          python -m py_compile scripts/cleanup_duplicate_fixtures.py
           python -m py_compile desktop/scraper_standalone/betwatch_client.py
           python -m py_compile desktop/scraper_standalone/alarm_calculator.py
           python -m py_compile desktop/scraper_standalone/alarm_calculator_legacy.py
@@ -78,3 +91,16 @@ jobs:
           tests/test_runtime_scraper_recovery.py
           tests/test_sinyal_engine_runtime.py
           tests/test_analysis_signal_copy.py
+          tests/test_fixture_integrity.py
+      - name: Commit fixture feed patch when needed
+        run: |
+          set -euo pipefail
+          git add services/supabase_client.py
+          if git diff --cached --quiet; then
+            echo "No source patch to commit"
+            exit 0
+          fi
+          git config user.name "SmartXFlow Fixture Integrity"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Deduplicate fixture identities in match feeds"
+          git push origin HEAD:preview
