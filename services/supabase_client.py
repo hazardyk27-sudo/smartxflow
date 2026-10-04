@@ -11,6 +11,8 @@ import httpx
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import json
+import hashlib
+import re
 
 
 class SupabaseClient:
@@ -101,6 +103,75 @@ class SupabaseClient:
     
     def _rest_url(self, table: str) -> str:
         return f"{self.url}/rest/v1/{table}"
+
+    @staticmethod
+    def _fixture_norm(value: Any) -> str:
+        return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+    @classmethod
+    def _fixture_canonical_hash(cls, fixture: Dict[str, Any]) -> str:
+        canonical = "|".join((
+            cls._fixture_norm(fixture.get("league")),
+            cls._fixture_norm(fixture.get("home_team")),
+            cls._fixture_norm(fixture.get("away_team")),
+        ))
+        return hashlib.md5(canonical.encode("utf-8")).hexdigest()[:12]
+
+    @classmethod
+    def _fixture_identity_key(cls, fixture: Dict[str, Any]):
+        home = cls._fixture_norm(fixture.get("home_team"))
+        away = cls._fixture_norm(fixture.get("away_team"))
+        raw_kickoff = str(fixture.get("kickoff_utc") or "").strip()
+        if not home or not away or not raw_kickoff:
+            return None
+        try:
+            kickoff = datetime.fromisoformat(raw_kickoff.replace("Z", "+00:00"))
+            kickoff_key = kickoff.replace(second=0, microsecond=0).isoformat()
+        except Exception:
+            kickoff_key = raw_kickoff[:16]
+        return home, away, kickoff_key
+
+    @classmethod
+    def _dedupe_fixtures(cls, fixtures: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Collapse legacy fixture hashes for the same teams/kickoff.
+
+        Prefer the hash produced by the current Betwatch algorithm.  If neither
+        row matches it, keep the lexicographically smaller hash so selection is
+        deterministic without mutating stored history.
+        """
+        selected: List[Dict[str, Any]] = []
+        positions = {}
+        removed = 0
+        for fixture in fixtures or []:
+            key = cls._fixture_identity_key(fixture)
+            if key is None:
+                selected.append(fixture)
+                continue
+            existing_pos = positions.get(key)
+            if existing_pos is None:
+                positions[key] = len(selected)
+                selected.append(fixture)
+                continue
+
+            existing = selected[existing_pos]
+            existing_hash = str(existing.get("match_id_hash") or "")
+            incoming_hash = str(fixture.get("match_id_hash") or "")
+            existing_is_current = bool(existing_hash) and existing_hash == cls._fixture_canonical_hash(existing)
+            incoming_is_current = bool(incoming_hash) and incoming_hash == cls._fixture_canonical_hash(fixture)
+
+            replace = False
+            if incoming_is_current and not existing_is_current:
+                replace = True
+            elif incoming_is_current == existing_is_current:
+                if incoming_hash and (not existing_hash or incoming_hash < existing_hash):
+                    replace = True
+            if replace:
+                selected[existing_pos] = fixture
+            removed += 1
+
+        if removed:
+            print(f"[Supabase] Fixture identity dedupe: {len(fixtures)} -> {len(selected)} ({removed} legacy duplicate hidden)")
+        return selected
     
     def get_or_create_match(self, home_team: str, away_team: str, league: str, match_date: str) -> Optional[int]:
         if not self.is_available:
@@ -380,7 +451,7 @@ class SupabaseClient:
                     print(f"[Supabase] YESTERDAY fixtures fetch error: {fix_resp.status_code}")
                     return []
                 
-                fixtures = fix_resp.json()
+                fixtures = self._dedupe_fixtures(fix_resp.json())
                 print(f"[Supabase] YESTERDAY: Got {len(fixtures)} fixtures from table")
                 
                 if not fixtures:
@@ -454,7 +525,7 @@ class SupabaseClient:
                 if fix_resp.status_code != 200:
                     print(f"[Supabase] PAST({date_filter}) fixtures fetch error: {fix_resp.status_code}")
                     return []
-                fixtures = fix_resp.json()
+                fixtures = self._dedupe_fixtures(fix_resp.json())
                 print(f"[Supabase] PAST({date_filter}): Got {len(fixtures)} fixtures")
                 if fixtures:
                     odds_cache = {}
@@ -623,7 +694,7 @@ class SupabaseClient:
                     print(f"[Supabase] TODAY fixtures fetch error: {fix_resp.status_code}")
                     return []
                 
-                fixtures = fix_resp.json()
+                fixtures = self._dedupe_fixtures(fix_resp.json())
                 print(f"[Supabase] TODAY: Got {len(fixtures)} fixtures from table")
                 
                 if not fixtures:
@@ -677,7 +748,7 @@ class SupabaseClient:
                 fix_url = f"{self._rest_url('fixtures')}?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date&fixture_date=gte.{seven_days_ago_str}"
                 fix_resp = self._get_http_client().get(fix_url, headers=self._headers(), timeout=30)
                 
-                fixtures_list = fix_resp.json() if fix_resp.status_code == 200 else []
+                fixtures_list = self._dedupe_fixtures(fix_resp.json()) if fix_resp.status_code == 200 else []
                 print(f"[Supabase] ALL: Got {len(fixtures_list)} fixtures")
                 
                 # Step 2: Fetch latest odds from the main (upserted, 1-row-per-match) table.
@@ -773,7 +844,7 @@ class SupabaseClient:
             fixtures_list = []
             fixtures_by_hash = {}
             if fix_resp.status_code == 200:
-                fixtures_list = fix_resp.json()
+                fixtures_list = self._dedupe_fixtures(fix_resp.json())
                 for fix in fixtures_list:
                     match_hash = fix.get('match_id_hash', '')
                     if match_hash:
