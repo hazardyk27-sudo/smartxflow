@@ -3,7 +3,12 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
+import shlex
+import stat
+import subprocess
+import tempfile
 from typing import Any
 from urllib.parse import quote
 
@@ -87,11 +92,7 @@ def _manifest_update(raw: bytes, new_entry: dict[str, Any]) -> tuple[bytes, bool
 
 
 class GitHubArchiveBackend:
-    """Durable append-only writer to this repository's Learning Archive data branch.
-
-    No separate archive repository or archive-specific token is supported. The writer is
-    locked to hazardyk27-sudo/smartxflow and uses normal repository GitHub credentials.
-    """
+    """Durable append-only writer using the GitHub Contents API."""
 
     api_base = "https://api.github.com"
     durable = True
@@ -237,11 +238,146 @@ class GitHubArchiveBackend:
             raise ArchiveBackendError("post-write manifest verification failed: event missing")
 
 
+class GitSshArchiveBackend:
+    """Durable append-only writer using a dedicated repo-scoped SSH deploy key.
+
+    It clones only the canonical Learning Archive branch into a temporary directory,
+    writes one deterministic archive package, commits, and performs a normal
+    non-force push. Concurrent branch movement therefore fails closed; the next
+    idempotent timer run can retry from the new remote head.
+    """
+
+    durable = True
+
+    def __init__(
+        self,
+        ssh_key: str | Path,
+        *,
+        repository: str = DEFAULT_REPOSITORY,
+        branch: str = DEFAULT_BRANCH,
+        root: str = DEFAULT_ROOT,
+        timeout: float = 60.0,
+    ):
+        if repository != DEFAULT_REPOSITORY:
+            raise ValueError(f"Learning Archive repository is locked to {DEFAULT_REPOSITORY}")
+        key_path = Path(ssh_key).expanduser().resolve()
+        if not key_path.is_file():
+            raise ValueError("Learning Archive SSH deploy key does not exist")
+        mode = stat.S_IMODE(key_path.stat().st_mode)
+        if mode & 0o077:
+            raise ValueError("Learning Archive SSH deploy key must not be group/world-readable")
+        self.repository = repository
+        self.branch = branch
+        self.root = root.strip("/") or DEFAULT_ROOT
+        self.timeout = timeout
+        self.ssh_key = key_path
+        self.remote_url = f"git@github.com:{repository}.git"
+
+    def _env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        env.update({
+            "GIT_SSH_COMMAND": (
+                "ssh -i " + shlex.quote(str(self.ssh_key))
+                + " -o IdentitiesOnly=yes -o BatchMode=yes"
+                + " -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
+            ),
+            "GIT_AUTHOR_NAME": "SmartXFlow Learning Archive",
+            "GIT_AUTHOR_EMAIL": "smartxflow-learning-archive@users.noreply.github.com",
+            "GIT_COMMITTER_NAME": "SmartXFlow Learning Archive",
+            "GIT_COMMITTER_EMAIL": "smartxflow-learning-archive@users.noreply.github.com",
+        })
+        return env
+
+    def _run(self, argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+        result = subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd else None,
+            env=self._env(),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=self.timeout,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "git command failed").strip()
+            raise ArchiveBackendError(f"SSH archive git command failed: {detail}")
+        return result
+
+    def _verify_remote_head(self, expected_commit: str) -> None:
+        result = self._run(["git", "ls-remote", self.remote_url, f"refs/heads/{self.branch}"])
+        fields = result.stdout.strip().split()
+        if len(fields) < 2 or fields[1] != f"refs/heads/{self.branch}" or fields[0] != expected_commit:
+            raise ArchiveBackendError("SSH archive push could not be verified at remote branch head")
+
+    def write_case(self, package: ArchivePackage, case: dict[str, Any]) -> ArchiveWriteResult:
+        with tempfile.TemporaryDirectory(prefix="sxf-learning-archive-ssh-") as tmp:
+            repo_root = Path(tmp) / "repo"
+            self._run([
+                "git",
+                "clone",
+                "--quiet",
+                "--single-branch",
+                "--branch",
+                self.branch,
+                "--depth",
+                "1",
+                self.remote_url,
+                str(repo_root),
+            ])
+
+            folder_backend = RepositoryFolderArchiveBackend(repo_root, root=self.root)
+            staged = folder_backend.write_case(package, case)
+            current = self._run(["git", "rev-parse", "HEAD"], cwd=repo_root).stdout.strip()
+            if staged.idempotent:
+                return ArchiveWriteResult(
+                    archive_reference=f"https://github.com/{self.repository}/tree/{current}/{self.root}/{package.case_path}",
+                    commit_sha=current,
+                    idempotent=True,
+                )
+
+            self._run(["git", "add", "--", self.root], cwd=repo_root)
+            diff = subprocess.run(
+                ["git", "diff", "--cached", "--quiet"],
+                cwd=str(repo_root),
+                env=self._env(),
+                timeout=self.timeout,
+            )
+            if diff.returncode not in (0, 1):
+                raise ArchiveBackendError("SSH archive staged diff verification failed")
+            if diff.returncode == 0:
+                raise ArchiveBackendError("SSH archive package changed state but staged no files")
+
+            self._run([
+                "git",
+                "commit",
+                "--quiet",
+                "-m",
+                f"Archive {package.package_kind.lower()} {package.case_id}",
+            ], cwd=repo_root)
+            commit = self._run(["git", "rev-parse", "HEAD"], cwd=repo_root).stdout.strip()
+
+            # Never force. A concurrent archive writer moving the branch rejects
+            # this push, preserving append-only history; retry then reclones head.
+            self._run([
+                "git",
+                "push",
+                "--porcelain",
+                "origin",
+                f"HEAD:refs/heads/{self.branch}",
+            ], cwd=repo_root)
+            self._verify_remote_head(commit)
+            return ArchiveWriteResult(
+                archive_reference=f"https://github.com/{self.repository}/tree/{commit}/{self.root}/{package.case_path}",
+                commit_sha=commit,
+                idempotent=False,
+            )
+
+
 class RepositoryFolderArchiveBackend:
     """Worktree/staging writer used for tests and local Development reads.
 
     This backend intentionally does not claim durability: writing a worktree does not commit
-    to GitHub. Production/Predictor automatic archival must use GitHubArchiveBackend.
+    to GitHub. Production/Predictor automatic archival must use a canonical durable backend.
     """
 
     durable = False
