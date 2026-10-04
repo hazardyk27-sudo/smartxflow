@@ -34,7 +34,6 @@ begin
         'moneyway_1x2_history',
         'moneyway_ou25_history',
         'moneyway_btts_history',
-        'moneyway_draw_no_bet_history',
         'dropping_1x2_history',
         'dropping_ou25_history',
         'dropping_btts_history',
