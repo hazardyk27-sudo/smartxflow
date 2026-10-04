@@ -63,7 +63,7 @@ jobs:
         run: |
           bash -n run_services.sh
           bash -n deploy/setup_hetzner.sh
-          grep -q 'sinyal_engine_runtime.py' run_services.sh
+          ! grep -q 'sinyal_engine_runtime.py' run_services.sh
           grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
       - name: Run alarm and runtime regression tests
         run: >-
