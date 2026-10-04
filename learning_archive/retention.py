@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import os
-from urllib.parse import quote
 
 import requests
 
@@ -15,7 +14,16 @@ class RetentionHoldError(RuntimeError):
 
 
 def retention_holds_enabled() -> bool:
-    return os.environ.get("SMARTXFLOW_LEARNING_ARCHIVE_RETENTION_ENABLED", "").strip().lower() in _TRUE
+    """Retention protection is mandatory by default.
+
+    The production migration now exists, so retention must no longer depend on
+    an opt-in flag that can be forgotten. Only an explicit emergency-disable
+    switch can turn the guard off.
+    """
+    emergency_disable = os.environ.get(
+        "SMARTXFLOW_LEARNING_ARCHIVE_RETENTION_EMERGENCY_DISABLE", ""
+    ).strip().lower()
+    return emergency_disable not in _TRUE
 
 
 def _config() -> tuple[str, str]:
@@ -41,7 +49,7 @@ def _session() -> requests.Session:
 
 def create_retention_hold(case_id: str, match_id_hash: str, prediction_at: str) -> None:
     if not retention_holds_enabled():
-        raise RetentionHoldError("Learning Archive retention holds are not enabled")
+        raise RetentionHoldError("Learning Archive retention holds are emergency-disabled")
     url, _ = _config()
     session = _session()
     response = session.post(
@@ -53,6 +61,9 @@ def create_retention_hold(case_id: str, match_id_hash: str, prediction_at: str) 
             "match_id_hash": match_id_hash,
             "prediction_at": prediction_at,
             "status": "PENDING",
+            "finalized_at": None,
+            "archive_reference": None,
+            "checksum_summary": None,
         },
         timeout=30,
     )
