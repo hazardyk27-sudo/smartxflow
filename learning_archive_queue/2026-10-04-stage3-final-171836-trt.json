@@ -1,0 +1,150 @@
+{
+  "report_id": "2026-10-04-stage3-final-171836-trt",
+  "prediction_at": "2026-10-04T14:18:36Z",
+  "cases": [
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-portugal-norway-1x2-portugal",
+      "match": {"match_id_hash":"18f3172add1e","league":"UEFA Nations League","home":"Portugal","away":"Norway","kickoff_at":"2026-10-04T18:45:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"1X2","selection":"Portugal","entry_odds":1.64,"confidence":86,"rationale":"SXF reversed from early Norway-dominant money to Portugal-dominant money with confirming price action; Stage 2 linked the reversal to Portugal proving effective without Ronaldo plus Norway defensive losses.","counterargument":"Norway still carried meaningful absolute money and transition threat; Ronaldo's camp exit remained noise."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Norway moved from ~96.1% early share to ~23.4%; Portugal rose to ~62.2% / £91.4K and shortened about 1.96→1.69 while Norway drifted about 3.95→5.10."},
+        {"source":"Reuters / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.reuters.com/sports/soccer/joy-germany-ronaldo-less-portugal-win-denmark-2026-10-01/","note":"Portugal beat Denmark 4-2 without Ronaldo; Norway had Heggem suspended and Ryerson unavailable."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-castellon-ceuta-ou25-over",
+      "match": {"match_id_hash":"d0666bbeb294","league":"Spanish Segunda Division","home":"CD Castellon","away":"AD Ceuta FC","kickoff_at":"2026-10-04T16:30:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"O/U 2.5","selection":"Over 2.5","entry_odds":1.37,"confidence":82,"rationale":"Castellon 1X2 money was extreme but price resisted; Over 2.5 and BTTS Yes had cleaner confirmation. Team-strength gap plus Castellon absences made goals preferable to the very short home side.","counterargument":"Ceuta may contribute little offensively, leaving a 2-0 type failure."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Castellon had ~97.3% / ~£22K but stayed near 1.27–1.28; Over 2.5 held ~88.2% / £2.4K and shortened about 1.41→1.39."},
+        {"source":"LaLiga and club reports / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.laliga.com/es-IN/partido/temporada-2026-2027-laliga-hypermotion-cd-castellon-ad-ceuta-fc-8","note":"Castellon entered 6-1-0, goals 14-2; Ceuta 1-1-5, goals 6-17. Castellon also had important absences."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-malta-andorra-btts-no",
+      "match": {"match_id_hash":"9a21527935d2","league":"UEFA Nations League D","home":"Malta","away":"Andorra","kickoff_at":"2026-10-04T16:00:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"BTTS","selection":"No","entry_odds":1.44,"confidence":80,"rationale":"BTTS No and Under both carried strong money with confirming price contraction; Malta also shortened and external context broadly supported Malta control/low scoring.","counterargument":"The latest direct meeting finished Malta 2-1, so the most recent H2H does not confirm BTTS No."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"BTTS No ~88.6% / ~£1.48K, 1.66→1.52; Under 2.5 ~79.1% / ~£3.85K, 1.57→1.49; Malta 1.72→1.64."},
+        {"source":"UEFA/Malta FA / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.uefa.com/uefanationsleague/","note":"Malta held the stronger H2H/group position with a generally low-scoring matchup; coach also noted recovery/availability uncertainty."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-greece-germany-1x2-germany",
+      "match": {"match_id_hash":"ef313340b967","league":"UEFA Nations League","home":"Greece","away":"Germany","kickoff_at":"2026-10-04T18:45:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"1X2","selection":"Germany","entry_odds":1.80,"confidence":73,"rationale":"Germany had high-liquidity money/price confirmation; Stage 2 partially supported it with a fresher squad block and improved Serbia performance.","counterargument":"Greece had already beaten Germany 1-0 and Germany still had defensive personnel loss."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Germany ~78.8% / ~£161K in ~£205K 1X2 volume; price about 2.06→1.89 with fresh Germany money continuing."},
+        {"source":"DFB/Reuters / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.dfb.de/","note":"Germany used a fresher latter-window squad and beat Serbia 2-0; Greece had won the reverse 1-0 and Schlotterbeck was unavailable."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-kosovo-austria-dc-x2",
+      "match": {"match_id_hash":"6c339dfefd35","league":"UEFA Nations League B","home":"Kosovo","away":"Austria","kickoff_at":"2026-10-04T16:00:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"Double Chance","selection":"X2","entry_odds":1.34,"confidence":74,"rationale":"SXF rotated strongly from draw money into Austria with price confirmation; Austria's prior 3-1 win supported direction, while absences favored X2 over a pure away win.","counterargument":"Austria absences plus a short X2 price limit value."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Earlier draw share ~84.4%; later Austria ~68.7% with price about 2.20→2.10. Under 2.5 also shortened."},
+        {"source":"Austria FA / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.oefb.at/oefb/News/Nationalteam-Vorschau-KOS-AUT/","note":"Austria had beaten Kosovo 3-1 but had Wanner/Veratschnig/Horvath-related availability losses."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-triglav-jesenice-dc-x2",
+      "match": {"match_id_hash":"dd5cadb6cd79","league":"Slovenian 2 SNL","home":"Triglav","away":"Jesenice","kickoff_at":"2026-10-04T16:00:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"Double Chance","selection":"X2","entry_odds":2.15,"confidence":69,"rationale":"SXF underdog engine flagged Jesenice and late price action improved; strong recent Jesenice form supported using X2 to preserve underdog value with draw protection.","counterargument":"Liquidity was modest and Triglav had strong home results."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Jesenice carried the underdog signal; late away price improved roughly 5.30→4.70 while total liquidity remained only a few thousand pounds."},
+        {"source":"NK Jesenice / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://nkjesenice.si/","note":"Jesenice's last three league results were 5-0, 2-0 and 3-1; Triglav were also strong at home."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-las-palmas-valladolid-btts-yes",
+      "match": {"match_id_hash":"8bf130216130","league":"Spanish Segunda Division","home":"Las Palmas","away":"Valladolid","kickoff_at":"2026-10-04T16:30:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"BET","market":"BTTS","selection":"Yes","entry_odds":1.72,"confidence":68,"rationale":"Las Palmas 1X2 money was resisted and Stage 2 explained it with a large absence list; BTTS Yes had cleaner money/price confirmation amid defensive concerns.","counterargument":"Las Palmas absences may also suppress their attack, breaking BTTS."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Las Palmas money rose while home price worsened; BTTS Yes ~76% and about 1.95→1.84."},
+        {"source":"UD Las Palmas local reporting / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.udlaspalmas.net/2026/10/04/previa-una-ud-bajo-minimos-pero-sin-excusas-para-volver-a-convencer/","note":"Las Palmas were reported missing roughly 11 first-team players; Valladolid entered after a 3-1 win."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-ireland-israel-dc-x2-watch",
+      "match": {"match_id_hash":"cfc6c343b3c0","league":"UEFA Nations League","home":"Republic of Ireland","away":"Israel","kickoff_at":"2026-10-04T18:45:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"WATCH","market":"Double Chance","selection":"X2","entry_odds":1.67,"confidence":65,"rationale":"The key SXF signal was severe Ireland price resistance despite huge Ireland money. External research suggested the prior 3-0 win drove demand while neutral venue and absences explained resistance; X2 stayed WATCH only.","counterargument":"Ireland had just beaten Israel 3-0, so an aggressive fade may overread the divergence."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"CONTRADICTS","note":"Ireland ~81.5% / ~£164K but price about 2.02→2.24; even ~£12.8K fresh Ireland money failed to shorten it while Israel/draw compressed."},
+        {"source":"FAI/Reuters / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.fai.ie/latest/fai-confirms-venue-uefa-nations-league-fixture-against-israel/","note":"Ireland had won the prior game 3-0, but this fixture was in Serbia behind closed doors with Collins and other availability issues."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-netherlands-serbia-ou25-over-watch",
+      "match": {"match_id_hash":"26fa0f87ef1d","league":"UEFA Nations League A","home":"Netherlands","away":"Serbia","kickoff_at":"2026-10-04T18:45:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"WATCH","market":"O/U 2.5","selection":"Over 2.5 at 1.40+","entry_odds":1.40,"confidence":64,"rationale":"Netherlands 1X2 was rejected despite huge fresh money, so the direct favorite was discarded. Over 2.5 had cleaner confirmation but only at 1.40+.","counterargument":"The unexplained 1X2 divergence may reflect information that also affects scoring."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"NEUTRAL","note":"~£52K fresh Netherlands money arrived while Netherlands moved ~1.16→1.20 and Serbia ~24→19; Over 2.5 showed cleaner shortening."},
+        {"source":"Reuters / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"NEUTRAL","url":"https://www.reuters.com/sports/soccer/ankle-injury-forces-gakpo-out-dutch-squad-2026-09-28/","note":"Gakpo/Brobbey concerns were real, but Serbia also had issues; no external cause fully explained the 1X2 resistance."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-wales-denmark-ou25-under-watch",
+      "match": {"match_id_hash":"e11cc9b958d1","league":"UEFA Nations League","home":"Wales","away":"Denmark","kickoff_at":"2026-10-04T18:45:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"WATCH","market":"O/U 2.5","selection":"Under 2.5 at 2.00+","entry_odds":2.00,"confidence":59,"rationale":"SXF price action strongly favored Under despite more visible Over money; external research did not explain it well enough, so Under remained a price-dependent WATCH.","counterargument":"Recent games were open and external context did not strongly support a low total."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Over had more visible money yet drifted ~1.65→1.90; Under shortened ~2.54→2.12; BTTS Yes also had high money while price worsened."},
+        {"source":"Reuters / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"CONTRADICTS","url":"https://www.reuters.com/sports/soccer/denmark-send-injured-dorgu-back-man-united-2026-09-28/","note":"Dorgu absence could support lower scoring, but recent match context was open and did not explain the size of the Under move."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-internacional-once-caldas-pass",
+      "match": {"match_id_hash":"c87cc4cae62e","league":"Colombian Primera A","home":"Internacional de Bogotá","away":"Once Caldas","kickoff_at":"2026-10-04T21:05:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"PASS","market":null,"selection":null,"entry_odds":null,"confidence":72,"rationale":"The 1X2 relationship was interesting but postponement/travel disruption and stale SXF flow made the history hard to interpret as a clean edge.","counterargument":"Once Caldas shortened on low share and Over 2.5 had cleaner confirmation, so a real repricing may still exist."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"NEUTRAL","note":"Draw ~60.7% while drifting; Once Caldas about 2.86→2.66 on much lower share; no fresh 1X2 money in the final observed hour."},
+        {"source":"Win Sports / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"SUPPORTS","url":"https://www.winsports.co/futbol-colombiano/noticias/inter-bogota-vs-once-caldas-fue-reprogramado-en-la-liga-betplay-457487","note":"Match was rescheduled after Once Caldas could not fly to Bogotá due to weather/travel problems, plausibly creating stale/reopened-market artifacts."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261004-guabira-oriente-pass",
+      "match": {"match_id_hash":"09c79cbbfdb1","league":"Bolivian Cup","home":"Guabira","away":"Oriente Petrolero","kickoff_at":"2026-10-04T21:15:00Z"},
+      "prediction": {"prediction_at":"2026-10-04T14:18:36Z","decision":"PASS","market":null,"selection":null,"entry_odds":null,"confidence":78,"rationale":"The SXF underdog signal/~93% away share was not trusted because total 1X2 liquidity was only ~£951 and market completeness was weak; Stage 2 then strongly contradicted Oriente.","counterargument":"Persistent away money and H2H could still reflect informed action that the liquidity filter discards."},
+      "evidence": [
+        {"source":"SmartXFlow Stage 1 direct primary history","observed_at":"2026-10-04T13:28:00Z","phase":"PRE","relationship":"SUPPORTS","note":"Oriente ~93.3% / ~£887 at ~3.55 with SXF underdog signal, but total 1X2 volume only ~£951; draw incomplete and goal liquidity negligible."},
+        {"source":"Diez Bolivia / Stage 2 research bundle","observed_at":"2026-10-04T14:18:00Z","phase":"PRE","relationship":"CONTRADICTS","url":"https://diez.bo/oriente-petrolero/oriente-visitara-a-guabira-con-el-gabinete-medico-lleno_1790944646","note":"Oriente were reported with a large medical/rehab list affecting roughly eight players, strongly contradicting the away-money signal."}
+      ],
+      "settlement":{"status":"PENDING"},
+      "provenance":{"archive_created_at":"2026-10-04T15:17:55Z","source_repo":"hazardyk27-sudo/smartxflow","source_commit":"518d0f8dd614ef0872dde9c260443ed722c8727a"}
+    }
+  ]
+}
