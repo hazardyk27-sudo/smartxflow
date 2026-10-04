@@ -20,13 +20,13 @@ class PrematchEnqueueTests(unittest.TestCase):
             ["case-a", "case-b", "case-c"],
         )
         self.assertEqual(added, ["case-b", "case-c"])
-        self.assertEqual(merged["request_id"], "prematch-capture-queue")
+        self.assertEqual(merged["request_id"], "hetzner-prematch-queue")
         self.assertEqual(len(merged["requests"]), 2)
         self.assertEqual(merged["requests"][1]["case_ids"], ["case-b", "case-c"])
 
     def test_due_case_already_in_queue_is_not_retimestamped(self):
         existing = {
-            "request_id": "prematch-capture-queue",
+            "request_id": "hetzner-prematch-queue",
             "requests": [
                 {
                     "observed_at": "2026-10-04T15:30:00Z",
