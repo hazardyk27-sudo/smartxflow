@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import os
 from typing import Any, Protocol
 
-from .github_backend import ArchiveWriteResult, GitHubArchiveBackend
+from .github_backend import ArchiveWriteResult, GitHubArchiveBackend, GitSshArchiveBackend
 from .package import ArchivePackage, build_archive_package, build_record_package, verify_package_checksums
 from .retention import (
     RetentionHoldError,
@@ -50,16 +50,25 @@ class LearningArchiveExporter:
     @classmethod
     def from_env(cls) -> "LearningArchiveExporter":
         token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
-        if not token:
-            raise ArchiveFinalizationError(
-                "normal repository GitHub credentials are not configured (GITHUB_TOKEN or GH_TOKEN)"
-            )
-        return cls(GitHubArchiveBackend(token=token))
+        if token:
+            return cls(GitHubArchiveBackend(token=token))
+
+        ssh_key = os.environ.get("LEARNING_ARCHIVE_GIT_SSH_KEY", "").strip()
+        if ssh_key:
+            try:
+                return cls(GitSshArchiveBackend(ssh_key=ssh_key))
+            except (OSError, ValueError) as exc:
+                raise ArchiveFinalizationError(f"Learning Archive SSH backend is invalid: {exc}") from exc
+
+        raise ArchiveFinalizationError(
+            "canonical Learning Archive credentials are not configured "
+            "(GITHUB_TOKEN/GH_TOKEN or LEARNING_ARCHIVE_GIT_SSH_KEY)"
+        )
 
     def _canonical_retention_required(self) -> bool:
         # Local/memory backends are test/dev artifacts and must never mutate
-        # production retention state. Canonical durable GitHub archive writes do.
-        return isinstance(self.backend, GitHubArchiveBackend) and retention_holds_enabled()
+        # production retention state. Both canonical GitHub writers do.
+        return isinstance(self.backend, (GitHubArchiveBackend, GitSshArchiveBackend)) and retention_holds_enabled()
 
     def record_case(
         self,
