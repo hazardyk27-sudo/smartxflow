@@ -5,7 +5,6 @@ on:
     branches: [preview]
     paths:
       - 'scripts/cleanup_signal_retention.py'
-      - 'scripts/cleanup_duplicate_fixtures.py'
       - '.github/workflows/signal-retention.yml'
   schedule:
     - cron: '17 2 * * *'
@@ -36,12 +35,3 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SIGNAL_RETENTION_DAYS: '7'
         run: python scripts/cleanup_signal_retention.py
-
-      - name: Audit duplicate fixture rows without deleting
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SMARTXFLOW_SUPABASE_PROJECT_REF: 'pswdvnmqjjnjodwzkmkp'
-          FIXTURE_DUPLICATE_APPLY: '0'
-          FIXTURE_DUPLICATE_MAX_DELETE: '200'
-        run: python scripts/cleanup_duplicate_fixtures.py
