@@ -87,7 +87,13 @@ jobs:
               /etc/systemd/system/smartxflow-learning-archive-prematch.timer
             sudo /bin/systemctl daemon-reload
             sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
-            sudo /bin/systemctl start smartxflow-learning-archive-prematch.service
+            if ! sudo /bin/systemctl start smartxflow-learning-archive-prematch.service; then
+              echo "DEPLOY STOP: prematch service manual verification failed"
+              sudo /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager || true
+              sudo /bin/systemctl status smartxflow-learning-archive-prematch.service --no-pager || true
+              sudo /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 50 --no-pager || true
+              exit 1
+            fi
 
             TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-prematch.timer)"
             TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-prematch.timer)"
@@ -96,7 +102,7 @@ jobs:
               echo "DEPLOY STOP: prematch systemd automation verification failed"
               sudo /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager || true
               sudo /bin/systemctl status smartxflow-learning-archive-prematch.service --no-pager || true
-              sudo /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 30 --no-pager || true
+              sudo /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 50 --no-pager || true
               exit 1
             fi
             echo "PREMATCH_SYSTEMD_OK enabled=$TIMER_ENABLED active=$TIMER_ACTIVE service_result=$SERVICE_RESULT"
