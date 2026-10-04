@@ -56,6 +56,11 @@ class LearningArchiveExporter:
             )
         return cls(GitHubArchiveBackend(token=token))
 
+    def _canonical_retention_required(self) -> bool:
+        # Local/memory backends are test/dev artifacts and must never mutate
+        # production retention state. Canonical durable GitHub archive writes do.
+        return isinstance(self.backend, GitHubArchiveBackend) and retention_holds_enabled()
+
     def record_case(
         self,
         case: dict[str, Any],
@@ -70,10 +75,10 @@ class LearningArchiveExporter:
         if case["settlement"]["status"] != "PENDING":
             raise ArchiveFinalizationError("record/capture requires PENDING settlement; settled cases must use finalization")
 
-        # Retention protection is part of the archive contract, not an optional
-        # caller responsibility. The hold stays PENDING across RECORDED and
-        # CAPTURED events and is released only by finalize_case after settlement.
-        if retention_holds_enabled():
+        # Retention protection is part of the canonical archive contract, not an
+        # optional caller responsibility. The hold remains PENDING across
+        # RECORDED/CAPTURED and is released only after settlement finalization.
+        if self._canonical_retention_required():
             try:
                 create_retention_hold(
                     case["case_id"],
@@ -120,7 +125,7 @@ class LearningArchiveExporter:
                 "archive files exist only in an uncommitted worktree; case is not DONE"
             )
 
-        if retention_holds_enabled():
+        if self._canonical_retention_required():
             try:
                 release_retention_hold(case["case_id"], write.archive_reference, package.checksum_summary)
             except RetentionHoldError as exc:
