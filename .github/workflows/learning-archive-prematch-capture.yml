@@ -17,8 +17,6 @@ on:
       - 'tests/test_learning_archive_revisit.py'
       - 'learning_archive_capture_requests/**'
   schedule:
-    # Avoid the top-of-hour scheduler hotspot while scanning frequently enough
-    # to land one durable revisit inside the final 35 minutes before kickoff.
     - cron: '2/5 * * * *'
   workflow_dispatch:
     inputs:
@@ -99,6 +97,8 @@ jobs:
           INPUT_CASE_IDS: ${{ inputs.case_ids || '' }}
         run: |
           set -euo pipefail
+          MAIN_SHA="$(git -C "$GITHUB_WORKSPACE/app" rev-parse HEAD)"
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
 
           if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" = "learning-archive-capture-requests" ]; then
             REQUEST_FILE="$GITHUB_WORKSPACE/request/learning_archive_capture_requests/request.json"
@@ -106,7 +106,7 @@ jobs:
               echo "PREMATCH_CAPTURE_STOP: request.json missing on request branch"
               exit 1
             fi
-            python app/scripts/build_learning_revisit_request_batch.py \
+            PYTHONPATH="$GITHUB_WORKSPACE/app" python app/scripts/build_learning_revisit_request_batch.py \
               "$GITHUB_WORKSPACE/archive" \
               "$REQUEST_FILE" \
               --output "$RUNNER_TEMP/due-revisits.json"
@@ -132,7 +132,7 @@ jobs:
               OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             fi
 
-            python app/scripts/build_due_learning_revisit_batch.py \
+            PYTHONPATH="$GITHUB_WORKSPACE/app" python app/scripts/build_due_learning_revisit_batch.py \
               "$GITHUB_WORKSPACE/archive" \
               --observed-at "$OBSERVED_AT" \
               --max-minutes-before-kickoff 35 \
@@ -154,26 +154,32 @@ jobs:
           else
             echo "has_due=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "PREMATCH_CAPTURE_SCAN observed_at=$OBSERVED_AT due=$COUNT"
+          echo "PREMATCH_CAPTURE_SCAN main_sha=$MAIN_SHA observed_at=$OBSERVED_AT due=$COUNT"
 
       - name: Append due captures with durable receipts
         if: steps.due.outputs.has_due == 'true'
         uses: appleboy/ssh-action@v1.0.3
         env:
           BATCH_B64: ${{ steps.due.outputs.batch_b64 }}
+          EXPECTED_MAIN_SHA: ${{ steps.due.outputs.main_sha }}
           GH_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: BATCH_B64,GH_TOKEN
+          envs: BATCH_B64,EXPECTED_MAIN_SHA,GH_TOKEN
           script: |
             set -euo pipefail
             cd /opt/smartxflow
 
             BRANCH="$(git branch --show-current)"
+            CURRENT="$(git rev-parse HEAD)"
             if [ "$BRANCH" != "main" ]; then
               echo "PREMATCH_CAPTURE_STOP: production runtime branch is '$BRANCH', expected main"
+              exit 1
+            fi
+            if [ "$CURRENT" != "$EXPECTED_MAIN_SHA" ]; then
+              echo "PREMATCH_CAPTURE_STOP: production HEAD $CURRENT != expected main $EXPECTED_MAIN_SHA"
               exit 1
             fi
             if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -188,11 +194,11 @@ jobs:
 
             export GH_TOKEN
             export GITHUB_TOKEN="$GH_TOKEN"
-            /opt/smartxflow/venv/bin/python \
+            PYTHONPATH=/opt/smartxflow /opt/smartxflow/venv/bin/python \
               /opt/smartxflow/scripts/record_learning_revisit_batch.py \
               "$TMP" \
               --dotenv /opt/smartxflow/.env
 
       - name: Gate result
         run: |
-          echo "PREMATCH_CAPTURE_GATE_OK observed_at=${{ steps.due.outputs.observed_at }} due=${{ steps.due.outputs.count }}"
+          echo "PREMATCH_CAPTURE_GATE_OK main_sha=${{ steps.due.outputs.main_sha }} observed_at=${{ steps.due.outputs.observed_at }} due=${{ steps.due.outputs.count }}"
