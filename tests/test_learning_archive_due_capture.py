@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.build_due_learning_revisit_batch import build_due_batch
+from scripts.build_due_learning_revisit_batch import DueCaptureError, build_due_batch
 
 
 class DueLearningCaptureTests(unittest.TestCase):
@@ -79,6 +79,39 @@ class DueLearningCaptureTests(unittest.TestCase):
             ])
             payload = build_due_batch(root, "2026-10-04T15:30:00Z")
             self.assertEqual(payload["captures"], [])
+
+    def test_explicit_backfill_can_target_already_captured_case_at_another_prematch_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            case_id = "20261004-test-watch"
+            self._write_case(root, case_id, "2026-10-04T16:00:00Z")
+            self._write_manifest(root, [
+                {"case_id": case_id, "event": "RECORDED"},
+                {"case_id": case_id, "event": "CAPTURED"},
+            ])
+            payload = build_due_batch(
+                root,
+                "2026-10-04T15:10:00Z",
+                case_ids={case_id},
+            )
+            self.assertEqual(len(payload["captures"]), 1)
+            self.assertEqual(payload["captures"][0]["observed_at"], "2026-10-04T15:10:00Z")
+
+    def test_explicit_backfill_rejects_post_kickoff_timestamp(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            case_id = "20261004-test-watch"
+            self._write_case(root, case_id, "2026-10-04T16:00:00Z")
+            self._write_manifest(root, [{"case_id": case_id, "event": "RECORDED"}])
+            with self.assertRaisesRegex(DueCaptureError, "strictly before kickoff_at"):
+                build_due_batch(root, "2026-10-04T16:00:00Z", case_ids={case_id})
+
+    def test_explicit_backfill_rejects_unknown_case(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_manifest(root, [])
+            with self.assertRaisesRegex(DueCaptureError, "selected case_id not found"):
+                build_due_batch(root, "2026-10-04T15:10:00Z", case_ids={"missing-case"})
 
     def test_skips_finalized_case(self):
         with tempfile.TemporaryDirectory() as tmp:
