@@ -10,67 +10,78 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH
+      - name: Deploy exact main SHA via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: SUPABASE_URL,SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,SESSION_SECRET,PAYMENT_BOT_TOKEN,PAYMENT_CHAT_ID,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,APIFOOTBALL_KEY,BETWATCH_COOKIE,EXCAPPER_COOKIE,BETWACH_API_KEY
+          envs: DEPLOY_SHA
           script: |
-            set -e
+            set -euo pipefail
 
-            # .env dosyasini Python ile yaz (ozel karakter guvenligi icin)
-            python3 - << 'PYEOF'
-            import os
-            lines = [
-                f"SUPABASE_URL={os.environ.get('SUPABASE_URL','')}",
-                f"SUPABASE_ANON_KEY={os.environ.get('SUPABASE_ANON_KEY','')}",
-                f"SUPABASE_SERVICE_ROLE_KEY={os.environ.get('SUPABASE_SERVICE_ROLE_KEY','')}",
-                f"SESSION_SECRET={os.environ.get('SESSION_SECRET','')}",
-                f"PAYMENT_BOT_TOKEN={os.environ.get('PAYMENT_BOT_TOKEN','')}",
-                f"PAYMENT_CHAT_ID={os.environ.get('PAYMENT_CHAT_ID','')}",
-                f"TELEGRAM_BOT_TOKEN={os.environ.get('TELEGRAM_BOT_TOKEN','')}",
-                f"TELEGRAM_CHAT_ID={os.environ.get('TELEGRAM_CHAT_ID','')}",
-                f"APIFOOTBALL_KEY={os.environ.get('APIFOOTBALL_KEY','')}",
-                f"BETWATCH_COOKIE={os.environ.get('BETWATCH_COOKIE','')}",
-                f"excapper_cookie={os.environ.get('EXCAPPER_COOKIE','')}",
-                f"Betwach_api_key={os.environ.get('BETWACH_API_KEY','')}",
-                "REPL_DEPLOYMENT=1",
-            ]
-            with open('/opt/smartxflow/.env', 'w') as f:
-                f.write('\n'.join(lines) + '\n')
-            import os as _os; _os.chmod('/opt/smartxflow/.env', 0o600)
-            import subprocess; subprocess.run(['chown','smartxflow:smartxflow','/opt/smartxflow/.env'])
-            print("env yazildi")
-            PYEOF
-
-            # Kodu guncelle (force-push uyumlu: diverge durumunda reset --hard)
             git config --global --add safe.directory /opt/smartxflow
             cd /opt/smartxflow
-            sudo -u smartxflow git fetch origin main
-            sudo -u smartxflow git reset --hard origin/main
 
-            # Bagimliliklar (lxml sistem paketinden gelir, pip'ten build edilemez)
+            BRANCH="$(sudo -u smartxflow git branch --show-current)"
+            CURRENT="$(sudo -u smartxflow git rev-parse HEAD)"
+
+            if [ "$BRANCH" != "main" ]; then
+              echo "DEPLOY STOP: production branch is '$BRANCH', expected 'main'"
+              exit 1
+            fi
+
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "DEPLOY STOP: tracked production worktree is dirty"
+              sudo -u smartxflow git status --short
+              exit 1
+            fi
+
+            sudo -u smartxflow git fetch origin main
+            TARGET="$(sudo -u smartxflow git rev-parse origin/main)"
+
+            if [ "$TARGET" != "$DEPLOY_SHA" ]; then
+              echo "DEPLOY STOP: origin/main ($TARGET) != requested GitHub SHA ($DEPLOY_SHA)"
+              exit 1
+            fi
+
+            if [ "$CURRENT" != "$TARGET" ]; then
+              if ! sudo -u smartxflow git merge-base --is-ancestor "$CURRENT" "$TARGET"; then
+                echo "DEPLOY STOP: Hetzner HEAD $CURRENT is not an ancestor of target $TARGET"
+                exit 1
+              fi
+              sudo -u smartxflow git merge --ff-only origin/main
+            fi
+
+            FINAL="$(sudo -u smartxflow git rev-parse HEAD)"
+            if [ "$FINAL" != "$DEPLOY_SHA" ]; then
+              echo "DEPLOY STOP: final HEAD $FINAL != requested SHA $DEPLOY_SHA"
+              exit 1
+            fi
+
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "DEPLOY STOP: tracked tree became dirty after fast-forward"
+              sudo -u smartxflow git status --short
+              exit 1
+            fi
+
+            # Preserve the existing production .env and runtime data. No migrations or destructive data actions here.
+
             grep -v '^lxml' /opt/smartxflow/requirements.txt > /tmp/req_nolxml.txt
             chown smartxflow:smartxflow /tmp/req_nolxml.txt
             sudo -u smartxflow /opt/smartxflow/venv/bin/pip install -r /tmp/req_nolxml.txt -q
             rm -f /tmp/req_nolxml.txt
 
-            # CSS/JS minify (her deploy'da)
-            sudo -u smartxflow /opt/smartxflow/venv/bin/python minify.py
-
-            # Static dosya izinleri
             chmod -R o+rx /opt/smartxflow/static/
 
-            # 5 servisi yeniden baslat (ayri ayri — sudoers whitelist uyumlu)
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
             sudo /bin/systemctl restart smartxflow-alarm
             sudo /bin/systemctl restart smartxflow-live
             sudo /bin/systemctl restart smartxflow-poly
 
-            # Saglik kontrolu — 5 servisin tumu aktif olmali
             sleep 4
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
@@ -78,17 +89,15 @@ jobs:
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
 
-            echo "Deploy tamamlandi: $(date)"
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          PAYMENT_BOT_TOKEN: ${{ secrets.PAYMENT_BOT_TOKEN }}
-          PAYMENT_CHAT_ID: ${{ secrets.PAYMENT_CHAT_ID }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
-          BETWATCH_COOKIE: ${{ secrets.BETWATCH_COOKIE }}
-          EXCAPPER_COOKIE: ${{ secrets.EXCAPPER_COOKIE }}
-          BETWACH_API_KEY: ${{ secrets.BETWACH_API_KEY }}
+            FINAL_AFTER_RESTART="$(sudo -u smartxflow git rev-parse HEAD)"
+            if [ "$FINAL_AFTER_RESTART" != "$DEPLOY_SHA" ]; then
+              echo "DEPLOY STOP: HEAD changed during deploy"
+              exit 1
+            fi
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "DEPLOY STOP: tracked tree dirty after service restart"
+              sudo -u smartxflow git status --short
+              exit 1
+            fi
+
+            echo "DEPLOY_OK SHA=$FINAL_AFTER_RESTART"
