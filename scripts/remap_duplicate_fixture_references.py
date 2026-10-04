@@ -14,8 +14,8 @@ Safety rules:
   * moneyway_snapshots: exact logical duplicate snapshots are dropped, then the
     remaining stale rows are remapped
   * volumeshock_alarms: the two alarm states are merged under the canonical row
-  * live_fixtures: stale row may be dropped only when all functional fields are
-    identical and the canonical row is at least as new
+  * live_fixtures: static identity fields must match; mutable live state may
+    differ only when the canonical row is at least as new and not less complete
 - fixture rows themselves are NOT deleted here; run the separate cleanup audit
   after references are remapped
 """
@@ -303,13 +303,25 @@ def plan_live_fixture_collision(
 
     stale = stale_rows[0]
     canonical = canonical_rows[0]
-    ignored = {"id", "match_id_hash", "updated_at"}
+    mutable = {"status", "score", "minute"}
+    ignored = {"id", "match_id_hash", "updated_at"} | mutable
     keys = (set(stale) | set(canonical)) - ignored
     differences = sorted(key for key in keys if stale.get(key) != canonical.get(key))
     if differences:
         return None, [
-            "live_fixture_functional_difference "
+            "live_fixture_static_difference "
             f"stale={stale_hash} canonical={canonical_hash_value} fields={','.join(differences)}"
+        ]
+
+    missing_mutable = sorted(
+        key
+        for key in mutable
+        if stale.get(key) not in (None, "") and canonical.get(key) in (None, "")
+    )
+    if missing_mutable:
+        return None, [
+            "live_fixture_canonical_less_complete "
+            f"stale={stale_hash} canonical={canonical_hash_value} fields={','.join(missing_mutable)}"
         ]
 
     stale_updated = _ts(stale.get("updated_at"))
@@ -330,6 +342,7 @@ def plan_live_fixture_collision(
             f"live_fixture_missing_numeric_id stale={stale_hash} canonical={canonical_hash_value}"
         ]
 
+    mutable_differences = sorted(key for key in mutable if stale.get(key) != canonical.get(key))
     return {
         "kind": "live_fixture_drop_stale",
         "table": "live_fixtures",
@@ -339,6 +352,7 @@ def plan_live_fixture_collision(
         "canonical_id": canonical_id,
         "stale_updated_at": stale.get("updated_at"),
         "canonical_updated_at": canonical.get("updated_at"),
+        "mutable_differences": mutable_differences,
     }, []
 
 
@@ -509,7 +523,8 @@ def main() -> int:
             print(
                 "FIXTURE_REMAP_LIVE_FIXTURE_DROP_PLAN "
                 f"hash={operation['stale_hash']} canonical={operation['canonical_hash']} "
-                f"stale_id={operation['stale_id']} canonical_id={operation['canonical_id']}"
+                f"stale_id={operation['stale_id']} canonical_id={operation['canonical_id']} "
+                f"mutable_differences={','.join(operation['mutable_differences']) or 'none'}"
             )
 
     for error in blocked:
