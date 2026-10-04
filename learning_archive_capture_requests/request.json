@@ -1,0 +1,42 @@
+{
+  "request_id": "backfill-20261004-scheduled-prematch-revisits",
+  "requests": [
+    {
+      "observed_at": "2026-10-04T15:36:49Z",
+      "case_ids": [
+        "20261004-kosovo-austria-dc-x2",
+        "20261004-malta-andorra-btts-no",
+        "20261004-triglav-jesenice-dc-x2"
+      ]
+    },
+    {
+      "observed_at": "2026-10-04T16:05:05Z",
+      "case_ids": [
+        "20261004-castellon-ceuta-ou25-over",
+        "20261004-las-palmas-valladolid-btts-yes"
+      ]
+    },
+    {
+      "observed_at": "2026-10-04T18:26:36Z",
+      "case_ids": [
+        "20261004-greece-germany-1x2-germany",
+        "20261004-portugal-norway-1x2-portugal",
+        "20261004-ireland-israel-dc-x2-watch",
+        "20261004-netherlands-serbia-ou25-over-watch",
+        "20261004-wales-denmark-ou25-under-watch"
+      ]
+    },
+    {
+      "observed_at": "2026-10-04T20:43:23Z",
+      "case_ids": [
+        "20261004-internacional-once-caldas-pass"
+      ]
+    },
+    {
+      "observed_at": "2026-10-04T20:51:07Z",
+      "case_ids": [
+        "20261004-guabira-oriente-pass"
+      ]
+    }
+  ]
+}
