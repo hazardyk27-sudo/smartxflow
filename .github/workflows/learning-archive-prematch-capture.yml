@@ -1,6 +1,17 @@
 name: Learning Archive Prematch Capture
 
 on:
+  push:
+    branches:
+      - preview
+    paths:
+      - '.github/workflows/learning-archive-prematch-capture.yml'
+      - 'learning_archive/revisit.py'
+      - 'scripts/build_due_learning_revisit_batch.py'
+      - 'scripts/record_learning_case.py'
+      - 'scripts/record_learning_revisit_batch.py'
+      - 'tests/test_learning_archive_due_capture.py'
+      - 'tests/test_learning_archive_revisit.py'
   schedule:
     # Avoid the top-of-hour scheduler hotspot while scanning frequently enough
     # to land one durable revisit inside the final 35 minutes before kickoff.
@@ -11,11 +22,36 @@ permissions:
   contents: write
 
 concurrency:
-  group: learning-archive-prematch-capture
+  group: learning-archive-prematch-capture-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
+  test:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview
+          fetch-depth: 1
+
+      - name: Run prematch capture regression tests
+        run: |
+          python -m unittest \
+            tests.test_learning_archive_revisit \
+            tests.test_learning_archive_due_capture
+
+      - name: Compile runtime scripts
+        run: |
+          python -m py_compile \
+            learning_archive/revisit.py \
+            scripts/build_due_learning_revisit_batch.py \
+            scripts/record_learning_case.py \
+            scripts/record_learning_revisit_batch.py
+
   capture:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production code
