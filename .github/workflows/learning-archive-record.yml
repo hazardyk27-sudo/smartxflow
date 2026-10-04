@@ -96,15 +96,13 @@ jobs:
 
             export GH_TOKEN
             /opt/smartxflow/venv/bin/python - "$TMP" <<'PY'
+            import json
             import os
-            import subprocess
             import sys
 
             batch_file = sys.argv[1]
-            env = os.environ.copy()
 
-            # Read production dotenv values literally. Never shell-source the file:
-            # shell expansion can corrupt values containing '$' and can fail under nounset.
+            # Load production dotenv literally into this process. Never shell-source it.
             with open('/opt/smartxflow/.env', 'r', encoding='utf-8') as fh:
                 for raw in fh:
                     line = raw.strip()
@@ -118,19 +116,73 @@ jobs:
                     if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
                         value = value[1:-1]
                     if key:
-                        env[key] = value
+                        os.environ[key] = value
 
-            env['SMARTXFLOW_LEARNING_API_BASE_URL'] = 'http://127.0.0.1:8000'
-            env['GITHUB_TOKEN'] = os.environ['GH_TOKEN']
-            existing_path = env.get('PYTHONPATH', '')
-            env['PYTHONPATH'] = '/opt/smartxflow' + (':' + existing_path if existing_path else '')
+            os.environ['GITHUB_TOKEN'] = os.environ['GH_TOKEN']
+            if '/opt/smartxflow' not in sys.path:
+                sys.path.insert(0, '/opt/smartxflow')
 
-            cmd = [
-                '/opt/smartxflow/venv/bin/python',
-                '/opt/smartxflow/scripts/record_learning_batch.py',
-                batch_file,
-            ]
-            raise SystemExit(subprocess.call(cmd, env=env))
+            from learning_archive.exporter import ArchiveFinalizationError, LearningArchiveExporter
+            from learning_archive.supabase_source import read_learning_archive_match_history
+
+            payload = json.load(open(batch_file, 'r', encoding='utf-8'))
+            cases = payload['cases'] if isinstance(payload, dict) and isinstance(payload.get('cases'), list) else payload
+            if not isinstance(cases, list) or not cases:
+                raise SystemExit('ARCHIVE_GATE_STOP: batch contains no cases')
+
+            exporter = LearningArchiveExporter.from_env()
+            receipts = []
+            failures = []
+
+            def flatten_history(history_payload):
+                rows = []
+                for table_name, table_rows in history_payload.histories.items():
+                    for row in table_rows:
+                        copied = dict(row)
+                        copied['_archive_source_table'] = table_name
+                        rows.append(copied)
+                rows.sort(key=lambda row: (
+                    str(row.get('scraped_at') or row.get('scraped_at_utc') or row.get('snapshot_at') or row.get('created_at') or ''),
+                    str(row.get('_archive_source_table') or ''),
+                ))
+                return rows
+
+            for index, case in enumerate(cases):
+                case_id = str(case.get('case_id') or f'index:{index}')
+                try:
+                    match_hash = case['match']['match_id_hash']
+                    observed_at = case['provenance']['archive_created_at']
+                    history = read_learning_archive_match_history(match_hash)
+                    snapshots = flatten_history(history)
+                    if not snapshots:
+                        raise RuntimeError(f'no stored SXF history found for {match_hash}')
+                    result = exporter.record_case(case, snapshots, observed_at=observed_at, revisit=False)
+                    if result.status != 'RECORDED':
+                        raise ArchiveFinalizationError(f'unexpected archive status {result.status}')
+                    receipts.append({
+                        'case_id': case_id,
+                        'status': result.status,
+                        'archive_reference': result.archive_reference,
+                        'archive_commit': result.archive_commit,
+                        'checksum_summary': result.checksum_summary,
+                        'idempotent': result.idempotent,
+                        'source_tables': list(history.source_tables),
+                        'unavailable_optional_tables': list(history.unavailable_optional_tables),
+                    })
+                except Exception as exc:
+                    failures.append({'case_id': case_id, 'error': str(exc)})
+
+            result_payload = {
+                'status': 'BATCH_RECORDED' if not failures else 'BATCH_PARTIAL_FAILED',
+                'requested': len(cases),
+                'recorded': len(receipts),
+                'failed': len(failures),
+                'receipts': receipts,
+                'failures': failures,
+            }
+            stream = sys.stdout if not failures else sys.stderr
+            print(json.dumps(result_payload, ensure_ascii=False, sort_keys=True), file=stream)
+            raise SystemExit(0 if not failures else 1)
             PY
 
       - name: Gate result
