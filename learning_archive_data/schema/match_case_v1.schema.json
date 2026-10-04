@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smartxflow.local/schemas/learning_archive_match_v1.schema.json",
+  "title": "SmartXFlow Learning Archive Match Case v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["archive_schema_version", "case_id", "match", "prediction", "evidence", "settlement", "provenance"],
+  "properties": {
+    "archive_schema_version": {"const": 1},
+    "case_id": {"type": "string", "minLength": 8},
+    "match": {
+      "type": "object",
+      "required": ["match_id_hash", "league", "home", "away", "kickoff_at"],
+      "properties": {
+        "match_id_hash": {"type": "string", "minLength": 1},
+        "league": {"type": "string", "minLength": 1},
+        "home": {"type": "string", "minLength": 1},
+        "away": {"type": "string", "minLength": 1},
+        "kickoff_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "prediction": {
+      "type": "object",
+      "required": ["prediction_at", "decision", "confidence", "rationale", "counterargument"],
+      "properties": {
+        "prediction_at": {"type": "string", "format": "date-time"},
+        "decision": {"enum": ["BET", "WATCH", "PASS"]},
+        "market": {"type": ["string", "null"]},
+        "selection": {"type": ["string", "null"]},
+        "entry_odds": {"type": ["number", "null"], "exclusiveMinimum": 1},
+        "confidence": {"type": ["number", "string"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "counterargument": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidence": {"type": "array"},
+    "settlement": {"type": "object", "required": ["status"], "properties": {"status": {"enum": ["PENDING", "WIN", "LOSS", "VOID"]}}},
+    "provenance": {"type": "object", "required": ["archive_created_at", "source_repo", "source_commit"]}
+  }
+}
