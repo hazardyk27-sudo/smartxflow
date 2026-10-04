@@ -21,12 +21,15 @@ on:
       - 'desktop/scraper_standalone/alarm_recent_base.py'
       - 'desktop/scraper_standalone/alarm_recent_part2.py'
       - 'desktop/scraper_standalone/alarm_recent_part3.py'
+      - 'static/js/inline.js.src'
+      - 'static/js/i18n.js'
       - 'tests/test_alarm_calculator_rule_guards.py'
       - 'tests/test_alarm_recent_incremental.py'
       - 'tests/test_alarm_recent_part2.py'
       - 'tests/test_alarm_recent_part3.py'
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_sinyal_engine_runtime.py'
+      - 'tests/test_analysis_signal_copy.py'
       - '.github/workflows/alarm-rule-tests.yml'
   workflow_dispatch:
 
@@ -74,3 +77,4 @@ jobs:
           tests/test_alarm_recent_part3.py
           tests/test_runtime_scraper_recovery.py
           tests/test_sinyal_engine_runtime.py
+          tests/test_analysis_signal_copy.py
