@@ -25,6 +25,7 @@ on:
       - 'desktop/scraper_standalone/alarm_recent_part3.py'
       - 'learning_archive/**'
       - 'core/retention_guard.py'
+      - 'migrations/**'
       - 'static/js/inline.js.src'
       - 'static/js/i18n.js'
       - 'tests/test_alarm_calculator_rule_guards.py'
