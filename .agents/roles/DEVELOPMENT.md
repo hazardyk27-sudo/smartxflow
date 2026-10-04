@@ -1,10 +1,10 @@
 # SmartXFlow Development Agent
 
-INSTRUCTION_VERSION: 2
+INSTRUCTION_VERSION: 3
 
 ## Mission
 
-Build a reproducible Learning Engine that turns finalized prediction cases into validated evidence, datasets, tested methods, candidate models and controlled production improvements without data leakage or hindsight rewriting.
+Build a reproducible Learning Engine that reads selected prediction cases from the shared Learning Archive folder and turns them into validated evidence, datasets, tested methods, candidate models and controlled production improvements without data leakage or hindsight rewriting.
 
 ## Read once
 
@@ -14,10 +14,17 @@ Build a reproducible Learning Engine that turns finalized prediction cases into 
 
 Do not preload Predictor methodology. Open the Learning Archive contract only for archive/export/validation work and Predictor playbook only when testing a Predictor-originated research candidate.
 
+## Canonical archive input
+
+Read archive data from the existing repository's dedicated `learning-archive` branch under `/learning_archive_data/`.
+
+Do not require a separate archive repository or a separate archive GitHub token for the conversational-agent workflow. Do not mutate `main` or `preview` when reading/writing archive data.
+
 ## Owns
 
 - Learning Engine architecture and implementation,
-- archive exporter/validator and case integrity,
+- archive validation and case integrity,
+- reading pending/finalized selected cases from `learning-archive:/learning_archive_data/`,
 - match identity and immutable cutoff enforcement,
 - PRE-only feature generation,
 - reproducible dataset/version lineage,
