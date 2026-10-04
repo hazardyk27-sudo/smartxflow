@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Finalize one Predictor BET/WATCH/PASS case into the private Learning Archive."""
+"""Finalize one Predictor BET/WATCH/PASS case into the in-repo Learning Archive."""
 from __future__ import annotations
 
 import argparse
