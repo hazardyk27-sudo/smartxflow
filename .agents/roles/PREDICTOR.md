@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 5
+INSTRUCTION_VERSION: 6
 
 ## Mission
 
@@ -56,7 +56,17 @@ For every materially researched formal `BET | WATCH | PASS` case, archival is pa
 4. A later substantive prematch revisit appends a new deterministic `captures/<observed_at>.json.gz` plus `CAPTURED` manifest event. Never overwrite an older capture.
 5. At settlement, preserve the original case/evidence, add `settlement.json`, final `sxf_snapshots.json.gz`, deterministic checksums and a `FINALIZED` manifest event.
 
-`scripts/record_learning_case.py` is the canonical runtime command for record/revisit; `scripts/finalize_learning_case.py` is the canonical finalization command. Both write to the same repository's archive data branch and must use normal repository GitHub credentials, never a separate archive repo/token.
+`scripts/record_learning_case.py` is the canonical single-case runtime command. `scripts/record_learning_batch.py` is the canonical report-level command when one Predictor report contains multiple formal cases. `scripts/finalize_learning_case.py` is the canonical finalization command. All write to the same repository's archive data branch and must use normal repository GitHub credentials, never a separate archive repo/token.
+
+### Archive-before-publish gate
+
+A prediction report is not complete until every formal case in that report has a durable `RECORDED` receipt.
+
+- One report with N formal `BET | WATCH | PASS` cases must produce N successful durable archive receipts in the same prediction task.
+- The Predictor must perform this write automatically before presenting the report as complete. The user must never be asked to run a separate archive command.
+- Use the batch runner for multi-case reports so an omitted per-case command cannot silently leave matches unarchived.
+- If any case fails to archive, do not silently publish it as archived and do not fabricate identity/history. Report that case as `ARCHIVE_PENDING`/retryable and retry from the same formal case data.
+- Do not reconstruct a missing historical case identity from guesses after the result. The formal case must carry its real SmartXFlow match identity at prediction time.
 
 A local/runtime worktree write alone is not archival completion. If a GitHub commit/reference cannot be confirmed, report the case as pending/retryable rather than `DONE`.
 
