@@ -1,6 +1,7 @@
 import json
 
 from scripts.remap_duplicate_fixture_references import (
+    plan_live_fixture_collision,
     plan_snapshot_collision,
     plan_volumeshock_collision,
 )
@@ -153,3 +154,71 @@ def test_volumeshock_collision_blocks_key_mismatch():
     assert operation is None
     assert len(errors) == 1
     assert "volumeshock_key_mismatch" in errors[0]
+
+
+def test_live_fixture_collision_allows_identical_older_stale_row():
+    stale = [{
+        "id": 1,
+        "match_id_hash": "aaaaaaaaaaaa",
+        "home_team": "Home",
+        "away_team": "Away",
+        "league": "League",
+        "kickoff_utc": "2026-10-04T19:00:00+00:00",
+        "fixture_date": "2026-10-04",
+        "status": "live",
+        "score": "0-1",
+        "minute": "19'",
+        "updated_at": "2026-10-04T19:20:13+00:00",
+    }]
+    canonical = [{
+        "id": 2,
+        "match_id_hash": "bbbbbbbbbbbb",
+        "home_team": "Home",
+        "away_team": "Away",
+        "league": "League",
+        "kickoff_utc": "2026-10-04T19:00:00+00:00",
+        "fixture_date": "2026-10-04",
+        "status": "live",
+        "score": "0-1",
+        "minute": "19'",
+        "updated_at": "2026-10-04T19:20:23+00:00",
+    }]
+
+    operation, errors = plan_live_fixture_collision(
+        "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
+    )
+
+    assert errors == []
+    assert operation is not None
+    assert operation["kind"] == "live_fixture_drop_stale"
+    assert operation["stale_id"] == 1
+    assert operation["canonical_id"] == 2
+
+
+def test_live_fixture_collision_blocks_functional_difference_or_older_canonical():
+    stale = [{
+        "id": 1,
+        "match_id_hash": "aaaaaaaaaaaa",
+        "home_team": "Home",
+        "away_team": "Away",
+        "status": "live",
+        "score": "1-1",
+        "updated_at": "2026-10-04T19:20:23+00:00",
+    }]
+    canonical = [{
+        "id": 2,
+        "match_id_hash": "bbbbbbbbbbbb",
+        "home_team": "Home",
+        "away_team": "Away",
+        "status": "live",
+        "score": "0-1",
+        "updated_at": "2026-10-04T19:20:13+00:00",
+    }]
+
+    operation, errors = plan_live_fixture_collision(
+        "aaaaaaaaaaaa", "bbbbbbbbbbbb", stale, canonical
+    )
+
+    assert operation is None
+    assert len(errors) == 1
+    assert "live_fixture_functional_difference" in errors[0]
