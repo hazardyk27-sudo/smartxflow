@@ -53,14 +53,22 @@ def normalize_kickoff(ko: str) -> str:
     return ko
 
 
+def _normalize_runner_name(value: str) -> str:
+    return " ".join(str(value or "").strip().lower().split())
+
+
 def map_market(mkt_name: str, runners: list, *, home=None, away=None, **_legacy_kwargs):
     """
     Betwatch market adını ve runner listesini (market_key, [(sel_code, runner)]) formatına dönüştürür.
-    Desteklenen marketler: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
-    Diğerleri için (None, []) döner.
 
-    ``home``/``away`` ve bilinmeyen keyword argümanları eski scraper snapshot'larıyla
-    geriye uyumluluk için kabul edilir; market eşlemesini etkilemez.
+    Desteklenen gerçek provider marketleri:
+    - Match Odds -> 1X2
+    - Draw no Bet -> DNB
+    - Over/Under 2.5 Goals -> OU25
+    - Both teams to Score? -> BTTS
+
+    Double Chance Betwatch'ın mevcut football market listesinde sunulmadığı için burada
+    ASLA 1X2'den sentetik olarak üretilmez.
     """
     name = (mkt_name or "").strip()
 
@@ -79,6 +87,22 @@ def map_market(mkt_name: str, runners: list, *, home=None, away=None, **_legacy_
         if len(sels) == 3 and sels[1][0] != "X":
             sels[1] = ("X", sels[1][1])
         return "1X2", sels
+
+    elif name.lower() == "draw no bet":
+        if len(runners) != 2:
+            return None, []
+        home_norm = _normalize_runner_name(home)
+        away_norm = _normalize_runner_name(away)
+        sels = []
+        for r in runners:
+            r_name = _normalize_runner_name(r.get("name"))
+            if home_norm and r_name == home_norm:
+                sels.append(("1", r))
+            elif away_norm and r_name == away_norm:
+                sels.append(("2", r))
+        if len(sels) != 2:
+            sels = [("1", runners[0]), ("2", runners[1])]
+        return "DNB", sels
 
     elif name.startswith("Over/Under 2.5"):
         sels = []
@@ -112,7 +136,9 @@ def betwatch_live_minute(live_info: dict) -> str:
     if live_info.get("is_ht"):
         return "HT"
     t = live_info.get("time", 0) or 0
-    return f"{t}'"
+    if t > 0:
+        return f"{t}'"
+    return ""
 
 
 def betwatch_live_score(live_info: dict) -> str:
