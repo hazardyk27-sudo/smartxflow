@@ -62,6 +62,8 @@ class LearningArchiveExporter:
         validation = validate_case(case, snapshots)
         if not validation.ok:
             raise ArchiveFinalizationError("validator FAIL: " + "; ".join(validation.errors))
+        if case["settlement"]["status"] != "PENDING":
+            raise ArchiveFinalizationError("record/capture requires PENDING settlement; settled cases must use finalization")
         package = build_record_package(case, snapshots, observed_at, revisit=revisit)
         write = self.backend.write_case(package, case)
         if not write.archive_reference or not write.commit_sha:
