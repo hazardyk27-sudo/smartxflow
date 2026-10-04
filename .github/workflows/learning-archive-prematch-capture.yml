@@ -4,14 +4,18 @@ on:
   push:
     branches:
       - preview
+      - learning-archive-capture-requests
     paths:
       - '.github/workflows/learning-archive-prematch-capture.yml'
       - 'learning_archive/revisit.py'
       - 'scripts/build_due_learning_revisit_batch.py'
+      - 'scripts/build_learning_revisit_request_batch.py'
       - 'scripts/record_learning_case.py'
       - 'scripts/record_learning_revisit_batch.py'
       - 'tests/test_learning_archive_due_capture.py'
+      - 'tests/test_learning_archive_capture_request.py'
       - 'tests/test_learning_archive_revisit.py'
+      - 'learning_archive_capture_requests/**'
   schedule:
     # Avoid the top-of-hour scheduler hotspot while scanning frequently enough
     # to land one durable revisit inside the final 35 minutes before kickoff.
@@ -31,12 +35,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: learning-archive-prematch-capture-${{ github.event_name }}
+  group: learning-archive-prematch-capture-${{ github.event_name }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   test:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref_name == 'preview'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout preview
@@ -49,18 +53,20 @@ jobs:
         run: |
           python -m unittest \
             tests.test_learning_archive_revisit \
-            tests.test_learning_archive_due_capture
+            tests.test_learning_archive_due_capture \
+            tests.test_learning_archive_capture_request
 
       - name: Compile runtime scripts
         run: |
           python -m py_compile \
             learning_archive/revisit.py \
             scripts/build_due_learning_revisit_batch.py \
+            scripts/build_learning_revisit_request_batch.py \
             scripts/record_learning_case.py \
             scripts/record_learning_revisit_batch.py
 
   capture:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' || github.ref_name == 'learning-archive-capture-requests'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout production code
@@ -77,6 +83,14 @@ jobs:
           path: archive
           fetch-depth: 1
 
+      - name: Checkout explicit capture request
+        if: github.event_name == 'push' && github.ref_name == 'learning-archive-capture-requests'
+        uses: actions/checkout@v4
+        with:
+          ref: learning-archive-capture-requests
+          path: request
+          fetch-depth: 1
+
       - name: Build due prematch capture batch
         id: due
         shell: bash
@@ -85,33 +99,46 @@ jobs:
           INPUT_CASE_IDS: ${{ inputs.case_ids || '' }}
         run: |
           set -euo pipefail
-          ARGS=()
 
-          if [ -n "$INPUT_OBSERVED_AT" ] || [ -n "$INPUT_CASE_IDS" ]; then
-            if [ -z "$INPUT_OBSERVED_AT" ] || [ -z "$INPUT_CASE_IDS" ]; then
-              echo "PREMATCH_CAPTURE_STOP: historical backfill requires both observed_at and case_ids"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REF_NAME}" = "learning-archive-capture-requests" ]; then
+            REQUEST_FILE="$GITHUB_WORKSPACE/request/learning_archive_capture_requests/request.json"
+            if [ ! -f "$REQUEST_FILE" ]; then
+              echo "PREMATCH_CAPTURE_STOP: request.json missing on request branch"
               exit 1
             fi
-            OBSERVED_AT="$INPUT_OBSERVED_AT"
-            IFS=',' read -ra RAW_CASE_IDS <<< "$INPUT_CASE_IDS"
-            for raw_case_id in "${RAW_CASE_IDS[@]}"; do
-              case_id="$(printf '%s' "$raw_case_id" | xargs)"
-              if [ -z "$case_id" ]; then
-                echo "PREMATCH_CAPTURE_STOP: empty case_id in workflow input"
+            python app/scripts/build_learning_revisit_request_batch.py \
+              "$GITHUB_WORKSPACE/archive" \
+              "$REQUEST_FILE" \
+              --output "$RUNNER_TEMP/due-revisits.json"
+            OBSERVED_AT="REQUEST_BATCH"
+          else
+            ARGS=()
+            if [ -n "$INPUT_OBSERVED_AT" ] || [ -n "$INPUT_CASE_IDS" ]; then
+              if [ -z "$INPUT_OBSERVED_AT" ] || [ -z "$INPUT_CASE_IDS" ]; then
+                echo "PREMATCH_CAPTURE_STOP: historical backfill requires both observed_at and case_ids"
                 exit 1
               fi
-              ARGS+=(--case-id "$case_id")
-            done
-          else
-            OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          fi
+              OBSERVED_AT="$INPUT_OBSERVED_AT"
+              IFS=',' read -ra RAW_CASE_IDS <<< "$INPUT_CASE_IDS"
+              for raw_case_id in "${RAW_CASE_IDS[@]}"; do
+                case_id="$(printf '%s' "$raw_case_id" | xargs)"
+                if [ -z "$case_id" ]; then
+                  echo "PREMATCH_CAPTURE_STOP: empty case_id in workflow input"
+                  exit 1
+                fi
+                ARGS+=(--case-id "$case_id")
+              done
+            else
+              OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            fi
 
-          python app/scripts/build_due_learning_revisit_batch.py \
-            "$GITHUB_WORKSPACE/archive" \
-            --observed-at "$OBSERVED_AT" \
-            --max-minutes-before-kickoff 35 \
-            "${ARGS[@]}" \
-            --output "$RUNNER_TEMP/due-revisits.json"
+            python app/scripts/build_due_learning_revisit_batch.py \
+              "$GITHUB_WORKSPACE/archive" \
+              --observed-at "$OBSERVED_AT" \
+              --max-minutes-before-kickoff 35 \
+              "${ARGS[@]}" \
+              --output "$RUNNER_TEMP/due-revisits.json"
+          fi
 
           COUNT="$(python - "$RUNNER_TEMP/due-revisits.json" <<'PY'
           import json, sys
