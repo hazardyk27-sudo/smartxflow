@@ -8,6 +8,7 @@ on:
       - '.github/workflows/signal-retention.yml'
   schedule:
     - cron: '17 2 * * *'
+    - cron: '2-57/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +16,7 @@ permissions:
 
 jobs:
   cleanup:
+    if: github.event_name != 'schedule' || github.event.schedule == '17 2 * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,3 +37,51 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SIGNAL_RETENTION_DAYS: '7'
         run: python scripts/cleanup_signal_retention.py
+
+  prematch-capture-backup:
+    if: github.event_name == 'schedule' && github.event.schedule == '2-57/5 * * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Enqueue and drain prematch captures on Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_MAIN_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_MAIN_SHA,GH_TOKEN
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+
+            BRANCH="$(git branch --show-current)"
+            CURRENT="$(git rev-parse HEAD)"
+            if [ "$BRANCH" != "main" ] || [ "$CURRENT" != "$EXPECTED_MAIN_SHA" ]; then
+              echo "PREMATCH_BACKUP_STOP: production checkout does not match scheduled main SHA"
+              exit 1
+            fi
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "PREMATCH_BACKUP_STOP: production tracked worktree is dirty"
+              exit 1
+            fi
+
+            echo "PREMATCH_PRIMARY_TIMER=$(systemctl is-active smartxflow-learning-archive-prematch.timer || true)"
+
+            sudo -u smartxflow env PYTHONPATH=/opt/smartxflow \
+              /opt/smartxflow/venv/bin/python \
+              /opt/smartxflow/scripts/enqueue_due_learning_revisit.py
+
+            sudo -u smartxflow env \
+              PYTHONPATH=/opt/smartxflow \
+              GITHUB_TOKEN="$GH_TOKEN" \
+              GH_TOKEN="$GH_TOKEN" \
+              /opt/smartxflow/venv/bin/python \
+              /opt/smartxflow/scripts/drain_due_learning_revisit_queue.py \
+              --dotenv /opt/smartxflow/.env
+
+            echo "PREMATCH_BACKUP_GATE_OK main_sha=$CURRENT"
