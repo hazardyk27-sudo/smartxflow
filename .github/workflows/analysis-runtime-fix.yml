@@ -33,10 +33,10 @@ jobs:
       - name: Generate and validate
         run: |
           set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest httpx requests pytz csscompressor rjsmin
           python minify.py
           node --check static/js/ui.js
           python -m py_compile scheduled_scraper.py sinyal_engine.py scripts/cleanup_signal_retention.py
-          python -m pip install --disable-pip-version-check -q pytest httpx requests pytz
           python -m pytest -q \
             tests/test_runtime_scraper_recovery.py \
             tests/test_analysis_signal_copy.py
