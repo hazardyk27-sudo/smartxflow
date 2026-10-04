@@ -14,6 +14,8 @@ Safety rules:
   * moneyway_snapshots: exact logical duplicate snapshots are dropped, then the
     remaining stale rows are remapped
   * volumeshock_alarms: the two alarm states are merged under the canonical row
+  * live_fixtures: stale row may be dropped only when all functional fields are
+    identical and the canonical row is at least as new
 - fixture rows themselves are NOT deleted here; run the separate cleanup audit
   after references are remapped
 """
@@ -287,6 +289,59 @@ def plan_volumeshock_collision(
     }, []
 
 
+def plan_live_fixture_collision(
+    stale_hash: str,
+    canonical_hash_value: str,
+    stale_rows: list[dict[str, Any]],
+    canonical_rows: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, list[str]]:
+    if len(stale_rows) != 1 or len(canonical_rows) != 1:
+        return None, [
+            "live_fixture_expected_one_each "
+            f"stale={stale_hash}:{len(stale_rows)} canonical={canonical_hash_value}:{len(canonical_rows)}"
+        ]
+
+    stale = stale_rows[0]
+    canonical = canonical_rows[0]
+    ignored = {"id", "match_id_hash", "updated_at"}
+    keys = (set(stale) | set(canonical)) - ignored
+    differences = sorted(key for key in keys if stale.get(key) != canonical.get(key))
+    if differences:
+        return None, [
+            "live_fixture_functional_difference "
+            f"stale={stale_hash} canonical={canonical_hash_value} fields={','.join(differences)}"
+        ]
+
+    stale_updated = _ts(stale.get("updated_at"))
+    canonical_updated = _ts(canonical.get("updated_at"))
+    if stale_updated is None or canonical_updated is None:
+        return None, [
+            f"live_fixture_invalid_updated_at stale={stale_hash} canonical={canonical_hash_value}"
+        ]
+    if canonical_updated < stale_updated:
+        return None, [
+            f"live_fixture_canonical_older stale={stale_hash} canonical={canonical_hash_value}"
+        ]
+
+    stale_id = stale.get("id")
+    canonical_id = canonical.get("id")
+    if not isinstance(stale_id, int) or not isinstance(canonical_id, int):
+        return None, [
+            f"live_fixture_missing_numeric_id stale={stale_hash} canonical={canonical_hash_value}"
+        ]
+
+    return {
+        "kind": "live_fixture_drop_stale",
+        "table": "live_fixtures",
+        "stale_hash": stale_hash,
+        "canonical_hash": canonical_hash_value,
+        "stale_id": stale_id,
+        "canonical_id": canonical_id,
+        "stale_updated_at": stale.get("updated_at"),
+        "canonical_updated_at": canonical.get("updated_at"),
+    }, []
+
+
 def build_plan() -> tuple[list[dict[str, Any]], list[str]]:
     mappings = _duplicate_mappings()
     refs, reference_errors = build_reference_map([stale for stale, _ in mappings])
@@ -327,6 +382,10 @@ def build_plan() -> tuple[list[dict[str, Any]], list[str]]:
                 )
             elif table == "volumeshock_alarms":
                 operation, errors = plan_volumeshock_collision(
+                    stale_hash, canonical_hash_value, stale_rows, canonical_rows
+                )
+            elif table == "live_fixtures":
+                operation, errors = plan_live_fixture_collision(
                     stale_hash, canonical_hash_value, stale_rows, canonical_rows
                 )
             else:
@@ -407,6 +466,8 @@ def apply_plan(operations: list[dict[str, Any]]) -> None:
         elif kind == "volumeshock_merge":
             _patch_id(table, int(operation["canonical_id"]), operation["merged_payload"])
             _delete_id(table, int(operation["stale_id"]))
+        elif kind == "live_fixture_drop_stale":
+            _delete_id(table, int(operation["stale_id"]))
         else:
             raise RuntimeError(f"unknown operation kind={kind}")
 
@@ -444,6 +505,12 @@ def main() -> int:
                 f"hash={operation['stale_hash']} canonical={operation['canonical_hash']} "
                 f"stale_id={operation['stale_id']} canonical_id={operation['canonical_id']}"
             )
+        elif operation["kind"] == "live_fixture_drop_stale":
+            print(
+                "FIXTURE_REMAP_LIVE_FIXTURE_DROP_PLAN "
+                f"hash={operation['stale_hash']} canonical={operation['canonical_hash']} "
+                f"stale_id={operation['stale_id']} canonical_id={operation['canonical_id']}"
+            )
 
     for error in blocked:
         print(f"FIXTURE_REMAP_BLOCKED {error}")
@@ -453,6 +520,7 @@ def main() -> int:
         f"operations={len(operations)} blocked={len(blocked)} "
         f"plain={counts['remap']} snapshots={counts['snapshot_dedupe_remap']} "
         f"volumeshock_merges={counts['volumeshock_merge']} "
+        f"live_fixture_drops={counts['live_fixture_drop_stale']} "
         f"apply={int(APPLY)} plan_sha256={digest}"
     )
 
