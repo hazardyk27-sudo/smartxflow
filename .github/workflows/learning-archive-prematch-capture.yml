@@ -17,6 +17,15 @@ on:
     # to land one durable revisit inside the final 35 minutes before kickoff.
     - cron: '2/5 * * * *'
   workflow_dispatch:
+    inputs:
+      observed_at:
+        description: 'Optional historical prematch cutoff, ISO-8601. Use only with case_ids.'
+        required: false
+        type: string
+      case_ids:
+        description: 'Optional comma-separated formal case_ids for deterministic backfill. Use only with observed_at.'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -71,13 +80,37 @@ jobs:
       - name: Build due prematch capture batch
         id: due
         shell: bash
+        env:
+          INPUT_OBSERVED_AT: ${{ inputs.observed_at || '' }}
+          INPUT_CASE_IDS: ${{ inputs.case_ids || '' }}
         run: |
           set -euo pipefail
-          OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ARGS=()
+
+          if [ -n "$INPUT_OBSERVED_AT" ] || [ -n "$INPUT_CASE_IDS" ]; then
+            if [ -z "$INPUT_OBSERVED_AT" ] || [ -z "$INPUT_CASE_IDS" ]; then
+              echo "PREMATCH_CAPTURE_STOP: historical backfill requires both observed_at and case_ids"
+              exit 1
+            fi
+            OBSERVED_AT="$INPUT_OBSERVED_AT"
+            IFS=',' read -ra RAW_CASE_IDS <<< "$INPUT_CASE_IDS"
+            for raw_case_id in "${RAW_CASE_IDS[@]}"; do
+              case_id="$(printf '%s' "$raw_case_id" | xargs)"
+              if [ -z "$case_id" ]; then
+                echo "PREMATCH_CAPTURE_STOP: empty case_id in workflow input"
+                exit 1
+              fi
+              ARGS+=(--case-id "$case_id")
+            done
+          else
+            OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
+
           python app/scripts/build_due_learning_revisit_batch.py \
             "$GITHUB_WORKSPACE/archive" \
             --observed-at "$OBSERVED_AT" \
             --max-minutes-before-kickoff 35 \
+            "${ARGS[@]}" \
             --output "$RUNNER_TEMP/due-revisits.json"
 
           COUNT="$(python - "$RUNNER_TEMP/due-revisits.json" <<'PY'
