@@ -68,13 +68,42 @@ jobs:
             trap 'rm -f "$TMP"' EXIT
             printf '%s' "$QUEUE_B64" | base64 -d > "$TMP"
 
-            set -a
-            . /opt/smartxflow/.env
-            set +a
-            export SMARTXFLOW_LEARNING_API_BASE_URL="http://127.0.0.1:8000"
-            export GITHUB_TOKEN="$GH_TOKEN"
+            export GH_TOKEN
+            /opt/smartxflow/venv/bin/python - "$TMP" <<'PY'
+            import os
+            import subprocess
+            import sys
 
-            /opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/record_learning_batch.py "$TMP"
+            batch_file = sys.argv[1]
+            env = os.environ.copy()
+
+            # Read production dotenv values literally. Never shell-source the file:
+            # shell expansion can corrupt values containing '$' and can fail under nounset.
+            with open('/opt/smartxflow/.env', 'r', encoding='utf-8') as fh:
+                for raw in fh:
+                    line = raw.strip()
+                    if not line or line.startswith('#') or '=' not in line:
+                        continue
+                    key, value = line.split('=', 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if key.startswith('export '):
+                        key = key[7:].strip()
+                    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                        value = value[1:-1]
+                    if key:
+                        env[key] = value
+
+            env['SMARTXFLOW_LEARNING_API_BASE_URL'] = 'http://127.0.0.1:8000'
+            env['GITHUB_TOKEN'] = os.environ['GH_TOKEN']
+
+            cmd = [
+                '/opt/smartxflow/venv/bin/python',
+                '/opt/smartxflow/scripts/record_learning_batch.py',
+                batch_file,
+            ]
+            raise SystemExit(subprocess.call(cmd, env=env))
+            PY
 
       - name: Gate result
         run: |
