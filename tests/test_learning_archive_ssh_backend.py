@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from learning_archive.exporter import ArchiveFinalizationError, LearningArchiveExporter
 from learning_archive.github_backend import GitSshArchiveBackend
+from learning_archive.ssh_batch_backend import GitSshBatchArchiveBackend
 from scripts.drain_due_learning_revisit_queue import _archive_credentials_available
 
 
@@ -34,7 +35,7 @@ class LearningArchiveSshBackendTests(unittest.TestCase):
             self.assertIsInstance(exporter.backend, GitSshArchiveBackend)
             self.assertEqual(exporter.backend.ssh_key, key.resolve())
 
-    def test_token_backend_remains_preferred_when_actions_token_exists(self):
+    def test_dedicated_ssh_batch_backend_is_preferred_when_actions_token_exists(self):
         with tempfile.TemporaryDirectory() as tmp:
             key = self._key(tmp)
             with patch.dict(
@@ -47,7 +48,8 @@ class LearningArchiveSshBackendTests(unittest.TestCase):
                 clear=False,
             ):
                 exporter = LearningArchiveExporter.from_env()
-            self.assertNotIsInstance(exporter.backend, GitSshArchiveBackend)
+            self.assertIsInstance(exporter.backend, GitSshBatchArchiveBackend)
+            self.assertEqual(exporter.backend.ssh_key, key.resolve())
 
     def test_permissive_private_key_permissions_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:

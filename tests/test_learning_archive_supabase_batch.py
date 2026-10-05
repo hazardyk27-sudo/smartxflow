@@ -23,11 +23,21 @@ class _Http:
     def __init__(self):
         self.calls: list[str] = []
 
+    @staticmethod
+    def _requested(url: str) -> set[str]:
+        marker = "match_id_hash=in.("
+        if marker not in url:
+            return set()
+        tail = url.split(marker, 1)[1]
+        values = tail.split(")", 1)[0]
+        return {value for value in values.split(",") if value}
+
     def get(self, url, *, headers, timeout):
         self.calls.append(url)
         table = urlparse(url).path.rsplit("/", 1)[-1]
+        requested = self._requested(url)
         if table == "fixtures":
-            return _Response([
+            fixtures = [
                 {
                     "match_id_hash": "aaaaaaaaaaaa",
                     "home_team": "A",
@@ -44,24 +54,27 @@ class _Http:
                     "kickoff_utc": "2026-10-05T19:00:00Z",
                     "fixture_date": "2026-10-05",
                 },
-            ])
+            ]
+            return _Response([row for row in fixtures if row["match_id_hash"] in requested])
         if table == REQUIRED_HISTORY_TABLES[0]:
-            return _Response([
+            rows = [
                 {
                     "match_id_hash": "aaaaaaaaaaaa",
                     "scraped_at": "2026-10-05T17:00:00Z",
                     "odds1": 2.0,
                 }
-            ])
+            ]
+            return _Response([row for row in rows if row["match_id_hash"] in requested])
         if table == FALLBACK_HISTORY_TABLE:
-            return _Response([
+            rows = [
                 {
                     "match_id_hash": "bbbbbbbbbbbb",
                     "scraped_at_utc": "2026-10-05T18:00:00Z",
                     "odds": 1.9,
                     "share": 55,
                 }
-            ])
+            ]
+            return _Response([row for row in rows if row["match_id_hash"] in requested])
         return _Response([])
 
 
