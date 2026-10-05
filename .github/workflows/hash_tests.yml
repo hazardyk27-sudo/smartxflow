@@ -8,6 +8,7 @@ on:
       - 'core/fixture_identity_v2.py'
       - 'core/fixture_identity_shadow.py'
       - 'core/fixture_uid_dual_write.py'
+      - 'core/fixture_uid_provider_gate.py'
       - 'core/current_table_sync.py'
       - 'services/**'
       - 'betwatch_client.py'
@@ -64,6 +65,7 @@ jobs:
         python -m py_compile core/fixture_identity_v2.py
         python -m py_compile core/fixture_identity_shadow.py
         python -m py_compile core/fixture_uid_dual_write.py
+        python -m py_compile core/fixture_uid_provider_gate.py
         python -m py_compile core/current_table_sync.py
         python -m py_compile betwatch_client.py
         python -m py_compile betwatch_prematch.py
