@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Read-only validation for Fixture Identity V2 Part 4 dual-write.
+"""Read-only Fixture Identity V2 Part 5 runtime-parity probe.
 
-The probe fetches one Betwatch prematch payload and reads existing Supabase
-fixture/provider mappings. It mutates only in-memory row dictionaries. It never
-writes current, history, snapshot, fixture, signal, alarm, or archive rows.
+This probe exercises the same provider-gated UID resolver used by prematch current
+writes. It never writes current/history/snapshot/fixture/registry rows. Snapshot
+UIDs are expected to remain fail-closed until snapshots carry provider-verifiable
+physical identity.
 """
 
 from __future__ import annotations
@@ -21,15 +22,13 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "desktop" / "scraper_standalone"))
 
 from betwatch_client import fetch_prematch, normalize_kickoff  # noqa: E402
-from core.fixture_identity_v2 import extract_betwatch_identity  # noqa: E402
-from core.fixture_uid_dual_write import (  # noqa: E402
-    attach_fixture_uids_to_current_rows,
-    attach_fixture_uids_to_snapshots,
-)
+from core.fixture_identity_shadow import build_betwatch_identity_stage  # noqa: E402
+from core.fixture_uid_dual_write import attach_fixture_uids_to_snapshots  # noqa: E402
+from core.fixture_uid_provider_gate import attach_provider_verified_fixture_uids  # noqa: E402
 from core.hash_utils import make_match_id_hash  # noqa: E402
 from standalone_scraper import SupabaseWriter  # noqa: E402
 
-PAGE_SIZE = 1000
+PAGE_SIZE = 500
 
 
 def _require_env() -> tuple[str, str]:
@@ -44,19 +43,20 @@ def _require_env() -> tuple[str, str]:
     return url, service_key
 
 
-def _provider_registry(writer: SupabaseWriter) -> Dict[str, str]:
+def _registry_for_events(writer: SupabaseWriter, event_ids: Set[str]) -> Dict[str, str]:
+    wanted = sorted(event_ids)
     result: Dict[str, str] = {}
-    offset = 0
-    while True:
+    for start in range(0, len(wanted), PAGE_SIZE):
+        chunk = wanted[start:start + PAGE_SIZE]
+        if not chunk:
+            continue
         response = requests.get(
             writer._rest_url("fixture_source_ids"),
             headers=writer._headers(),
             params={
                 "select": "source_event_id,fixture_uid",
                 "source": "eq.betwatch",
-                "order": "source_event_id.asc",
-                "limit": PAGE_SIZE,
-                "offset": offset,
+                "source_event_id": f"in.({','.join(chunk)})",
             },
             timeout=30,
         )
@@ -69,25 +69,47 @@ def _provider_registry(writer: SupabaseWriter) -> Dict[str, str]:
             fixture_uid = str(row.get("fixture_uid") or "").strip()
             if event_id and fixture_uid:
                 result[event_id] = fixture_uid
-        if len(payload) < PAGE_SIZE:
-            return result
-        offset += PAGE_SIZE
+    return result
 
 
 def main() -> int:
     url, service_key = _require_env()
     writer = SupabaseWriter(url, service_key)
+
     matches = fetch_prematch(timeout=40)
     if not matches:
         print("UID_PROBE_RESULT=FAIL_CLOSED reason=empty_payload")
         return 2
 
+    batch = build_betwatch_identity_stage(matches)
+    safe_event_by_hash: Dict[str, str] = {}
+    safe_physical_by_hash: Dict[str, tuple[str, str, str, str]] = {}
+    event_to_hashes: Dict[str, Set[str]] = defaultdict(set)
+
+    hash_collision_groups = 0
+    physical_collision_groups = 0
+    for match_hash, event_ids in batch.hash_to_event_ids.items():
+        physical_keys = batch.hash_to_physical_keys.get(match_hash, set())
+        for event_id in event_ids:
+            event_to_hashes[event_id].add(match_hash)
+        if len(event_ids) != 1:
+            hash_collision_groups += 1
+            continue
+        if len(physical_keys) != 1:
+            physical_collision_groups += 1
+            continue
+        safe_event_by_hash[match_hash] = next(iter(event_ids))
+        safe_physical_by_hash[match_hash] = next(iter(physical_keys))
+
+    provider_event_collision_groups = sum(
+        1 for hashes in event_to_hashes.values() if len(hashes) > 1
+    )
+
+    writer._fixture_identity_event_by_hash = dict(safe_event_by_hash)
+    writer._fixture_identity_physical_by_hash = dict(safe_physical_by_hash)
+
     current_rows: List[dict] = []
     snapshot_rows: List[dict] = []
-    hash_to_provider_ids: Dict[str, Set[str]] = defaultdict(set)
-    provider_to_hash: Dict[str, str] = {}
-    missing_provider_ids = 0
-
     for match in matches:
         teams = match.get("teams") or {}
         home = str(teams.get("v1") or "").strip()
@@ -109,18 +131,13 @@ def main() -> int:
             "selection": "PROBE",
         })
 
-        identity = extract_betwatch_identity(match)
-        if identity is None:
-            missing_provider_ids += 1
-            continue
-        hash_to_provider_ids[match_hash].add(identity.event_id)
-        provider_to_hash[identity.event_id] = match_hash
+    registry = _registry_for_events(writer, set(safe_event_by_hash.values()))
+    registry_missing = sum(
+        1 for event_id in safe_event_by_hash.values() if event_id not in registry
+    )
 
-    hash_collision_groups = sum(1 for ids in hash_to_provider_ids.values() if len(ids) > 1)
-
-    current_stats = attach_fixture_uids_to_current_rows(
+    current_stats = attach_provider_verified_fixture_uids(
         writer,
-        "moneyway_1x2",
         current_rows,
         request_get=requests.get,
     )
@@ -131,67 +148,48 @@ def main() -> int:
         request_get=requests.get,
     )
 
-    hash_to_uid = {
-        make_match_id_hash(row["home"], row["away"], row["league"], row["date"]):
-        str(row.get("fixture_uid") or "").strip()
-        for row in current_rows
-        if row.get("fixture_uid")
-    }
+    current_tagged = int(current_stats.get("tagged_rows") or 0)
+    current_unresolved = int(current_stats.get("unresolved_rows") or 0)
+    current_mismatch = int(current_stats.get("identity_mismatch_rows") or 0)
+    current_conflicts = int(current_stats.get("conflicting_existing_uid") or 0)
 
-    registry = _provider_registry(writer)
-    registry_overlap = 0
-    registry_missing = 0
-    registry_uid_conflicts = 0
-    for event_id, match_hash in provider_to_hash.items():
-        registry_uid = registry.get(event_id)
-        if not registry_uid:
-            registry_missing += 1
-            continue
-        registry_overlap += 1
-        resolved_uid = hash_to_uid.get(match_hash)
-        if not resolved_uid or resolved_uid != registry_uid:
-            registry_uid_conflicts += 1
-
-    current_snapshot_uid_mismatch = 0
-    for snapshot in snapshot_rows:
-        match_hash = str(snapshot.get("match_id_hash") or "")
-        if str(snapshot.get("fixture_uid") or "") != hash_to_uid.get(match_hash, ""):
-            current_snapshot_uid_mismatch += 1
+    snapshot_fail_closed = (
+        int(snapshot_stats.get("tagged_rows") or 0) == 0
+        and int(snapshot_stats.get("unresolved_rows") or 0) == len(snapshot_rows)
+        and snapshot_stats.get("error") == "snapshot_provider_identity_required"
+    )
 
     print(
         "UID_PROBE "
         f"payload_rows={len(matches)} current_rows={len(current_rows)} "
-        f"provider_ids={len(provider_to_hash)} missing_provider_ids={missing_provider_ids} "
+        f"eligible_rows={batch.eligible_rows} missing_provider_ids={batch.missing_provider_ids} "
+        f"safe_hashes={len(safe_event_by_hash)} "
         f"hash_collision_groups={hash_collision_groups} "
-        f"current_tagged={current_stats.get('tagged_rows', 0)} "
-        f"current_unresolved={current_stats.get('unresolved_rows', 0)} "
-        f"current_conflicts={current_stats.get('conflicting_existing_uid', 0)} "
+        f"physical_collision_groups={physical_collision_groups} "
+        f"provider_event_collision_groups={provider_event_collision_groups} "
+        f"registry_overlap={len(registry)} registry_missing={registry_missing} "
+        f"current_tagged={current_tagged} current_unresolved={current_unresolved} "
+        f"current_mismatch={current_mismatch} current_conflicts={current_conflicts} "
         f"current_error={current_stats.get('error') or 'none'} "
         f"snapshot_tagged={snapshot_stats.get('tagged_rows', 0)} "
         f"snapshot_unresolved={snapshot_stats.get('unresolved_rows', 0)} "
-        f"snapshot_conflicts={snapshot_stats.get('conflicting_existing_uid', 0)} "
         f"snapshot_error={snapshot_stats.get('error') or 'none'} "
-        f"registry_overlap={registry_overlap} registry_missing={registry_missing} "
-        f"registry_uid_conflicts={registry_uid_conflicts} "
-        f"current_snapshot_uid_mismatch={current_snapshot_uid_mismatch}"
+        f"snapshot_fail_closed={1 if snapshot_fail_closed else 0}"
     )
 
     failed = any((
-        missing_provider_ids,
+        int(batch.missing_provider_ids or 0),
         hash_collision_groups,
-        int(current_stats.get("unresolved_rows") or 0),
-        int(current_stats.get("conflicting_existing_uid") or 0),
+        physical_collision_groups,
+        provider_event_collision_groups,
+        registry_missing,
+        current_unresolved,
+        current_mismatch,
+        current_conflicts,
         1 if current_stats.get("error") else 0,
-        int(snapshot_stats.get("unresolved_rows") or 0),
-        int(snapshot_stats.get("conflicting_existing_uid") or 0),
-        1 if snapshot_stats.get("error") else 0,
-        registry_uid_conflicts,
-        current_snapshot_uid_mismatch,
+        0 if current_tagged == len(current_rows) else 1,
+        0 if snapshot_fail_closed else 1,
     ))
-    if current_stats.get("tagged_rows") != len(current_rows):
-        failed = True
-    if snapshot_stats.get("tagged_rows") != len(snapshot_rows):
-        failed = True
 
     if failed:
         print("UID_PROBE_RESULT=FAIL_CLOSED")
