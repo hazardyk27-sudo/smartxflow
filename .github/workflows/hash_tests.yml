@@ -21,6 +21,7 @@ on:
       - 'scripts/run_fixture_identity_shadow_probe.py'
       - 'migrations/2026_10_05_fixture_identity_v2_additive.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_shadow_rpc.sql'
+      - 'migrations/2026_10_06_fixture_identity_v2_reference_columns.sql'
       - 'desktop/scraper_standalone/**'
       - 'tests/test_hash.py'
       - 'tests/test_fixture_integrity.py'
@@ -28,6 +29,7 @@ on:
       - 'tests/test_fixture_identity_v2_migration.py'
       - 'tests/test_fixture_identity_shadow.py'
       - 'tests/test_fixture_identity_shadow_migration.py'
+      - 'tests/test_fixture_identity_v2_reference_columns.py'
       - 'tests/test_fixture_reference_remap.py'
       - 'tests/test_current_table_sync.py'
       - 'docs/fixture_identity_v2.md'
@@ -78,6 +80,7 @@ jobs:
         python -m pytest -q tests/test_fixture_identity_v2_migration.py
         python -m pytest -q tests/test_fixture_identity_shadow.py
         python -m pytest -q tests/test_fixture_identity_shadow_migration.py
+        python -m pytest -q tests/test_fixture_identity_v2_reference_columns.py
         python -m pytest -q tests/test_current_table_sync.py
 
     - name: Run fixture reference remap planner regressions
