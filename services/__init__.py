@@ -35,3 +35,10 @@ def _bind_supabase_fixture_identity() -> None:
 
 
 _bind_supabase_fixture_identity()
+
+# Current market tables are intentionally prematch-current only.  Keep the UI
+# useful after kickoff by showing the final prematch history snapshot when a
+# visible started/finished fixture no longer has a current-table row.
+from .display_history_fallback import bind_display_history_fallback
+
+bind_display_history_fallback()
