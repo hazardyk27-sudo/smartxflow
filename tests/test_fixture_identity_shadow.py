@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
 from dataclasses import dataclass
+from pathlib import Path
 
 import core.fixture_identity_shadow as shadow
 
@@ -123,3 +125,30 @@ def test_shadow_db_failure_never_raises_into_legacy_flow(monkeypatch):
     stats = shadow.flush_staged_betwatch_identity_shadow(_Writer())
     assert stats["attempted"] is True
     assert stats["error"] == "db unavailable"
+
+
+def test_desktop_betwatch_client_stages_prematch_payload(monkeypatch):
+    """The deployed runtime resolves the desktop client copy first on sys.path."""
+    client_path = (
+        Path(__file__).resolve().parents[1]
+        / "desktop"
+        / "scraper_standalone"
+        / "betwatch_client.py"
+    )
+    spec = importlib.util.spec_from_file_location("desktop_betwatch_client_test", client_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+
+    payload = [_match(9001), _match(9002, home="C", away="D")]
+    monkeypatch.setattr(module.requests, "get", lambda *args, **kwargs: _Response(200, payload))
+
+    shadow.clear_betwatch_identity_stage()
+    returned = module.fetch_prematch(timeout=1)
+    staged = shadow.consume_betwatch_identity_stage()
+
+    assert returned == payload
+    assert staged is not None
+    assert staged.total_rows == 2
+    assert staged.eligible_rows == 2
+    assert staged.missing_provider_ids == 0
