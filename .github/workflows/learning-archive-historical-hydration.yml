@@ -1,0 +1,88 @@
+name: Learning Archive Historical Hydration
+
+on:
+  push:
+    branches:
+      - preview
+    paths:
+      - 'learning_archive_hydration_queue/*.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learning-archive-historical-hydration-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  hydrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Resolve exactly one hydration payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^learning_archive_hydration_queue/.*\.json$' || true)
+          if [ "${#FILES[@]}" -ne 1 ]; then
+            echo "HYDRATION_GATE_STOP: expected exactly one hydration queue JSON change, got ${#FILES[@]}"
+            printf '%s\n' "${FILES[@]:-}"
+            exit 1
+          fi
+          FILE="${FILES[0]}"
+          python -m json.tool "$FILE" >/dev/null
+          python -m py_compile scripts/hydrate_learning_archive_history.py
+          python -m py_compile scripts/hydrate_learning_archive_history_offset_safe.py
+          QUEUE_B64="$(base64 -w0 "$FILE")"
+          HYDRATOR_B64="$(base64 -w0 scripts/hydrate_learning_archive_history.py)"
+          RUNNER_B64="$(base64 -w0 scripts/hydrate_learning_archive_history_offset_safe.py)"
+          echo "QUEUE_B64=$QUEUE_B64" >> "$GITHUB_ENV"
+          echo "HYDRATOR_B64=$HYDRATOR_B64" >> "$GITHUB_ENV"
+          echo "RUNNER_B64=$RUNNER_B64" >> "$GITHUB_ENV"
+
+      - name: Hydrate and verify archive artifacts
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          QUEUE_B64: ${{ env.QUEUE_B64 }}
+          HYDRATOR_B64: ${{ env.HYDRATOR_B64 }}
+          RUNNER_B64: ${{ env.RUNNER_B64 }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: QUEUE_B64,HYDRATOR_B64,RUNNER_B64,GH_TOKEN
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+            BRANCH="$(git branch --show-current)"
+            if [ "$BRANCH" != "main" ]; then
+              echo "HYDRATION_GATE_STOP: production runtime branch is '$BRANCH', expected main"
+              exit 1
+            fi
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "HYDRATION_GATE_STOP: tracked production worktree is dirty"
+              git status --short
+              exit 1
+            fi
+
+            TMP_QUEUE="$(mktemp /tmp/sxf-history-hydration.XXXXXX.json)"
+            TMP_HYDRATOR="$(mktemp /tmp/sxf-history-hydrator.XXXXXX.py)"
+            TMP_RUNNER="$(mktemp /tmp/sxf-history-runner.XXXXXX.py)"
+            cleanup() { rm -f "$TMP_QUEUE" "$TMP_HYDRATOR" "$TMP_RUNNER"; }
+            trap cleanup EXIT
+
+            printf '%s' "$QUEUE_B64" | base64 -d > "$TMP_QUEUE"
+            printf '%s' "$HYDRATOR_B64" | base64 -d > "$TMP_HYDRATOR"
+            printf '%s' "$RUNNER_B64" | base64 -d > "$TMP_RUNNER"
+            export GH_TOKEN
+            export GITHUB_TOKEN="$GH_TOKEN"
+
+            /opt/smartxflow/venv/bin/python "$TMP_RUNNER" "$TMP_QUEUE" \
+              --hydrator "$TMP_HYDRATOR" \
+              --dotenv /opt/smartxflow/.env
