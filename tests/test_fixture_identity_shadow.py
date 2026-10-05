@@ -50,6 +50,7 @@ def test_stage_fails_closed_when_provider_id_missing():
     assert batch.eligible_rows == 1
     assert batch.missing_provider_ids == 1
     assert len(batch.hash_to_event_ids) == 1
+    assert len(batch.hash_to_physical_keys) == 1
 
 
 def test_same_hash_with_two_provider_ids_is_excluded(monkeypatch):
@@ -69,6 +70,27 @@ def test_same_hash_with_two_provider_ids_is_excluded(monkeypatch):
     assert stats["error"] is None
 
 
+def test_same_hash_with_two_physical_kickoffs_is_excluded(monkeypatch):
+    batch = shadow.stage_betwatch_identity_payload([
+        _match(1001, kickoff="2026-10-06T18:00:00Z"),
+        _match(1001, kickoff="2026-11-06T18:00:00Z"),
+    ])
+    assert len(batch.hash_to_event_ids) == 1
+    assert len(next(iter(batch.hash_to_physical_keys.values()))) == 2
+
+    monkeypatch.setattr(
+        shadow.requests,
+        "get",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("DB lookup must not run for ambiguous physical hash")
+        ),
+    )
+    stats = shadow.flush_staged_betwatch_identity_shadow(_Writer())
+    assert stats["physical_collision_groups"] == 1
+    assert stats["submitted_bindings"] == 0
+    assert stats["error"] is None
+
+
 def test_shadow_binding_uses_fixture_uid_and_rpc(monkeypatch):
     shadow.stage_betwatch_identity_payload([
         _match(1001),
@@ -78,16 +100,22 @@ def test_shadow_binding_uses_fixture_uid_and_rpc(monkeypatch):
     captured = {}
 
     def fake_get(url, **kwargs):
-        hashes_filter = kwargs["params"]["match_id_hash"]
-        assert hashes_filter.startswith("in.(")
-        values = hashes_filter[4:-1].split(",")
-        return _Response(
-            200,
-            [
-                {"match_id_hash": values[0], "fixture_uid": "11111111-1111-1111-1111-111111111111"},
-                {"match_id_hash": values[1], "fixture_uid": "22222222-2222-2222-2222-222222222222"},
-            ],
-        )
+        params = kwargs["params"]
+        if url.endswith("/fixtures"):
+            hashes_filter = params["match_id_hash"]
+            assert hashes_filter.startswith("in.(")
+            values = hashes_filter[4:-1].split(",")
+            return _Response(
+                200,
+                [
+                    {"match_id_hash": values[0], "fixture_uid": "11111111-1111-1111-1111-111111111111"},
+                    {"match_id_hash": values[1], "fixture_uid": "22222222-2222-2222-2222-222222222222"},
+                ],
+            )
+        if url.endswith("/fixture_source_ids"):
+            assert params["source"] == "eq.betwatch"
+            return _Response(200, [])
+        raise AssertionError(url)
 
     def fake_post(url, **kwargs):
         assert url.endswith("/rpc/record_fixture_identity_shadow_batch")
@@ -105,14 +133,93 @@ def test_shadow_binding_uses_fixture_uid_and_rpc(monkeypatch):
     monkeypatch.setattr(shadow.requests, "get", fake_get)
     monkeypatch.setattr(shadow.requests, "post", fake_post)
 
+    writer = _Writer()
     stats = shadow.flush_staged_betwatch_identity_shadow(
-        _Writer(), observed_at="2026-10-06T18:00:00+00:00"
+        writer, observed_at="2026-10-06T18:00:00+00:00"
     )
     assert captured["p_source"] == "betwatch"
     assert len(captured["p_bindings"]) == 2
     assert stats["submitted_bindings"] == 2
     assert stats["inserted_count"] == 2
     assert stats["conflict_count"] == 0
+    assert len(writer._fixture_identity_event_by_hash) == 2
+    assert len(writer._fixture_identity_physical_by_hash) == 2
+
+
+def test_new_provider_event_cannot_reuse_uid_owned_by_old_event(monkeypatch):
+    shadow.stage_betwatch_identity_payload([_match("new-event")])
+    fixture_uid = "11111111-1111-1111-1111-111111111111"
+
+    def fake_get(url, **kwargs):
+        if url.endswith("/fixtures"):
+            match_filter = kwargs["params"]["match_id_hash"]
+            match_hash = match_filter[4:-1]
+            return _Response(200, [{
+                "match_id_hash": match_hash,
+                "fixture_uid": fixture_uid,
+            }])
+        if url.endswith("/fixture_source_ids"):
+            return _Response(200, [{
+                "fixture_uid": fixture_uid,
+                "source_event_id": "old-event",
+            }])
+        raise AssertionError(url)
+
+    monkeypatch.setattr(shadow.requests, "get", fake_get)
+    monkeypatch.setattr(
+        shadow.requests,
+        "post",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("collision must not be submitted")
+        ),
+    )
+
+    stats = shadow.flush_staged_betwatch_identity_shadow(_Writer())
+    assert stats["uid_provider_collision_groups"] == 1
+    assert stats["submitted_bindings"] == 0
+    assert stats["error"] is None
+
+
+def test_existing_same_provider_event_can_retain_uid(monkeypatch):
+    shadow.stage_betwatch_identity_payload([_match("same-event")])
+    fixture_uid = "11111111-1111-1111-1111-111111111111"
+    posted = {}
+
+    def fake_get(url, **kwargs):
+        if url.endswith("/fixtures"):
+            match_filter = kwargs["params"]["match_id_hash"]
+            match_hash = match_filter[4:-1]
+            return _Response(200, [{
+                "match_id_hash": match_hash,
+                "fixture_uid": fixture_uid,
+            }])
+        if url.endswith("/fixture_source_ids"):
+            return _Response(200, [{
+                "fixture_uid": fixture_uid,
+                "source_event_id": "same-event",
+            }])
+        raise AssertionError(url)
+
+    def fake_post(url, **kwargs):
+        posted.update(kwargs["json"])
+        return _Response(200, [{
+            "inserted_count": 0,
+            "matched_count": 1,
+            "conflict_count": 0,
+            "received_count": 1,
+        }])
+
+    monkeypatch.setattr(shadow.requests, "get", fake_get)
+    monkeypatch.setattr(shadow.requests, "post", fake_post)
+
+    stats = shadow.flush_staged_betwatch_identity_shadow(_Writer())
+    assert posted["p_bindings"] == [{
+        "source_event_id": "same-event",
+        "fixture_uid": fixture_uid,
+    }]
+    assert stats["uid_provider_collision_groups"] == 0
+    assert stats["submitted_bindings"] == 1
+    assert stats["matched_count"] == 1
 
 
 def test_shadow_db_failure_never_raises_into_legacy_flow(monkeypatch):
@@ -152,3 +259,4 @@ def test_desktop_betwatch_client_stages_prematch_payload(monkeypatch):
     assert staged.total_rows == 2
     assert staged.eligible_rows == 2
     assert staged.missing_provider_ids == 0
+    assert len(staged.hash_to_physical_keys) == 2
