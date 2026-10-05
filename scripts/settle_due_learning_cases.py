@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta, timezone
+import gzip
 import json
 import os
 from pathlib import Path
@@ -221,6 +222,51 @@ def _stored_history(match_id_hash: str) -> list[dict[str, Any]]:
     return flattened
 
 
+def _archived_capture_history(case_dir: Path, match_id_hash: str) -> list[dict[str, Any]]:
+    """Load the newest durable prematch capture when live storage has aged out.
+
+    Each CAPTURED file contains the complete stored SXF history available as of its
+    immutable observed_at. Using the newest readable capture preserves the richest
+    prematch history without fabricating later rows.
+    """
+    capture_dir = case_dir / "captures"
+    candidates = sorted(capture_dir.glob("*.json.gz"), reverse=True) if capture_dir.is_dir() else []
+    if not candidates:
+        raise PostmatchSettlementError(f"no archived prematch captures exist for {match_id_hash}")
+
+    expected_hash = str(match_id_hash or "").strip().lower()
+    for capture in candidates:
+        try:
+            with gzip.open(capture, "rt", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise PostmatchSettlementError(f"cannot read archived prematch capture {capture.name}") from exc
+        if not isinstance(payload, list) or not payload:
+            raise PostmatchSettlementError(f"archived prematch capture {capture.name} is empty or invalid")
+
+        rows: list[dict[str, Any]] = []
+        for index, row in enumerate(payload):
+            if not isinstance(row, dict):
+                raise PostmatchSettlementError(f"archived prematch capture {capture.name}[{index}] is not an object")
+            copied = dict(row)
+            row_hash = str(copied.get("match_id_hash") or "").strip().lower()
+            if row_hash and row_hash != expected_hash:
+                raise PostmatchSettlementError(
+                    f"archived prematch capture {capture.name}[{index}] belongs to a different match"
+                )
+            rows.append(copied)
+        return rows
+
+    raise PostmatchSettlementError(f"no readable archived prematch capture exists for {match_id_hash}")
+
+
+def _finalization_history(case_dir: Path, match_id_hash: str) -> list[dict[str, Any]]:
+    try:
+        return _stored_history(match_id_hash)
+    except LearningArchiveSourceError:
+        return _archived_capture_history(case_dir, match_id_hash)
+
+
 def settle_due_cases(
     app_root: Path,
     queue_file: Path,
@@ -287,7 +333,7 @@ def settle_due_cases(
                 _write_queue(queue_file, queue)
                 continue
             try:
-                _, case_doc, evidence = _case_from_event(archive_root, event)
+                case_dir, case_doc, evidence = _case_from_event(archive_root, event)
                 result_row = settlements[case_id]
                 settlement = build_settlement(
                     case_doc,
@@ -306,9 +352,10 @@ def settle_due_cases(
                 provenance["archive_finalized_at"] = now
                 final_case["provenance"] = provenance
 
+                match_hash = str(final_case["match"]["match_id_hash"])
                 snapshots = prepare_final_snapshots(
                     final_case,
-                    _stored_history(final_case["match"]["match_id_hash"]),
+                    _finalization_history(case_dir, match_hash),
                 )
                 finalized_result = exporter.finalize_case(final_case, snapshots)
                 done.append({
