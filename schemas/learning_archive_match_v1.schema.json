@@ -66,13 +66,18 @@
       "type": "object",
       "required": ["status"],
       "properties": {
-        "status": {"enum": ["PENDING", "WIN", "LOSS", "VOID"]},
+        "status": {"enum": ["PENDING", "WIN", "LOSS", "VOID", "NO_BET"]},
         "final_score": {"type": ["string", "null"]},
         "ht_score": {"type": ["string", "null"]},
         "closing_odds": {"type": ["number", "null"]},
         "clv": {"type": ["number", "null"]},
         "pnl_units": {"type": ["number", "null"]},
         "roi": {"type": ["number", "null"]},
+        "result_source": {"type": ["string", "null"]},
+        "result_source_url": {"type": ["string", "null"]},
+        "result_observed_at": {"type": ["string", "null"], "format": "date-time"},
+        "source_status": {"type": ["string", "null"]},
+        "hypothetical_result": {"enum": ["WIN", "LOSS", "VOID", null]},
         "postmortem_class": {"type": ["string", "null"]},
         "postmortem": {"type": ["string", "null"]}
       }

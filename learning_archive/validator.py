@@ -6,7 +6,7 @@ import re
 from typing import Any, Iterable
 
 _DECISIONS = {"BET", "WATCH", "PASS"}
-_SETTLEMENT_STATUSES = {"PENDING", "WIN", "LOSS", "VOID"}
+_SETTLEMENT_STATUSES = {"PENDING", "WIN", "LOSS", "VOID", "NO_BET"}
 _EVIDENCE_RELATIONSHIPS = {"SUPPORTS", "CONTRADICTS", "NEUTRAL", "UNKNOWN"}
 _SENSITIVE_KEY_PARTS = (
     "api_key", "apikey", "access_token", "refresh_token", "auth_token", "authorization",
@@ -174,7 +174,7 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
 
     settlement = _require_mapping(case.get("settlement"), "settlement", errors)
     if settlement is not None and settlement.get("status") not in _SETTLEMENT_STATUSES:
-        errors.append("settlement.status: must be PENDING, WIN, LOSS, or VOID")
+        errors.append("settlement.status: must be PENDING, WIN, LOSS, VOID, or NO_BET")
 
     provenance = _require_mapping(case.get("provenance"), "provenance", errors)
     if provenance is not None:

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run SmartXFlow Learning Archive postmatch finalization periodically
+
+[Timer]
+OnBootSec=4min
+OnUnitActiveSec=10min
+Persistent=true
+AccuracySec=30s
+Unit=smartxflow-learning-archive-postmatch.service
+
+[Install]
+WantedBy=timers.target
