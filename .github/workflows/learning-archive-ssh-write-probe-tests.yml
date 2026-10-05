@@ -1,0 +1,26 @@
+name: Learning Archive SSH Write Probe Tests
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/learning-archive-ssh-write-probe-tests.yml'
+      - 'scripts/verify_learning_archive_ssh_write.py'
+      - 'deploy/systemd/smartxflow-learning-archive-prematch.service'
+      - 'tests/test_learning_archive_ssh_write_probe.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+          fetch-depth: 1
+      - name: Run SSH write probe regressions
+        run: python -m unittest tests.test_learning_archive_ssh_write_probe
+      - name: Compile runtime probe
+        run: python -m py_compile scripts/verify_learning_archive_ssh_write.py
