@@ -6,7 +6,10 @@ on:
     paths:
       - 'core/hash_utils.py'
       - 'core/fixture_identity_v2.py'
+      - 'core/fixture_identity_shadow.py'
+      - 'core/current_table_sync.py'
       - 'services/**'
+      - 'betwatch_client.py'
       - 'betwatch_prematch.py'
       - 'live_scraper.py'
       - 'sinyal_engine.py'
@@ -16,12 +19,16 @@ on:
       - 'scripts/remap_duplicate_fixture_references.py'
       - 'scripts/fixture_identity_v2_dry_run.sql'
       - 'migrations/2026_10_05_fixture_identity_v2_additive.sql'
+      - 'migrations/2026_10_06_fixture_identity_v2_shadow_rpc.sql'
       - 'desktop/scraper_standalone/**'
       - 'tests/test_hash.py'
       - 'tests/test_fixture_integrity.py'
       - 'tests/test_fixture_identity_v2.py'
       - 'tests/test_fixture_identity_v2_migration.py'
+      - 'tests/test_fixture_identity_shadow.py'
+      - 'tests/test_fixture_identity_shadow_migration.py'
       - 'tests/test_fixture_reference_remap.py'
+      - 'tests/test_current_table_sync.py'
       - 'docs/fixture_identity_v2.md'
       - '.github/workflows/hash_tests.yml'
   pull_request:
@@ -48,6 +55,9 @@ jobs:
       run: |
         python -m py_compile core/hash_utils.py
         python -m py_compile core/fixture_identity_v2.py
+        python -m py_compile core/fixture_identity_shadow.py
+        python -m py_compile core/current_table_sync.py
+        python -m py_compile betwatch_client.py
         python -m py_compile betwatch_prematch.py
         python -m py_compile live_scraper.py
         python -m py_compile services/supabase_client.py
@@ -64,6 +74,9 @@ jobs:
         python -m pytest -q tests/test_fixture_integrity.py
         python -m pytest -q tests/test_fixture_identity_v2.py
         python -m pytest -q tests/test_fixture_identity_v2_migration.py
+        python -m pytest -q tests/test_fixture_identity_shadow.py
+        python -m pytest -q tests/test_fixture_identity_shadow_migration.py
+        python -m pytest -q tests/test_current_table_sync.py
 
     - name: Run fixture reference remap planner regressions
       run: python -m pytest -q tests/test_fixture_reference_remap.py
