@@ -14,6 +14,7 @@ _ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_ROOT, "desktop", "scraper_standalone"))
 sys.path.insert(0, os.path.join(_ROOT, "scraper_standalone"))
 
+from core.current_table_sync import sync_current_table
 from core.hash_utils import make_match_id_hash
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
@@ -479,16 +480,18 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             write_errors += 1
 
     for tbl, rows in WRITE_PLAN:
-        if not rows:
-            _log(f"[BW-Pre]   [!] {tbl}: veri yok")
-            continue
         hist_tbl = HISTORY_TABLE[tbl]
-        ok_main = writer.replace_table(tbl, rows)
-        ok_hist = writer.append_history(hist_tbl, rows, scraped_at)
+        ok_main = sync_current_table(writer, tbl, rows, logger=_log)
+        ok_hist = True
+        if rows:
+            ok_hist = writer.append_history(hist_tbl, rows, scraped_at)
+        else:
+            _log(f"[BW-Pre]   [Current] {tbl}: feed boş; current set temizlendi, history korunuyor")
+
         if ok_main:
             total_rows += len(rows)
         if ok_main and ok_hist:
-            _log(f"[BW-Pre]   [OK] {tbl}: {len(rows)} satır")
+            _log(f"[BW-Pre]   [OK] {tbl}: {len(rows)} current satır")
         else:
             _log(f"[BW-Pre]   [HATA] {tbl}: (main={ok_main}, hist={ok_hist})")
             write_errors += 1
