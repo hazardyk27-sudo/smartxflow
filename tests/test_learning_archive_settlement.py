@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import gzip
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from learning_archive.settlement import build_settlement, prepare_final_snapshots
 from learning_archive.validator import validate_case
+from scripts.settle_due_learning_cases import PostmatchSettlementError, _archived_capture_history
 
 
 def case(decision="BET", market="1X2", selection="Portugal", odds=1.64):
@@ -104,6 +109,39 @@ class SettlementTests(unittest.TestCase):
         kept = prepare_final_snapshots(case(), snapshots())
         self.assertEqual(len(kept), 1)
         self.assertEqual(kept[0]["scraped_at"], "2026-10-04T18:40:00Z")
+
+    def test_archived_capture_fallback_uses_newest_durable_capture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            case_dir = Path(tmp)
+            captures = case_dir / "captures"
+            captures.mkdir()
+            older = [
+                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-04T18:30:00Z", "market": "1X2"},
+            ]
+            newer = [
+                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-04T18:30:00Z", "market": "1X2"},
+                {"match_id_hash": "abc123def456", "scraped_at": "2026-10-04T18:40:00Z", "market": "BTTS"},
+            ]
+            for name, payload in (
+                ("20261004T183000Z.json.gz", older),
+                ("20261004T184000Z.json.gz", newer),
+            ):
+                with gzip.open(captures / name, "wt", encoding="utf-8") as handle:
+                    json.dump(payload, handle)
+            loaded = _archived_capture_history(case_dir, "abc123def456")
+            self.assertEqual(loaded, newer)
+
+    def test_archived_capture_fallback_rejects_identity_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            case_dir = Path(tmp)
+            captures = case_dir / "captures"
+            captures.mkdir()
+            with gzip.open(captures / "20261004T184000Z.json.gz", "wt", encoding="utf-8") as handle:
+                json.dump([
+                    {"match_id_hash": "ffffffffffff", "scraped_at": "2026-10-04T18:40:00Z", "market": "1X2"}
+                ], handle)
+            with self.assertRaises(PostmatchSettlementError):
+                _archived_capture_history(case_dir, "abc123def456")
 
 
 if __name__ == "__main__":
