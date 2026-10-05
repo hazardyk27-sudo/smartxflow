@@ -88,16 +88,16 @@ class SettlementTests(unittest.TestCase):
         final["settlement"] = result
         self.assertTrue(validate_case(final, [snapshots()[0]]).ok)
 
-    def test_pass_is_no_bet_without_hypothetical_wager(self):
+    def test_legacy_pass_settles_for_audit_but_is_not_a_valid_new_formal_case(self):
         value = case(decision="PASS", market=None, selection=None, odds=None)
         result = self.settle(value, "1-1")
         self.assertEqual(result["status"], "NO_BET")
         self.assertIsNone(result["hypothetical_result"])
         final = deepcopy(value)
         final["settlement"] = result
-        self.assertTrue(validate_case(final, [snapshots()[0]]).ok)
+        self.assertFalse(validate_case(final, [snapshots()[0]]).ok)
 
-    def test_builder_never_converts_watch_or_pass_into_real_wager(self):
+    def test_builder_never_converts_watch_or_legacy_pass_into_real_wager(self):
         watch = self.settle(case(decision="WATCH", market="Double Chance", selection="X2", odds=1.67), "1-1")
         passed = self.settle(case(decision="PASS", market=None, selection=None, odds=None), "2-1")
         self.assertEqual(watch["status"], "NO_BET")
