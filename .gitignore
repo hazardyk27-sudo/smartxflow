@@ -51,6 +51,8 @@ Thumbs.db
 data/
 *.json
 !static/i18n/*.json
+# Learning Archive finalized settlements are canonical tracked data.
+!learning_archive_data/**/settlement.json
 
 # Attached assets (uploaded files with potential secrets)
 attached_assets/
