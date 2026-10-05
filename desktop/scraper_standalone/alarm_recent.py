@@ -7,6 +7,9 @@ Part 3: Sharp + Dropping + no-prefetch six-alarm runner.
 Shared guards installed here keep every incremental alarm on the same contract:
 - Previous-window boundaries come only from prematch ``scrape_complete`` signals.
 - A fixture must still be prematch at the active signal timestamp.
+- Snapshot windows have capacity for a 5-minute high-volume schedule.
+- Hitting the snapshot safety cap fails closed instead of calculating on a
+  silently truncated window.
 """
 
 import alarm_recent_base as _base
@@ -23,6 +26,18 @@ _install_part2_alarm_overrides = _part2.install_part2_alarm_overrides
 _clear_part2_alarm_cache = _part2.clear_part2_alarm_cache
 
 _ORIGINAL_LOAD_FIXTURES = _base._load_fixtures
+_ORIGINAL_BASE_WINDOW = _base._fetch_recent_snapshot_window
+_ORIGINAL_PART2_WINDOW = _part2._fetch_part2_snapshot_window
+_ORIGINAL_SHARP_WINDOW = _part3._fetch_sharp_window
+_ORIGINAL_DROPPING_WINDOW = _part3._fetch_dropping_window
+
+# 5-minute cadence capacity contract:
+# 4,000 snapshot rows/cycle * 30 cycles for the default 150-minute Dropping
+# lookback = 120,000 rows. 150k leaves a 25% buffer while remaining bounded.
+INCREMENTAL_MAX_ROWS = 150_000
+_base.MAX_ROWS = INCREMENTAL_MAX_ROWS
+_part2.MAX_ROWS = INCREMENTAL_MAX_ROWS
+_part3.MAX_ROWS = INCREMENTAL_MAX_ROWS
 
 
 def _load_previous_scrape_complete_signals(calculator, signal, count=2):
@@ -77,6 +92,43 @@ def _load_active_prematch_fixtures(calculator, hashes):
     return active
 
 
+def _require_complete_window(name, payload):
+    """Reject a window that reached the hard row cap.
+
+    Reaching the cap cannot prove whether the final page was complete, so this
+    is deliberately conservative. A skipped alarm cycle is safer than alarms
+    calculated from a truncated recent-history window.
+    """
+    rows_loaded = int((payload or {}).get("rows_loaded") or 0)
+    if rows_loaded >= INCREMENTAL_MAX_ROWS:
+        message = (
+            f"{name} snapshot window reached hard cap "
+            f"({rows_loaded}/{INCREMENTAL_MAX_ROWS}); calculation aborted"
+        )
+        _base._legacy.log(f"[RecentAlarm Guard] {message}")
+        raise RuntimeError(message)
+    return payload
+
+
+def _fetch_base_window_guarded(calculator):
+    return _require_complete_window("Part1", _ORIGINAL_BASE_WINDOW(calculator))
+
+
+def _fetch_part2_window_guarded(calculator):
+    return _require_complete_window("Part2", _ORIGINAL_PART2_WINDOW(calculator))
+
+
+def _fetch_sharp_window_guarded(calculator):
+    return _require_complete_window("Sharp", _ORIGINAL_SHARP_WINDOW(calculator))
+
+
+def _fetch_dropping_window_guarded(calculator, persistence_minutes):
+    return _require_complete_window(
+        "Dropping",
+        _ORIGINAL_DROPPING_WINDOW(calculator, persistence_minutes),
+    )
+
+
 # Part modules import these helpers by name, so update every module-level alias.
 _base._load_previous_signals = _load_previous_scrape_complete_signals
 _part2._load_previous_signals = _load_previous_scrape_complete_signals
@@ -84,6 +136,10 @@ _part3._load_previous_signals = _load_previous_scrape_complete_signals
 _base._load_fixtures = _load_active_prematch_fixtures
 _part2._load_fixtures = _load_active_prematch_fixtures
 _part3._load_fixtures = _load_active_prematch_fixtures
+_base._fetch_recent_snapshot_window = _fetch_base_window_guarded
+_part2._fetch_part2_snapshot_window = _fetch_part2_window_guarded
+_part3._fetch_sharp_window = _fetch_sharp_window_guarded
+_part3._fetch_dropping_window = _fetch_dropping_window_guarded
 
 
 def install_recent_alarm_overrides(calculator_cls):
