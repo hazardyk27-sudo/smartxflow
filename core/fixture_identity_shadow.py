@@ -75,6 +75,23 @@ def stage_betwatch_identity_payload(matches: Iterable[Mapping[str, Any]]) -> Sta
     return batch
 
 
+def peek_safe_betwatch_event_by_hash() -> Dict[str, str]:
+    """Return only unambiguous hash -> provider-event pairs from the live stage.
+
+    This is observational state for Part 4 dual-write. A hash represented by more
+    than one provider event in the same payload is deliberately omitted.
+    """
+    with _STAGE_LOCK:
+        batch = _STAGE
+        if batch is None:
+            return {}
+        return {
+            match_hash: next(iter(event_ids))
+            for match_hash, event_ids in batch.hash_to_event_ids.items()
+            if len(event_ids) == 1
+        }
+
+
 def consume_betwatch_identity_stage() -> Optional[StagedIdentityBatch]:
     global _STAGE
     with _STAGE_LOCK:
@@ -118,6 +135,33 @@ def _read_fixture_uid_map(writer: Any, match_hashes: List[str]) -> Dict[str, str
     return result
 
 
+def _read_betwatch_events_by_uid(writer: Any, fixture_uids: Iterable[str]) -> Dict[str, Set[str]]:
+    """Read existing Betwatch provider bindings for candidate fixture UIDs."""
+    wanted = sorted({str(value or "").strip() for value in fixture_uids if str(value or "").strip()})
+    result: Dict[str, Set[str]] = {}
+    for chunk in _chunks(wanted):
+        response = requests.get(
+            writer._rest_url("fixture_source_ids"),
+            headers=writer._headers(),
+            params={
+                "select": "fixture_uid,source_event_id",
+                "source": f"eq.{BETWATCH_SOURCE}",
+                "fixture_uid": f"in.({','.join(chunk)})",
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not isinstance(payload, list):
+            raise RuntimeError("fixture source lookup returned non-list payload")
+        for row in payload:
+            fixture_uid = str(row.get("fixture_uid") or "").strip()
+            event_id = str(row.get("source_event_id") or "").strip()
+            if fixture_uid and event_id:
+                result.setdefault(fixture_uid, set()).add(event_id)
+    return result
+
+
 def _empty_stats() -> Dict[str, Any]:
     return {
         "attempted": False,
@@ -126,6 +170,7 @@ def _empty_stats() -> Dict[str, Any]:
         "missing_provider_ids": 0,
         "hash_collision_groups": 0,
         "provider_event_collision_groups": 0,
+        "uid_provider_collision_groups": 0,
         "unresolved_hashes": 0,
         "submitted_bindings": 0,
         "inserted_count": 0,
@@ -146,8 +191,8 @@ def flush_staged_betwatch_identity_shadow(
 
     The legacy fixture writer has already run by the time this hook is called.
     Hashes with multiple provider IDs, provider IDs resolving to multiple fixture
-    UIDs, missing fixture UIDs, and DB identity conflicts are all excluded or
-    counted; none is auto-merged.
+    UIDs, missing fixture UIDs, a UID already owned by a different Betwatch event,
+    and DB identity conflicts are all excluded or counted; none is auto-merged.
     """
     stats = _empty_stats()
     batch = consume_betwatch_identity_stage()
@@ -169,6 +214,14 @@ def flush_staged_betwatch_identity_shadow(
                 continue
             safe_hash_to_event[match_hash] = next(iter(event_ids))
 
+        # Preserve this payload-local identity context for Part 4 dual-write after
+        # the stage is consumed. It is never itself authoritative; dual-write also
+        # requires a registry mapping and an exact fixture verification.
+        try:
+            writer._fixture_identity_event_by_hash = dict(safe_hash_to_event)
+        except Exception:
+            pass
+
         if not safe_hash_to_event:
             return stats
 
@@ -181,15 +234,31 @@ def flush_staged_betwatch_identity_shadow(
                 continue
             event_to_uids.setdefault(event_id, set()).add(fixture_uid)
 
-        bindings = []
+        candidate_pairs: List[tuple[str, str]] = []
         for event_id, fixture_uids in event_to_uids.items():
             if len(fixture_uids) != 1:
                 stats["provider_event_collision_groups"] += 1
                 continue
+            candidate_pairs.append((event_id, next(iter(fixture_uids))))
+
+        existing_events_by_uid = _read_betwatch_events_by_uid(
+            writer,
+            (fixture_uid for _, fixture_uid in candidate_pairs),
+        )
+
+        bindings = []
+        for event_id, fixture_uid in candidate_pairs:
+            existing_events = existing_events_by_uid.get(fixture_uid, set())
+            if existing_events and event_id not in existing_events:
+                # Critical rematch guard: the legacy hash may be reused by a new
+                # physical fixture. While UNIQUE(match_id_hash) still exists we
+                # must never attach that new provider event to the old UID.
+                stats["uid_provider_collision_groups"] += 1
+                continue
             bindings.append(
                 {
                     "source_event_id": event_id,
-                    "fixture_uid": next(iter(fixture_uids)),
+                    "fixture_uid": fixture_uid,
                 }
             )
 
@@ -224,6 +293,7 @@ def flush_staged_betwatch_identity_shadow(
                 f"conflicts={stats['conflict_count']} missing_id={stats['missing_provider_ids']} "
                 f"hash_collision={stats['hash_collision_groups']} "
                 f"event_collision={stats['provider_event_collision_groups']} "
+                f"uid_event_collision={stats['uid_provider_collision_groups']} "
                 f"unresolved={stats['unresolved_hashes']}"
             )
         return stats
