@@ -12,6 +12,7 @@ on:
       - 'learning_archive/result_source.py'
       - 'learning_archive/supabase_source.py'
       - 'learning_archive/validator.py'
+      - 'learning_archive/reader.py'
       - 'schemas/learning_archive_match_v1.schema.json'
       - 'scripts/settle_due_learning_cases.py'
       - 'scripts/settle_due_learning_cases_fast.py'
@@ -24,6 +25,8 @@ on:
       - 'tests/test_learning_archive_supabase_batch.py'
       - 'tests/test_learning_archive_settlement.py'
       - 'tests/test_learning_archive_ssh_backend.py'
+      - 'tests/test_learning_archive.py'
+      - 'tests/test_learning_archive_prediction_policy.py'
 
 permissions:
   contents: read
@@ -46,6 +49,7 @@ jobs:
             tests.test_learning_archive_settlement \
             tests.test_learning_archive_ssh_backend \
             tests.test_learning_archive \
+            tests.test_learning_archive_prediction_policy \
             tests.test_learning_archive_lifecycle_guards
       - name: Compile postmatch runtime
         run: |
@@ -56,6 +60,7 @@ jobs:
             learning_archive/result_source.py \
             learning_archive/supabase_source.py \
             learning_archive/validator.py \
+            learning_archive/reader.py \
             scripts/settle_due_learning_cases.py \
             scripts/settle_due_learning_cases_fast.py \
             scripts/repair_missing_learning_settlements.py
