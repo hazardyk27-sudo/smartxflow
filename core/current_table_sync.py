@@ -1,0 +1,190 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+import requests
+
+CURRENT_PAGE_SIZE = 1000
+DELETE_BATCH_SIZE = 200
+_KEY_FIELDS = ("league", "home", "away", "date")
+
+
+def _emit(logger, message: str) -> None:
+    if logger:
+        logger(message)
+
+
+def _record_error(writer, message: str) -> None:
+    errors = getattr(writer, "last_write_errors", None)
+    if isinstance(errors, list) and message not in errors:
+        errors.append(message)
+
+
+def _normalize_date(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return raw
+    if parsed.tzinfo is None:
+        return parsed.replace(microsecond=0).isoformat(timespec="seconds")
+    return (
+        parsed.astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat(timespec="seconds")
+    )
+
+
+def _row_key(row: Dict[str, Any]) -> Tuple[str, str, str, str]:
+    return (
+        str(row.get("league") or "").strip(),
+        str(row.get("home") or "").strip(),
+        str(row.get("away") or "").strip(),
+        _normalize_date(row.get("date")),
+    )
+
+
+def _read_current_index(writer, table: str, logger=None) -> Optional[Dict[Tuple[str, str, str, str], int]]:
+    """Read the complete current-table key -> id index with explicit pagination.
+
+    Returning None means the current set could not be proven, so callers must not
+    prune anything. This is deliberately fail-closed.
+    """
+    index: Dict[Tuple[str, str, str, str], int] = {}
+    offset = 0
+
+    while True:
+        url = (
+            f"{writer._rest_url(table)}"
+            f"?select=id,league,home,away,date"
+            f"&order=id.asc&limit={CURRENT_PAGE_SIZE}&offset={offset}"
+        )
+        try:
+            response = requests.get(url, headers=writer._headers(), timeout=30)
+        except requests.RequestException as exc:
+            message = f"{table}: current index okunamadı ({exc})"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return None
+
+        if response.status_code != 200:
+            message = f"{table}: current index HTTP {response.status_code}"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return None
+
+        try:
+            batch = response.json()
+        except Exception as exc:
+            message = f"{table}: current index JSON okunamadı ({exc})"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return None
+
+        if not isinstance(batch, list):
+            message = f"{table}: current index beklenmeyen response"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return None
+
+        for row in batch:
+            row_id = row.get("id")
+            if row_id is None:
+                message = f"{table}: current satır id alanı eksik; prune iptal"
+                _record_error(writer, message)
+                _emit(logger, f"[Current Sync] HATA — {message}")
+                return None
+            index[_row_key(row)] = int(row_id)
+
+        if len(batch) < CURRENT_PAGE_SIZE:
+            return index
+        offset += CURRENT_PAGE_SIZE
+
+
+def _delete_stale_ids(writer, table: str, stale_ids: Iterable[int], logger=None) -> bool:
+    ids = [int(value) for value in stale_ids]
+    if not ids:
+        return True
+
+    deleted = 0
+    for start in range(0, len(ids), DELETE_BATCH_SIZE):
+        chunk = ids[start:start + DELETE_BATCH_SIZE]
+        id_filter = ",".join(str(value) for value in chunk)
+        url = f"{writer._rest_url(table)}?id=in.({id_filter})"
+        try:
+            response = requests.delete(url, headers=writer._headers(), timeout=45)
+        except requests.RequestException as exc:
+            message = f"{table}: stale prune bağlantı hatası ({exc})"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return False
+
+        if response.status_code not in (200, 204):
+            message = f"{table}: stale prune HTTP {response.status_code}"
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return False
+        deleted += len(chunk)
+
+    _emit(logger, f"[Current Sync] {table}: {deleted} stale current satır silindi")
+    return True
+
+
+def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> bool:
+    """Make a current table exactly represent the latest successful feed set.
+
+    Safety order is intentional:
+      1. Read the full pre-write current index.
+      2. UPSERT the new feed set.
+      3. Only after a successful UPSERT, delete ids whose logical key is absent
+         from the incoming set.
+
+    History/archive tables are never touched here. An empty incoming set is a
+    valid current state and therefore clears the current table, but only after a
+    successful index read. If the index cannot be read, new rows may still be
+    upserted, while pruning is skipped and the run is marked degraded.
+    """
+    clean_rows: List[Dict[str, Any]] = []
+    for row in rows:
+        clean = dict(row)
+        clean.pop("id", None)
+        clean_rows.append(clean)
+
+    existing_index = _read_current_index(writer, table, logger=logger)
+
+    upsert_ok = writer.upsert_rows(
+        table,
+        clean_rows,
+        on_conflict="league,home,away,date",
+    )
+    if not upsert_ok:
+        message = f"{table}: current UPSERT başarısız; prune iptal"
+        _record_error(writer, message)
+        _emit(logger, f"[Current Sync] HATA — {message}")
+        return False
+
+    if existing_index is None:
+        _emit(
+            logger,
+            f"[Current Sync] {table}: yeni set yazıldı fakat eski set doğrulanamadı; prune atlandı",
+        )
+        return False
+
+    incoming_keys = {_row_key(row) for row in clean_rows}
+    stale_ids = [
+        row_id
+        for key, row_id in existing_index.items()
+        if key not in incoming_keys
+    ]
+
+    if not _delete_stale_ids(writer, table, stale_ids, logger=logger):
+        return False
+
+    _emit(
+        logger,
+        f"[Current Sync] {table}: current={len(clean_rows)}, stale={len(stale_ids)}",
+    )
+    return True
