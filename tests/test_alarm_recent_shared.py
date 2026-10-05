@@ -28,6 +28,23 @@ def _rows(count: int, start: datetime):
     return rows
 
 
+def _dense_cycle_rows(matches_per_cycle: int, cycles: int, start: datetime):
+    rows = []
+    for cycle in range(cycles):
+        timestamp = (start + timedelta(minutes=5 * cycle)).isoformat().replace("+00:00", "Z")
+        for match_index in range(matches_per_cycle):
+            rows.append({
+                "match_id_hash": f"m{match_index:04d}",
+                "market": "1X2",
+                "selection": "1",
+                "volume": 1000 + cycle,
+                "share": 50,
+                "odds": 2.0,
+                "scraped_at_utc": timestamp,
+            })
+    return rows
+
+
 class _PagedGet:
     def __init__(self, rows):
         self.rows = rows
@@ -185,3 +202,35 @@ def test_shared_fetch_marks_exact_hard_cap_as_truncated():
     assert window.truncated is True
     assert len(window.rows) == 2000
     assert window.db_pages == 2
+
+
+def test_4000_matches_x_30_cycles_fit_150k_capacity_and_cache_subwindow():
+    start = datetime(2026, 10, 5, 10, 0, tzinfo=timezone.utc)
+    source_rows = _dense_cycle_rows(matches_per_cycle=4000, cycles=30, start=start)
+    getter = _PagedGet(source_rows)
+
+    window = shared.fetch_shared_snapshot_window(
+        getter,
+        start,
+        start + timedelta(minutes=145),
+        page_size=1000,
+        max_rows=150_000,
+    )
+
+    assert len(window.rows) == 120_000
+    assert window.truncated is False
+    # 120 full 1000-row pages plus the final empty page proving completeness.
+    assert window.db_pages == 121
+
+    calls_before = len(getter.calls)
+    cached_get = shared.make_cached_get(window, getter)
+    page = cached_get(
+        "moneyway_snapshots",
+        "select=match_id_hash,market,selection,volume,share,odds,scraped_at_utc"
+        "&scraped_at_utc=gte.2026-10-05T12:00:00Z"
+        "&scraped_at_utc=lte.2026-10-05T12:25:00Z"
+        "&order=scraped_at_utc.asc&limit=1000&offset=0",
+    )
+
+    assert len(page) == 1000
+    assert len(getter.calls) == calls_before
