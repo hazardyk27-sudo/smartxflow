@@ -210,6 +210,22 @@ class LearningArchiveTests(unittest.TestCase):
         case["prediction"]["entry_odds"] = None
         self.assertFalse(validate_case(case, sample_snapshots()).ok)
 
+    def test_pass_is_rejected_from_formal_archive(self):
+        case = sample_case()
+        case["prediction"]["decision"] = "PASS"
+        result = validate_case(case, sample_snapshots())
+        self.assertFalse(result.ok)
+        self.assertTrue(any("must be BET or WATCH" in item for item in result.errors))
+
+    def test_watch_requires_concrete_market_and_selection(self):
+        case = sample_case()
+        case["prediction"]["market"] = None
+        case["prediction"]["selection"] = None
+        result = validate_case(case, sample_snapshots())
+        self.assertFalse(result.ok)
+        self.assertTrue(any("prediction.market" in item for item in result.errors))
+        self.assertTrue(any("prediction.selection" in item for item in result.errors))
+
 
 if __name__ == "__main__":
     unittest.main()
