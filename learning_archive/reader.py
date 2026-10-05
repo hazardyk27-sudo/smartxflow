@@ -72,7 +72,7 @@ class LearningArchiveReader:
 
     def _load_historical_snapshots(self, case_dir: Path) -> tuple[Any | None, dict[str, Any] | None]:
         """Read append-only legacy history hydration without mutating original case checksums."""
-        history_path = case_dir / "historical_sxf_snapshots.json"
+        history_path = case_dir / "historical_sxf_snapshots.json.gz"
         if not history_path.exists():
             return None, None
 
@@ -86,17 +86,17 @@ class LearningArchiveReader:
             digest, name = lines[0].split("  ", 1)
         except ValueError as exc:
             raise LearningArchiveReadError("historical_sxf_snapshots.sha256 is malformed") from exc
-        if name != "historical_sxf_snapshots.json":
+        if name != "historical_sxf_snapshots.json.gz":
             raise LearningArchiveReadError("historical SXF checksum references unexpected artifact")
         raw = history_path.read_bytes()
         if sha256_hex(raw) != digest:
-            raise LearningArchiveReadError("checksum mismatch for historical_sxf_snapshots.json")
+            raise LearningArchiveReadError("checksum mismatch for historical_sxf_snapshots.json.gz")
         try:
-            snapshots = json.loads(raw.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise LearningArchiveReadError("could not read historical_sxf_snapshots.json") from exc
+            snapshots = json.loads(gzip.decompress(raw).decode("utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise LearningArchiveReadError("could not read historical_sxf_snapshots.json.gz") from exc
         if not isinstance(snapshots, list) or not snapshots:
-            raise LearningArchiveReadError("historical_sxf_snapshots.json must contain a non-empty array")
+            raise LearningArchiveReadError("historical_sxf_snapshots.json.gz must contain a non-empty array")
 
         metadata_path = case_dir / "addenda" / "historical_sxf_backfill.json"
         metadata = self._load_json(metadata_path) if metadata_path.exists() else None
