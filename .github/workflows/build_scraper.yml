@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'scraper_standalone/**'
+      - 'desktop/scraper_standalone/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -24,20 +24,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r scraper_standalone/requirements.txt
+          pip install -r desktop/scraper_standalone/requirements.txt
           pip install pyinstaller==6.3.0
         shell: cmd
 
       - name: Create config with secrets
         run: |
-          python -c "import json,re; url='${{ secrets.SUPABASE_URL }}'; key='${{ secrets.SUPABASE_ANON_KEY }}'; m=re.search(r'([a-z]{20,})',url); correct_url=f'https://{m.group(1)}.supabase.co' if m else url; print(f'Corrected URL: {correct_url}'); json.dump({'SUPABASE_URL':correct_url,'SUPABASE_ANON_KEY':key},open('scraper_standalone/config.json','w'),indent=2)"
-          echo "=== config.json content ==="
-          cat scraper_standalone/config.json
+          python -c "import json,re; url='${{ secrets.SUPABASE_URL }}'; key='${{ secrets.SUPABASE_ANON_KEY }}'; m=re.search(r'([a-z]{20,})',url); correct_url=f'https://{m.group(1)}.supabase.co' if m else url; print(f'Corrected URL: {correct_url}'); json.dump({'SUPABASE_URL':correct_url,'SUPABASE_ANON_KEY':key},open('desktop/scraper_standalone/config.json','w'),indent=2)"
+          echo "=== config.json created ==="
         shell: bash
 
       - name: Build Scraper EXE
         run: |
-          cd scraper_standalone
+          cd desktop/scraper_standalone
           python -c "import certifi; print(certifi.where())" > certifi_path.txt
           set /p CERTIFI_PATH=<certifi_path.txt
           pyinstaller --onefile --console --name "SmartXFlowAlarmV1.01Scraper" --icon=NONE --add-data "config.json;." --add-data "%CERTIFI_PATH%;certifi" --collect-data certifi standalone_scraper.py
@@ -45,20 +44,20 @@ jobs:
 
       - name: Prepare dist folder
         run: |
-          copy scraper_standalone\config.json scraper_standalone\dist\config.json
-          echo # SmartXFlowScraper - Calistirma Talimati > scraper_standalone\dist\README.txt
-          echo. >> scraper_standalone\dist\README.txt
-          echo Cift tiklayarak EXE'yi calistir. Konsol penceresi acilacak. >> scraper_standalone\dist\README.txt
-          echo Pencereyi minimize edebilirsin ama kapatma. >> scraper_standalone\dist\README.txt
-          echo Scraper her 10 dakikada bir calisir. >> scraper_standalone\dist\README.txt
+          copy desktop\scraper_standalone\config.json desktop\scraper_standalone\dist\config.json
+          echo # SmartXFlowScraper - Calistirma Talimati > desktop\scraper_standalone\dist\README.txt
+          echo. >> desktop\scraper_standalone\dist\README.txt
+          echo Cift tiklayarak EXE'yi calistir. Konsol penceresi acilacak. >> desktop\scraper_standalone\dist\README.txt
+          echo Pencereyi minimize edebilirsin ama kapatma. >> desktop\scraper_standalone\dist\README.txt
+          echo Scraper her 10 dakikada bir calisir. >> desktop\scraper_standalone\dist\README.txt
         shell: cmd
 
       - name: List output files
         run: |
           echo "=== dist folder contents ==="
-          dir scraper_standalone\dist
+          dir desktop\scraper_standalone\dist
           echo "=== Full path check ==="
-          dir /s /b scraper_standalone\dist\*.exe
+          dir /s /b desktop\scraper_standalone\dist\*.exe
         shell: cmd
 
       - name: Create Release
@@ -67,9 +66,9 @@ jobs:
           tag_name: scraper-v1.01-${{ github.run_number }}
           name: SmartXFlow Scraper v1.01 Build ${{ github.run_number }}
           files: |
-            scraper_standalone/dist/*.exe
-            scraper_standalone/dist/config.json
-            scraper_standalone/dist/README.txt
+            desktop/scraper_standalone/dist/*.exe
+            desktop/scraper_standalone/dist/config.json
+            desktop/scraper_standalone/dist/README.txt
           draft: false
           prerelease: false
         env:
