@@ -5,15 +5,21 @@ on:
     branches: [preview]
     paths:
       - '.github/workflows/learning-archive-postmatch-tests.yml'
+      - 'learning_archive/exporter.py'
+      - 'learning_archive/github_backend.py'
+      - 'learning_archive/ssh_batch_backend.py'
       - 'learning_archive/settlement.py'
       - 'learning_archive/result_source.py'
       - 'learning_archive/validator.py'
       - 'schemas/learning_archive_match_v1.schema.json'
       - 'scripts/settle_due_learning_cases.py'
+      - 'scripts/settle_due_learning_cases_fast.py'
       - 'scripts/repair_missing_learning_settlements.py'
       - 'deploy/systemd/smartxflow-learning-archive-postmatch.service'
       - 'deploy/systemd/smartxflow-learning-archive-postmatch.timer'
+      - 'tests/test_learning_archive_batch_backend.py'
       - 'tests/test_learning_archive_settlement.py'
+      - 'tests/test_learning_archive_ssh_backend.py'
 
 permissions:
   contents: read
@@ -29,14 +35,19 @@ jobs:
       - name: Run postmatch regressions
         run: |
           python -m unittest \
+            tests.test_learning_archive_batch_backend \
             tests.test_learning_archive_settlement \
+            tests.test_learning_archive_ssh_backend \
             tests.test_learning_archive \
             tests.test_learning_archive_lifecycle_guards
       - name: Compile postmatch runtime
         run: |
           python -m py_compile \
+            learning_archive/exporter.py \
+            learning_archive/ssh_batch_backend.py \
             learning_archive/settlement.py \
             learning_archive/result_source.py \
             learning_archive/validator.py \
             scripts/settle_due_learning_cases.py \
+            scripts/settle_due_learning_cases_fast.py \
             scripts/repair_missing_learning_settlements.py
