@@ -10,11 +10,16 @@ Shared guards installed here keep every incremental alarm on the same contract:
 - Snapshot windows have capacity for a 5-minute high-volume schedule.
 - Hitting the snapshot safety cap fails closed instead of calculating on a
   silently truncated window.
+- Overlapping incremental history windows are fetched from Supabase once per
+  signal cycle and then served from an in-memory raw-row cache.
 """
+
+from datetime import timedelta
 
 import alarm_recent_base as _base
 import alarm_recent_part2 as _part2
 import alarm_recent_part3 as _part3
+from alarm_recent_shared import fetch_shared_snapshot_window, make_cached_get
 
 for _name in dir(_base):
     if not _name.startswith("__"):
@@ -30,6 +35,7 @@ _ORIGINAL_BASE_WINDOW = _base._fetch_recent_snapshot_window
 _ORIGINAL_PART2_WINDOW = _part2._fetch_part2_snapshot_window
 _ORIGINAL_SHARP_WINDOW = _part3._fetch_sharp_window
 _ORIGINAL_DROPPING_WINDOW = _part3._fetch_dropping_window
+_ORIGINAL_RUN_ALL_INCREMENTAL = _part3._run_all_incremental
 
 # 5-minute cadence capacity contract:
 # 4,000 snapshot rows/cycle * 30 cycles for the default 150-minute Dropping
@@ -129,6 +135,88 @@ def _fetch_dropping_window_guarded(calculator, persistence_minutes):
     )
 
 
+def _shared_window_bounds(calculator):
+    """Return the superset time range needed by all six incremental motors."""
+    signal = getattr(calculator, "_active_signal", None)
+    if not isinstance(signal, dict):
+        return None
+    current_dt = _base._dt(signal.get("created_at"))
+    if current_dt is None:
+        return None
+
+    previous = _load_previous_scrape_complete_signals(calculator, signal, count=21)
+    previous_times = [_base._dt(row.get("created_at")) for row in previous]
+    previous_times = [value for value in previous_times if value is not None]
+
+    # Sharp needs up to the previous 21 scrape cycles. On a brand-new source
+    # where no prior signal exists, preserve its existing four-hour fallback.
+    if previous_times:
+        sharp_start = min(previous_times) - timedelta(minutes=_base.SIGNAL_PAD_MINUTES)
+    else:
+        sharp_start = current_dt - timedelta(hours=4)
+
+    # Dropping is time-based rather than cycle-count based.
+    config = _part3._effective_config(calculator, "dropping")
+    persistence = _part3._legacy.parse_float(config.get("persistence_minutes"))
+    dropping_lookback = max(60.0, float(persistence) + 30.0)
+    dropping_start = current_dt - timedelta(minutes=dropping_lookback)
+
+    # Part2 falls back to 90 minutes if there are no previous signals.
+    part2_start = current_dt - timedelta(minutes=90)
+    return min(sharp_start, dropping_start, part2_start), current_dt
+
+
+def _prepare_shared_snapshot_window(calculator, original_get):
+    bounds = _shared_window_bounds(calculator)
+    if bounds is None:
+        return None
+    start_dt, end_dt = bounds
+    window = fetch_shared_snapshot_window(
+        original_get,
+        start_dt,
+        end_dt,
+        page_size=_base.PAGE_SIZE,
+        max_rows=INCREMENTAL_MAX_ROWS,
+        logger=_base._legacy.log,
+    )
+    if window.truncated:
+        _base._legacy.log(
+            f"[SharedAlarmWindow] hard cap reached ({INCREMENTAL_MAX_ROWS}); "
+            "shared cache disabled, per-motor fail-closed guards remain active"
+        )
+        return None
+    return window
+
+
+def _run_all_incremental_shared(calculator):
+    """Run the canonical six engines with one shared Supabase history fetch."""
+    original_get = getattr(calculator, "_get", None)
+    if not callable(original_get):
+        # Unit/legacy compatibility objects without the REST client keep the
+        # original runner behavior.
+        return _ORIGINAL_RUN_ALL_INCREMENTAL(calculator)
+
+    window = None
+    try:
+        try:
+            window = _prepare_shared_snapshot_window(calculator, original_get)
+        except Exception as exc:
+            _base._legacy.log(f"[SharedAlarmWindow] preload failed; fallback enabled: {exc}")
+            window = None
+
+        if window is not None:
+            calculator._get = make_cached_get(window, original_get)
+            calculator._shared_alarm_snapshot_window = window
+        return _ORIGINAL_RUN_ALL_INCREMENTAL(calculator)
+    finally:
+        calculator._get = original_get
+        if hasattr(calculator, "_shared_alarm_snapshot_window"):
+            try:
+                delattr(calculator, "_shared_alarm_snapshot_window")
+            except Exception:
+                calculator._shared_alarm_snapshot_window = None
+
+
 # Part modules import these helpers by name, so update every module-level alias.
 _base._load_previous_signals = _load_previous_scrape_complete_signals
 _part2._load_previous_signals = _load_previous_scrape_complete_signals
@@ -140,6 +228,7 @@ _base._fetch_recent_snapshot_window = _fetch_base_window_guarded
 _part2._fetch_part2_snapshot_window = _fetch_part2_window_guarded
 _part3._fetch_sharp_window = _fetch_sharp_window_guarded
 _part3._fetch_dropping_window = _fetch_dropping_window_guarded
+_part3._run_all_incremental = _run_all_incremental_shared
 
 
 def install_recent_alarm_overrides(calculator_cls):
