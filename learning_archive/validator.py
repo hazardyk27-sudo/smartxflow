@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import re
 from typing import Any, Iterable
 
-_DECISIONS = {"BET", "WATCH", "PASS"}
+_DECISIONS = {"BET", "WATCH"}
 _SETTLEMENT_STATUSES = {"PENDING", "WIN", "LOSS", "VOID", "NO_BET"}
 _EVIDENCE_RELATIONSHIPS = {"SUPPORTS", "CONTRADICTS", "NEUTRAL", "UNKNOWN"}
 _SENSITIVE_KEY_PARTS = (
@@ -133,20 +133,22 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
         prediction_at = _parse_datetime(prediction.get("prediction_at"), "prediction.prediction_at", errors)
         decision = prediction.get("decision")
         if decision not in _DECISIONS:
-            errors.append("prediction.decision: must be BET, WATCH, or PASS")
+            errors.append("prediction.decision: must be BET or WATCH; no-selection/PASS cases are not archived")
         _require_text(prediction, "rationale", "prediction", errors)
         _require_text(prediction, "counterargument", "prediction", errors)
         if "confidence" not in prediction or prediction.get("confidence") is None:
             errors.append("prediction.confidence: required")
+
+        # Every formal Learning Archive case must carry an actual prediction.
+        # WATCH means 'not a bet yet', not 'no opinion': market + selection are mandatory.
+        _require_text(prediction, "market", "prediction", errors)
+        _require_text(prediction, "selection", "prediction", errors)
+
         entry_odds = prediction.get("entry_odds")
         if decision == "BET":
-            _require_text(prediction, "market", "prediction", errors)
-            _require_text(prediction, "selection", "prediction", errors)
             if not isinstance(entry_odds, (int, float)) or isinstance(entry_odds, bool) or entry_odds <= 1:
                 errors.append("prediction.entry_odds: BET requires a number > 1")
         else:
-            _optional_text(prediction, "market", "prediction", errors)
-            _optional_text(prediction, "selection", "prediction", errors)
             if entry_odds is not None and (not isinstance(entry_odds, (int, float)) or isinstance(entry_odds, bool) or entry_odds <= 1):
                 errors.append("prediction.entry_odds: must be null or a number > 1")
 
