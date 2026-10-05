@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import requests
 
 from core.fixture_identity_shadow import flush_staged_betwatch_identity_shadow
+from core.fixture_uid_dual_write import attach_fixture_uids_to_current_rows
 
 CURRENT_PAGE_SIZE = 1000
 DELETE_BATCH_SIZE = 200
@@ -154,6 +155,48 @@ def _upsert_current_rows(writer, table: str, rows: List[Dict[str, Any]]) -> bool
     return False
 
 
+def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> None:
+    """Best-effort UID enrichment that must never affect legacy correctness."""
+    try:
+        stats = attach_fixture_uids_to_current_rows(
+            writer,
+            table,
+            rows,
+            request_get=requests.get,
+        )
+        if not stats.get("attempted"):
+            return
+
+        store = getattr(writer, "last_fixture_uid_dual_write_stats", None)
+        if not isinstance(store, dict):
+            store = {}
+            try:
+                writer.last_fixture_uid_dual_write_stats = store
+            except Exception:
+                pass
+        store[table] = stats
+
+        if stats.get("error"):
+            _emit(
+                logger,
+                f"[FixtureUID] WARN — {table}: {stats['error']}; legacy write devam ediyor",
+            )
+            return
+        if stats.get("conflicting_existing_uid"):
+            _emit(
+                logger,
+                f"[FixtureUID] WARN — {table}: conflicting_existing_uid="
+                f"{stats['conflicting_existing_uid']}; mevcut UID korunuyor",
+            )
+        _emit(
+            logger,
+            f"[FixtureUID] {table}: tagged={stats['tagged_rows']} "
+            f"unresolved={stats['unresolved_rows']} cache_hits={stats['cache_hits']}",
+        )
+    except Exception as exc:  # pragma: no cover - final non-authoritative safety net
+        _emit(logger, f"[FixtureUID] WARN — {table}: dual-write atlandı: {str(exc)[:200]}")
+
+
 def _flush_identity_shadow(writer, logger=None) -> None:
     """Consume at most one staged provider batch without affecting current sync."""
     try:
@@ -168,18 +211,23 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
     """Make a current table exactly represent the latest successful feed set.
 
     Safety order is intentional:
-      1. Read the full pre-write current index.
-      2. UPSERT the new feed set.
-      3. Flush the staged Identity V2 shadow batch once. This is observational
+      1. Best-effort add ``fixture_uid`` to supported prematch rows. The original
+         row objects are enriched so the later history append receives the same
+         UID. Any UID failure is non-authoritative and does not fail this method.
+      2. Read the full pre-write current index.
+      3. UPSERT the new feed set using the unchanged legacy logical key.
+      4. Flush the staged Identity V2 shadow batch once. This is observational
          only and cannot affect the return value of current sync.
-      4. Only after a successful UPSERT, delete ids whose logical key is absent
+      5. Only after a successful UPSERT, delete ids whose logical key is absent
          from the incoming set.
 
-    History/archive tables are never touched here. An empty incoming set is a
-    valid current state and therefore clears the current table, but only after a
-    successful index read. If the index cannot be read, new rows may still be
+    History/archive tables are never directly written here. An empty incoming set
+    is a valid current state and therefore clears the current table, but only after
+    a successful index read. If the index cannot be read, new rows may still be
     upserted, while pruning is skipped and the run is marked degraded.
     """
+    _attach_fixture_uid_dual_write(writer, table, rows, logger=logger)
+
     clean_rows: List[Dict[str, Any]] = []
     for row in rows:
         clean = dict(row)
