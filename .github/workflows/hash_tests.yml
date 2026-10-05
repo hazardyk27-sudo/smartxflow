@@ -20,6 +20,7 @@ on:
       - 'scripts/remap_duplicate_fixture_references.py'
       - 'scripts/fixture_identity_v2_dry_run.sql'
       - 'scripts/run_fixture_identity_shadow_probe.py'
+      - 'scripts/run_fixture_uid_dual_write_probe.py'
       - 'migrations/2026_10_05_fixture_identity_v2_additive.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_shadow_rpc.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_reference_columns.sql'
@@ -72,6 +73,7 @@ jobs:
         python -m py_compile scripts/cleanup_duplicate_fixtures.py
         python -m py_compile scripts/remap_duplicate_fixture_references.py
         python -m py_compile scripts/run_fixture_identity_shadow_probe.py
+        python -m py_compile scripts/run_fixture_uid_dual_write_probe.py
         python -m py_compile desktop/scraper_standalone/backfill_hashes.py
 
     - name: Run canonical hash regressions
