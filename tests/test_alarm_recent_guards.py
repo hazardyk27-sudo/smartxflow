@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import alarm_recent
 
 
@@ -78,3 +80,30 @@ def test_fixture_guard_fails_closed_on_invalid_active_signal_timestamp(monkeypat
     monkeypatch.setattr(alarm_recent, "_ORIGINAL_LOAD_FIXTURES", lambda calculator, hashes: fixtures)
 
     assert alarm_recent._load_active_prematch_fixtures(calc, fixtures.keys()) == {}
+
+
+def test_capacity_contract_is_installed_in_all_incremental_modules():
+    assert alarm_recent.INCREMENTAL_MAX_ROWS == 150_000
+    assert alarm_recent._base.MAX_ROWS == 150_000
+    assert alarm_recent._part2.MAX_ROWS == 150_000
+    assert alarm_recent._part3.MAX_ROWS == 150_000
+    # 4,000 rows per 5-minute cycle across a 150-minute Dropping window.
+    assert 4_000 * 30 < alarm_recent.INCREMENTAL_MAX_ROWS
+
+
+def test_complete_window_below_cap_is_accepted():
+    payload = {"rows_loaded": alarm_recent.INCREMENTAL_MAX_ROWS - 1}
+    assert alarm_recent._require_complete_window("test", payload) is payload
+
+
+def test_window_at_hard_cap_fails_closed():
+    payload = {"rows_loaded": alarm_recent.INCREMENTAL_MAX_ROWS}
+    with pytest.raises(RuntimeError, match="snapshot window reached hard cap"):
+        alarm_recent._require_complete_window("Dropping", payload)
+
+
+def test_all_window_fetchers_are_guarded():
+    assert alarm_recent._base._fetch_recent_snapshot_window is alarm_recent._fetch_base_window_guarded
+    assert alarm_recent._part2._fetch_part2_snapshot_window is alarm_recent._fetch_part2_window_guarded
+    assert alarm_recent._part3._fetch_sharp_window is alarm_recent._fetch_sharp_window_guarded
+    assert alarm_recent._part3._fetch_dropping_window is alarm_recent._fetch_dropping_window_guarded
