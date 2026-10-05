@@ -1,0 +1,123 @@
+{
+  "report_id": "2026-10-05-stage3-final-180204-trt",
+  "prediction_at": "2026-10-05T15:02:04Z",
+  "cases": [
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261005-italy-turkiye-1x2-italy",
+      "match": {
+        "match_id_hash": "f26381742135",
+        "league": "UEFA Nations League A",
+        "home": "Italy",
+        "away": "Türkiye",
+        "kickoff_at": "2026-10-05T18:45:00Z"
+      },
+      "prediction": {
+        "prediction_at": "2026-10-05T15:02:04Z",
+        "decision": "BET",
+        "market": "1X2",
+        "selection": "Italy",
+        "entry_odds": 1.42,
+        "confidence": 85,
+        "rationale": "SXF showed very large Italy money with sustained price confirmation; Stage 2 found Türkiye entering in poor form with important creative/attacking absences, so the market move and football context aligned.",
+        "counterargument": "Italy were not fully healthy either and the move to 1.42 had already consumed a meaningful part of the edge."
+      },
+      "evidence": [
+        {
+          "source": "SmartXFlow Stage 1 direct primary history",
+          "observed_at": "2026-10-05T14:40:48Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "note": "Italy carried about £189.7K / 88.8% of 1X2 money and shortened roughly 1.65→1.42; fresh money continued without a meaningful adverse reversal."
+        },
+        {
+          "source": "Goal / TFF / Stage 2 research bundle",
+          "observed_at": "2026-10-05T15:02:04Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "url": "https://www.goal.com/it/liste/perche-calhanoglu-yildiz-e-arda-guler-non-giocano-italia-turchia-i-motivi-delle-assenze-nella-gara-contro-gli-azzurri/bltc5d60e501ee389db",
+          "note": "Türkiye had lost the first three Nations League matches and key names including Hakan Çalhanoğlu, Kenan Yüldız, Arda Güler and Mert Müldür were unavailable; Italy had also beaten Türkiye 4-1 in the prior meeting. Stage 2 was completed before the final decision; the archive uses the verified final-decision cutoff as the conservative evidence timestamp because the exact web-tool second was not persisted."
+        }
+      ],
+      "settlement": {
+        "status": "PENDING"
+      },
+      "provenance": {
+        "archive_created_at": "2026-10-05T15:31:13Z",
+        "source_repo": "hazardyk27-sudo/smartxflow",
+        "source_commit": "068d94ef3739c3d70a84594333d4a957838aed01"
+      }
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261005-romania-sweden-1x2-sweden",
+      "match": {
+        "match_id_hash": "612143dbe17c",
+        "league": "UEFA Nations League B",
+        "home": "Romania",
+        "away": "Sweden",
+        "kickoff_at": "2026-10-05T18:45:00Z"
+      },
+      "prediction": {
+        "prediction_at": "2026-10-05T15:02:04Z",
+        "decision": "BET",
+        "market": "1X2",
+        "selection": "Sweden",
+        "entry_odds": 1.74,
+        "confidence": 82,
+        "rationale": "Sweden money and price moved together in SXF, while Stage 2 showed a large current-form gap and heavier Romania availability problems.",
+        "counterargument": "Sweden also had defensive personnel issues and were playing away, so the move was not risk-free."
+      },
+      "evidence": [
+        {
+          "source": "SmartXFlow Stage 1 direct primary history",
+          "observed_at": "2026-10-05T14:40:48Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "note": "Sweden had about ã87.9K / 84.3% and moved roughly 1.89→1.73/1.74; late money continued to produce lower prices."
+        },
+        {
+          "source": "Svensk Fotboll / Stage 2 research bundle",
+          "observed_at": "2026-10-05T15:02:04Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "url": "https://www.svenskfotboll.se/nyheter/landslag/2026/10/herr-matchguide-rumanien-borta/",
+          "note": "Sweden were unbeaten in the group and had already beaten Romania; Romania had conceded heavily and were missing multiple important players including defenders and forwards. Stage 2 was completed before the final decision; the archive uses the verified final-decision cutoff as the conservative evidence timestamp because the exact web-tool second was not persisted."
+        }
+      ],
+      "settlement": {
+        "status": "PENDING"
+      },
+      "provenance": {
+        "archive_created_at": "2026-10-05T15:31:13Z",
+        "source_repo": "hazardyk27-sudo/smartxflow",
+        "source_commit": "068d94ef3739c3d70a84594333d4a957838aed01"
+      }
+    },
+    {
+      "archive_schema_version": 1,
+      "case_id": "20261005-northern-ireland-georgia-ou25-under",
+      "match": {
+        "match_id_hash": "e3face31ef57",
+        "league": "UEFA Nations League B",
+        "home": "Northern Ireland",
+        "away": "Georgia",
+        "kickoff_at": "2026-10-05T18:45:00Z"
+      },
+      "prediction": {
+        "prediction_at": "2026-10-05T15:02:04Z",
+        "decision": "BET",
+        "market": "O/U 2.5",
+        "selection": "Under 2.5",
+        "entry_odds": 1.5,
+        "confidence": 78,
+        "rationale": "Under 2.5 had strong money/price confirmation and Stage 2 supported a low-scoring profile through Northern Ireland's defensive record and Georgia's lack of goals.",
+        "counterargument": "Northern Ireland were missing Conor Bradley and Dan Ballard while Georgia still had Kvaratskhelia and Mikautadze available."
+      },
+      "evidence": [
+        {
+          "source": "SmartXFlow Stage 1 direct primary history",
+          "observed_at": "2026-10-05T14:40:48Z",
+          "phase": "PRE",
+          "relationship": "SUPPORTS",
+          "note": "Under 2.5 held about £51.2K / 89.7% and shortened approximately 1.68→1.50; BT
