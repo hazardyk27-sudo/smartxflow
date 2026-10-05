@@ -178,7 +178,7 @@ class LearningArchiveAPITests(unittest.TestCase):
         self.assertNotIn("service_role", row)
         snapshot_urls = [url for url, _, _ in http.calls if "moneyway_snapshots" in url]
         self.assertEqual(len(snapshot_urls), 1)
-        self.assertIn("order=scraped_at_utc.asc", snapshot_urls[0])
+        self.assertIn("order=match_id_hash.asc,scraped_at_utc.asc", snapshot_urls[0])
 
 
 if __name__ == "__main__":
