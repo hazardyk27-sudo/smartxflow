@@ -8,6 +8,8 @@ Rate limits: live ≤ 1 req/10s, prematch ≤ 1 req/40s
 import os
 import requests
 
+from core.fixture_identity_shadow import stage_betwatch_identity_payload
+
 BETWATCH_BASE_URL = "https://api.betwatch.fr/api/v1"
 
 
@@ -29,7 +31,18 @@ def fetch_prematch(timeout: int = 30) -> list:
     )
     r.raise_for_status()
     data = r.json()
-    return data if isinstance(data, list) else []
+    matches = data if isinstance(data, list) else []
+
+    # Identity V2 Part 3 shadow-only staging. This must never affect whether a
+    # valid Betwatch payload is returned to the legacy scraper. The staged data
+    # is consumed later, after the legacy fixture write, and can only populate
+    # the separate provider registry.
+    try:
+        stage_betwatch_identity_payload(matches)
+    except Exception as exc:
+        print(f"[IdentityShadow] WARN — payload stage atlandı: {str(exc)[:200]}", flush=True)
+
+    return matches
 
 
 def fetch_live(timeout: int = 30) -> list:
