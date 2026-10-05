@@ -1,6 +1,6 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 8
+MILESTONE_VERSION: 9
 STATUS: ACTIVE
 
 ## Objective
@@ -13,7 +13,7 @@ Run the first clean three-stage Predictor workflow on selected football matches:
    - Find candidate matches using stored SmartXFlow money, odds, history, timing, liquidity/volume and cross-market behavior.
    - Explain only what the SmartXFlow data itself shows.
    - Send the SXF-only candidate report to the user and STOP.
-   - No web research and no final `BET | WATCH | PASS` decision in this stage.
+   - No web research and no final `BET | WATCH` decision in this stage.
 
 2. **Stage 2 — EXTERNAL CAUSE RESEARCH**
    - Start only after the user explicitly asks to research why the Stage 1 moves may be happening.
@@ -21,14 +21,15 @@ Run the first clean three-stage Predictor workflow on selected football matches:
    - Test both the supporting and opposing explanations for each Stage 1 move.
    - Keep `SXF SAYS` and `RESEARCH SAYS` separate.
    - Report `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED` and STOP.
-   - No final `BET | WATCH | PASS` decision unless the user explicitly asks for Stage 3.
+   - No final `BET | WATCH` decision unless the user explicitly asks for Stage 3.
 
 3. **Stage 3 — FINAL MERGE/DECISION**
    - Start only after the user explicitly asks for the final decision.
    - Merge the frozen Stage 1 SXF view with Stage 2 external evidence.
    - Consider the opposite case/failure condition.
    - Choose the best actually available market, including Double Chance/DNB when structurally better than a direct underdog side.
-   - Produce final `BET | WATCH | PASS`, market/selection/entry odds, confidence, rationale and counterargument.
+   - Produce final `BET | WATCH` with a concrete non-empty market and selection, entry odds when applicable, confidence, rationale and counterargument.
+   - If no defensible concrete selection exists, omit that match from the final prediction diary/archive; do not create a `PASS` or empty-pick case.
    - Freeze `prediction_at` and archive every formal final case automatically.
 
 Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
@@ -39,8 +40,8 @@ Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 2. Stage 1 must use real SmartXFlow match identity/history. Do not discover candidates from external odds/news first and then retrofit them into SXF.
 3. Stage 1 observations must remain frozen when Stage 2 research is performed; external research must not rewrite what SXF originally showed.
 4. Stage 2 evidence must have real `observed_at` timing and remain separate from SmartXFlow evidence.
-5. Only Stage 3 final `BET`, `WATCH`, and `PASS` decisions are formal learning cases. Never retroactively change the original final decision after the result.
-6. Preserve immutable `prediction_at`, confidence, rationale, counterargument, and market/selection/entry odds when applicable.
+5. Only Stage 3 final `BET` and `WATCH` decisions with a concrete market/selection are formal learning cases. No-pick/PASS cases are excluded from the final diary and archive.
+6. Preserve immutable `prediction_at`, confidence, rationale, counterargument, market and selection; preserve entry odds when applicable.
 7. Keep PRE/POST separated by `observed_at` vs `prediction_at`.
 8. As part of completing Stage 3, automatically create each formal case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` and preserve the SmartXFlow stored-history capture. Do not require a separate user command.
 9. A Stage 3 report containing N formal cases must produce N durable `RECORDED` archive receipts before the final report is considered complete. Multi-case reports must use `scripts/record_learning_batch.py` or an equivalent same-turn durable batch operation.
@@ -70,7 +71,7 @@ A Stage 1 report is complete when:
 - real SmartXFlow identity/history was used,
 - the market movement was described using SXF evidence only,
 - no external research contaminated the analysis,
-- no final `BET | WATCH | PASS` decision was issued,
+- no final `BET | WATCH` decision was issued,
 - the user has received the SXF-only report and the Predictor has stopped for Stage 2 instruction.
 
 ## Done per Stage 2 report
@@ -84,7 +85,7 @@ A Stage 2 report is complete when:
 
 ## Done per Stage 3 report
 
-A Stage 3 report is complete only when every formal final case has a durable `RECORDED` receipt. If even one formal case lacks a receipt, the final report's archive state is incomplete and must be explicit.
+A Stage 3 report is complete only when every listed formal final case has a concrete market/selection and a durable `RECORDED` receipt. A match without a prediction is not listed as a formal final case.
 
 ## Done per case
 
@@ -92,6 +93,7 @@ A case is `DONE` only when:
 - the Stage 1 SXF observation is preserved,
 - Stage 2 external evidence is preserved with timing,
 - the Stage 3 original decision/prediction is immutable,
+- a concrete market and selection exist,
 - required stored-history captures exist,
 - result/decision outcome is settled/reviewed as applicable,
 - final archive files/checksums are coherent,
