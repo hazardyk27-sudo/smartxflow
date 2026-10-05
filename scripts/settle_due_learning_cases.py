@@ -21,7 +21,7 @@ from learning_archive.exporter import ArchiveFinalizationError, LearningArchiveE
 from learning_archive.outbox import load_dotenv_literal
 from learning_archive.result_source import MatchResult, ResultSourceError, fetch_finished_result
 from learning_archive.settlement import SettlementError, build_settlement, prepare_final_snapshots
-from learning_archive.source_history import SXFHistoryError, fetch_selected_match_history
+from learning_archive.supabase_source import LearningArchiveSourceError, read_learning_archive_match_history
 from scripts.enqueue_due_learning_revisit import export_archive_snapshot
 
 
@@ -173,6 +173,19 @@ def _result_dict(result: MatchResult) -> dict[str, Any]:
     }
 
 
+def _stored_history(match_id_hash: str) -> list[dict[str, Any]]:
+    payload = read_learning_archive_match_history(match_id_hash)
+    flattened: list[dict[str, Any]] = []
+    for table_name, rows in payload.histories.items():
+        for row in rows:
+            copied = dict(row)
+            copied["_archive_source_table"] = table_name
+            flattened.append(copied)
+    if not flattened:
+        raise PostmatchSettlementError(f"no stored SXF history found for selected match {match_id_hash}")
+    return flattened
+
+
 def settle_due_cases(
     app_root: Path,
     queue_file: Path,
@@ -193,7 +206,6 @@ def settle_due_cases(
         queue = _read_queue(queue_file)
         settlements = queue["settlements"]
 
-        # Drop stale queue entries that have already reached durable FINALIZED.
         for case_id in list(settlements):
             if case_id in finalized:
                 settlements.pop(case_id, None)
@@ -220,7 +232,6 @@ def settle_due_cases(
 
             settlements[case_id] = row
             discovered += 1
-            # Result is persisted before any GitHub finalization attempt.
             _write_queue(queue_file, queue)
 
         exporter = LearningArchiveExporter.from_env()
@@ -251,8 +262,10 @@ def settle_due_cases(
                 provenance["archive_finalized_at"] = now
                 final_case["provenance"] = provenance
 
-                history = fetch_selected_match_history(final_case["match"]["match_id_hash"])
-                snapshots = prepare_final_snapshots(final_case, history.snapshots)
+                snapshots = prepare_final_snapshots(
+                    final_case,
+                    _stored_history(final_case["match"]["match_id_hash"]),
+                )
                 finalized_result = exporter.finalize_case(final_case, snapshots)
                 done.append({
                     "case_id": case_id,
@@ -266,7 +279,7 @@ def settle_due_cases(
                 })
                 settlements.pop(case_id, None)
                 _write_queue(queue_file, queue)
-            except (KeyError, OSError, ValueError, SettlementError, SXFHistoryError, ArchiveFinalizationError, RuntimeError) as exc:
+            except (KeyError, OSError, ValueError, SettlementError, LearningArchiveSourceError, ArchiveFinalizationError, RuntimeError) as exc:
                 errors.append({"case_id": case_id, "error": str(exc)})
 
     output = {
