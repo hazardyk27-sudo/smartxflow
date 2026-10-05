@@ -29,12 +29,23 @@ print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
+PREMATCH_INTERVAL_MINUTES = 5
+PREMATCH_INTERVAL_SECONDS = PREMATCH_INTERVAL_MINUTES * 60
+PREMATCH_WATCHDOG_MINUTES = 12
+PREMATCH_WATCHDOG_SECONDS = PREMATCH_WATCHDOG_MINUTES * 60
+PREMATCH_FAILURE_RETRY_SECONDS = 60
+PREMATCH_MASTER_LEASE_MINUTES = 7
 SCRAPER_SOURCE = (
     os.environ.get("SMARTXFLOW_SCRAPER_SOURCE")
     or ("replit-preview" if (os.environ.get("REPL_ID") or os.environ.get("REPL_SLUG") or os.environ.get("REPL_OWNER")) else "replit")
 )
 SIGNAL_DEDUP_WINDOW_SECONDS = 120
-EXTERNAL_MASTER_WINDOW_SECONDS = int(os.environ.get("SMARTXFLOW_EXTERNAL_MASTER_WINDOW_SECONDS", "720"))
+EXTERNAL_MASTER_WINDOW_SECONDS = int(
+    os.environ.get(
+        "SMARTXFLOW_EXTERNAL_MASTER_WINDOW_SECONDS",
+        str(PREMATCH_MASTER_LEASE_MINUTES * 60),
+    )
+)
 _SIGNAL_LOCK_PATH = "/tmp/smartxflow_scraper_signal.lock"
 _HEARTBEAT_TABLE_AVAILABLE = None
 _HEARTBEAT_MISSING_LOGGED = False
@@ -325,7 +336,7 @@ def check_master_status(supabase_url: str, supabase_key: str) -> tuple:
                 diff_minutes = (now - beat_time).total_seconds() / 60
 
                 if (
-                    0 <= diff_minutes < 5
+                    0 <= diff_minutes < PREMATCH_MASTER_LEASE_MINUTES
                     and str(row.get("status") or "").lower() in _PREMATCH_MASTER_STATUSES
                 ):
                     return False, f"{source} is prematch master ({diff_minutes:.1f} min ago)"
@@ -505,6 +516,24 @@ def get_last_signal_time() -> Optional[datetime]:
     return None
 
 
+def _seconds_until_next_scrape(
+    last_successful_scrape: Optional[datetime],
+    now: Optional[datetime] = None,
+) -> float:
+    """Son gerçek scrape_complete'e göre 5 dakikalık cadence'in kalan süresi."""
+    if last_successful_scrape is None:
+        return 0.0
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    last = last_successful_scrape
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    elapsed = max(0.0, (current - last.astimezone(timezone.utc)).total_seconds())
+    remaining = PREMATCH_INTERVAL_SECONDS - elapsed
+    return max(0.0, min(float(PREMATCH_INTERVAL_SECONDS), remaining))
+
+
 def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_holder: list):
     """Günde 1 kez cleanup_old_matches'i çalıştır (D-8+ siler, son 7 gün korunur).
     last_cleanup_date_holder: [last_date or None] - mutable holder for state."""
@@ -526,14 +555,13 @@ def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_hol
 
 
 def run_loop():
-    """9 dakikada bir scrape döngüsü + 10 dk watchdog + guarded günlük cleanup."""
-    INTERVAL_MINUTES = 9
-    INTERVAL_SECONDS = INTERVAL_MINUTES * 60
-    WATCHDOG_MINUTES = 10
-    WATCHDOG_SECONDS = WATCHDOG_MINUTES * 60
+    """5 dakikalık prematch cadence + 12 dk watchdog + guarded günlük cleanup."""
     cleanup_disabled = retention_cleanup_disabled()
-    print(f"[Loop] Scraper {INTERVAL_MINUTES} dakikada bir çalışacak")
-    print(f"[Watchdog] {WATCHDOG_MINUTES} dk gerçek scrape_complete gelmezse Telegram uyarısı gönderilecek")
+    print(f"[Loop] Scraper {PREMATCH_INTERVAL_MINUTES} dakikada bir çalışacak")
+    print(
+        f"[Watchdog] {PREMATCH_WATCHDOG_MINUTES} dk gerçek scrape_complete "
+        "gelmezse Telegram uyarısı gönderilecek"
+    )
     if cleanup_disabled:
         print("[Retention Guard] Günlük cleanup DEVRE DIŞI; scraping devam edecek")
     else:
@@ -546,16 +574,21 @@ def run_loop():
     last_successful_scrape = get_last_signal_time()
     watchdog_alert_sent = False
 
-    if last_successful_scrape:
-        now = datetime.now(timezone.utc)
-        elapsed = (now - last_successful_scrape).total_seconds()
-        remaining = INTERVAL_SECONDS - elapsed
-        if remaining > 30:
-            wait_min = remaining / 60
-            print(f"[Loop] Son gerçek scrape {elapsed/60:.1f} dk önce yapılmış, {wait_min:.1f} dk bekleniyor...")
-            time.sleep(remaining)
-        else:
-            print(f"[Loop] Son gerçek scrape {elapsed/60:.1f} dk önce, süre dolmuş - hemen çalışıyor")
+    startup_delay = _seconds_until_next_scrape(last_successful_scrape)
+    if last_successful_scrape and startup_delay > 30:
+        elapsed = (
+            datetime.now(timezone.utc) - last_successful_scrape.astimezone(timezone.utc)
+        ).total_seconds()
+        print(
+            f"[Loop] Son gerçek scrape {elapsed/60:.1f} dk önce yapılmış, "
+            f"{startup_delay/60:.1f} dk bekleniyor..."
+        )
+        time.sleep(startup_delay)
+    elif last_successful_scrape:
+        elapsed = (
+            datetime.now(timezone.utc) - last_successful_scrape.astimezone(timezone.utc)
+        ).total_seconds()
+        print(f"[Loop] Son gerçek scrape {elapsed/60:.1f} dk önce, süre dolmuş - hemen çalışıyor")
 
     while True:
         try:
@@ -566,11 +599,13 @@ def run_loop():
 
         # main() return değeri watchdog success değildir. Başarı yalnız DB'de
         # gerçekten oluşmuş yeni prematch scrape_complete ile kanıtlanır.
+        received_new_signal = False
         latest_signal = get_last_signal_time()
         if latest_signal and (
             last_successful_scrape is None or latest_signal > last_successful_scrape
         ):
             last_successful_scrape = latest_signal
+            received_new_signal = True
             if watchdog_alert_sent:
                 send_telegram(
                     "<b>SCRAPER TEKRAR ÇALIŞIYOR</b>\n"
@@ -586,9 +621,9 @@ def run_loop():
         if last_successful_scrape is not None:
             elapsed = (now - last_successful_scrape).total_seconds()
         else:
-            elapsed = WATCHDOG_SECONDS + 1
+            elapsed = PREMATCH_WATCHDOG_SECONDS + 1
 
-        if elapsed >= WATCHDOG_SECONDS and not watchdog_alert_sent:
+        if elapsed >= PREMATCH_WATCHDOG_SECONDS and not watchdog_alert_sent:
             elapsed_min = elapsed / 60
             send_telegram(
                 f"<b>⚠️ SCRAPER UYARI</b>\n"
@@ -599,8 +634,23 @@ def run_loop():
             watchdog_alert_sent = True
             print(f"[Watchdog] Telegram uyarısı gönderildi ({elapsed_min:.0f} dk)")
 
-        print(f"\n[Loop] Sonraki çalışma {INTERVAL_MINUTES} dakika sonra...")
-        time.sleep(INTERVAL_SECONDS)
+        if received_new_signal:
+            sleep_seconds = _seconds_until_next_scrape(last_successful_scrape)
+            print(
+                f"\n[Loop] Sonraki gerçek scrape hedefi "
+                f"{PREMATCH_INTERVAL_MINUTES} dk cadence; "
+                f"{sleep_seconds:.0f} sn sonra tekrar kontrol edilecek..."
+            )
+        else:
+            # Başarısız scrape/standby durumunda 5 dakika kör bekleme. Master
+            # failover ve recovery daha hızlı olsun; gerçek scrape cadence'i ise
+            # yalnız scrape_complete timestamp'i ile ilerler.
+            sleep_seconds = PREMATCH_FAILURE_RETRY_SECONDS
+            print(
+                f"\n[Loop] Yeni scrape_complete yok; "
+                f"{sleep_seconds:.0f} sn sonra master/recovery tekrar kontrol edilecek..."
+            )
+        time.sleep(max(1.0, sleep_seconds))
 
 
 if __name__ == "__main__":

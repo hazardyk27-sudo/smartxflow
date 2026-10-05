@@ -175,3 +175,61 @@ def test_successful_scrape_requires_alarm_engine_signal(monkeypatch):
     monkeypatch.setattr(mod, "send_alarm_engine_signal", Mock(return_value=False))
 
     assert mod.main() is False
+
+
+def test_prematch_cadence_defaults_to_five_minutes(monkeypatch):
+    mod = _load_scheduled_scraper(monkeypatch)
+
+    assert mod.PREMATCH_INTERVAL_MINUTES == 5
+    assert mod.PREMATCH_INTERVAL_SECONDS == 300
+    assert mod.PREMATCH_WATCHDOG_MINUTES == 12
+    assert mod.PREMATCH_WATCHDOG_SECONDS == 720
+    assert mod.PREMATCH_FAILURE_RETRY_SECONDS == 60
+    assert mod.PREMATCH_MASTER_LEASE_MINUTES == 7
+    assert mod.PREMATCH_MASTER_LEASE_MINUTES > mod.PREMATCH_INTERVAL_MINUTES
+    assert mod.PREMATCH_WATCHDOG_SECONDS > mod.PREMATCH_INTERVAL_SECONDS * 2
+
+
+def test_next_scrape_delay_is_anchored_to_last_real_signal(monkeypatch):
+    mod = _load_scheduled_scraper(monkeypatch)
+    now = datetime.now(timezone.utc)
+
+    assert mod._seconds_until_next_scrape(now - timedelta(minutes=2), now) == 180
+    assert mod._seconds_until_next_scrape(now - timedelta(minutes=5), now) == 0
+    assert mod._seconds_until_next_scrape(now - timedelta(minutes=20), now) == 0
+    assert mod._seconds_until_next_scrape(None, now) == 0
+
+
+def test_seven_minute_lease_covers_five_minute_sleep_without_false_failover(monkeypatch):
+    mod = _load_scheduled_scraper(monkeypatch)
+    mod.SCRAPER_SOURCE = "replit-preview"
+    rows = [
+        {
+            "source": "replit",
+            "status": "active",
+            "last_heartbeat": (datetime.now(timezone.utc) - timedelta(minutes=6)).isoformat(),
+        }
+    ]
+    monkeypatch.setattr(mod.requests, "get", Mock(return_value=_heartbeat_response(rows)))
+
+    is_master, _ = mod.check_master_status("https://example.supabase.co", "key")
+
+    assert is_master is False
+
+
+def test_expired_seven_minute_lease_allows_failover(monkeypatch):
+    mod = _load_scheduled_scraper(monkeypatch)
+    mod.SCRAPER_SOURCE = "replit-preview"
+    rows = [
+        {
+            "source": "replit",
+            "status": "active",
+            "last_heartbeat": (datetime.now(timezone.utc) - timedelta(minutes=8)).isoformat(),
+        }
+    ]
+    monkeypatch.setattr(mod.requests, "get", Mock(return_value=_heartbeat_response(rows)))
+
+    is_master, reason = mod.check_master_status("https://example.supabase.co", "key")
+
+    assert is_master is True
+    assert reason == "i_am_master"
