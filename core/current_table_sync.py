@@ -133,6 +133,25 @@ def _delete_stale_ids(writer, table: str, stale_ids: Iterable[int], logger=None)
     return True
 
 
+def _upsert_current_rows(writer, table: str, rows: List[Dict[str, Any]]) -> bool:
+    """Use the modern writer API when available, with legacy compatibility."""
+    upsert_rows = getattr(writer, "upsert_rows", None)
+    if callable(upsert_rows):
+        return bool(
+            upsert_rows(
+                table,
+                rows,
+                on_conflict="league,home,away,date",
+            )
+        )
+
+    replace_table = getattr(writer, "replace_table", None)
+    if callable(replace_table):
+        return bool(replace_table(table, rows))
+
+    return False
+
+
 def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> bool:
     """Make a current table exactly represent the latest successful feed set.
 
@@ -155,11 +174,7 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
 
     existing_index = _read_current_index(writer, table, logger=logger)
 
-    upsert_ok = writer.upsert_rows(
-        table,
-        clean_rows,
-        on_conflict="league,home,away,date",
-    )
+    upsert_ok = _upsert_current_rows(writer, table, clean_rows)
     if not upsert_ok:
         message = f"{table}: current UPSERT başarısız; prune iptal"
         _record_error(writer, message)
