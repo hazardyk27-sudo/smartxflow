@@ -100,11 +100,11 @@ def test_master_fallback_uses_recent_external_scrape_signal(monkeypatch):
     assert "recent scrape" in reason
 
 
-def test_master_fallback_keeps_preview_standby_for_nine_minute_external_signal(monkeypatch):
+def test_master_fallback_keeps_preview_standby_within_seven_minute_lease(monkeypatch):
     mod = _load_scheduled_scraper_with_stubs(monkeypatch)
     mod.SCRAPER_SOURCE = "replit-preview"
     mod._HEARTBEAT_TABLE_AVAILABLE = False
-    created_at = (datetime.now(timezone.utc) - timedelta(minutes=9)).isoformat()
+    created_at = (datetime.now(timezone.utc) - timedelta(minutes=6)).isoformat()
 
     response = Mock()
     response.status_code = 200
