@@ -6,7 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 import requests
 
 from core.fixture_identity_shadow import flush_staged_betwatch_identity_shadow
-from core.fixture_uid_dual_write import attach_fixture_uids_to_current_rows
+from core.fixture_uid_dual_write import PREMATCH_CURRENT_TABLES
+from core.fixture_uid_provider_gate import attach_provider_verified_fixture_uids
 
 CURRENT_PAGE_SIZE = 1000
 DELETE_BATCH_SIZE = 200
@@ -155,18 +156,43 @@ def _upsert_current_rows(writer, table: str, rows: List[Dict[str, Any]]) -> bool
     return False
 
 
-def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> None:
-    """Best-effort UID enrichment that must never affect legacy correctness."""
+def _table_supports_fixture_uid(writer, table: str) -> bool:
+    cache = getattr(writer, "_fixture_uid_column_support", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        try:
+            writer._fixture_uid_column_support = cache
+        except Exception:
+            pass
+    if table in cache:
+        return bool(cache[table])
     try:
-        stats = attach_fixture_uids_to_current_rows(
+        response = requests.get(
+            writer._rest_url(table),
+            headers=writer._headers(),
+            params={"select": "fixture_uid", "limit": 0},
+            timeout=10,
+        )
+        supported = response.status_code == 200
+    except Exception:
+        supported = False
+    cache[table] = supported
+    return supported
+
+
+def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> None:
+    """Best-effort provider-gated UID enrichment; legacy writes stay authoritative."""
+    if table not in PREMATCH_CURRENT_TABLES or not rows:
+        return
+    if not _table_supports_fixture_uid(writer, table):
+        _emit(logger, f"[FixtureUID] WARN — {table}: fixture_uid_column_unavailable; legacy write devam ediyor")
+        return
+    try:
+        stats = attach_provider_verified_fixture_uids(
             writer,
-            table,
             rows,
             request_get=requests.get,
         )
-        if not stats.get("attempted"):
-            return
-
         store = getattr(writer, "last_fixture_uid_dual_write_stats", None)
         if not isinstance(store, dict):
             store = {}
@@ -188,10 +214,17 @@ def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]
                 f"[FixtureUID] WARN — {table}: conflicting_existing_uid="
                 f"{stats['conflicting_existing_uid']}; mevcut UID korunuyor",
             )
+        if stats.get("identity_mismatch_rows"):
+            _emit(
+                logger,
+                f"[FixtureUID] WARN — {table}: identity_mismatch_rows="
+                f"{stats['identity_mismatch_rows']}; UID yazılmadı",
+            )
         _emit(
             logger,
             f"[FixtureUID] {table}: tagged={stats['tagged_rows']} "
-            f"unresolved={stats['unresolved_rows']} cache_hits={stats['cache_hits']}",
+            f"unresolved={stats['unresolved_rows']} "
+            f"provider_context={stats['provider_context_hashes']}",
         )
     except Exception as exc:  # pragma: no cover - final non-authoritative safety net
         _emit(logger, f"[FixtureUID] WARN — {table}: dual-write atlandı: {str(exc)[:200]}")
@@ -211,13 +244,13 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
     """Make a current table exactly represent the latest successful feed set.
 
     Safety order is intentional:
-      1. Best-effort add ``fixture_uid`` to supported prematch rows. The original
-         row objects are enriched so the later history append receives the same
-         UID. Any UID failure is non-authoritative and does not fail this method.
-      2. Read the full pre-write current index.
-      3. UPSERT the new feed set using the unchanged legacy logical key.
-      4. Flush the staged Identity V2 shadow batch once. This is observational
-         only and cannot affect the return value of current sync.
+      1. Flush the staged Identity V2 shadow batch after the scraper's unchanged
+         legacy fixture write. The shadow remains observational and fail-soft.
+      2. Best-effort add ``fixture_uid`` only when provider registry + exact
+         physical fixture metadata agree. The original row objects are enriched
+         so the later history append receives the same UID.
+      3. Read the full pre-write current index.
+      4. UPSERT the new feed set using the unchanged legacy logical key.
       5. Only after a successful UPSERT, delete ids whose logical key is absent
          from the incoming set.
 
@@ -226,6 +259,10 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
     a successful index read. If the index cannot be read, new rows may still be
     upserted, while pruning is skipped and the run is marked degraded.
     """
+    # In the Betwatch scraper, legacy fixtures are written before the first current
+    # table. Flushing here gives the provider-gated dual-write the registry proof it
+    # needs while keeping shadow failures fully outside legacy correctness.
+    _flush_identity_shadow(writer, logger=logger)
     _attach_fixture_uid_dual_write(writer, table, rows, logger=logger)
 
     clean_rows: List[Dict[str, Any]] = []
@@ -242,11 +279,6 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
         _record_error(writer, message)
         _emit(logger, f"[Current Sync] HATA — {message}")
         return False
-
-    # The legacy fixture write occurs before current-table sync in the Betwatch
-    # scraper. Flush only after a successful current UPSERT, and never propagate
-    # shadow failures into the legacy correctness path.
-    _flush_identity_shadow(writer, logger=logger)
 
     if existing_index is None:
         _emit(
