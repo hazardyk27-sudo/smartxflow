@@ -1,6 +1,6 @@
 # Fixture Identity V2 — Safe Rollout Contract
 
-Status: PART 1 / DESIGN + PROVIDER AUDIT
+Status: PART 2 / ADDITIVE MIGRATION PREPARED, NOT APPLIED
 
 This document defines the migration contract for giving every physical football
 fixture one durable SmartXFlow identity without breaking the currently-running
@@ -58,16 +58,17 @@ production fixture writes.
 8. Existing production readers/writers stay on the legacy path until shadow
    verification passes and explicit release approval is given.
 
-## 4. Target schema (future additive migration)
+## 4. Target schema
 
-No schema change is applied in Part 1.
+The Part 2 migration is prepared in source but is deliberately not applied to the
+production database yet.
 
-Planned additive shape:
+Additive shape:
 
     fixtures
       internal_id        existing PK during migration
-      fixture_uid        UUID NULL initially, later NOT NULL + UNIQUE
-      match_id_hash      existing compatibility key
+      fixture_uid        UUID NULL during shadow, UNIQUE, default gen_random_uuid()
+      match_id_hash      existing compatibility key, unchanged
       home_team
       away_team
       league
@@ -80,13 +81,13 @@ Planned additive shape:
       source_event_id    TEXT NOT NULL
       first_seen_at      TIMESTAMPTZ NOT NULL
       last_seen_at       TIMESTAMPTZ NOT NULL
-      UNIQUE(source, source_event_id)
+      PRIMARY KEY(source, source_event_id)
 
 `match_id_hash UNIQUE` remains untouched during additive and shadow phases. It is
 considered for removal only after UID dual-write, backfill, reference migration,
 and integrity checks have passed.
 
-## 5. Resolver order (future)
+## 5. Resolver order
 
 When a provider row arrives:
 
@@ -103,6 +104,8 @@ The fallback must not be allowed to overwrite a provider-backed identity.
 ### Phase A — additive only
 
 - add nullable `fixture_uid`;
+- add a UUID default so unchanged legacy writers also create UIDs automatically;
+- backfill only `fixture_uid` for existing fixture rows;
 - add provider registry;
 - no current constraint removed;
 - no reader switched;
@@ -110,7 +113,6 @@ The fallback must not be allowed to overwrite a provider-backed identity.
 
 ### Phase B — backfill + audit
 
-- give existing fixture rows UUIDs;
 - backfill references only where deterministic;
 - produce ambiguity/orphan reports;
 - never guess on conflicting historical rows.
@@ -142,7 +144,7 @@ Only after all consumers are UID-safe:
 
 ## 7. Part 1 safety boundary
 
-Part 1 is deliberately non-invasive:
+Part 1 was deliberately non-invasive:
 
 - no Supabase migration;
 - no production data mutation;
@@ -151,5 +153,36 @@ Part 1 is deliberately non-invasive:
 - no Replit source edit;
 - no `main` promotion or Hetzner deployment.
 
-The only executable addition is a side-effect-free provider identity helper plus
-regression tests. Production behavior is therefore unchanged.
+The only executable addition was a side-effect-free provider identity helper plus
+regression tests.
+
+## 8. Part 2 read-only production preflight — 2026-10-05
+
+Production was inspected with SELECT-only queries before preparing the migration:
+
+- 2,179 fixture rows; 2,179 distinct legacy hashes.
+- No missing hash, kickoff, home, away or league values in current fixtures.
+- `fixture_uid` does not yet exist in production.
+- `fixture_source_ids` does not yet exist in production.
+- `pgcrypto` and `uuid-ossp` are already installed; `gen_random_uuid()` is available.
+- No existing foreign-key constraints currently reference `fixtures`.
+- 30 legacy hashes in `moneyway_1x2_history` have appeared on more than one
+  fixture day. This proves historical rows must not be blindly assigned to one
+  physical-event UID from hash alone.
+- Existing snapshot debt remains separate from V2: historical orphan snapshot
+  hashes must be handled in a later explicit reference-remap phase, not hidden by
+  this migration.
+
+The prepared migration therefore only adds the UID column/default/uniqueness and
+an empty provider registry. It does not rewrite matchup data, alter
+`match_id_hash`, attach historical snapshots, or switch any runtime reader/writer.
+
+## 9. Part 2 source artifacts
+
+- `migrations/2026_10_05_fixture_identity_v2_additive.sql`
+- `scripts/fixture_identity_v2_dry_run.sql`
+- `tests/test_fixture_identity_v2_migration.py`
+
+The migration remains unapplied until its CI guardrails pass and an explicit
+migration step is intentionally taken. Merely merging or deploying the source
+file must not mutate Supabase automatically.
