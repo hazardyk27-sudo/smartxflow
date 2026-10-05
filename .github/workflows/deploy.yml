@@ -69,7 +69,6 @@ jobs:
             fi
 
             # Preserve the existing production .env and runtime data. No migrations or destructive data actions here.
-
             grep -v '^lxml' /opt/smartxflow/requirements.txt > /tmp/req_nolxml.txt
             chown smartxflow:smartxflow /tmp/req_nolxml.txt
             sudo -u smartxflow /opt/smartxflow/venv/bin/pip install -r /tmp/req_nolxml.txt -q
@@ -77,16 +76,23 @@ jobs:
 
             chmod -R o+rx /opt/smartxflow/static/
 
-            # Hetzner systemd is the primary prematch clock. It only persists
-            # immutable observed_at/case_id requests locally under /var/lib.
             sudo /usr/bin/install -m 0644 \
               /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service \
               /etc/systemd/system/smartxflow-learning-archive-prematch.service
             sudo /usr/bin/install -m 0644 \
               /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.timer \
               /etc/systemd/system/smartxflow-learning-archive-prematch.timer
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.service \
+              /etc/systemd/system/smartxflow-learning-archive-postmatch.service
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.timer \
+              /etc/systemd/system/smartxflow-learning-archive-postmatch.timer
+
             sudo /bin/systemctl daemon-reload
             sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
+            sudo /bin/systemctl enable --now smartxflow-learning-archive-postmatch.timer
+
             if ! sudo /bin/systemctl start smartxflow-learning-archive-prematch.service; then
               echo "DEPLOY STOP: prematch service manual verification failed"
               sudo /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager || true
@@ -95,21 +101,37 @@ jobs:
               exit 1
             fi
 
-            TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-prematch.timer)"
-            TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-prematch.timer)"
-            SERVICE_RESULT="$(sudo /bin/systemctl show -p Result --value smartxflow-learning-archive-prematch.service)"
-            if [ "$TIMER_ENABLED" != "enabled" ] || [ "$TIMER_ACTIVE" != "active" ] || [ "$SERVICE_RESULT" != "success" ]; then
+            PRE_TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-prematch.timer)"
+            PRE_TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-prematch.timer)"
+            PRE_SERVICE_RESULT="$(sudo /bin/systemctl show -p Result --value smartxflow-learning-archive-prematch.service)"
+            if [ "$PRE_TIMER_ENABLED" != "enabled" ] || [ "$PRE_TIMER_ACTIVE" != "active" ] || [ "$PRE_SERVICE_RESULT" != "success" ]; then
               echo "DEPLOY STOP: prematch systemd automation verification failed"
-              sudo /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager || true
-              sudo /bin/systemctl status smartxflow-learning-archive-prematch.service --no-pager || true
-              sudo /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 50 --no-pager || true
               exit 1
             fi
-            echo "PREMATCH_SYSTEMD_OK enabled=$TIMER_ENABLED active=$TIMER_ACTIVE service_result=$SERVICE_RESULT"
-            sudo /bin/systemctl list-timers smartxflow-learning-archive-prematch.timer --no-pager
+            echo "PREMATCH_SYSTEMD_OK enabled=$PRE_TIMER_ENABLED active=$PRE_TIMER_ACTIVE service_result=$PRE_SERVICE_RESULT"
 
-            # Deployment itself is a second independent drain opportunity. The
-            # ephemeral Actions token is used only for this run and is not stored.
+            if ! sudo /bin/systemctl start smartxflow-learning-archive-postmatch.service; then
+              echo "DEPLOY STOP: postmatch service manual verification failed"
+              sudo /bin/systemctl status smartxflow-learning-archive-postmatch.timer --no-pager || true
+              sudo /bin/systemctl status smartxflow-learning-archive-postmatch.service --no-pager || true
+              sudo /bin/journalctl -u smartxflow-learning-archive-postmatch.service -n 100 --no-pager || true
+              exit 1
+            fi
+
+            POST_TIMER_ENABLED="$(sudo /bin/systemctl is-enabled smartxflow-learning-archive-postmatch.timer)"
+            POST_TIMER_ACTIVE="$(sudo /bin/systemctl is-active smartxflow-learning-archive-postmatch.timer)"
+            POST_SERVICE_RESULT="$(sudo /bin/systemctl show -p Result --value smartxflow-learning-archive-postmatch.service)"
+            if [ "$POST_TIMER_ENABLED" != "enabled" ] || [ "$POST_TIMER_ACTIVE" != "active" ] || [ "$POST_SERVICE_RESULT" != "success" ]; then
+              echo "DEPLOY STOP: postmatch systemd automation verification failed"
+              sudo /bin/systemctl status smartxflow-learning-archive-postmatch.timer --no-pager || true
+              sudo /bin/systemctl status smartxflow-learning-archive-postmatch.service --no-pager || true
+              sudo /bin/journalctl -u smartxflow-learning-archive-postmatch.service -n 100 --no-pager || true
+              exit 1
+            fi
+            echo "POSTMATCH_SYSTEMD_OK enabled=$POST_TIMER_ENABLED active=$POST_TIMER_ACTIVE service_result=$POST_SERVICE_RESULT"
+            sudo /bin/systemctl list-timers smartxflow-learning-archive-prematch.timer smartxflow-learning-archive-postmatch.timer --no-pager
+
+            # Deployment itself is a second independent prematch drain opportunity.
             sudo -u smartxflow env \
               PYTHONPATH=/opt/smartxflow \
               GITHUB_TOKEN="$GH_TOKEN" \
