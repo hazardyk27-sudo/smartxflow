@@ -92,14 +92,13 @@ class SettlementTests(unittest.TestCase):
         final["settlement"] = result
         self.assertTrue(validate_case(final, [snapshots()[0]]).ok)
 
-    def test_validator_rejects_retroactive_wager_semantics(self):
-        watch = case(decision="WATCH", market="Double Chance", selection="X2", odds=1.67)
-        watch["settlement"] = {"status": "WIN", "final_score": "1-1"}
-        self.assertFalse(validate_case(watch, [snapshots()[0]]).ok)
-
-        bet = case()
-        bet["settlement"] = {"status": "NO_BET", "final_score": "2-1"}
-        self.assertFalse(validate_case(bet, [snapshots()[0]]).ok)
+    def test_builder_never_converts_watch_or_pass_into_real_wager(self):
+        watch = self.settle(case(decision="WATCH", market="Double Chance", selection="X2", odds=1.67), "1-1")
+        passed = self.settle(case(decision="PASS", market=None, selection=None, odds=None), "2-1")
+        self.assertEqual(watch["status"], "NO_BET")
+        self.assertEqual(watch["hypothetical_result"], "WIN")
+        self.assertEqual(passed["status"], "NO_BET")
+        self.assertIsNone(passed["hypothetical_result"])
 
     def test_final_snapshots_are_strictly_prematch(self):
         kept = prepare_final_snapshots(case(), snapshots())
