@@ -7,7 +7,7 @@ Alarm hesaplama ozelligi dahil.
 - **Admin Panel**: GUI ile scraper kontrolu
 - **Scrape Araligi Ayari**: 1-60 dakika arasi ayarlanabilir
 - **Konsol Penceresi**: Ayri pencerede log takibi
-- **Alarm Hesaplama**: 7 alarm tipi otomatik hesaplanir
+- **Alarm Hesaplama**: production incremental Alarm Engine ile 6 aktif alarm tipi
 
 ## Kurulum
 
@@ -65,14 +65,15 @@ Admin Panel acilacak:
 
 ## Alarm Tipleri
 
-Scraper su alarm tiplerini otomatik hesaplar:
-1. **Sharp Move**: Akilli para hareketi
-2. **Insider Info**: Içeriden bilgi şüphesi
-3. **Big Money / Huge Money**: Büyük para girişi
-4. **Volume Shock**: Hacim şoku
-5. **Dropping Odds**: Düşen oranlar (L1/L2/L3)
-6. **Public Move**: Halk hareketi
-7. **Volume Leader**: Lider değişimi
+Production incremental Alarm Engine su 6 alarm tipini hesaplar:
+1. **Big Money / Huge Money**: Büyük para girişi
+2. **Sharp Move**: Akilli para hareketi
+3. **Volume Shock**: Hacim şoku
+4. **Dropping Odds**: Düşen oranlar (L1/L2/L3)
+5. **Volume Leader**: Lider değişimi
+6. **MIM**: Para akışının market dengesi üzerindeki etkisi
+
+`Insider` ve `Public Move` tabloları eski kayıtlarla geriye uyumluluk ve geçmiş görünümü için korunur; production incremental Alarm Engine bu iki tipi hesaplamaz ve aktif motor olarak değerlendirmez.
 
 ## SSS (Sik Sorulan Sorular)
 
