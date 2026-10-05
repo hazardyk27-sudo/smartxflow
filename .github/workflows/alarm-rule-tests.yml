@@ -24,6 +24,7 @@ on:
       - 'desktop/scraper_standalone/alarm_recent_part2.py'
       - 'desktop/scraper_standalone/alarm_recent_part3.py'
       - 'learning_archive/**'
+      - 'core/current_table_sync.py'
       - 'core/retention_guard.py'
       - 'migrations/**'
       - 'static/js/inline.js.src'
@@ -32,6 +33,7 @@ on:
       - 'tests/test_alarm_recent_incremental.py'
       - 'tests/test_alarm_recent_part2.py'
       - 'tests/test_alarm_recent_part3.py'
+      - 'tests/test_current_table_sync.py'
       - 'tests/test_prematch_master_watchdog.py'
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_sinyal_engine_runtime.py'
@@ -81,6 +83,7 @@ jobs:
           python -m py_compile learning_archive/exporter.py
           python -m py_compile learning_archive/retention.py
           python -m py_compile learning_archive/supabase_source.py
+          python -m py_compile core/current_table_sync.py
           python -m py_compile core/retention_guard.py
       - name: Validate service supervisor shell syntax
         run: |
@@ -95,6 +98,7 @@ jobs:
           tests/test_alarm_recent_incremental.py
           tests/test_alarm_recent_part2.py
           tests/test_alarm_recent_part3.py
+          tests/test_current_table_sync.py
           tests/test_prematch_master_watchdog.py
           tests/test_runtime_scraper_recovery.py
           tests/test_sinyal_engine_runtime.py
