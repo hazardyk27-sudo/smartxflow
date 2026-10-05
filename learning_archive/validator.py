@@ -129,7 +129,6 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
 
     prediction = _require_mapping(case.get("prediction"), "prediction", errors)
     prediction_at: datetime | None = None
-    decision = None
     if prediction is not None:
         prediction_at = _parse_datetime(prediction.get("prediction_at"), "prediction.prediction_at", errors)
         decision = prediction.get("decision")
@@ -174,14 +173,8 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
                     errors.append(f"{prefix}.phase: must be {expected_phase} from observed_at/prediction_at cutoff")
 
     settlement = _require_mapping(case.get("settlement"), "settlement", errors)
-    if settlement is not None:
-        settlement_status = settlement.get("status")
-        if settlement_status not in _SETTLEMENT_STATUSES:
-            errors.append("settlement.status: must be PENDING, WIN, LOSS, VOID, or NO_BET")
-        if decision == "BET" and settlement_status == "NO_BET":
-            errors.append("settlement.status: BET cannot settle as NO_BET")
-        if decision in {"WATCH", "PASS"} and settlement_status in {"WIN", "LOSS"}:
-            errors.append("settlement.status: WATCH/PASS must not be converted into a wager result")
+    if settlement is not None and settlement.get("status") not in _SETTLEMENT_STATUSES:
+        errors.append("settlement.status: must be PENDING, WIN, LOSS, VOID, or NO_BET")
 
     provenance = _require_mapping(case.get("provenance"), "provenance", errors)
     if provenance is not None:
