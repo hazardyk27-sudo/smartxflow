@@ -7,6 +7,7 @@ on:
       - 'core/hash_utils.py'
       - 'core/fixture_identity_v2.py'
       - 'core/fixture_identity_shadow.py'
+      - 'core/fixture_uid_dual_write.py'
       - 'core/current_table_sync.py'
       - 'services/**'
       - 'betwatch_client.py'
@@ -30,6 +31,7 @@ on:
       - 'tests/test_fixture_identity_shadow.py'
       - 'tests/test_fixture_identity_shadow_migration.py'
       - 'tests/test_fixture_identity_v2_reference_columns.py'
+      - 'tests/test_fixture_uid_dual_write.py'
       - 'tests/test_fixture_reference_remap.py'
       - 'tests/test_current_table_sync.py'
       - 'docs/fixture_identity_v2.md'
@@ -59,6 +61,7 @@ jobs:
         python -m py_compile core/hash_utils.py
         python -m py_compile core/fixture_identity_v2.py
         python -m py_compile core/fixture_identity_shadow.py
+        python -m py_compile core/fixture_uid_dual_write.py
         python -m py_compile core/current_table_sync.py
         python -m py_compile betwatch_client.py
         python -m py_compile betwatch_prematch.py
@@ -81,6 +84,7 @@ jobs:
         python -m pytest -q tests/test_fixture_identity_shadow.py
         python -m pytest -q tests/test_fixture_identity_shadow_migration.py
         python -m pytest -q tests/test_fixture_identity_v2_reference_columns.py
+        python -m pytest -q tests/test_fixture_uid_dual_write.py
         python -m pytest -q tests/test_current_table_sync.py
 
     - name: Run fixture reference remap planner regressions
