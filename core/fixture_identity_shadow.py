@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 import requests
 
@@ -22,6 +22,7 @@ from core.hash_utils import make_match_id_hash
 _QUERY_CHUNK = 150
 _STAGE_LOCK = Lock()
 _STAGE: Optional["StagedIdentityBatch"] = None
+PhysicalKey = Tuple[str, str, str, str]
 
 
 @dataclass
@@ -30,6 +31,7 @@ class StagedIdentityBatch:
     eligible_rows: int = 0
     missing_provider_ids: int = 0
     hash_to_event_ids: Dict[str, Set[str]] = field(default_factory=dict)
+    hash_to_physical_keys: Dict[str, Set[PhysicalKey]] = field(default_factory=dict)
 
 
 def _normalize_kickoff(value: Any) -> str:
@@ -62,6 +64,9 @@ def build_betwatch_identity_stage(matches: Iterable[Mapping[str, Any]]) -> Stage
         kickoff = _normalize_kickoff(match.get("kickoff"))
         match_hash = make_match_id_hash(home, away, league, kickoff)
         batch.hash_to_event_ids.setdefault(match_hash, set()).add(identity.event_id)
+        batch.hash_to_physical_keys.setdefault(match_hash, set()).add(
+            (league, home, away, kickoff)
+        )
         batch.eligible_rows += 1
     return batch
 
@@ -76,20 +81,17 @@ def stage_betwatch_identity_payload(matches: Iterable[Mapping[str, Any]]) -> Sta
 
 
 def peek_safe_betwatch_event_by_hash() -> Dict[str, str]:
-    """Return only unambiguous hash -> provider-event pairs from the live stage.
-
-    This is observational state for Part 4 dual-write. A hash represented by more
-    than one provider event in the same payload is deliberately omitted.
-    """
+    """Return only payload-local hash -> event pairs with one physical fixture."""
     with _STAGE_LOCK:
         batch = _STAGE
         if batch is None:
             return {}
-        return {
-            match_hash: next(iter(event_ids))
-            for match_hash, event_ids in batch.hash_to_event_ids.items()
-            if len(event_ids) == 1
-        }
+        result: Dict[str, str] = {}
+        for match_hash, event_ids in batch.hash_to_event_ids.items():
+            physical_keys = batch.hash_to_physical_keys.get(match_hash, set())
+            if len(event_ids) == 1 and len(physical_keys) == 1:
+                result[match_hash] = next(iter(event_ids))
+        return result
 
 
 def consume_betwatch_identity_stage() -> Optional[StagedIdentityBatch]:
@@ -169,6 +171,7 @@ def _empty_stats() -> Dict[str, Any]:
         "eligible_rows": 0,
         "missing_provider_ids": 0,
         "hash_collision_groups": 0,
+        "physical_collision_groups": 0,
         "provider_event_collision_groups": 0,
         "uid_provider_collision_groups": 0,
         "unresolved_hashes": 0,
@@ -190,9 +193,10 @@ def flush_staged_betwatch_identity_shadow(
     """Consume one staged Betwatch payload and record only safe shadow bindings.
 
     The legacy fixture writer has already run by the time this hook is called.
-    Hashes with multiple provider IDs, provider IDs resolving to multiple fixture
-    UIDs, missing fixture UIDs, a UID already owned by a different Betwatch event,
-    and DB identity conflicts are all excluded or counted; none is auto-merged.
+    Hashes with multiple provider IDs or physical keys, provider IDs resolving to
+    multiple fixture UIDs, missing fixture UIDs, a UID already owned by a
+    different Betwatch event, and DB identity conflicts are excluded or counted;
+    none is auto-merged.
     """
     stats = _empty_stats()
     batch = consume_betwatch_identity_stage()
@@ -208,17 +212,24 @@ def flush_staged_betwatch_identity_shadow(
 
     try:
         safe_hash_to_event: Dict[str, str] = {}
+        safe_hash_to_physical: Dict[str, PhysicalKey] = {}
         for match_hash, event_ids in batch.hash_to_event_ids.items():
+            physical_keys = batch.hash_to_physical_keys.get(match_hash, set())
             if len(event_ids) != 1:
                 stats["hash_collision_groups"] += 1
                 continue
+            if len(physical_keys) != 1:
+                stats["physical_collision_groups"] += 1
+                continue
             safe_hash_to_event[match_hash] = next(iter(event_ids))
+            safe_hash_to_physical[match_hash] = next(iter(physical_keys))
 
-        # Preserve this payload-local identity context for Part 4 dual-write after
-        # the stage is consumed. It is never itself authoritative; dual-write also
-        # requires a registry mapping and an exact fixture verification.
+        # Preserve only payload-local, physically unambiguous context for Part 4
+        # dual-write after the stage is consumed. This context is observational;
+        # registry and exact fixture checks remain mandatory before any UID tag.
         try:
             writer._fixture_identity_event_by_hash = dict(safe_hash_to_event)
+            writer._fixture_identity_physical_by_hash = dict(safe_hash_to_physical)
         except Exception:
             pass
 
@@ -250,9 +261,8 @@ def flush_staged_betwatch_identity_shadow(
         for event_id, fixture_uid in candidate_pairs:
             existing_events = existing_events_by_uid.get(fixture_uid, set())
             if existing_events and event_id not in existing_events:
-                # Critical rematch guard: the legacy hash may be reused by a new
-                # physical fixture. While UNIQUE(match_id_hash) still exists we
-                # must never attach that new provider event to the old UID.
+                # Critical rematch guard: legacy hash reuse must never attach a
+                # new physical Betwatch event to an old fixture UID.
                 stats["uid_provider_collision_groups"] += 1
                 continue
             bindings.append(
@@ -292,6 +302,7 @@ def flush_staged_betwatch_identity_shadow(
                 f"inserted={stats['inserted_count']} matched={stats['matched_count']} "
                 f"conflicts={stats['conflict_count']} missing_id={stats['missing_provider_ids']} "
                 f"hash_collision={stats['hash_collision_groups']} "
+                f"physical_collision={stats['physical_collision_groups']} "
                 f"event_collision={stats['provider_event_collision_groups']} "
                 f"uid_event_collision={stats['uid_provider_collision_groups']} "
                 f"unresolved={stats['unresolved_hashes']}"
