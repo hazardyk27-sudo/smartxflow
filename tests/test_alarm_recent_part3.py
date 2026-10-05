@@ -142,6 +142,12 @@ class NoPrefetchCalculator:
         self.calls.append("mim")
         return 6
 
+    def calculate_insider_alarms(self):
+        raise AssertionError("legacy Insider motor must not run in production incremental path")
+
+    def calculate_publicmove_alarms(self):
+        raise AssertionError("legacy PublicMove motor must not run in production incremental path")
+
     def _cleanup_expired_match_alarms(self):
         self.calls.append("cleanup")
 
@@ -152,7 +158,7 @@ class NoPrefetchCalculator:
         raise AssertionError("legacy history prefetch must not run")
 
 
-def test_six_alarm_runner_skips_legacy_full_prefetch():
+def test_six_alarm_runner_skips_legacy_full_prefetch_and_unsupported_motors():
     calc = NoPrefetchCalculator()
     total = part3._run_all_incremental(calc)
     assert total == 21
