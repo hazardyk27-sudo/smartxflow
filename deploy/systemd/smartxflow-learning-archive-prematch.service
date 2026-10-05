@@ -14,6 +14,7 @@ Environment=SMARTXFLOW_PREMATCH_QUEUE=/var/lib/smartxflow-prematch/request.json
 Environment=LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519
 StateDirectory=smartxflow-prematch
 StateDirectoryMode=0750
+ExecStartPre=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/verify_learning_archive_ssh_write.py
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/enqueue_due_learning_revisit.py --dotenv /opt/smartxflow/.env
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/drain_due_learning_revisit_queue.py --dotenv /opt/smartxflow/.env
 TimeoutStartSec=240
