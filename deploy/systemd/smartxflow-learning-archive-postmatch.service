@@ -2,8 +2,7 @@
 Description=SmartXFlow Learning Archive postmatch settlement and finalization
 After=network-online.target smartxflow-live.service
 Wants=network-online.target
-ConditionPathExists=/opt/smartxflow/scripts/settle_due_learning_cases.py
-ConditionPathExists=/opt/smartxflow/scripts/repair_missing_learning_settlements.py
+ConditionPathExists=/opt/smartxflow/scripts/settle_due_learning_cases_fast.py
 
 [Service]
 Type=oneshot
@@ -16,8 +15,7 @@ Environment=LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_lea
 StateDirectory=smartxflow-postmatch
 StateDirectoryMode=0750
 ExecStartPre=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/verify_learning_archive_ssh_write.py
-ExecStartPre=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/repair_missing_learning_settlements.py --dotenv /opt/smartxflow/.env
-ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/settle_due_learning_cases.py --dotenv /opt/smartxflow/.env
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/settle_due_learning_cases_fast.py --dotenv /opt/smartxflow/.env
 TimeoutStartSec=600
 NoNewPrivileges=true
 PrivateTmp=true
