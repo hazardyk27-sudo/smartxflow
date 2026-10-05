@@ -44,6 +44,35 @@ def _writer_cache(writer: Any) -> Dict[str, str]:
     return cache
 
 
+def _schema_cache(writer: Any) -> Dict[str, bool]:
+    cache = getattr(writer, "_fixture_uid_column_support", None)
+    if not isinstance(cache, dict):
+        cache = {}
+        try:
+            writer._fixture_uid_column_support = cache
+        except Exception:
+            pass
+    return cache
+
+
+def _table_supports_fixture_uid(writer: Any, table: str, request_get) -> bool:
+    cache = _schema_cache(writer)
+    if table in cache:
+        return bool(cache[table])
+    try:
+        response = request_get(
+            writer._rest_url(table),
+            headers=writer._headers(),
+            params={"select": "fixture_uid", "limit": 0},
+            timeout=10,
+        )
+        supported = getattr(response, "status_code", 0) == 200
+    except Exception:
+        supported = False
+    cache[table] = supported
+    return supported
+
+
 def resolve_fixture_uids_by_hash(
     writer: Any,
     match_hashes: Iterable[str],
@@ -124,8 +153,10 @@ def attach_fixture_uids_to_current_rows(
     carry the UID too. Missing/failed UID resolution never blocks the legacy
     current/history path and never removes an existing UID.
     """
+    request_get = request_get or requests.get
     stats: Dict[str, Any] = {
         "attempted": False,
+        "column_available": False,
         "rows": len(rows),
         "tagged_rows": 0,
         "unresolved_rows": 0,
@@ -138,6 +169,12 @@ def attach_fixture_uids_to_current_rows(
     if table not in PREMATCH_CURRENT_TABLES or not rows:
         return stats
 
+    stats["attempted"] = True
+    if not _table_supports_fixture_uid(writer, table, request_get):
+        stats["error"] = "fixture_uid_column_unavailable"
+        return stats
+    stats["column_available"] = True
+
     hashes: List[str] = []
     row_hashes: List[Optional[str]] = []
     for row in rows:
@@ -148,7 +185,6 @@ def attach_fixture_uids_to_current_rows(
 
     resolved = resolve_fixture_uids_by_hash(writer, hashes, request_get=request_get)
     stats.update(
-        attempted=True,
         requested_hashes=resolved["requested_hashes"],
         resolved_hashes=resolved["resolved_hashes"],
         cache_hits=resolved["cache_hits"],
