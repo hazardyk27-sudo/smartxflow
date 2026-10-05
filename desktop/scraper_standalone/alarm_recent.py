@@ -3,22 +3,87 @@
 Part 1: BigMoney + MIM.
 Part 2: VolumeLeader + VolumeShock.
 Part 3: Sharp + Dropping + no-prefetch six-alarm runner.
+
+Shared guards installed here keep every incremental alarm on the same contract:
+- Previous-window boundaries come only from prematch ``scrape_complete`` signals.
+- A fixture must still be prematch at the active signal timestamp.
 """
 
 import alarm_recent_base as _base
+import alarm_recent_part2 as _part2
 import alarm_recent_part3 as _part3
 
 for _name in dir(_base):
     if not _name.startswith("__"):
         globals()[_name] = getattr(_base, _name)
 
-from alarm_recent_part2 import (
-    clear_part2_alarm_cache as _clear_part2_alarm_cache,
-    install_part2_alarm_overrides as _install_part2_alarm_overrides,
-)
-
 _install_part1_alarm_overrides = _base.install_recent_alarm_overrides
 _clear_part1_alarm_cache = _base.clear_recent_alarm_cache
+_install_part2_alarm_overrides = _part2.install_part2_alarm_overrides
+_clear_part2_alarm_cache = _part2.clear_part2_alarm_cache
+
+_ORIGINAL_LOAD_FIXTURES = _base._load_fixtures
+
+
+def _load_previous_scrape_complete_signals(calculator, signal, count=2):
+    """Load prior prematch cycles only; ignore heartbeats or future signal types."""
+    signal_id = signal.get("id")
+    if signal_id is None:
+        return []
+    source = str(signal.get("source") or "replit")
+    rows = calculator._get(
+        "scraper_signal",
+        f"select=id,created_at,source&id=lt.{int(signal_id)}"
+        f"&source=eq.{source}&signal_type=eq.scrape_complete"
+        f"&order=id.desc&limit={int(count)}",
+    ) or []
+    return rows
+
+
+def _load_active_prematch_fixtures(calculator, hashes):
+    """Return fixtures whose kickoff is strictly after the active signal time.
+
+    Missing/invalid kickoff is fail-closed in incremental mode. Legacy callers
+    without an active scraper signal retain the original fixture behavior.
+    """
+    fixtures = _ORIGINAL_LOAD_FIXTURES(calculator, hashes)
+    signal = getattr(calculator, "_active_signal", None)
+    if not isinstance(signal, dict):
+        return fixtures
+
+    signal_dt = _base._dt(signal.get("created_at"))
+    if signal_dt is None:
+        _base._legacy.log("[RecentAlarm Guard] invalid active signal timestamp; fixtures rejected")
+        return {}
+
+    active = {}
+    missing_kickoff = 0
+    started = 0
+    for match_hash, fixture in fixtures.items():
+        kickoff_dt = _base._dt(fixture.get("kickoff_utc"))
+        if kickoff_dt is None:
+            missing_kickoff += 1
+            continue
+        if kickoff_dt <= signal_dt:
+            started += 1
+            continue
+        active[match_hash] = fixture
+
+    if missing_kickoff or started:
+        _base._legacy.log(
+            f"[RecentAlarm Guard] fixture_filter active={len(active)} "
+            f"started={started} missing_kickoff={missing_kickoff}"
+        )
+    return active
+
+
+# Part modules import these helpers by name, so update every module-level alias.
+_base._load_previous_signals = _load_previous_scrape_complete_signals
+_part2._load_previous_signals = _load_previous_scrape_complete_signals
+_part3._load_previous_signals = _load_previous_scrape_complete_signals
+_base._load_fixtures = _load_active_prematch_fixtures
+_part2._load_fixtures = _load_active_prematch_fixtures
+_part3._load_fixtures = _load_active_prematch_fixtures
 
 
 def install_recent_alarm_overrides(calculator_cls):
