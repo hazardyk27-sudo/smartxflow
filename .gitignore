@@ -51,8 +51,10 @@ Thumbs.db
 data/
 *.json
 !static/i18n/*.json
-# Learning Archive finalized settlements are canonical tracked data.
-!learning_archive_data/**/settlement.json
+# Learning Archive data is canonical append-only data. Never let a global
+# extension ignore silently omit a package member from an archive commit.
+!learning_archive_data/
+!learning_archive_data/**
 
 # Attached assets (uploaded files with potential secrets)
 attached_assets/
