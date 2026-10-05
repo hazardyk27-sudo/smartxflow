@@ -114,19 +114,33 @@ def test_fixture_lookup_failure_fails_soft_without_overwriting_legacy_fields():
     assert "fixture_uid" not in row
 
 
-def test_current_sync_tags_original_rows_so_later_history_append_can_reuse_uid(monkeypatch):
+def test_current_sync_tags_original_rows_only_with_provider_and_physical_proof(monkeypatch):
     writer = Writer()
     row = _row()
     match_hash = make_match_id_hash(row["home"], row["away"], row["league"], row["date"])
+    expected_uid = "22222222-2222-2222-2222-222222222222"
+    writer._fixture_identity_event_by_hash = {match_hash: "evt-1"}
+    writer._fixture_identity_physical_by_hash = {
+        match_hash: (row["league"], row["home"], row["away"], row["date"])
+    }
 
     def fake_get(url, **kwargs):
         params = kwargs.get("params") or {}
         if url.endswith("/moneyway_1x2") and params.get("select") == "fixture_uid":
             return _response(200, [])
+        if url.endswith("/fixture_source_ids"):
+            return _response(200, [{
+                "source_event_id": "evt-1",
+                "fixture_uid": expected_uid,
+            }])
         if url.endswith("/fixtures"):
             return _response(200, [{
+                "fixture_uid": expected_uid,
                 "match_id_hash": match_hash,
-                "fixture_uid": "22222222-2222-2222-2222-222222222222",
+                "league": row["league"],
+                "home_team": row["home"],
+                "away_team": row["away"],
+                "kickoff_utc": row["date"],
             }])
         if "moneyway_1x2?select=id,league,home,away,date" in url:
             return _response(200, [])
@@ -137,10 +151,49 @@ def test_current_sync_tags_original_rows_so_later_history_append_can_reuse_uid(m
     monkeypatch.setattr(sync, "_flush_identity_shadow", lambda *args, **kwargs: None)
 
     assert sync.sync_current_table(writer, "moneyway_1x2", [row]) is True
-    expected_uid = "22222222-2222-2222-2222-222222222222"
     assert row["fixture_uid"] == expected_uid
     assert writer.events[0][1][0]["fixture_uid"] == expected_uid
     assert writer.events[0][2] == "league,home,away,date"
+
+
+def test_current_sync_leaves_uid_null_when_physical_context_is_stale(monkeypatch):
+    writer = Writer()
+    row = _row()
+    match_hash = make_match_id_hash(row["home"], row["away"], row["league"], row["date"])
+    writer._fixture_identity_event_by_hash = {match_hash: "evt-old"}
+    writer._fixture_identity_physical_by_hash = {
+        match_hash: (row["league"], row["home"], row["away"], "2026-09-01T18:00:00+00:00")
+    }
+
+    def fake_get(url, **kwargs):
+        params = kwargs.get("params") or {}
+        if url.endswith("/moneyway_1x2") and params.get("select") == "fixture_uid":
+            return _response(200, [])
+        if url.endswith("/fixture_source_ids"):
+            return _response(200, [{
+                "source_event_id": "evt-old",
+                "fixture_uid": "33333333-3333-3333-3333-333333333333",
+            }])
+        if url.endswith("/fixtures"):
+            return _response(200, [{
+                "fixture_uid": "33333333-3333-3333-3333-333333333333",
+                "match_id_hash": match_hash,
+                "league": row["league"],
+                "home_team": row["home"],
+                "away_team": row["away"],
+                "kickoff_utc": row["date"],
+            }])
+        if "moneyway_1x2?select=id,league,home,away,date" in url:
+            return _response(200, [])
+        raise AssertionError((url, kwargs))
+
+    monkeypatch.setattr(sync.requests, "get", fake_get)
+    monkeypatch.setattr(sync.requests, "delete", Mock(return_value=_response(204)))
+    monkeypatch.setattr(sync, "_flush_identity_shadow", lambda *args, **kwargs: None)
+
+    assert sync.sync_current_table(writer, "moneyway_1x2", [row]) is True
+    assert "fixture_uid" not in row
+    assert "fixture_uid" not in writer.events[0][1][0]
 
 
 def test_existing_conflicting_uid_is_never_overwritten():
