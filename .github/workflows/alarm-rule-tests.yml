@@ -30,6 +30,7 @@ on:
       - 'static/js/inline.js.src'
       - 'static/js/i18n.js'
       - 'tests/test_alarm_engine_freshness.py'
+      - 'tests/test_alarm_recent_guards.py'
       - 'tests/test_alarm_calculator_rule_guards.py'
       - 'tests/test_alarm_recent_incremental.py'
       - 'tests/test_alarm_recent_part2.py'
@@ -96,6 +97,7 @@ jobs:
         run: >-
           python -m pytest -q
           tests/test_alarm_engine_freshness.py
+          tests/test_alarm_recent_guards.py
           tests/test_alarm_calculator_rule_guards.py
           tests/test_alarm_recent_incremental.py
           tests/test_alarm_recent_part2.py
