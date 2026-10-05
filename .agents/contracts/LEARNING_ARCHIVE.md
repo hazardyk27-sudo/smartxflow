@@ -1,12 +1,14 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 4
+CONTRACT_VERSION: 5
 
 ## Purpose
 
 The Learning Archive is the historical evidence store for selected SmartXFlow prediction cases. It is not the live database and is not a second scraper.
 
-Only matches materially researched by Predictor and formalized as `BET`, `WATCH`, or `PASS` are archived. Whole-market archiving and Poly/Polymarket inputs are excluded.
+Only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection are archived as usable prediction cases. Whole-market archiving, no-pick/PASS cases and Poly/Polymarket inputs are excluded from normal prediction datasets/diaries.
+
+Historical legacy `PASS` records may remain physically present for audit/immutability. They must not be silently rewritten or deleted, but default archive iteration/dataset use excludes them.
 
 ## Storage target
 
@@ -24,12 +26,12 @@ A file written only to a runtime/worktree is not durable archive truth. Final `D
 
 ## Automatic case lifecycle
 
-1. Predictor publishes a formal `BET`, `WATCH`, or `PASS` case with immutable `prediction_at`, confidence, rationale and counterargument; market/selection/entry odds are included when applicable.
+1. Predictor publishes a formal `BET` or `WATCH` case with immutable `prediction_at`, concrete market/selection, confidence, rationale and counterargument; entry odds are included when applicable.
 2. Predictor immediately reads that selected match's already-stored SmartXFlow history through the internal Learning Archive API.
 3. The first durable archive operation writes immutable `case.json`, `evidence.json`, and `captures/<observed_at>.json.gz`, then appends a `RECORDED` manifest event.
 4. If materially revisited before kickoff, a new deterministic capture is appended with a `CAPTURED` manifest event. Earlier captures are never overwritten.
 5. At settlement/end-of-day, Predictor adds `settlement.json`, final full prematch `sxf_snapshots.json.gz`, deterministic `checksums.sha256`, and appends `FINALIZED`.
-6. Validator/integrity checks confirm timing, secret exclusion, Poly exclusion, checksums and immutable-history rules.
+6. Validator/integrity checks confirm decision/selection policy, timing, secret exclusion, Poly exclusion, checksums and immutable-history rules.
 7. Identical retries are idempotent. A same case/event key with different historical content fails closed. Corrections are append-only addenda/versioned records.
 
 No separate user command is required merely to remember/archive a formal selected case.
@@ -67,13 +69,18 @@ One `case_id` represents one prediction/decision case. Separate materially disti
 - `match_id_hash`
 - league/home/away/kickoff
 - immutable `prediction_at` in UTC/offset-aware ISO-8601
-- decision `BET|WATCH|PASS`
-- market/selection/entry odds when applicable
+- decision `BET|WATCH`
+- mandatory non-empty market and selection
+- entry odds when applicable
 - confidence
 - rationale
 - counterargument/failure condition
 - source SmartXFlow commit/version metadata
 - archive creation timestamp
+
+A match with no defensible market/selection is omitted from the final prediction diary/archive rather than represented by `PASS`.
+
+The v1 schema may still recognize historical `PASS` payloads for backward-compatible audit reading; runtime validation for new formal writes is intentionally stricter and accepts only concrete `BET`/`WATCH` prediction cases.
 
 ## Snapshot/capture archive
 
@@ -97,7 +104,7 @@ Original evidence is immutable after record. Later evidence/corrections must be 
 
 `settlement.json` records result/review fields such as final score, HT score when relevant, WIN/LOSS/VOID for bet cases, closing odds, CLV, P/L/ROI convention when available, price movement and postmortem classification.
 
-For `WATCH`/`PASS`, preserve the original decision and evaluate it without retroactively converting it into a bet.
+For `WATCH`, preserve the original decision and evaluate the watched selection without retroactively converting it into a bet. Legacy historical `PASS` settlements remain audit-only and are excluded from default usable prediction iteration.
 
 Finalization with settlement status `PENDING` is forbidden.
 
@@ -118,12 +125,13 @@ Finalized core payloads use deterministic SHA-256 checksums. Development must ve
 
 A case is not `DONE` merely because files exist locally or settlement was reviewed. `DONE` requires:
 1. immutable original case/evidence present,
-2. required selected-match history captures present,
-3. final settlement/review present,
-4. validator PASS,
-5. checksum and manifest verification PASS,
-6. durable GitHub commit/reference on `learning-archive` confirmed,
-7. retention hold release when retention protection is enabled.
+2. a concrete `BET` or `WATCH` prediction with non-empty market/selection for usable prediction cases,
+3. required selected-match history captures present,
+4. final settlement/review present,
+5. validator PASS,
+6. checksum and manifest verification PASS,
+7. durable GitHub commit/reference on `learning-archive` confirmed,
+8. retention hold release when retention protection is enabled.
 
 Failure remains explicit and retryable.
 
@@ -137,6 +145,6 @@ The retention-hold code/migration may exist, but production migration must not b
 
 ## Access by role
 
-- Predictor creates/records/revisits/settles selected cases automatically as part of its workflow.
-- Development reads the same archive, validates integrity and builds PRE-only features/datasets/models; it never rewrites historical truth.
+- Predictor creates/records/revisits/settles selected concrete prediction cases automatically as part of its workflow.
+- Development reads the same archive, validates integrity and builds PRE-only features/datasets/models; default iteration excludes legacy no-pick/PASS cases and it never rewrites historical truth.
 - No separate Collector Agent or Match Analyst Agent exists.
