@@ -36,6 +36,7 @@ SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 POLL_INTERVAL = 30
 IDLE_LOG_INTERVAL = 300
 ERROR_WAIT = 60
+MAX_SIGNAL_AGE_SECONDS = 12 * 60
 
 HEADERS_READ = {'apikey': SUPABASE_ANON_KEY, 'Authorization': f'Bearer {SUPABASE_ANON_KEY}', 'Content-Type': 'application/json'}
 HEADERS_WRITE = {'apikey': SUPABASE_SERVICE_KEY, 'Authorization': f'Bearer {SUPABASE_SERVICE_KEY}', 'Content-Type': 'application/json', 'Prefer': 'return=minimal'}
@@ -160,6 +161,29 @@ def _signal_queue_wait_seconds(signal):
         return None
 
 
+def _reject_stale_or_invalid_signal(signal, queue_wait):
+    signal_id = signal.get('id')
+    if signal_id is None:
+        update_engine_heartbeat('error', error_msg='scrape_complete signal id missing')
+        return False
+
+    if queue_wait is None:
+        reason = 'scrape_complete created_at invalid; calculation skipped'
+    else:
+        reason = (
+            f'scrape_complete stale ({queue_wait:.1f}s > '
+            f'{MAX_SIGNAL_AGE_SECONDS}s); calculation skipped'
+        )
+
+    print(f"[Signal] #{signal_id} {reason}")
+    if not mark_signal_processed(signal_id):
+        update_engine_heartbeat('error', error_msg=f'{reason}; mark processed failed')
+        return False
+
+    update_engine_heartbeat('stale_input', alarm_count=0, error_msg=reason)
+    return True
+
+
 def process_signal(signal):
     signal_id = signal.get('id')
     queue_wait = _signal_queue_wait_seconds(signal)
@@ -170,6 +194,10 @@ def process_signal(signal):
     if queue_wait is not None:
         print(f"[Timing] queue_wait={queue_wait:.3f}s")
     print("=" * 60)
+
+    if queue_wait is None or queue_wait > MAX_SIGNAL_AGE_SECONDS:
+        return _reject_stale_or_invalid_signal(signal, queue_wait)
+
     update_engine_heartbeat('calculating')
     started = time.monotonic()
     calc = None
@@ -199,7 +227,7 @@ def run_engine():
     print("SMARTXFLOW ALARM ENGINE v2.3")
     print("Incremental: BigMoney + MIM + VolumeLeader + VolumeShock + Sharp + Dropping")
     print("Legacy full history prefetch: OFF for active scraper signals")
-    print(f"Poll interval: {POLL_INTERVAL}s")
+    print(f"Poll interval: {POLL_INTERVAL}s | Max signal age: {MAX_SIGNAL_AGE_SECONDS}s")
     print(f"Supabase URL: {SUPABASE_URL[:30]}..." if SUPABASE_URL else "Supabase URL: NOT SET")
     print("=" * 60)
     if not SUPABASE_URL or not SUPABASE_ANON_KEY:
