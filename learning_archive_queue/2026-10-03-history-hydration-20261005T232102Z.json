@@ -1,0 +1,87 @@
+{
+  "operation": "HISTORICAL_SXF_HYDRATION",
+  "request_id": "20261003-full-sxf-history-v1",
+  "backfill_at": "2026-10-05T23:21:02Z",
+  "cases": [
+    {
+      "case_id": "20261003-atletico-go-america-mg-1x2-atletico-go",
+      "case_hash": "383e2346de3f",
+      "canonical_hash": "2bc1780e66e4",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T19:00:00Z",
+      "canonical_home": "Atletico GO",
+      "canonical_away": "America MG",
+      "canonical_league": "Brazilian Serie B"
+    },
+    {
+      "case_id": "20261003-belarus-san-marino-btts-no",
+      "case_hash": "8c8437777d0f",
+      "canonical_hash": "4b293527232a",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T16:00:00Z",
+      "canonical_home": "Belarus",
+      "canonical_away": "San Marino",
+      "canonical_league": "UEFA Nations League C"
+    },
+    {
+      "case_id": "20261003-cadiz-leganes-ou25-over",
+      "case_hash": "6c59e6abddee",
+      "canonical_hash": "96a0f55bc5b1",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T16:30:00Z",
+      "canonical_home": "Cadiz",
+      "canonical_away": "Leganes",
+      "canonical_league": "Spanish Segunda Division"
+    },
+    {
+      "case_id": "20261003-croatia-england-1x2-england",
+      "case_hash": "bc718e7c5fcc",
+      "canonical_hash": "bc718e7c5fcc",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T16:00:00Z",
+      "canonical_home": "Croatia",
+      "canonical_away": "England",
+      "canonical_league": "UEFA Nations League"
+    },
+    {
+      "case_id": "20261003-estonia-luxembourg-ou25-under",
+      "case_hash": "22a2a8bbf8d4",
+      "canonical_hash": "22a2a8bbf8d4",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T16:00:00Z",
+      "canonical_home": "Estonia",
+      "canonical_away": "Luxembourg",
+      "canonical_league": "UEFA Nations League"
+    },
+    {
+      "case_id": "20261003-north-macedonia-scotland-1x2-scotland",
+      "case_hash": "e139a844cf55",
+      "canonical_hash": "e139a844cf55",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T18:45:00Z",
+      "canonical_home": "North Macedonia",
+      "canonical_away": "Scotland",
+      "canonical_league": "UEFA Nations League"
+    },
+    {
+      "case_id": "20261003-sabadell-fc-andorra-1x2-sabadell",
+      "case_hash": "ee7e3d2fc215",
+      "canonical_hash": "c550b8821dfb",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T16:30:00Z",
+      "canonical_home": "Sabadell",
+      "canonical_away": "FC Andorra",
+      "canonical_league": "Spanish Segunda Division"
+    },
+    {
+      "case_id": "20261003-switzerland-slovenia-btts-no",
+      "case_hash": "9fa87d9313b5",
+      "canonical_hash": "08f1bd26b128",
+      "prediction_at": "2026-10-03T13:27:00Z",
+      "kickoff_at": "2026-10-03T18:45:00Z",
+      "canonical_home": "Switzerland",
+      "canonical_away": "Slovenia",
+      "canonical_league": "UEFA Nations League B"
+    }
+  ]
+}
