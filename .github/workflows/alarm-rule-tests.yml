@@ -14,7 +14,9 @@ on:
       - 'deploy/smartxflow-sinyal.service'
       - 'betwatch_prematch.py'
       - 'betwatch_client.py'
+      - 'services/__init__.py'
       - 'services/supabase_client.py'
+      - 'services/display_history_fallback.py'
       - 'scripts/cleanup_duplicate_fixtures.py'
       - 'desktop/scraper_standalone/betwatch_client.py'
       - 'desktop/scraper_standalone/alarm_calculator.py'
@@ -38,6 +40,7 @@ on:
       - 'tests/test_alarm_recent_part2.py'
       - 'tests/test_alarm_recent_part3.py'
       - 'tests/test_current_table_sync.py'
+      - 'tests/test_display_history_fallback.py'
       - 'tests/test_prematch_master_watchdog.py'
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_sinyal_engine_runtime.py'
@@ -75,7 +78,9 @@ jobs:
           python -m py_compile sinyal_engine_runtime.py
           python -m py_compile betwatch_prematch.py
           python -m py_compile betwatch_client.py
+          python -m py_compile services/__init__.py
           python -m py_compile services/supabase_client.py
+          python -m py_compile services/display_history_fallback.py
           python -m py_compile scripts/cleanup_duplicate_fixtures.py
           python -m py_compile desktop/scraper_standalone/betwatch_client.py
           python -m py_compile desktop/scraper_standalone/alarm_calculator.py
@@ -107,6 +112,7 @@ jobs:
           tests/test_alarm_recent_part2.py
           tests/test_alarm_recent_part3.py
           tests/test_current_table_sync.py
+          tests/test_display_history_fallback.py
           tests/test_prematch_master_watchdog.py
           tests/test_runtime_scraper_recovery.py
           tests/test_sinyal_engine_runtime.py
