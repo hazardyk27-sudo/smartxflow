@@ -23,6 +23,8 @@ from pathlib import Path
 from typing import Dict, Set
 
 ROOT = Path(__file__).resolve().parents[1]
+# Keep the desktop runtime path first because production prematch resolves that
+# Betwatch client copy first. The probe must exercise the same client selection.
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "desktop" / "scraper_standalone"))
 
@@ -86,6 +88,8 @@ def main() -> int:
     total_unresolved = 0
     total_inserted = 0
     total_matched = 0
+    total_submitted = 0
+    empty_submission_samples = 0
     sample_event_sets = []
 
     for idx in range(args.samples):
@@ -105,6 +109,11 @@ def main() -> int:
             logger=print,
         )
 
+        submitted = int(stats.get("submitted_bindings") or 0)
+        total_submitted += submitted
+        if event_map and submitted == 0:
+            empty_submission_samples += 1
+
         total_errors += 1 if stats.get("error") else 0
         total_conflicts += int(stats.get("conflict_count") or 0)
         total_missing += int(stats.get("missing_provider_ids") or 0)
@@ -117,7 +126,8 @@ def main() -> int:
         print(
             "PROBE_SAMPLE "
             f"index={idx + 1} rows={len(matches)} providers={len(event_map)} "
-            f"submitted={stats.get('submitted_bindings', 0)} "
+            f"attempted={1 if stats.get('attempted') else 0} "
+            f"submitted={submitted} "
             f"inserted={stats.get('inserted_count', 0)} "
             f"matched={stats.get('matched_count', 0)} "
             f"conflicts={stats.get('conflict_count', 0)} "
@@ -145,6 +155,8 @@ def main() -> int:
         f"samples={args.samples} unique_provider_ids={len(all_events)} "
         f"repeated_provider_ids={len(repeated_events)} "
         f"provider_ids_with_hash_change={len(changed_hash_events)} "
+        f"submitted_total={total_submitted} "
+        f"empty_submission_samples={empty_submission_samples} "
         f"inserted_total={total_inserted} matched_total={total_matched} "
         f"conflicts_total={total_conflicts} missing_total={total_missing} "
         f"hash_collision_total={total_hash_collisions} "
@@ -161,6 +173,9 @@ def main() -> int:
             total_event_collisions,
             total_unresolved,
             len(changed_hash_events),
+            empty_submission_samples,
+            0 if total_submitted > 0 else 1,
+            0 if repeated_events else 1,
         )
     )
     if failed:
