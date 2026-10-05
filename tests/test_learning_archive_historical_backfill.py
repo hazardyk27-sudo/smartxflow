@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 import tempfile
@@ -68,10 +69,11 @@ def _write_legacy_case(root: Path, *, tamper_history: bool = False) -> None:
         "scraped_at_utc": "2026-10-03T14:00:00Z",
         "markets": {"1X2": {"Home": {"odds": 1.90, "volume": 100, "share": 70}}},
     }]
-    history_bytes = canonical_json_bytes(history)
-    (case_dir / "historical_sxf_snapshots.json").write_bytes(history_bytes)
+    history_bytes = gzip.compress(canonical_json_bytes(history), compresslevel=9, mtime=0)
+    history_path = case_dir / "historical_sxf_snapshots.json.gz"
+    history_path.write_bytes(history_bytes)
     (case_dir / "historical_sxf_snapshots.sha256").write_text(
-        f"{sha256_hex(history_bytes)}  historical_sxf_snapshots.json\n",
+        f"{sha256_hex(history_bytes)}  historical_sxf_snapshots.json.gz\n",
         encoding="utf-8",
     )
     (case_dir / "addenda" / "historical_sxf_backfill.json").write_bytes(canonical_json_bytes({
@@ -82,7 +84,7 @@ def _write_legacy_case(root: Path, *, tamper_history: bool = False) -> None:
         },
     }))
     if tamper_history:
-        (case_dir / "historical_sxf_snapshots.json").write_text("[]\n", encoding="utf-8")
+        history_path.write_bytes(gzip.compress(b"[]\n", compresslevel=9, mtime=0))
 
     archive_path = f"learning_archive_data/cases/2026/10/03/{CASE_ID}"
     manifest = {
