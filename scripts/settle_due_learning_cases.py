@@ -4,6 +4,8 @@
 The Hetzner timer is the primary postmatch clock. Finished scores are read from
 SmartXFlow's existing live_fixtures table, persisted to a local durable queue,
 and only removed after the canonical learning-archive write returns DONE.
+Verified external result overrides may be committed as immutable JSON files
+when the internal result source is unavailable for a specific historical case.
 """
 from __future__ import annotations
 
@@ -26,11 +28,18 @@ from scripts.enqueue_due_learning_revisit import export_archive_snapshot
 
 
 ARCHIVE_BRANCH = "learning-archive"
+AUTOMATIC_LIFECYCLE_EVENTS = {"RECORDED", "CAPTURED"}
 DEFAULT_ROOT = Path(os.environ.get("SMARTXFLOW_ROOT", "/opt/smartxflow"))
 DEFAULT_QUEUE = Path(
     os.environ.get(
         "SMARTXFLOW_POSTMATCH_QUEUE",
         "/var/lib/smartxflow-postmatch/settlements.json",
+    )
+)
+DEFAULT_OVERRIDE_DIR = Path(
+    os.environ.get(
+        "SMARTXFLOW_POSTMATCH_OVERRIDE_DIR",
+        str(DEFAULT_ROOT / "learning_archive_result_overrides"),
     )
 )
 
@@ -107,6 +116,10 @@ def _manifest_state(archive_root: Path) -> tuple[dict[str, dict[str, Any]], set[
     return latest, finalized
 
 
+def _eligible_for_automatic_finalization(event: dict[str, Any] | None) -> bool:
+    return bool(event and event.get("event") in AUTOMATIC_LIFECYCLE_EVENTS)
+
+
 def _read_queue(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"version": 1, "settlements": {}}
@@ -123,23 +136,25 @@ def _write_queue(path: Path, payload: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def _load_overrides(path: str | None) -> dict[str, dict[str, Any]]:
-    if not path:
-        return {}
-    payload = _load_json(Path(path))
+def _parse_override_payload(payload: Any, *, source_label: str) -> dict[str, dict[str, Any]]:
     rows = payload.get("results") if isinstance(payload, dict) else None
     if not isinstance(rows, list):
-        raise PostmatchSettlementError("result override file must contain a results array")
+        raise PostmatchSettlementError(f"{source_label}: result override must contain a results array")
     result: dict[str, dict[str, Any]] = {}
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
-            raise PostmatchSettlementError(f"results[{index}] must be an object")
+            raise PostmatchSettlementError(f"{source_label}: results[{index}] must be an object")
         case_id = str(row.get("case_id") or "").strip()
         score = str(row.get("final_score") or "").strip()
         observed_at = str(row.get("observed_at") or "").strip()
         source = str(row.get("source") or "verified settlement override").strip()
         if not case_id or not score or not observed_at:
-            raise PostmatchSettlementError(f"results[{index}] is missing case_id/final_score/observed_at")
+            raise PostmatchSettlementError(
+                f"{source_label}: results[{index}] is missing case_id/final_score/observed_at"
+            )
+        _parse_utc(observed_at, f"{source_label}.results[{index}].observed_at")
+        if case_id in result:
+            raise PostmatchSettlementError(f"{source_label}: duplicate override for {case_id}")
         result[case_id] = {
             "case_id": case_id,
             "final_score": score,
@@ -149,6 +164,26 @@ def _load_overrides(path: str | None) -> dict[str, dict[str, Any]]:
             "source_url": row.get("source_url"),
         }
     return result
+
+
+def _load_overrides(path: str | None, override_dir: Path | None) -> dict[str, dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    paths: list[Path] = []
+    if override_dir and override_dir.exists():
+        if not override_dir.is_dir():
+            raise PostmatchSettlementError(f"result override directory is not a directory: {override_dir}")
+        paths.extend(sorted(override_dir.glob("*.json")))
+    if path:
+        paths.append(Path(path))
+
+    for candidate in paths:
+        parsed = _parse_override_payload(_load_json(candidate), source_label=str(candidate))
+        for case_id, row in parsed.items():
+            existing = merged.get(case_id)
+            if existing is not None and existing != row:
+                raise PostmatchSettlementError(f"conflicting result overrides for {case_id}")
+            merged[case_id] = row
+    return merged
 
 
 def _case_from_event(archive_root: Path, event: dict[str, Any]) -> tuple[Path, dict[str, Any], list[dict[str, Any]]]:
@@ -193,10 +228,11 @@ def settle_due_cases(
     now: str,
     minimum_minutes_after_kickoff: int = 75,
     override_file: str | None = None,
+    override_dir: Path | None = DEFAULT_OVERRIDE_DIR,
 ) -> dict[str, Any]:
     _assert_production_checkout(app_root)
     current_time = _parse_utc(now, "now")
-    overrides = _load_overrides(override_file)
+    overrides = _load_overrides(override_file, override_dir)
 
     _run(["git", "fetch", "origin", ARCHIVE_BRANCH], cwd=app_root)
     with tempfile.TemporaryDirectory(prefix="sxf-postmatch-") as tmp:
@@ -206,14 +242,21 @@ def settle_due_cases(
         queue = _read_queue(queue_file)
         settlements = queue["settlements"]
 
+        pruned_legacy = 0
         for case_id in list(settlements):
-            if case_id in finalized:
+            event = latest.get(case_id)
+            if case_id in finalized or not _eligible_for_automatic_finalization(event):
                 settlements.pop(case_id, None)
+                pruned_legacy += 1
+        if pruned_legacy:
+            _write_queue(queue_file, queue)
 
         discovered = 0
         result_pending = 0
         for case_id, event in sorted(latest.items()):
             if case_id in finalized or case_id in settlements:
+                continue
+            if not _eligible_for_automatic_finalization(event):
                 continue
             _, case_doc, _ = _case_from_event(archive_root, event)
             kickoff = _parse_utc((case_doc.get("match") or {}).get("kickoff_at"), f"{case_id}.kickoff_at")
@@ -239,8 +282,9 @@ def settle_due_cases(
         errors: list[dict[str, str]] = []
         for case_id in sorted(list(settlements)):
             event = latest.get(case_id)
-            if not event:
-                errors.append({"case_id": case_id, "error": "case is not present in archive manifest"})
+            if not _eligible_for_automatic_finalization(event):
+                settlements.pop(case_id, None)
+                _write_queue(queue_file, queue)
                 continue
             try:
                 _, case_doc, evidence = _case_from_event(archive_root, event)
@@ -289,6 +333,7 @@ def settle_due_cases(
         "finalized": len(done),
         "failed": len(errors),
         "remaining_queue": len(queue["settlements"]),
+        "pruned_legacy": pruned_legacy,
         "cases": done,
         "errors": errors,
     }
@@ -304,6 +349,7 @@ def main() -> int:
     parser.add_argument("--now", help="Deterministic current timestamp; defaults to UTC now")
     parser.add_argument("--minimum-minutes-after-kickoff", type=int, default=75)
     parser.add_argument("--result-file", help="Optional verified result override JSON for historical backfill")
+    parser.add_argument("--result-dir", default=str(DEFAULT_OVERRIDE_DIR), help="Directory of auditable verified result override JSON files")
     parser.add_argument("--dotenv", help="Production dotenv loaded literally")
     args = parser.parse_args()
 
@@ -316,6 +362,7 @@ def main() -> int:
             now=args.now or utc_now_iso(),
             minimum_minutes_after_kickoff=args.minimum_minutes_after_kickoff,
             override_file=args.result_file,
+            override_dir=Path(args.result_dir) if args.result_dir else None,
         )
     except (OSError, ValueError, PostmatchSettlementError, ResultSourceError) as exc:
         print(f"POSTMATCH_SETTLEMENT_FAIL: {exc}", file=sys.stderr)
