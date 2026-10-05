@@ -79,11 +79,11 @@ def resolve_fixture_uids_by_hash(
     *,
     request_get=None,
 ) -> Dict[str, Any]:
-    """Resolve current legacy hashes to already-created fixture_uid values.
+    """Diagnostic legacy hash -> UID lookup.
 
-    This helper is deliberately non-authoritative. It never inserts or updates a
-    fixture and never changes match_id_hash behavior. A lookup failure returns an
-    error in telemetry and leaves callers free to continue the legacy write path.
+    This function remains available for audit/probe compatibility only. Part 4
+    production current writes use the provider-gated resolver instead because a
+    legacy hash can represent multiple physical fixtures over time.
     """
     request_get = request_get or requests.get
     wanted = sorted({str(value or "").strip() for value in match_hashes if str(value or "").strip()})
@@ -162,11 +162,10 @@ def attach_fixture_uids_to_current_rows(
     *,
     request_get=None,
 ) -> Dict[str, Any]:
-    """Add fixture_uid to prematch current rows when deterministically resolvable.
+    """Legacy diagnostic helper retained for compatibility.
 
-    Rows are mutated in place so the same row objects later appended to history
-    carry the UID too. Missing/failed UID resolution never blocks the legacy
-    current/history path and never removes an existing UID.
+    The active Betwatch current-table path no longer calls this hash-only helper;
+    it uses ``fixture_uid_provider_gate.attach_provider_verified_fixture_uids``.
     """
     request_get = request_get or requests.get
     stats = _base_attach_stats(len(rows))
@@ -218,10 +217,12 @@ def attach_fixture_uids_to_snapshots(
     *,
     request_get=None,
 ) -> Dict[str, Any]:
-    """Best-effort UID enrichment for snapshot rows with an existing hash.
+    """Fail closed until snapshots carry provider-verifiable identity.
 
-    Snapshot identity remains legacy-hash-backed during this phase. The helper
-    only copies the already-created fixture UID and never creates/merges fixtures.
+    ``moneyway_snapshots`` stores only the legacy hash, market and scrape fields;
+    it does not contain enough physical metadata to distinguish recurring fixtures.
+    Therefore Part 4 deliberately leaves new snapshot ``fixture_uid`` values NULL
+    rather than guessing from ``match_id_hash``. Legacy snapshot writes continue.
     """
     request_get = request_get or requests.get
     stats = _base_attach_stats(len(snapshots))
@@ -233,27 +234,11 @@ def attach_fixture_uids_to_snapshots(
         stats["error"] = "fixture_uid_column_unavailable"
         return stats
     stats["column_available"] = True
-
-    hashes = [str(row.get("match_id_hash") or "").strip() for row in snapshots]
-    resolved = resolve_fixture_uids_by_hash(writer, hashes, request_get=request_get)
-    stats.update(
-        requested_hashes=resolved["requested_hashes"],
-        resolved_hashes=resolved["resolved_hashes"],
-        cache_hits=resolved["cache_hits"],
-        error=resolved["error"],
-    )
-    uid_map = resolved["uid_map"]
-
-    for row, match_hash in zip(snapshots, hashes):
-        fixture_uid = uid_map.get(match_hash)
-        if not fixture_uid:
-            stats["unresolved_rows"] += 1
-            continue
-        existing = str(row.get("fixture_uid") or "").strip()
-        if existing and existing != fixture_uid:
-            stats["conflicting_existing_uid"] += 1
-            continue
-        row["fixture_uid"] = fixture_uid
-        stats["tagged_rows"] += 1
-
+    stats["requested_hashes"] = len({
+        str(row.get("match_id_hash") or "").strip()
+        for row in snapshots
+        if str(row.get("match_id_hash") or "").strip()
+    })
+    stats["unresolved_rows"] = len(snapshots)
+    stats["error"] = "snapshot_provider_identity_required"
     return stats
