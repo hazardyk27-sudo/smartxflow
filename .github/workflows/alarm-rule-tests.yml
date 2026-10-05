@@ -52,6 +52,7 @@ on:
       - 'tests/test_learning_archive_lifecycle_guards.py'
       - '.github/workflows/alarm-rule-tests.yml'
       - '.github/workflows/learning-archive-record.yml'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -103,6 +104,10 @@ jobs:
           bash -n scripts/replit-sync-preview.sh
           ! grep -q 'sinyal_engine_runtime.py' run_services.sh
           grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
+          grep -q '/opt/smartxflow/deploy/smartxflow-sinyal.service' .github/workflows/deploy.yml
+          grep -q 'systemctl restart smartxflow-sinyal' .github/workflows/deploy.yml
+          grep -q 'systemctl is-active smartxflow-sinyal' .github/workflows/deploy.yml
+          grep -q 'smartxflow-sinyal is not using sinyal_engine_runtime.py' .github/workflows/deploy.yml
       - name: Run alarm, scraper, and archive regression tests
         run: >-
           python -m pytest -q
