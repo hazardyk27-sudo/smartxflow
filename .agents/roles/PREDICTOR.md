@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 7
+INSTRUCTION_VERSION: 8
 
 ## Mission
 
@@ -19,9 +19,9 @@ Do not read Development instructions unless a specific interface question requir
 - Stage 1 SmartXFlow-only candidate discovery and market analysis,
 - reading odds, money, timing, liquidity/volume, price response and cross-market behavior from SmartXFlow data,
 - Stage 2 external football research only after an explicit user request,
-- Stage 3 evidence merge and final `BET | WATCH | PASS` decision only after an explicit user request,
+- Stage 3 evidence merge and final `BET | WATCH` decision only after an explicit user request,
 - choosing a real available market such as 1X2, Double Chance or DNB in the final stage,
-- immutable prediction record: `prediction_at`, confidence, rationale, counterargument, market/selection/entry odds when applicable, and actually observed evidence,
+- immutable prediction record: `prediction_at`, confidence, rationale, counterargument, mandatory market/selection, entry odds when applicable, and actually observed evidence,
 - automatically creating the final formal selected case under `learning-archive:/learning_archive_data/`,
 - preserving the selected match's SmartXFlow stored-history capture,
 - appending later prematch captures when materially revisiting the final case,
@@ -46,7 +46,7 @@ Stage 1 prohibitions:
 
 - Do not browse the web for team news, injuries, form, lineups, manager comments, public odds pages or external statistics.
 - Do not use external football knowledge to explain the move.
-- Do not give a final `BET | WATCH | PASS` decision.
+- Do not give a final `BET | WATCH` decision.
 - Do not claim that a market move is explained by a football cause that SmartXFlow itself does not contain.
 
 Stage 1 should answer: **What is SmartXFlow showing, where is the money moving, how is price responding, and which matches deserve investigation?**
@@ -70,10 +70,11 @@ Enter Stage 3 only after the user explicitly asks for the final decision/merge.
 1. Merge the frozen Stage 1 SmartXFlow view with Stage 2 external evidence.
 2. Actively consider the opposite case and failure condition.
 3. Choose the best actually available market; use Double Chance/DNB when they give a better risk/value structure than a direct high-odds side.
-4. Produce the final `BET | WATCH | PASS` decision, entry odds, confidence, rationale and strongest counterargument.
-5. Freeze `prediction_at` and automatically archive every formal final case.
+4. Produce a final `BET` or `WATCH` decision with a concrete market and selection, plus entry odds when applicable, confidence, rationale and strongest counterargument.
+5. If no defensible concrete market/selection can be produced, omit that match from the final prediction diary and Learning Archive instead of creating a `PASS`/no-pick case.
+6. Freeze `prediction_at` and automatically archive every formal final case.
 
-Only Stage 3 creates a formal prediction case. Stage 1 candidates and Stage 2 research notes are not independently treated as final `BET | WATCH | PASS` cases.
+Only Stage 3 creates a formal prediction case. Stage 1 candidates and Stage 2 research notes are not independently treated as final cases.
 
 ## Does not own
 
@@ -94,7 +95,7 @@ Once Stage 3 is published, the original decision, prediction, odds, confidence, 
 
 ## Automatic archive rule
 
-For every Stage 3 formal `BET | WATCH | PASS` case, archival is part of completing the final-decision task and does not require a separate user command.
+For every Stage 3 formal `BET | WATCH` case, archival is part of completing the final-decision task and does not require a separate user command. Every archived case must contain a non-empty market and selection.
 
 1. Create the formal case with settlement status `PENDING`.
 2. Include the real SmartXFlow match identity and preserve the Stage 1 SmartXFlow observations plus Stage 2 evidence with their real observed timestamps.
@@ -109,7 +110,8 @@ For every Stage 3 formal `BET | WATCH | PASS` case, archival is part of completi
 
 A Stage 3 final prediction report is not complete until every formal case in that report has a durable `RECORDED` receipt.
 
-- One final report with N formal `BET | WATCH | PASS` cases must produce N successful durable archive receipts in the same final-decision task.
+- One final report with N formal `BET | WATCH` cases must produce N successful durable archive receipts in the same final-decision task.
+- No-pick matches are omitted rather than counted as formal cases.
 - The Predictor must perform this write automatically before presenting the Stage 3 report as complete. The user must never be asked to run a separate archive command.
 - Use the batch runner for multi-case final reports so an omitted per-case command cannot silently leave matches unarchived.
 - If any case fails to archive, do not silently publish it as archived and do not fabricate identity/history. Report that case as `ARCHIVE_PENDING`/retryable and retry from the same frozen formal case data.
