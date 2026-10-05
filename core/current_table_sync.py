@@ -5,6 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import requests
 
+from core.fixture_identity_shadow import flush_staged_betwatch_identity_shadow
+
 CURRENT_PAGE_SIZE = 1000
 DELETE_BATCH_SIZE = 200
 _KEY_FIELDS = ("league", "home", "away", "date")
@@ -152,13 +154,25 @@ def _upsert_current_rows(writer, table: str, rows: List[Dict[str, Any]]) -> bool
     return False
 
 
+def _flush_identity_shadow(writer, logger=None) -> None:
+    """Consume at most one staged provider batch without affecting current sync."""
+    try:
+        stats = flush_staged_betwatch_identity_shadow(writer, logger=logger)
+        if stats.get("attempted"):
+            writer.last_identity_shadow_stats = stats
+    except Exception as exc:  # pragma: no cover - final non-authoritative safety net
+        _emit(logger, f"[IdentityShadow] WARN — flush atlandı: {str(exc)[:200]}")
+
+
 def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> bool:
     """Make a current table exactly represent the latest successful feed set.
 
     Safety order is intentional:
       1. Read the full pre-write current index.
       2. UPSERT the new feed set.
-      3. Only after a successful UPSERT, delete ids whose logical key is absent
+      3. Flush the staged Identity V2 shadow batch once. This is observational
+         only and cannot affect the return value of current sync.
+      4. Only after a successful UPSERT, delete ids whose logical key is absent
          from the incoming set.
 
     History/archive tables are never touched here. An empty incoming set is a
@@ -180,6 +194,11 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
         _record_error(writer, message)
         _emit(logger, f"[Current Sync] HATA — {message}")
         return False
+
+    # The legacy fixture write occurs before current-table sync in the Betwatch
+    # scraper. Flush only after a successful current UPSERT, and never propagate
+    # shadow failures into the legacy correctness path.
+    _flush_identity_shadow(writer, logger=logger)
 
     if existing_index is None:
         _emit(
