@@ -76,6 +76,10 @@ jobs:
 
             chmod -R o+rx /opt/smartxflow/static/
 
+            # Keep the production Sinyal unit in lockstep with the tracked wrapper.
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/smartxflow-sinyal.service \
+              /etc/systemd/system/smartxflow-sinyal.service
             sudo /usr/bin/install -m 0644 \
               /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service \
               /etc/systemd/system/smartxflow-learning-archive-prematch.service
@@ -143,6 +147,7 @@ jobs:
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
             sudo /bin/systemctl restart smartxflow-alarm
+            sudo /bin/systemctl restart smartxflow-sinyal
             sudo /bin/systemctl restart smartxflow-live
             sudo /bin/systemctl restart smartxflow-poly
 
@@ -150,8 +155,19 @@ jobs:
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-alarm   || { echo "alarm baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-sinyal  || { echo "sinyal baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
+
+            SINYAL_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-sinyal.service)"
+            case "$SINYAL_EXEC" in
+              *sinyal_engine_runtime.py*) ;;
+              *)
+                echo "DEPLOY STOP: smartxflow-sinyal is not using sinyal_engine_runtime.py"
+                echo "ExecStart=$SINYAL_EXEC"
+                exit 1
+                ;;
+            esac
 
             FINAL_AFTER_RESTART="$(sudo -u smartxflow git rev-parse HEAD)"
             if [ "$FINAL_AFTER_RESTART" != "$DEPLOY_SHA" ]; then
