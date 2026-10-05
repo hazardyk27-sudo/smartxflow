@@ -140,6 +140,21 @@ def resolve_fixture_uids_by_hash(
     return stats
 
 
+def _base_attach_stats(row_count: int) -> Dict[str, Any]:
+    return {
+        "attempted": False,
+        "column_available": False,
+        "rows": row_count,
+        "tagged_rows": 0,
+        "unresolved_rows": 0,
+        "conflicting_existing_uid": 0,
+        "requested_hashes": 0,
+        "resolved_hashes": 0,
+        "cache_hits": 0,
+        "error": None,
+    }
+
+
 def attach_fixture_uids_to_current_rows(
     writer: Any,
     table: str,
@@ -154,18 +169,7 @@ def attach_fixture_uids_to_current_rows(
     current/history path and never removes an existing UID.
     """
     request_get = request_get or requests.get
-    stats: Dict[str, Any] = {
-        "attempted": False,
-        "column_available": False,
-        "rows": len(rows),
-        "tagged_rows": 0,
-        "unresolved_rows": 0,
-        "conflicting_existing_uid": 0,
-        "requested_hashes": 0,
-        "resolved_hashes": 0,
-        "cache_hits": 0,
-        "error": None,
-    }
+    stats = _base_attach_stats(len(rows))
     if table not in PREMATCH_CURRENT_TABLES or not rows:
         return stats
 
@@ -194,6 +198,54 @@ def attach_fixture_uids_to_current_rows(
 
     for row, match_hash in zip(rows, row_hashes):
         fixture_uid = uid_map.get(match_hash or "")
+        if not fixture_uid:
+            stats["unresolved_rows"] += 1
+            continue
+        existing = str(row.get("fixture_uid") or "").strip()
+        if existing and existing != fixture_uid:
+            stats["conflicting_existing_uid"] += 1
+            continue
+        row["fixture_uid"] = fixture_uid
+        stats["tagged_rows"] += 1
+
+    return stats
+
+
+def attach_fixture_uids_to_snapshots(
+    writer: Any,
+    table: str,
+    snapshots: List[Dict[str, Any]],
+    *,
+    request_get=None,
+) -> Dict[str, Any]:
+    """Best-effort UID enrichment for snapshot rows with an existing hash.
+
+    Snapshot identity remains legacy-hash-backed during this phase. The helper
+    only copies the already-created fixture UID and never creates/merges fixtures.
+    """
+    request_get = request_get or requests.get
+    stats = _base_attach_stats(len(snapshots))
+    if table != "moneyway_snapshots" or not snapshots:
+        return stats
+
+    stats["attempted"] = True
+    if not _table_supports_fixture_uid(writer, table, request_get):
+        stats["error"] = "fixture_uid_column_unavailable"
+        return stats
+    stats["column_available"] = True
+
+    hashes = [str(row.get("match_id_hash") or "").strip() for row in snapshots]
+    resolved = resolve_fixture_uids_by_hash(writer, hashes, request_get=request_get)
+    stats.update(
+        requested_hashes=resolved["requested_hashes"],
+        resolved_hashes=resolved["resolved_hashes"],
+        cache_hits=resolved["cache_hits"],
+        error=resolved["error"],
+    )
+    uid_map = resolved["uid_map"]
+
+    for row, match_hash in zip(snapshots, hashes):
+        fixture_uid = uid_map.get(match_hash)
         if not fixture_uid:
             stats["unresolved_rows"] += 1
             continue
