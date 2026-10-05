@@ -1,6 +1,6 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 3
+REFERENCE_VERSION: 4
 
 Open this file only for substantive match-analysis/prediction work.
 
@@ -42,7 +42,7 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
 - No injuries/suspensions/form/lineup/manager commentary from external sources.
 - No public odds sites used to discover or justify candidates.
 - No external football knowledge used as the cause of a move.
-- No final `BET | WATCH | PASS` decision.
+- No final `BET | WATCH` decision.
 
 If SmartXFlow data cannot be read reliably from the direct/primary source, do not substitute Replit or external markets. Report the SXF data-access problem instead.
 
@@ -79,18 +79,19 @@ Enter only after the user explicitly asks for the final decision/merge.
 3. Decide whether the market has already consumed the edge.
 4. Compare actually available structures such as 1X2, Double Chance, DNB and relevant totals/BTTS markets.
 5. Prefer the structure with the best risk/value profile rather than blindly taking the highest odds.
-6. Output `BET`, `WATCH`, or `PASS`.
-7. Freeze:
+6. Output `BET` or `WATCH` only when a concrete market and selection can be stated.
+7. If there is no defensible concrete market/selection, omit that match from the final prediction diary and Learning Archive rather than emitting `PASS` or an empty pick.
+8. Freeze:
    - `prediction_at`,
    - market,
    - selection,
-   - entry odds,
+   - entry odds when applicable,
    - confidence,
    - rationale,
    - counterargument/failure condition,
    - Stage 1 SXF evidence,
    - Stage 2 external evidence with `observed_at`.
-8. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
+9. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
 
 ## Market principles
 
@@ -137,17 +138,20 @@ For every researched candidate show:
 
 ### Stage 3
 
-For every final view show:
+For every listed final view show:
 - `SXF SAYS`,
 - `RESEARCH SAYS`,
 - `MERGED VIEW`,
-- decision (`BET | WATCH | PASS`),
-- market + selection + entry odds,
+- decision (`BET | WATCH`),
+- mandatory market + selection,
+- entry odds when applicable,
 - confidence if used,
 - strongest supporting evidence,
 - strongest counterargument/failure condition,
 - `prediction_at`,
 - archive receipt state.
+
+A match without a concrete prediction is not shown as a final diary entry.
 
 ## Postmortem
 
