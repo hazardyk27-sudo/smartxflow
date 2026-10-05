@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(_ROOT, "desktop", "scraper_standalone"))
 sys.path.insert(0, os.path.join(_ROOT, "scraper_standalone"))
 
 from core.current_table_sync import sync_current_table
+from core.fixture_uid_dual_write import attach_fixture_uids_to_snapshots
 from core.hash_utils import make_match_id_hash
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
@@ -99,6 +100,45 @@ def _parse_pct(pct_str: str) -> float:
         return float(str(pct_str).replace("%", "").strip())
     except Exception:
         return 0.0
+
+
+def _attach_snapshot_fixture_uids(writer: SupabaseWriter, snapshots: list, logger=None) -> None:
+    """Best-effort UID enrichment; snapshot legacy write must never depend on it."""
+    if not snapshots:
+        return
+    try:
+        stats = attach_fixture_uids_to_snapshots(
+            writer,
+            "moneyway_snapshots",
+            snapshots,
+            request_get=requests.get,
+        )
+        writer.last_fixture_uid_snapshot_stats = stats
+        if stats.get("error"):
+            if logger:
+                logger(
+                    f"[FixtureUID] WARN — moneyway_snapshots: {stats['error']}; "
+                    "legacy snapshot write devam ediyor"
+                )
+            return
+        if stats.get("conflicting_existing_uid") and logger:
+            logger(
+                "[FixtureUID] WARN — moneyway_snapshots: "
+                f"conflicting_existing_uid={stats['conflicting_existing_uid']}; "
+                "mevcut UID korunuyor"
+            )
+        if logger:
+            logger(
+                f"[FixtureUID] moneyway_snapshots: tagged={stats.get('tagged_rows', 0)} "
+                f"unresolved={stats.get('unresolved_rows', 0)} "
+                f"cache_hits={stats.get('cache_hits', 0)}"
+            )
+    except Exception as exc:
+        if logger:
+            logger(
+                f"[FixtureUID] WARN — moneyway_snapshots dual-write atlandı: "
+                f"{str(exc)[:200]}"
+            )
 
 
 # ── Previous odds reader (for dropping trend) ─────────────────────────────────
@@ -472,12 +512,19 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         ("dropping_btts", do_btts_rows),
     ]
 
+    fixtures_ok = True
     if all_fixtures:
-        ok = writer.upsert_fixtures(list(all_fixtures.values()))
-        tag = "OK" if ok else "HATA"
+        fixtures_ok = writer.upsert_fixtures(list(all_fixtures.values()))
+        tag = "OK" if fixtures_ok else "HATA"
         _log(f"[BW-Pre]   [{tag}] Fixtures: {len(all_fixtures)}")
-        if not ok:
+        if not fixtures_ok:
             write_errors += 1
+
+    # UID is supplemental during Part 4. Only enrich snapshots after the legacy
+    # fixture write succeeded. Failure here never increments write_errors and
+    # never blocks the legacy current/history/snapshot path.
+    if fixtures_ok and all_snapshots:
+        _attach_snapshot_fixture_uids(writer, all_snapshots, logger=_log)
 
     for tbl, rows in WRITE_PLAN:
         hist_tbl = HISTORY_TABLE[tbl]
