@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install test dependencies
-        run: python -m pip install --disable-pip-version-check pytest httpx requests pytz flask
+        run: python -m pip install --disable-pip-version-check pytest httpx requests pytz flask python-dateutil
       - name: Compile alarm, scraper, and archive modules
         run: |
           python -m py_compile alarm_engine.py
