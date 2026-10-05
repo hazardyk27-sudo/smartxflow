@@ -18,6 +18,7 @@ on:
       - 'services/supabase_client.py'
       - 'services/display_history_fallback.py'
       - 'scripts/cleanup_duplicate_fixtures.py'
+      - 'scripts/replit-sync-preview.sh'
       - 'desktop/scraper_standalone/betwatch_client.py'
       - 'desktop/scraper_standalone/alarm_calculator.py'
       - 'desktop/scraper_standalone/alarm_calculator_legacy.py'
@@ -99,6 +100,7 @@ jobs:
         run: |
           bash -n run_services.sh
           bash -n deploy/setup_hetzner.sh
+          bash -n scripts/replit-sync-preview.sh
           ! grep -q 'sinyal_engine_runtime.py' run_services.sh
           grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
       - name: Run alarm, scraper, and archive regression tests
