@@ -21,8 +21,9 @@ class GitSshBatchArchiveBackend(GitSshArchiveBackend):
 
     A complete timer batch is materialized in one temporary clone, force-staged
     under the archive root, verified byte-for-byte in the commit tree, then sent
-    with one normal non-force push. This removes per-case clone/push latency and
-    makes gitignore incapable of silently omitting canonical package files.
+    with one normal non-force push. After the push, the remote branch is fetched
+    once and the same package bytes + manifest events are re-verified from that
+    fetched remote commit before the backend reports durability.
     """
 
     def _run_bytes(self, argv: list[str], *, cwd: Path) -> bytes:
@@ -35,7 +36,9 @@ class GitSshBatchArchiveBackend(GitSshArchiveBackend):
             timeout=self.timeout,
         )
         if result.returncode != 0:
-            detail = (result.stderr or result.stdout or b"git command failed").decode("utf-8", errors="replace").strip()
+            detail = (result.stderr or result.stdout or b"git command failed").decode(
+                "utf-8", errors="replace"
+            ).strip()
             raise ArchiveBackendError(f"SSH archive git command failed: {detail}")
         return result.stdout
 
@@ -65,6 +68,32 @@ class GitSshBatchArchiveBackend(GitSshArchiveBackend):
                 raise ArchiveBackendError(
                     f"commit-tree verification failed for {package.case_id}; manifest event missing"
                 )
+
+    def _verify_remote_packages(
+        self,
+        repo_root: Path,
+        expected_commit: str,
+        entries: list[tuple[ArchivePackage, dict[str, Any]]],
+    ) -> None:
+        """Fetch the remote archive head once and verify the actual remote package tree."""
+        remote_ref = f"refs/remotes/origin/{self.branch}"
+        self._run(
+            [
+                "git",
+                "fetch",
+                "--quiet",
+                "--no-tags",
+                "origin",
+                f"refs/heads/{self.branch}:{remote_ref}",
+            ],
+            cwd=repo_root,
+        )
+        remote_commit = self._run(["git", "rev-parse", remote_ref], cwd=repo_root).stdout.strip()
+        if remote_commit != expected_commit:
+            raise ArchiveBackendError(
+                "SSH archive remote package verification saw a different branch head"
+            )
+        self._verify_commit_packages(repo_root, remote_commit, entries)
 
     def write_cases(
         self,
@@ -99,6 +128,8 @@ class GitSshBatchArchiveBackend(GitSshArchiveBackend):
 
             current = self._run(["git", "rev-parse", "HEAD"], cwd=repo_root).stdout.strip()
             if not changed:
+                # This clone was created from the canonical remote branch. Verifying
+                # its HEAD verifies the remote package state without any extra push.
                 self._verify_commit_packages(repo_root, current, prepared)
                 return [
                     ArchiveWriteResult(
@@ -147,6 +178,10 @@ class GitSshBatchArchiveBackend(GitSshArchiveBackend):
                 f"HEAD:refs/heads/{self.branch}",
             ], cwd=repo_root)
             self._verify_remote_head(commit)
+
+            # A matching remote ref plus fetched tree-byte verification is the DONE
+            # gate. Retention release happens only after this method returns.
+            self._verify_remote_packages(repo_root, commit, prepared)
 
             return [
                 ArchiveWriteResult(

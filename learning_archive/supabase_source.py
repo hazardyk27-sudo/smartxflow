@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Any
+from typing import Any, Iterable
 
 
 MATCH_HASH_RE = re.compile(r"^[0-9a-fA-F]{12}$")
@@ -92,21 +92,53 @@ def _safe_row(table: str, row: dict[str, Any]) -> dict[str, Any]:
     return {key: row.get(key) for key in allowed if key in row}
 
 
-def _fetch_history_table(client: Any, table: str, match_hash: str, page_size: int = 1000) -> list[dict[str, Any]]:
-    rows: list[dict[str, Any]] = []
+def _normalize_hashes(match_id_hashes: Iterable[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in match_id_hashes:
+        match_hash = str(value or "").strip().lower()
+        if not MATCH_HASH_RE.fullmatch(match_hash):
+            raise LearningArchiveInvalidHash("match_id_hash must be exactly 12 hexadecimal characters")
+        if match_hash not in seen:
+            result.append(match_hash)
+            seen.add(match_hash)
+    return result
+
+
+def _client(client: Any | None) -> Any:
+    if client is None:
+        from services.supabase_client import get_supabase_client
+        client = get_supabase_client()
+    if not client or not getattr(client, "is_available", False):
+        raise LearningArchiveSourceUnavailable("SmartXFlow database is unavailable")
+    return client
+
+
+def _fetch_history_table_many(
+    client: Any,
+    table: str,
+    match_hashes: list[str],
+    page_size: int = 1000,
+) -> dict[str, list[dict[str, Any]]]:
+    grouped = {match_hash: [] for match_hash in match_hashes}
+    if not match_hashes:
+        return grouped
+
     offset = 0
     http = client._get_http_client()
     headers = client._headers()
     order_field = "scraped_at_utc" if table == FALLBACK_HISTORY_TABLE else "scraped_at"
+    filter_value = ",".join(match_hashes)
+    requested = set(match_hashes)
     while True:
         url = (
-            f"{client._rest_url(table)}?select=*&match_id_hash=eq.{match_hash}"
-            f"&order={order_field}.asc&limit={page_size}&offset={offset}"
+            f"{client._rest_url(table)}?select=*&match_id_hash=in.({filter_value})"
+            f"&order=match_id_hash.asc,{order_field}.asc&limit={page_size}&offset={offset}"
         )
         response = http.get(url, headers=headers, timeout=20)
         if response.status_code != 200:
             raise LearningArchiveSourceUnavailable(
-                f"history table read failed: {table} ({response.status_code})"
+                f"history table batch read failed: {table} ({response.status_code})"
             )
         try:
             page = response.json()
@@ -118,14 +150,112 @@ def _fetch_history_table(client: Any, table: str, match_hash: str, page_size: in
             if not isinstance(row, dict):
                 raise LearningArchiveSourceUnavailable(f"invalid history row from table: {table}")
             safe = _safe_row(table, row)
-            safe_hash = str(safe.get("match_id_hash") or "").lower()
-            if safe_hash and safe_hash != match_hash:
+            row_hash = str(safe.get("match_id_hash") or "").strip().lower()
+            if row_hash not in requested:
                 raise LearningArchiveSourceUnavailable(f"history row identity mismatch in table: {table}")
-            rows.append(safe)
+            grouped[row_hash].append(safe)
         if len(page) < page_size:
             break
         offset += page_size
-    return rows
+    return grouped
+
+
+def _fetch_history_table(client: Any, table: str, match_hash: str, page_size: int = 1000) -> list[dict[str, Any]]:
+    return _fetch_history_table_many(client, table, [match_hash], page_size=page_size)[match_hash]
+
+
+def read_learning_archive_match_histories(
+    match_id_hashes: Iterable[str],
+    *,
+    client: Any | None = None,
+) -> dict[str, LearningArchiveHistoryPayload]:
+    """Read many selected-match histories with one fixture query and one query per table.
+
+    Hashes with no surviving fixture/history are omitted from the mapping so the
+    caller can select the durable archive-capture fallback without first raising
+    a per-case source error. Transport/schema failures still fail closed.
+    """
+    hashes = _normalize_hashes(match_id_hashes)
+    if not hashes:
+        return {}
+    client = _client(client)
+
+    http = client._get_http_client()
+    headers = client._headers()
+    filter_value = ",".join(hashes)
+    fixture_url = (
+        f"{client._rest_url('fixtures')}"
+        f"?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date"
+        f"&match_id_hash=in.({filter_value})&limit={max(1, len(hashes) * 2)}"
+    )
+    response = http.get(fixture_url, headers=headers, timeout=15)
+    if response.status_code != 200:
+        raise LearningArchiveSourceUnavailable(f"fixture batch read failed ({response.status_code})")
+    try:
+        fixtures_payload = response.json()
+    except Exception as exc:
+        raise LearningArchiveSourceUnavailable("fixture batch read returned invalid JSON") from exc
+    if not isinstance(fixtures_payload, list):
+        raise LearningArchiveSourceUnavailable("fixture batch read returned invalid payload")
+
+    fixtures: dict[str, dict[str, Any]] = {}
+    requested = set(hashes)
+    for fixture in fixtures_payload:
+        if not isinstance(fixture, dict):
+            raise LearningArchiveSourceUnavailable("fixture batch read returned invalid row")
+        row_hash = str(fixture.get("match_id_hash") or "").strip().lower()
+        if row_hash not in requested:
+            raise LearningArchiveSourceUnavailable("fixture batch read returned unexpected match identity")
+        if row_hash in fixtures:
+            raise LearningArchiveSourceUnavailable(f"fixture batch read returned duplicate rows for {row_hash}")
+        fixtures[row_hash] = fixture
+
+    present_hashes = [match_hash for match_hash in hashes if match_hash in fixtures]
+    histories_by_hash: dict[str, dict[str, list[dict[str, Any]]]] = {
+        match_hash: {} for match_hash in present_hashes
+    }
+    source_tables_by_hash: dict[str, list[str]] = {match_hash: [] for match_hash in present_hashes}
+
+    for table in REQUIRED_HISTORY_TABLES:
+        grouped = _fetch_history_table_many(client, table, present_hashes)
+        for match_hash in present_hashes:
+            rows = grouped[match_hash]
+            histories_by_hash[match_hash][table] = rows
+            if rows:
+                source_tables_by_hash[match_hash].append(table)
+
+    fallback_hashes = [
+        match_hash for match_hash in present_hashes if not source_tables_by_hash[match_hash]
+    ]
+    if fallback_hashes:
+        grouped = _fetch_history_table_many(client, FALLBACK_HISTORY_TABLE, fallback_hashes)
+        for match_hash in fallback_hashes:
+            rows = grouped[match_hash]
+            histories_by_hash[match_hash][FALLBACK_HISTORY_TABLE] = rows
+            if rows:
+                source_tables_by_hash[match_hash].append(FALLBACK_HISTORY_TABLE)
+
+    result: dict[str, LearningArchiveHistoryPayload] = {}
+    for match_hash in present_hashes:
+        source_tables = source_tables_by_hash[match_hash]
+        if not source_tables:
+            continue
+        fixture = fixtures[match_hash]
+        result[match_hash] = LearningArchiveHistoryPayload(
+            match_id_hash=match_hash,
+            match={
+                "match_id_hash": match_hash,
+                "home": fixture.get("home_team") or "",
+                "away": fixture.get("away_team") or "",
+                "league": fixture.get("league") or "",
+                "kickoff_utc": fixture.get("kickoff_utc") or "",
+                "fixture_date": fixture.get("fixture_date") or "",
+            },
+            histories=histories_by_hash[match_hash],
+            source_tables=tuple(source_tables),
+            unavailable_optional_tables=(),
+        )
+    return result
 
 
 def read_learning_archive_match_history(
@@ -134,69 +264,8 @@ def read_learning_archive_match_history(
     client: Any | None = None,
 ) -> LearningArchiveHistoryPayload:
     match_hash = str(match_id_hash or "").strip().lower()
-    if not MATCH_HASH_RE.fullmatch(match_hash):
-        raise LearningArchiveInvalidHash("match_id_hash must be exactly 12 hexadecimal characters")
-
-    if client is None:
-        from services.supabase_client import get_supabase_client
-        client = get_supabase_client()
-    if not client or not getattr(client, "is_available", False):
-        raise LearningArchiveSourceUnavailable("SmartXFlow database is unavailable")
-
-    http = client._get_http_client()
-    headers = client._headers()
-    fixture_url = (
-        f"{client._rest_url('fixtures')}"
-        f"?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date"
-        f"&match_id_hash=eq.{match_hash}&limit=1"
-    )
-    response = http.get(fixture_url, headers=headers, timeout=15)
-    if response.status_code != 200:
-        raise LearningArchiveSourceUnavailable(f"fixture read failed ({response.status_code})")
-    try:
-        fixtures = response.json()
-    except Exception as exc:
-        raise LearningArchiveSourceUnavailable("fixture read returned invalid JSON") from exc
-    if not isinstance(fixtures, list) or not fixtures:
+    payloads = read_learning_archive_match_histories([match_hash], client=client)
+    payload = payloads.get(match_hash)
+    if payload is None:
         raise LearningArchiveMatchNotFound(match_hash)
-    fixture = fixtures[0]
-    if not isinstance(fixture, dict):
-        raise LearningArchiveSourceUnavailable("fixture read returned invalid payload")
-
-    histories: dict[str, list[dict[str, Any]]] = {}
-    source_tables: list[str] = []
-
-    for table in REQUIRED_HISTORY_TABLES:
-        rows = _fetch_history_table(client, table, match_hash)
-        histories[table] = rows
-        if rows:
-            source_tables.append(table)
-
-    # Some SmartXFlow fixtures have full timestamped money history in moneyway_snapshots
-    # even when the legacy per-market *_history tables contain no rows. Treat that table as
-    # a canonical stored-history fallback so a valid Stage 3 case cannot be silently skipped
-    # solely because of storage layout.
-    if not source_tables:
-        snapshot_rows = _fetch_history_table(client, FALLBACK_HISTORY_TABLE, match_hash)
-        histories[FALLBACK_HISTORY_TABLE] = snapshot_rows
-        if snapshot_rows:
-            source_tables.append(FALLBACK_HISTORY_TABLE)
-
-    if not source_tables:
-        raise LearningArchiveMatchNotFound(match_hash)
-
-    match = {
-        "match_id_hash": match_hash,
-        "home": fixture.get("home_team") or "",
-        "away": fixture.get("away_team") or "",
-        "league": fixture.get("league") or "",
-        "kickoff_utc": fixture.get("kickoff_utc") or "",
-        "fixture_date": fixture.get("fixture_date") or "",
-    }
-    return LearningArchiveHistoryPayload(
-        match_id_hash=match_hash,
-        match=match,
-        histories=histories,
-        source_tables=tuple(source_tables),
-        unavailable_optional_tables=(),
-    )
+    return payload

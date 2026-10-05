@@ -50,10 +50,10 @@ class LearningArchiveExporter:
 
     @classmethod
     def from_env(cls) -> "LearningArchiveExporter":
-        token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
-        if token:
-            return cls(GitHubArchiveBackend(token=token))
-
+        # Production timers provision a repo-scoped SSH deploy key specifically
+        # for atomic archive mirroring. Prefer it when present so a generic
+        # GITHUB_TOKEN in .env cannot silently downgrade a batch to many Contents
+        # API commits/network round-trips.
         ssh_key = os.environ.get("LEARNING_ARCHIVE_GIT_SSH_KEY", "").strip()
         if ssh_key:
             try:
@@ -61,9 +61,13 @@ class LearningArchiveExporter:
             except (OSError, ValueError) as exc:
                 raise ArchiveFinalizationError(f"Learning Archive SSH backend is invalid: {exc}") from exc
 
+        token = os.environ.get("GITHUB_TOKEN", "").strip() or os.environ.get("GH_TOKEN", "").strip()
+        if token:
+            return cls(GitHubArchiveBackend(token=token))
+
         raise ArchiveFinalizationError(
             "canonical Learning Archive credentials are not configured "
-            "(GITHUB_TOKEN/GH_TOKEN or LEARNING_ARCHIVE_GIT_SSH_KEY)"
+            "(LEARNING_ARCHIVE_GIT_SSH_KEY or GITHUB_TOKEN/GH_TOKEN)"
         )
 
     def _canonical_retention_required(self) -> bool:
