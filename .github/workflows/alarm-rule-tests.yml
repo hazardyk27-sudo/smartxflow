@@ -32,6 +32,7 @@ on:
       - 'tests/test_alarm_recent_incremental.py'
       - 'tests/test_alarm_recent_part2.py'
       - 'tests/test_alarm_recent_part3.py'
+      - 'tests/test_prematch_master_watchdog.py'
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_sinyal_engine_runtime.py'
       - 'tests/test_analysis_signal_copy.py'
@@ -94,6 +95,7 @@ jobs:
           tests/test_alarm_recent_incremental.py
           tests/test_alarm_recent_part2.py
           tests/test_alarm_recent_part3.py
+          tests/test_prematch_master_watchdog.py
           tests/test_runtime_scraper_recovery.py
           tests/test_sinyal_engine_runtime.py
           tests/test_analysis_signal_copy.py
