@@ -60,21 +60,25 @@ jobs:
           )"
 
           python -m json.tool "$RESOLVED" >/dev/null
+          python -m py_compile scripts/hydrate_learning_archive_history.py
           B64="$(base64 -w0 "$RESOLVED")"
+          HYDRATOR_B64="$(base64 -w0 scripts/hydrate_learning_archive_history.py)"
           echo "QUEUE_FILE=$FILE" >> "$GITHUB_ENV"
           echo "RESOLVED_QUEUE_FILE=$RESOLVED" >> "$GITHUB_ENV"
           echo "QUEUE_B64=$B64" >> "$GITHUB_ENV"
+          echo "HYDRATOR_B64=$HYDRATOR_B64" >> "$GITHUB_ENV"
 
-      - name: Record all formal cases with durable receipts
+      - name: Record or hydrate with durable receipts
         uses: appleboy/ssh-action@v1.0.3
         env:
           QUEUE_B64: ${{ env.QUEUE_B64 }}
+          HYDRATOR_B64: ${{ env.HYDRATOR_B64 }}
           GH_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: QUEUE_B64,GH_TOKEN
+          envs: QUEUE_B64,HYDRATOR_B64,GH_TOKEN
           script: |
             set -euo pipefail
             cd /opt/smartxflow
@@ -91,10 +95,32 @@ jobs:
             fi
 
             TMP="$(mktemp /tmp/sxf-stage3-batch.XXXXXX.json)"
-            trap 'rm -f "$TMP"' EXIT
+            TMP_SCRIPT=""
+            cleanup() {
+              rm -f "$TMP"
+              if [ -n "$TMP_SCRIPT" ]; then rm -f "$TMP_SCRIPT"; fi
+            }
+            trap cleanup EXIT
             printf '%s' "$QUEUE_B64" | base64 -d > "$TMP"
 
+            OPERATION="$(/opt/smartxflow/venv/bin/python - "$TMP" <<'PY'
+            import json
+            import sys
+            payload = json.load(open(sys.argv[1], 'r', encoding='utf-8'))
+            print(payload.get('operation', 'RECORD') if isinstance(payload, dict) else 'RECORD')
+            PY
+            )"
+
             export GH_TOKEN
+            export GITHUB_TOKEN="$GH_TOKEN"
+
+            if [ "$OPERATION" = "HISTORICAL_SXF_HYDRATION" ]; then
+              TMP_SCRIPT="$(mktemp /tmp/sxf-historical-hydration.XXXXXX.py)"
+              printf '%s' "$HYDRATOR_B64" | base64 -d > "$TMP_SCRIPT"
+              /opt/smartxflow/venv/bin/python "$TMP_SCRIPT" "$TMP" --dotenv /opt/smartxflow/.env
+              exit 0
+            fi
+
             /opt/smartxflow/venv/bin/python - "$TMP" <<'PY'
             import json
             import os
