@@ -13,6 +13,7 @@ from .retention import (
     release_retention_hold,
     retention_holds_enabled,
 )
+from .ssh_batch_backend import GitSshBatchArchiveBackend
 from .validator import validate_case
 
 
@@ -56,7 +57,7 @@ class LearningArchiveExporter:
         ssh_key = os.environ.get("LEARNING_ARCHIVE_GIT_SSH_KEY", "").strip()
         if ssh_key:
             try:
-                return cls(GitSshArchiveBackend(ssh_key=ssh_key))
+                return cls(GitSshBatchArchiveBackend(ssh_key=ssh_key))
             except (OSError, ValueError) as exc:
                 raise ArchiveFinalizationError(f"Learning Archive SSH backend is invalid: {exc}") from exc
 
@@ -114,7 +115,11 @@ class LearningArchiveExporter:
             idempotent=write.idempotent,
         )
 
-    def finalize_case(self, case: dict[str, Any], snapshots: list[dict[str, Any]]) -> FinalizationResult:
+    def _prepare_finalization(
+        self,
+        case: dict[str, Any],
+        snapshots: list[dict[str, Any]],
+    ) -> ArchivePackage:
         validation = validate_case(case, snapshots)
         if not validation.ok:
             raise ArchiveFinalizationError("validator FAIL: " + "; ".join(validation.errors))
@@ -125,30 +130,76 @@ class LearningArchiveExporter:
         checksum_ok, checksum_errors = verify_package_checksums(package)
         if not checksum_ok:
             raise ArchiveFinalizationError("package checksum FAIL: " + "; ".join(checksum_errors))
+        return package
 
-        write = self.backend.write_case(package, case)
-        if not write.archive_reference or not write.commit_sha:
-            raise ArchiveFinalizationError("archive write did not return durable reference/commit")
+    def finalize_cases(
+        self,
+        entries: list[tuple[dict[str, Any], list[dict[str, Any]]]],
+    ) -> list[FinalizationResult]:
+        """Validate the whole batch before any durable write, then persist atomically when supported."""
+        if not entries:
+            return []
+
+        prepared: list[tuple[ArchivePackage, dict[str, Any]]] = []
+        preflight_errors: list[str] = []
+        for case, snapshots in entries:
+            case_id = str(case.get("case_id") or "<unknown>")
+            try:
+                package = self._prepare_finalization(case, snapshots)
+                prepared.append((package, case))
+            except (KeyError, TypeError, ValueError, ArchiveFinalizationError) as exc:
+                preflight_errors.append(f"{case_id}: {exc}")
+
+        if preflight_errors:
+            raise ArchiveFinalizationError(
+                "batch preflight FAIL; no archive writes attempted: " + " | ".join(preflight_errors)
+            )
+        if len(prepared) != len(entries):
+            raise ArchiveFinalizationError("batch preflight internal mismatch")
+
+        write_many = getattr(self.backend, "write_cases", None)
+        if callable(write_many):
+            writes = write_many(prepared)
+        else:
+            writes = [self.backend.write_case(package, case) for package, case in prepared]
+
+        if len(writes) != len(prepared):
+            raise ArchiveFinalizationError("archive backend returned an incomplete batch result")
         if getattr(self.backend, "durable", False) is False:
             raise ArchiveFinalizationError(
-                "archive files exist only in an uncommitted worktree; case is not DONE"
+                "archive files exist only in an uncommitted worktree; batch is not DONE"
             )
 
-        if self._canonical_retention_required():
-            try:
-                release_retention_hold(case["case_id"], write.archive_reference, package.checksum_summary)
-            except RetentionHoldError as exc:
-                raise ArchiveFinalizationError(
-                    "archive verified but retention hold release failed; case remains retryable"
-                ) from exc
+        for write in writes:
+            if not write.archive_reference or not write.commit_sha:
+                raise ArchiveFinalizationError("archive write did not return durable reference/commit")
 
-        return FinalizationResult(
-            status="DONE",
-            archive_reference=write.archive_reference,
-            archive_commit=write.commit_sha,
-            checksum_summary=package.checksum_summary,
-            idempotent=write.idempotent,
-        )
+        retention_errors: list[str] = []
+        if self._canonical_retention_required():
+            for (package, case), write in zip(prepared, writes):
+                try:
+                    release_retention_hold(case["case_id"], write.archive_reference, package.checksum_summary)
+                except RetentionHoldError as exc:
+                    retention_errors.append(f"{case['case_id']}: {exc}")
+        if retention_errors:
+            raise ArchiveFinalizationError(
+                "archive verified but retention hold release failed; batch remains retryable: "
+                + " | ".join(retention_errors)
+            )
+
+        return [
+            FinalizationResult(
+                status="DONE",
+                archive_reference=write.archive_reference,
+                archive_commit=write.commit_sha,
+                checksum_summary=package.checksum_summary,
+                idempotent=write.idempotent,
+            )
+            for (package, _case), write in zip(prepared, writes)
+        ]
+
+    def finalize_case(self, case: dict[str, Any], snapshots: list[dict[str, Any]]) -> FinalizationResult:
+        return self.finalize_cases([(case, snapshots)])[0]
 
 
 def utc_now_iso() -> str:
