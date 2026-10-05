@@ -28,7 +28,7 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 ## Shared learning rules
 
 1. Existing SmartXFlow systems remain the source of live/stored SXF snapshots. Do not build a second scraper for learning.
-2. Archive only matches materially researched by Predictor and formalized as `BET`, `WATCH`, or `PASS`; never whole-market archive by default.
+2. Archive only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection. A match with no defensible prediction/selection is omitted from the final prediction diary and Learning Archive rather than stored as `PASS`.
 3. `prediction_at` is the immutable PRE/POST cutoff.
 4. External evidence is PRE only when actual `observed_at <= prediction_at`; publication time alone is insufficient.
 5. Historical prediction, rationale, counterargument, confidence, result, raw snapshots and evidence timestamps are never silently rewritten. Corrections are append-only.
