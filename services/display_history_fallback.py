@@ -2,13 +2,16 @@
 
 Current market tables intentionally contain only the authoritative prematch feed.
 Once a match starts, its current row may be pruned while the fixture/result remains
-visible in the UI.  For display only, restore the final prematch snapshot from the
-history table.  Alarm and signal engines do not use this module.
+visible in the UI. For display only, restore the final prematch snapshot from the
+history table. Alarm and signal engines do not use this module.
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+import threading
+import time
 from typing import Any, Callable, Dict, Iterable, List, Optional
 from urllib.parse import quote
 
@@ -32,6 +35,11 @@ _MARKET_VALUE_KEYS = {
 }
 
 _EMPTY_VALUES = {None, "", "-"}
+_POSITIVE_CACHE_TTL = 6 * 60 * 60
+_NEGATIVE_CACHE_TTL = 5 * 60
+_MAX_PARALLEL_LOOKUPS = 8
+_history_cache: Dict[tuple, tuple[float, Optional[Dict[str, Any]]]] = {}
+_history_cache_lock = threading.Lock()
 
 
 def _parse_kickoff_utc(value: Any) -> Optional[datetime]:
@@ -66,12 +74,21 @@ def _has_display_values(latest: Any, market: str) -> bool:
     return any(latest.get(key) not in _EMPTY_VALUES for key in keys)
 
 
-def _fetch_latest_history_row(client: Any, match: Dict[str, Any], market: str) -> Optional[Dict[str, Any]]:
-    """Fetch one latest snapshot for one fixture using an indexed exact filter.
+def _cache_key(match: Dict[str, Any], market: str) -> tuple:
+    match_hash = str(match.get("match_id_hash") or "").strip().lower()
+    if match_hash:
+        return market, match_hash
+    return (
+        market,
+        str(match.get("home_team") or "").strip(),
+        str(match.get("away_team") or "").strip(),
+        str(match.get("league") or "").strip(),
+        str(match.get("kickoff_utc") or "").strip(),
+    )
 
-    match_id_hash is preferred because it avoids broad history scans.  The
-    home/away/league fallback exists only for legacy fixture rows without a hash.
-    """
+
+def _fetch_latest_history_row(client: Any, match: Dict[str, Any], market: str) -> Optional[Dict[str, Any]]:
+    """Fetch one latest snapshot for one fixture using an indexed exact filter."""
     if market not in _SUPPORTED_MARKETS or not getattr(client, "is_available", False):
         return None
 
@@ -109,6 +126,43 @@ def _fetch_latest_history_row(client: Any, match: Dict[str, Any], market: str) -
     return None
 
 
+def _fetch_latest_history_row_cached(client: Any, match: Dict[str, Any], market: str) -> Optional[Dict[str, Any]]:
+    key = _cache_key(match, market)
+    now = time.monotonic()
+    with _history_cache_lock:
+        cached = _history_cache.get(key)
+        if cached is not None:
+            cached_at, cached_row = cached
+            ttl = _POSITIVE_CACHE_TTL if cached_row else _NEGATIVE_CACHE_TTL
+            if now - cached_at < ttl:
+                return dict(cached_row) if cached_row else None
+            _history_cache.pop(key, None)
+
+    row = _fetch_latest_history_row(client, match, market)
+    stored = dict(row) if isinstance(row, dict) else None
+    with _history_cache_lock:
+        _history_cache[key] = (now, stored)
+    return dict(stored) if stored else None
+
+
+def _apply_history_row(client: Any, match: Dict[str, Any], market: str, history_row: Optional[Dict[str, Any]]) -> bool:
+    if not history_row:
+        return False
+    try:
+        latest = client._normalize_history_row(history_row, market)
+    except Exception as exc:
+        print(f"[DisplayFallback] normalize error: {exc}")
+        return False
+    if not _has_display_values(latest, market):
+        return False
+
+    latest = dict(latest)
+    latest["DataSource"] = "history_fallback"
+    latest["IsHistorical"] = True
+    match["latest"] = latest
+    return True
+
+
 def enrich_started_matches_from_history(
     client: Any,
     matches: Iterable[Dict[str, Any]],
@@ -122,40 +176,45 @@ def enrich_started_matches_from_history(
         return list(matches or [])
 
     result = list(matches or [])
-    fetch_latest = fetcher or _fetch_latest_history_row
+    candidates = [
+        match for match in result
+        if isinstance(match, dict)
+        and not _has_display_values(match.get("latest"), market)
+        and _fixture_has_started(match, now_utc=now_utc)
+    ]
+    if not candidates:
+        return result
+
     restored = 0
-
-    for match in result:
-        if not isinstance(match, dict):
-            continue
-        if _has_display_values(match.get("latest"), market):
-            continue
-        if not _fixture_has_started(match, now_utc=now_utc):
-            continue
-
-        try:
-            history_row = fetch_latest(client, match, market)
-        except Exception as exc:
-            print(f"[DisplayFallback] lookup error: {exc}")
-            continue
-        if not history_row:
-            continue
-
-        try:
-            latest = client._normalize_history_row(history_row, market)
-        except Exception as exc:
-            print(f"[DisplayFallback] normalize error: {exc}")
-            continue
-        if not _has_display_values(latest, market):
-            continue
-
-        # Metadata is display-only and lets callers distinguish a frozen final
-        # prematch value from an actively updating current-table value.
-        latest = dict(latest)
-        latest["DataSource"] = "history_fallback"
-        latest["IsHistorical"] = True
-        match["latest"] = latest
-        restored += 1
+    if fetcher is not None:
+        # Injectable sequential path keeps unit tests deterministic.
+        for match in candidates:
+            try:
+                row = fetcher(client, match, market)
+            except Exception as exc:
+                print(f"[DisplayFallback] lookup error: {exc}")
+                continue
+            if _apply_history_row(client, match, market, row):
+                restored += 1
+    else:
+        # A today page can contain dozens of already-started fixtures. Exact
+        # per-hash reads are reliable, so run a small bounded pool and cache the
+        # immutable final prematch snapshot instead of serially blocking the API.
+        workers = min(_MAX_PARALLEL_LOOKUPS, len(candidates))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="display-history") as pool:
+            futures = {
+                pool.submit(_fetch_latest_history_row_cached, client, match, market): match
+                for match in candidates
+            }
+            for future in as_completed(futures):
+                match = futures[future]
+                try:
+                    row = future.result()
+                except Exception as exc:
+                    print(f"[DisplayFallback] lookup error: {exc}")
+                    continue
+                if _apply_history_row(client, match, market, row):
+                    restored += 1
 
     if restored:
         print(f"[DisplayFallback] Restored {restored} started fixture(s) from {market}_history")
@@ -184,11 +243,8 @@ def bind_display_history_fallback() -> None:
         matches = payload.get("matches")
         if not isinstance(matches, list):
             return payload
-        enriched = enrich_started_matches_from_history(self, matches, market)
-        if enriched is matches:
-            return payload
         result = dict(payload)
-        result["matches"] = enriched
+        result["matches"] = enrich_started_matches_from_history(self, matches, market)
         return result
 
     client_cls.get_all_matches_with_latest = get_all_matches_with_latest
