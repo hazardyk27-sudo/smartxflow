@@ -70,6 +70,20 @@ class LearningArchiveReader:
             if not target.exists() or sha256_hex(target.read_bytes()) != digest:
                 raise LearningArchiveReadError(f"checksum mismatch for {name}")
 
+    @staticmethod
+    def _has_concrete_prediction(item: dict[str, Any]) -> bool:
+        prediction = (item.get("case") or {}).get("prediction") or {}
+        decision = prediction.get("decision")
+        market = prediction.get("market")
+        selection = prediction.get("selection")
+        return (
+            decision in {"BET", "WATCH"}
+            and isinstance(market, str)
+            and bool(market.strip())
+            and isinstance(selection, str)
+            and bool(selection.strip())
+        )
+
     def read_case(self, case_id: str) -> dict[str, Any]:
         events = [entry for entry in self._manifest() if entry.get("case_id") == case_id]
         if not events:
@@ -102,7 +116,13 @@ class LearningArchiveReader:
             "finalized": finalized,
         }
 
-    def iter_cases(self, *, finalized_only: bool = False) -> Iterator[dict[str, Any]]:
+    def iter_cases(
+        self,
+        *,
+        finalized_only: bool = False,
+        prediction_only: bool = True,
+    ) -> Iterator[dict[str, Any]]:
+        """Iterate usable prediction cases by default; legacy no-pick/PASS cases remain auditable via read_case or prediction_only=False."""
         seen: set[str] = set()
         for entry in self._manifest():
             case_id = str(entry.get("case_id") or "")
@@ -111,5 +131,7 @@ class LearningArchiveReader:
             seen.add(case_id)
             item = self.read_case(case_id)
             if finalized_only and not item["finalized"]:
+                continue
+            if prediction_only and not self._has_concrete_prediction(item):
                 continue
             yield item
