@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 import requests
 
+from core.fixture_identity_payload_stage import clear_betwatch_authoritative_payload
+from core.fixture_identity_shadow import clear_betwatch_identity_stage
 from core.fixture_identity_v2 import extract_betwatch_identity
 from core.hash_utils import make_match_id_hash
 
@@ -100,22 +103,24 @@ def build_betwatch_fixture_rpc_rows(
     return rows, stats
 
 
-def _install_physical_provider_context(writer: Any, rows: Sequence[Mapping[str, Any]]) -> None:
-    """Expose exact physical -> provider-event context to current-table UID tagging.
-
-    This is deliberately installed only after a complete successful transactional
-    provider-authoritative fixture write. It lets two physical rematches share the
-    same legacy hash without current/history UID tagging falling back to that hash.
-    """
+def _install_physical_provider_context(
+    writer: Any,
+    matches: Sequence[Mapping[str, Any]],
+) -> None:
+    """Expose exact physical -> provider-event context to current-table UID tagging."""
     context: Dict[tuple[str, str, str, str], str] = {}
-    for row in rows:
+    for match in matches or []:
+        identity = extract_betwatch_identity(match)
+        teams = match.get("teams") or {}
+        if identity is None or not isinstance(teams, Mapping):
+            continue
         physical = (
-            _text(row.get("league")),
-            _text(row.get("home_team")),
-            _text(row.get("away_team")),
-            _kickoff(row.get("kickoff_utc")),
+            _text(match.get("league")),
+            _text(teams.get("v1")),
+            _text(teams.get("v2")),
+            _kickoff(match.get("kickoff")),
         )
-        event_id = _text(row.get("source_event_id"))
+        event_id = _text(identity.event_id)
         if all(physical) and event_id:
             context[physical] = event_id
     try:
@@ -126,6 +131,17 @@ def _install_physical_provider_context(writer: Any, rows: Sequence[Mapping[str, 
         pass
 
 
+def _runtime_service_headers() -> Optional[Dict[str, str]]:
+    key = _text(os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
+    if not key:
+        return None
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+
+
 def write_provider_authoritative_fixture_batch(
     writer: Any,
     matches: Sequence[Mapping[str, Any]],
@@ -133,12 +149,14 @@ def write_provider_authoritative_fixture_batch(
     observed_at: Optional[str] = None,
     request_post=None,
 ) -> Dict[str, Any]:
-    """Call the transactional Part 7 fixture RPC once for a Betwatch payload.
+    """Call the transactional provider-authoritative fixture RPC once.
 
-    No legacy hash fallback exists here. RPC errors are returned to the caller so
-    activation code can abort rather than silently reverting to hash-authoritative
-    fixture writes.
+    Runtime calls require ``SUPABASE_SERVICE_ROLE_KEY`` because the RPC is not
+    executable by anon/authenticated roles. Tests may inject ``request_post`` and
+    therefore keep using the supplied writer headers. No legacy hash fallback
+    exists on any error path.
     """
+    injected_post = request_post is not None
     request_post = request_post or requests.post
     rows, stats = build_betwatch_fixture_rpc_rows(matches)
     stats.update(
@@ -155,10 +173,23 @@ def write_provider_authoritative_fixture_batch(
     if observed_at is None:
         observed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
+    if injected_post:
+        headers = writer._headers()
+    else:
+        headers = _runtime_service_headers()
+        if headers is None:
+            stats["error"] = "service_role_key_unavailable"
+            return stats
+
+    # Provider-authoritative mode owns identity for this scrape. Prevent the old
+    # hash-scoped shadow stage or a staged fallback payload from being replayed.
+    clear_betwatch_identity_stage()
+    clear_betwatch_authoritative_payload()
+
     try:
         response = request_post(
             writer._rest_url("rpc/record_betwatch_fixture_batch_v2"),
-            headers=writer._headers(),
+            headers=headers,
             json={
                 "p_observed_at": observed_at,
                 "p_rows": rows,
@@ -183,7 +214,7 @@ def write_provider_authoritative_fixture_batch(
         if stats["received_count"] != len(rows):
             stats["error"] = "provider_fixture_rpc_incomplete_batch"
             return stats
-        _install_physical_provider_context(writer, rows)
+        _install_physical_provider_context(writer, matches)
         return stats
     except Exception as exc:
         stats["error"] = str(exc)[:300]
