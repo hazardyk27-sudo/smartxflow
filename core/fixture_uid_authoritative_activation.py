@@ -4,6 +4,7 @@ import os
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
 from core.fixture_identity_payload_stage import consume_betwatch_authoritative_payload
+from core.fixture_identity_shadow import clear_betwatch_identity_stage
 from core.fixture_identity_v2 import extract_betwatch_identity
 from core.fixture_uid_authoritative_writer import write_provider_authoritative_fixture_batch
 
@@ -137,6 +138,10 @@ def install_provider_authoritative_fixture_writer_patch() -> bool:
         self._fixture_identity_authoritative_failed = False
 
         matches = consume_betwatch_authoritative_payload()
+        # Authoritative mode owns provider identity for this scrape. The old
+        # hash-scoped shadow writer must not run later in current_table_sync.
+        clear_betwatch_identity_stage()
+
         if not matches:
             _record_failure(self, "provider_identity_payload_unavailable")
             self.last_fixture_uid_authoritative_stats = {
