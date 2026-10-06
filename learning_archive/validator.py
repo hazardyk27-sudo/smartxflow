@@ -20,6 +20,7 @@ _SECRET_VALUE_PATTERNS = (
     re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
     re.compile(r"\bsb_secret_[A-Za-z0-9_-]{12,}\b", re.I),
 )
+_DNB_PATTERN = re.compile(r"(?:^|\b)(?:dnb|draw[\s_-]*no[\s_-]*bet)(?:\b|$)", re.I)
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,18 @@ def _poly_errors(case: dict[str, Any]) -> list[str]:
             errors.append(f"{path}: Polymarket/Poly intelligence is excluded from Learning Archive inputs")
         elif key and key.lower() in {"source", "category", "provider"} and lowered == "poly":
             errors.append(f"{path}: Polymarket/Poly intelligence is excluded from Learning Archive inputs")
+    return errors
+
+
+def _forbidden_prediction_market_errors(case: dict[str, Any]) -> list[str]:
+    prediction = case.get("prediction")
+    if not isinstance(prediction, dict):
+        return []
+    errors: list[str] = []
+    for key in ("market", "selection"):
+        value = prediction.get(key)
+        if isinstance(value, str) and _DNB_PATTERN.search(value.strip()):
+            errors.append(f"prediction.{key}: Draw No Bet (DNB) is forbidden")
     return errors
 
 
@@ -200,6 +213,7 @@ def validate_case(case: dict[str, Any], snapshots: list[dict[str, Any]] | None =
 
     errors.extend(_secret_errors(case))
     errors.extend(_poly_errors(case))
+    errors.extend(_forbidden_prediction_market_errors(case))
     unique = tuple(sorted(set(errors)))
     return ValidationResult(not unique, unique)
 
