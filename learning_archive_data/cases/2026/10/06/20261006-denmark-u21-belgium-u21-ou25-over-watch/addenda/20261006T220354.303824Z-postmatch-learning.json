@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-denmark-u21-belgium-u21-ou25-over-watch",
+  "type": "OBSERVATION",
+  "final_score": "0-0",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "LOSS",
+  "selected_market": {"market": "O/U 2.5", "selection": "Over 2.5", "entry_odds": 2.12},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T19:28:07+03:00", "price": 2.10, "share": "59.5%", "money": "£ 2928.73", "market_volume": "£ 4923.78"},
+  "prediction_to_final_prematch_comparison": "Over retained a majority money share and price near the Stage 1 level, but the market never developed a strong late breakout beyond the existing thesis.",
+  "stage2_context_check": "CONTRADICTED: Belgium's strong defensive record and recent low-scoring official results directly challenged the SXF Over thesis.",
+  "result_relevance": "The 0-0 final score made the watched Over 2.5 selection a hypothetical LOSS and strongly favored the Stage 2 defensive countercase.",
+  "learning": "When Stage 2 provides a strong structural contradiction and SXF does not add stronger late confirmation, retaining WATCH can protect against forcing the original Stage 1 thesis. This is an observation, not a promoted rule."
+}
