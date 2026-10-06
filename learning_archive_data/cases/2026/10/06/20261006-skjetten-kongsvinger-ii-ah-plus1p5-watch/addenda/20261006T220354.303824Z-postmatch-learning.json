@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-skjetten-kongsvinger-ii-ah-plus1p5-watch",
+  "type": "OBSERVATION",
+  "final_score": "3-4",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "Handicap", "selection": "Kongsvinger II +1.5", "entry_odds": null, "minimum_acceptable_odds": 1.60},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "The +1.5 handicap is a non-native SmartXFlow execution market. Underlying 1X2/O-U2.5/BTTS evidence was retained; no synthetic handicap history or price was fabricated."},
+  "prediction_to_final_prematch_comparison": "The protected line was used because the Stage 1 Kongsvinger II 1X2 thesis was aggressive and Stage 2 contradicted it. There is no native +1.5 price path for direct comparison.",
+  "stage2_context_check": "CONTRADICTED: broader recent Kongsvinger II form was weak despite some favorable head-to-head context.",
+  "result_relevance": "Kongsvinger II won 4-3 outright, so +1.5 would have settled WIN. The WATCH label remains important because the external research had materially contradicted the side and the exact handicap price was unverified.",
+  "learning": "A protected execution can survive a conflicted thesis, but the winning result alone does not invalidate the Stage 2 contradiction or prove the handicap was value-priced."
+}
