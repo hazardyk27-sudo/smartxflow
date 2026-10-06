@@ -100,6 +100,32 @@ def build_betwatch_fixture_rpc_rows(
     return rows, stats
 
 
+def _install_physical_provider_context(writer: Any, rows: Sequence[Mapping[str, Any]]) -> None:
+    """Expose exact physical -> provider-event context to current-table UID tagging.
+
+    This is deliberately installed only after a complete successful transactional
+    provider-authoritative fixture write. It lets two physical rematches share the
+    same legacy hash without current/history UID tagging falling back to that hash.
+    """
+    context: Dict[tuple[str, str, str, str], str] = {}
+    for row in rows:
+        physical = (
+            _text(row.get("league")),
+            _text(row.get("home_team")),
+            _text(row.get("away_team")),
+            _kickoff(row.get("kickoff_utc")),
+        )
+        event_id = _text(row.get("source_event_id"))
+        if all(physical) and event_id:
+            context[physical] = event_id
+    try:
+        writer._fixture_identity_event_by_physical = context
+        writer._fixture_identity_authoritative_active = True
+        writer._fixture_identity_authoritative_failed = False
+    except Exception:
+        pass
+
+
 def write_provider_authoritative_fixture_batch(
     writer: Any,
     matches: Sequence[Mapping[str, Any]],
@@ -156,6 +182,8 @@ def write_provider_authoritative_fixture_batch(
             stats[key] = int(row.get(key) or 0)
         if stats["received_count"] != len(rows):
             stats["error"] = "provider_fixture_rpc_incomplete_batch"
+            return stats
+        _install_physical_provider_context(writer, rows)
         return stats
     except Exception as exc:
         stats["error"] = str(exc)[:300]
