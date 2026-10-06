@@ -1,0 +1,46 @@
+name: Learning Archive Postmatch Run
+
+on:
+  push:
+    branches:
+      - preview
+    paths:
+      - 'learning_archive_postmatch_trigger/*.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: learning-archive-postmatch-run
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run canonical postmatch finalizer on production runtime
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+
+            BRANCH="$(git branch --show-current)"
+            if [ "$BRANCH" != "main" ]; then
+              echo "POSTMATCH_STOP: production runtime branch is '$BRANCH', expected main"
+              exit 1
+            fi
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "POSTMATCH_STOP: tracked production worktree is dirty"
+              git status --short
+              exit 1
+            fi
+
+            /opt/smartxflow/venv/bin/python scripts/settle_due_learning_cases_fast.py \
+              --root /opt/smartxflow \
+              --queue-file /var/lib/smartxflow-postmatch/settlements.json \
+              --dotenv /opt/smartxflow/.env \
+              --minimum-minutes-after-kickoff 75
