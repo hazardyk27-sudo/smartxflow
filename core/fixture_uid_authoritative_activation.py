@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Mapping, Sequence, Tuple
 
-from core.fixture_identity_shadow import consume_staged_betwatch_payload
+from core.fixture_identity_payload_stage import consume_betwatch_authoritative_payload
 from core.fixture_identity_v2 import extract_betwatch_identity
 from core.fixture_uid_authoritative_writer import write_provider_authoritative_fixture_batch
 
@@ -136,7 +136,7 @@ def install_provider_authoritative_fixture_writer_patch() -> bool:
         self._fixture_identity_authoritative_active = True
         self._fixture_identity_authoritative_failed = False
 
-        _stage, matches = consume_staged_betwatch_payload()
+        matches = consume_betwatch_authoritative_payload()
         if not matches:
             _record_failure(self, "provider_identity_payload_unavailable")
             self.last_fixture_uid_authoritative_stats = {
