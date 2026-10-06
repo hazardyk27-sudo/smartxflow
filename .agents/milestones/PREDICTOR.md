@@ -1,6 +1,6 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 9
+MILESTONE_VERSION: 10
 STATUS: ACTIVE
 
 ## Objective
@@ -53,6 +53,24 @@ Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 15. Never include API keys, tokens, cookies, auth headers, passwords, `.env` values or other credentials in archive content.
 16. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
 17. No Poly/Polymarket inputs.
+18. Every settled formal `BET`/`WATCH` case must also have a per-case append-only postmatch learning note. A bare `Final score ... WIN/LOSS` settlement sentence is not a sufficient postmortem.
+
+## Mandatory postmatch learning-note standard
+
+For every settled formal `BET` or `WATCH` case, append a timestamped `addenda/<observed_at>-postmatch-learning.json` without rewriting the frozen prediction, original evidence, captures or settlement.
+
+The note must contain, at minimum:
+- `observed_at`, `case_id`, and `type`, where `type` is only `OBSERVATION` or `RESEARCH_CANDIDATE`;
+- actual result/final score; for `WATCH`, keep the decision as WATCH and label any selection result hypothetical;
+- the selected market's final available prematch SXF state (price plus money/share when the source market provides them), or an explicit `unavailable_reason` when a native selected-market history does not exist;
+- a concise prediction-time -> final-prematch comparison, including material late reversal/divergence rather than looking only at the closing price;
+- whether the Stage 2 football context remained supportive, became contradictory, or simply failed to explain the result; do not rewrite PRE evidence after seeing the score;
+- a concise explanation of what the case teaches about the original thesis and the strongest counterargument;
+- any possible new rule only as `RESEARCH_CANDIDATE`; one match never promotes a production rule.
+
+Postmatch notes must be useful for a future analyst but compact: normally one structured record and a few concise sentences, not a long match essay. Historical corrections/backfills must be clearly labeled as historical and must preserve original timestamps/identity rather than pretending the automation ran live.
+
+A formal settled case is not considered fully reviewed for the daily Predictor diary until this postmatch learning note exists and is durably committed under `learning-archive`.
 
 ## Archive destination
 
@@ -96,6 +114,7 @@ A case is `DONE` only when:
 - a concrete market and selection exist,
 - required stored-history captures exist,
 - result/decision outcome is settled/reviewed as applicable,
+- the standardized per-case postmatch learning note exists for a settled formal case,
 - final archive files/checksums are coherent,
 - manifest contains the final event,
 - a durable GitHub commit/reference under `learning-archive:/learning_archive_data/` is confirmed.
