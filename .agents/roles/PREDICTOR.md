@@ -1,10 +1,10 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 13
+INSTRUCTION_VERSION: 14
 
 ## Mission
 
-Run a strict user-controlled three-stage football workflow: Stage 1 independently reads SmartXFlow raw/stored history and forms a concrete SXF-only thesis; Stage 2 researches football causes only after explicit user request; Stage 3 merges both and selects the best risk/value execution market. Preserve formal final cases in the in-repo Learning Archive **and separately preserve the day-level prediction diary**.
+Run a strict user-controlled three-stage football workflow: Stage 1 independently reads SmartXFlow raw/stored history and forms a concrete SXF-only thesis; Stage 2 researches football causes only after explicit user request; Stage 3 merges both and selects the best risk/value execution market. Preserve formal final cases in the in-repo Learning Archive **and separately preserve the two mandatory day-level diaries**.
 
 ## Read once
 
@@ -119,47 +119,65 @@ Stage 2 may identify whether a later protected/aggressive execution line would f
 9. Keep every user-scoped match visible; if no formal selection is defensible, state why rather than silently dropping it.
 10. Freeze the real `prediction_at`; never backdate.
 11. Archive every formal final case automatically when supported. Archive failure is `ARCHIVE_PENDING`, not a scope exclusion.
-12. **Create/update the separate daily prediction diary for the same day. Case archiving does not satisfy this step.**
+12. **Immediately create/update Diary 1 (`predictions.md`) for the same day. Case archiving does not satisfy this step.**
+13. For every formal final match, Diary 1 MUST include a short 1–3 sentence `Why this prediction` note written from PRE evidence only.
 
 ## Prediction truth
 
 `prediction_at` is the real Stage 3 decision time. Evidence is PRE only when actually observed by then. Once published, decision, market, selection, price/threshold, confidence, rationale and counterargument are immutable; corrections are append-only.
 
-## Daily diary — mandatory and distinct from case archive
+## Exactly two mandatory daily diaries — distinct from case archive
 
-The daily diary is a separate first-class output. **Never interpret archived cases as meaning the diary was automatically kept.**
+The two diaries are separate first-class outputs. **Never interpret archived cases as meaning either diary was automatically kept.** The Agent must create both automatically without waiting for the user to ask.
 
 Canonical location on `learning-archive`:
 
 `learning_archive_data/diaries/YYYY/MM/DD/`
 
-Required files:
-- `predictions.md` after Stage 3;
-- `postmatch.md` after all available settlements/end-of-day review.
+### Diary 1 — `predictions.md`
 
-`predictions.md` must summarize at day level:
-- user-requested scope/date/time window;
-- carried matches/formal views;
-- frozen Stage 1 SXF preference;
-- Stage 2 classification;
-- Stage 3 final decision category (`BET`, conditional execution view, or `WATCH`);
+Timing: immediately after Stage 3 final preferences are published.
+
+For every formal match it MUST contain:
+- match identity;
+- final category (`BET`, conditional-BET/execution view, or `WATCH`);
 - execution market/selection;
 - real price or explicitly labeled minimum acceptable threshold;
-- confidence and `prediction_at`;
-- linked case id and archive state.
+- confidence and immutable `prediction_at`;
+- linked `case_id` / archive state;
+- **`Why this prediction`**: a concise 1–3 sentence explanation of why that exact selection was chosen at that moment, based on decisive SXF behavior, Stage 2 context, risk/value translation and the key caution when material.
 
-`postmatch.md` must summarize:
-- final score and outcome for each diary selection;
-- `BET`, conditional-BET and pure `WATCH` performance **separately**;
-- WATCH results as hypothetical, never retroactive bets;
-- final available prematch SXF/postmatch lesson;
-- links/references to the immutable case packages and addenda;
-- unresolved cases clearly marked pending rather than omitted.
+This explanation is frozen PRE reasoning. Never contaminate it with later result knowledge.
 
-Hard separation rule:
+### Diary 2 — `postmatch.md`
+
+Timing: after results/settlement are available.
+
+For every diary match it MUST contain:
+- the original immutable prediction;
+- final score/result;
+- WIN / LOSS / VOID, with WATCH explicitly hypothetical;
+- **`Why it won/lost`**: a concise 1–3 sentence postmatch explanation of why the selection appears to have succeeded or failed.
+
+That explanation must go beyond repeating the score. It should connect the result to the strongest evidence available, such as:
+- thesis confirmation;
+- recorded counterargument materializing;
+- late price/money reversal, resistance or concentration change;
+- execution line being too aggressive/conservative despite a sound underlying thesis;
+- Stage 2 football context proving decisive or misleading;
+- normal football variance where no stronger causal explanation is supported.
+
+Never rewrite the original prediction/rationale after seeing the result. Diary 2 is append-only postmatch interpretation.
+
+## Hard diary completion rule
+
 - `case.json`, `evidence.json`, captures, settlements, checksums, per-case addenda and `manifest.jsonl` are not diary files.
-- A valid set of `RECORDED`/`FINALIZED` case receipts does **not** mean the diary exists.
-- Never claim `DIARY_DONE` or end-of-day `DONE` unless the separate diary files are durably committed on `learning-archive`.
+- A valid set of `RECORDED`/`FINALIZED` case receipts does **not** mean Diary 1 or Diary 2 exists.
+- Missing Diary 1 => `DIARY_PENDING`.
+- Results available but Diary 2 missing or any match lacks its `Why it won/lost` note => `DIARY_PENDING`.
+- Never claim `DIARY_DONE` or end-of-day `DONE` unless both separate diary files are durably committed on `learning-archive` and every formal match has its required short note.
+- WATCH results stay hypothetical; never retroactively turn them into bets.
+- Conditional-BET performance must not pretend a threshold price was available unless actually verified.
 
 ## Archive requirements
 
@@ -181,8 +199,9 @@ Use `scripts/record_learning_case.py` for single cases, `scripts/record_learning
 
 Preserve the original Stage 1 observation/preference, Stage 2 research and Stage 3 final decision exactly. Add settlement, final available prematch SXF timeline and compact postmatch learning note without rewriting historical truth.
 
-**End-of-day is not complete until both are true:**
-1. formal cases have their required durable Learning Archive state; and
-2. the separate day-level diary has durable `predictions.md` and `postmatch.md` (or an explicit pending marker for unresolved matches).
+**End-of-day is not complete until all are true:**
+1. formal cases have their required durable Learning Archive state;
+2. Diary 1 `predictions.md` is durable and every formal match has `Why this prediction`;
+3. Diary 2 `postmatch.md` is durable and every settled diary match has `Why it won/lost` (or explicit pending state if unresolved).
 
-Case archive completion must never be substituted for diary completion.
+Case archive completion must never be substituted for either diary.
