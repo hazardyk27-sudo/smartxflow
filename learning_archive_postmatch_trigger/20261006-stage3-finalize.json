@@ -1,7 +1,0 @@
-{
-  "operation": "FINALIZE_DUE_LEARNING_CASES",
-  "requested_date": "2026-10-06",
-  "scope": "stage3-recorded-cases",
-  "attempt": 4,
-  "reason": "Finalize remaining Halesowen-Stafford Double Chance WATCH with tested team-prefixed DC parser overlay."
-}
