@@ -70,6 +70,11 @@ class SettlementTests(unittest.TestCase):
         self.assertEqual(result["status"], "LOSS")
         self.assertEqual(result["pnl_units"], -1.0)
 
+    def test_over_35_uses_the_stored_line(self):
+        value = case(decision="WATCH", market="O/U 3.5", selection="Over 3.5", odds=None)
+        self.assertEqual(self.settle(value, "2-1")["hypothetical_result"], "LOSS")
+        self.assertEqual(self.settle(value, "3-1")["hypothetical_result"], "WIN")
+
     def test_btts_no_win(self):
         value = case(market="Both Teams To Score", selection="No", odds=1.44)
         self.assertEqual(self.settle(value, "1-0")["status"], "WIN")
@@ -78,6 +83,22 @@ class SettlementTests(unittest.TestCase):
         value = case(market="Double Chance", selection="X2", odds=1.34)
         self.assertEqual(self.settle(value, "1-1")["status"], "WIN")
         self.assertEqual(self.settle(value, "4-0")["status"], "LOSS")
+
+    def test_handicap_plus_15_watch(self):
+        value = case(decision="WATCH", market="Handicap", selection="Norway +1.5", odds=None)
+        self.assertEqual(self.settle(value, "2-1")["hypothetical_result"], "WIN")
+        self.assertEqual(self.settle(value, "3-1")["hypothetical_result"], "LOSS")
+
+    def test_handicap_minus_15_watch(self):
+        value = case(decision="WATCH", market="Handicap", selection="Portugal -1.5", odds=None)
+        self.assertEqual(self.settle(value, "3-1")["hypothetical_result"], "WIN")
+        self.assertEqual(self.settle(value, "2-1")["hypothetical_result"], "LOSS")
+
+    def test_handicap_reserve_suffix_roman_ii_alias(self):
+        value = case(decision="WATCH", market="Handicap", selection="Kongsvinger II +1.5", odds=None)
+        value["match"]["home"] = "Skjetten"
+        value["match"]["away"] = "Kongsvinger Il"
+        self.assertEqual(self.settle(value, "2-1")["hypothetical_result"], "WIN")
 
     def test_watch_is_no_bet_with_hypothetical_result(self):
         value = case(decision="WATCH", market="Double Chance", selection="X2", odds=1.67)
