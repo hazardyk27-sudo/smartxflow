@@ -1,6 +1,6 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 8
+CONTRACT_VERSION: 9
 
 ## Purpose
 
@@ -9,6 +9,8 @@ The Learning Archive is the historical evidence store for selected SmartXFlow pr
 Only materially researched Predictor cases formalized as `BET` or `WATCH` with a concrete non-empty market and selection are normal usable cases. Whole-market archiving, no-pick/PASS cases and Poly/Polymarket inputs are excluded from normal prediction datasets/diaries.
 
 Historical legacy records remain immutable for audit.
+
+**The per-case Learning Archive and the day-level Prediction Diary are separate mandatory outputs. A complete set of case folders or manifest events never satisfies the diary requirement.**
 
 ## Native evidence vs execution market
 
@@ -77,7 +79,59 @@ learning_archive_data/
       settlement.json
       checksums.sha256
       addenda/<observed_at>-postmatch-learning.json
+  diaries/
+    YYYY/MM/DD/
+      predictions.md
+      postmatch.md
 ```
+
+## Daily Prediction Diary contract — separate from case archive
+
+The daily diary is a human-readable day-level summary of Predictor decisions and learning. It is a separate first-class artifact.
+
+For every calendar day with at least one formal Stage 3 case:
+- create `learning_archive_data/diaries/YYYY/MM/DD/predictions.md` after Stage 3;
+- create `learning_archive_data/diaries/YYYY/MM/DD/postmatch.md` after settlement/end-of-day review.
+
+### `predictions.md` minimum content
+
+- requested date/time or named-match scope;
+- every carried/formal final view for that day;
+- frozen Stage 1 SXF preference;
+- Stage 2 classification/context;
+- Stage 3 final decision category;
+- execution market + selection;
+- actual entry price when genuinely observed, otherwise clearly labeled minimum acceptable threshold;
+- confidence;
+- immutable `prediction_at`;
+- linked `case_id` and archive state.
+
+### `postmatch.md` minimum content
+
+- each final score/outcome;
+- actual/native `BET` performance;
+- conditional execution (`BET_IF_PRICE` / conditional-BET) performance separately;
+- pure `WATCH` performance separately;
+- WATCH outcomes explicitly hypothetical;
+- no claim of conditional-bet execution unless a qualifying real price was actually observed;
+- final available prematch SXF/postmatch lesson;
+- linked case/addendum references;
+- unresolved matches explicitly marked pending rather than omitted.
+
+### Non-substitution rule
+
+The following do **not** count as the daily diary, individually or collectively:
+- case folders;
+- `case.json` / `evidence.json`;
+- captures or final `sxf_snapshots.json.gz`;
+- `settlement.json`;
+- `checksums.sha256`;
+- per-case postmatch addenda;
+- `manifest.jsonl` `RECORDED`, `CAPTURED` or `FINALIZED` events.
+
+Never infer or report diary completion merely because case archive completion succeeded. If cases are complete and the diary is absent, status is `DIARY_PENDING`.
+
+Diary content summarizes/references immutable case truth; it does not rewrite the original prediction. Historical corrections are append-only/versioned.
 
 ## Required case metadata
 
@@ -155,9 +209,13 @@ One case never promotes a production rule.
 
 `manifest.jsonl` is append-only with current event types `RECORDED`, `CAPTURED`, `FINALIZED`.
 
-A case is `DONE` only when immutable original prediction/evidence exist, required selected-match native SXF captures exist, settlement/review and standardized postmatch note exist as applicable, validator/checksums pass, and durable GitHub archive commit/reference is confirmed.
+A **case** is `DONE` only when immutable original prediction/evidence exist, required selected-match native SXF captures exist, settlement/review and standardized postmatch note exist as applicable, validator/checksums pass, and durable GitHub archive commit/reference is confirmed.
 
-Anything less remains explicit pending/failed/retryable.
+A **prediction day/end-of-day** is `DONE` only when:
+1. all formal cases have the required complete or explicit pending state; and
+2. the separate durable daily diary exists (`predictions.md` and `postmatch.md`, or explicit pending handling for unresolved matches).
+
+Case `DONE` does not imply diary/day `DONE`. Diary/day `DONE` does not replace case validation. Anything less remains explicit pending/failed/retryable.
 
 ## Secret exclusion
 
@@ -169,6 +227,6 @@ Retention protection is separate from archive durability. Never claim retention 
 
 ## Access by role
 
-- Predictor creates/records/revisits/settles selected formal cases and preserves native thesis + final execution-market distinction.
+- Predictor creates/records/revisits/settles selected formal cases, preserves native thesis + final execution-market distinction, and separately maintains the day-level prediction diary.
 - Development reads the same archive, validates integrity and builds PRE-only datasets/models without rewriting historical truth.
 - No separate Collector Agent or Match Analyst Agent exists.
