@@ -1,6 +1,6 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 10
+MILESTONE_VERSION: 11
 STATUS: ACTIVE
 
 ## Objective
@@ -27,7 +27,9 @@ Run the first clean three-stage Predictor workflow on selected football matches:
    - Start only after the user explicitly asks for the final decision.
    - Merge the frozen Stage 1 SXF view with Stage 2 external evidence.
    - Consider the opposite case/failure condition.
-   - Choose the best actually available market, including Double Chance/DNB when structurally better than a direct underdog side.
+   - Choose the best actually available market.
+   - Draw No Bet (DNB) is forbidden and must never be recommended, archived, collected, or introduced as an internal market.
+   - Double Chance (DC) may be recommended only when a real externally available DC market and real odds are known for that exact match/selection. Do not invent/derive a synthetic DC price from 1X2, and do not create an internal DC collector/history table.
    - Produce final `BET | WATCH` with a concrete non-empty market and selection, entry odds when applicable, confidence, rationale and counterargument.
    - If no defensible concrete selection exists, omit that match from the final prediction diary/archive; do not create a `PASS` or empty-pick case.
    - Freeze `prediction_at` and archive every formal final case automatically.
@@ -54,6 +56,7 @@ Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 16. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
 17. No Poly/Polymarket inputs.
 18. Every settled formal `BET`/`WATCH` case must also have a per-case append-only postmatch learning note. A bare `Final score ... WIN/LOSS` settlement sentence is not a sufficient postmortem.
+19. No DNB collector/table/history is to be added. No internal DC collector/table/history is to be added. If a real DC selection is used, absence of native SXF DC history must be stated explicitly; underlying 1X2 evidence may be referenced only as underlying evidence, never mislabeled as DC history.
 
 ## Mandatory postmatch learning-note standard
 
