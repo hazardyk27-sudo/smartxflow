@@ -35,7 +35,7 @@ def _load_scheduled_scraper(monkeypatch):
     monkeypatch.setitem(sys.modules, "core", core_pkg)
     monkeypatch.setitem(sys.modules, "core.retention_guard", retention)
 
-    return _load_module("scheduled_scraper_master_test", ROOT / "scheduled_scraper.py")
+    return _load_module("scheduled_scraper_master_test", ROOT / "scheduled_scraper_legacy.py")
 
 
 def _heartbeat_response(rows):
