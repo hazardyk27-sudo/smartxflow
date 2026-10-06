@@ -2,5 +2,6 @@
   "operation": "FINALIZE_DUE_LEARNING_CASES",
   "requested_date": "2026-10-06",
   "scope": "stage3-recorded-cases",
-  "reason": "User requested canonical postmatch settlement and learning procedure after all scoped matches completed."
+  "attempt": 2,
+  "reason": "Retry after setting canonical repo PYTHONPATH for the postmatch finalizer."
 }
