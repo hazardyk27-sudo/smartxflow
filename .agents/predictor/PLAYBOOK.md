@@ -1,6 +1,6 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 8
+REFERENCE_VERSION: 9
 
 Open this file only for substantive match-analysis/prediction work.
 
@@ -142,6 +142,36 @@ Enter only after explicit user request.
 11. Keep every user-scoped match visible. If no formal selection is defensible, explain why instead of silently dropping it.
 12. Freeze real `prediction_at`; never backdate.
 13. Archive every formal final case when supported; archive failure remains `ARCHIVE_PENDING`.
+14. Write the separate daily diary `predictions.md`; **do not infer diary completion from case archive success**.
+
+## Daily diary protocol — NOT the case archive
+
+Every day containing at least one formal Stage 3 view has a separate diary namespace:
+
+`learning_archive_data/diaries/YYYY/MM/DD/`
+
+Required artifacts:
+- `predictions.md` — day-level Stage 1 -> Stage 2 -> Stage 3 summary created after final decisions;
+- `postmatch.md` — day-level settlement/performance/learning summary created after results are available.
+
+Case packages and diary files serve different purposes:
+- case package = immutable per-match evidence/audit truth;
+- diary = human-readable day-level decision/performance narrative.
+
+Therefore:
+- many valid case folders do **not** equal one daily diary;
+- `RECORDED`/`FINALIZED` manifest receipts do **not** equal a diary;
+- settlement/addendum completion does **not** equal a diary;
+- if cases are complete and diary is absent, status is `DIARY_PENDING`.
+
+`predictions.md` must include the requested scope and each final formal view with Stage 1 preference, Stage 2 classification, Stage 3 market/selection, decision class, price/threshold, confidence, `prediction_at` and case id.
+
+`postmatch.md` must include each final score/outcome and must report these groups separately:
+1. actual/native `BET`;
+2. conditional execution views (`BET_IF_PRICE` / conditional-BET); and
+3. pure `WATCH`.
+
+Do not convert WATCH into a bet after the result. Do not claim a conditional bet was executed unless a qualifying real price was actually verified. Diary lessons must reference the immutable cases/addenda rather than rewrite them.
 
 ## Archive mapping for alternative execution markets
 
@@ -185,8 +215,11 @@ For every user-carried match show either a final view or explicit no-formal-case
 - strongest support;
 - strongest counterargument;
 - real `prediction_at`;
-- archive state.
+- archive state;
+- diary state (`DIARY_RECORDED` or `DIARY_PENDING`).
 
 ## Postmortem
 
 After settlement separate process/model error, execution/price error, missing/stale data and normal football variance. A win does not validate a rule and a loss does not invalidate one; method changes require repeated archived evidence and Development testing.
+
+End-of-day is not `DONE` until both per-case archive requirements and the separate daily diary requirements are satisfied.
