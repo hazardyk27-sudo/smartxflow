@@ -128,11 +128,12 @@ def attach_provider_verified_fixture_uids(
     *,
     request_get=None,
 ) -> Dict[str, Any]:
-    """Best-effort Part 4 dual-write with provider + physical proof.
+    """Attach current-row fixture UIDs only with provider + exact physical proof.
 
-    A row is tagged only if the current staged Betwatch event, immutable registry
-    mapping, payload physical key, and fixture row all agree. Any uncertainty
-    leaves the legacy row untouched.
+    Part 8 prefers an exact physical-row -> provider-event context so two rematches
+    may safely share the same legacy ``match_id_hash``. During coexistence, the
+    older hash-scoped context remains as a compatibility fallback when the
+    authoritative writer flag is off.
     """
     request_get = request_get or requests.get
     stats: Dict[str, Any] = {
@@ -142,25 +143,50 @@ def attach_provider_verified_fixture_uids(
         "identity_mismatch_rows": 0,
         "conflicting_existing_uid": 0,
         "provider_context_hashes": 0,
+        "provider_context_physical": 0,
+        "provider_context_mode": "none",
         "resolved_hashes": 0,
+        "resolved_rows": 0,
         "error": None,
     }
     if not rows:
         return stats
 
+    row_hashes = [_row_hash(row) for row in rows]
+    row_physicals = [_row_physical(row) for row in rows]
+
+    raw_physical_context = getattr(writer, "_fixture_identity_event_by_physical", None)
+    physical_event: Dict[PhysicalKey, str] = {}
+    if isinstance(raw_physical_context, dict):
+        for raw_key, raw_event in raw_physical_context.items():
+            key = _context_physical(raw_key)
+            event_id = str(raw_event or "").strip()
+            if key is not None and event_id:
+                physical_event[key] = event_id
+
     event_by_hash = getattr(writer, "_fixture_identity_event_by_hash", None)
     physical_by_hash = getattr(writer, "_fixture_identity_physical_by_hash", None)
-    if not isinstance(event_by_hash, dict) or not isinstance(physical_by_hash, dict):
+
+    use_physical = bool(physical_event)
+    if use_physical:
+        stats["provider_context_mode"] = "physical"
+        stats["provider_context_physical"] = sum(
+            1 for physical in set(row_physicals) if physical in physical_event
+        )
+        event_ids = [physical_event[p] for p in row_physicals if p in physical_event]
+    elif isinstance(event_by_hash, dict) and isinstance(physical_by_hash, dict):
+        stats["provider_context_mode"] = "hash"
+        wanted_hashes = sorted({value for value in row_hashes if value})
+        stats["provider_context_hashes"] = sum(
+            1 for value in wanted_hashes if value in event_by_hash
+        )
+        event_ids = [event_by_hash[value] for value in wanted_hashes if value in event_by_hash]
+    else:
         stats["unresolved_rows"] = len(rows)
         stats["error"] = "provider_identity_context_unavailable"
         return stats
 
-    row_hashes = [_row_hash(row) for row in rows]
-    wanted_hashes = sorted({value for value in row_hashes if value})
-    stats["provider_context_hashes"] = sum(1 for value in wanted_hashes if value in event_by_hash)
-
     try:
-        event_ids = [event_by_hash[value] for value in wanted_hashes if value in event_by_hash]
         event_uid = _read_event_uid_map(writer, event_ids, request_get)
         fixture_map = _read_fixture_map(writer, event_uid.values(), request_get)
     except Exception as exc:
@@ -168,35 +194,45 @@ def attach_provider_verified_fixture_uids(
         stats["error"] = str(exc)[:300]
         return stats
 
-    verified: Dict[str, str] = {}
-    for row, match_hash in zip(rows, row_hashes):
+    resolved_hashes = set()
+
+    for row, match_hash, row_physical in zip(rows, row_hashes, row_physicals):
         if not match_hash:
+            stats["unresolved_rows"] += 1
             continue
-        event_id = str(event_by_hash.get(match_hash) or "").strip()
-        context = _context_physical(physical_by_hash.get(match_hash))
-        if not event_id or context is None:
-            continue
-        if context != _row_physical(row):
-            stats["identity_mismatch_rows"] += 1
-            continue
+
+        if use_physical:
+            event_id = str(physical_event.get(row_physical) or "").strip()
+            if not event_id:
+                stats["unresolved_rows"] += 1
+                continue
+        else:
+            event_id = str(event_by_hash.get(match_hash) or "").strip()
+            context = _context_physical(physical_by_hash.get(match_hash))
+            if not event_id or context is None:
+                stats["unresolved_rows"] += 1
+                continue
+            if context != row_physical:
+                stats["identity_mismatch_rows"] += 1
+                stats["unresolved_rows"] += 1
+                continue
+
         fixture_uid = str(event_uid.get(event_id) or "").strip()
         fixture = fixture_map.get(fixture_uid)
         if not fixture_uid or not fixture or not _fixture_matches(row, fixture, match_hash):
             stats["identity_mismatch_rows"] += 1
-            continue
-        verified[match_hash] = fixture_uid
-
-    stats["resolved_hashes"] = len(verified)
-    for row, match_hash in zip(rows, row_hashes):
-        fixture_uid = verified.get(match_hash or "")
-        if not fixture_uid:
             stats["unresolved_rows"] += 1
             continue
+
         existing = str(row.get("fixture_uid") or "").strip()
         if existing and existing != fixture_uid:
             stats["conflicting_existing_uid"] += 1
             continue
+
         row["fixture_uid"] = fixture_uid
         stats["tagged_rows"] += 1
+        stats["resolved_rows"] += 1
+        resolved_hashes.add(match_hash)
 
+    stats["resolved_hashes"] = len(resolved_hashes)
     return stats
