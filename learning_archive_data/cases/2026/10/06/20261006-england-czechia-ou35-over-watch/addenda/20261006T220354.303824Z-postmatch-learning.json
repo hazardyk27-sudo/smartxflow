@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-england-czechia-ou35-over-watch",
+  "type": "OBSERVATION",
+  "final_score": "3-0",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "LOSS",
+  "selected_market": {"market": "O/U 3.5", "selection": "Over 3.5", "entry_odds": null, "minimum_acceptable_odds": 1.75},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "Over 3.5 is a non-native SmartXFlow execution market. The underlying O/U 2.5 evidence was archived; no synthetic O3.5 price/history was fabricated."},
+  "prediction_to_final_prematch_comparison": "The execution line was raised from the very short native O2.5 thesis to O3.5 for better potential price. This added one-goal-line variance without a native O3.5 timeline to verify the market price.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: England's attacking strength supported goals, while the prior 2-0 head-to-head warned that four goals were not guaranteed.",
+  "result_relevance": "England won 3-0: the underlying Over 2.5 thesis would have won, but the chosen Over 3.5 WATCH would have lost. This isolates execution-line risk rather than a complete failure of the scoring direction.",
+  "learning": "Raising a total for price can convert a correct directional thesis into a losing execution when the realized total lands exactly at three. This is an observation, not a promoted rule."
+}
