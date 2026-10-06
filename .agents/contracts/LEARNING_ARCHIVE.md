@@ -1,6 +1,6 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 5
+CONTRACT_VERSION: 6
 
 ## Purpose
 
@@ -31,8 +31,9 @@ A file written only to a runtime/worktree is not durable archive truth. Final `D
 3. The first durable archive operation writes immutable `case.json`, `evidence.json`, and `captures/<observed_at>.json.gz`, then appends a `RECORDED` manifest event.
 4. If materially revisited before kickoff, a new deterministic capture is appended with a `CAPTURED` manifest event. Earlier captures are never overwritten.
 5. At settlement/end-of-day, Predictor adds `settlement.json`, final full prematch `sxf_snapshots.json.gz`, deterministic `checksums.sha256`, and appends `FINALIZED`.
-6. Validator/integrity checks confirm decision/selection policy, timing, secret exclusion, Poly exclusion, checksums and immutable-history rules.
-7. Identical retries are idempotent. A same case/event key with different historical content fails closed. Corrections are append-only addenda/versioned records.
+6. Every settled formal BET/WATCH case receives a compact per-case append-only postmatch learning addendum using the standard below. A bare score/WIN/LOSS sentence is not sufficient review.
+7. Validator/integrity checks confirm decision/selection policy, timing, secret exclusion, Poly exclusion, checksums and immutable-history rules.
+8. Identical retries are idempotent. A same case/event key with different historical content fails closed. Corrections are append-only addenda/versioned records.
 
 No separate user command is required merely to remember/archive a formal selected case.
 
@@ -57,6 +58,7 @@ learning_archive_data/
             settlement.json
             checksums.sha256
             addenda/
+              <observed_at>-postmatch-learning.json
 ```
 
 One `case_id` represents one prediction/decision case. Separate materially distinct decisions for the same match use separate case IDs but the same canonical match identity.
@@ -108,6 +110,24 @@ For `WATCH`, preserve the original decision and evaluate the watched selection w
 
 Finalization with settlement status `PENDING` is forbidden.
 
+## Postmatch learning-note standard
+
+Every settled formal `BET` or `WATCH` case must have a timestamped append-only `addenda/<observed_at>-postmatch-learning.json` record. This record is learning metadata; it must never rewrite PRE evidence or the frozen prediction after the result is known.
+
+The record must contain or explicitly account for:
+- `observed_at`, `case_id`, actual result/final score and `type`;
+- `type` restricted to `OBSERVATION` or `RESEARCH_CANDIDATE`;
+- WATCH results labeled hypothetical while the original WATCH decision remains immutable;
+- final available prematch SXF state for the selected market: price plus money/share when native source fields exist; if the selected market has no native stored history, an explicit `unavailable_reason` instead of fabrication;
+- a concise prediction-time -> final-prematch comparison, including material late share/money reversal or odds divergence;
+- a concise check of whether Stage 2 football context still supported, contradicted or failed to explain the thesis;
+- why the result matters to the original thesis/counterargument;
+- any prospective rule only as a `RESEARCH_CANDIDATE`, never promoted from one case.
+
+The note should be compact and useful, normally one structured record plus a few concise sentences rather than a long match essay. Historical backfills/corrections must say they are historical and must not pretend the automation ran live.
+
+A generated settlement sentence such as `Final score 1-1; original BET settled LOSS` may remain in immutable historical settlement files, but it does not by itself satisfy this postmatch learning-note requirement.
+
 ## Manifest semantics
 
 `manifest.jsonl` is append-only event history, not an in-place mutable row table.
@@ -128,10 +148,13 @@ A case is not `DONE` merely because files exist locally or settlement was review
 2. a concrete `BET` or `WATCH` prediction with non-empty market/selection for usable prediction cases,
 3. required selected-match history captures present,
 4. final settlement/review present,
-5. validator PASS,
-6. checksum and manifest verification PASS,
-7. durable GitHub commit/reference on `learning-archive` confirmed,
-8. retention hold release when retention protection is enabled.
+5. standardized per-case postmatch learning note present for settled formal BET/WATCH cases,
+6. validator PASS,
+7. checksum and manifest verification PASS,
+8. durable GitHub commit/reference on `learning-archive` confirmed,
+9. retention hold release when retention protection is enabled.
+
+Historical legacy cases whose original formal metadata was incomplete must not be falsely rewritten to satisfy modern requirements. Their corrected identity/history and learning review may be appended with explicit historical-backfill provenance, while the original historical limitations remain visible.
 
 Failure remains explicit and retryable.
 
@@ -145,6 +168,6 @@ The retention-hold code/migration may exist, but production migration must not b
 
 ## Access by role
 
-- Predictor creates/records/revisits/settles selected concrete prediction cases automatically as part of its workflow.
+- Predictor creates/records/revisits/settles selected concrete prediction cases automatically as part of its workflow and completes the standardized postmatch learning note for each settled formal case.
 - Development reads the same archive, validates integrity and builds PRE-only features/datasets/models; default iteration excludes legacy no-pick/PASS cases and it never rewrites historical truth.
 - No separate Collector Agent or Match Analyst Agent exists.
