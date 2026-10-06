@@ -205,3 +205,46 @@ def test_fixture_metadata_mismatch_cannot_be_overridden_by_registry_mapping():
     assert stats["unresolved_rows"] == 1
     assert stats["identity_mismatch_rows"] == 1
     assert "fixture_uid" not in row
+
+
+def test_provider_gate_uses_service_role_for_identity_reads(monkeypatch):
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-secret")
+    writer = Writer()
+    row = _row()
+    match_hash = _hash(row)
+    fixture_uid = "44444444-4444-4444-4444-444444444444"
+    writer._fixture_identity_event_by_hash = {match_hash: "evt-service"}
+    writer._fixture_identity_physical_by_hash = {
+        match_hash: (row["league"], row["home"], row["away"], row["date"])
+    }
+    observed_headers = []
+
+    def fake_get(url, **kwargs):
+        observed_headers.append(dict(kwargs.get("headers") or {}))
+        if url.endswith("/fixture_source_ids"):
+            return _response(200, [{
+                "source_event_id": "evt-service",
+                "fixture_uid": fixture_uid,
+            }])
+        if url.endswith("/fixtures"):
+            return _response(200, [{
+                "fixture_uid": fixture_uid,
+                "match_id_hash": match_hash,
+                "league": row["league"],
+                "home_team": row["home"],
+                "away_team": row["away"],
+                "kickoff_utc": row["date"],
+            }])
+        raise AssertionError(url)
+
+    stats = attach_provider_verified_fixture_uids(
+        writer,
+        [row],
+        request_get=fake_get,
+    )
+
+    assert stats["error"] is None
+    assert row["fixture_uid"] == fixture_uid
+    assert len(observed_headers) == 2
+    assert all(headers["apikey"] == "service-secret" for headers in observed_headers)
+    assert all(headers["Authorization"] == "Bearer service-secret" for headers in observed_headers)
