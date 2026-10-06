@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-moldova-slovakia-ah-minus1-watch",
+  "type": "OBSERVATION",
+  "final_score": "0-4",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "Handicap", "selection": "Slovakia -1", "entry_odds": null, "minimum_acceptable_odds": 1.75},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "The selected -1 handicap is non-native. SmartXFlow stores underlying 1X2/O-U2.5/BTTS evidence only; no synthetic handicap price or history was created."},
+  "prediction_to_final_prematch_comparison": "The -1 execution line was a value translation of the strong native Slovakia 1X2 thesis rather than a separate SXF signal; no native handicap closing series exists.",
+  "stage2_context_check": "CONFIRMED: recent head-to-head and group performance supported Slovakia's superiority.",
+  "result_relevance": "Slovakia won 4-0, so the -1 watched line would have settled WIN with margin to spare. The original WATCH remains unchanged because the exact handicap entry price was not verified.",
+  "learning": "The realized margin was consistent with the stronger execution line, but one result cannot establish when favorite handicaps should replace short 1X2 prices."
+}
