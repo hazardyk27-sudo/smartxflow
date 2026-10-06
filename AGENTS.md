@@ -53,24 +53,61 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 - Re-running identical writes is idempotent. Same case/event with materially different historical payload fails closed; factual corrections use append-only addenda/versioned records.
 - Never place secrets in archive payloads, manifests, captures, evidence, logs or addenda.
 
-## Daily Prediction Diary — separate mandatory artifact
+## Daily Prediction Diary — exactly two separate mandatory artifacts
 
-For every calendar day that contains at least one formal Stage 3 `BET` or `WATCH`, Predictor must create a separate durable daily diary under:
+For every calendar day that contains at least one formal Stage 3 `BET` or `WATCH`, Predictor MUST automatically create **exactly two distinct day-level diary artifacts** under:
 
 `learning_archive_data/diaries/YYYY/MM/DD/`
 
-The diary is a human-readable day-level record and is **not** satisfied by case archiving.
+They are mandatory even when every per-match Learning Archive case is already `RECORDED`/`FINALIZED`. The user must not need to remind the Agent to create them.
 
-Required daily diary phases:
-- `predictions.md` — created after Stage 3. It summarizes the user scope and every carried/formal final view, including frozen Stage 1 preference, Stage 2 classification, Stage 3 decision, execution market, actual price or threshold, confidence, `prediction_at`, and linked case id/archive state.
-- `postmatch.md` — created after settlement. It records final scores/outcomes, keeps BET vs conditional-BET vs WATCH performance separate, summarizes late SXF/postmatch learning, and links back to the immutable case records.
+### Diary 1 — `predictions.md` — written when final preferences are issued
 
-Hard rules:
-- `cases/YYYY/MM/DD/<case_id>/` is **case evidence**, not the diary.
-- `manifest.jsonl` is **an event index**, not the diary.
-- `settlement.json`, `sxf_snapshots.json.gz`, checksums and per-case addenda are **case package artifacts**, not the diary.
+Create/update immediately after Stage 3 final preferences are given, using only information known at that prediction time.
+
+For **every formal final match** include at minimum:
+- match identity;
+- final category: `BET`, conditional-BET/execution view, or `WATCH`;
+- execution market + selection;
+- actual price or explicitly labeled minimum acceptable threshold;
+- confidence and immutable `prediction_at`;
+- linked `case_id` / archive state;
+- **`Why this prediction`**: a short 1–3 sentence note explaining why the Agent chose that prediction at that moment. It must summarize the decisive SXF signal(s), Stage 2 context and/or risk-value reasoning, plus the most relevant caution when material.
+
+This note is a contemporaneous prediction rationale, not a post-result explanation. It must never contain later score/result knowledge.
+
+### Diary 2 — `postmatch.md` — written after results are known
+
+Create/update after settlement/end-of-day review.
+
+For **every diary match** include at minimum:
+- original immutable prediction;
+- final score/result;
+- WIN / LOSS / VOID, or hypothetical WIN/LOSS for WATCH;
+- **`Why it won/lost`**: a short 1–3 sentence postmatch note explaining why the prediction appears to have succeeded or failed, using the final prematch SXF behavior, football context and actual match result.
+
+The `Why it won/lost` note must be analytical, not merely repeat the score. It should identify the most plausible driver(s), for example:
+- original thesis was confirmed;
+- the recorded counterargument materialized;
+- late money/price reversal or resistance mattered;
+- execution line was too aggressive/too conservative even if the underlying thesis was sound;
+- Stage 2 football context proved decisive or misleading;
+- normal football variance remained the best explanation.
+
+Never rewrite the original prediction/rationale after seeing the result. Postmatch interpretation is append-only learning.
+
+### Hard completion rules
+
+- `cases/YYYY/MM/DD/<case_id>/` is **case evidence**, not either diary.
+- `manifest.jsonl` is **an event index**, not either diary.
+- `settlement.json`, `sxf_snapshots.json.gz`, checksums and per-case addenda are **case package artifacts**, not either diary.
 - Never say or imply “the diary exists because the cases were archived.”
-- A day is not end-of-day `DONE` until both the required case archive state and the separate daily diary state are durable on `learning-archive`.
+- `predictions.md` and `postmatch.md` are independent mandatory artifacts; one never substitutes for the other.
+- If `predictions.md` is missing, prediction-day status is `DIARY_PENDING`.
+- If results are available and any match lacks its postmatch note, end-of-day status is `DIARY_PENDING`.
+- A day is not end-of-day `DONE` until required case archive state **and both diary artifacts with per-match notes** are durable on `learning-archive`.
+- WATCH outcomes remain hypothetical; never convert them into retroactive bets.
+- Conditional-BET execution must not be claimed unless a qualifying real price was actually verified.
 - Diary summaries must reference immutable case truth rather than rewrite it. Corrections are append-only/versioned; never silently alter historical decisions.
 
 See `/.agents/contracts/LEARNING_ARCHIVE.md` when archive/export/validation work requires it.
