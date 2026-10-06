@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-scotland-slovenia-ou25-under",
+  "type": "OBSERVATION",
+  "final_score": "1-2",
+  "decision": "BET",
+  "settlement_status": "LOSS",
+  "hypothetical_result": null,
+  "selected_market": {"market": "O/U 2.5", "selection": "Under 2.5", "entry_odds": 1.53},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T21:43:09+03:00", "price": 1.64, "share": "73.9%", "money": "£ 22343.8", "market_volume": "£ 30223.4"},
+  "prediction_to_final_prematch_comparison": "Under share and money strengthened, but the price weakened from the 1.53 entry to 1.64 before kickoff. That late price resistance/divergence was adverse to the thesis.",
+  "stage2_context_check": "CONFIRMED: external research supported the low-scoring thesis, but the market's late price behavior contradicted the strength implied by the money concentration.",
+  "result_relevance": "The 1-2 score lost the Under 2.5 bet and realized the failure condition that an early/open game could break the low-total structure.",
+  "learning": "This case is evidence that high Under money/share alone should not override material late price weakening. This is an observation, not a promoted rule."
+}
