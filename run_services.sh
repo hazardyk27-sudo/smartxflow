@@ -18,10 +18,10 @@ trap cleanup SIGTERM SIGINT
 
 start_scraper() {
     while true; do
-        echo "[run_services] $(date '+%H:%M:%S') Starting scheduled_scraper.py..."
-        python scheduled_scraper.py
+        echo "[run_services] $(date '+%H:%M:%S') Starting provider-authoritative prematch runtime..."
+        python prematch_authoritative_runtime.py
         EXIT_CODE=$?
-        echo "[run_services] $(date '+%H:%M:%S') scheduled_scraper.py exited (code=$EXIT_CODE), restarting in 5s..."
+        echo "[run_services] $(date '+%H:%M:%S') prematch_authoritative_runtime.py exited (code=$EXIT_CODE), restarting in 5s..."
         sleep 5
     done
 }
@@ -49,7 +49,7 @@ start_live() {
 echo "============================================"
 echo "[run_services] SmartXFlow Services Supervisor"
 echo "[run_services] $(date '+%Y-%m-%d %H:%M:%S')"
-echo "[run_services] Scraper + Alarm Engine + Live Scraper (auto-restart)"
+echo "[run_services] Prematch + Alarm Engine + Live Scraper (auto-restart)"
 echo "============================================"
 
 start_scraper &
