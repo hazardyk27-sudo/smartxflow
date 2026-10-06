@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-kazakhstan-faroe-1x2-kazakhstan-watch",
+  "type": "OBSERVATION",
+  "final_score": "2-2",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "LOSS",
+  "selected_market": {"market": "1X2", "selection": "Kazakhstan", "entry_odds": 2.52},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T16:57:59+03:00", "price": 2.56, "share": "46.7%", "money": "£ 72315.7", "market_volume": "£ 154781"},
+  "prediction_to_final_prematch_comparison": "Kazakhstan attracted large absolute money, but the price weakened from the Stage 1 2.52 area to 2.56 and did not show clean late confirmation.",
+  "stage2_context_check": "CONTRADICTED: external research highlighted weak Kazakhstan form and a favorable recent Faroe Islands context.",
+  "result_relevance": "The 2-2 draw means the watched Kazakhstan 1X2 selection would have lost. Keeping the case at WATCH prevented this from becoming a formal wager loss.",
+  "learning": "The combination of external contradiction and missing late price confirmation correctly argued against upgrading the SXF preference to BET. This is an observation, not a promoted rule."
+}
