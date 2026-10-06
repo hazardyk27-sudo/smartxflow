@@ -9,14 +9,18 @@ from core.fixture_identity_shadow import clear_betwatch_identity_stage
 from core.fixture_identity_v2 import extract_betwatch_identity
 from core.fixture_uid_authoritative_writer import write_provider_authoritative_fixture_batch
 
-_FLAG = "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE"
+_CANONICAL_FLAG = "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE"
+_COMPAT_FLAG = "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITER"
 _PATCHED = False
 _TRUE_VALUES = {"1", "true", "yes", "on", "enabled"}
 _WRITE_METHODS = ("upsert_rows", "replace_table", "append_history", "insert_snapshots")
 
 
 def authoritative_writer_enabled() -> bool:
-    return str(os.environ.get(_FLAG, "")).strip().lower() in _TRUE_VALUES
+    return any(
+        str(os.environ.get(name, "")).strip().lower() in _TRUE_VALUES
+        for name in (_CANONICAL_FLAG, _COMPAT_FLAG)
+    )
 
 
 def _text(value: Any) -> str:
@@ -164,7 +168,7 @@ def _guard_write_method(original):
 
 
 def install_provider_authoritative_fixture_writer_patch() -> bool:
-    """Patch SupabaseWriter once; behavior changes only when the explicit flag is on.
+    """Patch SupabaseWriter once; behavior changes only when an activation flag is on.
 
     The patch is a safety net for runtimes that still call the legacy
     ``upsert_fixtures`` method. The canonical server path can call the provider
