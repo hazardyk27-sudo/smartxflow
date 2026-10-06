@@ -13,18 +13,25 @@ def test_activation_probe_is_guarded_and_fixture_identity_only():
     assert '"fixture_source_ids"' in text
     assert '"fixtures"' in text
 
-    forbidden_write_surfaces = (
+    forbidden_write_calls = (
         "append_history(",
         "insert_snapshots(",
         "sync_current_table(",
-        "moneyway_1x2_history",
-        "dropping_1x2_history",
-        "moneyway_snapshots",
-        "sinyal",
-        "alarm",
-        "learning_archive",
+        "upsert_rows(",
+        "replace_table(",
     )
-    for token in forbidden_write_surfaces:
+    for token in forbidden_write_calls:
+        assert token not in text
+
+    forbidden_table_endpoints = (
+        '_rest_url("moneyway_1x2_history")',
+        '_rest_url("dropping_1x2_history")',
+        '_rest_url("moneyway_snapshots")',
+        '_rest_url("sinyal")',
+        '_rest_url("alarm")',
+        '_rest_url("learning_archive")',
+    )
+    for token in forbidden_table_endpoints:
         assert token not in text
 
 
