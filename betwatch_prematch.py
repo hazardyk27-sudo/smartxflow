@@ -15,7 +15,10 @@ sys.path.insert(0, os.path.join(_ROOT, "desktop", "scraper_standalone"))
 sys.path.insert(0, os.path.join(_ROOT, "scraper_standalone"))
 
 from core.current_table_sync import sync_current_table
+from core.fixture_identity_v2 import extract_betwatch_identity
+from core.fixture_uid_authoritative_writer import write_provider_authoritative_fixture_batch
 from core.fixture_uid_dual_write import attach_fixture_uids_to_snapshots
+from core.fixture_uid_snapshot_authoritative import attach_provider_fixture_uids_to_snapshots
 from core.hash_utils import make_match_id_hash
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
@@ -31,9 +34,16 @@ except Exception:
     SSL_VERIFY = True
 
 
+_UID_FIRST_TRUE = {"1", "true", "yes", "on"}
+
+
 def log(msg: str):
     ts = datetime.now().strftime("%H:%M:%S")
     print(f"[BW-Pre {ts}] {msg}", flush=True)
+
+
+def _uid_authoritative_write_enabled() -> bool:
+    return str(os.environ.get("SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE") or "").strip().lower() in _UID_FIRST_TRUE
 
 
 # ── Utility helpers ───────────────────────────────────────────────────────────
@@ -103,7 +113,7 @@ def _parse_pct(pct_str: str) -> float:
 
 
 def _attach_snapshot_fixture_uids(writer: SupabaseWriter, snapshots: list, logger=None) -> None:
-    """Best-effort UID enrichment; snapshot legacy write must never depend on it."""
+    """Best-effort UID enrichment for the legacy fixture-writer path."""
     if not snapshots:
         return
     try:
@@ -289,8 +299,14 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     Betwatch API v1 prematch → Supabase.
     Döndürür: toplam yazılan satır sayısı (0 = hata veya boş veri).
     Exact fixture/snapshot counters are exposed on writer.last_scrape_stats.
+
+    ``SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true`` switches fixture creation
+    to the provider-authoritative Identity V2 RPC. That mode never falls back to
+    legacy hash-authoritative fixture writes when UID identity cannot be proven.
     """
     _log = logger_callback if logger_callback else log
+    uid_first = _uid_authoritative_write_enabled()
+    identity_mode = "uid_authoritative" if uid_first else "legacy_hash"
     writer.last_write_errors = []
     writer.last_scrape_stats = {
         "match_count": 0,
@@ -298,9 +314,10 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         "row_count": 0,
         "scraped_at_utc": None,
         "write_errors": 0,
+        "fixture_identity_mode": identity_mode,
     }
 
-    _log("[BW-Pre] Scrape başlıyor — Betwatch API v1 /football/prematch")
+    _log(f"[BW-Pre] Scrape başlıyor — Betwatch API v1 /football/prematch identity={identity_mode}")
 
     scraped_at = get_turkey_now()
     scraped_at_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
@@ -318,14 +335,44 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
     _log(f"[BW-Pre] {len(matches)} maç alındı")
 
+    # Provider-authoritative mode writes physical fixture identity first. Any
+    # identity/RPC failure aborts before market/current/history/snapshot writes so
+    # the runtime cannot silently split between UID and legacy-hash authority.
+    if uid_first:
+        fixture_uid_stats = write_provider_authoritative_fixture_batch(
+            writer,
+            matches,
+            observed_at=scraped_at_utc,
+        )
+        writer.last_fixture_uid_authoritative_stats = fixture_uid_stats
+        if fixture_uid_stats.get("error"):
+            error = f"fixture_uid_authoritative:{fixture_uid_stats['error']}"
+            writer.last_write_errors.append(error)
+            writer.last_scrape_stats.update(
+                match_count=len(matches),
+                scraped_at_utc=scraped_at_utc,
+                write_errors=1,
+            )
+            _log(f"[BW-Pre] HATA — UID-authoritative fixture batch fail-closed: {fixture_uid_stats['error']}")
+            return 0
+        _log(
+            "[BW-Pre] UID-authoritative fixtures OK — "
+            f"received={fixture_uid_stats.get('received_count', 0)} "
+            f"mapped={fixture_uid_stats.get('mapped_updated_count', 0)} "
+            f"linked={fixture_uid_stats.get('linked_existing_count', 0)} "
+            f"inserted={fixture_uid_stats.get('inserted_new_count', 0)}"
+        )
+
     # 2. Read previous dropping odds for trend calculation
     _log("[BW-Pre] Dropping önceki oran okunuyor...")
     prev_do_1x2 = _read_prev_dropping(writer, "dropping_1x2", ["odds1", "oddsx", "odds2"])
     prev_do_ou25 = _read_prev_dropping(writer, "dropping_ou25", ["over", "under"])
     prev_do_btts = _read_prev_dropping(writer, "dropping_btts", ["oddsyes", "oddsno"])
 
-    # 3. Process matches
+    # 3. Process matches. Physical fixtures are keyed by full physical identity,
+    # never by the legacy hash, so rematches cannot overwrite each other in memory.
     all_fixtures = {}
+    legacy_hash_physical = {}
 
     mw_1x2_rows, mw_ou25_rows, mw_btts_rows = [], [], []
     do_1x2_rows, do_ou25_rows, do_btts_rows = [], [], []
@@ -349,9 +396,12 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         kickoff_utc = normalize_kickoff(kickoff_raw)
         date = kickoff_utc
         mhash = make_match_id_hash(home, away, league, kickoff_utc)
+        physical_key = (league, home, away, kickoff_utc)
+        identity = extract_betwatch_identity(match)
+        provider_event_id = str(identity.event_id or "").strip() if identity is not None else ""
 
-        if mhash not in all_fixtures:
-            all_fixtures[mhash] = {
+        if physical_key not in all_fixtures:
+            all_fixtures[physical_key] = {
                 "match_id_hash": mhash,
                 "home_team": home[:100],
                 "away_team": away[:100],
@@ -359,6 +409,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 "kickoff_utc": kickoff_utc,
                 "fixture_date": kickoff_utc[:10] if kickoff_utc else "",
             }
+        legacy_hash_physical.setdefault(mhash, set()).add(physical_key)
 
         prev_key = (home, away, league, date)
 
@@ -401,6 +452,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                             "volume": vol_f,
                             "share": shr_f,
                             "scraped_at_utc": scraped_at_utc,
+                            "_fixture_source_event_id": provider_event_id,
                         })
 
             elif market_key == "OU25":
@@ -429,6 +481,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                             "volume": vol_f,
                             "share": shr_f,
                             "scraped_at_utc": scraped_at_utc,
+                            "_fixture_source_event_id": provider_event_id,
                         })
 
             elif market_key == "BTTS":
@@ -457,16 +510,34 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                             "volume": vol_f,
                             "share": shr_f,
                             "scraped_at_utc": scraped_at_utc,
+                            "_fixture_source_event_id": provider_event_id,
                         })
 
     if skipped:
         _log(f"[BW-Pre] {skipped} maç skip (eksik home/away)")
 
+    legacy_hash_collision_groups = sum(1 for values in legacy_hash_physical.values() if len(values) > 1)
+    if legacy_hash_collision_groups and not uid_first:
+        error = f"legacy_hash_collision_groups:{legacy_hash_collision_groups}"
+        writer.last_write_errors.append(error)
+        writer.last_scrape_stats.update(
+            match_count=len(all_fixtures),
+            snapshot_count=len(all_snapshots),
+            scraped_at_utc=scraped_at_utc,
+            write_errors=1,
+        )
+        _log(
+            "[BW-Pre] HATA — aynı legacy hash birden fazla fiziksel fixture içeriyor; "
+            "sessiz overwrite engellendi. UID-authoritative migration/flag gerekli. "
+            f"groups={legacy_hash_collision_groups}"
+        )
+        return 0
+
     def _dedup(rows):
         seen = {}
         for row in rows:
             d = row.get("date", "")
-            key = (row.get("league", ""), row.get("home", ""), row.get("away", ""), d[:10] if d else "")
+            key = (row.get("league", ""), row.get("home", ""), row.get("away", ""), d)
             seen[key] = row
         return list(seen.values())
 
@@ -482,7 +553,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                    len(do_1x2_rows), len(do_ou25_rows), len(do_btts_rows)]
     removed = sum(a - b for a, b in zip(pre_counts, post_counts))
     if removed:
-        _log(f"[BW-Pre] Dedup: {removed} duplicate satır kaldırıldı")
+        _log(f"[BW-Pre] Dedup: {removed} exact duplicate satır kaldırıldı")
 
     _log(
         f"[BW-Pre] İşlendi: {len(all_fixtures)} fixture | "
@@ -513,17 +584,45 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
     ]
 
     fixtures_ok = True
-    if all_fixtures:
+    if all_fixtures and not uid_first:
         fixtures_ok = writer.upsert_fixtures(list(all_fixtures.values()))
         tag = "OK" if fixtures_ok else "HATA"
-        _log(f"[BW-Pre]   [{tag}] Fixtures: {len(all_fixtures)}")
+        _log(f"[BW-Pre]   [{tag}] Legacy fixtures: {len(all_fixtures)}")
         if not fixtures_ok:
             write_errors += 1
 
-    # UID is supplemental during Part 4. Only enrich snapshots after the legacy
-    # fixture write succeeded. Failure here never increments write_errors and
-    # never blocks the legacy current/history/snapshot path.
-    if fixtures_ok and all_snapshots:
+    if uid_first and all_snapshots:
+        snapshot_uid_stats = attach_provider_fixture_uids_to_snapshots(
+            writer,
+            all_snapshots,
+            request_get=requests.get,
+        )
+        writer.last_fixture_uid_snapshot_stats = snapshot_uid_stats
+        if snapshot_uid_stats.get("error"):
+            error = f"fixture_uid_snapshots:{snapshot_uid_stats['error']}"
+            writer.last_write_errors.append(error)
+            writer.last_scrape_stats.update(
+                match_count=len(all_fixtures),
+                snapshot_count=len(all_snapshots),
+                scraped_at_utc=scraped_at_utc,
+                write_errors=1,
+            )
+            _log(
+                "[BW-Pre] HATA — UID-authoritative snapshot binding fail-closed: "
+                f"{snapshot_uid_stats['error']} unresolved={snapshot_uid_stats.get('unresolved_rows', 0)}"
+            )
+            return 0
+        _log(
+            "[BW-Pre] UID-authoritative snapshots OK — "
+            f"tagged={snapshot_uid_stats.get('tagged_rows', 0)} "
+            f"events={snapshot_uid_stats.get('resolved_events', 0)}"
+        )
+    elif fixtures_ok and all_snapshots:
+        # Legacy mode stays compatibility-only. Snapshot UID cannot be guessed
+        # from a reused legacy hash, so the existing helper intentionally leaves
+        # uncertain UIDs NULL.
+        for snapshot in all_snapshots:
+            snapshot.pop("_fixture_source_event_id", None)
         _attach_snapshot_fixture_uids(writer, all_snapshots, logger=_log)
 
     for tbl, rows in WRITE_PLAN:
@@ -556,11 +655,13 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         "row_count": total_rows,
         "scraped_at_utc": scraped_at_utc,
         "write_errors": write_errors,
+        "fixture_identity_mode": identity_mode,
+        "legacy_hash_collision_groups": legacy_hash_collision_groups,
     }
 
     _log(
         f"[BW-Pre] Tamamlandı — {total_rows} satır, "
         f"{len(all_fixtures)} fixture, {len(all_snapshots)} snapshot, "
-        f"{write_errors} hata"
+        f"{write_errors} hata, identity={identity_mode}"
     )
     return total_rows
