@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-ireland-u21-england-u21-1x2-england-watch",
+  "type": "OBSERVATION",
+  "final_score": "3-1",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "LOSS",
+  "selected_market": {"market": "1X2", "selection": "England U21", "entry_odds": 1.75},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T19:55:10+03:00", "price": 1.78, "share": "76.2%", "money": "£ 3490.54", "market_volume": "£ 4579.01"},
+  "prediction_to_final_prematch_comparison": "England retained a high money share, but the price deteriorated materially from the Stage 1 1.58 area to 1.78 by the last prematch snapshot.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: England's group strength supported the side, while qualification/rotation risk and Ireland's motivation were meaningful contradictions.",
+  "result_relevance": "Ireland's 3-1 win made the watched England selection a hypothetical LOSS and realized the motivation/rotation countercase.",
+  "learning": "High money concentration without price confirmation was not enough here; the substantial late drift was informative. This is an observation, not a promoted rule."
+}
