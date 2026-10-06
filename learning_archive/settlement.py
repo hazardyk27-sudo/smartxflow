@@ -13,6 +13,8 @@ class SettlementError(ValueError):
 
 
 _SCORE_RE = re.compile(r"^\s*(\d+)\s*[-:]\s*(\d+)\s*$")
+_TOTAL_LINE_RE = re.compile(r"(?<!\d)(\d+(?:\.\d+)?)")
+_HANDICAP_LINE_RE = re.compile(r"([+-]\d+(?:\.\d+)?)\s*$")
 
 
 def _parse_utc(value: Any, field: str) -> datetime:
@@ -48,6 +50,73 @@ def _norm(value: Any) -> str:
     raw = unicodedata.normalize("NFKD", str(value or ""))
     raw = "".join(ch for ch in raw if not unicodedata.combining(ch))
     return re.sub(r"[^a-z0-9]+", "", raw.lower())
+
+
+def _team_aliases(value: Any) -> set[str]:
+    key = _norm(value)
+    if not key:
+        return set()
+    aliases = {key}
+    # Provider/team labels occasionally render a roman-II reserve suffix as
+    # "Il" or "2". Keep this narrow and terminal-only so settlement remains
+    # fail-closed for materially different team names.
+    if key.endswith("ii"):
+        stem = key[:-2]
+        aliases.update({stem + "il", stem + "2"})
+    elif key.endswith("il"):
+        stem = key[:-2]
+        aliases.update({stem + "ii", stem + "2"})
+    elif key.endswith("2"):
+        stem = key[:-1]
+        aliases.update({stem + "ii", stem + "il"})
+    return aliases
+
+
+def _extract_total_line(*values: Any) -> float:
+    for value in values:
+        matches = _TOTAL_LINE_RE.findall(str(value or ""))
+        if matches:
+            return float(matches[-1])
+    raise SettlementError("O/U line is required")
+
+
+def _handicap_outcome(
+    *,
+    selection: str,
+    match: dict[str, Any],
+    home_goals: int,
+    away_goals: int,
+) -> str:
+    line_match = _HANDICAP_LINE_RE.search(selection)
+    if not line_match:
+        raise SettlementError(f"unsupported Handicap selection: {selection!r}")
+    line = float(line_match.group(1))
+    doubled = line * 2.0
+    if abs(doubled - round(doubled)) > 1e-9:
+        raise SettlementError(f"unsupported quarter Handicap line: {line:g}")
+
+    team_text = selection[: line_match.start()].strip(" \t-–—")
+    if not team_text:
+        raise SettlementError(f"unsupported Handicap selection: {selection!r}")
+
+    selected_aliases = _team_aliases(team_text)
+    home_match = bool(selected_aliases & _team_aliases(match.get("home")))
+    away_match = bool(selected_aliases & _team_aliases(match.get("away")))
+    if home_match == away_match:
+        raise SettlementError(f"Handicap team is ambiguous or unknown: {team_text!r}")
+
+    if home_match:
+        selected_score = home_goals + line
+        opponent_score = away_goals
+    else:
+        selected_score = away_goals + line
+        opponent_score = home_goals
+
+    if selected_score > opponent_score:
+        return "WIN"
+    if selected_score < opponent_score:
+        return "LOSS"
+    return "VOID"
 
 
 def _selection_outcome(case: dict[str, Any], final_score: str) -> str:
@@ -92,16 +161,25 @@ def _selection_outcome(case: dict[str, Any], final_score: str) -> str:
             raise SettlementError(f"unsupported BTTS selection: {selection!r}")
         return "WIN" if both == yes else "LOSS"
 
-    if "25" in market_norm or "overunder" in market_norm or market_norm.startswith("ou"):
-        over = selection_norm in {"over", "over25", "25over", "ust", "25ust"} or "over" in selection_norm or "ust" in selection_norm
-        under = selection_norm in {"under", "under25", "25under", "alt", "25alt"} or "under" in selection_norm or "alt" in selection_norm
+    if "overunder" in market_norm or market_norm.startswith("ou") or "total" in market_norm or "25" in market_norm:
+        over = selection_norm.startswith("over") or "ust" in selection_norm
+        under = selection_norm.startswith("under") or "alt" in selection_norm
         if not over and not under:
             raise SettlementError(f"unsupported O/U selection: {selection!r}")
-        if total == 2.5:
+        line = _extract_total_line(market, selection)
+        if abs(total - line) < 1e-9:
             return "VOID"
         if over:
-            return "WIN" if total > 2.5 else "LOSS"
-        return "WIN" if total < 2.5 else "LOSS"
+            return "WIN" if total > line else "LOSS"
+        return "WIN" if total < line else "LOSS"
+
+    if "handicap" in market_norm or market_norm.startswith("ah"):
+        return _handicap_outcome(
+            selection=selection,
+            match=match,
+            home_goals=home_goals,
+            away_goals=away_goals,
+        )
 
     raise SettlementError(f"unsupported market: {market!r}")
 
