@@ -29,14 +29,15 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 
 1. Existing SmartXFlow systems remain the source of live/stored SXF snapshots. Do not build a second scraper for learning.
 2. Archive only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection. A match with no defensible prediction/selection is omitted from the final prediction diary and Learning Archive rather than stored as `PASS`.
-3. `prediction_at` is the immutable PRE/POST cutoff.
-4. External evidence is PRE only when actual `observed_at <= prediction_at`; publication time alone is insufficient.
-5. Historical prediction, rationale, counterargument, confidence, result, raw snapshots and evidence timestamps are never silently rewritten. Corrections are append-only.
-6. POST information may be used for settlement/diagnosis/labels, never as PRE training input for that prediction.
-7. Poly/Polymarket intelligence is excluded from this Learning Engine.
-8. A win/loss is evidence, not proof. New rules require repeated evidence and time-ordered validation.
-9. No model/method silently changes production. Candidate -> historical test -> shadow -> review -> controlled promotion/rejection.
-10. Enforce critical rules in code/tests where practical.
+3. **The final prediction diary and the Learning Archive case store are separate mandatory artifacts. Individual case folders, `manifest.jsonl` events, settlements, captures or postmatch addenda NEVER count as the daily diary and must never be described as if they do.**
+4. `prediction_at` is the immutable PRE/POST cutoff.
+5. External evidence is PRE only when actual `observed_at <= prediction_at`; publication time alone is insufficient.
+6. Historical prediction, rationale, counterargument, confidence, result, raw snapshots and evidence timestamps are never silently rewritten. Corrections are append-only.
+7. POST information may be used for settlement/diagnosis/labels, never as PRE training input for that prediction.
+8. Poly/Polymarket intelligence is excluded from this Learning Engine.
+9. A win/loss is evidence, not proof. New rules require repeated evidence and time-ordered validation.
+10. No model/method silently changes production. Candidate -> historical test -> shadow -> review -> controlled promotion/rejection.
+11. Enforce critical rules in code/tests where practical.
 
 ## Learning Archive
 
@@ -51,6 +52,26 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 - Writing files only into a runtime/worktree is not durable and must never be reported as `DONE`. `DONE` requires validator PASS, checksum/manifest verification and a confirmed GitHub commit/reference on the archive data branch.
 - Re-running identical writes is idempotent. Same case/event with materially different historical payload fails closed; factual corrections use append-only addenda/versioned records.
 - Never place secrets in archive payloads, manifests, captures, evidence, logs or addenda.
+
+## Daily Prediction Diary — separate mandatory artifact
+
+For every calendar day that contains at least one formal Stage 3 `BET` or `WATCH`, Predictor must create a separate durable daily diary under:
+
+`learning_archive_data/diaries/YYYY/MM/DD/`
+
+The diary is a human-readable day-level record and is **not** satisfied by case archiving.
+
+Required daily diary phases:
+- `predictions.md` — created after Stage 3. It summarizes the user scope and every carried/formal final view, including frozen Stage 1 preference, Stage 2 classification, Stage 3 decision, execution market, actual price or threshold, confidence, `prediction_at`, and linked case id/archive state.
+- `postmatch.md` — created after settlement. It records final scores/outcomes, keeps BET vs conditional-BET vs WATCH performance separate, summarizes late SXF/postmatch learning, and links back to the immutable case records.
+
+Hard rules:
+- `cases/YYYY/MM/DD/<case_id>/` is **case evidence**, not the diary.
+- `manifest.jsonl` is **an event index**, not the diary.
+- `settlement.json`, `sxf_snapshots.json.gz`, checksums and per-case addenda are **case package artifacts**, not the diary.
+- Never say or imply “the diary exists because the cases were archived.”
+- A day is not end-of-day `DONE` until both the required case archive state and the separate daily diary state are durable on `learning-archive`.
+- Diary summaries must reference immutable case truth rather than rewrite it. Corrections are append-only/versioned; never silently alter historical decisions.
 
 See `/.agents/contracts/LEARNING_ARCHIVE.md` when archive/export/validation work requires it.
 
