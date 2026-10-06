@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-doncaster-liverpool-u21-ah-plus1p5-watch",
+  "type": "OBSERVATION",
+  "final_score": "1-0",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "Handicap", "selection": "Liverpool U21 +1.5", "entry_odds": null, "minimum_acceptable_odds": 1.70},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "The selected +1.5 handicap is non-native. SmartXFlow stores the underlying 1X2 evidence only; no synthetic handicap history or exact price was fabricated."},
+  "prediction_to_final_prematch_comparison": "The execution market was chosen because Liverpool U21 carried very high underlying 1X2 money concentration while the straight-win price had drifted from about 5.60 to 5.80, weakening outright-win confirmation.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: Liverpool U21's form and Doncaster absences supported competitiveness, while Doncaster's serious approach remained a counterargument.",
+  "result_relevance": "Liverpool U21 lost only 1-0, so +1.5 would have settled WIN while the straight 1X2 would have lost. The original WATCH remains immutable because the handicap price was not formally verified.",
+  "learning": "This case illustrates why a protected execution market can preserve an underdog thesis when straight-win price behavior is weaker than the money signal. It remains one observation, not a promoted rule."
+}
