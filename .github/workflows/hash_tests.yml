@@ -10,6 +10,7 @@ on:
       - 'core/fixture_uid_dual_write.py'
       - 'core/fixture_uid_provider_gate.py'
       - 'core/fixture_uid_writer_preflight.py'
+      - 'core/fixture_uid_authoritative_writer.py'
       - 'core/current_table_sync.py'
       - 'services/**'
       - 'betwatch_client.py'
@@ -28,6 +29,7 @@ on:
       - 'migrations/2026_10_05_fixture_identity_v2_additive.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_shadow_rpc.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_reference_columns.sql'
+      - 'migrations/2026_10_06_fixture_identity_v2_provider_writer.sql'
       - 'desktop/scraper_standalone/**'
       - 'tests/test_hash.py'
       - 'tests/test_fixture_integrity.py'
@@ -39,6 +41,7 @@ on:
       - 'tests/test_fixture_uid_dual_write.py'
       - 'tests/test_fixture_uid_provider_gate.py'
       - 'tests/test_fixture_uid_writer_preflight.py'
+      - 'tests/test_fixture_uid_authoritative_writer.py'
       - 'tests/test_fixture_uid_snapshot_dual_write.py'
       - 'tests/test_fixture_reference_remap.py'
       - 'tests/test_current_table_sync.py'
@@ -72,6 +75,7 @@ jobs:
         python -m py_compile core/fixture_uid_dual_write.py
         python -m py_compile core/fixture_uid_provider_gate.py
         python -m py_compile core/fixture_uid_writer_preflight.py
+        python -m py_compile core/fixture_uid_authoritative_writer.py
         python -m py_compile core/current_table_sync.py
         python -m py_compile betwatch_client.py
         python -m py_compile betwatch_prematch.py
@@ -99,6 +103,7 @@ jobs:
         python -m pytest -q tests/test_fixture_uid_dual_write.py
         python -m pytest -q tests/test_fixture_uid_provider_gate.py
         python -m pytest -q tests/test_fixture_uid_writer_preflight.py
+        python -m pytest -q tests/test_fixture_uid_authoritative_writer.py
         python -m pytest -q tests/test_fixture_uid_snapshot_dual_write.py
         python -m pytest -q tests/test_current_table_sync.py
 
