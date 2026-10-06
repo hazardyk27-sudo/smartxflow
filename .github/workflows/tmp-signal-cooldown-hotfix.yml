@@ -1,0 +1,61 @@
+name: Temporary Signal Cooldown Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/signal-cooldown-timestamp
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply narrow timestamp fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('sinyal_engine.py')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '(datetime.now(timezone.utc) - timedelta(hours=CM_COOLDOWN_HOURS)).isoformat()':
+                  '(datetime.now(timezone.utc) - timedelta(hours=CM_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")',
+              '(datetime.now(timezone.utc) - timedelta(hours=CMV2_COOLDOWN_HOURS)).isoformat()':
+                  '(datetime.now(timezone.utc) - timedelta(hours=CMV2_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")',
+              '(datetime.now(timezone.utc) - timedelta(hours=FS_COOLDOWN_HOURS)).isoformat()':
+                  '(datetime.now(timezone.utc) - timedelta(hours=FS_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")',
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one occurrence, got {count}: {old}')
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Verify hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile sinyal_engine.py
+          python -m unittest tests.test_signal_cooldown_timestamp_encoding
+
+      - name: Commit hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sinyal_engine.py
+          git diff --cached --check
+          git commit -m "fix: encode signal cooldown UTC timestamps safely"
+          git push origin HEAD:hotfix/signal-cooldown-timestamp
