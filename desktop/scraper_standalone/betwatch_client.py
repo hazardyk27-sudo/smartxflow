@@ -8,9 +8,15 @@ Rate limits: live ≤ 1 req/10s, prematch ≤ 1 req/40s
 import os
 import requests
 
+from core.fixture_identity_payload_stage import stage_betwatch_authoritative_payload
 from core.fixture_identity_shadow import stage_betwatch_identity_payload
+from core.fixture_uid_authoritative_activation import install_provider_authoritative_fixture_writer_patch
 
 BETWATCH_BASE_URL = "https://api.betwatch.fr/api/v1"
+
+# The deployed server-side prematch runtime can resolve this desktop copy first.
+# Installing is safe because behavior changes only when the explicit flag is on.
+install_provider_authoritative_fixture_writer_patch()
 
 
 def get_betwatch_headers() -> dict:
@@ -33,13 +39,13 @@ def fetch_prematch(timeout: int = 30) -> list:
     data = r.json()
     matches = data if isinstance(data, list) else []
 
-    # Identity V2 Part 3 shadow-only staging. This mirrors the root client because
-    # the deployed prematch runtime resolves this desktop copy first on sys.path.
-    # Staging is observational only and must never change legacy fetch behavior.
+    # Keep both Identity V2 stages in sync with the root client. The authoritative
+    # copy is memory-only and is consumed only when its feature flag is enabled.
     try:
         stage_betwatch_identity_payload(matches)
+        stage_betwatch_authoritative_payload(matches)
     except Exception as exc:
-        print(f"[IdentityShadow] WARN — payload stage atlandı: {str(exc)[:200]}", flush=True)
+        print(f"[IdentityV2] WARN — payload stage atlandı: {str(exc)[:200]}", flush=True)
 
     return matches
 
