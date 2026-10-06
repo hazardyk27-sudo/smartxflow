@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-wingate-bedford-ou25-over",
+  "type": "OBSERVATION",
+  "final_score": "1-3",
+  "decision": "BET",
+  "settlement_status": "WIN",
+  "hypothetical_result": null,
+  "selected_market": {"market": "O/U 2.5", "selection": "Over 2.5", "entry_odds": 1.50},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T21:43:09+03:00", "price": 1.53, "share": "90.6%", "money": "£ 189.73", "market_volume": "£ 209.47"},
+  "prediction_to_final_prematch_comparison": "Over remained overwhelmingly dominant by share, but the absolute O/U liquidity stayed very small and price drifted from 1.50 to 1.53.",
+  "stage2_context_check": "MIXED: research contradicted the original Bedford straight-win thesis but the recent 2-2 meeting supported the later open-game execution choice.",
+  "result_relevance": "The 1-3 final score settled Over 2.5 WIN, while the low liquidity remains an important quality caveat.",
+  "learning": "The result supports the scoring thesis but does not erase the low-liquidity risk. This is an observation, not a promoted rule."
+}
