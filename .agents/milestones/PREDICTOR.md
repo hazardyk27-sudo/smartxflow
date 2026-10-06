@@ -1,6 +1,6 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 11
+MILESTONE_VERSION: 12
 STATUS: ACTIVE
 
 ## Objective
@@ -11,6 +11,8 @@ Run the first clean three-stage Predictor workflow on selected football matches:
 1. **Stage 1 — SXF ONLY**
    - Start from SmartXFlow data, not from public fixtures/news/odds sites.
    - Find candidate matches using stored SmartXFlow money, odds, history, timing, liquidity/volume and cross-market behavior.
+   - Search and compare only Predictor-supported SmartXFlow markets (currently 1X2, Over/Under 2.5 and BTTS).
+   - Draw No Bet (DNB) and Double Chance (DC) are outside Predictor scope: do not search for them, derive them, synthesize prices for them, request their odds, rank them or use them to discover candidates.
    - Explain only what the SmartXFlow data itself shows.
    - Send the SXF-only candidate report to the user and STOP.
    - No web research and no final `BET | WATCH` decision in this stage.
@@ -20,6 +22,7 @@ Run the first clean three-stage Predictor workflow on selected football matches:
    - Research news, injuries, suspensions, squad/lineup information, form, tactics, motivation, schedule, weather when material and reliable statistics.
    - Test both the supporting and opposing explanations for each Stage 1 move.
    - Keep `SXF SAYS` and `RESEARCH SAYS` separate.
+   - External research must not expand the market scope into DNB or Double Chance.
    - Report `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED` and STOP.
    - No final `BET | WATCH` decision unless the user explicitly asks for Stage 3.
 
@@ -27,11 +30,10 @@ Run the first clean three-stage Predictor workflow on selected football matches:
    - Start only after the user explicitly asks for the final decision.
    - Merge the frozen Stage 1 SXF view with Stage 2 external evidence.
    - Consider the opposite case/failure condition.
-   - Choose the best actually available market.
-   - Draw No Bet (DNB) is forbidden and must never be recommended, archived, collected, or introduced as an internal market.
-   - Double Chance (DC) may be recommended only when a real externally available DC market and real odds are known for that exact match/selection. Do not invent/derive a synthetic DC price from 1X2, and do not create an internal DC collector/history table.
+   - Choose the best actually available Predictor-supported SmartXFlow market from the analyzed scope.
+   - Draw No Bet (DNB) and Double Chance (DC) are forbidden and must never be searched, recommended, archived, collected, introduced as internal markets or synthesized from 1X2.
    - Produce final `BET | WATCH` with a concrete non-empty market and selection, entry odds when applicable, confidence, rationale and counterargument.
-   - If no defensible concrete selection exists, omit that match from the final prediction diary/archive; do not create a `PASS` or empty-pick case.
+   - If no defensible concrete supported selection exists, omit that match from the final prediction diary/archive; do not create a `PASS` or empty-pick case.
    - Freeze `prediction_at` and archive every formal final case automatically.
 
 Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
@@ -42,7 +44,7 @@ Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 2. Stage 1 must use real SmartXFlow match identity/history. Do not discover candidates from external odds/news first and then retrofit them into SXF.
 3. Stage 1 observations must remain frozen when Stage 2 research is performed; external research must not rewrite what SXF originally showed.
 4. Stage 2 evidence must have real `observed_at` timing and remain separate from SmartXFlow evidence.
-5. Only Stage 3 final `BET` and `WATCH` decisions with a concrete market/selection are formal learning cases. No-pick/PASS cases are excluded from the final diary and archive.
+5. Only Stage 3 final `BET` and `WATCH` decisions with a concrete supported market/selection are formal learning cases. No-pick/PASS cases are excluded from the final diary and archive.
 6. Preserve immutable `prediction_at`, confidence, rationale, counterargument, market and selection; preserve entry odds when applicable.
 7. Keep PRE/POST separated by `observed_at` vs `prediction_at`.
 8. As part of completing Stage 3, automatically create each formal case under `learning-archive:/learning_archive_data/cases/YYYY/MM/DD/<case_id>/` and preserve the SmartXFlow stored-history capture. Do not require a separate user command.
@@ -56,7 +58,7 @@ Never skip a stage and never collapse Stages 1-3 into one unsolicited answer.
 16. Record lessons only as `OBSERVATION` or `RESEARCH_CANDIDATE`.
 17. No Poly/Polymarket inputs.
 18. Every settled formal `BET`/`WATCH` case must also have a per-case append-only postmatch learning note. A bare `Final score ... WIN/LOSS` settlement sentence is not a sufficient postmortem.
-19. No DNB collector/table/history is to be added. No internal DC collector/table/history is to be added. If a real DC selection is used, absence of native SXF DC history must be stated explicitly; underlying 1X2 evidence may be referenced only as underlying evidence, never mislabeled as DC history.
+19. No DNB or Double Chance collector/table/history is to be added. Predictor must not search, derive or output either market. Historical archived cases that already contain such a market remain immutable historical records; this rule governs new analysis and new formal cases.
 
 ## Mandatory postmatch learning-note standard
 
@@ -91,6 +93,7 @@ A Stage 1 report is complete when:
 - the candidate list came from SmartXFlow data,
 - real SmartXFlow identity/history was used,
 - the market movement was described using SXF evidence only,
+- only supported SXF markets were searched/analyzed; DNB and Double Chance were not searched or derived,
 - no external research contaminated the analysis,
 - no final `BET | WATCH` decision was issued,
 - the user has received the SXF-only report and the Predictor has stopped for Stage 2 instruction.
@@ -102,11 +105,12 @@ A Stage 2 report is complete when:
 - supporting and contradicting evidence were checked,
 - SXF and external evidence remain visibly separate,
 - each move is classified as confirmed/partial/contradicted/unexplained,
+- no DNB or Double Chance market search was introduced,
 - the Predictor stops for explicit Stage 3 instruction.
 
 ## Done per Stage 3 report
 
-A Stage 3 report is complete only when every listed formal final case has a concrete market/selection and a durable `RECORDED` receipt. A match without a prediction is not listed as a formal final case.
+A Stage 3 report is complete only when every listed formal final case has a concrete supported market/selection, is neither DNB nor Double Chance, and has a durable `RECORDED` receipt. A match without a prediction is not listed as a formal final case.
 
 ## Done per case
 
@@ -114,7 +118,7 @@ A case is `DONE` only when:
 - the Stage 1 SXF observation is preserved,
 - Stage 2 external evidence is preserved with timing,
 - the Stage 3 original decision/prediction is immutable,
-- a concrete market and selection exist,
+- a concrete supported market and selection exist,
 - required stored-history captures exist,
 - result/decision outcome is settled/reviewed as applicable,
 - the standardized per-case postmatch learning note exists for a settled formal case,
