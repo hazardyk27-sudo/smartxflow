@@ -20,10 +20,13 @@ jobs:
     steps:
       - name: Run canonical postmatch finalizer on production runtime
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GH_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: GH_TOKEN
           script: |
             set -euo pipefail
             cd /opt/smartxflow
@@ -40,6 +43,7 @@ jobs:
             fi
 
             export PYTHONPATH=/opt/smartxflow
+            export GITHUB_TOKEN="$GH_TOKEN"
             /opt/smartxflow/venv/bin/python scripts/settle_due_learning_cases_fast.py \
               --root /opt/smartxflow \
               --queue-file /var/lib/smartxflow-postmatch/settlements.json \
