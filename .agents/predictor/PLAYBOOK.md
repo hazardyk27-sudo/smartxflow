@@ -1,12 +1,14 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 4
+REFERENCE_VERSION: 5
 
 Open this file only for substantive match-analysis/prediction work.
 
 ## Core rule
 
 The Predictor workflow has three separate user-controlled stages. Never collapse them into a single unsolicited analysis. Each stage has its own evidence boundary and stopping point.
+
+The Predictor market scope is the set of real SmartXFlow-supported markets used by this workflow, currently 1X2, Over/Under 2.5 and BTTS. Draw No Bet (DNB) and Double Chance (DC) are outside scope. Do not search for them, derive them, synthesize odds for them, request them from external sources, rank them, recommend them or create new formal cases using them.
 
 ## Stage 1 — SmartXFlow-only candidate analysis
 
@@ -15,7 +17,7 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
 1. Start from SmartXFlow match data for the requested date/time window.
 2. Read Stage 1 data directly from SmartXFlow's primary data source / production data path. Do not use Replit Agent as the data-reading layer for Predictor analysis.
 3. Use real SmartXFlow match identity and stored market history.
-4. Evaluate:
+4. Evaluate only supported SmartXFlow markets, including:
    - absolute money,
    - money share,
    - new-money delta/velocity when available,
@@ -24,15 +26,15 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
    - liquidity/volume quality,
    - timing of the move,
    - reversals/momentum,
-   - cross-market relationships,
-   - 1X2 vs Double Chance/DNB/goal markets when available.
-5. Rank only the matches whose SmartXFlow structure deserves further investigation.
-6. For each candidate, state:
+   - cross-market relationships among supported 1X2, Over/Under 2.5 and BTTS data when available.
+5. Do not search for or derive DNB or Double Chance as part of candidate discovery or cross-market analysis.
+6. Rank only the matches whose SmartXFlow structure deserves further investigation.
+7. For each candidate, state:
    - what SXF shows,
    - why the move is unusual/interesting,
    - what market behavior must be explained in Stage 2,
    - what would invalidate the SXF-only thesis from a market-data perspective.
-7. Send the Stage 1 report to the user and STOP.
+8. Send the Stage 1 report to the user and STOP.
 
 ### Stage 1 prohibitions
 
@@ -43,6 +45,7 @@ Goal: discover interesting matches from SmartXFlow itself and describe the marke
 - No public odds sites used to discover or justify candidates.
 - No external football knowledge used as the cause of a move.
 - No final `BET | WATCH` decision.
+- No DNB or Double Chance search, collection, derivation, synthetic pricing, ranking or recommendation.
 
 If SmartXFlow data cannot be read reliably from the direct/primary source, do not substitute Replit or external markets. Report the SXF data-access problem instead.
 
@@ -61,12 +64,13 @@ For each selected Stage 1 match:
 5. Check official team/competition sources first, then reliable reporters/data sources.
 6. Actively search for the opposite case, not only confirmation.
 7. Keep the original Stage 1 market observation frozen.
-8. Label the external finding:
+8. Keep market scope frozen as well: Stage 2 research must not introduce DNB or Double Chance discovery.
+9. Label the external finding:
    - `CONFIRMED`
    - `PARTIALLY_CONFIRMED`
    - `CONTRADICTED`
    - `UNEXPLAINED`
-9. Send the Stage 2 report and STOP.
+10. Send the Stage 2 report and STOP.
 
 Stage 2 must show `SXF SAYS` and `RESEARCH SAYS` separately. Do not issue the final betting decision unless the user explicitly requests Stage 3.
 
@@ -77,11 +81,12 @@ Enter only after the user explicitly asks for the final decision/merge.
 1. Merge the frozen Stage 1 market evidence with the Stage 2 external research.
 2. Evaluate the strongest supporting case and strongest counterargument.
 3. Decide whether the market has already consumed the edge.
-4. Compare actually available structures such as 1X2, Double Chance, DNB and relevant totals/BTTS markets.
-5. Prefer the structure with the best risk/value profile rather than blindly taking the highest odds.
-6. Output `BET` or `WATCH` only when a concrete market and selection can be stated.
-7. If there is no defensible concrete market/selection, omit that match from the final prediction diary and Learning Archive rather than emitting `PASS` or an empty pick.
-8. Freeze:
+4. Compare only the actually available supported SmartXFlow structures analyzed in Stage 1, currently 1X2, Over/Under 2.5 and BTTS.
+5. Never search for, derive, synthesize, compare, recommend or output DNB or Double Chance.
+6. Prefer the supported structure with the best risk/value profile rather than blindly taking the highest odds.
+7. Output `BET` or `WATCH` only when a concrete supported market and selection can be stated.
+8. If there is no defensible concrete supported market/selection, omit that match from the final prediction diary and Learning Archive rather than emitting `PASS` or an empty pick.
+9. Freeze:
    - `prediction_at`,
    - market,
    - selection,
@@ -91,7 +96,7 @@ Enter only after the user explicitly asks for the final decision/merge.
    - counterargument/failure condition,
    - Stage 1 SXF evidence,
    - Stage 2 external evidence with `observed_at`.
-9. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
+10. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
 
 ## Market principles
 
@@ -101,7 +106,7 @@ Enter only after the user explicitly asks for the final decision/merge.
 - Distinguish absolute money, money share, new-money delta, velocity, liquidity and timing.
 - Use the full stored path where available: opening and successive time points, not only the latest snapshot.
 - Look for price/money confirmation, divergence, reversal, momentum and cross-market relationships.
-- 1X2 should be compared with Double Chance/DNB where available.
+- Cross-market comparison is restricted to supported SXF markets; DNB and Double Chance are never part of the search or comparison set.
 - Always state the failure condition/counterargument.
 
 ## External evidence rules
@@ -118,11 +123,11 @@ Never backfill Stage 1 with information learned later in Stage 2.
 
 For every candidate show:
 - match + SmartXFlow match identity when available,
-- key market(s),
+- key supported market(s),
 - money/volume/liquidity facts available in SXF,
 - odds path and timing,
 - price-vs-money interpretation,
-- cross-market confirmation/divergence,
+- supported cross-market confirmation/divergence,
 - why the match deserves Stage 2 research,
 - SXF-only failure condition.
 
@@ -143,7 +148,7 @@ For every listed final view show:
 - `RESEARCH SAYS`,
 - `MERGED VIEW`,
 - decision (`BET | WATCH`),
-- mandatory market + selection,
+- mandatory supported market + selection,
 - entry odds when applicable,
 - confidence if used,
 - strongest supporting evidence,
@@ -151,7 +156,7 @@ For every listed final view show:
 - `prediction_at`,
 - archive receipt state.
 
-A match without a concrete prediction is not shown as a final diary entry.
+A match without a concrete supported prediction is not shown as a final diary entry. DNB and Double Chance are not valid new final markets.
 
 ## Postmortem
 
