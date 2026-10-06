@@ -9,7 +9,7 @@ from core.fixture_identity_shadow import clear_betwatch_identity_stage
 from core.fixture_identity_v2 import extract_betwatch_identity
 from core.fixture_uid_authoritative_writer import write_provider_authoritative_fixture_batch
 
-_FLAG = "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITER"
+_FLAG = "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE"
 _PATCHED = False
 _TRUE_VALUES = {"1", "true", "yes", "on", "enabled"}
 _WRITE_METHODS = ("upsert_rows", "replace_table", "append_history", "insert_snapshots")
@@ -104,15 +104,13 @@ def write_authoritative_fixture_batch_with_service_role(
 ) -> Dict[str, Any]:
     """Run the provider-authoritative fixture RPC with the service-role credential.
 
-    This is the canonical Part 8 activation entry point for the server scraper.
-    It clears the old hash-scoped shadow stage, validates an exact physical-event
-    context, and never falls back to the legacy fixture upsert on failure.
+    This is the canonical Part 8 activation entry point for runtimes that still
+    delegate through ``upsert_fixtures``. It clears the old hash-scoped shadow
+    stage and never falls back to legacy fixture identity on failure.
     """
     writer._fixture_identity_authoritative_active = True
     writer._fixture_identity_authoritative_failed = False
 
-    # The caller may pass the fetched payload directly; clear the memory-only copy
-    # so it cannot be replayed by the patched legacy writer later in the same run.
     consume_betwatch_authoritative_payload()
     clear_betwatch_identity_stage()
 
@@ -169,8 +167,8 @@ def install_provider_authoritative_fixture_writer_patch() -> bool:
     """Patch SupabaseWriter once; behavior changes only when the explicit flag is on.
 
     The patch is a safety net for runtimes that still call the legacy
-    ``upsert_fixtures`` method. The canonical server path calls
-    ``write_authoritative_fixture_batch_with_service_role`` directly.
+    ``upsert_fixtures`` method. The canonical server path can call the provider
+    writer directly and therefore bypass this patched method entirely.
     """
     global _PATCHED
     if _PATCHED:
