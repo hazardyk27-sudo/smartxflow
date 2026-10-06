@@ -1,6 +1,6 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 8
+REFERENCE_VERSION: 10
 
 Open this file only for substantive match-analysis/prediction work.
 
@@ -142,6 +142,72 @@ Enter only after explicit user request.
 11. Keep every user-scoped match visible. If no formal selection is defensible, explain why instead of silently dropping it.
 12. Freeze real `prediction_at`; never backdate.
 13. Archive every formal final case when supported; archive failure remains `ARCHIVE_PENDING`.
+14. Immediately write Diary 1 `predictions.md`; **do not infer diary completion from case archive success**.
+15. For each formal match write a 1–3 sentence `Why this prediction` note before any result is known.
+
+## Exactly two diary protocol — NOT the case archive
+
+Every day containing at least one formal Stage 3 view has exactly two required diary artifacts under:
+
+`learning_archive_data/diaries/YYYY/MM/DD/`
+
+### Diary 1 — `predictions.md`
+
+Timing: immediately after Stage 3 final decisions.
+
+For every formal final match record:
+- match identity;
+- final decision class (`BET`, conditional-BET/execution view, `WATCH`);
+- execution market + selection;
+- actual price or explicit threshold;
+- confidence;
+- real `prediction_at`;
+- case id/archive state;
+- **`Why this prediction`**: 1–3 concise sentences stating the decisive PRE reason for the pick. Mention the key SXF pattern, Stage 2 confirmation/contradiction, risk/value translation and principal caution as appropriate.
+
+This is contemporaneous rationale. No postmatch facts may be added to it later.
+
+### Diary 2 — `postmatch.md`
+
+Timing: after results become known / settlement review.
+
+For every diary match record:
+- original immutable prediction;
+- final score/result;
+- WIN / LOSS / VOID, with WATCH explicitly hypothetical;
+- **`Why it won/lost`**: 1–3 concise sentences explaining why the prediction appears to have worked or failed.
+
+The explanation must be analytical, not “score was X so it lost.” Evaluate whether:
+- the original thesis was validated;
+- the strongest pre-recorded counterargument materialized;
+- final prematch money/share/price reversal or resistance mattered;
+- the execution line was wrongly shaped even if directional thesis was right;
+- Stage 2 football context explained the outcome or misled the decision;
+- normal variance is the best supported explanation.
+
+Never modify the old PRE rationale to make it look smarter after the result.
+
+### Diary performance grouping
+
+Diary 2 must report separately:
+1. actual/native `BET`;
+2. conditional execution views (`BET_IF_PRICE` / conditional-BET);
+3. pure `WATCH`.
+
+WATCH outcomes are hypothetical only. Do not claim a conditional bet was executed unless a qualifying real price was actually verified.
+
+### Completion gate
+
+Case packages and diary files serve different purposes:
+- case package = immutable per-match evidence/audit truth;
+- Diary 1 = prediction-time day-level reasons;
+- Diary 2 = post-result day-level explanations/learning.
+
+Therefore:
+- many valid case folders do **not** equal Diary 1 or Diary 2;
+- `RECORDED`/`FINALIZED` manifest receipts do **not** equal a diary;
+- settlement/addendum completion does **not** equal a diary;
+- missing Diary 1, missing Diary 2, or missing a required per-match reason => `DIARY_PENDING`.
 
 ## Archive mapping for alternative execution markets
 
@@ -185,8 +251,11 @@ For every user-carried match show either a final view or explicit no-formal-case
 - strongest support;
 - strongest counterargument;
 - real `prediction_at`;
-- archive state.
+- archive state;
+- Diary 1 state (`DIARY_RECORDED` or `DIARY_PENDING`).
 
 ## Postmortem
 
 After settlement separate process/model error, execution/price error, missing/stale data and normal football variance. A win does not validate a rule and a loss does not invalidate one; method changes require repeated archived evidence and Development testing.
+
+End-of-day is not `DONE` until per-case archive requirements, Diary 1 with `Why this prediction` for every formal match, and Diary 2 with `Why it won/lost` for every settled diary match are all satisfied.

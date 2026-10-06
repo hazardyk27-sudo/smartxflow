@@ -9,6 +9,8 @@ on:
       - 'learning_archive/github_backend.py'
       - 'learning_archive/ssh_batch_backend.py'
       - 'learning_archive/settlement.py'
+      - 'learning_archive/postmatch_learning.py'
+      - 'learning_archive/package.py'
       - 'learning_archive/result_source.py'
       - 'learning_archive/supabase_source.py'
       - 'learning_archive/validator.py'
@@ -21,6 +23,7 @@ on:
       - 'deploy/systemd/smartxflow-learning-archive-postmatch.timer'
       - 'tests/test_learning_archive_batch_backend.py'
       - 'tests/test_learning_archive_postmatch_fast.py'
+      - 'tests/test_learning_archive_postmatch_learning.py'
       - 'tests/test_learning_archive_result_source.py'
       - 'tests/test_learning_archive_supabase_batch.py'
       - 'tests/test_learning_archive_settlement.py'
@@ -44,6 +47,7 @@ jobs:
           python -m unittest \
             tests.test_learning_archive_batch_backend \
             tests.test_learning_archive_postmatch_fast \
+            tests.test_learning_archive_postmatch_learning \
             tests.test_learning_archive_result_source \
             tests.test_learning_archive_supabase_batch \
             tests.test_learning_archive_settlement \
@@ -57,6 +61,8 @@ jobs:
             learning_archive/exporter.py \
             learning_archive/ssh_batch_backend.py \
             learning_archive/settlement.py \
+            learning_archive/postmatch_learning.py \
+            learning_archive/package.py \
             learning_archive/result_source.py \
             learning_archive/supabase_source.py \
             learning_archive/validator.py \

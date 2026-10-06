@@ -798,7 +798,7 @@ def _normalize_mk(mk):
 def fetch_cm_recent_cooldowns():
     """Son CM_COOLDOWN_HOURS saatteki confirmed_money_signals kayıtlarını çek."""
     try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CM_COOLDOWN_HOURS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CM_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_signals"
             f"?select=match_key,selection_code"
@@ -825,7 +825,7 @@ def fetch_cm_recent_cooldowns():
 def fetch_cm_v2_recent_cooldowns():
     """Son CMV2_COOLDOWN_HOURS saatteki confirmed_money_v2_signals kayıtlarını çek."""
     try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CMV2_COOLDOWN_HOURS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CMV2_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")
         url = (
             f"{SUPABASE_URL}/rest/v1/confirmed_money_v2_signals"
             f"?select=match_key,selection_code"
@@ -1507,7 +1507,7 @@ def check_fs_table_exists():
 def fetch_fs_cooldown():
     """Son FS_COOLDOWN_HOURS saatteki fake_sharp_signals kayıtlarını çek."""
     try:
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=FS_COOLDOWN_HOURS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=FS_COOLDOWN_HOURS)).isoformat().replace("+00:00", "Z")
         url = (
             f"{SUPABASE_URL}/rest/v1/fake_sharp_signals"
             f"?select=match_key,selection_code"

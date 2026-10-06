@@ -60,7 +60,7 @@ def _load_scheduled_scraper_with_stubs(monkeypatch):
     monkeypatch.setitem(sys.modules, "core", core_pkg)
     monkeypatch.setitem(sys.modules, "core.retention_guard", retention)
 
-    return _load_module("scheduled_scraper_runtime_test", ROOT / "scheduled_scraper.py")
+    return _load_module("scheduled_scraper_runtime_test", ROOT / "scheduled_scraper_legacy.py")
 
 
 def test_replit_runtime_uses_distinct_scraper_source(monkeypatch):
@@ -241,6 +241,7 @@ def test_prematch_exposes_fixture_and_snapshot_counts(monkeypatch):
     mod = _load_prematch_with_stubs(monkeypatch)
 
     match = {
+        "match_id": "test-provider-event-1",
         "teams": {"v1": "Home", "v2": "Away"},
         "league": "League",
         "kickoff": "2026-10-04T18:00:00Z",

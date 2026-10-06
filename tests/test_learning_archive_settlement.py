@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from learning_archive.settlement import build_settlement, prepare_final_snapshots
+from learning_archive.settlement import SettlementError, build_settlement, prepare_final_snapshots
 from learning_archive.validator import validate_case
 from scripts.settle_due_learning_cases import PostmatchSettlementError, _archived_capture_history
 
@@ -83,6 +83,19 @@ class SettlementTests(unittest.TestCase):
         value = case(market="Double Chance", selection="X2", odds=1.34)
         self.assertEqual(self.settle(value, "1-1")["status"], "WIN")
         self.assertEqual(self.settle(value, "4-0")["status"], "LOSS")
+
+    def test_double_chance_team_prefixed_x2_watch(self):
+        value = case(decision="WATCH", market="Double Chance", selection="Stafford Rangers X2", odds=None)
+        value["match"]["home"] = "Halesowen Town"
+        value["match"]["away"] = "Stafford Rangers"
+        result = self.settle(value, "1-2")
+        self.assertEqual(result["status"], "NO_BET")
+        self.assertEqual(result["hypothetical_result"], "WIN")
+
+    def test_double_chance_team_prefix_must_match_code_side(self):
+        value = case(decision="WATCH", market="Double Chance", selection="Portugal X2", odds=None)
+        with self.assertRaises(SettlementError):
+            self.settle(value, "1-1")
 
     def test_handicap_plus_15_watch(self):
         value = case(decision="WATCH", market="Handicap", selection="Norway +1.5", odds=None)

@@ -1,6 +1,6 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 8
+CONTRACT_VERSION: 10
 
 ## Purpose
 
@@ -9,6 +9,8 @@ The Learning Archive is the historical evidence store for selected SmartXFlow pr
 Only materially researched Predictor cases formalized as `BET` or `WATCH` with a concrete non-empty market and selection are normal usable cases. Whole-market archiving, no-pick/PASS cases and Poly/Polymarket inputs are excluded from normal prediction datasets/diaries.
 
 Historical legacy records remain immutable for audit.
+
+**The per-case Learning Archive and the two day-level Prediction Diaries are separate mandatory outputs. A complete set of case folders or manifest events never satisfies either diary requirement.**
 
 ## Native evidence vs execution market
 
@@ -77,7 +79,88 @@ learning_archive_data/
       settlement.json
       checksums.sha256
       addenda/<observed_at>-postmatch-learning.json
+  diaries/
+    YYYY/MM/DD/
+      predictions.md
+      postmatch.md
 ```
+
+## Two mandatory Daily Prediction Diaries — separate from case archive
+
+Every calendar day with at least one formal Stage 3 case MUST have exactly two separate durable day-level diary files:
+
+1. `learning_archive_data/diaries/YYYY/MM/DD/predictions.md`
+2. `learning_archive_data/diaries/YYYY/MM/DD/postmatch.md`
+
+The Agent must create them automatically. The user must not need to remind the Agent.
+
+### Diary 1 — `predictions.md` — prediction-time journal
+
+Create/update immediately after Stage 3 final preferences are published.
+
+For every formal final match preserve at minimum:
+- requested scope/date/time context;
+- match identity;
+- frozen Stage 1 SXF preference;
+- Stage 2 classification/context;
+- Stage 3 final category (`BET`, conditional execution view, or `WATCH`);
+- execution market + selection;
+- real entry price when genuinely observed, otherwise clearly labeled minimum acceptable threshold;
+- confidence;
+- immutable real `prediction_at`;
+- linked `case_id` and archive state;
+- **`Why this prediction`** — a short 1–3 sentence contemporaneous explanation of why the Agent selected that exact market/selection at prediction time.
+
+`Why this prediction` should summarize the decisive PRE evidence: relevant money/price behavior, Stage 2 confirmation/contradiction, execution-market risk/value reasoning and the key caution when material.
+
+No result, final score, postmatch interpretation or later knowledge may be inserted into this prediction-time explanation.
+
+### Diary 2 — `postmatch.md` — result-time journal
+
+Create/update after results/settlement are available.
+
+For every Diary 1 match preserve at minimum:
+- original immutable prediction;
+- final score/result;
+- WIN / LOSS / VOID; WATCH must be labeled hypothetical;
+- **`Why it won/lost`** — a short 1–3 sentence analytical explanation of why the prediction appears to have succeeded or failed.
+
+The explanation must go beyond restating the score. It should use supported postmatch evidence and compare it against the frozen prediction, including as relevant:
+- whether the original thesis was confirmed;
+- whether the strongest recorded counterargument materialized;
+- late prematch money/share/price reversal, resistance or concentration change;
+- whether the chosen execution line was too aggressive/conservative despite a sound directional thesis;
+- whether Stage 2 football context proved decisive, insufficient or misleading;
+- whether normal football variance is the best supported explanation.
+
+The original prediction/rationale is immutable and may not be rewritten after the result. Diary 2 is append-only postmatch interpretation.
+
+### Performance separation in Diary 2
+
+Report separately:
+- actual/native `BET` performance;
+- conditional execution (`BET_IF_PRICE` / conditional-BET) performance;
+- pure `WATCH` performance.
+
+Do not claim conditional execution unless a qualifying real price was actually verified. WATCH outcomes remain hypothetical and are never retroactively converted to bets.
+
+### Non-substitution rule
+
+The following do **not** count as Diary 1 or Diary 2, individually or collectively:
+- case folders;
+- `case.json` / `evidence.json`;
+- captures or final `sxf_snapshots.json.gz`;
+- `settlement.json`;
+- `checksums.sha256`;
+- per-case postmatch addenda;
+- `manifest.jsonl` `RECORDED`, `CAPTURED` or `FINALIZED` events.
+
+Never infer or report diary completion merely because case archive completion succeeded.
+
+Missing/incomplete `predictions.md` => `DIARY_PENDING`.
+Results available but missing/incomplete `postmatch.md` or any match missing `Why it won/lost` => `DIARY_PENDING`.
+
+Diary content summarizes/references immutable case truth; it does not rewrite the original prediction. Historical corrections are append-only/versioned.
 
 ## Required case metadata
 
@@ -155,9 +238,14 @@ One case never promotes a production rule.
 
 `manifest.jsonl` is append-only with current event types `RECORDED`, `CAPTURED`, `FINALIZED`.
 
-A case is `DONE` only when immutable original prediction/evidence exist, required selected-match native SXF captures exist, settlement/review and standardized postmatch note exist as applicable, validator/checksums pass, and durable GitHub archive commit/reference is confirmed.
+A **case** is `DONE` only when immutable original prediction/evidence exist, required selected-match native SXF captures exist, settlement/review and standardized postmatch note exist as applicable, validator/checksums pass, and durable GitHub archive commit/reference is confirmed.
 
-Anything less remains explicit pending/failed/retryable.
+A **prediction day/end-of-day** is `DONE` only when ALL are true:
+1. all formal cases have the required complete or explicit pending state;
+2. Diary 1 `predictions.md` exists durably and every formal match contains `Why this prediction`;
+3. Diary 2 `postmatch.md` exists durably and every settled diary match contains `Why it won/lost`, with unresolved matches explicitly pending.
+
+Case `DONE` does not imply either diary/day `DONE`. Diary/day `DONE` does not replace case validation. Anything less remains explicit `DIARY_PENDING`/failed/retryable.
 
 ## Secret exclusion
 
@@ -169,6 +257,6 @@ Retention protection is separate from archive durability. Never claim retention 
 
 ## Access by role
 
-- Predictor creates/records/revisits/settles selected formal cases and preserves native thesis + final execution-market distinction.
+- Predictor creates/records/revisits/settles selected formal cases, preserves native thesis + final execution-market distinction, creates Diary 1 immediately after final predictions, and creates Diary 2 after results with per-match explanations.
 - Development reads the same archive, validates integrity and builds PRE-only datasets/models without rewriting historical truth.
 - No separate Collector Agent or Match Analyst Agent exists.

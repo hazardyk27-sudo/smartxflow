@@ -8,6 +8,7 @@ import io
 import json
 from typing import Any
 
+from .postmatch_learning import build_postmatch_learning_note, postmatch_learning_filename
 from .validator import classify_evidence_phase
 
 
@@ -123,17 +124,46 @@ def build_record_package(
     )
 
 
+def _postmatch_observed_at(case: dict[str, Any]) -> str:
+    provenance = case.get("provenance") or {}
+    settlement = case.get("settlement") or {}
+    observed_at = str(
+        provenance.get("archive_finalized_at")
+        or settlement.get("result_observed_at")
+        or provenance.get("archive_created_at")
+        or ""
+    ).strip()
+    if not observed_at:
+        raise ValueError("finalized archive package requires a postmatch observed_at timestamp")
+    _parse_utc(observed_at, "postmatch_observed_at")
+    return observed_at
+
+
 def build_archive_package(case: dict[str, Any], snapshots: list[dict[str, Any]]) -> ArchivePackage:
     case_id = str(case["case_id"])
+    ordered_snapshots = _ordered_snapshots(snapshots)
     payloads = {
         "case.json": canonical_json_bytes(_case_doc(case)),
         "evidence.json": canonical_json_bytes(classify_evidence_phase(case)),
         "settlement.json": canonical_json_bytes(case["settlement"]),
-        "sxf_snapshots.json.gz": deterministic_gzip_json(_ordered_snapshots(snapshots)),
+        "sxf_snapshots.json.gz": deterministic_gzip_json(ordered_snapshots),
     }
     checksum_lines = [f"{sha256_hex(payloads[name])}  {name}" for name in sorted(payloads)]
     checksums = ("\n".join(checksum_lines) + "\n").encode("utf-8")
     payloads["checksums.sha256"] = checksums
+
+    # Postmatch learning is append-only learning metadata, not a rewrite of the
+    # immutable prediction/evidence core. Keep the historical core checksum set
+    # backward compatible while requiring every newly finalized package to carry
+    # a standardized postmatch observation.
+    observed_at = _postmatch_observed_at(case)
+    learning_note = build_postmatch_learning_note(
+        case,
+        ordered_snapshots,
+        observed_at=observed_at,
+    )
+    payloads[postmatch_learning_filename(observed_at)] = canonical_json_bytes(learning_note)
+
     return ArchivePackage(
         case_id=case_id,
         case_path=_case_path(case),

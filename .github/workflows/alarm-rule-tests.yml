@@ -6,6 +6,7 @@ on:
     paths:
       - 'alarm_engine.py'
       - 'scheduled_scraper.py'
+      - 'scheduled_scraper_legacy.py'
       - 'live_scraper.py'
       - 'sinyal_engine.py'
       - 'sinyal_engine_runtime.py'
@@ -44,6 +45,8 @@ on:
       - 'tests/test_display_history_fallback.py'
       - 'tests/test_prematch_master_watchdog.py'
       - 'tests/test_runtime_scraper_recovery.py'
+      - 'tests/test_scheduled_scraper_authoritative_bootstrap.py'
+      - 'tests/test_signal_cooldown_timestamp_encoding.py'
       - 'tests/test_sinyal_engine_runtime.py'
       - 'tests/test_analysis_signal_copy.py'
       - 'tests/test_fixture_integrity.py'
@@ -75,6 +78,7 @@ jobs:
         run: |
           python -m py_compile alarm_engine.py
           python -m py_compile scheduled_scraper.py
+          python -m py_compile scheduled_scraper_legacy.py
           python -m py_compile live_scraper.py
           python -m py_compile sinyal_engine.py
           python -m py_compile sinyal_engine_runtime.py
@@ -122,6 +126,8 @@ jobs:
           tests/test_display_history_fallback.py
           tests/test_prematch_master_watchdog.py
           tests/test_runtime_scraper_recovery.py
+          tests/test_scheduled_scraper_authoritative_bootstrap.py
+          tests/test_signal_cooldown_timestamp_encoding.py
           tests/test_sinyal_engine_runtime.py
           tests/test_analysis_signal_copy.py
           tests/test_fixture_integrity.py
