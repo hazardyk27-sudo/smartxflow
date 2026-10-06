@@ -36,7 +36,14 @@ def _bind_supabase_fixture_identity() -> None:
 
 _bind_supabase_fixture_identity()
 
-# Current market tables are intentionally prematch-current only.  Keep the UI
+# Identity V2 reader layer must bind before display fallback captures the client
+# methods. New/current rows prefer fixture_uid; old history remains readable via
+# the legacy hash/physical fallback when UID proof does not exist.
+from .fixture_uid_reader_patch import bind_fixture_uid_reader_patch
+
+bind_fixture_uid_reader_patch()
+
+# Current market tables are intentionally prematch-current only. Keep the UI
 # useful after kickoff by showing the final prematch history snapshot when a
 # visible started/finished fixture no longer has a current-table row.
 from .display_history_fallback import bind_display_history_fallback
