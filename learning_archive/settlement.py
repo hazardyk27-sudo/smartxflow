@@ -15,6 +15,7 @@ class SettlementError(ValueError):
 _SCORE_RE = re.compile(r"^\s*(\d+)\s*[-:]\s*(\d+)\s*$")
 _TOTAL_LINE_RE = re.compile(r"(?<!\d)(\d+(?:\.\d+)?)")
 _HANDICAP_LINE_RE = re.compile(r"([+-]\d+(?:\.\d+)?)\s*$")
+_DOUBLE_CHANCE_RE = re.compile(r"(?:^|\s)(1X|X2|12)\s*$", re.I)
 
 
 def _parse_utc(value: Any, field: str) -> datetime:
@@ -119,6 +120,45 @@ def _handicap_outcome(
     return "VOID"
 
 
+def _double_chance_outcome(
+    *,
+    selection: str,
+    match: dict[str, Any],
+    home_goals: int,
+    away_goals: int,
+) -> str:
+    code_match = _DOUBLE_CHANCE_RE.search(selection)
+    if not code_match:
+        raise SettlementError(f"unsupported Double Chance selection: {selection!r}")
+    code = code_match.group(1).upper()
+    team_text = selection[: code_match.start(1)].strip(" \t-–—")
+
+    # Stage 3 may store a human-readable team prefix (for example
+    # "Stafford Rangers X2") while the mathematical DC code remains X2.
+    # Accept that form only when the prefix agrees with the fixture side so a
+    # mismatched team/code cannot silently settle.
+    if team_text:
+        selected_aliases = _team_aliases(team_text)
+        home_match = bool(selected_aliases & _team_aliases(match.get("home")))
+        away_match = bool(selected_aliases & _team_aliases(match.get("away")))
+        if home_match == away_match:
+            raise SettlementError(f"Double Chance team is ambiguous or unknown: {team_text!r}")
+        if code == "1X" and not home_match:
+            raise SettlementError(f"Double Chance team/code mismatch: {selection!r}")
+        if code == "X2" and not away_match:
+            raise SettlementError(f"Double Chance team/code mismatch: {selection!r}")
+        if code == "12":
+            raise SettlementError(f"Double Chance 12 must not carry a team prefix: {selection!r}")
+
+    if code == "1X":
+        return "WIN" if home_goals >= away_goals else "LOSS"
+    if code == "X2":
+        return "WIN" if away_goals >= home_goals else "LOSS"
+    if code == "12":
+        return "WIN" if home_goals != away_goals else "LOSS"
+    raise SettlementError(f"unsupported Double Chance selection: {selection!r}")
+
+
 def _selection_outcome(case: dict[str, Any], final_score: str) -> str:
     prediction = case.get("prediction") or {}
     match = case.get("match") or {}
@@ -144,14 +184,12 @@ def _selection_outcome(case: dict[str, Any], final_score: str) -> str:
         raise SettlementError(f"unsupported 1X2 selection: {selection!r}")
 
     if "doublechance" in market_norm or market_norm in {"dc", "1xx2"}:
-        code = selection.upper().replace(" ", "")
-        if code == "1X":
-            return "WIN" if home_goals >= away_goals else "LOSS"
-        if code == "X2":
-            return "WIN" if away_goals >= home_goals else "LOSS"
-        if code == "12":
-            return "WIN" if home_goals != away_goals else "LOSS"
-        raise SettlementError(f"unsupported Double Chance selection: {selection!r}")
+        return _double_chance_outcome(
+            selection=selection,
+            match=match,
+            home_goals=home_goals,
+            away_goals=away_goals,
+        )
 
     if "btts" in market_norm or "bothteamstoscore" in market_norm or "kg" in market_norm:
         both = home_goals > 0 and away_goals > 0
