@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-halesowen-stafford-dc-x2-watch",
+  "type": "OBSERVATION",
+  "final_score": "1-2",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "Double Chance", "selection": "Stafford Rangers X2", "entry_odds": null, "minimum_acceptable_odds": 1.60},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "Double Chance is a non-native SmartXFlow execution market. Underlying 1X2 evidence was archived; no synthetic X2 history or exact price was fabricated."},
+  "prediction_to_final_prematch_comparison": "The protected X2 execution was derived from the Stage 1 Stafford 1X2 thesis because +1.5 protection was expected to be too compressed. No native X2 time series exists for a direct final-price comparison.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: Stafford's strong recent run and prior competitive performance against the same opponent supported the underdog thesis, while Halesowen's home/tier advantage remained the countercase.",
+  "result_relevance": "Stafford won 2-1, so X2 would have settled WIN and the protection was not actually needed. The original WATCH remains immutable because the X2 entry price was not verified in the formal case.",
+  "learning": "The result is consistent with the underdog thesis and the protected-market choice, but it does not establish that X2 was available above the minimum threshold."
+}
