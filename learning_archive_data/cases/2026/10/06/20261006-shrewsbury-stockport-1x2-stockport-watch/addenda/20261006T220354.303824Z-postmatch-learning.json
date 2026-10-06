@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-shrewsbury-stockport-1x2-stockport-watch",
+  "type": "OBSERVATION",
+  "final_score": "0-2",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "1X2", "selection": "Stockport", "entry_odds": 1.63},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T20:54:34+03:00", "price": 1.64, "share": "86.5%", "money": "£ 11651.8", "market_volume": "£ 13463.2"},
+  "prediction_to_final_prematch_comparison": "Stockport's price changed only marginally while its money share grew to 86.5% with much stronger absolute liquidity than at the original Stage 1 review.",
+  "stage2_context_check": "UNEXPLAINED: external research did not establish a strong specific football cause for the SXF move.",
+  "result_relevance": "Stockport won 2-0, so the WATCH selection would have settled WIN despite the cause remaining externally unexplained.",
+  "learning": "A correct market read can remain externally unexplained; outcome correctness alone does not prove the causal story. This is an observation, not a promoted rule."
+}
