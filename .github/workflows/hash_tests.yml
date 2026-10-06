@@ -34,6 +34,7 @@ on:
       - 'tests/test_fixture_identity_shadow_migration.py'
       - 'tests/test_fixture_identity_v2_reference_columns.py'
       - 'tests/test_fixture_uid_dual_write.py'
+      - 'tests/test_fixture_uid_provider_gate.py'
       - 'tests/test_fixture_uid_snapshot_dual_write.py'
       - 'tests/test_fixture_reference_remap.py'
       - 'tests/test_current_table_sync.py'
@@ -90,6 +91,7 @@ jobs:
         python -m pytest -q tests/test_fixture_identity_shadow_migration.py
         python -m pytest -q tests/test_fixture_identity_v2_reference_columns.py
         python -m pytest -q tests/test_fixture_uid_dual_write.py
+        python -m pytest -q tests/test_fixture_uid_provider_gate.py
         python -m pytest -q tests/test_fixture_uid_snapshot_dual_write.py
         python -m pytest -q tests/test_current_table_sync.py
 
