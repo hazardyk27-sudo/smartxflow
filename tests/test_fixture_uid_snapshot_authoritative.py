@@ -107,3 +107,31 @@ def test_provider_snapshot_binding_rejects_multiple_uids_for_same_event():
     assert stats["tagged_rows"] == 0
     assert stats["unresolved_rows"] == 1
     assert "_fixture_source_event_id" not in snapshots[0]
+
+
+def test_provider_snapshot_binding_uses_service_role_for_registry_lookup(monkeypatch):
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-secret")
+    snapshots = [
+        {
+            "match_id_hash": "legacy",
+            "market": "1X2",
+            "selection": "1",
+            "_fixture_source_event_id": "3001",
+        }
+    ]
+    observed = {}
+
+    def fake_get(*args, **kwargs):
+        observed.update(kwargs.get("headers") or {})
+        return FakeResponse([
+            {"source_event_id": "3001", "fixture_uid": "uid-service"}
+        ])
+
+    stats = attach_provider_fixture_uids_to_snapshots(
+        FakeWriter(), snapshots, request_get=fake_get
+    )
+
+    assert stats["error"] is None
+    assert snapshots[0]["fixture_uid"] == "uid-service"
+    assert observed["apikey"] == "service-secret"
+    assert observed["Authorization"] == "Bearer service-secret"
