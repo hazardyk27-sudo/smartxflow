@@ -8,9 +8,15 @@ Rate limits: live ≤ 1 req/10s, prematch ≤ 1 req/40s
 import os
 import requests
 
+from core.fixture_identity_payload_stage import stage_betwatch_authoritative_payload
 from core.fixture_identity_shadow import stage_betwatch_identity_payload
+from core.fixture_uid_authoritative_activation import install_provider_authoritative_fixture_writer_patch
 
 BETWATCH_BASE_URL = "https://api.betwatch.fr/api/v1"
+
+# Safe to install unconditionally: behavior changes only when the explicit
+# SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITER flag is enabled at runtime.
+install_provider_authoritative_fixture_writer_patch()
 
 
 def get_betwatch_headers() -> dict:
@@ -33,14 +39,14 @@ def fetch_prematch(timeout: int = 30) -> list:
     data = r.json()
     matches = data if isinstance(data, list) else []
 
-    # Identity V2 Part 3 shadow-only staging. This must never affect whether a
-    # valid Betwatch payload is returned to the legacy scraper. The staged data
-    # is consumed later, after the legacy fixture write, and can only populate
-    # the separate provider registry.
+    # Identity V2 stages are memory-only. Shadow remains the legacy coexistence
+    # path, while the authoritative copy is consumed only when its feature flag
+    # is explicitly enabled.
     try:
         stage_betwatch_identity_payload(matches)
+        stage_betwatch_authoritative_payload(matches)
     except Exception as exc:
-        print(f"[IdentityShadow] WARN — payload stage atlandı: {str(exc)[:200]}", flush=True)
+        print(f"[IdentityV2] WARN — payload stage atlandı: {str(exc)[:200]}", flush=True)
 
     return matches
 
