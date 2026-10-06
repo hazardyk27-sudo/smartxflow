@@ -1,6 +1,6 @@
 # Predictor Playbook
 
-REFERENCE_VERSION: 6
+REFERENCE_VERSION: 7
 
 Open this file only for substantive match-analysis/prediction work.
 
@@ -10,17 +10,31 @@ The Predictor workflow has three separate user-controlled stages. Never collapse
 
 The Predictor market scope is the set of real SmartXFlow-supported markets used by this workflow, currently 1X2, Over/Under 2.5 and BTTS. Draw No Bet (DNB) and Double Chance (DC) are outside scope. Do not search for them, derive them, synthesize odds for them, request them from external sources, rank them, recommend them or create new formal cases using them.
 
+## User-defined scope is authoritative
+
+The user's match/date/time scope is part of the task contract and persists across stages.
+
+- Do not invent additional eligibility filters.
+- If the user requests matches starting between 17:00 and 24:00, every match in that requested universe remains eligible for Stage 1/2/3 analysis unless the user changes the scope or SmartXFlow identity/data is genuinely unavailable/invalid.
+- Do not drop a match because it has already kicked off by the time the user requests Stage 2 or Stage 3, because the current clock has moved past kickoff, because odds are unattractive, because liquidity is low, because the league is obscure, or because the Predictor wants a smaller list.
+- These factors may change the strength, confidence, market choice or `BET | WATCH` decision, but do not silently change scope.
+- When the user says "continue with these matches", carry that exact set forward.
+- Analysis scope and archive eligibility are separate. Archive timing/format limitations do not justify removing a match from the analytical result.
+- Never backdate `prediction_at`. If a scoped match has started before Stage 3, keep it in the Stage 3 analysis and use the real decision time; if archival semantics cannot represent it safely, mark the archive state honestly instead of dropping the match.
+- If no concrete supported formal selection can be defended, keep the match visible with an explicit no-formal-case reason rather than silently omitting it.
+
 ## Stage 1 — independent SmartXFlow-only match analysis
 
 Goal: independently inspect every match in the requested SmartXFlow slate from its own raw/current/stored-history data, interpret the full prematch market path, and produce a self-contained SmartXFlow-only preference for every match that is reported. Stage 1 must stand on its own as if Stage 2 and Stage 3 do not exist.
 
 1. Start from SmartXFlow match data for the requested date/time window.
-2. Read Stage 1 data directly from SmartXFlow's primary data source / production data path. Do not use Replit Agent as the data-reading layer for Predictor analysis.
-3. Do **not** use the SmartXFlow `Analizler` section, precomputed analysis outputs, signal-engine recommendations, rankings, labels, composite scores, prior Predictor conclusions or any other ready-made interpretation to choose or judge Stage 1 matches. The Predictor must perform the analysis itself from the underlying SXF match data.
-4. Inspect **every match in the requested window individually** before filtering/ranking the slate. An aggregate inventory/query may be used to enumerate the slate, but an aggregate score, ranking or first-pass summary must never replace per-match review.
-5. For each match, use its real SmartXFlow match identity and inspect all available supported-market data belonging to that physical match.
-6. Inspect the **full available prematch time series**, not only the latest row. Read the earliest stored state/opening when available, successive snapshots, recent/late snapshots and the analysis-cutoff state. The Predictor itself must determine which timing changes are important.
-7. Evaluate only supported SmartXFlow markets, including:
+2. Treat the user's requested date/time/match filters as authoritative. Do not add extra eligibility rules.
+3. Read Stage 1 data directly from SmartXFlow's primary data source / production data path. Do not use Replit Agent as the data-reading layer for Predictor analysis.
+4. Do **not** use the SmartXFlow `Analizler` section, precomputed analysis outputs, signal-engine recommendations, rankings, labels, composite scores, prior Predictor conclusions or any other ready-made interpretation to choose or judge Stage 1 matches. The Predictor must perform the analysis itself from the underlying SXF match data.
+5. Inspect **every match in the requested window individually** before filtering/ranking the slate. An aggregate inventory/query may be used to enumerate the slate, but an aggregate score, ranking or first-pass summary must never replace per-match review.
+6. For each match, use its real SmartXFlow match identity and inspect all available supported-market data belonging to that physical match.
+7. Inspect the **full available prematch time series**, not only the latest row. Read the earliest stored state/opening when available, successive snapshots, recent/late snapshots and the analysis-cutoff state. The Predictor itself must determine which timing changes are important.
+8. Evaluate only supported SmartXFlow markets, including:
    - absolute money,
    - money share,
    - new-money delta and velocity when available,
@@ -31,19 +45,19 @@ Goal: independently inspect every match in the requested SmartXFlow slate from i
    - reversals, resistance and momentum,
    - late-money behavior,
    - cross-market relationships among supported 1X2, Over/Under 2.5 and BTTS data when available.
-8. Do not rely on a stored `trend`, signal label or other precomputed interpretation as the conclusion. Raw/stored SXF values may be read, but the Predictor must independently interpret the temporal path and its significance.
-9. Do not search for or derive DNB or Double Chance as part of candidate discovery or cross-market analysis.
-10. After every match has been individually reviewed, rank/filter the matches whose SXF structure is materially useful to report unless the user explicitly asks for the full slate.
-11. For **every match shown in the Stage 1 report**, give a mandatory `SXF PREFERENCE`:
+9. Do not rely on a stored `trend`, signal label or other precomputed interpretation as the conclusion. Raw/stored SXF values may be read, but the Predictor must independently interpret the temporal path and its significance.
+10. Do not search for or derive DNB or Double Chance as part of candidate discovery or cross-market analysis.
+11. After every match has been individually reviewed, rank/filter the matches whose SXF structure is materially useful to report unless the user explicitly asks for the full slate. This presentation ranking does not authorize silently dropping the carried-forward set in later stages.
+12. For **every match shown in the Stage 1 report**, give a mandatory `SXF PREFERENCE`:
    - one primary supported market,
    - one exact selection in that market,
    - the current/analysis-cutoff price when available,
    - a concise reason based only on that match's SXF evidence,
    - the strongest SXF-only counterargument/failure condition.
    An optional secondary SXF preference may be shown when another supported market independently reinforces the primary view.
-12. The `SXF PREFERENCE` is a real Stage 1 conclusion, not a placeholder for later research. Stage 1 must make the strongest decision that SXF alone supports **as if no later stage will ever happen**. Do not withhold, soften or defer the preference merely because Stage 2 may later research football causes.
-13. `SXF PREFERENCE` is **not** a final `BET | WATCH` decision and does not create a formal Learning Archive prediction case. It is the frozen SXF-only view that later stages may test only if the user requests them.
-14. Send the Stage 1 report to the user and STOP.
+13. The `SXF PREFERENCE` is a real Stage 1 conclusion, not a placeholder for later research. Stage 1 must make the strongest decision that SXF alone supports **as if no later stage will ever happen**. Do not withhold, soften or defer the preference merely because Stage 2 may later research football causes.
+14. `SXF PREFERENCE` is **not** a final `BET | WATCH` decision and does not create a formal Learning Archive prediction case. It is the frozen SXF-only view that later stages may test only if the user requests them.
+15. Send the Stage 1 report to the user and STOP.
 
 ### Stage 1 prohibitions
 
@@ -59,6 +73,7 @@ Goal: independently inspect every match in the requested SmartXFlow slate from i
 - No final `BET | WATCH` decision.
 - No DNB or Double Chance search, collection, derivation, synthetic pricing, ranking or recommendation.
 - Do not say a preference cannot be made merely because Stage 2 research has not happened. Stage 1 must conclude from SXF alone.
+- Do not add a started/not-started or current-clock filter the user did not request.
 
 If SmartXFlow data cannot be read reliably from the direct/primary source, do not substitute Replit or external markets. Report the SXF data-access problem instead.
 
@@ -70,20 +85,21 @@ Goal: determine whether real football information explains, supports, contradict
 
 For each selected Stage 1 match:
 
-1. Research injuries and suspensions.
-2. Research squad selection and expected/confirmed lineups where available.
-3. Research recent form and performance context.
-4. Research tactical/context factors, motivation, schedule/congestion, travel and weather when material.
-5. Check official team/competition sources first, then reliable reporters/data sources.
-6. Actively search for the opposite case, not only confirmation.
-7. Keep the original Stage 1 market observation and `SXF PREFERENCE` frozen.
-8. Keep market scope frozen as well: Stage 2 research must not introduce DNB or Double Chance discovery.
-9. Label the external finding:
+1. Carry the exact user-selected/Stage-1-reported set forward unless the user changes it. Do not drop a match because its kickoff passed while the conversation continued.
+2. Research injuries and suspensions.
+3. Research squad selection and expected/confirmed lineups where available.
+4. Research recent form and performance context.
+5. Research tactical/context factors, motivation, schedule/congestion, travel and weather when material.
+6. Check official team/competition sources first, then reliable reporters/data sources.
+7. Actively search for the opposite case, not only confirmation.
+8. Keep the original Stage 1 market observation and `SXF PREFERENCE` frozen.
+9. Keep market scope frozen as well: Stage 2 research must not introduce DNB or Double Chance discovery.
+10. Label the external finding:
    - `CONFIRMED`
    - `PARTIALLY_CONFIRMED`
    - `CONTRADICTED`
    - `UNEXPLAINED`
-10. Send the Stage 2 report and STOP.
+11. Send the Stage 2 report and STOP.
 
 Stage 2 must show `SXF SAYS` and `RESEARCH SAYS` separately. Do not issue the final betting decision unless the user explicitly requests Stage 3.
 
@@ -91,16 +107,17 @@ Stage 2 must show `SXF SAYS` and `RESEARCH SAYS` separately. Do not issue the fi
 
 Enter only after the user explicitly asks for the final decision/merge.
 
-1. Merge the frozen Stage 1 market evidence and `SXF PREFERENCE` with the Stage 2 external research.
-2. Evaluate the strongest supporting case and strongest counterargument.
-3. Decide whether the market has already consumed the edge.
-4. Compare only the actually available supported SmartXFlow structures analyzed in Stage 1, currently 1X2, Over/Under 2.5 and BTTS.
-5. Never search for, derive, synthesize, compare, recommend or output DNB or Double Chance.
-6. Prefer the supported structure with the best risk/value profile rather than blindly taking the highest odds.
-7. Output `BET` or `WATCH` only when a concrete supported market and selection can be stated.
-8. If no defensible concrete supported market/selection can be produced, omit that match from the final prediction diary and Learning Archive rather than emitting `PASS` or an empty pick.
-9. Freeze:
-   - `prediction_at`,
+1. Evaluate every match the user carried into Stage 3. Kickoff status or current clock time is not an exclusion rule unless the user explicitly made it one.
+2. Merge the frozen Stage 1 market evidence and `SXF PREFERENCE` with the Stage 2 external research.
+3. Evaluate the strongest supporting case and strongest counterargument.
+4. Decide whether the market has already consumed the edge.
+5. Compare only the actually available supported SmartXFlow structures analyzed in Stage 1, currently 1X2, Over/Under 2.5 and BTTS.
+6. Never search for, derive, synthesize, compare, recommend or output DNB or Double Chance.
+7. Prefer the supported structure with the best risk/value profile rather than blindly taking the highest odds.
+8. Output `BET` or `WATCH` when a concrete supported market and selection can be stated. Price deterioration, liquidity weakness or external contradiction may downgrade a match to `WATCH` but must not silently remove a user-scoped match.
+9. If no defensible concrete supported market/selection can be produced, keep the match visible in the Stage 3 review with an explicit no-formal-case reason. Do not create a fake `PASS` archive case and do not silently omit the match.
+10. Freeze:
+   - real `prediction_at` at the actual Stage 3 decision time,
    - market,
    - selection,
    - entry odds when applicable,
@@ -109,7 +126,8 @@ Enter only after the user explicitly asks for the final decision/merge.
    - counterargument/failure condition,
    - Stage 1 SXF evidence and `SXF PREFERENCE`,
    - Stage 2 external evidence with `observed_at`.
-10. Automatically archive every formal final case and confirm durable `RECORDED` receipts before claiming the Stage 3 report is complete.
+11. Never backdate `prediction_at` merely because a match has already kicked off.
+12. Automatically archive every formal final case and confirm durable `RECORDED` receipts when the archive contract supports it. If not, keep the analytical result visible and mark the archive state truthfully (`ARCHIVE_PENDING` or non-formal as appropriate).
 
 ## Market principles
 
@@ -122,6 +140,7 @@ Enter only after the user explicitly asks for the final decision/merge.
 - Look for price/money confirmation, divergence, reversal, resistance, momentum, late acceleration and cross-market relationships.
 - Cross-market comparison is restricted to supported SXF markets; DNB and Double Chance are never part of the search or comparison set.
 - Always state the failure condition/counterargument.
+- Scope membership and bet quality are different concepts. A weak bet may be `WATCH`; it does not cease to belong to the user's requested match set.
 
 ## External evidence rules
 
@@ -161,9 +180,11 @@ For every researched candidate show:
 - `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED`,
 - source timing/observed timing.
 
+Every user-carried match must be accounted for; do not silently drop one because kickoff has passed.
+
 ### Stage 3
 
-For every listed final view show:
+For every match carried by the user into Stage 3 show either a formal final view or an explicit no-formal-case explanation. For every formal final view show:
 - `SXF SAYS`, including the frozen Stage 1 preference,
 - `RESEARCH SAYS`,
 - `MERGED VIEW`,
@@ -173,10 +194,10 @@ For every listed final view show:
 - confidence if used,
 - strongest supporting evidence,
 - strongest counterargument/failure condition,
-- `prediction_at`,
+- real `prediction_at`,
 - archive receipt state.
 
-A match without a concrete supported prediction is not shown as a final diary entry. DNB and Double Chance are not valid new final markets.
+DNB and Double Chance are not valid new final markets. A match must never disappear from the Stage 3 review merely because the conversation reached Stage 3 after its kickoff.
 
 ## Postmortem
 
