@@ -1,6 +1,6 @@
 # Learning Archive Contract
 
-CONTRACT_VERSION: 6
+CONTRACT_VERSION: 7
 
 ## Purpose
 
@@ -9,6 +9,8 @@ The Learning Archive is the historical evidence store for selected SmartXFlow pr
 Only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection are archived as usable prediction cases. Whole-market archiving, no-pick/PASS cases and Poly/Polymarket inputs are excluded from normal prediction datasets/diaries.
 
 Historical legacy `PASS` records may remain physically present for audit/immutability. They must not be silently rewritten or deleted, but default archive iteration/dataset use excludes them.
+
+Draw No Bet (DNB) is forbidden in the Predictor workflow and archive for new cases. No DNB collector/history table may be introduced. Double Chance (DC) may appear only when a real externally available DC market/price was actually used; no internal/synthetic DC collector/history table or derived DC price may be invented.
 
 ## Storage target
 
@@ -92,7 +94,7 @@ The v1 schema may still recognize historical `PASS` payloads for backward-compat
 
 Do not rewrite source snapshot timestamps or values. Preserve source table/market provenance. Existing SmartXFlow systems remain the collector; Learning Archive only copies selected-case stored history.
 
-Double Chance and Draw No Bet history may remain explicitly unavailable until their optional history tables are implemented; absence must be recorded, never fabricated.
+DNB is forbidden and must not have an internal history source. DC has no internal collector/history table. When a real DC prediction is archived, record the real DC selection/price as prediction metadata, explicitly mark native DC SXF history unavailable, and use underlying stored 1X2 history only as underlying evidence. Never fabricate or relabel underlying 1X2 rows as DC history.
 
 ## Evidence archive and PRE/POST cutoff
 
