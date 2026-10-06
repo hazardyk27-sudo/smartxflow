@@ -139,11 +139,14 @@ def write_authoritative_fixture_batch_with_service_role(
         return stats
 
     rpc_writer = _ServiceRoleRpcWriter(writer, service_role_key)
-    stats = write_provider_authoritative_fixture_batch(
-        rpc_writer,
-        matches,
-        observed_at=observed_at,
-    )
+    if observed_at is None:
+        stats = write_provider_authoritative_fixture_batch(rpc_writer, matches)
+    else:
+        stats = write_provider_authoritative_fixture_batch(
+            rpc_writer,
+            matches,
+            observed_at=observed_at,
+        )
     writer.last_fixture_uid_authoritative_stats = stats
     if stats.get("error"):
         _record_failure(writer, str(stats["error"]))
