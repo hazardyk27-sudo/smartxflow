@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-moldova-u21-kazakhstan-u21-ou25-over",
+  "type": "OBSERVATION",
+  "final_score": "3-2",
+  "decision": "BET",
+  "settlement_status": "WIN",
+  "hypothetical_result": null,
+  "selected_market": {"market": "O/U 2.5", "selection": "Over 2.5", "entry_odds": 1.96},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T16:57:59+03:00", "price": 1.96, "share": "62.5%", "money": "£ 31427.7", "market_volume": "£ 50285.1"},
+  "prediction_to_final_prematch_comparison": "The Over held 1.96 into kickoff while its share rose to 62.5% and absolute money reached £31.4k. The earlier Under-money/price-rejection thesis was not reversed before kickoff.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: both teams' defensive records supported an open scoring environment, though tactical information was limited.",
+  "result_relevance": "The 3-2 final score strongly realized the Over 2.5 thesis.",
+  "learning": "This case supports continued research on money-price divergence where heavy money on one side is rejected by price and the opposite side strengthens. It is one observation, not a promoted rule."
+}
