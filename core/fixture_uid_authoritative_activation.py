@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Mapping, Sequence, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 from core.fixture_identity_payload_stage import consume_betwatch_authoritative_payload
 from core.fixture_identity_shadow import clear_betwatch_identity_stage
@@ -24,9 +25,15 @@ def _text(value: Any) -> str:
 
 def _normalize_instant(value: Any) -> str:
     raw = _text(value)
-    if raw.endswith("Z"):
-        return raw[:-1] + "+00:00"
-    return raw
+    if not raw:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return raw
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).replace(microsecond=0).isoformat(timespec="seconds")
 
 
 def build_physical_event_context(
@@ -89,6 +96,62 @@ def _record_failure(writer: Any, error: str) -> None:
         errors.append(message)
 
 
+def write_authoritative_fixture_batch_with_service_role(
+    writer: Any,
+    matches: Sequence[Mapping[str, Any]],
+    *,
+    observed_at: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Run the provider-authoritative fixture RPC with the service-role credential.
+
+    This is the canonical Part 8 activation entry point for the server scraper.
+    It clears the old hash-scoped shadow stage, validates an exact physical-event
+    context, and never falls back to the legacy fixture upsert on failure.
+    """
+    writer._fixture_identity_authoritative_active = True
+    writer._fixture_identity_authoritative_failed = False
+
+    # The caller may pass the fetched payload directly; clear the memory-only copy
+    # so it cannot be replayed by the patched legacy writer later in the same run.
+    consume_betwatch_authoritative_payload()
+    clear_betwatch_identity_stage()
+
+    if not matches:
+        stats = {"error": "provider_identity_payload_unavailable"}
+        writer.last_fixture_uid_authoritative_stats = stats
+        _record_failure(writer, stats["error"])
+        return stats
+
+    physical_context, context_error = build_physical_event_context(matches)
+    if context_error:
+        stats = {"error": context_error}
+        writer.last_fixture_uid_authoritative_stats = stats
+        _record_failure(writer, context_error)
+        return stats
+
+    service_role_key = _text(os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
+    if not service_role_key:
+        stats = {"error": "service_role_key_unavailable"}
+        writer.last_fixture_uid_authoritative_stats = stats
+        _record_failure(writer, stats["error"])
+        return stats
+
+    rpc_writer = _ServiceRoleRpcWriter(writer, service_role_key)
+    stats = write_provider_authoritative_fixture_batch(
+        rpc_writer,
+        matches,
+        observed_at=observed_at,
+    )
+    writer.last_fixture_uid_authoritative_stats = stats
+    if stats.get("error"):
+        _record_failure(writer, str(stats["error"]))
+        return stats
+
+    writer._fixture_identity_event_by_physical = physical_context
+    writer._fixture_identity_authoritative_failed = False
+    return stats
+
+
 def _guard_write_method(original):
     def guarded(self, *args, **kwargs):
         if (
@@ -105,10 +168,9 @@ def _guard_write_method(original):
 def install_provider_authoritative_fixture_writer_patch() -> bool:
     """Patch SupabaseWriter once; behavior changes only when the explicit flag is on.
 
-    The patch intercepts the legacy fixture upsert before it can merge a rematch by
-    ``match_id_hash``. On authoritative failure all later market/history/snapshot
-    writer methods are blocked for that scrape attempt, so there is no silent
-    fallback to the legacy physical-identity path.
+    The patch is a safety net for runtimes that still call the legacy
+    ``upsert_fixtures`` method. The canonical server path calls
+    ``write_authoritative_fixture_batch_with_service_role`` directly.
     """
     global _PATCHED
     if _PATCHED:
@@ -134,45 +196,9 @@ def install_provider_authoritative_fixture_writer_patch() -> bool:
         if not authoritative_writer_enabled():
             return original_upsert(self, fixtures)
 
-        self._fixture_identity_authoritative_active = True
-        self._fixture_identity_authoritative_failed = False
-
         matches = consume_betwatch_authoritative_payload()
-        # Authoritative mode owns provider identity for this scrape. The old
-        # hash-scoped shadow writer must not run later in current_table_sync.
-        clear_betwatch_identity_stage()
-
-        if not matches:
-            _record_failure(self, "provider_identity_payload_unavailable")
-            self.last_fixture_uid_authoritative_stats = {
-                "error": "provider_identity_payload_unavailable"
-            }
-            return False
-
-        physical_context, context_error = build_physical_event_context(matches)
-        if context_error:
-            _record_failure(self, context_error)
-            self.last_fixture_uid_authoritative_stats = {"error": context_error}
-            return False
-
-        service_role_key = _text(os.environ.get("SUPABASE_SERVICE_ROLE_KEY"))
-        if not service_role_key:
-            _record_failure(self, "service_role_key_unavailable")
-            self.last_fixture_uid_authoritative_stats = {
-                "error": "service_role_key_unavailable"
-            }
-            return False
-
-        rpc_writer = _ServiceRoleRpcWriter(self, service_role_key)
-        stats = write_provider_authoritative_fixture_batch(rpc_writer, matches)
-        self.last_fixture_uid_authoritative_stats = stats
-        if stats.get("error"):
-            _record_failure(self, str(stats["error"]))
-            return False
-
-        self._fixture_identity_event_by_physical = physical_context
-        self._fixture_identity_authoritative_failed = False
-        return True
+        stats = write_authoritative_fixture_batch_with_service_role(self, matches)
+        return not bool(stats.get("error"))
 
     upsert_fixtures_v2._smartxflow_fixture_uid_authoritative = True
     writer_cls.upsert_fixtures = upsert_fixtures_v2
