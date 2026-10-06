@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-switzerland-north-macedonia-ah-minus1p5-watch",
+  "type": "OBSERVATION",
+  "final_score": "3-0",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "Handicap", "selection": "Switzerland -1.5", "entry_odds": null, "minimum_acceptable_odds": 1.65},
+  "final_prematch_sxf": {"native": false, "unavailable_reason": "The selected -1.5 execution market is non-native. SmartXFlow stores underlying 1X2/O-U2.5/BTTS evidence only; no synthetic handicap history or price was fabricated."},
+  "prediction_to_final_prematch_comparison": "The final execution line was derived from the strong native Switzerland/BTTS-No thesis; there was no native -1.5 timeline to compare honestly.",
+  "stage2_context_check": "CONFIRMED: Switzerland's scoring profile and North Macedonia's failure to score strongly supported the margin/clean-sheet thesis.",
+  "result_relevance": "Switzerland won 3-0, so the watched -1.5 line would have settled WIN. The original WATCH decision remains immutable because the real handicap price was not verified.",
+  "learning": "The alternative execution line matched the realized winning margin, but this is outcome evidence only and does not prove the minimum-price condition was available."
+}
