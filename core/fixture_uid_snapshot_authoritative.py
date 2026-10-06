@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Mapping
 
 import requests
 
+from core.fixture_uid_lookup_auth import identity_lookup_headers
+
 _QUERY_CHUNK = 150
 _TRANSIENT_EVENT_KEY = "_fixture_source_event_id"
 
@@ -55,10 +57,11 @@ def attach_provider_fixture_uids_to_snapshots(
     duplicate_events: set[str] = set()
 
     try:
+        lookup_headers = identity_lookup_headers(writer)
         for chunk in _chunks(event_ids):
             response = request_get(
                 writer._rest_url("fixture_source_ids"),
-                headers=writer._headers(),
+                headers=lookup_headers,
                 params={
                     "select": "source_event_id,fixture_uid",
                     "source": "eq.betwatch",
