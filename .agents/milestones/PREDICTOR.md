@@ -1,12 +1,12 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 17
+MILESTONE_VERSION: 18
 STATUS: ACTIVE
 
 ## Objective
 
 Run the three-stage Predictor workflow on the user's explicitly defined match universe:
-Stage 1 = native SXF evidence/thesis -> Stage 2 = external cause research -> Stage 3 = best risk/value execution market -> automatic archive for formal cases -> Diary 1 at prediction time -> settlement/postmatch learning -> Diary 2 after results.
+Stage 1 = native SXF evidence/thesis -> Stage 2 = external cause research -> Stage 3 = graded best risk/value execution decision -> automatic archive for formal BET/WATCH cases -> Diary 1 at prediction time -> settlement/postmatch learning -> Diary 2 after results.
 
 ## Scope authority
 
@@ -14,7 +14,7 @@ The user's requested date/time window or named match set is authoritative and pe
 
 - Never invent extra scope filters.
 - Kickoff passing, current clock, low/high odds, obscure league, volatility or weak liquidity do not remove a match from scope.
-- Those factors may change confidence, `BET | WATCH` or execution-market choice.
+- Those factors may change confidence, `BET | WATCH | PASS` or execution-market choice.
 - If the user says "continue with these matches", evaluate the same set.
 - Archive eligibility and analytical scope are separate. Never backdate `prediction_at`; archive problems become `ARCHIVE_PENDING`, not hidden matches.
 
@@ -46,6 +46,52 @@ Alternative execution markets are implementations, not new SXF evidence. Never f
 - threshold is not actual odds;
 - a formal priced `BET` requires a real available price when the execution market itself is not natively priced in SXF.
 
+## Active Stage 3 hit-rate gates
+
+### Counterevidence severity
+
+Every Stage 3 case must score the strongest contradiction and deduct it from raw confidence:
+- `NONE = 0`
+- `LIGHT = -3`
+- `MEDIUM = -7`
+- `STRONG = -12`
+- `STRUCTURAL = -20`
+
+These are starting operational penalties, not learned coefficients. Development must later recalibrate them from archived evidence. Serious counterevidence may not remain prose-only while confidence stays effectively untouched.
+
+### Joint divergence state
+
+Closing odds alone are never an automatic confirm/cancel rule. Compare price path, share path, absolute selected money, total market/liquidity growth, native cross-market agreement and market depth/price regime.
+
+Assign exactly one:
+`CONFIRMED | MIXED | ADVERSE | MATERIAL_REVERSAL`.
+
+Unexplained `MATERIAL_REVERSAL` normally caps the case at Grade B/WATCH. A price drift with stable or strengthening concentration is not automatically a PASS.
+
+### Protection versus aggression
+
+Any non-native execution transformation must be labeled:
+- `PROTECTION`: lower-variance implementation of the same thesis, such as underdog straight -> X2/+1.5.
+- `AGGRESSION`: harder line taken for a better price, such as O2.5 -> O3.5 or favorite -> -1.5.
+
+Protection may be preferred when it materially improves hit probability and the real price still has value. Aggression requires stronger distribution evidence than the native line and must never be used only to chase a nicer price.
+
+### Quality grade gate
+
+Every Stage 3 match receives a quality grade before the decision:
+- `A+`: all main evidence layers strongly aligned; no unresolved strong/structural contradiction; execution price verified when required.
+- `A`: strong overall case with at most one non-material caveat; no unexplained material reversal.
+- `B`: mixed evidence, meaningful counterevidence, execution uncertainty or material warning.
+- `C`: contradiction dominates, execution is not defensible/verified, or risk shape is poor.
+
+Mandatory mapping:
+- `A+ -> BET`
+- `A -> BET`
+- `B -> WATCH`
+- `C -> PASS / no formal archive case`
+
+A high numeric confidence cannot override the grade gate.
+
 ## Risk/value translation heuristics
 
 Heuristics, not hard formulas:
@@ -53,7 +99,7 @@ Heuristics, not hard formulas:
 - Strong underdog, 1X2 roughly `4.00+`: inspect `+1.5 handicap` because it may retain meaningful price while protecting a narrow loss.
 - Medium underdog, roughly `2.70–3.80`: `+1.5` can become too short; inspect Double Chance if its real price still compensates for risk.
 - Around `2.20` or shorter: Double Chance is often over-protected/too short. Prefer straight result if thesis is strong, otherwise do not force a protected bet.
-- Very short O2.5 (around `1.30–1.35`) plus a genuine 4+ goal thesis: inspect O3.5.
+- Very short O2.5 (around `1.30–1.35`) plus a genuine 4+ goal thesis: inspect O3.5 only as aggression and only when the harder scoring distribution is independently supported.
 - O2.5 around `1.40–1.60` with a simple 3+ goal thesis: usually retain O2.5 rather than adding unnecessary variance.
 - Apply the same principle symmetrically to unders and favorite handicaps: protection/aggression must match the thesis, not merely chase a nicer number.
 
@@ -69,7 +115,7 @@ Heuristics, not hard formulas:
 - Native Stage 1 evidence/search is only 1X2, O/U2.5 and BTTS.
 - Every reported match gets a frozen `SXF PREFERENCE`: native market + exact selection + cutoff price when available + SXF-only rationale + strongest SXF-only failure condition.
 - Decide from SXF alone as if later stages do not exist.
-- No web research, no final `BET | WATCH`, no fabricated DC/handicap/alternative-line prices, no DNB.
+- No web research, no final `BET | WATCH | PASS`, no fabricated DC/handicap/alternative-line prices, no DNB.
 - Send Stage 1 and STOP.
 
 ### 2. Stage 2 — EXTERNAL CAUSE RESEARCH
@@ -78,6 +124,7 @@ Heuristics, not hard formulas:
 - Carry forward the exact selected match set.
 - Research injuries, suspensions, squad/lineups, form, tactics, motivation, schedule/travel, weather when material and reliable statistics/news.
 - Search support and contradiction equally.
+- Preserve strongest support and strongest contradiction as separate inputs for Stage 3.
 - Keep `SXF SAYS` and `RESEARCH SAYS` separate; preserve frozen Stage 1.
 - Classify `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED`.
 - Stage 2 may note whether a protected/aggressive execution line would logically fit, but may not pretend it exists in SXF.
@@ -88,21 +135,25 @@ Heuristics, not hard formulas:
 - Evaluate every user-carried match; kickoff/current time is not an exclusion rule.
 - Merge frozen Stage 1 + Stage 2 and strongest countercase.
 - Determine the underlying thesis first, execution market second.
+- Apply counterevidence severity and confidence penalty.
+- Assign the joint divergence state from the complete valid PRE path; closing odds alone cannot decide the case.
 - Compare the native selection with logical DC/handicap/alternative-total implementations.
+- Label non-native execution as `PROTECTION` or `AGGRESSION`.
 - Use the market with the best risk/value relationship, not automatically the safest or highest-odds option.
 - Never use DNB.
 - Never invent an exact alternative price. Use a verified real price or a clearly labeled minimum acceptable threshold.
-- A high-odds underdog may become `+1.5`; a mid-priced underdog may become DC; a short favorite/DC may stay straight; an overly short O2.5 may become O3.5 only if 4+ goals are genuinely expected.
-- Produce `BET | WATCH` with market, selection, price/threshold, confidence, rationale and strongest counterargument.
-- If no formal selection is defensible, keep the match visible and explain why.
+- Assign `A+ | A | B | C` before final decision.
+- Apply `A+/A = BET`, `B = WATCH`, `C = PASS/no formal case`.
+- For BET/WATCH output market, selection, price/threshold, pre-penalty confidence, counterevidence penalty, final confidence, divergence state, execution type, quality grade, rationale and strongest counterargument.
+- Keep PASS matches visible with the failed gate(s) and reason; do not silently drop them and do not archive a fake PASS case.
 - Freeze real `prediction_at`; never backdate.
-- Archive every formal case automatically when possible; failures remain `ARCHIVE_PENDING`.
+- Archive every formal BET/WATCH case automatically when possible; failures remain `ARCHIVE_PENDING`.
 - Immediately create Diary 1 `predictions.md`; case archive receipts do not satisfy this.
-- Every formal match in Diary 1 must have a short 1–3 sentence `Why this prediction` explanation written only from PRE evidence.
+- Every formal BET/WATCH match in Diary 1 must have a short 1–3 sentence `Why this prediction` explanation written only from PRE evidence.
 
 ## Exactly two mandatory diaries
 
-For every day with at least one formal Stage 3 case, Predictor MUST create exactly two durable diary files under:
+For every day with at least one formal Stage 3 BET/WATCH case, Predictor MUST create exactly two durable diary files under:
 
 `learning_archive_data/diaries/YYYY/MM/DD/`
 
@@ -110,12 +161,15 @@ For every day with at least one formal Stage 3 case, Predictor MUST create exact
 
 Created immediately when final preferences are issued.
 
-Every formal match must include:
-- final category and execution market/selection;
+Every formal BET/WATCH match must include:
+- final category and quality grade;
+- execution market/selection;
 - actual price or clearly labeled threshold;
 - confidence and immutable `prediction_at`;
 - `case_id` / archive state;
 - **`Why this prediction`** — concise 1–3 sentence contemporaneous explanation of why that prediction was chosen, based on decisive SXF evidence, Stage 2 context, risk/value logic and the key caution when material.
+
+PASS rows stay visible in the user-facing report but are not formal archive/diary cases.
 
 No later score/result knowledge is allowed in Diary 1.
 
@@ -151,21 +205,27 @@ WATCH outcomes remain hypothetical. Conditional-BET performance must not pretend
 1. Preserve user scope across all stages.
 2. Stage 1 must be raw/native SXF-only and match-by-match.
 3. Stage 1 `SXF PREFERENCE` stays native and frozen.
-4. Stage 3 may transform the native thesis into DC/handicap/alternative totals for better risk/value.
-5. Protection must not destroy price: safer is not automatically better.
-6. Aggression must be justified by expected distribution: do not raise lines merely to chase odds.
-7. Never synthesize exact execution odds. A threshold must be labeled as a threshold.
-8. DNB remains prohibited.
-9. Native SXF history must never be relabeled as history for an alternative execution market.
-10. External execution-market prices, when actually used, require source and `observed_at`.
-11. Formal cases preserve immutable prediction timing, market, selection, actual entry odds when available, confidence, rationale and counterargument.
-12. Formal cases must be durably archived on `learning-archive`; failures are explicit/retryable.
-13. Settled formal cases require append-only postmatch learning notes.
-14. Every active prediction day requires Diary 1 and Diary 2 as separate durable artifacts.
-15. Every formal match requires `Why this prediction` in Diary 1.
-16. Every settled diary match requires `Why it won/lost` in Diary 2.
-17. Case archive completion and diary completion are independent checks; neither implies the other.
-18. End-of-day `DONE` requires archive + both complete diaries.
+4. Stage 2 must preserve strongest support and strongest contradiction separately.
+5. Stage 3 must score counterevidence severity and apply the active confidence penalty.
+6. Stage 3 must use joint divergence state; closing price alone never confirms/cancels.
+7. Stage 3 must distinguish `PROTECTION` from `AGGRESSION`.
+8. Stage 3 must grade every match `A+ | A | B | C` and obey the mapping A+/A BET, B WATCH, C PASS.
+9. Stage 3 may transform the native thesis into DC/handicap/alternative totals for better risk/value.
+10. Protection must not destroy price: safer is not automatically better.
+11. Aggression must be justified by expected distribution: do not raise lines merely to chase odds.
+12. Never synthesize exact execution odds. A threshold must be labeled as a threshold.
+13. DNB remains prohibited.
+14. Native SXF history must never be relabeled as history for an alternative execution market.
+15. External execution-market prices, when actually used, require source and `observed_at`.
+16. Formal BET/WATCH cases preserve immutable prediction timing, market, selection, actual entry odds when available, confidence, rationale and counterargument.
+17. PASS is user-visible only and is not archived as a fake formal case.
+18. Formal cases must be durably archived on `learning-archive`; failures are explicit/retryable.
+19. Settled formal cases require append-only postmatch learning notes.
+20. Every active prediction day requires Diary 1 and Diary 2 as separate durable artifacts.
+21. Every formal match requires `Why this prediction` in Diary 1.
+22. Every settled diary match requires `Why it won/lost` in Diary 2.
+23. Case archive completion and diary completion are independent checks; neither implies the other.
+24. End-of-day `DONE` requires archive + both complete diaries.
 
 ## Archive behavior for alternative execution markets
 
@@ -185,11 +245,11 @@ Complete when the full user slate was enumerated, every match was independently 
 
 ## Done per Stage 2
 
-Complete when every carried match was researched with support and contradiction, Stage 1 remained frozen, and every move was classified without final `BET | WATCH`.
+Complete when every carried match was researched with support and contradiction, Stage 1 remained frozen, and every move was classified without final `BET | WATCH | PASS`.
 
 ## Done per Stage 3
 
-Complete analytically when every carried match is visible with either a final view or explicit no-formal-case reason. Formal case archive completion additionally requires durable `RECORDED` receipts. **Prediction-day workflow additionally requires durable Diary 1 with `Why this prediction` for every formal match.**
+Complete analytically when every carried match is visible with a graded `BET | WATCH | PASS` outcome and the active quality gates were applied. Formal BET/WATCH archive completion additionally requires durable `RECORDED` receipts. **Prediction-day workflow additionally requires durable Diary 1 with `Why this prediction` for every formal match.**
 
 ## Done per end-of-day
 
