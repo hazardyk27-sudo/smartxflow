@@ -1,12 +1,12 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 16
+MILESTONE_VERSION: 17
 STATUS: ACTIVE
 
 ## Objective
 
 Run the three-stage Predictor workflow on the user's explicitly defined match universe:
-Stage 1 = native SXF evidence/thesis -> Stage 2 = external cause research -> Stage 3 = best risk/value execution market -> automatic archive for formal cases -> separate daily prediction diary -> settlement/postmatch learning.
+Stage 1 = native SXF evidence/thesis -> Stage 2 = external cause research -> Stage 3 = best risk/value execution market -> automatic archive for formal cases -> Diary 1 at prediction time -> settlement/postmatch learning -> Diary 2 after results.
 
 ## Scope authority
 
@@ -97,21 +97,43 @@ Heuristics, not hard formulas:
 - If no formal selection is defensible, keep the match visible and explain why.
 - Freeze real `prediction_at`; never backdate.
 - Archive every formal case automatically when possible; failures remain `ARCHIVE_PENDING`.
-- Create the separate daily diary; case archive receipts do not satisfy diary completion.
+- Immediately create Diary 1 `predictions.md`; case archive receipts do not satisfy this.
+- Every formal match in Diary 1 must have a short 1–3 sentence `Why this prediction` explanation written only from PRE evidence.
 
-## Mandatory daily diary separation
+## Exactly two mandatory diaries
 
-For every day with at least one formal Stage 3 case, Predictor must create a separate durable diary under:
+For every day with at least one formal Stage 3 case, Predictor MUST create exactly two durable diary files under:
 
 `learning_archive_data/diaries/YYYY/MM/DD/`
 
-Required:
-- `predictions.md` after Stage 3;
-- `postmatch.md` after settlement/end-of-day review.
+### Diary 1 — `predictions.md`
 
-The diary must summarize the day across cases. It is not a substitute for case evidence, and case evidence is not a substitute for the diary.
+Created immediately when final preferences are issued.
 
-**Never treat any of the following as a daily diary:**
+Every formal match must include:
+- final category and execution market/selection;
+- actual price or clearly labeled threshold;
+- confidence and immutable `prediction_at`;
+- `case_id` / archive state;
+- **`Why this prediction`** — concise 1–3 sentence contemporaneous explanation of why that prediction was chosen, based on decisive SXF evidence, Stage 2 context, risk/value logic and the key caution when material.
+
+No later score/result knowledge is allowed in Diary 1.
+
+### Diary 2 — `postmatch.md`
+
+Created/updated once results are available.
+
+Every diary match must include:
+- original immutable prediction;
+- final score/result;
+- WIN / LOSS / VOID, with WATCH explicitly hypothetical;
+- **`Why it won/lost`** — concise 1–3 sentence postmatch explanation connecting the result to the thesis, counterargument, final prematch market behavior, execution-line quality, Stage 2 context, or normal variance.
+
+Merely repeating the score is insufficient. Never rewrite the original prediction after the result.
+
+## Non-substitution and completion gate
+
+Never treat any of the following as either diary:
 - `cases/YYYY/MM/DD/<case_id>/`;
 - `manifest.jsonl` `RECORDED`/`FINALIZED` events;
 - `settlement.json`;
@@ -119,9 +141,10 @@ The diary must summarize the day across cases. It is not a substitute for case e
 - checksums;
 - per-case postmatch addenda.
 
-If those exist but the daily diary does not, report `DIARY_PENDING`; do not report end-of-day `DONE`.
+If cases exist but Diary 1 is absent/incomplete, status is `DIARY_PENDING`.
+If results exist but Diary 2 is absent/incomplete or any match lacks `Why it won/lost`, status is `DIARY_PENDING`.
 
-`postmatch.md` must report BET, conditional-BET and WATCH performance separately. WATCH outcomes remain hypothetical and conditional-BET performance must not pretend an unverified threshold price was actually available.
+WATCH outcomes remain hypothetical. Conditional-BET performance must not pretend an unverified threshold price was actually available.
 
 ## Required now
 
@@ -138,9 +161,11 @@ If those exist but the daily diary does not, report `DIARY_PENDING`; do not repo
 11. Formal cases preserve immutable prediction timing, market, selection, actual entry odds when available, confidence, rationale and counterargument.
 12. Formal cases must be durably archived on `learning-archive`; failures are explicit/retryable.
 13. Settled formal cases require append-only postmatch learning notes.
-14. Every active prediction day requires a separate durable daily diary.
-15. Case archive completion and diary completion are independent checks; neither implies the other.
-16. End-of-day `DONE` requires both archive and diary completion.
+14. Every active prediction day requires Diary 1 and Diary 2 as separate durable artifacts.
+15. Every formal match requires `Why this prediction` in Diary 1.
+16. Every settled diary match requires `Why it won/lost` in Diary 2.
+17. Case archive completion and diary completion are independent checks; neither implies the other.
+18. End-of-day `DONE` requires archive + both complete diaries.
 
 ## Archive behavior for alternative execution markets
 
@@ -164,13 +189,13 @@ Complete when every carried match was researched with support and contradiction,
 
 ## Done per Stage 3
 
-Complete analytically when every carried match is visible with either a final view or explicit no-formal-case reason. Formal case archive completion additionally requires durable `RECORDED` receipts for formal cases. **Daily workflow completion additionally requires the separate `predictions.md`; case receipts alone do not satisfy this.**
+Complete analytically when every carried match is visible with either a final view or explicit no-formal-case reason. Formal case archive completion additionally requires durable `RECORDED` receipts. **Prediction-day workflow additionally requires durable Diary 1 with `Why this prediction` for every formal match.**
 
 ## Done per end-of-day
 
 End-of-day is `DONE` only when:
 1. all settleable formal cases have the required archive/settlement/postmatch state (or explicit unresolved/pending state);
-2. `learning_archive_data/diaries/YYYY/MM/DD/predictions.md` exists durably;
-3. `learning_archive_data/diaries/YYYY/MM/DD/postmatch.md` exists durably and summarizes results/performance/learning.
+2. `learning_archive_data/diaries/YYYY/MM/DD/predictions.md` exists durably and every formal match has `Why this prediction`;
+3. `learning_archive_data/diaries/YYYY/MM/DD/postmatch.md` exists durably and every settled match has `Why it won/lost` (unresolved matches explicitly pending).
 
-If the cases are complete but the diary is missing, the correct status is `DIARY_PENDING`, never `DONE`.
+Anything less is `DIARY_PENDING`, never `DONE`.
