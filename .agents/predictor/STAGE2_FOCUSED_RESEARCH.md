@@ -97,6 +97,124 @@ Rules:
 - A critical claim supported only by Tier C/D should receive a second independent verification when feasible.
 - Tier D alone must not materially change a Stage 2 verdict.
 
+## Stage 2 source stack
+
+This is a routing map, not a checklist. Do **not** open every source for every match.
+
+### Core sources
+
+1. **Flashscore — coverage / lineup hub**
+   - Primary use: injuries/suspensions, predicted or confirmed lineups, formation context, broad league coverage and quick match-state checks.
+   - Use first for fast squad availability and lineup context.
+   - Do not treat a predicted lineup as confirmed fact.
+
+2. **FotMob — performance hub**
+   - Primary use: recent performance quality, xG/shot-based context where covered, player usage/minutes and match-level attacking/defensive output.
+   - This is the default performance source so duplicated metrics from multiple apps do not overwhelm the analysis.
+   - If xG or advanced data are unavailable for the competition, fall back to simpler market-relevant performance evidence rather than penalizing the match.
+
+3. **Reuters and official primary sources — football-news / manager-information hub**
+   - Reuters: important manager comments, rotation, injuries, team mood, travel/venue and major pre-match developments.
+   - Official club/federation/competition sources: squad calls, confirmed absences, official lineups and direct coach statements.
+   - For manager comments, prefer materially actionable statements only: player availability, expected rotation, fitness limitations, tactical/role changes, rest priorities or explicit selection clues.
+   - Generic media language such as “it will be a difficult match” has no evidential value.
+
+### Secondary / fallback sources
+
+4. **Sofascore — verification / fallback**
+   - Use when FotMob or Flashscore is incomplete, internally inconsistent or needs a second check.
+   - May provide lineups, xG, shot maps, heat maps and player/team statistics.
+   - Do not count the same underlying metric from FotMob and Sofascore as two independent supporting facts.
+
+5. **FBref — deep investigation**
+   - Use selectively for larger competitions when Stage 1 and initial Stage 2 evidence conflict or recent results appear misleading.
+   - Useful for deeper shooting/team/opponent performance context.
+   - Not a default source for every match.
+
+6. **Soccerway — small-league fallback**
+   - Use when mainstream coverage is weak, especially lower divisions and obscure competitions.
+   - Useful for fixtures, results, lineups and basic match statistics where available.
+   - Sparse advanced data must not become a reason to eliminate the match.
+
+7. **Credible local/specialist reporting — targeted escalation only**
+   - Use only when an important team-specific fact cannot be resolved by the core stack.
+   - Prioritize established beat reporters or recognized local sports publications.
+   - Critical claims from weaker local sources require independent confirmation when feasible.
+
+## Default lookup order
+
+Normal match:
+1. Flashscore for critical squad / lineup context.
+2. FotMob for market-relevant performance.
+3. Reuters or official source only if a material news/manager/availability question exists.
+4. Stop when the 3+1 packet is complete.
+
+Difficult or contradictory match:
+1. Flashscore.
+2. FotMob.
+3. Reuters / official source.
+4. Sofascore for verification if needed.
+5. FBref only for a genuinely unresolved performance question.
+6. Stop once the research question is answered.
+
+Small or obscure league:
+1. Flashscore.
+2. Soccerway.
+3. Official/local specialist source only if a critical fact remains unresolved.
+4. Mark coverage `LOW` or `MEDIUM` when appropriate, but do not convert missing information into negative evidence.
+
+## Source-count guardrail
+
+Typical target:
+- normal match: **2-3 sources**;
+- difficult match: **3-4 sources**;
+- exceptional case: **maximum about 5 sources** unless a specific factual dispute requires more.
+
+The goal is not source volume. The goal is enough trustworthy evidence to complete the 3+1 decision packet without overloading Stage 3.
+
+## Statistic budget
+
+Do not flood Stage 2 with generic metrics.
+
+### 1X2
+Prioritize:
+- recent real performance strength rather than W-D-L alone;
+- meaningful home/away effect when relevant;
+- critical squad-quality difference.
+
+### O/U
+Prioritize:
+- attacking/defensive production;
+- xG/xGA or shot/creation proxies where reliable and available;
+- critical attacking/defensive personnel changes.
+
+### BTTS
+Prioritize:
+- home scoring path;
+- away scoring path;
+- whether either side's attack/defense profile materially changes the Stage 1 assumption.
+
+Possession, corners, pass count, generic player ratings and similar secondary metrics are ignored unless a specific triggered research question makes them relevant.
+
+## Manager-comment protocol
+
+Use manager comments only when they change a football assumption relevant to the market.
+
+High-value examples:
+- a key player is unavailable or limited;
+- planned rotation/rest is confirmed;
+- a player will or will not start;
+- formation/role changes are explicitly indicated;
+- travel/congestion or fitness materially changes expected selection;
+- tactical intent is concrete enough to affect the thesis.
+
+Low-value comments such as respect for the opponent, motivation clichés or generic confidence statements should be ignored.
+
+Source order for manager comments:
+1. Reuters when it reports the material quote/context cleanly;
+2. official club/federation press conference or statement;
+3. credible specialist/local reporter if unresolved.
+
 ## Claim-level evidence
 
 Do not bundle multiple claims and opposite-direction facts into one generic evidence row.
