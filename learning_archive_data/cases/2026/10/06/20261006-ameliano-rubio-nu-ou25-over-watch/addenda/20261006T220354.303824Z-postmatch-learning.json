@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-ameliano-rubio-nu-ou25-over-watch",
+  "type": "OBSERVATION",
+  "final_score": "1-2",
+  "decision": "WATCH",
+  "settlement_status": "NO_BET",
+  "hypothetical_result": "WIN",
+  "selected_market": {"market": "O/U 2.5", "selection": "Over 2.5", "entry_odds": 2.30},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T22:59:06+03:00", "price": 2.22, "share": "51.4%", "money": "£ 324.52", "market_volume": "£ 631.46"},
+  "prediction_to_final_prematch_comparison": "Over shortened to 2.22 but finished with only a narrow 51.4% share and low absolute market volume, so the direction improved without becoming a high-quality liquidity signal.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: recent H2H and score sequences offered some support for goals but remained inconsistent.",
+  "result_relevance": "The 1-2 score produced exactly three goals, so Over 2.5 would have won while the original WATCH decision remained unchanged.",
+  "learning": "The outcome supports the scoring direction but low liquidity means this case should not be treated as strong standalone evidence. This is an observation, not a promoted rule."
+}
