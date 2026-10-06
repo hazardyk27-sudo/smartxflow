@@ -31,6 +31,7 @@ on:
       - 'scripts/run_fixture_identity_shadow_probe.py'
       - 'scripts/run_fixture_uid_dual_write_probe.py'
       - 'scripts/run_fixture_uid_writer_preflight.py'
+      - 'scripts/run_fixture_uid_authoritative_activation_probe.py'
       - 'migrations/2026_10_05_fixture_identity_v2_additive.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_shadow_rpc.sql'
       - 'migrations/2026_10_06_fixture_identity_v2_reference_columns.sql'
@@ -48,6 +49,7 @@ on:
       - 'tests/test_fixture_uid_writer_preflight.py'
       - 'tests/test_fixture_uid_authoritative_writer.py'
       - 'tests/test_fixture_uid_authoritative_activation.py'
+      - 'tests/test_fixture_uid_authoritative_activation_probe.py'
       - 'tests/test_fixture_uid_snapshot_dual_write.py'
       - 'tests/test_fixture_uid_snapshot_authoritative.py'
       - 'tests/test_fixture_uid_reader_patch.py'
@@ -101,6 +103,7 @@ jobs:
         python -m py_compile scripts/run_fixture_identity_shadow_probe.py
         python -m py_compile scripts/run_fixture_uid_dual_write_probe.py
         python -m py_compile scripts/run_fixture_uid_writer_preflight.py
+        python -m py_compile scripts/run_fixture_uid_authoritative_activation_probe.py
         python -m py_compile desktop/scraper_standalone/backfill_hashes.py
         python -m py_compile desktop/scraper_standalone/betwatch_client.py
 
@@ -120,6 +123,7 @@ jobs:
         python -m pytest -q tests/test_fixture_uid_writer_preflight.py
         python -m pytest -q tests/test_fixture_uid_authoritative_writer.py
         python -m pytest -q tests/test_fixture_uid_authoritative_activation.py
+        python -m pytest -q tests/test_fixture_uid_authoritative_activation_probe.py
         python -m pytest -q tests/test_fixture_uid_snapshot_dual_write.py
         python -m pytest -q tests/test_fixture_uid_snapshot_authoritative.py
         python -m pytest -q tests/test_fixture_uid_reader_patch.py
