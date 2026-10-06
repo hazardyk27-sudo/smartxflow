@@ -1,0 +1,15 @@
+{
+  "observed_at": "2026-10-06T22:03:54.303824Z",
+  "case_id": "20261006-belarus-finland-ou25-under",
+  "type": "OBSERVATION",
+  "final_score": "1-0",
+  "decision": "BET",
+  "settlement_status": "WIN",
+  "hypothetical_result": null,
+  "selected_market": {"market": "O/U 2.5", "selection": "Under 2.5", "entry_odds": 1.60},
+  "final_prematch_sxf": {"native": true, "observed_at": "2026-10-06T21:43:09+03:00", "price": 1.62, "share": "86.2%", "money": "£ 49803.1", "market_volume": "£ 57798.8"},
+  "prediction_to_final_prematch_comparison": "The Under price drifted slightly from 1.60 to 1.62 while remaining backed by very large money and an 86.2% share; the core low-scoring structure remained intact.",
+  "stage2_context_check": "PARTIALLY_CONFIRMED: the earlier 0-0 meeting supported the Under thesis, while Finland's scoring profile remained the main contradiction.",
+  "result_relevance": "The 1-0 final score validated the selected Under 2.5 structure despite the small late price drift.",
+  "learning": "Large native-market concentration can remain useful when late price deterioration is small rather than structural. This is an observation, not a promoted rule."
+}
