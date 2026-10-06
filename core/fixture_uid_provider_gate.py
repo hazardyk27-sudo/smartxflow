@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 import requests
 
 from core.fixture_identity_v2 import BETWATCH_SOURCE
+from core.fixture_uid_lookup_auth import identity_lookup_headers
 from core.hash_utils import make_match_id_hash
 
 _QUERY_CHUNK = 150
@@ -73,10 +74,11 @@ def _fixture_matches(row: Mapping[str, Any], fixture: Mapping[str, Any], match_h
 def _read_event_uid_map(writer: Any, event_ids: Iterable[str], request_get) -> Dict[str, str]:
     wanted = sorted({str(value or "").strip() for value in event_ids if str(value or "").strip()})
     result: Dict[str, str] = {}
+    lookup_headers = identity_lookup_headers(writer)
     for chunk in _chunks(wanted):
         response = request_get(
             writer._rest_url("fixture_source_ids"),
-            headers=writer._headers(),
+            headers=lookup_headers,
             params={
                 "select": "source_event_id,fixture_uid",
                 "source": f"eq.{BETWATCH_SOURCE}",
@@ -100,10 +102,11 @@ def _read_event_uid_map(writer: Any, event_ids: Iterable[str], request_get) -> D
 def _read_fixture_map(writer: Any, fixture_uids: Iterable[str], request_get) -> Dict[str, Dict[str, Any]]:
     wanted = sorted({str(value or "").strip() for value in fixture_uids if str(value or "").strip()})
     result: Dict[str, Dict[str, Any]] = {}
+    lookup_headers = identity_lookup_headers(writer)
     for chunk in _chunks(wanted):
         response = request_get(
             writer._rest_url("fixtures"),
-            headers=writer._headers(),
+            headers=lookup_headers,
             params={
                 "select": "fixture_uid,match_id_hash,league,home_team,away_team,kickoff_utc",
                 "fixture_uid": f"in.({','.join(chunk)})",
