@@ -32,7 +32,14 @@ select
     has_function_privilege('service_role', 'public.record_betwatch_fixture_batch_v2(timestamptz,jsonb)', 'EXECUTE') as service_role_execute,
     has_function_privilege('anon', 'public.record_betwatch_fixture_batch_v2(timestamptz,jsonb)', 'EXECUTE') as anon_execute,
     has_function_privilege('authenticated', 'public.record_betwatch_fixture_batch_v2(timestamptz,jsonb)', 'EXECUTE') as authenticated_execute,
-    has_function_privilege('public', 'public.record_betwatch_fixture_batch_v2(timestamptz,jsonb)', 'EXECUTE') as public_execute;
+    exists (
+        select 1
+        from information_schema.routine_privileges
+        where routine_schema = 'public'
+          and routine_name = 'record_betwatch_fixture_batch_v2'
+          and grantee = 'PUBLIC'
+          and privilege_type = 'EXECUTE'
+    ) as public_execute;
 
 -- 2) Core fixture/registry integrity must be unchanged by DDL installation.
 select
