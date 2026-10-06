@@ -226,6 +226,16 @@ class LearningArchiveTests(unittest.TestCase):
         self.assertTrue(any("prediction.market" in item for item in result.errors))
         self.assertTrue(any("prediction.selection" in item for item in result.errors))
 
+    def test_dnb_is_rejected_from_formal_archive(self):
+        for market in ("DNB", "Draw No Bet", "draw-no-bet", "draw_no_bet"):
+            with self.subTest(market=market):
+                case = sample_case()
+                case["prediction"]["market"] = market
+                case["prediction"]["selection"] = "Home"
+                result = validate_case(case, sample_snapshots())
+                self.assertFalse(result.ok)
+                self.assertTrue(any("DNB" in item for item in result.errors))
+
 
 if __name__ == "__main__":
     unittest.main()
