@@ -18,15 +18,27 @@ jobs:
   settle:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+
+      - name: Test settlement parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_learning_archive_settlement
+          SETTLEMENT_B64="$(base64 -w0 learning_archive/settlement.py)"
+          echo "SETTLEMENT_B64=$SETTLEMENT_B64" >> "$GITHUB_ENV"
+
       - name: Run canonical postmatch finalizer on production runtime
         uses: appleboy/ssh-action@v1.0.3
         env:
           GH_TOKEN: ${{ github.token }}
+          SETTLEMENT_B64: ${{ env.SETTLEMENT_B64 }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          envs: GH_TOKEN
+          envs: GH_TOKEN,SETTLEMENT_B64
           script: |
             set -euo pipefail
             cd /opt/smartxflow
@@ -42,7 +54,13 @@ jobs:
               exit 1
             fi
 
-            export PYTHONPATH=/opt/smartxflow
+            TMP_OVERLAY="$(mktemp -d /tmp/sxf-postmatch-overlay.XXXXXX)"
+            cleanup() { rm -rf "$TMP_OVERLAY"; }
+            trap cleanup EXIT
+            cp -a /opt/smartxflow/learning_archive "$TMP_OVERLAY/learning_archive"
+            printf '%s' "$SETTLEMENT_B64" | base64 -d > "$TMP_OVERLAY/learning_archive/settlement.py"
+
+            export PYTHONPATH="$TMP_OVERLAY:/opt/smartxflow"
             export GITHUB_TOKEN="$GH_TOKEN"
             /opt/smartxflow/venv/bin/python scripts/settle_due_learning_cases_fast.py \
               --root /opt/smartxflow \
