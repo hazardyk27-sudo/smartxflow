@@ -39,6 +39,7 @@ jobs:
               exit 1
             fi
 
+            export PYTHONPATH=/opt/smartxflow
             /opt/smartxflow/venv/bin/python scripts/settle_due_learning_cases_fast.py \
               --root /opt/smartxflow \
               --queue-file /var/lib/smartxflow-postmatch/settlements.json \
