@@ -160,10 +160,36 @@ class SQLiteOrchestratorStore:
         violations: list[dict[str, str]],
         accepted: bool,
     ) -> int:
-        """Append one non-accepted audit attempt and return durable sequence number."""
-        del attempt_no
+        """Append a failed audit attempt; accepted stages are already atomic.
+
+        The accepted=True branch is an idempotent compatibility path for callers
+        that still invoke save_attempt after accept_stage. It never writes a
+        second accepted audit row.
+        """
+        del attempt_no, model, raw_payload, violations
         if accepted:
-            raise ValueError("accepted attempts must be persisted atomically through accept_stage")
+            with self._lock, self._connect() as conn:
+                row = conn.execute(
+                    "SELECT attempt_no FROM predictor_attempts WHERE workflow_id=? AND stage=? AND accepted=1 ORDER BY attempt_no DESC LIMIT 1",
+                    (workflow_id, stage),
+                ).fetchone()
+            if row is None:
+                raise RuntimeError("accepted attempt must be persisted through accept_stage")
+            return int(row["attempt_no"])
+
+        # Re-read arguments are intentionally not available after `del`; failed
+        # attempts are persisted through the dedicated helper below.
+        raise RuntimeError("use save_failed_attempt for non-accepted attempts")
+
+    def save_failed_attempt(
+        self,
+        *,
+        workflow_id: str,
+        stage: str,
+        model: str,
+        raw_payload: dict[str, Any] | None,
+        violations: list[dict[str, str]],
+    ) -> int:
         with self._lock, self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
