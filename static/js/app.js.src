@@ -11290,6 +11290,7 @@ document.getElementById('licenseKeyInput')?.addEventListener('keypress', functio
 
 // ── Background Live Data Fetch (MW/Oran sayfalarında dk/skor için) ──
 var _bgLiveInterval = null;
+var _bgLiveStartScheduled = false;
 
 async function _fetchBackgroundLiveData() {
     if (_liveMode) return;
@@ -11351,8 +11352,21 @@ function _updateLiveCapsulesInDOM() {
 }
 
 function _startBackgroundLiveFetch() {
-    _fetchBackgroundLiveData();
-    _bgLiveInterval = setInterval(_fetchBackgroundLiveData, 60000);
+    if (_bgLiveInterval || _bgLiveStartScheduled) return;
+    _bgLiveStartScheduled = true;
+
+    function begin() {
+        if (_bgLiveInterval) return;
+        _bgLiveStartScheduled = false;
+        _fetchBackgroundLiveData();
+        _bgLiveInterval = setInterval(_fetchBackgroundLiveData, 60000);
+    }
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(begin, { timeout: 5000 });
+    } else {
+        window.setTimeout(begin, 2500);
+    }
 }
 
 // ── Canlı (Live) Tab ──────────────────────────────────────
