@@ -39,6 +39,16 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 10. No model/method silently changes production. Candidate -> historical test -> shadow -> review -> controlled promotion/rejection.
 11. Enforce critical rules in code/tests where practical.
 
+## Mandatory visible preference rule
+
+For every user-scoped match that is shown in Predictor analysis or a Predictor-derived future-days report, the user-visible output MUST contain a concrete, non-empty preferred market/selection.
+
+- Never use `Bahis yok`, `—`, `no pick`, `none`, an empty selection, or an equivalent placeholder in the preference/selection field.
+- Stage 1 already requires a concrete frozen `SXF PREFERENCE`; later stages must preserve a concrete best-current preference even when evidence is mixed.
+- A formal `PASS`/`GEÇ` decision is allowed to mean **do not place/archive this as a formal bet right now**, but it MUST NOT erase the analytical preference. Example: `Tercih: Atlético Madrid kazanır @1.91 | Karar: GEÇ` is valid; `Tercih: Bahis yok | Karar: GEÇ` is invalid.
+- If a non-native protected/aggressive market is the best preference but its real price is unknown, show the concrete market/selection and clearly mark the price as `doğrulanmadı` or give an explicitly labeled minimum acceptable threshold. Never invent an exact price.
+- This rule also applies to non-archived `Gelecek Günler` reports: every listed match must have one explicit best-current preference, while confidence/quality/AL-İZLE-GEÇ status remains a separate field.
+
 ## Learning Archive
 
 - No separate repository is used.
