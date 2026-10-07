@@ -40,16 +40,23 @@ def _candidate_ids(payload: dict[str, Any]) -> tuple[str, ...]:
     return tuple(result)
 
 
+def _ensure_unique(values: tuple[str, ...], *, label: str) -> None:
+    if len(values) != len(set(values)):
+        raise PredictorPolicyError(f"SXF-WF-005: duplicate fixture IDs are forbidden in {label}")
+
+
 def validate_and_advance(state: PredictorRunState, payload: dict[str, Any]) -> PredictorRunState:
     result = validate_payload(payload)
     result.raise_for_errors()
     stage = str(payload.get("stage") or "").upper()
     run_id = str(payload.get("run_id") or "").strip()
+    match_ids = _candidate_ids(payload)
+    _ensure_unique(match_ids, label=f"{stage}.matches")
 
     if stage == "STAGE1":
         return PredictorRunState(
             stage1_run_id=run_id,
-            stage1_candidate_ids=_candidate_ids(payload),
+            stage1_candidate_ids=match_ids,
             stage2_run_id=None,
             stage3_run_id=None,
         )
@@ -60,6 +67,7 @@ def validate_and_advance(state: PredictorRunState, payload: dict[str, Any]) -> P
         if str(payload.get("predecessor_stage1_run_id") or "") != state.stage1_run_id:
             raise PredictorPolicyError("SXF-WF-005: Stage 2 predecessor_stage1_run_id does not match runtime state")
         active = tuple(str(item) for item in (payload.get("user_scope_override_ids") if "user_scope_override_ids" in payload else payload.get("stage1_candidate_ids") or []))
+        _ensure_unique(active, label="STAGE2 active candidate set")
         if set(active) != set(state.stage1_candidate_ids) and payload.get("scope_change_authorized_by_user") is not True:
             raise PredictorPolicyError("SXF-WF-005: Stage 2 candidate set changed without explicit user scope authorization")
         return PredictorRunState(
@@ -77,6 +85,7 @@ def validate_and_advance(state: PredictorRunState, payload: dict[str, Any]) -> P
         if str(payload.get("predecessor_stage2_run_id") or "") != state.stage2_run_id:
             raise PredictorPolicyError("SXF-WF-005: Stage 3 predecessor_stage2_run_id does not match runtime state")
         active = tuple(str(item) for item in (payload.get("user_scope_override_ids") if "user_scope_override_ids" in payload else payload.get("stage1_candidate_ids") or []))
+        _ensure_unique(active, label="STAGE3 active candidate set")
         if set(active) != set(state.stage1_candidate_ids) and payload.get("scope_change_authorized_by_user") is not True:
             raise PredictorPolicyError("SXF-WF-005: Stage 3 candidate set changed without explicit user scope authorization")
         return PredictorRunState(
