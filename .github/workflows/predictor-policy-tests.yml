@@ -10,6 +10,7 @@ on:
       - 'tests/test_predictor_policy.py'
       - 'tests/test_predictor_runtime.py'
       - 'tests/test_predictor_orchestrator.py'
+      - 'tests/test_predictor_llm_client.py'
 
 permissions:
   contents: read
@@ -30,7 +31,8 @@ jobs:
           python -m unittest \
             tests.test_predictor_policy \
             tests.test_predictor_runtime \
-            tests.test_predictor_orchestrator
+            tests.test_predictor_orchestrator \
+            tests.test_predictor_llm_client
       - name: Compile predictor policy and orchestrator runtime
         run: |
           python -m py_compile \
