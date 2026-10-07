@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import rjsmin
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,29 +15,35 @@ TEST_FILE = ROOT / 'tests/test_chart_export_code_split.js'
 source = APP_SRC.read_text(encoding='utf-8')
 runtime = APP_RUNTIME.read_text(encoding='utf-8')
 
-# Fail closed: app.js may contain runtime-only repairs in this repository.
-# Never regenerate it unless the current served bundle is exactly the current
-# source minified by the canonical rjsmin pipeline.
-current_generated = rjsmin.jsmin(source)
-if current_generated != runtime:
+src_start_marker = 'function generateExportFilename(extension) {'
+src_end_marker = 'function toggleChartSeries(market, seriesKey, btn) {'
+if source.count(src_start_marker) != 1 or source.count(src_end_marker) != 1:
+    raise SystemExit('Expected exactly one chart export block boundary in app.js.src')
+src_start = source.index(src_start_marker)
+src_end = source.index(src_end_marker)
+if src_end <= src_start:
+    raise SystemExit('Invalid chart export source block ordering')
+
+runtime_start = re.search(r'function\s+generateExportFilename\s*\(\s*extension\s*\)\s*\{', runtime)
+runtime_end = re.search(r'function\s+toggleChartSeries\s*\(\s*market\s*,\s*seriesKey\s*,\s*btn\s*\)\s*\{', runtime)
+if not runtime_start or not runtime_end or runtime_end.start() <= runtime_start.start():
+    raise SystemExit('Could not safely locate chart export block in served app.js')
+
+source_export = source[src_start:src_end].rstrip()
+runtime_export = runtime[runtime_start.start():runtime_end.start()].rstrip()
+
+# app.js intentionally has runtime-only formatting/repairs elsewhere. Preserve it.
+# We only proceed if the specific export block has source/runtime behavior parity
+# after normalization, then splice that block independently in both files.
+if rjsmin.jsmin(source_export) != rjsmin.jsmin(runtime_export):
     raise SystemExit(
-        'Refusing P2.14 transformation: static/js/app.js differs from '
-        'rjsmin(static/js/app.js.src). Reconcile source/runtime first.'
+        'Refusing P2.14 transformation: chart export block differs behaviorally '
+        'between app.js.src and served app.js.'
     )
 
-start_marker = 'function generateExportFilename(extension) {'
-end_marker = 'function toggleChartSeries(market, seriesKey, btn) {'
-if source.count(start_marker) != 1 or source.count(end_marker) != 1:
-    raise SystemExit('Expected exactly one chart export block boundary in app.js.src')
+deferred_source = """// Deferred chart export runtime. Loaded on first export action only.\n(function () {\n%s\n\nwindow.__sxfExportChartPNGImpl = exportChartPNG;\nwindow.__sxfExportChartCSVImpl = exportChartCSV;\nwindow.__sxfExportFullMatchTXTImpl = exportFullMatchTXT;\n})();\n""" % source_export
 
-start = source.index(start_marker)
-end = source.index(end_marker)
-if end <= start:
-    raise SystemExit('Invalid chart export block ordering')
-
-export_block = source[start:end].rstrip()
-
-deferred_source = """// Deferred chart export runtime. Loaded on first export action only.\n(function () {\n%s\n\nwindow.__sxfExportChartPNGImpl = exportChartPNG;\nwindow.__sxfExportChartCSVImpl = exportChartCSV;\nwindow.__sxfExportFullMatchTXTImpl = exportFullMatchTXT;\n})();\n""" % export_block
+deferred_runtime = rjsmin.jsmin(deferred_source)
 
 loader = r"""window._sxfChartExportRuntimePromise = window._sxfChartExportRuntimePromise || null;
 function _getChartExportRuntimeUrl() {
@@ -102,11 +109,14 @@ async function exportFullMatchTXT(...args) {
 
 """
 
-new_source = source[:start] + loader + source[end:]
+new_source = source[:src_start] + loader + source[src_end:]
+loader_runtime = rjsmin.jsmin(loader)
+new_runtime = runtime[:runtime_start.start()] + loader_runtime + runtime[runtime_end.start():]
+
 APP_SRC.write_text(new_source, encoding='utf-8')
+APP_RUNTIME.write_text(new_runtime, encoding='utf-8')
 EXPORT_SRC.write_text(deferred_source, encoding='utf-8')
-APP_RUNTIME.write_text(rjsmin.jsmin(new_source), encoding='utf-8')
-EXPORT_RUNTIME.write_text(rjsmin.jsmin(deferred_source), encoding='utf-8')
+EXPORT_RUNTIME.write_text(deferred_runtime, encoding='utf-8')
 
 minify_text = MINIFY.read_text(encoding='utf-8')
 chart_pair = "    ('static/js/chart-export.js.src', 'static/js/chart-export.js'),\n"
@@ -122,11 +132,7 @@ if "      - 'static/js/chart-export.js'\n" not in ci_text:
     anchor = "      - 'static/js/app.js.src'\n"
     if ci_text.count(anchor) != 1:
         raise SystemExit('Could not safely update frontend CI paths')
-    ci_text = ci_text.replace(
-        anchor,
-        anchor + "      - 'static/js/chart-export.js'\n      - 'static/js/chart-export.js.src'\n",
-        1,
-    )
+    ci_text = ci_text.replace(anchor, anchor + "      - 'static/js/chart-export.js'\n      - 'static/js/chart-export.js.src'\n", 1)
 if "      - 'tests/test_chart_export_code_split.js'\n" not in ci_text:
     anchor = "      - 'tests/test_modal_chart_helper_split.js'\n"
     if ci_text.count(anchor) != 1:
@@ -152,22 +158,18 @@ const exportSource = fs.readFileSync(path.join(root, 'static/js/chart-export.js.
 const minifySource = fs.readFileSync(path.join(root, 'minify.py'), 'utf8');
 
 const movedHelpers = [
-  'generateExportFilename',
-  'isEXEEnvironment',
-  'showExportNotification',
-  'savePNGViaAPI',
-  'showExportOverlay',
-  'removeExportOverlay',
+  'generateExportFilename', 'isEXEEnvironment', 'showExportNotification',
+  'savePNGViaAPI', 'showExportOverlay', 'removeExportOverlay',
   'exportChartPNGFallback',
 ];
 
 for (const helper of movedHelpers) {
   test(`${helper} lives only in deferred chart export runtime`, () => {
     const signature = new RegExp(`(?:async\\s+)?function\\s+${helper}\\s*\\(`);
-    assert.doesNotMatch(mainRuntime, signature, `${helper} must leave app.js`);
-    assert.doesNotMatch(mainSource, signature, `${helper} must leave app.js.src`);
-    assert.match(exportRuntime, signature, `${helper} must exist in chart-export.js`);
-    assert.match(exportSource, signature, `${helper} must exist in chart-export.js.src`);
+    assert.doesNotMatch(mainRuntime, signature);
+    assert.doesNotMatch(mainSource, signature);
+    assert.match(exportRuntime, signature);
+    assert.match(exportSource, signature);
   });
 }
 
@@ -183,13 +185,13 @@ test('eager bundle keeps lazy public export entrypoints', () => {
   assert.match(mainSource, /window\.__sxfExportFullMatchTXTImpl\(\.\.\.args\)/);
 });
 
-test('chart export loader is single-flight and retryable after load failure', () => {
+test('loader is single-flight and retryable after failure', () => {
   assert.match(mainSource, /if \(window\._sxfChartExportRuntimePromise\) return window\._sxfChartExportRuntimePromise;/);
   const resets = mainSource.match(/window\._sxfChartExportRuntimePromise = null;/g) || [];
-  assert.ok(resets.length >= 2, 'loader should reset the promise on invalid load and network error');
+  assert.ok(resets.length >= 2);
 });
 
-test('deferred runtime publishes all export implementations', () => {
+test('deferred runtime publishes implementations and full TXT exporter', () => {
   assert.match(exportSource, /window\.__sxfExportChartPNGImpl = exportChartPNG;/);
   assert.match(exportSource, /window\.__sxfExportChartCSVImpl = exportChartCSV;/);
   assert.match(exportSource, /window\.__sxfExportFullMatchTXTImpl = exportFullMatchTXT;/);
@@ -197,14 +199,15 @@ test('deferred runtime publishes all export implementations', () => {
   assert.doesNotMatch(mainSource, /SmartXFlow - Full Match Data Export/);
 });
 
-test('canonical minifier knows about chart export runtime', () => {
+test('canonical minifier includes chart export runtime', () => {
   assert.match(minifySource, /static\/js\/chart-export\.js\.src/);
   assert.match(minifySource, /static\/js\/chart-export\.js/);
 });
 ''', encoding='utf-8')
 
 print('P2.14 staged successfully')
-print(f'app.js.src: {len(source)} -> {len(new_source)} bytes ({len(new_source) - len(source):+d})')
-print(f'app.js: {len(runtime)} -> {len(rjsmin.jsmin(new_source))} bytes ({len(rjsmin.jsmin(new_source)) - len(runtime):+d})')
-print(f'chart-export.js.src: {len(deferred_source)} bytes')
-print(f'chart-export.js: {len(rjsmin.jsmin(deferred_source))} bytes')
+print(f'export behavior parity: yes')
+print(f'app.js.src: {len(source.encode())} -> {len(new_source.encode())} bytes ({len(new_source.encode()) - len(source.encode()):+d})')
+print(f'app.js: {len(runtime.encode())} -> {len(new_runtime.encode())} bytes ({len(new_runtime.encode()) - len(runtime.encode()):+d})')
+print(f'chart-export.js.src: {len(deferred_source.encode())} bytes')
+print(f'chart-export.js: {len(deferred_runtime.encode())} bytes')
