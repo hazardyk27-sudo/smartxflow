@@ -24,6 +24,7 @@ from urllib.parse import quote as url_quote
 import requests
 
 from core.hash_utils import make_match_id_hash
+from sinyal_first_snapshot_fetch import install_first_snapshot_fetch
 import sinyal_engine as engine
 
 try:
@@ -372,6 +373,7 @@ def _canonical_signal_hash(home: str, away: str, league: str) -> str:
 
 
 def _install_runtime_guards() -> None:
+    install_first_snapshot_fetch(engine)
     engine.update_heartbeat = update_heartbeat
     engine.check_new_scraper_signal = check_new_scraper_signal
     engine.run_scan = run_scan_guarded
