@@ -112,13 +112,15 @@ runtime_pipeline = runtime[br0:br1]
 parity(source_pipeline, runtime_pipeline, 'modal data pipeline')
 
 # No hidden eager consumers of private cache state/helpers are allowed.
+# resetModalState is moving in the same change, so its cache-reset references are part of the owned target.
 private_names = [
     'bulkHistoryCache', 'bulkHistoryCacheKey', 'MODAL_CACHE_TTL', 'modalDataCache',
     'getModalCacheKey', 'getModalCachedData', 'setModalCachedData'
 ]
 for name in private_names:
-    if source.count(name) != source_pipeline.count(name):
-        raise SystemExit(f'P2.18 {name} has an eager consumer outside the target pipeline')
+    owned_count = source_pipeline.count(name) + reset_src.count(name)
+    if source.count(name) != owned_count:
+        raise SystemExit(f'P2.18 {name} has an eager consumer outside reset + pipeline target')
 
 # loadAllMarketsAtOnce should only be the eager definition now that modal entry orchestration is deferred.
 if source.count('loadAllMarketsAtOnce(') != 1:
@@ -160,34 +162,6 @@ source = source[:bs0] + pipeline_stub_src + source[bs1:]
 runtime = runtime[:br0] + pipeline_stub_run + runtime[br1:]
 
 # Expand loader completeness contract so a partially loaded modal-entry runtime cannot pass readiness.
-def replace_loader(text: str, is_runtime: bool):
-    start, end, old = extract_function(text, 'function loadModalEntryRuntime(')
-    if is_runtime:
-        old_min = old
-    else:
-        old_min = rjsmin.jsmin(old)
-    required = [
-        '__sxfOpenMatchModalFromMatchesImpl', '__sxfOpenMatchModalFromAPIImpl', '__sxfOpenMatchModalImpl',
-        '__sxfResetModalStateImpl', '__sxfLoadAllMarketsAtOnceImpl', '__sxfLoadChartWithTrendsImpl'
-    ]
-    if any(name in old for name in required[3:]):
-        raise SystemExit('P2.18 modal-entry loader already contains data-pipeline markers')
-    # Use source as canonical then minify for served runtime.
-    if is_runtime:
-        return start, end, old_min
-    new = old.replace(
-        "typeof window.__sxfOpenMatchModalImpl === 'function';",
-        "typeof window.__sxfOpenMatchModalImpl === 'function' &&\n        typeof window.__sxfResetModalStateImpl === 'function' &&\n        typeof window.__sxfLoadAllMarketsAtOnceImpl === 'function' &&\n        typeof window.__sxfLoadChartWithTrendsImpl === 'function';"
-    )
-    new = new.replace(
-        "typeof window.__sxfOpenMatchModalImpl === 'function';",
-        "typeof window.__sxfOpenMatchModalImpl === 'function' &&\n                typeof window.__sxfResetModalStateImpl === 'function' &&\n                typeof window.__sxfLoadAllMarketsAtOnceImpl === 'function' &&\n                typeof window.__sxfLoadChartWithTrendsImpl === 'function';",
-        1
-    )
-    # The first replace changes both identical lines in normal JS replace-all? str.replace changes all occurrences.
-    # Normalize indentation only; behavior is what matters.
-    return start, end, new
-
 ls0, ls1, loader_src_old = extract_function(source, 'function loadModalEntryRuntime(')
 lr0, lr1, loader_run_old = extract_function(runtime, 'function loadModalEntryRuntime(')
 parity(loader_src_old, loader_run_old, 'modal-entry loader')
