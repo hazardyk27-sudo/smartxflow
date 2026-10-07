@@ -63,13 +63,14 @@ jobs:
       - name: Verify clean diff formatting
         run: git diff --check
 
-      - name: Commit tested P2.14 output
+      - name: Commit tested P2.14 product output
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/p2-chart-export-split-test.yml .github/workflows/p2-bundle-parity-diag.yml scripts/_p2_chart_export_split_stage.py
-          git add static/js/app.js static/js/app.js.src static/js/chart-export.js static/js/chart-export.js.src minify.py tests/test_chart_export_code_split.js .github/workflows/frontend-performance-tests.yml
+          git checkout -- .github/workflows/frontend-performance-tests.yml
+          git rm scripts/_p2_chart_export_split_stage.py
+          git add static/js/app.js static/js/app.js.src static/js/chart-export.js static/js/chart-export.js.src minify.py tests/test_chart_export_code_split.js
           git commit -m "perf: defer chart export runtime"
           git push origin HEAD:perf/p2-chart-export-split
