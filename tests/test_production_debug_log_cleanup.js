@@ -45,3 +45,18 @@ for (const file of ['static/js/live-tab.js', 'static/js/live-tab.js.src']) {
     assert.match(text, /function\s+renderLiveMatches\s*\(/, 'renderLiveMatches must remain in the deferred Live runtime');
   });
 }
+
+for (const file of ['static/js/admin-panel.js', 'static/js/admin-panel.js.src']) {
+  test(`${file} has no production console.log calls`, () => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.doesNotMatch(text, /console\.log\s*\(/, 'deferred Admin runtime must stay free of production console.log calls');
+  });
+
+  test(`${file} preserves Admin diagnostics and renderer entrypoints`, () => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.match(text, /console\.error\s*\(/, 'Admin error diagnostics must remain');
+    assert.match(text, /function\s+loadAdminVolumeLeaderData\s*\(/, 'Volume Leader Admin renderer must remain deferred');
+    assert.match(text, /function\s+loadAdminDroppingData\s*\(/, 'Dropping Admin renderer must remain deferred');
+    assert.match(text, /function\s+loadAdminMimData\s*\(/, 'MIM Admin renderer must remain deferred');
+  });
+}
