@@ -1,0 +1,350 @@
+(function() {
+const mobileBigValueTween = {
+    currentText: '',
+    element: null,
+    duration: 250, // ms
+    
+    // Set new target value with odometer animation
+    setTarget: function(element, newText) {
+        if (!element) return;
+        this.element = element;
+        
+        const oldText = this.currentText || element.textContent || '';
+        newText = String(newText || '--');
+        
+        // If same text, skip
+        if (oldText === newText) return;
+        
+        // If first time or '--', set directly
+        if (!oldText || oldText === '--' || newText === '--') {
+            element.textContent = newText;
+            this.currentText = newText;
+            return;
+        }
+        
+        // Build odometer HTML
+        element.innerHTML = this.buildOdometerHtml(oldText, newText);
+        this.currentText = newText;
+        
+        // Trigger animation after a frame
+        requestAnimationFrame(() => {
+            element.querySelectorAll('.odometer-digit.changing').forEach(digit => {
+                digit.classList.add('animate');
+            });
+        });
+    },
+    
+    // Build HTML for odometer effect
+    buildOdometerHtml: function(oldText, newText) {
+        // Pad to same length
+        const maxLen = Math.max(oldText.length, newText.length);
+        const oldChars = oldText.padStart(maxLen, ' ').split('');
+        const newChars = newText.padStart(maxLen, ' ').split('');
+        
+        let html = '';
+        for (let i = 0; i < maxLen; i++) {
+            const oldChar = oldChars[i];
+            const newChar = newChars[i];
+            
+            if (oldChar === newChar) {
+                // Static character
+                html += `<span class="odometer-digit static">${this.escapeHtml(newChar)}</span>`;
+            } else {
+                // Changing character - animate
+                html += `<span class="odometer-digit changing">`;
+                html += `<span class="odometer-old">${this.escapeHtml(oldChar)}</span>`;
+                html += `<span class="odometer-new">${this.escapeHtml(newChar)}</span>`;
+                html += `</span>`;
+            }
+        }
+        return html;
+    },
+    
+    escapeHtml: function(char) {
+        if (char === ' ') return '&nbsp;';
+        if (char === '<') return '&lt;';
+        if (char === '>') return '&gt;';
+        if (char === '&') return '&amp;';
+        return char;
+    },
+    
+    // Reset state
+    reset: function() {
+        this.currentText = '';
+        if (this.element) {
+            this.element.innerHTML = '';
+        }
+        this.element = null;
+    }
+};
+
+function updateMobileValueHeader(dataIndex) {
+    if (!isMobile() || !chart) return;
+    
+    // Get the single dataset (mobile only has one)
+    const ds = chart.data.datasets[0];
+    if (!ds) return;
+    
+    let idx = dataIndex;
+    if (idx === undefined || idx < 0 || idx >= ds.data.length) {
+        idx = ds.data.length - 1;
+    }
+    
+    const timeLabel = chart.data.labels[idx] || '--:--';
+    const lastTimeLabel = chart.data.labels[chart.data.labels.length - 1] || '--:--';
+    const value = ds.data[idx];
+    
+    // Detect market type - use selectedChartMarket in modal context
+    const activeMarket = selectedChartMarket || currentMarket;
+    const isMoneyway = activeMarket.startsWith('moneyway');
+    const isDropping = activeMarket.startsWith('dropping');
+    
+    // Helper to parse stake value
+    const parseStake = (val) => {
+        if (!val) return '--';
+        const num = parseFloat(String(val).replace(/[£,\s]/g, ''));
+        return isNaN(num) ? '--' : '£' + Math.round(num).toLocaleString();
+    };
+    
+    // Helper to get percentage value
+    const parsePct = (val) => {
+        if (!val) return '--';
+        const str = String(val).replace('%', '').trim();
+        const num = parseFloat(str);
+        return isNaN(num) ? '--' : num.toFixed(1) + '%';
+    };
+    
+    // Get data from history
+    let oddsText = '--';
+    let stakeText = '--';
+    let pctText = '--';
+    let dropPctText = '--';
+    
+    if (mobileChartHistoryData && mobileChartHistoryData[idx]) {
+        const h = mobileChartHistoryData[idx];
+        const pick = mobileSelectedLine;
+        
+        // For dropping odds, use Volume as stake
+        if (isDropping) {
+            stakeText = parseStake(h.Volume);
+            // Calculate change based on 24h ago odds (son 24 saat)
+            let openingOdds = 0, currentOdds = 0;
+            if (pick === '1') {
+                oddsText = h.Odds1 || h['1'] || '--';
+                openingOdds = parseFloat(h.Opening1 || 0);
+                currentOdds = parseFloat(h.Odds1 || h['1'] || 0);
+            } else if (pick === 'X') {
+                oddsText = h.OddsX || h['X'] || '--';
+                openingOdds = parseFloat(h.OpeningX || 0);
+                currentOdds = parseFloat(h.OddsX || h['X'] || 0);
+            } else if (pick === '2') {
+                oddsText = h.Odds2 || h['2'] || '--';
+                openingOdds = parseFloat(h.Opening2 || 0);
+                currentOdds = parseFloat(h.Odds2 || h['2'] || 0);
+            } else if (pick === 'Under') {
+                oddsText = h.Under || h.OddsUnder || '--';
+                openingOdds = parseFloat(h.OpeningUnder || 0);
+                currentOdds = parseFloat(h.Under || h.OddsUnder || 0);
+            } else if (pick === 'Over') {
+                oddsText = h.Over || h.OddsOver || '--';
+                openingOdds = parseFloat(h.OpeningOver || 0);
+                currentOdds = parseFloat(h.Over || h.OddsOver || 0);
+            } else if (pick === 'Yes') {
+                oddsText = h.Yes || h.OddsYes || '--';
+                openingOdds = parseFloat(h.OpeningYes || 0);
+                currentOdds = parseFloat(h.Yes || h.OddsYes || 0);
+            } else if (pick === 'No') {
+                oddsText = h.No || h.OddsNo || '--';
+                openingOdds = parseFloat(h.OpeningNo || 0);
+                currentOdds = parseFloat(h.No || h.OddsNo || 0);
+            }
+            // Calculate change: (opening - current) / opening * 100
+            // Positive = odds went down = show as "-X%", Negative = odds went up = show as "+X%"
+            if (openingOdds > 0 && currentOdds > 0) {
+                const changeVal = ((openingOdds - currentOdds) / openingOdds) * 100;
+                pctText = (changeVal >= 0 ? '-' : '+') + Math.abs(changeVal).toFixed(1) + '%';
+            }
+            // Fallback: compare against first history point if no Opening field
+            if (pctText === '--' && mobileChartHistoryData && mobileChartHistoryData.length > 0 && currentOdds > 0) {
+                const firstH = mobileChartHistoryData[0];
+                let firstOdds = 0;
+                if (pick === '1') firstOdds = parseFloat(firstH.Odds1 || firstH['1'] || 0);
+                else if (pick === 'X') firstOdds = parseFloat(firstH.OddsX || firstH['X'] || 0);
+                else if (pick === '2') firstOdds = parseFloat(firstH.Odds2 || firstH['2'] || 0);
+                else if (pick === 'Under') firstOdds = parseFloat(firstH.Under || firstH.OddsUnder || 0);
+                else if (pick === 'Over') firstOdds = parseFloat(firstH.Over || firstH.OddsOver || 0);
+                else if (pick === 'Yes') firstOdds = parseFloat(firstH.Yes || firstH.OddsYes || 0);
+                else if (pick === 'No') firstOdds = parseFloat(firstH.No || firstH.OddsNo || 0);
+                if (firstOdds > 0) {
+                    const changeVal = ((firstOdds - currentOdds) / firstOdds) * 100;
+                    pctText = (changeVal >= 0 ? '-' : '+') + Math.abs(changeVal).toFixed(1) + '%';
+                }
+            }
+        } else {
+            // Moneyway: use Amt and Pct fields
+            if (pick === '1') {
+                oddsText = h.Odds1 || h['1'] || '--';
+                stakeText = parseStake(h.Amt1);
+                pctText = parsePct(h.Pct1);
+            } else if (pick === 'X') {
+                oddsText = h.OddsX || h['X'] || '--';
+                stakeText = parseStake(h.AmtX);
+                pctText = parsePct(h.PctX);
+            } else if (pick === '2') {
+                oddsText = h.Odds2 || h['2'] || '--';
+                stakeText = parseStake(h.Amt2);
+                pctText = parsePct(h.Pct2);
+            } else if (pick === 'Under') {
+                oddsText = h.Under || h.OddsUnder || '--';
+                stakeText = parseStake(h.AmtUnder);
+                pctText = parsePct(h.PctUnder);
+            } else if (pick === 'Over') {
+                oddsText = h.Over || h.OddsOver || '--';
+                stakeText = parseStake(h.AmtOver);
+                pctText = parsePct(h.PctOver);
+            } else if (pick === 'Yes') {
+                oddsText = h.Yes || h.OddsYes || '--';
+                stakeText = parseStake(h.AmtYes);
+                pctText = parsePct(h.PctYes);
+            } else if (pick === 'No') {
+                oddsText = h.No || h.OddsNo || '--';
+                stakeText = parseStake(h.AmtNo);
+                pctText = parsePct(h.PctNo);
+            }
+        }
+    }
+    
+    // Format values based on market type
+    let bigValueText = '--';
+    let secondaryText = '--';
+    let secondaryLabel = 'Para';
+    
+    if (isMoneyway) {
+        // Moneyway: big value shows selected mode, secondary shows the OTHER value
+        if (value !== null && value !== undefined) {
+            if (chartViewMode === 'money') {
+                bigValueText = '£' + Math.round(value).toLocaleString();
+                // Show percentage in secondary
+                secondaryText = pctText;
+                secondaryLabel = 'Yüzde';
+            } else {
+                bigValueText = value.toFixed(1) + '%';
+                // Show stake in secondary
+                secondaryText = stakeText;
+                secondaryLabel = 'Para';
+            }
+        }
+    } else if (isDropping) {
+        // Dropping Odds: big value shows odds (clean, no symbol)
+        if (value !== null && value !== undefined) {
+            bigValueText = value.toFixed(2);
+        } else if (oddsText && oddsText !== '--') {
+            // Fallback: clean odds text (remove any symbols)
+            const cleanOdds = String(oddsText).replace(/[^0-9.]/g, '');
+            bigValueText = cleanOdds || oddsText;
+        }
+        secondaryText = pctText;
+        secondaryLabel = 'Yüzde';
+    }
+    
+    // Debug log
+    void 0;
+    
+    // Update header elements
+    const bigValueEl = document.getElementById('mvhBigValue');
+    const changeEl = document.getElementById('mvhChange');
+    const oddsEl = document.getElementById('mvhOdds');
+    const oddsLabelEl = document.getElementById('mvhOddsLabel');
+    const stakeEl = document.getElementById('mvhStake');
+    const stakeLabelEl = document.getElementById('mvhStakeLabel');
+    const timeEl = document.getElementById('mvhTime');
+    
+    // Use tween animation for smooth value transitions on mobile
+    if (bigValueEl) {
+        mobileBigValueTween.setTarget(bigValueEl, bigValueText);
+    }
+    if (changeEl) changeEl.textContent = 'Son değer • ' + lastTimeLabel;
+    
+    if (isDropping) {
+        // Dropping Odds: Para (yellow) + Değişim (green/red based on sign)
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Para';
+        if (oddsEl) {
+            oddsEl.textContent = stakeText;
+            oddsEl.classList.remove('moneyway-oran');
+            oddsEl.classList.add('dropping-para');
+        }
+        if (stakeLabelEl) stakeLabelEl.textContent = 'Değişim';
+        if (stakeEl) {
+            stakeEl.textContent = pctText;
+            stakeEl.classList.remove('moneyway-para');
+            stakeEl.classList.remove('positive', 'negative');
+            const pctStr = String(pctText).trim();
+            if (pctStr.startsWith('+') || (pctStr.match(/^[0-9]/) && parseFloat(pctStr) > 0)) {
+                stakeEl.classList.add('positive'); // green
+            } else if (pctStr.startsWith('-')) {
+                stakeEl.classList.add('negative'); // red
+            }
+        }
+    } else {
+        // Moneyway: Oran (white) + Para (yellow)
+        if (oddsLabelEl) oddsLabelEl.textContent = 'Oran';
+        if (oddsEl) {
+            oddsEl.textContent = oddsText;
+            oddsEl.classList.remove('dropping-para');
+            oddsEl.classList.add('moneyway-oran');
+        }
+        if (stakeLabelEl) stakeLabelEl.textContent = secondaryLabel;
+        if (stakeEl) {
+            stakeEl.textContent = secondaryText;
+            stakeEl.classList.remove('positive', 'negative');
+            stakeEl.classList.add('moneyway-para');
+        }
+    }
+    
+    if (timeEl) timeEl.textContent = timeLabel;
+}
+
+// Legacy alias for compatibility
+function updateMobileValuePanel(dataIndex) {
+    updateMobileValueHeader(dataIndex);
+}
+
+function updateMobileSelectionButtons(market) {
+    const toggle = document.getElementById('mobSelectionToggle');
+    if (!toggle) return;
+    
+    let buttons = [];
+    let validSelections = [];
+    if (market.includes('1x2')) {
+        buttons = [
+            { sel: '1', label: '1' },
+            { sel: 'X', label: 'X' },
+            { sel: '2', label: '2' }
+        ];
+        validSelections = ['1', 'X', '2'];
+    } else if (market.includes('ou25')) {
+        buttons = [
+            { sel: 'Under', label: _t('app.dyn.alt','Alt') },
+            { sel: 'Over', label: _t('app.dyn.ust','Üst') }
+        ];
+        validSelections = ['Under', 'Over'];
+    } else if (market.includes('btts')) {
+        buttons = [
+            { sel: 'Yes', label: _t('app.dyn.evet','Evet') },
+            { sel: 'No', label: _t('app.dyn.hayir','Hayır') }
+        ];
+        validSelections = ['Yes', 'No'];
+    }
+    
+    // Only reset selection if current selection is not valid for this market
+    if (!validSelections.includes(mobileSelectedLine)) {
+        mobileSelectedLine = validSelections[0] || '1';
+    }
+    
+    toggle.innerHTML = buttons.map((b) => 
+        `<button class="mob-sel-btn ${b.sel === mobileSelectedLine ? 'active' : ''}" data-sel="${b.sel}" onclick="setMobileSelection('${b.sel}')">${b.label}</button>`
+    ).join('');
+}
+window.__sxfUpdateMobileValuePanelImpl = updateMobileValuePanel;
+window.__sxfUpdateMobileSelectionButtonsImpl = updateMobileSelectionButtons;
+})();

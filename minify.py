@@ -8,6 +8,7 @@ pairs = [
     ('static/css/alert_band.css.src', 'static/css/alert_band.css'),
     ('static/js/app.js.src', 'static/js/app.js'),
     ('static/js/modal-info.js.src', 'static/js/modal-info.js'),
+    ('static/js/mobile-chart-panel.js.src', 'static/js/mobile-chart-panel.js'),
     ('static/js/chart-export.js.src', 'static/js/chart-export.js'),
     ('static/js/inline.js.src', 'static/js/inline.js'),
     ('static/js/inline.js.src', 'static/js/ui.js'),
