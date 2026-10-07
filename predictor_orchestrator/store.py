@@ -151,21 +151,40 @@ class SQLiteOrchestratorStore:
         raw_payload: dict[str, Any] | None,
         violations: list[dict[str, str]],
         accepted: bool,
-    ) -> None:
+    ) -> int:
+        """Append one audit attempt and return its durable monotonic sequence number.
+
+        attempt_no is the attempt number inside the current repair loop. Durable
+        numbering is allocated from the database so a later retry after an
+        exhausted run cannot collide with prior attempts.
+        """
+        del attempt_no
         with self._lock, self._connect() as conn:
-            conn.execute(
-                "INSERT INTO predictor_attempts(workflow_id,stage,attempt_no,model,raw_payload_json,violations_json,accepted,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                (
-                    workflow_id,
-                    stage,
-                    attempt_no,
-                    model,
-                    _dumps(raw_payload) if raw_payload is not None else None,
-                    _dumps(violations),
-                    1 if accepted else 0,
-                    _utc_now(),
-                ),
-            )
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                row = conn.execute(
+                    "SELECT COALESCE(MAX(attempt_no), 0) AS max_attempt FROM predictor_attempts WHERE workflow_id=? AND stage=?",
+                    (workflow_id, stage),
+                ).fetchone()
+                durable_attempt = int(row["max_attempt"] or 0) + 1
+                conn.execute(
+                    "INSERT INTO predictor_attempts(workflow_id,stage,attempt_no,model,raw_payload_json,violations_json,accepted,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (
+                        workflow_id,
+                        stage,
+                        durable_attempt,
+                        model,
+                        _dumps(raw_payload) if raw_payload is not None else None,
+                        _dumps(violations),
+                        1 if accepted else 0,
+                        _utc_now(),
+                    ),
+                )
+                conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+        return durable_attempt
 
     def accept_stage(
         self,
