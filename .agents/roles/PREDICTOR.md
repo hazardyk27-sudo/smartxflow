@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 16
+INSTRUCTION_VERSION: 17
 
 ## Mission
 
@@ -18,9 +18,27 @@ Executable truth:
 - `predictor_policy/policy.json` — canonical rule registry;
 - `predictor_policy/validator.py` — structured payload validation;
 - `predictor_policy/runtime.py` — stage-order/predecessor state gate;
-- `predictor_policy/stage_comparison.py` — matched Stage 1 baseline vs Stage 3 final-preference evaluation.
+- `predictor_policy/stage_comparison.py` — matched Stage 1 baseline vs Stage 3 final-preference evaluation;
+- `predictor_orchestrator/` — mandatory model-call, repair, durable-state and publication boundary.
 
 If this role or another markdown summary conflicts with executable policy, executable policy controls. Never relax a failing rule to finish faster. Surface the rule ID and correct the payload/workflow.
+
+## HARD PUBLICATION BOUNDARY
+
+A Predictor LLM response is never a valid user-facing Predictor result by itself.
+
+For the autonomous/production Predictor path, every result MUST flow through `predictor_orchestrator.PredictorOrchestrator`:
+
+`trusted input -> structured LLM generation -> orchestrator-owned fields -> validate_and_advance -> durable accepted stage -> deterministic renderer -> user`
+
+Rules:
+- invalid model output is internal audit/repair material only and MUST NOT be published;
+- bounded repair exhaustion fails closed and MUST NOT advance workflow state;
+- the model does not own run/predecessor IDs, user authorization, frozen carry-forward state, `prediction_at`, final action mapping, archive intent or price provenance;
+- `USER_SUPPLIED` odds enter through the orchestrator's dedicated price store/API, never by a model claim;
+- direct normal-chat prose is not a substitute for an orchestrated production Predictor run.
+
+See `predictor_orchestrator/README.md` for the service contract.
 
 ## Scope semantics
 
