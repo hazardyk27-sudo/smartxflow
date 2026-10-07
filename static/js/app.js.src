@@ -1318,18 +1318,18 @@ function setupAutoRefresh() {
     
     // 10 dakika + jitter'da bir maçları yenile
     _matchRefreshInterval = setInterval(async () => {
-        console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
+        void 0;
         await refreshMatchData();
     }, intervalWithJitter);
     
-    console.log(`[AutoRefresh] Kuruldu - ${Math.round(intervalWithJitter/1000)}s'de bir yenilenecek (jitter: ${Math.round(jitter/1000)}s)`);
+    void 0;
 }
 
 // Maç verilerini yenile (tek fonksiyon)
 async function refreshMatchData() {
     if (_liveMode) return;
     if (_loadMatchesLock) {
-        console.log('[AutoRefresh] Zaten yükleme var, atlanıyor');
+        void 0;
         return;
     }
     
@@ -1341,7 +1341,7 @@ async function refreshMatchData() {
         
         await loadMatches();
         updateLastRefreshDisplay();
-        console.log('[AutoRefresh] Maçlar güncellendi');
+        void 0;
     } catch (e) {
         console.error('[AutoRefresh] Hata:', e);
     }
@@ -1354,9 +1354,9 @@ function handleVisibilityChange() {
         if (!_matchRefreshInterval) {
             const jitter = getRefreshJitter();
             const intervalWithJitter = MATCH_REFRESH_INTERVAL + jitter;
-            console.log(`[AutoRefresh] Tab aktif - interval yeniden başlatıldı (jitter: ${Math.round(jitter/1000)}s)`);
+            void 0;
             _matchRefreshInterval = setInterval(async () => {
-                console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');
+                void 0;
                 await refreshMatchData();
             }, intervalWithJitter);
         }
@@ -1372,10 +1372,10 @@ function handleVisibilityChange() {
             const diffMs = now.diff(_lastMatchRefreshTime);
             
             if (diffMs > MATCH_REFRESH_INTERVAL) {
-                console.log('[AutoRefresh] Sekmeye dönüldü, veri eski - yenileniyor...');
+                void 0;
                 refreshMatchData();
             } else {
-                console.log('[AutoRefresh] Sekmeye dönüldü, veri güncel');
+                void 0;
             }
         }
     } else if (document.visibilityState === 'hidden') {
@@ -1383,7 +1383,7 @@ function handleVisibilityChange() {
         if (_matchRefreshInterval) {
             clearInterval(_matchRefreshInterval);
             _matchRefreshInterval = null;
-            console.log('[AutoRefresh] Tab arka planda - interval durduruldu');
+            void 0;
         }
         if (_bgLiveInterval) {
             clearInterval(_bgLiveInterval);
@@ -1503,7 +1503,7 @@ function renderMatchLoadError(message, reloadPage = false) {
 
 async function loadMatches(appendMode = false, forceNetwork = false) {
     if (_liveMode) {
-        console.log('[Matches] blocked: liveMode');
+        void 0;
         return;
     }
 
@@ -1544,9 +1544,9 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
         } else {
             if (forceNetwork || cacheKey !== _loadMatchesRequestKey) {
                 queueFollowupLoad(false, forceNetwork);
-                console.log('[Matches] queued follow-up load behind pending request:', cacheKey);
+                void 0;
             } else {
-                console.log('[Matches] blocked: loadLock; coalescing with pending request');
+                void 0;
             }
             return _loadMatchesPending;
         }
@@ -1555,7 +1555,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
     _loadMatchesLock = true;
     const cached = _matchesMarketCache[cacheKey];
     if (forceNetwork) {
-        console.log('[Matches] bypassing client cache');
+        void 0;
     }
     if (!appendMode && !forceNetwork && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
         matches = cached.matches;
@@ -1571,7 +1571,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
         _loadMatchesLock = false;
         _loadMatchesPendingSince = 0;
         _loadMatchesRequestKey = null;
-        console.log('[Matches] Cache HIT:', cacheKey);
+        void 0;
         return;
     }
     
@@ -1643,7 +1643,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
             }
             
-            console.log('[Matches] Loading with bulk mode:', apiUrl);
+            void 0;
             const startTime = performance.now();
             
             let matchPayload;
@@ -1659,7 +1659,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                 }
             }
             if (requestId !== _loadMatchesRequestId) {
-                console.log('[Matches] Ignoring response from stale request:', requestId);
+                void 0;
                 return;
             }
             const response = matchPayload.response;
@@ -1684,19 +1684,11 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             }
             
             const elapsed = Math.round(performance.now() - startTime);
-            console.log(`[Matches] Loaded ${responseMatches.length} matches in ${elapsed}ms`);
+            void 0;
             
             // Discard data captured for an old market/source/date or before entering Live.
             if (!requestIsCurrent()) {
-                console.log('[Matches] Discarding response after Prematch state changed:', {
-                    requestMarket,
-                    currentMarket,
-                    requestSource,
-                    currentSource,
-                    requestDateFilter,
-                    currentDateFilter: dateFilterMode,
-                    liveMode: _liveMode
-                });
+                void 0;
                 if (!_liveMode) queueFollowupLoad(false, forceNetwork);
                 return;
             }
@@ -1722,11 +1714,11 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             }
         } catch (error) {
             if (requestId !== _loadMatchesRequestId) {
-                console.log('[Matches] Ignoring failure from stale request:', requestId);
+                void 0;
                 return;
             }
             if (!requestIsCurrent()) {
-                console.log('[Matches] Suppressing error from outdated Prematch request');
+                void 0;
                 if (!_liveMode) queueFollowupLoad(false, forceNetwork);
                 return;
             }
@@ -1743,7 +1735,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                 const queuedLoad = _loadMatchesQueued;
                 _loadMatchesQueued = null;
                 if (queuedLoad && !_liveMode) {
-                    console.log('[Matches] Starting queued Prematch request');
+                    void 0;
                     setTimeout(() => {
                         if (!_liveMode) loadMatches(queuedLoad.appendMode, queuedLoad.forceNetwork);
                     }, 0);
@@ -1806,7 +1798,7 @@ async function loadAllRemainingMatches() {
             attachTrendTooltipListeners();
         }
     }
-    console.log('[Pagination] Loaded all matches in single batch:', matches.length);
+    void 0;
 }
 
 function updateTableHeaders() {
@@ -5786,7 +5778,7 @@ async function updateInterval() {
         }
         
         const result = await response.json();
-        console.log('Interval updated:', result);
+        void 0;
         
         checkStatus();
     } catch (error) {
@@ -5810,7 +5802,7 @@ async function preloadDropMarkets() {
     dropMarketsPreloaded = true;
     
     const dropMarkets = ['dropping_1x2', 'dropping_ou25', 'dropping_btts'];
-    console.log('[Preload] Starting parallel load for drop markets...');
+    void 0;
     
     await Promise.all(dropMarkets.map(async (market) => {
         if (!oddsTrendCacheByMarket[market]) {
@@ -5818,13 +5810,13 @@ async function preloadDropMarkets() {
                 const response = await fetch(`/api/odds-trend/${market}`);
                 const result = await response.json();
                 oddsTrendCacheByMarket[market] = result.data || {};
-                console.log(`[Preload] Cached ${market}: ${Object.keys(oddsTrendCacheByMarket[market]).length} matches`);
+                void 0;
             } catch (e) {
                 console.warn(`[Preload] Failed ${market}:`, e.message);
             }
         }
     }));
-    console.log('[Preload] Drop markets ready');
+    void 0;
 }
 
 async function loadOddsTrend(market) {
@@ -5835,7 +5827,7 @@ async function loadOddsTrend(market) {
     
     if (oddsTrendCacheByMarket[market]) {
         oddsTrendCache = oddsTrendCacheByMarket[market];
-        console.log(`[Odds Trend] Using JS cache for ${market}`);
+        void 0;
         return;
     }
     
@@ -5844,7 +5836,7 @@ async function loadOddsTrend(market) {
         const result = await response.json();
         oddsTrendCache = result.data || {};
         oddsTrendCacheByMarket[market] = oddsTrendCache;
-        console.log(`[Odds Trend] Loaded ${Object.keys(oddsTrendCache).length} matches for ${market}`);
+        void 0;
     } catch (error) {
         console.error('[Odds Trend] Error loading:', error);
         oddsTrendCache = {};
@@ -5927,7 +5919,7 @@ function getOddsTrendData(home, away, selection) {
         if (!window._trendDebugCount) window._trendDebugCount = 0;
         if (window._trendDebugCount < 5) {
             const cacheKeys = Object.keys(oddsTrendCache).slice(0, 5);
-            console.log(`[TrendDebug] MISS: "${key}" not in cache. Sample keys:`, cacheKeys);
+            void 0;
             window._trendDebugCount++;
         }
         return null;
@@ -7144,7 +7136,7 @@ function toggleDateFilterDropdown() {
 }
 
 function selectDateFilter(dateFilter) {
-    console.log('[selectDateFilter] Date filter changed to:', dateFilter);
+    void 0;
     currentAlarmDateFilter = dateFilter;
     
     // Label'ı güncelle
@@ -9809,12 +9801,12 @@ function switchFromLive() {
     filteredMatches = applySorting(matches);
     renderMatches(filteredMatches);
     if (wasLive) {
-        console.log('[Matches] Live mode exited; scheduling Prematch reload');
+        void 0;
         // Let the initiating desktop/mobile handler update the selected market first.
         // forceNetwork bypasses only the client cache; the server-side cache remains intact.
         setTimeout(() => {
             if (_liveMode) {
-                console.log('[Matches] Prematch reload skipped: liveMode became active again');
+                void 0;
                 return;
             }
             loadMatches(false, true);
@@ -9898,11 +9890,11 @@ async function loadLiveMatches() {
                 if (newH > oldH && newA === oldA) side = 'home';
                 else if (newA > oldA && newH === oldH) side = 'away';
                 _goalHashes[gh] = { side: side, oldScore: _prevLiveScores[gh] };
-                console.log('[GOL] ' + gm.home_team + ' vs ' + gm.away_team + ': ' + _prevLiveScores[gh] + ' → ' + gs + ' (' + side + ')');
+                void 0;
             }
             if (gh && gs) _prevLiveScores[gh] = gs;
         }
-        if (_prevCount === 0) console.log('[GOL] İlk yükleme - ' + Object.keys(_prevLiveScores).length + ' maç kaydedildi');
+        if (_prevCount === 0) void 0;
         renderLiveMatches(_liveData, _goalHashes);
         var now = new Date();
         var lut = document.getElementById('liveUpdateTime');
@@ -10385,7 +10377,7 @@ async function _openLiveInMainModal(hash, home, away) {
             var ma = (arr[i].away_team || '').toLowerCase().trim();
             if (mh === homeLow && ma === awayLow) { return { m: arr[i], idx: i }; }
             if ((mh.includes(homeLow) || homeLow.includes(mh)) && (ma.includes(awayLow) || awayLow.includes(ma))) {
-                console.log('[LiveModal] Fuzzy matched in ' + label + ':', mh, 'vs', ma, 'at index', i);
+                void 0;
                 return { m: arr[i], idx: i };
             }
         }
@@ -10393,7 +10385,7 @@ async function _openLiveInMainModal(hash, home, away) {
     }
     var fArr = (typeof filteredMatches !== 'undefined' && filteredMatches.length > 0) ? filteredMatches : [];
     var mArr = (typeof matches !== 'undefined' && matches.length > 0) ? matches : [];
-    console.log('[LiveModal] Searching', homeLow, 'vs', awayLow, 'in filtered:', fArr.length, 'all:', mArr.length);
+    void 0;
     var res = _fuzzySearch(fArr, 'filteredMatches');
     if (res) { match = res.m; matchIdx = res.idx; usedSource = 'filtered'; }
     if (!match && mArr.length > fArr.length) {
@@ -10402,14 +10394,14 @@ async function _openLiveInMainModal(hash, home, away) {
     }
     if (match && matchIdx >= 0) {
         if (usedSource === 'all' && typeof matches !== 'undefined') {
-            console.log('[LiveModal] Found in all matches (not in filtered), injecting into filteredMatches');
+            void 0;
             filteredMatches.push(match);
             matchIdx = filteredMatches.length - 1;
         }
-        console.log('[LiveModal] Found prematch match (' + usedSource + '), opening with openMatchModal idx=', matchIdx);
+        void 0;
         await openMatchModal(matchIdx);
     } else {
-        console.log('[LiveModal] No prematch match found in either list, using openMatchModalFromAPI');
+        void 0;
         await openMatchModalFromAPI(home, away, '', '');
     }
     setTimeout(function() {
