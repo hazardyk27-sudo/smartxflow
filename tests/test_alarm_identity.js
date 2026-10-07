@@ -25,7 +25,10 @@ function extractFunctionDeclaration(sourceText, signature) {
 }
 
 const groupSource = extractFunctionDeclaration(source, 'function groupAlarmsByMatch(');
-const identitySource = extractFunctionDeclaration(source, 'function _matchContextHash(');
+const identityStart = source.indexOf('function _matchContextHash(');
+const identityEnd = source.indexOf('\nfunction formatSmartMoneyTime', identityStart);
+assert(identityStart >= 0 && identityEnd > identityStart);
+const identitySource = source.slice(identityStart, identityEnd);
 
 const sandbox = {
     console,
