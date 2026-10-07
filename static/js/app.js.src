@@ -126,7 +126,7 @@ function loadFavoriteCounts() {
         return r.json();
     })
     .then(function(data) {
-        console.log('[Fav] Loaded counts:', Object.keys(data.counts || {}).length, 'matches');
+        void 0;
         _favCounts = data.counts || {};
         _updateFavCountsInDOM();
     })
@@ -177,16 +177,16 @@ function toggleFavorite(el) {
     var mk = el.getAttribute('data-matchkey');
     if (!mk) return;
     var did = getWebDeviceId();
-    console.log('[Fav] toggle:', mk, 'device:', did);
+    void 0;
     fetch('/api/favorite/toggle', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({match_key: mk, device_id: did})
     })
-    .then(function(r) { console.log('[Fav] response status:', r.status); return r.json(); })
+    .then(function(r) { void 0; return r.json(); })
     .then(function(data) {
         if (data.error) { console.warn('[Fav] error:', data.error); return; }
-        console.log('[Fav] result:', data.favorited ? 'ADDED' : 'REMOVED', 'count:', data.total_count);
+        void 0;
         if (data.favorited) {
             _userFavorites.add(mk);
         } else {
@@ -631,7 +631,7 @@ async function fetchAlarmsBatch(forceRefresh = false) {
     const now = Date.now();
     
     if (!forceRefresh && _alarmBatchCache && (now - _alarmCacheTime) < ALARM_CACHE_TTL) {
-        console.log('[AlarmCache] Using cached data, age:', Math.round((now - _alarmCacheTime) / 1000), 'sec');
+        void 0;
         return _alarmBatchCache;
     }
     
@@ -642,7 +642,7 @@ async function fetchAlarmsBatch(forceRefresh = false) {
         
         _alarmBatchCache = data;
         _alarmCacheTime = now;
-        console.log('[AlarmCache] Fetched fresh data from batch endpoint');
+        void 0;
         return data;
     } catch (e) {
         console.error('[AlarmCache] Fetch error:', e);
@@ -685,7 +685,7 @@ function getCachedAlarmCounts() {
 
 function invalidateAlarmCache() {
     _alarmCacheTime = 0;
-    console.log('[AlarmCache] Cache invalidated');
+    void 0;
 }
 // ============================================
 
@@ -2264,7 +2264,7 @@ function renderMatches(data) {
         if (_fallbackTab) _fallbackTab.click();
         return;
     }
-    console.log('[renderMatches] Called with', data?.length || 0, 'matches');
+    void 0;
     _renderedCount = 0;
 
     const tbody = document.getElementById('matchesTableBody');
@@ -3598,7 +3598,7 @@ function toggleTodayFilter(skipLoad = false) {
         if (yesterdayBtn) yesterdayBtn.classList.remove('active');
     }
     
-    console.log('[Filter] Mode changed to:', dateFilterMode);
+    void 0;
     if (!skipLoad) loadMatches();
 }
 
@@ -3615,7 +3615,7 @@ function toggleYesterdayFilter(skipLoad = false) {
         if (todayBtn) todayBtn.classList.remove('active');
     }
     
-    console.log('[Filter] Mode changed to:', dateFilterMode);
+    void 0;
     if (!skipLoad) loadMatches();
 }
 
@@ -3744,9 +3744,9 @@ async function openMatchModalFromAPI(homeTeam, awayTeam, league, kickoff, matchI
         if (!league && prematchFound.league) apiLeague = prematchFound.league;
         var _kHasTime = /T\d{2}:\d{2}|\s\d{2}:\d{2}/.test(String(kickoff || ''));
         if ((!kickoff || !_kHasTime) && prematchFound.date) apiKickoff = prematchFound.date;
-        console.log('[ModalFromAPI] Prematch found:', apiHome, 'vs', apiAway, 'league:', apiLeague);
+        void 0;
     } else {
-        console.log('[ModalFromAPI] No prematch match for', homeTeam, 'vs', awayTeam, 'in filtered:', fArr2.length, 'all:', mArr2.length);
+        void 0;
     }
 
     selectedMatch = {
@@ -3955,7 +3955,7 @@ function getModalCachedData(home, away, market, league = '', matchIdHash = '') {
     const key = getModalCacheKey(home, away, market, league, matchIdHash);
     const cached = modalDataCache[key];
     if (cached && (Date.now() - cached.timestamp) < MODAL_CACHE_TTL) {
-        console.log('[ModalCache] HIT:', key);
+        void 0;
         return cached.data;
     }
     return null;
@@ -3964,7 +3964,7 @@ function getModalCachedData(home, away, market, league = '', matchIdHash = '') {
 function setModalCachedData(home, away, market, data, league = '', matchIdHash = '') {
     const key = getModalCacheKey(home, away, market, league, matchIdHash);
     modalDataCache[key] = { data, timestamp: Date.now() };
-    console.log('[ModalCache] SET:', key);
+    void 0;
     
     // Clean old entries (keep max 50)
     const keys = Object.keys(modalDataCache);
@@ -3979,18 +3979,18 @@ function setModalCachedData(home, away, market, data, league = '', matchIdHash =
 async function loadAllMarketsAtOnce(home, away, league = '', matchIdHash = '') {
     const cacheKey = `${home}|${away}|${league}|${matchIdHash}|${currentSource}`;
     if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
-        console.log('[Bulk] Using cached data for', cacheKey);
+        void 0;
         return bulkHistoryCache;
     }
     
     try {
-        console.log('[Bulk] Fetching all markets for', home, 'vs', away, 'league:', league, 'source:', currentSource);
+        void 0;
         const startTime = performance.now();
         var url = `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
         const response = await fetch(url);
         const data = await response.json();
         const elapsed = performance.now() - startTime;
-        console.log(`[Bulk] Loaded all 6 markets in ${elapsed.toFixed(0)}ms`);
+        void 0;
         
         if (data.markets) {
             bulkHistoryCache = data.markets;
@@ -4010,13 +4010,13 @@ async function loadChartWithTrends(home, away, market, league = '', reqId, match
         const cachedData = getModalCachedData(home, away, market, league, matchIdHash);
         if (cachedData) {
             data = cachedData;
-            console.log('[Modal] Using modal cache for', market, 'count:', data.history?.length);
+            void 0;
         }
         else {
             const cacheKey = `${home}|${away}|${league}|${currentSource}`;
             if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
                 data = bulkHistoryCache[market];
-                console.log('[Modal] Using bulk cache for', market, 'count:', data.history?.length);
+                void 0;
                 setModalCachedData(home, away, market, data, league, matchIdHash);
             } else {
                 try {
@@ -4025,10 +4025,10 @@ async function loadChartWithTrends(home, away, market, league = '', reqId, match
                     );
                     if (reqId && reqId !== _modalRequestId) return;
                     data = await response.json();
-                    console.log('[Modal] Loaded history for', home, 'vs', away, 'league:', league, 'market:', market, 'count:', data.history?.length);
+                    void 0;
                     setModalCachedData(home, away, market, data, league, matchIdHash);
                 } catch (e) {
-                    console.log('Using demo history data');
+                    void 0;
                 }
             }
         }
@@ -4078,9 +4078,9 @@ function updateMatchInfoCard() {
     const isMoneyway = selectedChartMarket.startsWith('moneyway');
     const isDropping = selectedChartMarket.startsWith('dropping');
     
-    console.log('[Modal Card] Market:', selectedChartMarket, 'isMoneyway:', isMoneyway, 'isDropping:', isDropping);
-    console.log('[Modal Card] Data source:', modalOddsData ? 'API (modalOddsData)' : 'Match (baseData)');
-    console.log('[Modal Card] Data:', d);
+    void 0;
+    void 0;
+    void 0;
     
     let html = '';
     
@@ -4805,7 +4805,7 @@ function updateMobileValueHeader(dataIndex) {
     }
     
     // Debug log
-    console.log('[MobileHeader]', { idx, timeLabel, bigValue: bigValueText, secondary: secondaryText, odds: oddsText, stake: stakeText, pct: pctText, pick: mobileSelectedLine, market: activeMarket, isDropping });
+    void 0;
     
     // Update header elements
     const bigValueEl = document.getElementById('mvhBigValue');
@@ -6233,14 +6233,14 @@ function highlightNewAlarm(alarm) {
         </div>
     `;
     
-    console.log('[AlertBand] New alarm highlight:', home, 'vs', away, '- showing for 5 seconds');
+    void 0;
     
     // 5 saniye sonra normal band'a dön
     setTimeout(() => {
         isHighlightingNewAlarm = false;
         band.classList.remove('highlight-mode');
         renderAlertBand();
-        console.log('[AlertBand] Highlight ended, returning to normal scroll');
+        void 0;
     }, 5000);
 }
 
@@ -6493,12 +6493,12 @@ async function loadAlertBand() {
         mim.forEach(a => { a._type = 'mim'; a._score = (a.impact || a.impact_score || a.money_impact || 0) * 100; });
         allAlarms = allAlarms.concat(mim);
         
-        console.log('[AlertBand] Total alarms before filter:', allAlarms.length);
+        void 0;
         const filteredAlarms = allAlarms.filter(isMatchTodayOrFuture);
-        console.log('[AlertBand] Alarms after filter (today+future):', filteredAlarms.length);
+        void 0;
         
         const groupedForBand = groupAlarmsForBand(filteredAlarms);
-        console.log('[AlertBand] Grouped alarms (unique):', groupedForBand.length);
+        void 0;
         
         alertBandData = groupedForBand.sort((a, b) => {
             const timeA = new Date(a.trigger_at || a.event_time || a.created_at || 0).getTime();
@@ -6506,15 +6506,11 @@ async function loadAlertBand() {
             return timeB - timeA;
         });
         
-        console.log('[AlertBand] Top 3 sorted:', alertBandData.slice(0, 3).map(a => ({
-            home: a.home,
-            event_time: a.trigger_at || a.event_time,
-            type: a._type
-        })));
+        void 0;
         
         // İlk yüklemede doğrudan render et, sonraki güncellemelerde schedule kullan
         if (lastAlertBandHash === '') {
-            console.log('[AlertBand] First render - direct call');
+            void 0;
             renderAlertBand();
             updateAlertBandBadge();
             lastAlertBandHash = JSON.stringify(alertBandData.slice(0, 10).map(a => a.home + a._type + (a.trigger_at || a.event_time || '')));
@@ -7418,7 +7414,7 @@ function getFilteredAlarms() {
         });
     }
     
-    console.log('[getFilteredAlarms] Date filter:', currentAlarmDateFilter, 'Groups count:', groups.length);
+    void 0;
     
     // Varsayılan sıralama: En yeniden eskiye (trigger_at bazlı)
     groups.sort((a, b) => {
@@ -7428,10 +7424,7 @@ function getFilteredAlarms() {
     });
     
     if (groups.length > 0) {
-        console.log('[getFilteredAlarms] First 3 after filter:', groups.slice(0, 3).map(g => ({
-            home: g.home,
-            matchDate: getMatchDateFromAlarm(g.latestAlarm)
-        })));
+        void 0;
     }
     
     return groups;
@@ -8266,7 +8259,7 @@ function getMatchAlarms(homeTeam, awayTeam, league = '', kickoff = '', matchIdHa
         _alarmBelongsToMatch(a, homeTeam, awayTeam, league, kickoff, matchIdHash)
     );
     
-    console.log(`[getMatchAlarms] ${homeTeam} vs ${awayTeam} [${matchIdHash || 'context-fallback'}]: Found ${result.length} alarms, types:`, result.map(a => a._type));
+    void 0;
     return result;
 }
 
@@ -8406,7 +8399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const badge = document.getElementById('tabAlarmBadge');
         if (badge) badge.textContent = counts.total;
     } catch (e) {
-        console.log('Badge guncelleme hatasi:', e);
+        void 0;
     }
 });
 
