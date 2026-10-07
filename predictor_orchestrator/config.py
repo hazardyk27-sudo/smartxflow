@@ -42,10 +42,17 @@ class OrchestratorConfig:
     max_output_tokens: int = 12000
 
     @classmethod
-    def from_env(cls, *, require_secrets: bool = True) -> "OrchestratorConfig":
+    def from_env(
+        cls,
+        *,
+        require_secrets: bool = True,
+        require_api_key: bool | None = None,
+    ) -> "OrchestratorConfig":
         api_key = os.environ.get("OPENAI_API_KEY", "").strip()
         service_secret = os.environ.get("PREDICTOR_ORCHESTRATOR_SECRET", "").strip()
-        if require_secrets and not api_key:
+        if require_api_key is None:
+            require_api_key = require_secrets
+        if require_api_key and not api_key:
             raise OrchestratorConfigError("OPENAI_API_KEY is required")
         if require_secrets and not service_secret:
             raise OrchestratorConfigError("PREDICTOR_ORCHESTRATOR_SECRET is required")
