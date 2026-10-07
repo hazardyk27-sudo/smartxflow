@@ -1188,6 +1188,9 @@ function scheduleDeferredModalRuntimePrefetch() {
         if (typeof window.__sxfRenderMatchAlarmsSectionImpl !== 'function') {
             candidates.push(_getModalAlarmsRuntimeUrl());
         }
+        if (typeof window.__sxfCheckModalLiveDataImpl !== 'function') {
+            candidates.push(_getModalLiveRuntimeUrl());
+        }
         candidates.forEach(url => {
             const link = document.createElement('link');
             link.rel = 'prefetch';
@@ -10956,309 +10959,61 @@ function renderLiveDetail(snapshots, market) {
     body.innerHTML = html;
 }
 
-async function _checkModalLiveData(home, away, matchIdHash, league, kickoff, reqId) {
+window._sxfModalLiveRuntimePromise = window._sxfModalLiveRuntimePromise || null;
+function _getModalLiveRuntimeUrl() {
     try {
-        var url;
-        if (matchIdHash) {
-            url = '/api/live/match/history?hash=' + encodeURIComponent(matchIdHash);
-        } else if (league && kickoff) {
-            url = '/api/live/match/history-by-teams?home=' + encodeURIComponent(home) +
-                '&away=' + encodeURIComponent(away) +
-                '&league=' + encodeURIComponent(league) +
-                '&kickoff=' + encodeURIComponent(kickoff);
-        } else {
-            return;
-        }
-
-        var resp = await fetch(url);
-        var data = await resp.json();
-        if (reqId !== _modalRequestId) return;
-        var modalKickoffMs = _matchContextTime(kickoff);
-        var liveKickoffMs = _matchContextTime(data.kickoff_utc);
-        if (modalKickoffMs !== null && liveKickoffMs !== null &&
-            Math.abs(modalKickoffMs - liveKickoffMs) > 30 * 60 * 1000) {
-            console.warn('[Modal] Ignoring live data with mismatched kickoff:', kickoff, data.kickoff_utc);
-            return;
-        }
-        if (liveKickoffMs !== null && liveKickoffMs > Date.now() + 90 * 1000) {
-            console.warn('[Modal] Ignoring future live fixture:', data.kickoff_utc);
-            return;
-        }
-        if (data.has_live && data.snapshots && data.snapshots.length > 0 && window.userPlan !== 'core') {
-            _modalLiveData = data.snapshots;
-            _modalLiveMarket = '1x2';
-            var liveTab = document.getElementById('modalLiveTab');
-            if (liveTab) liveTab.style.display = '';
-            _buildModalLiveTabs(_modalLiveData);
-            renderModalLiveDetail(_modalLiveData, _modalLiveMarket);
-
-            if (!modalOddsData) {
-                var sorted = data.snapshots.slice().sort(function(a, b) {
-                    return (a.snapshot_at || '') > (b.snapshot_at || '') ? 1 : -1;
-                });
-                var latest = sorted[sorted.length - 1];
-                var prev = sorted.length >= 2 ? sorted[sorted.length - 2] : null;
-                var d1x2 = latest['1x2'] || {};
-                var s1 = d1x2['1'] || {};
-                var sX = d1x2['X'] || {};
-                var s2 = d1x2['2'] || {};
-                var vol1 = s1.volume || 0;
-                var volX = sX.volume || 0;
-                var vol2 = s2.volume || 0;
-                var totalVol = vol1 + volX + vol2;
-                modalOddsData = {
-                    Odds1: s1.odds, OddsX: sX.odds, Odds2: s2.odds,
-                    Amt1: vol1, AmtX: volX, Amt2: vol2,
-                    Pct1: s1.share || 0, PctX: sX.share || 0, Pct2: s2.share || 0,
-                    Volume: totalVol
-                };
-                if (prev) {
-                    var p1x2 = prev['1x2'] || {};
-                    previousOddsData = {
-                        Odds1: (p1x2['1'] || {}).odds, OddsX: (p1x2['X'] || {}).odds, Odds2: (p1x2['2'] || {}).odds
-                    };
-                }
-                if (selectedMatch && !selectedMatch.odds) {
-                    selectedMatch.odds = modalOddsData;
-                }
-                updateMatchInfoCard();
+        const scripts = document.getElementsByTagName('script');
+        for (let i = scripts.length - 1; i >= 0; i--) {
+            const src = scripts[i].src || '';
+            if (src.indexOf('/static/js/app.js') !== -1) {
+                const queryIndex = src.indexOf('?');
+                const query = queryIndex >= 0 ? src.slice(queryIndex) : '';
+                return '/static/js/modal-live.js' + query;
             }
         }
-    } catch (e) {
-        console.error('[Modal] Live data check error:', e);
-    }
+    } catch (e) {}
+    return '/static/js/modal-live.js';
 }
 
-function _buildModalLiveTabs(snapshots) {
-    var tabsEl = document.getElementById('modalLiveMarketTabs');
-    if (!tabsEl) return;
-    var lines = {};
-    for (var i = 0; i < snapshots.length; i++) {
-        var ols = snapshots[i].ou_lines || {};
-        for (var k in ols) { lines[k] = true; }
-    }
-    var sortedLines = Object.keys(lines).sort(function(a, b) { return parseFloat(a) - parseFloat(b); });
-    var html = '<button class="live-dtab' + (_modalLiveMarket === '1x2' ? ' active' : '') + '" onclick="setModalLiveMarket(\'1x2\')">1X2</button>';
-    for (var j = 0; j < sortedLines.length; j++) {
-        var ln = sortedLines[j];
-        var mk = 'ou' + ln;
-        html += '<button class="live-dtab' + (_modalLiveMarket === mk ? ' active' : '') + '" onclick="setModalLiveMarket(\'' + mk + '\')">' + escLiveHtml(ln) + '</button>';
-    }
-    tabsEl.innerHTML = html;
-}
+function loadModalLiveRuntime() {
+    if (typeof window.__sxfCheckModalLiveDataImpl === 'function') return Promise.resolve();
+    if (window._sxfModalLiveRuntimePromise) return window._sxfModalLiveRuntimePromise;
 
-function setModalLiveMarket(market) {
-    _modalLiveMarket = market;
-    var tabsEl = document.getElementById('modalLiveMarketTabs');
-    if (tabsEl) {
-        tabsEl.querySelectorAll('.live-dtab').forEach(function(b) { b.classList.remove('active'); });
-        var label = market === '1x2' ? '1X2' : market.replace('ou', '');
-        tabsEl.querySelectorAll('.live-dtab').forEach(function(b) {
-            if ((market === '1x2' && b.textContent === '1X2') || (market !== '1x2' && b.textContent === label)) {
-                b.classList.add('active');
+    window._sxfModalLiveRuntimePromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = _getModalLiveRuntimeUrl();
+        script.async = true;
+        script.onload = () => {
+            if (typeof window.__sxfCheckModalLiveDataImpl === 'function') {
+                resolve();
+                return;
             }
-        });
-    }
-    if (_modalLiveData) renderModalLiveDetail(_modalLiveData, market);
-}
-
-function renderModalLiveDetail(snapshots, market) {
-    var body = document.getElementById('modalLiveBody');
-    if (!body) return;
-    if (!snapshots || snapshots.length === 0) {
-        body.innerHTML = '<div class="live-loading">' + _t('app.live.bos_tablo','Canlı maç bulunamadı') + '</div>';
-        return;
-    }
-
-    snapshots = snapshots.slice().sort(function(a, b) {
-        var am = _minuteToNum(a.minute), bm = _minuteToNum(b.minute);
-        if (am !== bm) return bm - am;
-        return (a.snapshot_at || '') > (b.snapshot_at || '') ? -1 : 1;
+            window._sxfModalLiveRuntimePromise = null;
+            reject(new Error('Modal live runtime loaded without implementation'));
+        };
+        script.onerror = () => {
+            window._sxfModalLiveRuntimePromise = null;
+            reject(new Error('Modal live runtime failed to load'));
+        };
+        document.head.appendChild(script);
     });
-
-    if (window.innerWidth <= 768) {
-        _renderModalLiveMobile(body, snapshots, market);
-        return;
-    }
-
-    var is1x2 = (market === '1x2');
-    var ouLine = is1x2 ? '' : market.replace('ou', '');
-    var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : [escLiveHtml(ouLine) + ' ' + _t('app.tbl.alt','ALT'), escLiveHtml(ouLine) + ' ' + _t('app.tbl.over','ÜST')];
-
-    var colsPerSel = 3;
-    var html = '<div class="live-detail-table-wrap"><table class="live-period-table">';
-    html += '<thead>';
-    html += '<tr class="lpt-group-row">';
-    html += '<th rowspan="2" class="lpt-dkskor-th"><span class="lpt-th-main">' + _t('app.live.dk','DK') + '</span><span class="lpt-th-sub">' + _t('app.live.skor','SKOR') + '</span></th>';
-    for (var g = 0; g < sels.length; g++) {
-        html += '<th colspan="' + colsPerSel + '" class="lpt-group-th">' + selLabels[g] + '</th>';
-    }
-    html += '</tr>';
-    html += '<tr class="lpt-col-row">';
-    for (var h = 0; h < sels.length; h++) {
-        html += '<th class="lpt-dual-th' + (h > 0 ? ' lpt-sel-divider' : '') + '"><span class="lpt-th-main">' + _t('app.live.oran','ORAN') + '</span><span class="lpt-th-sub">' + _t('app.live.oran_degisim','Oran değişim') + '</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">VOLUME</span><span class="lpt-th-sub">' + _t('app.live.gelen_para','Gelen para') + '</span></th>';
-        html += '<th class="lpt-dual-th"><span class="lpt-th-main">' + _t('app.live.yuzde','YÜZDE') + '</span><span class="lpt-th-sub">' + _t('app.live.pct_degisimi','%değişimi') + '</span></th>';
-    }
-    html += '</tr>';
-    html += '</thead><tbody>';
-
-    for (var i = 0; i < snapshots.length; i++) {
-        var s = snapshots[i];
-        var prevS = (i < snapshots.length - 1) ? snapshots[i + 1] : null;
-
-        var minVal = s.minute;
-        var minStr = '-';
-        if (minVal !== '' && minVal !== null && minVal !== undefined) {
-            var mv = String(minVal);
-            minStr = mv.endsWith("'") ? mv : mv + "'";
-        }
-        var scoreStr = s.score || '-';
-
-        html += '<tr>';
-        html += '<td class="period-dk-skor"><span class="dk-val">' + escLiveHtml(minStr) + '</span><span class="skor-val">' + escLiveHtml(scoreStr) + '</span></td>';
-
-        var dataGroup = is1x2 ? (s['1x2'] || {}) : ((s.ou_lines || {})[ouLine] || {});
-        var prevDataGroup = prevS ? (is1x2 ? (prevS['1x2'] || {}) : ((prevS.ou_lines || {})[ouLine] || {})) : null;
-
-        for (var j = 0; j < sels.length; j++) {
-            var sel = sels[j];
-            var sd = dataGroup[sel] || {};
-            var odds = (sd.odds !== undefined && sd.odds !== null) ? parseFloat(sd.odds) : null;
-            var pct = sd.share || 0;
-            var vol = sd.volume || 0;
-
-            var oddsStr = odds !== null ? odds.toFixed(2) : '-';
-            var pctStr = pct ? pct.toFixed(1) + '%' : '-';
-
-            var deltaHtml = '<span class="period-delta-neutral">-</span>';
-            if (prevDataGroup && odds !== null) {
-                var prevOdds = (prevDataGroup[sel] || {}).odds;
-                if (prevOdds !== undefined && prevOdds !== null) {
-                    var delta = odds - parseFloat(prevOdds);
-                    if (Math.abs(delta) >= 0.005) {
-                        var dSign = delta > 0 ? '+' : '';
-                        var dCls = delta > 0 ? 'period-delta-up' : 'period-delta-down';
-                        deltaHtml = '<span class="' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
-                    }
-                }
-            }
-
-            var prevPct = 0;
-            if (prevDataGroup) {
-                prevPct = (prevDataGroup[sel] || {}).share || 0;
-            }
-            var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '<span class="period-delta-neutral">-</span>';
-            if (prevS && Math.abs(pctDelta) >= 0.05) {
-                var pdSign = pctDelta > 0 ? '+' : '';
-                pctDeltaHtml = '<span class="pct-delta">' + pdSign + pctDelta.toFixed(1) + '%</span>';
-            }
-
-            var prevVol = 0;
-            if (prevDataGroup) {
-                prevVol = (prevDataGroup[sel] || {}).volume || 0;
-            }
-            var volDiff = vol - prevVol;
-            var volDiffStr = '-';
-            var volDiffHasVal = false;
-            if (prevS && volDiff !== 0) {
-                volDiffStr = formatLiveVol(volDiff);
-                volDiffHasVal = true;
-            }
-
-            var hi = pct >= 50;
-            var divCls = j > 0 ? ' lpt-sel-divider' : '';
-
-            html += '<td class="period-dual' + divCls + '"><span class="dual-main period-odds">' + oddsStr + '</span><span class="dual-sub">' + deltaHtml + '</span></td>';
-            html += '<td class="period-dual"><span class="dual-main period-vol">' + (vol ? formatLiveVol(vol) : '-') + '</span><span class="dual-sub vol-diff' + (volDiffHasVal ? ' has-val' : '') + '">' + volDiffStr + '</span></td>';
-            html += '<td class="period-dual"><span class="dual-main period-pct ' + (hi ? 'pct-high' : 'pct-low') + '">' + pctStr + '</span><span class="dual-sub">' + pctDeltaHtml + '</span></td>';
-        }
-
-        html += '</tr>';
-    }
-
-    html += '</tbody></table></div>';
-    body.innerHTML = html;
+    return window._sxfModalLiveRuntimePromise;
 }
 
-function _renderModalLiveMobile(body, snapshots, market) {
-    var is1x2 = (market === '1x2');
-    var ouLine = is1x2 ? '' : market.replace('ou', '');
-    var sels = is1x2 ? ['1', 'X', '2'] : ['U', 'O'];
-    var selLabels = is1x2 ? ['1', 'X', '2'] : [_t('app.tbl.alt','ALT') + ' ' + ouLine, _t('app.tbl.over','ÜST') + ' ' + ouLine];
-
-    var html = '<div class="mlive-wrap">';
-
-    for (var i = 0; i < snapshots.length; i++) {
-        var s = snapshots[i];
-        var prevS = (i < snapshots.length - 1) ? snapshots[i + 1] : null;
-        var minVal = s.minute;
-        var minStr = '-';
-        if (minVal !== '' && minVal !== null && minVal !== undefined) {
-            var mv = String(minVal);
-            minStr = mv.endsWith("'") ? mv : mv + "'";
-        }
-        var scoreStr = s.score || '-';
-        var dataGroup = is1x2 ? (s['1x2'] || {}) : ((s.ou_lines || {})[ouLine] || {});
-        var prevDataGroup = prevS ? (is1x2 ? (prevS['1x2'] || {}) : ((prevS.ou_lines || {})[ouLine] || {})) : null;
-
-        html += '<div class="mlive-period">';
-        html += '<div class="mlive-status"><span class="mlive-min">' + escLiveHtml(minStr) + '</span><span class="mlive-score">' + escLiveHtml(scoreStr) + '</span></div>';
-        html += '<div class="mlive-cards">';
-
-        for (var j = 0; j < sels.length; j++) {
-            var sel = sels[j];
-            var sd = dataGroup[sel] || {};
-            var odds = (sd.odds !== undefined && sd.odds !== null) ? parseFloat(sd.odds) : null;
-            var pct = sd.share || 0;
-            var vol = sd.volume || 0;
-            var oddsStr = odds !== null ? odds.toFixed(2) : '-';
-            var pctStr = pct ? pct.toFixed(1) + '%' : '-';
-
-            var oddsDelta = '';
-            if (prevDataGroup && odds !== null) {
-                var prevOdds = (prevDataGroup[sel] || {}).odds;
-                if (prevOdds !== undefined && prevOdds !== null) {
-                    var delta = odds - parseFloat(prevOdds);
-                    if (Math.abs(delta) >= 0.005) {
-                        var dSign = delta > 0 ? '+' : '';
-                        var dCls = delta > 0 ? 'ch-up' : 'ch-down';
-                        oddsDelta = '<span class="mc-d ' + dCls + '">' + dSign + delta.toFixed(2) + '</span>';
-                    }
-                }
-            }
-            var prevPct = 0;
-            if (prevDataGroup) { prevPct = (prevDataGroup[sel] || {}).share || 0; }
-            var pctDelta = pct - prevPct;
-            var pctDeltaHtml = '';
-            if (prevS && Math.abs(pctDelta) >= 0.05) {
-                var pdSign = pctDelta > 0 ? '+' : '';
-                var pCls = pctDelta > 0 ? 'ch-up' : 'ch-down';
-                pctDeltaHtml = '<span class="mc-d ' + pCls + '">' + pdSign + pctDelta.toFixed(1) + '%</span>';
-            }
-            var prevVol = 0;
-            if (prevDataGroup) { prevVol = (prevDataGroup[sel] || {}).volume || 0; }
-            var volDiff = vol - prevVol;
-            var volDeltaHtml = '';
-            if (prevS && volDiff !== 0) {
-                var vCls = volDiff > 0 ? 'ch-up' : 'ch-down';
-                volDeltaHtml = '<span class="mc-d ' + vCls + '">' + formatLiveVol(volDiff) + '</span>';
-            }
-
-            var gd = '<span class="mc-dash">-</span>';
-            html += '<div class="mlive-card">';
-            html += '<div class="mlive-card-lbl">' + selLabels[j] + '</div>';
-            html += '<div class="mc-line mc-odds"><span class="mc-v">' + (odds !== null ? oddsStr : gd) + '</span>' + (oddsDelta || gd) + '</div>';
-            html += '<div class="mc-line mc-vol"><span class="mc-v">' + (vol ? formatLiveVol(vol) : gd) + '</span>' + (volDeltaHtml || gd) + '</div>';
-            html += '<div class="mc-line mc-pct"><span class="mc-v">' + (pct ? pctStr : gd) + '</span>' + (pctDeltaHtml || gd) + '</div>';
-            html += '</div>';
-        }
-
-        html += '</div></div>';
+async function _checkModalLiveData(...args) {
+    try {
+        await loadModalLiveRuntime();
+        return await window.__sxfCheckModalLiveDataImpl(...args);
+    } catch (e) {
+        console.error('[Modal] Live runtime load error:', e);
     }
-
-    html += '</div>';
-    body.innerHTML = html;
 }
+
+
+
+
+
+
+
+
+
