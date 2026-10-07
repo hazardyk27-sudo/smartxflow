@@ -219,4 +219,180 @@ window.__sxfOpenMatchModalImpl = async function openMatchModal(index) {
         await Promise.all([chartPipeline, alarmsPipeline, livePipeline]);
     }
 };
+
+function resetModalState() {
+    if (chart) {
+        chart.destroy();
+        chart = null;
+    }
+    currentChartHistoryData = [];
+    modalOddsData = null;
+    previousOddsData = null;
+    bulkHistoryCache = {};
+    bulkHistoryCacheKey = '';
+    _modalLiveData = null;
+    _modalLiveMarket = '1x2';
+
+    const card = document.getElementById('matchInfoCard');
+    if (card) card.innerHTML = '';
+
+    const grid = document.getElementById('smartMoneyGrid');
+    if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+    const empty = document.getElementById('smartMoneyEmpty');
+    if (empty) empty.style.display = 'none';
+
+    var liveTab = document.getElementById('modalLiveTab');
+    if (liveTab) liveTab.style.display = 'none';
+    var liveBody = document.getElementById('modalLiveBody');
+    if (liveBody) liveBody.innerHTML = '';
+    var liveTabs = document.getElementById('modalLiveMarketTabs');
+    if (liveTabs) liveTabs.innerHTML = '';
+    if (window.userPlan === 'core') {
+        if (liveTab) liveTab.style.display = '';
+        if (liveBody) liveBody.innerHTML = proLockPanelHtml();
+    }
+    if (window.userPlan === 'test' && selectedMatch && !_isTestFreeMatch(selectedMatch.match_id)) {
+        if (liveTab) liveTab.style.display = '';
+        if (liveBody) liveBody.innerHTML = proLockPanelHtml();
+    }
+
+    const canvas = document.getElementById('oddsChart');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    showSmartMoneyLoading();
+    showChartLoading();
+}
+
+const MODAL_CACHE_TTL = 30000; // 30 seconds
+let modalDataCache = {}; // {cacheKey: {data, timestamp}}
+
+function getModalCacheKey(home, away, market, league = '', matchIdHash = '') {
+    return `${home}|${away}|${league}|${market}|${matchIdHash}`.toLowerCase();
+}
+
+function getModalCachedData(home, away, market, league = '', matchIdHash = '') {
+    const key = getModalCacheKey(home, away, market, league, matchIdHash);
+    const cached = modalDataCache[key];
+    if (cached && (Date.now() - cached.timestamp) < MODAL_CACHE_TTL) {
+        void 0;
+        return cached.data;
+    }
+    return null;
+}
+
+function setModalCachedData(home, away, market, data, league = '', matchIdHash = '') {
+    const key = getModalCacheKey(home, away, market, league, matchIdHash);
+    modalDataCache[key] = { data, timestamp: Date.now() };
+    void 0;
+
+    // Clean old entries (keep max 50)
+    const keys = Object.keys(modalDataCache);
+    if (keys.length > 50) {
+        const sortedKeys = keys.sort((a, b) => modalDataCache[a].timestamp - modalDataCache[b].timestamp);
+        for (let i = 0; i < keys.length - 50; i++) {
+            delete modalDataCache[sortedKeys[i]];
+        }
+    }
+}
+
+async function loadAllMarketsAtOnce(home, away, league = '', matchIdHash = '') {
+    const cacheKey = `${home}|${away}|${league}|${matchIdHash}|${currentSource}`;
+    if (bulkHistoryCacheKey === cacheKey && Object.keys(bulkHistoryCache).length > 0) {
+        void 0;
+        return bulkHistoryCache;
+    }
+
+    try {
+        void 0;
+        const startTime = performance.now();
+        var url = `/api/match/history/bulk?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&league=${encodeURIComponent(league || '')}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const elapsed = performance.now() - startTime;
+        void 0;
+
+        if (data.markets) {
+            bulkHistoryCache = data.markets;
+            bulkHistoryCacheKey = cacheKey;
+        }
+        return data.markets || {};
+    } catch (e) {
+        console.error('[Bulk] Error fetching all markets:', e);
+        return {};
+    }
+}
+
+async function loadChartWithTrends(home, away, market, league = '', reqId, matchIdHash = '') {
+    try {
+        let data = { history: [] };
+
+        const cachedData = getModalCachedData(home, away, market, league, matchIdHash);
+        if (cachedData) {
+            data = cachedData;
+            void 0;
+        }
+        else {
+            const cacheKey = `${home}|${away}|${league}|${currentSource}`;
+            if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
+                data = bulkHistoryCache[market];
+                void 0;
+                setModalCachedData(home, away, market, data, league, matchIdHash);
+            } else {
+                try {
+                    const response = await fetch(
+                        `/api/match/history?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&market=${market}&league=${encodeURIComponent(league || '')}`
+                    );
+                    if (reqId && reqId !== _modalRequestId) return;
+                    data = await response.json();
+                    void 0;
+                    setModalCachedData(home, away, market, data, league, matchIdHash);
+                } catch (e) {
+                    void 0;
+                }
+            }
+        }
+
+        if (reqId && reqId !== _modalRequestId) return;
+
+        if (data.history && data.history.length >= 1) {
+            modalOddsData = data.history[data.history.length - 1];
+        } else {
+            modalOddsData = null;
+        }
+
+        if (data.history && data.history.length >= 2) {
+            previousOddsData = data.history[data.history.length - 2];
+        } else {
+            previousOddsData = null;
+        }
+
+        if (modalOddsData && modalOddsData.Date) {
+            const leagueEl = document.getElementById('modalLeague');
+            if (leagueEl && leagueEl.innerHTML.indexOf(' • ') === -1) {
+                const dt = toTurkeyTime(modalOddsData.Date);
+                if (dt && dt.isValid()) {
+                    leagueEl.innerHTML += ' • ' + dt.format('DD.MM HH:mm');
+                }
+            }
+        }
+
+        await updateMatchInfoCard();
+
+        await loadChart(home, away, market, league);
+        hideChartLoading();
+    } catch (e) {
+        console.error('Error loading chart with trends:', e);
+        if (reqId && reqId !== _modalRequestId) return;
+        await loadChart(home, away, market, league);
+        hideChartLoading();
+    }
+}
+
+window.__sxfResetModalStateImpl = resetModalState;
+window.__sxfLoadAllMarketsAtOnceImpl = loadAllMarketsAtOnce;
+window.__sxfLoadChartWithTrendsImpl = loadChartWithTrends;
+
 })();

@@ -8,6 +8,8 @@ const mainRuntime = fs.readFileSync(path.join(root, 'static/js/app.js'), 'utf8')
 const mainSource = fs.readFileSync(path.join(root, 'static/js/app.js.src'), 'utf8');
 const infoRuntime = fs.readFileSync(path.join(root, 'static/js/modal-info.js'), 'utf8');
 const infoSource = fs.readFileSync(path.join(root, 'static/js/modal-info.js.src'), 'utf8');
+const entryRuntime = fs.readFileSync(path.join(root, 'static/js/modal-entry.js'), 'utf8');
+const entrySource = fs.readFileSync(path.join(root, 'static/js/modal-entry.js.src'), 'utf8');
 const minifySource = fs.readFileSync(path.join(root, 'minify.py'), 'utf8');
 
 for (const [label, text] of [['runtime', mainRuntime], ['source', mainSource]]) {
@@ -34,8 +36,8 @@ test('modal info loader inherits app asset version and is single-flight/retryabl
 });
 
 test('chart/history pipeline awaits modal info render before chart continuation', () => {
-  assert.match(mainSource, /await updateMatchInfoCard\(\);[\s\S]{0,120}await loadChart\(home, away, market, league\);/);
-  assert.match(mainRuntime, /await updateMatchInfoCard\(\);await loadChart\(home,away,market,league\)/);
+  assert.match(entrySource, /await updateMatchInfoCard\(\);[\s\S]{0,120}await loadChart\(home, away, market, league\);/);
+  assert.match(entryRuntime, /await updateMatchInfoCard\(\);await loadChart\(home,away,market,league\)/);
 });
 
 test('shared trend helper remains eager', () => {
