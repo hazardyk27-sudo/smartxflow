@@ -1,0 +1,127 @@
+name: P2 Defer Analysis UI Test
+
+on:
+  push:
+    branches: [perf/p2-defer-analysis-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  defer-analysis-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-defer-analysis-ui
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Defer analysis UI bundle until first open
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('templates/index.html')
+          text = path.read_text()
+
+          eager = '''    <script defer src="/static/js/ui.js?v={{ asset_v("js/ui.js") }}"></script>'''
+          loader = '''    <script>
+    (function () {
+        var analysisUiPromise = null;
+        var analysisUiUrl = '/static/js/ui.js?v={{ asset_v("js/ui.js") }}';
+
+        window.loadSxfAnalysisUi = function () {
+            if (typeof window.openTrendsModal === 'function') {
+                return Promise.resolve();
+            }
+            if (analysisUiPromise) return analysisUiPromise;
+
+            analysisUiPromise = new Promise(function (resolve, reject) {
+                var script = document.createElement('script');
+                script.src = analysisUiUrl;
+                script.async = true;
+                script.onload = function () { resolve(); };
+                script.onerror = function () {
+                    analysisUiPromise = null;
+                    reject(new Error('Analysis UI bundle failed to load'));
+                };
+                document.head.appendChild(script);
+            });
+            return analysisUiPromise;
+        };
+
+        window.openDeferredTrendsModal = function (tab) {
+            return window.loadSxfAnalysisUi()
+                .then(function () {
+                    if (typeof window.openTrendsModal !== 'function') {
+                        throw new Error('Analysis UI bundle loaded without openTrendsModal');
+                    }
+                    return window.openTrendsModal(tab);
+                })
+                .catch(function (error) {
+                    console.error('[AnalysisUI] Lazy-load failed:', error);
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');
+                    }
+                });
+        };
+    })();
+    </script>'''
+
+          if eager not in text:
+              raise SystemExit('eager ui.js script anchor not found')
+          text = text.replace(eager, loader, 1)
+          text = text.replace('onclick="openTrendsModal(', 'onclick="openDeferredTrendsModal(')
+          path.write_text(text)
+          PY
+
+          cat > tests/test_deferred_analysis_ui.py <<'PYTEST'
+          from pathlib import Path
+
+
+          def _index():
+              return Path('templates/index.html').read_text()
+
+
+          def test_analysis_ui_is_not_eagerly_loaded():
+              text = _index()
+              assert '<script defer src="/static/js/ui.js' not in text
+              assert "var analysisUiUrl = '/static/js/ui.js?v={{ asset_v(\"js/ui.js\") }}';" in text
+
+
+          def test_analysis_buttons_use_lazy_entrypoint():
+              text = _index()
+              assert 'onclick="openTrendsModal(' not in text
+              assert text.count('onclick="openDeferredTrendsModal(') >= 2
+
+
+          def test_lazy_loader_is_single_flight_and_retryable():
+              text = _index()
+              assert 'if (analysisUiPromise) return analysisUiPromise;' in text
+              assert 'analysisUiPromise = null;' in text
+              assert "document.createElement('script')" in text
+              assert 'document.head.appendChild(script);' in text
+
+
+          def test_lazy_entrypoint_calls_real_modal_after_bundle_loads():
+              text = _index()
+              start = text.index('window.openDeferredTrendsModal = function')
+              end = text.index('})();', start)
+              block = text[start:end]
+              assert 'window.loadSxfAnalysisUi()' in block
+              assert "typeof window.openTrendsModal !== 'function'" in block
+              assert 'return window.openTrendsModal(tab);' in block
+          PYTEST
+      - name: Run deferred UI regressions
+        run: python -m pytest -q tests/test_deferred_analysis_ui.py
+      - name: Commit tested implementation
+        run: |
+          git config user.name 'SmartXFlow CI'
+          git config user.email 'smartxflow-ci@users.noreply.github.com'
+          git add templates/index.html tests/test_deferred_analysis_ui.py
+          git rm .github/workflows/p2-defer-analysis-ui-test.yml
+          git commit -m 'perf: defer analysis UI bundle until first open'
+          git push origin HEAD:perf/p2-defer-analysis-ui
