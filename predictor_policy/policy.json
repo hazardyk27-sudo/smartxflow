@@ -1,5 +1,5 @@
 {
-  "policy_version": 2,
+  "policy_version": 3,
   "status": "ACTIVE",
   "canonical": true,
   "precedence": "For Predictor workflow invariants, this executable policy controls over conflicting markdown summaries. Markdown remains human-readable documentation.",
@@ -9,7 +9,10 @@
       "SXF-WF-002": "STAGE2 and STAGE3 require explicit user authorization.",
       "SXF-WF-003": "A stage may not emit fields reserved for a later stage.",
       "SXF-WF-004": "Every user-visible match row must contain one concrete preference; screened-out Stage 1 fixtures are not user-visible prediction rows.",
-      "SXF-WF-005": "Every structured stage payload must identify its run and predecessor so the stage sequence cannot be bypassed by omitting carry-forward state."
+      "SXF-WF-005": "Every structured stage payload must identify its run and predecessor so the stage sequence cannot be bypassed by omitting carry-forward state.",
+      "SXF-WF-006": "No LLM-generated Predictor output is publishable directly. User-visible Predictor output must originate from the orchestrator only after strict structured generation, validate_and_advance PASS, durable accepted-stage persistence and deterministic rendering.",
+      "SXF-WF-007": "Workflow authority fields are orchestrator-owned, not model-owned: run IDs, predecessor IDs, user authorization, candidate carry-forward state, prediction/decision timestamps, action derivation, archive intent and trusted price provenance.",
+      "SXF-WF-008": "Invalid model output is audit-only and must never be returned as a Predictor report. It may be fed back to the model only for bounded repair attempts; exhausted validation fails closed without advancing state."
     },
     "stage1": {
       "SXF-S1-001": "Use SmartXFlow primary/production stored data only; external football research is forbidden.",
