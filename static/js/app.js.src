@@ -133,6 +133,28 @@ function loadFavoriteCounts() {
     .catch(function(err) { console.error('[Fav] loadFavoriteCounts error:', err); });
 }
 
+function loadFavoritesBootstrap() {
+    var did = getWebDeviceId();
+    if (!did) return Promise.resolve();
+    return fetch('/api/favorites/bootstrap?device_id=' + encodeURIComponent(did))
+        .then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            if (!data || !Array.isArray(data.favorites) || !data.counts || typeof data.counts !== 'object') {
+                throw new Error('invalid favorites bootstrap payload');
+            }
+            _userFavorites = new Set(data.favorites);
+            _favCounts = data.counts;
+            _updateFavCountsInDOM();
+        })
+        .catch(function(error) {
+            console.warn('[Fav] Bootstrap fallback:', error);
+            return Promise.all([loadUserFavorites(), loadFavoriteCounts()]);
+        });
+}
+
 function _updateFavCountsInDOM() {
     document.querySelectorAll('.fav-heart').forEach(function(el) {
         var mk = el.getAttribute('data-matchkey');
@@ -1191,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     runOptionalStartupTask('analysis match hashes', fetchAnalysisMatchHashes);
     runOptionalStartupTask('finished scores', loadFinishedScores);
-    runOptionalStartupTask('favorites', () => Promise.all([loadUserFavorites(), loadFavoriteCounts()])
+    runOptionalStartupTask('favorites', () => loadFavoritesBootstrap()
         .then(() => {
             document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el) {
                 const matchKey = el.getAttribute('data-matchkey');

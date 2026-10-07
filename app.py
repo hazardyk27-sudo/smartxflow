@@ -2582,6 +2582,21 @@ def get_favorites():
     favorites = db.get_user_favorites(license_key)
     return jsonify({'favorites': favorites})
 
+@app.route('/api/favorites/bootstrap')
+@license_required
+def get_favorites_bootstrap():
+    license_key = (session.get('license_key', '') or request.headers.get('X-License-Key', '')).strip()
+    if not license_key:
+        device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]
+        license_key = f"device:{device_id}" if device_id else ''
+    if not license_key:
+        return jsonify({'favorites': [], 'counts': {}})
+
+    payload = db.get_favorites_bootstrap(license_key)
+    if payload is None:
+        return jsonify({'error': 'favorites_bootstrap_unavailable'}), 503
+    return jsonify(payload)
+
 @app.route('/api/favorites-matches')
 @license_required
 def get_favorites_matches():

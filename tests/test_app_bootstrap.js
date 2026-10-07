@@ -395,16 +395,16 @@ for (const [bundleName, source] of appBundles) {
 for (const [bundleName, source] of appBundles) {
   test(`match loading starts without awaiting optional favorites (${bundleName})`, async () => {
     const bootstrap = extractDashboardBootstrap(source);
-    const favoritesStart = bootstrap.search(/Promise\.all\(\[loadUserFavorites\(\),\s*loadFavoriteCounts\(\)\]\)/);
+    const favoritesStart = bootstrap.indexOf('loadFavoritesBootstrap()');
     const matchesStart = bootstrap.indexOf('loadMatches();');
 
     assert.ok(bootstrap.includes('await _licenseReady'), 'license gating should remain');
-    assert.ok(favoritesStart >= 0, 'favorite requests should still start');
+    assert.ok(favoritesStart >= 0, 'favorites bootstrap should still start');
     assert.ok(matchesStart >= 0 && matchesStart < favoritesStart, 'Prematch loading should start before optional favorites');
     assert.doesNotMatch(
       bootstrap,
-      /await\s+Promise\.all\(\[loadUserFavorites\(\),\s*loadFavoriteCounts\(\)\]\)/,
-      'matches must not wait for favorite requests'
+      /await\s+loadFavoritesBootstrap\(\)/,
+      'matches must not wait for favorites bootstrap'
     );
 
     let domReadyHandler;
@@ -429,6 +429,7 @@ for (const [bundleName, source] of appBundles) {
       setupModalChartTabs() {},
       fetchAnalysisMatchHashes() {},
       loadFinishedScores() {},
+      loadFavoritesBootstrap: () => new Promise(() => {}),
       loadUserFavorites: () => new Promise(() => {}),
       loadFavoriteCounts: () => new Promise(() => {}),
       loadMatches() {

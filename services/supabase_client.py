@@ -2650,6 +2650,37 @@ class SupabaseClient:
             print(f"[Supabase] toggle_favorite error: {e}")
             return {'favorited': False, 'total_count': 0}
 
+    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:
+        """Return this user's favorites and global counts from one table read."""
+        if not self.is_available or not license_key:
+            return {'favorites': [], 'counts': {}}
+        if not self._ensure_favorites_table():
+            return None
+        try:
+            url = f"{self._rest_url('license_favorites')}?select=license_key,match_key"
+            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)
+            if resp.status_code != 200:
+                return None
+            rows = resp.json()
+            if not isinstance(rows, list):
+                return None
+
+            favorites = []
+            counts: Dict[str, int] = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                match_key = row.get('match_key')
+                if not match_key:
+                    continue
+                counts[match_key] = counts.get(match_key, 0) + 1
+                if row.get('license_key') == license_key:
+                    favorites.append(match_key)
+            return {'favorites': favorites, 'counts': counts}
+        except Exception as e:
+            print(f"[Supabase] get_favorites_bootstrap error: {e}")
+            return None
+
     def get_user_favorites(self, license_key: str) -> list:
         if not self.is_available or not license_key:
             return []
@@ -3008,6 +3039,11 @@ class HybridDatabase:
         if self.supabase.is_available:
             return self.supabase.toggle_favorite(license_key, match_key)
         return {'favorited': False, 'total_count': 0}
+
+    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:
+        if self.supabase.is_available:
+            return self.supabase.get_favorites_bootstrap(license_key)
+        return None
 
     def get_user_favorites(self, license_key: str) -> list:
         if self.supabase.is_available:
