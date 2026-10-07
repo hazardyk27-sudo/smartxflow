@@ -1,0 +1,105 @@
+name: P2 Defer Chart Libraries Test
+
+on:
+  push:
+    branches: [perf/p2-defer-chart-libs]
+
+permissions:
+  contents: write
+
+jobs:
+  defer-chart-libs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-defer-chart-libs
+          fetch-depth: 0
+      - name: Remove eager chart library preload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          src_path = Path('static/js/app.js.src')
+          src = src_path.read_text()
+          old_src = """    runOptionalStartupTask('chart libraries', () => {\n        if (window.loadChartLibs) return window.loadChartLibs().then(() => registerChartPlugins());\n    });\n    \n"""
+          new_src = """    // Chart libraries stay off the startup path and load on first match-modal open.\n"""
+          if old_src not in src:
+              raise SystemExit('source eager chart preload anchor not found')
+          src_path.write_text(src.replace(old_src, new_src, 1))
+
+          runtime_path = Path('static/js/app.js')
+          runtime = runtime_path.read_text()
+          old_runtime = "runOptionalStartupTask('chart libraries',()=>{if(window.loadChartLibs)return window.loadChartLibs().then(()=>registerChartPlugins());});"
+          if old_runtime not in runtime:
+              raise SystemExit('runtime eager chart preload anchor not found')
+          runtime_path.write_text(runtime.replace(old_runtime, '', 1))
+          PY
+
+          cat > tests/test_deferred_chart_libs.js <<'JSTEST'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const test = require('node:test');
+
+          const bundles = [
+            ['runtime', fs.readFileSync(path.join(__dirname, '..', 'static', 'js', 'app.js'), 'utf8')],
+            ['source', fs.readFileSync(path.join(__dirname, '..', 'static', 'js', 'app.js.src'), 'utf8')],
+          ];
+
+          function extractFunction(source, signature) {
+            const start = source.indexOf(signature);
+            assert.ok(start >= 0, `${signature} should exist`);
+            const bodyStart = source.indexOf('{', start);
+            let depth = 0;
+            for (let i = bodyStart; i < source.length; i += 1) {
+              if (source[i] === '{') depth += 1;
+              if (source[i] === '}') {
+                depth -= 1;
+                if (depth === 0) return source.slice(start, i + 1);
+              }
+            }
+            assert.fail(`${signature} should have a closing brace`);
+          }
+
+          function extractBootstrap(source) {
+            const startMatch = /document\.addEventListener\('DOMContentLoaded',\s*async\s*\(\)\s*=>\s*\{/.exec(source);
+            assert.ok(startMatch, 'dashboard bootstrap should exist');
+            const end = source.indexOf('function updateLastRefreshDisplay()', startMatch.index);
+            assert.ok(end > startMatch.index, 'dashboard bootstrap should have an end');
+            return source.slice(startMatch.index, end);
+          }
+
+          for (const [name, source] of bundles) {
+            test(`chart libraries are absent from dashboard startup (${name})`, () => {
+              const bootstrap = extractBootstrap(source);
+              assert.doesNotMatch(bootstrap, /loadChartLibs/);
+              assert.doesNotMatch(bootstrap, /chart libraries/);
+            });
+
+            for (const signature of [
+              'async function openMatchModalFromMatches(',
+              'async function openMatchModalFromAPI(',
+              'async function openMatchModal(',
+            ]) {
+              test(`${signature} keeps on-demand chart loading (${name})`, () => {
+                const fn = extractFunction(source, signature);
+                assert.match(fn, /loadChartLibs/);
+                assert.match(fn, /registerChartPlugins/);
+              });
+            }
+          }
+          JSTEST
+      - name: Run chart deferral regressions
+        run: |
+          node --test tests/test_deferred_chart_libs.js
+          node --test tests/test_app_bootstrap.js
+      - name: Commit tested implementation
+        run: |
+          git config user.name 'SmartXFlow CI'
+          git config user.email 'smartxflow-ci@users.noreply.github.com'
+          git add static/js/app.js static/js/app.js.src tests/test_deferred_chart_libs.js
+          git rm .github/workflows/p2-defer-chart-libs-test.yml
+          git commit -m 'perf: defer chart libraries until modal open'
+          git push origin HEAD:perf/p2-defer-chart-libs
