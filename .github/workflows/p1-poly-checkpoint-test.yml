@@ -48,7 +48,7 @@ jobs:
           path.write_text(text)
           PY
       - name: Install test dependencies
-        run: python -m pip install --disable-pip-version-check pytest requests certifi python-dateutil
+        run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
       - name: Compile and run P1 regressions
         run: |
           python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py
