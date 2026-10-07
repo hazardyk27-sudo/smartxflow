@@ -1,0 +1,167 @@
+name: P2 Favorites Bootstrap Test
+
+on:
+  push:
+    branches: [perf/p2-favorites-bootstrap]
+
+permissions:
+  contents: write
+
+jobs:
+  favorites-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-favorites-bootstrap
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply single-read favorites bootstrap
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('services/supabase_client.py')
+          text = service.read_text()
+          signature = '    def get_user_favorites(self, license_key: str) -> list:\n'
+          positions = []
+          start = 0
+          while True:
+              idx = text.find(signature, start)
+              if idx < 0:
+                  break
+              positions.append(idx)
+              start = idx + len(signature)
+          if len(positions) != 2:
+              raise SystemExit(f'expected 2 get_user_favorites methods, found {len(positions)}')
+
+          primary = '''    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:\n        """Return this user's favorites and global counts from one table read."""\n        if not self.is_available or not license_key:\n            return {'favorites': [], 'counts': {}}\n        if not self._ensure_favorites_table():\n            return None\n        try:\n            url = f"{self._rest_url('license_favorites')}?select=license_key,match_key"\n            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)\n            if resp.status_code != 200:\n                return None\n            rows = resp.json()\n            if not isinstance(rows, list):\n                return None\n\n            favorites = []\n            counts: Dict[str, int] = {}\n            for row in rows:\n                if not isinstance(row, dict):\n                    continue\n                match_key = row.get('match_key')\n                if not match_key:\n                    continue\n                counts[match_key] = counts.get(match_key, 0) + 1\n                if row.get('license_key') == license_key:\n                    favorites.append(match_key)\n            return {'favorites': favorites, 'counts': counts}\n        except Exception as e:\n            print(f"[Supabase] get_favorites_bootstrap error: {e}")\n            return None\n\n'''
+          wrapper = '''    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:\n        if self.supabase.is_available:\n            return self.supabase.get_favorites_bootstrap(license_key)\n        return None\n\n'''
+
+          first = positions[0]
+          text = text[:first] + primary + text[first:]
+          second = text.find(signature, first + len(primary) + len(signature))
+          if second < 0:
+              raise SystemExit('wrapper get_user_favorites anchor missing after primary insert')
+          text = text[:second] + wrapper + text[second:]
+          service.write_text(text)
+
+          app = Path('app.py')
+          app_text = app.read_text()
+          anchor = "@app.route('/api/favorites-matches')\n"
+          endpoint = '''@app.route('/api/favorites/bootstrap')\n@license_required\ndef get_favorites_bootstrap():\n    license_key = (session.get('license_key', '') or request.headers.get('X-License-Key', '')).strip()\n    if not license_key:\n        device_id = (request.args.get('device_id', '') or request.headers.get('X-Device-Id', '')).strip()[:16]\n        license_key = f"device:{device_id}" if device_id else ''\n    if not license_key:\n        return jsonify({'favorites': [], 'counts': {}})\n\n    payload = db.get_favorites_bootstrap(license_key)\n    if payload is None:\n        return jsonify({'error': 'favorites_bootstrap_unavailable'}), 503\n    return jsonify(payload)\n\n'''
+          if anchor not in app_text:
+              raise SystemExit('favorites-matches route anchor missing')
+          app.write_text(app_text.replace(anchor, endpoint + anchor, 1))
+
+          source_loader = '''function loadFavoritesBootstrap() {\n    var did = getWebDeviceId();\n    if (!did) return Promise.resolve();\n    return fetch('/api/favorites/bootstrap?device_id=' + encodeURIComponent(did))\n        .then(function(r) {\n            if (!r.ok) throw new Error('HTTP ' + r.status);\n            return r.json();\n        })\n        .then(function(data) {\n            if (!data || !Array.isArray(data.favorites) || !data.counts || typeof data.counts !== 'object') {\n                throw new Error('invalid favorites bootstrap payload');\n            }\n            _userFavorites = new Set(data.favorites);\n            _favCounts = data.counts;\n            _updateFavCountsInDOM();\n        })\n        .catch(function(error) {\n            console.warn('[Fav] Bootstrap fallback:', error);\n            return Promise.all([loadUserFavorites(), loadFavoriteCounts()]);\n        });\n}\n\n'''
+          for filename in ('static/js/app.js.src', 'static/js/app.js'):
+              path = Path(filename)
+              js = path.read_text()
+              anchor_js = 'function _updateFavCountsInDOM()'
+              if anchor_js not in js:
+                  raise SystemExit(f'{filename}: update favorite DOM anchor missing')
+              if 'function loadFavoritesBootstrap()' in js:
+                  raise SystemExit(f'{filename}: bootstrap function already exists')
+              js = js.replace(anchor_js, source_loader + anchor_js, 1)
+              old_source = "runOptionalStartupTask('favorites', () => Promise.all([loadUserFavorites(), loadFavoriteCounts()])"
+              old_runtime = "runOptionalStartupTask('favorites',()=>Promise.all([loadUserFavorites(),loadFavoriteCounts()])"
+              if old_source in js:
+                  js = js.replace(old_source, "runOptionalStartupTask('favorites', () => loadFavoritesBootstrap()", 1)
+              elif old_runtime in js:
+                  js = js.replace(old_runtime, "runOptionalStartupTask('favorites',()=>loadFavoritesBootstrap()", 1)
+              else:
+                  raise SystemExit(f'{filename}: startup favorites anchor missing')
+              path.write_text(js)
+          PY
+
+          cat > tests/test_favorites_bootstrap.py <<'PYTEST'
+          from pathlib import Path
+
+          from services.supabase_client import SupabaseClient
+
+
+          class _Response:
+              status_code = 200
+              def json(self):
+                  return [
+                      {'license_key': 'u1', 'match_key': 'A|B|L'},
+                      {'license_key': 'u2', 'match_key': 'A|B|L'},
+                      {'license_key': 'u1', 'match_key': 'C|D|L'},
+                  ]
+
+
+          class _HTTP:
+              def __init__(self):
+                  self.calls = []
+              def get(self, url, headers, timeout):
+                  self.calls.append((url, timeout))
+                  return _Response()
+
+
+          def test_supabase_favorites_bootstrap_uses_one_table_read(monkeypatch):
+              client = SupabaseClient.__new__(SupabaseClient)
+              client.url = 'https://example.supabase.co'
+              client.key = 'anon-test'
+              client._http_client = None
+              http = _HTTP()
+              monkeypatch.setattr(client, '_ensure_favorites_table', lambda: True)
+              monkeypatch.setattr(client, '_get_http_client', lambda: http)
+
+              data = client.get_favorites_bootstrap('u1')
+
+              assert data == {
+                  'favorites': ['A|B|L', 'C|D|L'],
+                  'counts': {'A|B|L': 2, 'C|D|L': 1},
+              }
+              assert len(http.calls) == 1
+              assert http.calls[0][0].endswith('/rest/v1/license_favorites?select=license_key,match_key')
+              assert http.calls[0][1] == 15
+
+
+          def test_app_exposes_bootstrap_with_legacy_failure_signal():
+              source = Path('app.py').read_text()
+              assert "@app.route('/api/favorites/bootstrap')" in source
+              assert 'db.get_favorites_bootstrap(license_key)' in source
+              assert "'favorites_bootstrap_unavailable'" in source
+              assert ', 503' in source
+          PYTEST
+
+          cat > tests/test_favorites_bootstrap.js <<'JSTEST'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const test = require('node:test');
+
+          for (const file of ['app.js', 'app.js.src']) {
+            const source = fs.readFileSync(path.join(__dirname, '..', 'static', 'js', file), 'utf8');
+            test(`favorites startup is one bootstrap request with legacy fallback (${file})`, () => {
+              assert.match(source, /function loadFavoritesBootstrap\(\)/);
+              assert.match(source, /\/api\/favorites\/bootstrap\?device_id=/);
+              assert.match(source, /Promise\.all\(\[loadUserFavorites\(\),\s*loadFavoriteCounts\(\)\]\)/);
+              const startup = source.indexOf("runOptionalStartupTask('favorites'");
+              assert.ok(startup >= 0);
+              assert.match(source.slice(startup, startup + 180), /loadFavoritesBootstrap\(\)/);
+              assert.doesNotMatch(source.slice(startup, startup + 180), /Promise\.all\(\[loadUserFavorites/);
+            });
+          }
+          JSTEST
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
+      - name: Run favorites bootstrap regressions
+        run: |
+          python -m py_compile app.py services/supabase_client.py
+          python -m pytest -q tests/test_favorites_bootstrap.py
+          node --test tests/test_favorites_bootstrap.js
+          node --test tests/test_app_bootstrap.js
+      - name: Commit tested implementation
+        run: |
+          git config user.name 'SmartXFlow CI'
+          git config user.email 'smartxflow-ci@users.noreply.github.com'
+          git add app.py services/supabase_client.py static/js/app.js static/js/app.js.src tests/test_favorites_bootstrap.py tests/test_favorites_bootstrap.js
+          git rm .github/workflows/p2-favorites-bootstrap-test.yml
+          git commit -m 'perf: collapse favorites startup to one read'
+          git push origin HEAD:perf/p2-favorites-bootstrap
