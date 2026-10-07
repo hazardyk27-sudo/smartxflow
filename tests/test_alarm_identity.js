@@ -5,12 +5,30 @@ const fs = require('fs');
 const vm = require('vm');
 
 const source = fs.readFileSync('static/js/app.js.src', 'utf8');
-const groupStart = source.indexOf('function groupAlarmsByMatch(');
-const groupEnd = source.indexOf('\nfunction updateAlarmCounts', groupStart);
+
+function extractFunctionDeclaration(sourceText, signature) {
+    const start = sourceText.indexOf(signature);
+    assert(start >= 0, `${signature} should exist`);
+    const bodyStart = sourceText.indexOf('{', start);
+    assert(bodyStart > start, `${signature} should have a body`);
+
+    let depth = 0;
+    for (let index = bodyStart; index < sourceText.length; index += 1) {
+        if (sourceText[index] === '{') depth += 1;
+        if (sourceText[index] === '}') {
+            depth -= 1;
+            if (depth === 0) return sourceText.slice(start, index + 1);
+        }
+    }
+
+    assert.fail(`${signature} should have a closing brace`);
+}
+
+const groupSource = extractFunctionDeclaration(source, 'function groupAlarmsByMatch(');
 const identityStart = source.indexOf('function _matchContextHash(');
 const identityEnd = source.indexOf('\nfunction formatSmartMoneyTime', identityStart);
-assert(groupStart >= 0 && groupEnd > groupStart);
 assert(identityStart >= 0 && identityEnd > identityStart);
+const identitySource = source.slice(identityStart, identityEnd);
 
 const sandbox = {
     console,
@@ -20,10 +38,7 @@ const sandbox = {
     }
 };
 vm.createContext(sandbox);
-vm.runInContext(
-    source.slice(groupStart, groupEnd) + source.slice(identityStart, identityEnd),
-    sandbox
-);
+vm.runInContext(groupSource + '\n' + identitySource, sandbox);
 
 const base = {
     home: 'Barcelona',
