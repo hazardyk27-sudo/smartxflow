@@ -9,28 +9,8 @@ return did;}
 let _userFavorites=new Set();let _favCounts={};let _favFilterActive=false;function _getMatchKey(match){return(match.home_team||'')+'|'+(match.away_team||'')+'|'+(match.league||'');}
 function loadUserFavorites(){var did=getWebDeviceId();if(!did)return Promise.resolve();return fetch('/api/favorites?device_id='+encodeURIComponent(did)).then(function(r){return r.json();}).then(function(data){_userFavorites=new Set(data.favorites||[]);}).catch(function(){});}
 function loadFavoriteCounts(){return fetch('/api/favorite/all-counts').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){void 0;_favCounts=data.counts||{};_updateFavCountsInDOM();}).catch(function(err){console.error('[Fav] loadFavoriteCounts error:',err);});}
-function loadFavoritesBootstrap() {
-    var did = getWebDeviceId();
-    if (!did) return Promise.resolve();
-    return fetch('/api/favorites/bootstrap?device_id=' + encodeURIComponent(did))
-        .then(function(r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
-        .then(function(data) {
-            if (!data || !Array.isArray(data.favorites) || !data.counts || typeof data.counts !== 'object') {
-                throw new Error('invalid favorites bootstrap payload');
-            }
-            _userFavorites = new Set(data.favorites);
-            _favCounts = data.counts;
-            _updateFavCountsInDOM();
-        })
-        .catch(function(error) {
-            console.warn('[Fav] Bootstrap fallback:', error);
-            return Promise.all([loadUserFavorites(), loadFavoriteCounts()]);
-        });
-}
-
+function loadFavoritesBootstrap(){var did=getWebDeviceId();if(!did)return Promise.resolve();return fetch('/api/favorites/bootstrap?device_id='+encodeURIComponent(did)).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(data){if(!data||!Array.isArray(data.favorites)||!data.counts||typeof data.counts!=='object'){throw new Error('invalid favorites bootstrap payload');}
+_userFavorites=new Set(data.favorites);_favCounts=data.counts;_updateFavCountsInDOM();}).catch(function(error){console.warn('[Fav] Bootstrap fallback:',error);return Promise.all([loadUserFavorites(),loadFavoriteCounts()]);});}
 function _updateFavCountsInDOM(){document.querySelectorAll('.fav-heart').forEach(function(el){var mk=el.getAttribute('data-matchkey');var c=_favCounts[mk]||0;var countEl=el.parentElement.querySelector('.fav-count');if(countEl&&mk){countEl.innerHTML=_favCountHtml(c);}});document.querySelectorAll('.mobile-fav-count').forEach(function(el){var mk=el.getAttribute('data-matchkey');if(mk){var c=_favCounts[mk]||0;el.textContent=c+(window.SXFI18n?window.SXFI18n.t('app.dyn.kisi')+' '+window.SXFI18n.t('app.dyn.takip_ediyor'):' kişi takip ediyor');}});}
 function toggleFavorite(el){var mk=el.getAttribute('data-matchkey');if(!mk)return;var did=getWebDeviceId();void 0;fetch('/api/favorite/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({match_key:mk,device_id:did})}).then(function(r){void 0;return r.json();}).then(function(data){if(data.error){console.warn('[Fav] error:',data.error);return;}
 void 0;if(data.favorited){_userFavorites.add(mk);}else{_userFavorites.delete(mk);}
@@ -142,49 +122,12 @@ const kickoffRaw=alarm.kickoff_utc||alarm.kickoff||alarm.fixture_date;const trig
 const kickoffTime=toTurkeyTime(kickoffRaw);const triggerTime=toTurkeyTime(triggerAtRaw);if(!kickoffTime||!triggerTime||!kickoffTime.isValid()||!triggerTime.isValid()){return 0;}
 const diffHours=kickoffTime.diff(triggerTime,'hour',true);return diffHours>0?diffHours:0;}
 function escapeHtml(str){if(!str)return'';return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
-let _sxfDeferredModalPrefetchScheduled = false;
-function scheduleDeferredModalRuntimePrefetch() {
-    if (_sxfDeferredModalPrefetchScheduled) return;
-    _sxfDeferredModalPrefetchScheduled = true;
-
-    const prefetch = () => {
-        const candidates = [];
-        if (typeof window.__sxfLoadChartImpl !== 'function') {
-            candidates.push(_getModalChartRuntimeUrl());
-        }
-        if (typeof window.__sxfRenderMatchAlarmsSectionImpl !== 'function') {
-            candidates.push(_getModalAlarmsRuntimeUrl());
-        }
-        if (typeof window.__sxfCheckModalLiveDataImpl !== 'function') {
-            candidates.push(_getModalLiveRuntimeUrl());
-        }
-        candidates.forEach(url => {
-            const link = document.createElement('link');
-            link.rel = 'prefetch';
-            link.as = 'script';
-            link.href = url;
-            link.dataset.sxfModalPrefetch = '1';
-            document.head.appendChild(link);
-        });
-    };
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(prefetch, { timeout: 7000 });
-    } else {
-        setTimeout(prefetch, 4000);
-    }
-}
-
+let _sxfDeferredModalPrefetchScheduled=false;function scheduleDeferredModalRuntimePrefetch(){if(_sxfDeferredModalPrefetchScheduled)return;_sxfDeferredModalPrefetchScheduled=true;const prefetch=()=>{const candidates=[];if(typeof window.__sxfLoadChartImpl!=='function'){candidates.push(_getModalChartRuntimeUrl());}
+if(typeof window.__sxfRenderMatchAlarmsSectionImpl!=='function'){candidates.push(_getModalAlarmsRuntimeUrl());}
+if(typeof window.__sxfCheckModalLiveDataImpl!=='function'){candidates.push(_getModalLiveRuntimeUrl());}
+candidates.forEach(url=>{const link=document.createElement('link');link.rel='prefetch';link.as='script';link.href=url;link.dataset.sxfModalPrefetch='1';document.head.appendChild(link);});};if(typeof window.requestIdleCallback==='function'){window.requestIdleCallback(prefetch,{timeout:7000});}else{setTimeout(prefetch,4000);}}
 document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');const runOptionalStartupTask=(name,task)=>{try{const result=task();if(result&&typeof result.catch==='function'){result.catch(error=>console.warn('[Startup] Optional task failed:',name,error));}}catch(error){console.warn('[Startup] Optional task failed:',name,error);}};runOptionalStartupTask('tab setup',setupTabs);runOptionalStartupTask('search setup',setupSearch);runOptionalStartupTask('chart tab setup',setupModalChartTabs);await _licenseReady;if(!_isLicensed)return;try{const initialMatchLoad=loadMatches();if(initialMatchLoad&&typeof initialMatchLoad.catch==='function'){initialMatchLoad.catch(error=>{console.error('[Matches] Initial load failed before completion:',error);if(!_liveMode)renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');});}}catch(error){console.error('[Matches] Initial load could not be started:',error);if(!_liveMode)renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');}
-runOptionalStartupTask('analysis match hashes',fetchAnalysisMatchHashes);runOptionalStartupTask('finished scores', () => {
-    const loadScores = () => loadFinishedScores(true);
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(loadScores, { timeout: 5000 });
-    } else {
-        setTimeout(loadScores, 2500);
-    }
-});runOptionalStartupTask('favorites',()=>loadFavoritesBootstrap().then(()=>{document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el){const matchKey=el.getAttribute('data-matchkey');el.classList.toggle('fav-active',_userFavorites.has(matchKey));});if(_favFilterActive)_applyFavoritesFilter();}).catch(error=>console.warn('[Fav] Startup favorites failed:',error)));runOptionalStartupTask('background live data',_startBackgroundLiveFetch);
-runOptionalStartupTask('modal runtime prefetch', scheduleDeferredModalRuntimePrefetch);runOptionalStartupTask('status check',checkStatus);runOptionalStartupTask('status interval',()=>{window.statusInterval=window.setInterval(checkStatus,60000);});runOptionalStartupTask('auto refresh',setupAutoRefresh);runOptionalStartupTask('visibility handler',()=>{document.addEventListener('visibilitychange',handleVisibilityChange);});});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
+runOptionalStartupTask('analysis match hashes',fetchAnalysisMatchHashes);runOptionalStartupTask('finished scores',()=>{const loadScores=()=>loadFinishedScores(true);if(typeof window.requestIdleCallback==='function'){window.requestIdleCallback(loadScores,{timeout:5000});}else{setTimeout(loadScores,2500);}});runOptionalStartupTask('favorites',()=>loadFavoritesBootstrap().then(()=>{document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el){const matchKey=el.getAttribute('data-matchkey');el.classList.toggle('fav-active',_userFavorites.has(matchKey));});if(_favFilterActive)_applyFavoritesFilter();}).catch(error=>console.warn('[Fav] Startup favorites failed:',error)));runOptionalStartupTask('background live data',_startBackgroundLiveFetch);runOptionalStartupTask('modal runtime prefetch',scheduleDeferredModalRuntimePrefetch);runOptionalStartupTask('status check',checkStatus);runOptionalStartupTask('status interval',()=>{window.statusInterval=window.setInterval(checkStatus,60000);});runOptionalStartupTask('auto refresh',setupAutoRefresh);runOptionalStartupTask('visibility handler',()=>{document.addEventListener('visibilitychange',handleVisibilityChange);});});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
 if(refreshEl){refreshEl.textContent=`Son güncelleme: ${now.format('HH:mm')} (TR)`;}}
 function getRefreshJitter(){return Math.floor(Math.random()*60000);}
 function setupAutoRefresh(){updateLastRefreshDisplay();const jitter=getRefreshJitter();const intervalWithJitter=MATCH_REFRESH_INTERVAL+jitter;_matchRefreshInterval=setInterval(async()=>{void 0;await refreshMatchData();},intervalWithJitter);void 0;}
@@ -589,8 +532,7 @@ if(dateFilterMode==='YESTERDAY'){sortedData=sortedData.filter(m=>{const matchDat
 const isValidOdds=(val)=>{if(val===null||val===undefined)return false;if(typeof val==='number')return val!==0&&!isNaN(val);if(typeof val==='string'){let v=val.trim().toLowerCase();if(v===''||v==='-'||v==='--'||v==='—')return false;const cleaned=v.replace(/[%£€$,\s↓↑]/g,'').replace(/tl$/i,'').replace(/[^\d.\-]/g,'');const num=parseFloat(cleaned);if(isNaN(num))return false;return true;}
 return false;};sortedData=sortedData.filter(m=>{const d=m.details||m.odds||{};const checkOdds=(obj)=>{if(!obj||typeof obj!=='object')return false;return isValidOdds(obj.Odds1)||isValidOdds(obj.Odds2)||isValidOdds(obj.OddsX)||isValidOdds(obj.OddsUnder)||isValidOdds(obj.OddsOver)||isValidOdds(obj.OddsYes)||isValidOdds(obj.OddsNo)||isValidOdds(obj['1'])||isValidOdds(obj['X'])||isValidOdds(obj['2'])||isValidOdds(obj.Under)||isValidOdds(obj.Over)||isValidOdds(obj.Yes)||isValidOdds(obj.No)||isValidOdds(obj.Pct1)||isValidOdds(obj.PctX)||isValidOdds(obj.Pct2)||isValidOdds(obj.PctUnder)||isValidOdds(obj.PctOver)||isValidOdds(obj.PctYes)||isValidOdds(obj.PctNo)||isValidOdds(obj.Amt1)||isValidOdds(obj.AmtX)||isValidOdds(obj.Amt2)||isValidOdds(obj.Volume)||isValidOdds(obj.open_odds)||isValidOdds(obj.current_odds)||isValidOdds(obj.drop_pct)||isValidOdds(obj.odds1)||isValidOdds(obj.odds2)||isValidOdds(obj.oddsx)||isValidOdds(obj.amt1)||isValidOdds(obj.amt2)||isValidOdds(obj.amtx)||isValidOdds(obj.pct1)||isValidOdds(obj.pct2)||isValidOdds(obj.pctx);};const checkCompleteOdds=(obj)=>{if(!obj||typeof obj!=='object')return false;if(currentMarket.includes('1x2')){return isValidOdds(obj.Odds1||obj['1'])&&isValidOdds(obj.OddsX||obj['X'])&&isValidOdds(obj.Odds2||obj['2']);}else if(currentMarket.includes('ou25')){return isValidOdds(obj.OddsUnder||obj.Under)&&isValidOdds(obj.OddsOver||obj.Over);}else if(currentMarket.includes('btts')){return isValidOdds(obj.OddsYes||obj.Yes)&&isValidOdds(obj.OddsNo||obj.No);}
 return checkOdds(obj);};const checkHistoryArray=(arr)=>{if(!Array.isArray(arr)||arr.length===0)return false;const first=arr[0];let snapshot=first.snapshot||first.snapshot_json||first;if(typeof snapshot==='string'){try{snapshot=JSON.parse(snapshot);}catch(e){return false;}}
-return checkOdds(snapshot);};let hasValidOdds=checkCompleteOdds(d)||checkCompleteOdds(m);if(!hasValidOdds&&(m.history?.length>0||m.history_count>0))hasValidOdds=true;if(!hasValidOdds&&m.history)hasValidOdds=checkHistoryArray(m.history);if(!hasValidOdds&&m.snapshots)hasValidOdds=checkHistoryArray(m.snapshots);return hasValidOdds;});
-if(_mobileHideEnded||_mobileHideLive||_mobileOnlyLive){sortedData=sortedData.filter(m=>{const statusHtml=getMatchStatus(m.date);const isLive=statusHtml.includes('CANLI');const isEnded=statusHtml.includes('BİTTİ');if(_mobileOnlyLive&&!isLive)return false;if(_mobileHideEnded&&isEnded)return false;if(_mobileHideLive&&isLive)return false;return true;});}
+return checkOdds(snapshot);};let hasValidOdds=checkCompleteOdds(d)||checkCompleteOdds(m);if(!hasValidOdds&&(m.history?.length>0||m.history_count>0))hasValidOdds=true;if(!hasValidOdds&&m.history)hasValidOdds=checkHistoryArray(m.history);if(!hasValidOdds&&m.snapshots)hasValidOdds=checkHistoryArray(m.snapshots);return hasValidOdds;});if(_mobileHideEnded||_mobileHideLive||_mobileOnlyLive){sortedData=sortedData.filter(m=>{const statusHtml=getMatchStatus(m.date);const isLive=statusHtml.includes('CANLI');const isEnded=statusHtml.includes('BİTTİ');if(_mobileOnlyLive&&!isLive)return false;if(_mobileHideEnded&&isEnded)return false;if(_mobileHideLive&&isLive)return false;return true;});}
 return sortedData.sort((a,b)=>{let valA,valB;const d1=a.details||a.odds||{};const d2=b.details||b.odds||{};switch(currentSortColumn){case'date':valA=parseDate(a.date);valB=parseDate(b.date);break;case'league':valA=(a.league||'').toLowerCase();valB=(b.league||'').toLowerCase();break;case'match':valA=(a.home_team||'').toLowerCase();valB=(b.home_team||'').toLowerCase();break;case'sel1':if(currentMarket.startsWith('dropping_')){valA=getMatchTrendPct(a,'sel1');valB=getMatchTrendPct(b,'sel1');}else if(currentMarket.includes('1x2')){valA=parsePctValue(d1.Pct1);valB=parsePctValue(d2.Pct1);}else if(currentMarket.includes('ou25')){valA=parsePctValue(d1.PctUnder);valB=parsePctValue(d2.PctUnder);}else if(currentMarket.includes('btts')){valA=parsePctValue(d1.PctYes);valB=parsePctValue(d2.PctYes);}
 break;case'selX':if(currentMarket.startsWith('dropping_')){valA=getMatchTrendPct(a,'selX');valB=getMatchTrendPct(b,'selX');}else{valA=parsePctValue(d1.PctX);valB=parsePctValue(d2.PctX);}
 break;case'sel2':if(currentMarket.startsWith('dropping_')){valA=getMatchTrendPct(a,'sel2');valB=getMatchTrendPct(b,'sel2');}else if(currentMarket.includes('1x2')){valA=parsePctValue(d1.Pct2);valB=parsePctValue(d2.Pct2);}else if(currentMarket.includes('ou25')){valA=parsePctValue(d1.PctOver);valB=parsePctValue(d2.PctOver);}else if(currentMarket.includes('btts')){valA=parsePctValue(d1.PctNo);valB=parsePctValue(d2.PctNo);}
@@ -639,7 +581,8 @@ window._sxfModalInfoRuntimePromise=window._sxfModalInfoRuntimePromise||null;func
 return'/static/js/modal-info.js';}
 function loadModalInfoRuntime(){if(typeof window.__sxfUpdateMatchInfoCardImpl==='function')return Promise.resolve();if(window._sxfModalInfoRuntimePromise)return window._sxfModalInfoRuntimePromise;window._sxfModalInfoRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getModalInfoRuntimeUrl();script.async=true;script.onload=()=>{if(typeof window.__sxfUpdateMatchInfoCardImpl==='function'){resolve();return;}
 window._sxfModalInfoRuntimePromise=null;reject(new Error('Modal info runtime loaded without implementation'));};script.onerror=()=>{window._sxfModalInfoRuntimePromise=null;reject(new Error('Modal info runtime failed to load'));};document.head.appendChild(script);});return window._sxfModalInfoRuntimePromise;}
-async function updateMatchInfoCard(...args){await loadModalInfoRuntime();return window.__sxfUpdateMatchInfoCardImpl(...args);}function getTrendArrow(current,previous){if(!current||!previous)return'';const curr=parseFloat(String(current).replace(/[^0-9.]/g,''));const prev=parseFloat(String(previous).replace(/[^0-9.]/g,''));if(isNaN(curr)||isNaN(prev))return'';if(curr>prev)return'<span class="trend-up">↑</span>';if(curr<prev)return'<span class="trend-down">↓</span>';return'';}
+async function updateMatchInfoCard(...args){await loadModalInfoRuntime();return window.__sxfUpdateMatchInfoCardImpl(...args);}
+function getTrendArrow(current,previous){if(!current||!previous)return'';const curr=parseFloat(String(current).replace(/[^0-9.]/g,''));const prev=parseFloat(String(previous).replace(/[^0-9.]/g,''));if(isNaN(curr)||isNaN(prev))return'';if(curr>prev)return'<span class="trend-up">↑</span>';if(curr<prev)return'<span class="trend-down">↓</span>';return'';}
 function switchMobileTab(tabName){if(tabName==='live'&&(window.userPlan==='core'||window.userPlan==='test')){document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t=>{t.classList.remove('active');if(t.dataset.tab===tabName)t.classList.add('active');});document.querySelectorAll('.mobile-tab-content').forEach(c=>{c.classList.remove('active');});var _tc=document.getElementById('mobileTabLive');if(_tc)_tc.classList.add('active');var _lb=document.getElementById('modalLiveBody');if(_lb)_lb.innerHTML=proLockPanelHtml();var _lt=document.getElementById('modalLiveMarketTabs');if(_lt)_lt.innerHTML='';return;}
 document.querySelectorAll('.mobile-tab-bar .mob-tab').forEach(t=>{t.classList.remove('active');if(t.dataset.tab===tabName)t.classList.add('active');});document.querySelectorAll('.mobile-tab-content').forEach(c=>{c.classList.remove('active');});const targetTab=document.getElementById('mobileTab'+tabName.charAt(0).toUpperCase()+tabName.slice(1));if(targetTab)targetTab.classList.add('active');}
 function isMobile(){return window.innerWidth<=768;}
@@ -662,73 +605,26 @@ document.addEventListener('click',function(e){const dropdown=document.querySelec
 const trendTooltip=document.querySelector('.odds-trend-tooltip');if(trendTooltip){trendTooltip.classList.remove('visible');}
 if(chart){chart.destroy();chart=null;}
 selectedMatch=null;modalOddsData=null;previousOddsData=null;bulkHistoryCache={};bulkHistoryCacheKey='';currentChartHistoryData=[];}
-
 function roundToBucket(timestamp){const dt=toTurkeyTime(timestamp);if(!dt||!dt.isValid())return dayjs().tz(APP_TIMEZONE);const config=getBucketConfig();const bucketMinutes=config.bucketMinutes;const minutes=dt.hour()*60+dt.minute();const roundedMinutes=Math.floor(minutes/bucketMinutes)*bucketMinutes;return dt.startOf('day').add(roundedMinutes,'minute');}
-
-window._sxfModalChartRuntimePromise = window._sxfModalChartRuntimePromise || null;
-function _getModalChartRuntimeUrl() {
-    try {
-        const scripts = document.getElementsByTagName('script');
-        for (let i = scripts.length - 1; i >= 0; i--) {
-            const src = scripts[i].src || '';
-            if (src.indexOf('/static/js/app.js') !== -1) {
-                const queryIndex = src.indexOf('?');
-                const query = queryIndex >= 0 ? src.slice(queryIndex) : '';
-                return '/static/js/modal-chart.js' + query;
-            }
-        }
-    } catch (e) {}
-    return '/static/js/modal-chart.js';
-}
-
-function loadModalChartRuntime() {
-    if (typeof window.__sxfLoadChartImpl === 'function') return Promise.resolve();
-    if (window._sxfModalChartRuntimePromise) return window._sxfModalChartRuntimePromise;
-
-    window._sxfModalChartRuntimePromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = _getModalChartRuntimeUrl();
-        script.async = true;
-        script.onload = () => {
-            if (typeof window.__sxfLoadChartImpl === 'function') {
-                resolve();
-                return;
-            }
-            window._sxfModalChartRuntimePromise = null;
-            reject(new Error('Modal chart runtime loaded without implementation'));
-        };
-        script.onerror = () => {
-            window._sxfModalChartRuntimePromise = null;
-            reject(new Error('Modal chart runtime failed to load'));
-        };
-        document.head.appendChild(script);
-    });
-    return window._sxfModalChartRuntimePromise;
-}
-
-async function loadChart(...args) {
-    await loadModalChartRuntime();
-    if (typeof isMobile === 'function' && isMobile()) await loadMobileChartPanelRuntime();
-    return window.__sxfLoadChartImpl(...args);
-}
-
-let brushStartIndex=0;let brushEndIndex=100;let brushDataLength=0;
-
-function resetBrushSlider(){const brushStart=document.querySelector('#brushStart');const brushEnd=document.querySelector('#brushEnd');if(brushStart&&brushEnd){brushStart.value=0;brushEnd.value=brushDataLength-1;const brushHighlight=document.querySelector('#brushHighlight');if(brushHighlight){brushHighlight.style.left='0%';brushHighlight.style.width='100%';}
+window._sxfModalChartRuntimePromise=window._sxfModalChartRuntimePromise||null;function _getModalChartRuntimeUrl(){try{const scripts=document.getElementsByTagName('script');for(let i=scripts.length-1;i>=0;i--){const src=scripts[i].src||'';if(src.indexOf('/static/js/app.js')!==-1){const queryIndex=src.indexOf('?');const query=queryIndex>=0?src.slice(queryIndex):'';return'/static/js/modal-chart.js'+query;}}}catch(e){}
+return'/static/js/modal-chart.js';}
+function loadModalChartRuntime(){if(typeof window.__sxfLoadChartImpl==='function')return Promise.resolve();if(window._sxfModalChartRuntimePromise)return window._sxfModalChartRuntimePromise;window._sxfModalChartRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getModalChartRuntimeUrl();script.async=true;script.onload=()=>{if(typeof window.__sxfLoadChartImpl==='function'){resolve();return;}
+window._sxfModalChartRuntimePromise=null;reject(new Error('Modal chart runtime loaded without implementation'));};script.onerror=()=>{window._sxfModalChartRuntimePromise=null;reject(new Error('Modal chart runtime failed to load'));};document.head.appendChild(script);});return window._sxfModalChartRuntimePromise;}
+async function loadChart(...args){await loadModalChartRuntime();if(typeof isMobile==='function'&&isMobile())await loadMobileChartPanelRuntime();return window.__sxfLoadChartImpl(...args);}
+let brushStartIndex=0;let brushEndIndex=100;let brushDataLength=0;function resetBrushSlider(){const brushStart=document.querySelector('#brushStart');const brushEnd=document.querySelector('#brushEnd');if(brushStart&&brushEnd){brushStart.value=0;brushEnd.value=brushDataLength-1;const brushHighlight=document.querySelector('#brushHighlight');if(brushHighlight){brushHighlight.style.left='0%';brushHighlight.style.width='100%';}
 const brushRangeInfo=document.querySelector('#brushRange');if(brushRangeInfo){brushRangeInfo.textContent='Tüm veri';}}}
 function resetChartZoom(){if(chart){chart.resetZoom();chart.options.scales.x.min=undefined;chart.options.scales.x.max=undefined;chart.update('none');}
 resetBrushSlider();}
-
 function setChartTimeRange(range){chartTimeRange=range;document.querySelectorAll('.chart-time-btn').forEach(btn=>{btn.classList.remove('active');if(btn.dataset.range===range){btn.classList.add('active');}});if(selectedMatch){loadChart(selectedMatch.home_team,selectedMatch.away_team,selectedChartMarket,selectedMatch.league||'');}}
 function setChartViewMode(mode){chartViewMode=mode;document.querySelectorAll('.chart-view-btn').forEach(btn=>{btn.classList.remove('active');if(btn.dataset.mode===mode){btn.classList.add('active');}});if(selectedMatch){loadChart(selectedMatch.home_team,selectedMatch.away_team,selectedChartMarket,selectedMatch.league||'');}}
-
 window._sxfChartExportRuntimePromise=window._sxfChartExportRuntimePromise||null;function _getChartExportRuntimeUrl(){try{const scripts=document.getElementsByTagName('script');for(let i=scripts.length-1;i>=0;i--){const src=scripts[i].src||'';if(src.indexOf('/static/js/app.js')!==-1){const queryIndex=src.indexOf('?');const query=queryIndex>=0?src.slice(queryIndex):'';return'/static/js/chart-export.js'+query;}}}catch(e){}
 return'/static/js/chart-export.js';}
 function loadChartExportRuntime(){const ready=typeof window.__sxfExportChartPNGImpl==='function'&&typeof window.__sxfExportChartCSVImpl==='function'&&typeof window.__sxfExportFullMatchTXTImpl==='function';if(ready)return Promise.resolve();if(window._sxfChartExportRuntimePromise)return window._sxfChartExportRuntimePromise;window._sxfChartExportRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getChartExportRuntimeUrl();script.async=true;script.onload=()=>{const loaded=typeof window.__sxfExportChartPNGImpl==='function'&&typeof window.__sxfExportChartCSVImpl==='function'&&typeof window.__sxfExportFullMatchTXTImpl==='function';if(loaded){resolve();return;}
 window._sxfChartExportRuntimePromise=null;reject(new Error('Chart export runtime loaded without implementations'));};script.onerror=()=>{window._sxfChartExportRuntimePromise=null;reject(new Error('Chart export runtime failed to load'));};document.head.appendChild(script);});return window._sxfChartExportRuntimePromise;}
 async function exportChartPNG(...args){await loadChartExportRuntime();return window.__sxfExportChartPNGImpl(...args);}
 async function exportChartCSV(...args){await loadChartExportRuntime();return window.__sxfExportChartCSVImpl(...args);}
-async function exportFullMatchTXT(...args){await loadChartExportRuntime();return window.__sxfExportFullMatchTXTImpl(...args);}function toggleChartSeries(market,seriesKey,btn){const stateKey=`${market}_${seriesKey}`;const wasVisible=chartVisibleSeries[stateKey]!==false;chartVisibleSeries[stateKey]=!wasVisible;if(btn){if(chartVisibleSeries[stateKey]){btn.classList.remove('inactive');btn.classList.add('active');}else{btn.classList.remove('active');btn.classList.add('inactive');}}
+async function exportFullMatchTXT(...args){await loadChartExportRuntime();return window.__sxfExportFullMatchTXTImpl(...args);}
+function toggleChartSeries(market,seriesKey,btn){const stateKey=`${market}_${seriesKey}`;const wasVisible=chartVisibleSeries[stateKey]!==false;chartVisibleSeries[stateKey]=!wasVisible;if(btn){if(chartVisibleSeries[stateKey]){btn.classList.remove('inactive');btn.classList.add('active');}else{btn.classList.remove('active');btn.classList.add('inactive');}}
 if(chart){const datasetIndex=chart.data.datasets.findIndex(ds=>ds.label===seriesKey);if(datasetIndex!==-1){chart.data.datasets[datasetIndex].hidden=!chartVisibleSeries[stateKey];chart.update();}}}
 function getOddsFromHistory(historyPoint,label,market){if(!historyPoint)return 0;if(market.includes('1x2')){if(label==='1'){const val=historyPoint.Odds1||historyPoint['1'];return val?parseFloat(String(val).split('\n')[0])||0:0;}
 if(label==='X'){const val=historyPoint.OddsX||historyPoint['X'];return val?parseFloat(String(val).split('\n')[0])||0:0;}
@@ -985,172 +881,31 @@ if(alarmsSidebarOpen){closeAlarmsSidebar();}else{openAlarmsSidebar();}}
 function openAlarmsSidebar(){if(window.userPlan==='test'){_showTestLockedToast(document.getElementById('alarmsBtn'));return;}
 alarmsSidebarOpen=true;document.getElementById('alarmsSidebar').classList.add('open');document.getElementById('alarmsSidebarOverlay').classList.add('open');document.body.style.overflow='hidden';const btn=document.getElementById('alarmsBtn');if(btn)btn.classList.add('active');if(_alarmBatchCache&&(Date.now()-_alarmCacheTime)<ALARM_CACHE_TTL){loadAllAlarms(false);}else{loadAllAlarms(true);}}
 function closeAlarmsSidebar(){alarmsSidebarOpen=false;document.getElementById('alarmsSidebar').classList.remove('open');document.getElementById('alarmsSidebarOverlay').classList.remove('open');document.body.style.overflow='';const btn=document.getElementById('alarmsBtn');if(btn)btn.classList.remove('active');}
-async function loadAllAlarms(forceRefresh=false){const body=document.getElementById('alarmsList');body.innerHTML='<div class="alarms-loading">Alarmlar yukleniyor...</div>';try{const data=await fetchAlarmsBatch(forceRefresh);const rawSharp=data.sharp||[];const rawBigmoney=data.bigmoney||[];const rawVolumeshock=data.volumeshock||[];const rawDropping=data.dropping||[];const rawPublicmove=data.publicmove||[];const rawVolumeleader=data.volumeleader||[];const rawMim=data.mim||[];alarmsDataByType.sharp=rawSharp.filter(isMatchYesterdayOrLater);alarmsDataByType.bigmoney=rawBigmoney.filter(isMatchYesterdayOrLater);alarmsDataByType.volumeshock=rawVolumeshock.filter(isMatchYesterdayOrLater);alarmsDataByType.dropping=rawDropping.filter(isMatchYesterdayOrLater);alarmsDataByType.publicmove=rawPublicmove.filter(isMatchYesterdayOrLater);alarmsDataByType.volumeleader=rawVolumeleader.filter(isMatchYesterdayOrLater);alarmsDataByType.mim=rawMim.filter(isMatchYesterdayOrLater);const sharpWithType=alarmsDataByType.sharp.map(a=>({...a,_type:'sharp'}));const bigmoneyWithType=alarmsDataByType.bigmoney.map(a=>({...a,_type:'bigmoney'}));const volumeshockWithType=alarmsDataByType.volumeshock.map(a=>({...a,_type:'volumeshock'}));const droppingWithType=alarmsDataByType.dropping.map(a=>({...a,_type:'dropping'}));const publicmoveWithType=alarmsDataByType.publicmove.map(a=>({...a,_type:'publicmove'}));const volumeleaderWithType=alarmsDataByType.volumeleader.map(a=>({...a,_type:'volumeleader'}));const mimWithType=alarmsDataByType.mim.map(a=>({...a,_type:'mim'}));allAlarmsData=[...sharpWithType,...bigmoneyWithType,...volumeshockWithType,...droppingWithType,...publicmoveWithType,...volumeleaderWithType,...mimWithType];allAlarmsData.sort((a,b)=>{const dateA=parseAlarmDate(a.trigger_at||a.event_time||a.created_at);const dateB=parseAlarmDate(b.trigger_at||b.event_time||b.created_at);return dateB-dateA;});groupedAlarmsData=groupAlarmsByMatch(allAlarmsData);updateAlarmCounts();updateDateFilterCounts();alarmsDisplayCount=10;const labelEl=document.getElementById('dateLabelDisplay');if(labelEl){labelEl.textContent=dateFilterLabels[currentAlarmDateFilter]||_t('app.flt.all','Tümü');}
-renderAlarmsList(currentAlarmFilter);}catch(error){console.error('Alarm yukleme hatasi:',error);body.innerHTML='<div class="alarms-empty"><p>Alarmlar yuklenirken hata olustu.</p></div>';}}
+window._sxfAlarmSidebarRuntimePromise=window._sxfAlarmSidebarRuntimePromise||null;function _getAlarmSidebarRuntimeUrl(){try{const scripts=document.getElementsByTagName('script');for(let i=scripts.length-1;i>=0;i--){const src=scripts[i].src||'';if(src.indexOf('/static/js/app.js')!==-1){const queryAt=src.indexOf('?');return'/static/js/alarm-sidebar.js'+(queryAt>=0?src.slice(queryAt):'');}}}catch(e){}
+return'/static/js/alarm-sidebar.js';}
+function loadAlarmSidebarRuntime(){const ready=typeof window.__sxfLoadAllAlarmsImpl==='function'&&typeof window.__sxfSelectDateFilterImpl==='function'&&typeof window.__sxfFilterAlarmsImpl==='function'&&typeof window.__sxfSearchAlarmsImpl==='function'&&typeof window.__sxfToggleAlarmDetailImpl==='function'&&typeof window.__sxfLoadMoreAlarmsImpl==='function';if(ready)return Promise.resolve();if(window._sxfAlarmSidebarRuntimePromise)return window._sxfAlarmSidebarRuntimePromise;window._sxfAlarmSidebarRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getAlarmSidebarRuntimeUrl();script.async=true;script.onload=()=>{const loaded=typeof window.__sxfLoadAllAlarmsImpl==='function'&&typeof window.__sxfSelectDateFilterImpl==='function'&&typeof window.__sxfFilterAlarmsImpl==='function'&&typeof window.__sxfSearchAlarmsImpl==='function'&&typeof window.__sxfToggleAlarmDetailImpl==='function'&&typeof window.__sxfLoadMoreAlarmsImpl==='function';if(!loaded){window._sxfAlarmSidebarRuntimePromise=null;reject(new Error('Alarm sidebar runtime loaded without required implementations'));return;}
+resolve();};script.onerror=()=>{window._sxfAlarmSidebarRuntimePromise=null;reject(new Error('Alarm sidebar runtime failed to load'));};document.head.appendChild(script);});return window._sxfAlarmSidebarRuntimePromise;}
+function _callAlarmSidebarRuntime(implName,args){const impl=window[implName];if(typeof impl==='function')return impl(...args);return loadAlarmSidebarRuntime().then(()=>{const loadedImpl=window[implName];if(typeof loadedImpl!=='function'){throw new Error('Alarm sidebar runtime missing '+implName);}
+return loadedImpl(...args);});}
+function loadAllAlarms(...args){return _callAlarmSidebarRuntime('__sxfLoadAllAlarmsImpl',args);}
 function groupAlarmsByMatch(alarms){const groups={};alarms.forEach(alarm=>{const home=(alarm.home||alarm.home_team||'').toLowerCase().trim();const away=(alarm.away||alarm.away_team||'').toLowerCase().trim();const league=(alarm.league||'').toLowerCase().trim();const market=(alarm.market||'').toLowerCase().trim();const selection=(alarm.selection||alarm.side||'').toLowerCase().trim();const type=alarm._type;const matchHash=(alarm.match_id_hash||alarm.match_id||alarm.matchIdHash||'').toString().trim();const alarmKickoff=alarm.kickoff_utc||alarm.kickoff||alarm.match_date||alarm.fixture_date||'';const kickoffMs=_matchContextTime(alarmKickoff);const matchContext=matchHash||(kickoffMs!==null?`kickoff:${kickoffMs}`:`legacy:${_matchContextLabel(alarmKickoff) || alarm.id || alarm.alarm_id || alarm.trigger_at || alarm.created_at || alarm.triggered_at || alarmIndex}`);const groupKey=`${type}|${matchContext}|${home}|${away}|${league}|${market}|${selection}`;if(!groups[groupKey]){groups[groupKey]={key:groupKey,type:type,home:alarm.home||alarm.home_team||'-',away:alarm.away||alarm.away_team||'-',home_team:alarm.home_team||alarm.home||'-',away_team:alarm.away_team||alarm.away||'-',match_id:matchHash,match_id_hash:matchHash,market:alarm.market||'',selection:alarm.selection||alarm.side||'',league:alarm.league||'',match_date:alarm.match_date||alarm.fixture_date||'',fixture_date:alarm.fixture_date||alarm.match_date||'',kickoff_utc:alarm.kickoff_utc||alarm.kickoff||'',latestAlarm:alarm,allAlarms:[],history:[],triggerCount:0};}
 groups[groupKey].allAlarms.push(alarm);groups[groupKey].triggerCount++;const currentLatestTime=groups[groupKey].latestAlarm.trigger_at||groups[groupKey].latestAlarm.created_at||groups[groupKey].latestAlarm.triggered_at||'';const thisTime=alarm.trigger_at||alarm.created_at||alarm.triggered_at||'';if(thisTime.localeCompare(currentLatestTime)>0){groups[groupKey].latestAlarm=alarm;const latestHash=(alarm.match_id_hash||alarm.match_id||alarm.matchIdHash||'').toString().trim();groups[groupKey].match_id=latestHash||groups[groupKey].match_id;groups[groupKey].match_id_hash=latestHash||groups[groupKey].match_id_hash;groups[groupKey].match_date=alarm.match_date||alarm.fixture_date||groups[groupKey].match_date;groups[groupKey].fixture_date=alarm.fixture_date||alarm.match_date||groups[groupKey].fixture_date;groups[groupKey].kickoff_utc=alarm.kickoff_utc||alarm.kickoff||groups[groupKey].kickoff_utc;}});Object.values(groups).forEach(group=>{group.allAlarms.sort((a,b)=>{const aTime=a.trigger_at||a.created_at||a.triggered_at||'';const bTime=b.trigger_at||b.created_at||b.triggered_at||'';return bTime.localeCompare(aTime);});group.history=group.allAlarms.slice(1);});return Object.values(groups).sort((a,b)=>{const aTime=a.latestAlarm.trigger_at||a.latestAlarm.created_at||a.latestAlarm.triggered_at||'';const bTime=b.latestAlarm.trigger_at||b.latestAlarm.created_at||b.latestAlarm.triggered_at||'';return bTime.localeCompare(aTime);});}
-function updateAlarmCounts(){const badge=document.getElementById('alarmsBadge');const mobileBadge=document.getElementById('mobileAlarmBadge');const filteredGroups=groupedAlarmsData.filter(g=>{if(currentAlarmDateFilter==='all'){const matchDateStr=g.match_date||g.fixture_date||getMatchDateFromAlarm(g.latestAlarm);if(!matchDateStr)return true;const{todayStr}=getDateFilterStrings();return matchDateStr>=todayStr;}
-return true;});const totalCount=filteredGroups.length;if(badge)badge.textContent=totalCount;if(mobileBadge)mobileBadge.textContent=totalCount;const typeCounts={sharp:0,bigmoney:0,volumeshock:0,dropping:0,publicmove:0,volumeleader:0,mim:0};filteredGroups.forEach(g=>{if(typeCounts.hasOwnProperty(g.type))typeCounts[g.type]++;});const countAll=document.getElementById('countAll');const countSharp=document.getElementById('countSharp');const countBigmoney=document.getElementById('countBigmoney');const countVolumeshock=document.getElementById('countVolumeshock');const countDropping=document.getElementById('countDropping');const countPublicmove=document.getElementById('countPublicmove');const countVolumeleader=document.getElementById('countVolumeleader');const countMim=document.getElementById('countMim');if(countAll)countAll.textContent=totalCount;if(countSharp)countSharp.textContent=typeCounts.sharp;if(countBigmoney)countBigmoney.textContent=typeCounts.bigmoney;if(countVolumeshock)countVolumeshock.textContent=typeCounts.volumeshock;if(countDropping)countDropping.textContent=typeCounts.dropping;if(countPublicmove)countPublicmove.textContent=typeCounts.publicmove;if(countVolumeleader)countVolumeleader.textContent=typeCounts.volumeleader;if(countMim)countMim.textContent=typeCounts.mim;}
 let currentAlarmDateFilter='all';const dateFilterLabels={get all(){return _t('app.flt.all','Tümü');},get today(){return _t('app.flt.today','Bugün');},get yesterday(){return _t('app.flt.yesterday','Dün');},get future(){return _t('app.flt.future','Gelecek');}};const dateFilterColors={all:'#ffffff',today:'#4ade80',yesterday:'#f85149',future:'#3B82F6'};function toggleDateFilterDropdown(){const dropdown=document.getElementById('alarmDateDropdown');const options=document.getElementById('alarmDateOptions');if(dropdown&&options){dropdown.classList.toggle('open');options.style.display=options.style.display==='block'?'none':'block';}}
-function selectDateFilter(dateFilter){void 0;currentAlarmDateFilter=dateFilter;const labelEl=document.getElementById('dateLabelDisplay');if(labelEl){labelEl.textContent=dateFilterLabels[dateFilter]||_t('app.flt.all','Tümü');}
-const dotEl=document.getElementById('dateDotDisplay');if(dotEl){dotEl.style.background=dateFilterColors[dateFilter]||'#ffffff';}
-const dropdown=document.getElementById('alarmDateDropdown');const options=document.getElementById('alarmDateOptions');if(dropdown)dropdown.classList.remove('open');if(options)options.style.display='none';alarmsDisplayCount=10;renderAlarmsList(currentAlarmFilter);}
+function selectDateFilter(...args){return _callAlarmSidebarRuntime('__sxfSelectDateFilterImpl',args);}
 function getMatchDateFromAlarm(alarm){const matchDate=alarm.match_date||alarm.fixture_date||alarm.kickoff_utc||'';if(!matchDate)return null;try{if(/^\d{4}-\d{2}-\d{2}$/.test(matchDate)){return matchDate;}
 const dt=dayjs(matchDate).tz('Europe/Istanbul');return dt.format('YYYY-MM-DD');}catch(e){return null;}}
-function filterAlarmsByMatchDate(alarms){if(currentAlarmDateFilter==='all'){const today=dayjs().tz('Europe/Istanbul').format('YYYY-MM-DD');return alarms.filter(alarm=>{const matchDateStr=getMatchDateFromAlarm(alarm);if(!matchDateStr)return true;return matchDateStr>=today;});}
-const today=dayjs().tz('Europe/Istanbul');const todayStr=today.format('YYYY-MM-DD');const yesterdayStr=today.subtract(1,'day').format('YYYY-MM-DD');const tomorrowStr=today.add(1,'day').format('YYYY-MM-DD');return alarms.filter(alarm=>{const matchDateStr=getMatchDateFromAlarm(alarm);if(!matchDateStr)return currentAlarmDateFilter==='all';if(currentAlarmDateFilter==='today'){return matchDateStr===todayStr;}else if(currentAlarmDateFilter==='yesterday'){return matchDateStr===yesterdayStr;}else if(currentAlarmDateFilter==='future'){return matchDateStr>=tomorrowStr;}
-return true;});}
-function updateDateFilterCounts(){const alarms=allAlarmsData||[];const today=dayjs().tz('Europe/Istanbul');const todayStr=today.format('YYYY-MM-DD');const yesterdayStr=today.subtract(1,'day').format('YYYY-MM-DD');const tomorrowStr=today.add(1,'day').format('YYYY-MM-DD');let countAll=0;let countToday=0;let countYesterday=0;let countFuture=0;alarms.forEach(alarm=>{const matchDateStr=getMatchDateFromAlarm(alarm);if(!matchDateStr)return;if(matchDateStr===todayStr){countToday++;countAll++;}else if(matchDateStr===yesterdayStr){countYesterday++;}else if(matchDateStr>=tomorrowStr){countFuture++;countAll++;}});const elAll=document.getElementById('dateCountAll');const elToday=document.getElementById('dateCountToday');const elYesterday=document.getElementById('dateCountYesterday');const elFuture=document.getElementById('dateCountFuture');if(elAll)elAll.textContent=countAll;if(elToday)elToday.textContent=countToday;if(elYesterday)elYesterday.textContent=countYesterday;if(elFuture)elFuture.textContent=countFuture;}
 function parseAlarmDate(dateStr){if(!dateStr)return new Date(0);const str=String(dateStr).trim();const ddmmMatch=str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(\d{2}:\d{2})?$/);if(ddmmMatch){const[,day,month,year,time]=ddmmMatch;const[hour,min]=(time||'00:00').split(':');return new Date(parseInt(year),parseInt(month)-1,parseInt(day),parseInt(hour),parseInt(min));}
 const turkeyTime=toTurkeyTime(str);if(turkeyTime&&turkeyTime.isValid()){return turkeyTime.toDate();}
 return new Date(str)||new Date(0);}
 const alarmFilterColors={all:null,sharp:'#4ade80',bigmoney:'#F08A24',volumeshock:'#F6C343',dropping:'#f85149',publicmove:'#FFCC00',volumeleader:'#06b6d4',mim:'#3B82F6'};const alarmFilterLabels={get all(){return _t('app.flt.all','Tümü');},sharp:'Sharp',bigmoney:'Buyuk Para',volumeshock:'Hacim Soku',dropping:'Oran Düşüşü',publicmove:'Public Move',volumeleader:'Lider Degisti',mim:'MIM'};function toggleAlarmFilterDropdown(){const dropdown=document.getElementById('alarmFilterDropdown');dropdown.classList.toggle('open');}
 function selectAlarmFilter(type){const dropdown=document.getElementById('alarmFilterDropdown');const dotDisplay=document.getElementById('filterDotDisplay');const labelDisplay=document.getElementById('filterLabelDisplay');dropdown.classList.remove('open');document.querySelectorAll('.alarm-filter-option').forEach(opt=>{opt.classList.toggle('selected',opt.dataset.value===type);});labelDisplay.textContent=alarmFilterLabels[type]||_t('app.flt.all','Tümü');if(type==='all'){dotDisplay.className='filter-dot-display show';dotDisplay.style.background='#6b7280';dotDisplay.innerHTML='';}else{dotDisplay.className='filter-dot-display show';dotDisplay.style.background=alarmFilterColors[type]||'#7d848c';dotDisplay.innerHTML='';}
 filterAlarms(type);}
-document.addEventListener('click',function(e){const dropdown=document.getElementById('alarmFilterDropdown');if(dropdown&&!dropdown.contains(e.target)){dropdown.classList.remove('open');}});function filterAlarms(type){currentAlarmFilter=type;alarmsDisplayCount=10;document.querySelectorAll('.alarm-pill').forEach(btn=>{btn.classList.toggle('active',btn.dataset.type===type);});renderAlarmsList(type);}
-function searchAlarms(query){alarmSearchQuery=query.toLowerCase().trim();alarmsDisplayCount=10;renderAlarmsList(currentAlarmFilter);}
+document.addEventListener('click',function(e){const dropdown=document.getElementById('alarmFilterDropdown');if(dropdown&&!dropdown.contains(e.target)){dropdown.classList.remove('open');}});function filterAlarms(...args){return _callAlarmSidebarRuntime('__sxfFilterAlarmsImpl',args);}
+function searchAlarms(...args){return _callAlarmSidebarRuntime('__sxfSearchAlarmsImpl',args);}
 let _dateFilterCache={todayStr:null,yesterdayStr:null,tomorrowStr:null,cacheTime:0};function getDateFilterStrings(){const now=Date.now();if(_dateFilterCache.todayStr&&(now-_dateFilterCache.cacheTime)<60000){return _dateFilterCache;}
 const today=dayjs().tz('Europe/Istanbul');_dateFilterCache={todayStr:today.format('YYYY-MM-DD'),yesterdayStr:today.subtract(1,'day').format('YYYY-MM-DD'),tomorrowStr:today.add(1,'day').format('YYYY-MM-DD'),cacheTime:now};return _dateFilterCache;}
-function getFilteredAlarms(){let groups=currentAlarmFilter==='all'?[...groupedAlarmsData]:groupedAlarmsData.filter(g=>g.type===currentAlarmFilter);if(currentAlarmDateFilter!=='none'){const{todayStr,yesterdayStr,tomorrowStr}=getDateFilterStrings();groups=groups.filter(g=>{const matchDateStr=g.match_date||g.fixture_date||getMatchDateFromAlarm(g.latestAlarm);if(!matchDateStr)return currentAlarmDateFilter==='all';if(currentAlarmDateFilter==='all'){return matchDateStr>=todayStr;}else if(currentAlarmDateFilter==='today'){return matchDateStr===todayStr;}else if(currentAlarmDateFilter==='yesterday'){return matchDateStr===yesterdayStr;}else if(currentAlarmDateFilter==='future'){return matchDateStr>=tomorrowStr;}
-return true;});}
-if(alarmSearchQuery){groups=groups.filter(g=>{const home=g.home.toLowerCase();const away=g.away.toLowerCase();const league=(g.league||'').toLowerCase();return home.includes(alarmSearchQuery)||away.includes(alarmSearchQuery)||league.includes(alarmSearchQuery);});}
-void 0;groups.sort((a,b)=>{const dateA=parseAlarmDate(a.latestAlarm.trigger_at||a.latestAlarm.event_time||a.latestAlarm.created_at);const dateB=parseAlarmDate(b.latestAlarm.trigger_at||b.latestAlarm.event_time||b.latestAlarm.created_at);return dateB-dateA;});if(groups.length>0){void 0;}
-return groups;}
-function renderAlarmsList(filterType){const body=document.getElementById('alarmsList');const groups=getFilteredAlarms();if(groups.length===0){body.innerHTML=`<div class="alarms-empty">${alarmSearchQuery ? 'Arama sonucu bulunamadi' : 'Aktif alarm yok'}</div>`;return;}
-const displayGroups=groups.slice(0,alarmsDisplayCount);const hasMore=groups.length>alarmsDisplayCount;const typeLabels={sharp:'SHARP',bigmoney:'BIG MONEY',volumeshock:_t('app.j.alarm_volume_shock','HACIM SOKU'),dropping:_t('app.j.alarm_odds_drop','ORAN DÜŞÜŞÜ'),publicmove:'PUBLIC MOVE',volumeleader:_t('app.j.alarm_leader_changed','LİDER DEĞİŞTİ'),mim:'MIM'};const typeColors={sharp:'#4ade80',bigmoney:'#F08A24',volumeshock:'#F6C343',dropping:'#f85149',publicmove:'#FFCC00',volumeleader:'#06b6d4',mim:'#3B82F6'};let html=displayGroups.map((group,idx)=>{const type=group.type;const alarm=group.latestAlarm;const home=group.home;const away=group.away;const market=group.market;const selection=group.selection;const alarmId=`alarm_${type}_${idx}`;const isOpen=openAlarmId===alarmId;let mainValue='';let centerBadge='';if(type==='sharp'){const score=(alarm.sharp_score||0).toFixed(1);const oddsDrop=alarm.odds_drop_pct||alarm.drop_pct||0;const prevOdds=alarm.previous_odds||0;const currOdds=alarm.current_odds||0;const oddsSign=oddsDrop>0?'\u25BC':'\u25B2';const volume=alarm.volume||alarm.stake||0;const moneyPart=volume>0?`<span class="value-money">\u00A3${Number(volume).toLocaleString('en-GB')}</span><span class="sep">\u2022</span>`:'';const oddsPart=prevOdds>0&&currOdds>0?`<span class="value-odds">${prevOdds.toFixed(2)}</span><span class="arrow">\u2192</span><span class="value-odds-new">${currOdds.toFixed(2)}</span><span class="sep">\u2022</span>`:'';mainValue=`${moneyPart}${oddsPart}<span class="value-highlight">Sharp Puanı ${score}</span><span class="sep">\u2022</span><span class="value-pct">${oddsSign}${Math.abs(oddsDrop).toFixed(1)}%</span>`;}else if(type==='bigmoney'){const money=alarm.incoming_money||alarm.stake||0;mainValue=`<span class="value-money">£${Math.round(Number(money)).toLocaleString('en-GB')}</span>`;const isHuge=alarm.is_huge||alarm.alarm_type==='HUGE MONEY';if(isHuge){centerBadge='<span class="huge-badge">HUGE</span>';}}else if(type==='volumeshock'){const shockValue=alarm.volume_shock_value||alarm.volume_shock||alarm.volume_shock_multiplier||0;const hoursToKickoff=calculateHoursToKickoff(alarm);mainValue=`<span class="value-highlight">${shockValue.toFixed(1)}x</span><span class="sep">•</span><span class="value-pct">${hoursToKickoff.toFixed(1)} ${_t('app.j.saat_kala','saat kala')}</span>`;}else if(type==='dropping'){const openingOdds=alarm.opening_odds||0;const currentOdds=alarm.current_odds||0;const dropPct=alarm.drop_pct||0;const level=alarm.level||'L1';mainValue=`<span class="value-odds">${openingOdds.toFixed(2)}</span><span class="arrow">→</span><span class="value-odds-new">${currentOdds.toFixed(2)}</span><span class="sep">•</span><span class="value-pct-drop">▼${dropPct.toFixed(1)}%</span>`;centerBadge=`<span class="level-badge level-${level.toLowerCase()}">${level}</span>`;}else if(type==='publicmove'){const score=alarm.move_score||alarm.trap_score||alarm.sharp_score||0;const volume=alarm.volume||0;const moneyPart=volume>0?`<span class="value-money">£${Number(volume).toLocaleString('en-GB')}</span><span class="sep">•</span>`:'';mainValue=`${moneyPart}<span class="value-highlight">Move Skor ${score.toFixed(0)}</span>`;}else if(type==='volumeleader'){const oldLeader=alarm.old_leader||'-';const newLeader=alarm.new_leader||'-';const oldShare=(alarm.old_leader_share||0).toFixed(0);const newShare=(alarm.new_leader_share||0).toFixed(0);mainValue=`<span class="value-odds">${oldLeader} %${oldShare}</span><span class="arrow">→</span><span class="value-odds-new">${newLeader} %${newShare}</span>`;}else if(type==='mim'){const level=alarm.level||1;const impact=(alarm.impact||alarm.impact_score||alarm.money_impact||0).toFixed(2);mainValue=`<span class="value-highlight">L${level}</span><span class="sep">•</span><span class="value-pct">${impact}</span>`;}
-const timeSource=alarm.trigger_at||alarm.event_time||alarm.created_at;const triggerTimeShort=formatTriggerTimeShort(timeSource);const triggerPill=group.triggerCount>1?`<span class="trigger-pill">×${group.triggerCount}</span>`:'';const marketLabel=formatMarketChip(market,selection);const expandIcon=isOpen?'▼':'▶';const stripeColors={'bigmoney':'#F08A24','sharp':'#22c55e','dropping':'#f85149','volumeshock':'#F6C343','publicmove':'#FFCC00','volumeleader':'#06b6d4','mim':'#3B82F6'};const stripeColor=stripeColors[type]||'#64748b';const typeBadges={'bigmoney':alarm.is_huge?'HUGE':'BIG','sharp':'SHARP','dropping':alarm.level||_t('app.j.alarm_drop_word','DÜŞÜŞ'),'volumeshock':'HS','publicmove':'TRAP','volumeleader':_t('app.j.alarm_leader_word','LİDER'),'mim':'MIM'};const typeBadge=typeBadges[type]||type.toUpperCase();let mainMoney=0;if(type==='bigmoney'){mainMoney=alarm.incoming_money||alarm.stake||0;}else if(type==='sharp'){mainMoney=alarm.volume||alarm.stake||0;}else if(type==='volumeshock'){mainMoney=alarm.incoming_money||0;}else if(type==='dropping'){mainMoney=0;}else if(type==='publicmove'){mainMoney=alarm.volume||0;}else if(type==='volumeleader'){mainMoney=alarm.total_volume||0;}else if(type==='mim'){mainMoney=0;}
-const homeEscaped=home.replace(/'/g,"\\'");const awayEscaped=away.replace(/'/g,"\\'");const marketEscaped=market.replace(/'/g,"\\'");const leagueEscaped=(group.league||'').replace(/'/g,"\\'");const kickoffEscaped=(group.kickoff_utc||group.match_date||'').replace(/'/g,"\\'");const hashEscaped=(group.match_id||group.latestAlarm?.match_id_hash||group.latestAlarm?.match_id||'').replace(/'/g,"\\'");const matchTimeFormatted=formatMatchTime3(group.kickoff_utc||group.match_date);const marketLabel2=`${translateMarket(market)} → ${translateSelection(selection, market)}`;const triggerTimeSource=type==='dropping'?(alarm.created_at||alarm.event_time||alarm.trigger_at):(alarm.trigger_at||alarm.event_time||alarm.created_at);const triggerTime=formatTriggerTime(triggerTimeSource);let badgeLabel='';let metricContent='';let historyLine='';if(type==='sharp'){badgeLabel='SHARP';const score=(alarm.sharp_score||0).toFixed(1);const volumeContrib=(alarm.volume_contrib||0).toFixed(1);const oddsContrib=(alarm.odds_contrib||0).toFixed(1);const prevOdds=(alarm.previous_odds||0).toFixed(2);const currOdds=(alarm.current_odds||0).toFixed(2);metricContent=`<div class="acd-grid cols-3">
-                <div class="acd-stat">
-                    <div class="acd-stat-val sharp">${score}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.sharp_score_label','Sharp Skor')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">${volumeContrib}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.hacim_puan','Hacim Puan')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">${oddsContrib}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.oran_puan','Oran Puan')}</div>
-                </div>
-            </div>
-            <div class="acd-info-row">
-                <span>${_t('app.j.odds_lbl','Oran:')} ${prevOdds} → ${currOdds}</span>
-            </div>`;historyLine=`${triggerTime}`;}else if(type==='volumeshock'){badgeLabel=_t('app.j.alarm_volume_shock','HACİM ŞOKU');const newMoney=alarm.incoming_money||0;const shockVal=(alarm.volume_shock_value||alarm.volume_shock||alarm.volume_shock_multiplier||0).toFixed(1);const hoursToKickoff=calculateHoursToKickoff(alarm);metricContent=`<div class="acd-grid cols-2">
-                <div class="acd-stat">
-                    <div class="acd-stat-val volumeshock">${shockVal}x</div>
-                    <div class="acd-stat-lbl">${_t('app.j.acd_volume_shock','Hacim Şoku')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(newMoney).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.acd_incoming_money','Gelen Para')}</div>
-                </div>
-            </div>
-            <div class="acd-info-row">
-                <span>${_t('app.j.maca_once','Maça')} ${hoursToKickoff.toFixed(1)} ${_t('app.j.saat_kala','saat kala')}</span>
-            </div>`;historyLine=`${triggerTime}`;}else if(type==='bigmoney'){badgeLabel=alarm.is_huge?'HUGE MONEY':'BIG MONEY';const money=alarm.incoming_money||alarm.stake||0;const selectionTotal=alarm.total_selection||alarm.selection_total||alarm.volume||alarm.total_volume||0;let historyHtml='';let alarmHistory=alarm.alarm_history||[];if(typeof alarmHistory==='string'){try{alarmHistory=JSON.parse(alarmHistory);}catch(e){alarmHistory=[];}}
-if(alarmHistory&&alarmHistory.length>0){const currentTs=alarm.trigger_at?new Date(alarm.trigger_at).getTime():0;const currentMoney=Math.round(alarm.incoming_money||alarm.stake||0);const seen=new Set();const uniqueHistory=alarmHistory.filter(h=>{const ts=h.trigger_at?new Date(h.trigger_at).getTime():0;const histMoney=Math.round(h.incoming_money||0);if(ts===currentTs&&histMoney===currentMoney)return false;const key=`${ts}|${histMoney}`;if(seen.has(key))return false;seen.add(key);return true;});if(uniqueHistory.length>0){const historyItems=uniqueHistory.slice().sort((a,b)=>{const tsA=a.trigger_at?new Date(a.trigger_at).getTime():0;const tsB=b.trigger_at?new Date(b.trigger_at).getTime():0;return tsB-tsA;}).map(h=>{const hTime=formatTriggerTimeFull(h.trigger_at);const hMoney=Number(h.incoming_money||0).toLocaleString('en-GB');return`<div class="acd-history-item"><span class="acd-history-time">${hTime}</span><span class="acd-history-val">£${hMoney}</span></div>`;}).join('');historyHtml=`<div class="acd-history-section">
-                        <div class="acd-history-title">${_t('app.j.acd_previous','ÖNCEKİ')}</div>
-                        ${historyItems}
-                    </div>`;}}
-const totalHtml=selectionTotal>0?`<div class="acd-stat acd-stat-secondary">
-                    <div class="acd-stat-val muted">£${Number(selectionTotal).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.acd_total','Toplam')}</div>
-                  </div>`:'';metricContent=`<div class="acd-bigmoney-hero">
-                <div class="acd-hero-amount">£${Number(money).toLocaleString('en-GB')}</div>
-                <div class="acd-hero-label">${_t('app.j.acd_big_money_in','Büyük Para Girişi')}</div>
-            </div>${totalHtml ? `<div class="acd-grid cols-1">${totalHtml}</div>` : ''}${historyHtml}`;const historyCount=(typeof uniqueHistory!=='undefined'&&uniqueHistory.length>0)?uniqueHistory.length:(alarmHistory.length>0?alarmHistory.length:0);historyLine=historyCount>0?`×${historyCount + 1}`:`${triggerTime}`;}else if(type==='dropping'){const level=alarm.level||'L1';badgeLabel=`${_t('app.j.alarm_odds_drop','ORAN DÜŞÜŞÜ')} ${level}`;const openOdds=(alarm.opening_odds||0).toFixed(2);const currOdds=(alarm.current_odds||0).toFixed(2);const dropPct=(alarm.drop_pct||0).toFixed(1);const matchDateFormatted=formatMatchDateShort(alarm.match_date||'');metricContent=`<div class="acd-grid cols-2">
-                <div class="acd-stat">
-                    <div class="acd-stat-val dropping">${openOdds} → ${currOdds}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.oran_degisimi','Oran Değişimi')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val drop">▼ ${dropPct}%</div>
-                    <div class="acd-stat-lbl">${_t('app.j.dusus_lbl','Düşüş')} (${level})</div>
-                </div>
-            </div>
-            ${matchDateFormatted ? `<div class="acd-info-row"><span>📅 ${_t('app.j.match_word','Maç')}:${matchDateFormatted}</span></div>` : ''}`;historyLine=`${triggerTime}`;}else if(type==='publicmove'){badgeLabel='PUBLIC MOVE';const score=(alarm.move_score||alarm.trap_score||alarm.sharp_score||0).toFixed(0);const volume=alarm.volume||0;metricContent=`<div class="acd-grid cols-2">
-                <div class="acd-stat">
-                    <div class="acd-stat-val publicmove">${score}</div>
-                    <div class="acd-stat-lbl">Move Skor</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">£${Number(volume).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">Hacim</div>
-                </div>
-            </div>`;historyLine=`${triggerTime}`;}else if(type==='volumeleader'){badgeLabel=_t('app.j.alarm_leader_changed','LİDER DEĞİŞTİ');const oldLeader=alarm.old_leader||'-';const newLeader=alarm.new_leader||'-';const oldShare=(alarm.old_leader_share||0).toFixed(0);const newShare=(alarm.new_leader_share||0).toFixed(0);const totalVol=alarm.total_volume||0;metricContent=`<div class="acd-grid cols-2">
-                <div class="acd-stat">
-                    <div class="acd-stat-val volumeleader">${oldLeader} %${oldShare}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.eski_lider','Eski Lider')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val volumeleader-new">${newLeader} %${newShare}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.yeni_lider','Yeni Lider')}</div>
-                </div>
-            </div>
-            <div class="acd-info-row">
-                <span>${_t('app.j.toplam_hacim_lbl','Toplam Hacim')}: £${Number(totalVol).toLocaleString('en-GB')}</span>
-            </div>`;historyLine=`${triggerTime}`;}else if(type==='mim'){badgeLabel='MIM';const impact=alarm.impact||alarm.impact_score||alarm.money_impact||0;const impactPct=(impact*100).toFixed(1);const prevVol=alarm.prev_volume||alarm.previous_volume||0;const currVol=alarm.current_volume||alarm.curr_volume||alarm.total_volume||0;const incomingMoney=alarm.incoming_volume||(currVol-prevVol);const totalMarketVol=alarm.total_market_volume||currVol;metricContent=`<div class="acd-grid cols-3">
-                <div class="acd-stat">
-                    <div class="acd-stat-val mim">${impactPct}%</div>
-                    <div class="acd-stat-lbl">Impact</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val" style="color: #22c55e;">+£${Math.round(Number(incomingMoney)).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.acd_incoming_money','Gelen Para')}</div>
-                </div>
-                <div class="acd-stat">
-                    <div class="acd-stat-val">£${Math.round(Number(totalMarketVol)).toLocaleString('en-GB')}</div>
-                    <div class="acd-stat-lbl">${_t('app.j.market_hacmi','Market Hacmi')}</div>
-                </div>
-            </div>
-            <div class="acd-info-row">
-                <span>${_t('app.j.secenek','Seçenek')}: £${Math.round(Number(prevVol)).toLocaleString('en-GB')} → £${Math.round(Number(currVol)).toLocaleString('en-GB')}</span>
-            </div>`;historyLine=`${triggerTime}`;}
-const fullMatchName=`${home} – ${away}`;let metricValue='';if(type==='sharp'){metricValue=(alarm.sharp_score||0).toFixed(1);}else if(type==='volumeshock'){metricValue=`${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;}else if(type==='bigmoney'){metricValue=`£${Math.round(Number(alarm.incoming_money || alarm.stake || 0)).toLocaleString('en-GB')}`;}else if(type==='dropping'){metricValue=`▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;}else if(type==='publicmove'){metricValue=(alarm.move_score||alarm.trap_score||alarm.sharp_score||0).toFixed(0);}else if(type==='volumeleader'){const oldL=alarm.old_leader||'-';const newL=alarm.new_leader||'-';metricValue=`<span class="vl-transition"><span class="vl-old">${oldL}</span><span class="vl-arrow">›</span><span class="vl-new">${newL}</span></span>`;}else if(type==='mim'){const impact=alarm.impact||alarm.impact_score||alarm.money_impact||0;const impactPct=(impact*100).toFixed(0);const incomingMoney=alarm.incoming_volume||((alarm.current_volume||alarm.curr_volume||0)-(alarm.prev_volume||0));metricValue=incomingMoney>0?`+£${Math.round(Number(incomingMoney)).toLocaleString('en-GB')}`:`${impactPct}%`;}
-const historyCount=group.history.length;const historyBadge=historyCount>0?`<span class="history-badge history-badge-${type}">×${historyCount + 1}</span>`:'';let historySection='';if(historyCount>0&&isOpen){const historyItems=group.history.map(h=>{const hTime=formatTriggerTimeWithDay(h.trigger_at||h.event_time||h.created_at);let hValue='';if(type==='sharp'){hValue=`Sharp ${(h.sharp_score || 0).toFixed(1)}`;}else if(type==='volumeshock'){hValue=`${(h.volume_shock_value || h.volume_shock || h.volume_shock_multiplier || 0).toFixed(1)}x`;}else if(type==='bigmoney'){hValue=`£${Math.round(Number(h.incoming_money || h.stake || 0)).toLocaleString('en-GB')}`;}else if(type==='dropping'){hValue=`▼ ${(h.drop_pct || 0).toFixed(1)}%`;}else if(type==='publicmove'){hValue=`Trap ${(h.trap_score || h.sharp_score || 0).toFixed(0)}`;}else if(type==='volumeleader'){hValue=`<span class="vl-mini">${h.old_leader || '-'} › ${h.new_leader || '-'}</span>`;}else if(type==='mim'){const hImpact=h.impact||h.impact_score||h.money_impact||0;const hIncoming=(h.current_volume||h.curr_volume||0)-(h.prev_volume||0);hValue=hIncoming>0?`+£${Math.round(Number(hIncoming)).toLocaleString('en-GB')}`:`${(hImpact * 100).toFixed(0)}%`;}
-return`<div class="history-item history-item-${type}"><span class="history-time">${hTime}</span><span class="history-val">${hValue}</span></div>`;}).join('');historySection=`<div class="acd-history-list"><div class="history-title">Önceki Alarmlar</div>${historyItems}</div>`;}
-return`
-            <div class="ac ${type} ${isOpen ? 'open' : ''}" id="card_${alarmId}">
-                <div class="ac-stripe"></div>
-                <div class="ac-body" onclick="toggleAlarmDetail('${alarmId}')">
-                    <div class="ac-summary">
-                        <div class="ac-top">
-                            <span class="ac-dot"></span>
-                            <span class="ac-label">${typeLabels[type]}</span>
-                            ${historyBadge}
-                            <span class="ac-sep">·</span>
-                            <span class="ac-time">${triggerTimeShort}</span>
-                        </div>
-                        <div class="ac-mid">
-                            <span class="ac-match">${fullMatchName}</span>
-                            <span class="ac-value">${metricValue}</span>
-                        </div>
-                        <div class="ac-bot">${marketLabel}</div>
-                    </div>
-                    <div class="ac-detail" id="detail_${alarmId}" onclick="event.stopPropagation()">
-                        <div class="ac-detail-inner">
-                            <div class="acd-divider"></div>
-                            <div class="acd-header">${matchTimeFormatted}</div>
-                            ${metricContent}
-                            <div class="acd-history">${historyLine}</div>
-                            ${historySection}
-                            <button class="acd-btn" onclick="event.stopPropagation(); goToMatchFromAlarm('${homeEscaped}', '${awayEscaped}', '${type}', '${marketEscaped}', '${leagueEscaped}', '${kickoffEscaped}', '${hashEscaped}')">${_t('app.j.acd_open_match','Maç Sayfasını Aç')}</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;}).join('');if(hasMore){html+=`
-            <div class="load-more-container" style="padding: 8px;">
-                <button class="load-more-btn" style="width: 100%;" onclick="loadMoreAlarms()">
-                    Daha Fazla (${groups.length - alarmsDisplayCount})
-                </button>
-            </div>
-        `;}
-body.innerHTML=html;}
-function toggleAlarmDetail(alarmId){if(openAlarmId===alarmId){openAlarmId=null;}else{openAlarmId=alarmId;}
-renderAlarmsList(currentAlarmFilter);if(openAlarmId){setTimeout(()=>{const detailEl=document.getElementById('detail_'+alarmId);if(detailEl){detailEl.scrollIntoView({behavior:'smooth',block:'nearest'});}},50);}}
-function formatMarketChip(market,selection){let marketShort=market;if(market.toLowerCase().includes('1x2'))marketShort='1X2';else if(market.toLowerCase().includes('ou')||market.toLowerCase().includes('2.5'))marketShort='A/Ü 2.5';else if(market.toLowerCase().includes('btts'))marketShort='KG';const rawSel=(selection||'').toUpperCase();const selMap={'U':_t('app.dyn.alt','Alt'),'O':_t('app.dyn.ust','Üst'),'Y':_t('app.dyn.evet','Evet'),'N':_t('app.dyn.hayir','Hayır'),'1':'1','X':'X','2':'2','UNDER':_t('app.dyn.alt','Alt'),'OVER':_t('app.dyn.ust','Üst'),'YES':_t('app.dyn.evet','Evet'),'NO':_t('app.dyn.hayir','Hayır')};const mappedSel=selMap[rawSel]||rawSel;return`${marketShort} · ${mappedSel}`;}
-function loadMoreAlarms(){alarmsDisplayCount+=10;renderAlarmsList(currentAlarmFilter);const container=document.getElementById('alarmsList');const cards=container.querySelectorAll('.alarm-card');if(cards.length>0){cards[cards.length-30]?.scrollIntoView({behavior:'smooth',block:'start'});}}
+function toggleAlarmDetail(...args){return _callAlarmSidebarRuntime('__sxfToggleAlarmDetailImpl',args);}
+function loadMoreAlarms(...args){return _callAlarmSidebarRuntime('__sxfLoadMoreAlarmsImpl',args);}
 function formatTimeAgo(dateStr){if(!dateStr)return'';const date=parseAlarmDate(dateStr);const now=new Date();const diffMs=now-date;const diffMins=Math.floor(diffMs/60000);const diffHours=Math.floor(diffMins/60);const diffDays=Math.floor(diffHours/24);if(diffMins<1)return'Simdi';if(diffMins<60)return`${diffMins}dk once`;if(diffHours<24)return`${diffHours}sa once`;if(diffDays<7)return`${diffDays}g once`;return dateStr.split(' ')[0];}
 function formatTimeAgoTR(dateStr){if(!dateStr)return'';const alarmDT=parseAlarmDateTR(dateStr);if(!alarmDT||!alarmDT.isValid())return'';return alarmDT.format('DD.MM HH:mm');}
 function parseAlarmDateTR(dateStr){if(!dateStr)return null;if(dateStr.includes('.')&&dateStr.includes(' ')){const[datePart,timePart]=dateStr.split(' ');const dateParts=datePart.split('.');if(dateParts.length===3){const[day,month,year]=dateParts;const[hour,min]=(timePart||'00:00').split(':');const isoStr=`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${min.padStart(2, '0')}:00`;return dayjs(isoStr).tz(APP_TIMEZONE,true);}}
@@ -1192,52 +947,11 @@ function getMatchAlarms(homeTeam,awayTeam,league='',kickoff='',matchIdHash=''){i
 function formatSmartMoneyTime(dateStr){if(!dateStr)return'-';const match1=dateStr.match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})$/);if(match1){const[,day,month,year,hour,min]=match1;const dt=new Date(parseInt(year),parseInt(month)-1,parseInt(day),parseInt(hour),parseInt(min));dt.setHours(dt.getHours()+3);const monthName=_tms(dt.getMonth());const h=String(dt.getHours()).padStart(2,'0');const m=String(dt.getMinutes()).padStart(2,'0');const d=String(dt.getDate()).padStart(2,'0');return`${d} ${monthName} • ${h}:${m}`;}
 const match2=dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);if(match2){const[,year,month,day,hour,min]=match2;const dt=new Date(parseInt(year),parseInt(month)-1,parseInt(day),parseInt(hour),parseInt(min));dt.setHours(dt.getHours()+3);const monthName=_tms(dt.getMonth());const h=String(dt.getHours()).padStart(2,'0');const m=String(dt.getMinutes()).padStart(2,'0');const d=String(dt.getDate()).padStart(2,'0');return`${d} ${monthName} • ${h}:${m}`;}
 const dt=parseAlarmDateTR(dateStr);if(!dt||!dt.isValid())return'-';return dt.format('DD MMM • HH:mm');}
-window._sxfModalAlarmsRuntimePromise = window._sxfModalAlarmsRuntimePromise || null;
-function _getModalAlarmsRuntimeUrl() {
-    try {
-        const scripts = document.getElementsByTagName('script');
-        for (let i = scripts.length - 1; i >= 0; i--) {
-            const src = scripts[i].src || '';
-            if (src.indexOf('/static/js/app.js') !== -1) {
-                const queryIndex = src.indexOf('?');
-                const query = queryIndex >= 0 ? src.slice(queryIndex) : '';
-                return '/static/js/modal-alarms.js' + query;
-            }
-        }
-    } catch (e) {}
-    return '/static/js/modal-alarms.js';
-}
-
-function loadModalAlarmsRuntime() {
-    if (typeof window.__sxfRenderMatchAlarmsSectionImpl === 'function') return Promise.resolve();
-    if (window._sxfModalAlarmsRuntimePromise) return window._sxfModalAlarmsRuntimePromise;
-
-    window._sxfModalAlarmsRuntimePromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = _getModalAlarmsRuntimeUrl();
-        script.async = true;
-        script.onload = () => {
-            if (typeof window.__sxfRenderMatchAlarmsSectionImpl === 'function') {
-                resolve();
-                return;
-            }
-            window._sxfModalAlarmsRuntimePromise = null;
-            reject(new Error('Modal alarms runtime loaded without implementation'));
-        };
-        script.onerror = () => {
-            window._sxfModalAlarmsRuntimePromise = null;
-            reject(new Error('Modal alarms runtime failed to load'));
-        };
-        document.head.appendChild(script);
-    });
-    return window._sxfModalAlarmsRuntimePromise;
-}
-
-async function renderMatchAlarmsSection(...args) {
-    await loadModalAlarmsRuntime();
-    return window.__sxfRenderMatchAlarmsSectionImpl(...args);
-}
-
+window._sxfModalAlarmsRuntimePromise=window._sxfModalAlarmsRuntimePromise||null;function _getModalAlarmsRuntimeUrl(){try{const scripts=document.getElementsByTagName('script');for(let i=scripts.length-1;i>=0;i--){const src=scripts[i].src||'';if(src.indexOf('/static/js/app.js')!==-1){const queryIndex=src.indexOf('?');const query=queryIndex>=0?src.slice(queryIndex):'';return'/static/js/modal-alarms.js'+query;}}}catch(e){}
+return'/static/js/modal-alarms.js';}
+function loadModalAlarmsRuntime(){if(typeof window.__sxfRenderMatchAlarmsSectionImpl==='function')return Promise.resolve();if(window._sxfModalAlarmsRuntimePromise)return window._sxfModalAlarmsRuntimePromise;window._sxfModalAlarmsRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getModalAlarmsRuntimeUrl();script.async=true;script.onload=()=>{if(typeof window.__sxfRenderMatchAlarmsSectionImpl==='function'){resolve();return;}
+window._sxfModalAlarmsRuntimePromise=null;reject(new Error('Modal alarms runtime loaded without implementation'));};script.onerror=()=>{window._sxfModalAlarmsRuntimePromise=null;reject(new Error('Modal alarms runtime failed to load'));};document.head.appendChild(script);});return window._sxfModalAlarmsRuntimePromise;}
+async function renderMatchAlarmsSection(...args){await loadModalAlarmsRuntime();return window.__sxfRenderMatchAlarmsSectionImpl(...args);}
 function toggleSmartMoneySection(){const grid=document.getElementById('smartMoneyGrid');const empty=document.getElementById('smartMoneyEmpty');const chevron=document.getElementById('smartMoneyChevron');smartMoneySectionOpen=!smartMoneySectionOpen;if(smartMoneySectionOpen){chevron.textContent='▼';const hasAlarms=grid.innerHTML.trim()!=='';if(hasAlarms){grid.style.display='grid';empty.style.display='none';}else{grid.style.display='none';empty.style.display='block';}}else{chevron.textContent='▲';grid.style.display='none';empty.style.display='none';}}
 function toggleDesktopChartSection(){const body=document.getElementById('desktopChartBody');const chevron=document.getElementById('desktopChartChevron');if(!body||!chevron)return;desktopChartSectionOpen=!desktopChartSectionOpen;if(desktopChartSectionOpen){chevron.textContent='▼';body.style.display='';}else{chevron.textContent='▲';body.style.display='none';}}
 document.addEventListener('DOMContentLoaded',async()=>{document.addEventListener('keydown',(e)=>{if(e.ctrlKey&&e.shiftKey&&e.key==='A'){e.preventDefault();openAdminPanel();}});await _licenseReady;if(!_isLicensed)return;try{await fetchAlarmsBatch();const counts=getCachedAlarmCounts();const badge=document.getElementById('tabAlarmBadge');if(badge)badge.textContent=counts.total;}catch(e){void 0;}});function openAdminPanel(){const overlay=document.getElementById('adminPanelOverlay');if(overlay){overlay.classList.add('open');loadAdminVolumeLeaderData();}}
@@ -1502,29 +1216,13 @@ function logoutWebLicense(){if(confirm('Cikis yapmak istediginize emin misiniz?'
 async function logoutAccount(){var logoutButton=document.getElementById('logoutBtn');if(logoutButton){logoutButton.disabled=true;logoutButton.setAttribute('aria-busy','true');}
 var controller=new AbortController();var timeoutId=setTimeout(function(){controller.abort();},5000);try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal});}catch(error){console.warn('[Auth] Logout request failed; clearing local session state:',error);}finally{clearTimeout(timeoutId);localStorage.removeItem(WEB_LICENSE_KEY);localStorage.removeItem(WEB_LICENSE_VALID_KEY);localStorage.removeItem('license_days_remaining');localStorage.removeItem('license_plan');window.location.replace('/login');}}
 function copyLicenseEmail(){const email='smartxflow29@gmail.com';const emailText=document.getElementById('licenseEmailText');navigator.clipboard.writeText(email).then(()=>{if(emailText){const original=emailText.textContent;emailText.textContent='Kopyalandi!';setTimeout(()=>{emailText.textContent=original;},1500);}}).catch(()=>{window.location.href='mailto:'+email;});}
-document.addEventListener('DOMContentLoaded',function(){Promise.resolve().then(function(){return initLicenseCheck();}).catch(function(error){console.error('[License] Initialization failed:',error);_licenseReadyResolve();if(!_isLicensed){if(typeof renderMatchLoadError==='function'){renderMatchLoadError('Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.',true);}else{showLicenseGate();}}});});document.getElementById('licenseKeyInput')?.addEventListener('keypress',function(e){if(e.key==='Enter')validateWebLicense();});var _bgLiveInterval = null;
-var _bgLiveStartScheduled = false;async function _fetchBackgroundLiveData(){if(_liveMode)return;try{var resp=await fetch('/api/live/matches');var data=await resp.json();_liveData=data.matches||[];_updateLiveCapsulesInDOM();}catch(e){}}
+document.addEventListener('DOMContentLoaded',function(){Promise.resolve().then(function(){return initLicenseCheck();}).catch(function(error){console.error('[License] Initialization failed:',error);_licenseReadyResolve();if(!_isLicensed){if(typeof renderMatchLoadError==='function'){renderMatchLoadError('Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.',true);}else{showLicenseGate();}}});});document.getElementById('licenseKeyInput')?.addEventListener('keypress',function(e){if(e.key==='Enter')validateWebLicense();});var _bgLiveInterval=null;var _bgLiveStartScheduled=false;async function _fetchBackgroundLiveData(){if(_liveMode)return;try{var resp=await fetch('/api/live/matches');var data=await resp.json();_liveData=data.matches||[];_updateLiveCapsulesInDOM();}catch(e){}}
 function _updateLiveCapsulesInDOM(){if(_liveMode)return;document.querySelectorAll('#matchesTableBody tr').forEach(function(row){var teamsCell=row.querySelector('.match-teams');var dateCell=row.querySelector('.match-date');if(!teamsCell||!dateCell)return;var capsuleEl=teamsCell.querySelector('.live-capsule');var deskCapsuleEl=dateCell.querySelector('.live-capsule-desk');var matchId=row.getAttribute('data-match-id')||'';var teamsText=teamsCell.textContent||'';var parts=teamsText.split(/\s*[-–]\s*/);if(parts.length<2)return;var home=parts[0].trim();var away=parts[parts.length-1].trim();var lm=_findLiveMatchByHash(matchId)||_findLiveMatch(home,away);if(!lm)return;if(_isFinishedLiveMatch(lm))return;if(capsuleEl){var rawMin=(lm.minute||'').trim();var sc=lm.score||'';if(rawMin||sc){var minDisp=rawMin||'';var scoreDisp='';if(sc){var sp=sc.split('-');if(sp.length===2){scoreDisp='<span class="lc-divider"></span><span class="lc-score-val"><span class="lc-score-h">'+sp[0].trim()+'</span><span class="lc-score-sep">-</span><span class="lc-score-a">'+sp[1].trim()+'</span></span>';}}
 capsuleEl.innerHTML='<span class="lc-dot"></span><span class="lc-min">'+minDisp+'</span>'+scoreDisp;}}
 if(deskCapsuleEl){var rawMin2=(lm.minute||'').trim();var sc2=lm.score||'';if(rawMin2||sc2){var scoreDisp2='';if(sc2){var sp2=sc2.split('-');if(sp2.length===2){scoreDisp2='<span class="lc-divider"></span><span class="lc-score-h">'+sp2[0].trim()+'</span><span class="lc-score-sep">-</span><span class="lc-score-a">'+sp2[1].trim()+'</span>';}}
 deskCapsuleEl.innerHTML='<span class="lc-dot"></span><span class="lc-min">'+rawMin2+'</span>'+scoreDisp2;}}});}
-function _startBackgroundLiveFetch() {
-    if (_bgLiveInterval || _bgLiveStartScheduled) return;
-    _bgLiveStartScheduled = true;
-
-    function begin() {
-        if (_bgLiveInterval) return;
-        _bgLiveStartScheduled = false;
-        _fetchBackgroundLiveData();
-        _bgLiveInterval = setInterval(_fetchBackgroundLiveData, 60000);
-    }
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(begin, { timeout: 5000 });
-    } else {
-        window.setTimeout(begin, 2500);
-    }
-}
+function _startBackgroundLiveFetch(){if(_bgLiveInterval||_bgLiveStartScheduled)return;_bgLiveStartScheduled=true;function begin(){if(_bgLiveInterval)return;_bgLiveStartScheduled=false;_fetchBackgroundLiveData();_bgLiveInterval=setInterval(_fetchBackgroundLiveData,60000);}
+if(typeof window.requestIdleCallback==='function'){window.requestIdleCallback(begin,{timeout:5000});}else{window.setTimeout(begin,2500);}}
 var _liveMode=false;var _liveInterval=null;var _liveData=[];var _liveMarket='1x2';var _modalLiveData=null;var _modalLiveMarket='1x2';var _liveDetailData=null;var _liveDetailMarket='1x2';var _prevLiveScores={};var _finishedScores={};function proLockPanelHtml(){return'<div class="smart-money-empty" style="display:block">'+_t('app.live.pro_periyot','Canlı periyot verileri için Pro üyelik gerektirir.')+'</div>';}
 function _liveProBanner(){return'<div class="live-pro-banner">'+'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+' '+_t('app.live.pro_gerekli','Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir')+' <a href="/pricing" class="live-pro-banner-btn">'+_t('app.live.proya_gec',"Pro'ya Geç →")+'</a>'+'</div>';}
 async function _renderLiveProLock(){_liveMode=true;document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.mobile-tab-btn').forEach(function(t){t.classList.remove('active');});var liveTab=document.querySelector('.tab-live');if(liveTab)liveTab.classList.add('active');var mobileLive=document.querySelector('.mobile-live-btn');if(mobileLive)mobileLive.classList.add('active');var mcLabel=document.getElementById('matchCountLabel');if(mcLabel)mcLabel.textContent=_t('app.live.canli_maclar','Canlı Maçlar')+' ';var mcSuffix=document.getElementById('matchCountSuffix');if(mcSuffix)mcSuffix.textContent='';var mcWrap=document.querySelector('.match-count');if(mcWrap)mcWrap.classList.add('mc-live');var lmt=document.getElementById('liveMarketTabs');if(lmt)lmt.style.display='none';var marketRow=document.querySelector('.mobile-tab-row.market-row');if(marketRow)marketRow.style.display='none';var table=document.querySelector('.matches-table');var tbody=document.getElementById('matchesTableBody');var thead=table?table.querySelector('thead'):null;var colgroup=table?table.querySelector('colgroup'):null;var cardList=document.getElementById('matchCardList');if(table)table.setAttribute('data-selection-count','3');if(colgroup)colgroup.innerHTML='<col class="col-fav"><col class="col-date"><col class="col-league"><col class="col-match">'+'<col class="col-selection"><col class="col-selection"><col class="col-selection"><col class="col-volume">';if(thead)thead.innerHTML='<tr>'+'<th class="col-fav"></th>'+'<th class="col-date">'+_t('app.live.dk','DK')+'</th>'+'<th class="col-league">'+_t('app.tbl.league','LİG')+'</th>'+'<th class="col-match">'+_t('app.tbl.match','MAÇ')+'</th>'+'<th class="col-selection">1</th>'+'<th class="col-selection">X</th>'+'<th class="col-selection">2</th>'+'<th class="col-volume">'+_t('app.tbl.volume','HACİM')+'</th>'+'</tr>';if(tbody)tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:30px;"><div class="loading-spinner"></div></td></tr>';var matches=[];try{var resp=await fetch('/api/live/matches');var data=await resp.json();matches=data.matches||[];}catch(e){}
@@ -1626,56 +1324,8 @@ var volDiff=vol-prevVol;var volDiffStr='-';var volDiffHasVal=false;if(prevS&&vol
 var hi=pct>=50;var divCls=j>0?' lpt-sel-divider':'';html+='<td class="period-dual'+divCls+'"><span class="dual-main period-odds">'+oddsStr+'</span><span class="dual-sub">'+deltaHtml+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-vol">'+(vol?formatLiveVol(vol):'-')+'</span><span class="dual-sub vol-diff'+(volDiffHasVal?' has-val':'')+'">'+volDiffStr+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-pct '+(hi?'pct-high':'pct-low')+'">'+pctStr+'</span><span class="dual-sub">'+pctDeltaHtml+'</span></td>';}
 html+='</tr>';}
 html+='</tbody></table></div>';body.innerHTML=html;}
-window._sxfModalLiveRuntimePromise = window._sxfModalLiveRuntimePromise || null;
-function _getModalLiveRuntimeUrl() {
-    try {
-        const scripts = document.getElementsByTagName('script');
-        for (let i = scripts.length - 1; i >= 0; i--) {
-            const src = scripts[i].src || '';
-            if (src.indexOf('/static/js/app.js') !== -1) {
-                const queryIndex = src.indexOf('?');
-                const query = queryIndex >= 0 ? src.slice(queryIndex) : '';
-                return '/static/js/modal-live.js' + query;
-            }
-        }
-    } catch (e) {}
-    return '/static/js/modal-live.js';
-}
-
-function loadModalLiveRuntime() {
-    if (typeof window.__sxfCheckModalLiveDataImpl === 'function') return Promise.resolve();
-    if (window._sxfModalLiveRuntimePromise) return window._sxfModalLiveRuntimePromise;
-
-    window._sxfModalLiveRuntimePromise = new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = _getModalLiveRuntimeUrl();
-        script.async = true;
-        script.onload = () => {
-            if (typeof window.__sxfCheckModalLiveDataImpl === 'function') {
-                resolve();
-                return;
-            }
-            window._sxfModalLiveRuntimePromise = null;
-            reject(new Error('Modal live runtime loaded without implementation'));
-        };
-        script.onerror = () => {
-            window._sxfModalLiveRuntimePromise = null;
-            reject(new Error('Modal live runtime failed to load'));
-        };
-        document.head.appendChild(script);
-    });
-    return window._sxfModalLiveRuntimePromise;
-}
-
-async function _checkModalLiveData(...args) {
-    try {
-        await loadModalLiveRuntime();
-        return await window.__sxfCheckModalLiveDataImpl(...args);
-    } catch (e) {
-        console.error('[Modal] Live runtime load error:', e);
-    }
-}
-
-
-
-
+window._sxfModalLiveRuntimePromise=window._sxfModalLiveRuntimePromise||null;function _getModalLiveRuntimeUrl(){try{const scripts=document.getElementsByTagName('script');for(let i=scripts.length-1;i>=0;i--){const src=scripts[i].src||'';if(src.indexOf('/static/js/app.js')!==-1){const queryIndex=src.indexOf('?');const query=queryIndex>=0?src.slice(queryIndex):'';return'/static/js/modal-live.js'+query;}}}catch(e){}
+return'/static/js/modal-live.js';}
+function loadModalLiveRuntime(){if(typeof window.__sxfCheckModalLiveDataImpl==='function')return Promise.resolve();if(window._sxfModalLiveRuntimePromise)return window._sxfModalLiveRuntimePromise;window._sxfModalLiveRuntimePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=_getModalLiveRuntimeUrl();script.async=true;script.onload=()=>{if(typeof window.__sxfCheckModalLiveDataImpl==='function'){resolve();return;}
+window._sxfModalLiveRuntimePromise=null;reject(new Error('Modal live runtime loaded without implementation'));};script.onerror=()=>{window._sxfModalLiveRuntimePromise=null;reject(new Error('Modal live runtime failed to load'));};document.head.appendChild(script);});return window._sxfModalLiveRuntimePromise;}
+async function _checkModalLiveData(...args){try{await loadModalLiveRuntime();return await window.__sxfCheckModalLiveDataImpl(...args);}catch(e){console.error('[Modal] Live runtime load error:',e);}}
