@@ -54,7 +54,6 @@ test('public alarm sidebar callbacks remain available as lazy delegates', () => 
 
 test('heavy alarm list implementations move out of the main bundle', () => {
   const heavyFunctions = [
-    'groupAlarmsByMatch',
     'updateAlarmCounts',
     'updateDateFilterCounts',
     'filterAlarmsByMatchDate',
@@ -84,10 +83,11 @@ test('deferred runtime exposes every callback used after the sidebar opens', () 
   }
 });
 
-test('shared alarm cache and alert-band navigation stay eager', () => {
+test('shared alarm cache, identity grouping, and alert-band navigation stay eager', () => {
   for (const [label, source] of mainBundles) {
     assert.match(source, /async function fetchAlarmsBatch\(/, `${label}: centralized alarm cache should remain eager`);
     assert.match(source, /function getCachedAlarmsWithType\(/, `${label}: shared cache projection should remain eager`);
+    assert.match(source, /function groupAlarmsByMatch\(/, `${label}: shared alarm identity grouping should remain eager`);
     assert.match(source, /function goToMatchFromAlarm\(/, `${label}: alert-band navigation should remain eager`);
   }
 });
