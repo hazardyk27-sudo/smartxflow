@@ -29,6 +29,7 @@ jobs:
         run: |
           python scripts/_p2_modal_data_pipeline_compat.py
           python scripts/_p2_modal_data_pipeline_stage.py
+          python scripts/_p2_modal_data_pipeline_compat.py
       - name: Syntax checks
         run: |
           node --check static/js/app.js
