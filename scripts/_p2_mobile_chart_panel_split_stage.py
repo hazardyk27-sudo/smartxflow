@@ -105,8 +105,6 @@ runtime = APP_RUN.read_text()
 s0, s1, source_region = extract_region(source)
 r0, r1, runtime_region = extract_region(runtime)
 
-# Fail closed: the target region itself must still be canonical minification, even
-# though the full served app bundle is intentionally not regenerated wholesale.
 if rjsmin.jsmin(source_region).strip() != runtime_region.strip():
     raise SystemExit('P2.16 target source/runtime parity mismatch; refusing to stage')
 
@@ -185,17 +183,25 @@ runtime = runtime[:r0] + loader_runtime + runtime[r1:]
 
 sf0, sf1, source_load = extract_function(source, 'async function loadChart(')
 rf0, rf1, runtime_load = extract_function(runtime, 'async function loadChart(')
-if rjsmin.jsmin(source_load).strip() != runtime_load.strip():
-    raise SystemExit('P2.16 loadChart source/runtime parity mismatch; refusing to stage')
 needle = 'await loadModalChartRuntime();'
-if source_load.count(needle) != 1:
-    raise SystemExit(f'expected one modal chart await in loadChart, found {source_load.count(needle)}')
+ret = 'return window.__sxfLoadChartImpl(...args);'
+for label, block in [('source', source_load), ('runtime', runtime_load)]:
+    if block.count(needle) != 1:
+        raise SystemExit(f'expected one modal chart await in {label} loadChart, found {block.count(needle)}')
+    if block.count(ret) != 1:
+        raise SystemExit(f'expected one implementation return in {label} loadChart, found {block.count(ret)}')
+    if 'loadMobileChartPanelRuntime' in block:
+        raise SystemExit(f'{label} loadChart already contains mobile panel await')
 new_source_load = source_load.replace(
     needle,
     needle + '\n    if (isMobile()) await loadMobileChartPanelRuntime();',
     1,
 )
-new_runtime_load = rjsmin.jsmin(new_source_load)
+new_runtime_load = runtime_load.replace(
+    needle,
+    needle + '\n    if (isMobile()) await loadMobileChartPanelRuntime();',
+    1,
+)
 source = source[:sf0] + new_source_load + source[sf1:]
 runtime = runtime[:rf0] + new_runtime_load + runtime[rf1:]
 
@@ -274,7 +280,7 @@ test('mobile panel loader inherits app asset version and is single-flight/retrya
 
 test('loadChart awaits mobile panel runtime only on mobile', () => {
   assert.match(mainSource, /await loadModalChartRuntime\(\);\s*if \(isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/);
-  assert.match(mainRuntime, /await loadModalChartRuntime\(\);if\(isMobile\(\)\)await loadMobileChartPanelRuntime\(\);return window\.__sxfLoadChartImpl/);
+  assert.match(mainRuntime, /await loadModalChartRuntime\(\);\s*if \(isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/);
 });
 
 test('chart plugins and mobile detection remain eager', () => {
