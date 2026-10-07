@@ -193,6 +193,7 @@ class PredictorOrchestratorTests(unittest.TestCase):
             ],
             "price_evidence": [
                 {
+                    "fixture_id": "m1",
                     "origin": "SXF_NATIVE",
                     "source": "SXF",
                     "market": "1X2",
@@ -275,6 +276,7 @@ class PredictorOrchestratorTests(unittest.TestCase):
         orch.run_stage(workflow_id=workflow_id, stage="STAGE2", trusted_context={}, user_authorized=True)
         evidence = orch.add_user_price(
             workflow_id=workflow_id,
+            fixture_id="m1",
             market="Double Chance",
             selection="Home 1X",
             price=1.55,
@@ -299,6 +301,7 @@ class PredictorOrchestratorTests(unittest.TestCase):
         fake_context = {
             "price_evidence": [
                 {
+                    "fixture_id": "m1",
                     "origin": "USER_SUPPLIED",
                     "source": "USER_SUPPLIED",
                     "market": "Double Chance",
@@ -318,6 +321,21 @@ class PredictorOrchestratorTests(unittest.TestCase):
             )
         self.assertTrue(any(v["rule_id"] == "SXF-PRICE-005" for v in caught.exception.violations))
         self.assertIsNone(orch.store.get_stage_output(workflow_id, "STAGE3"))
+
+    def test_same_market_selection_price_cannot_cross_fixtures(self):
+        orch, llm = self.make([stage1_valid()])
+        workflow_id = self.complete_stage1(orch)
+        orch.add_user_price(
+            workflow_id=workflow_id,
+            fixture_id="other-fixture",
+            market="Double Chance",
+            selection="Home 1X",
+            price=9.99,
+            observed_at="2026-10-07T19:00:00+03:00",
+        )
+        self.assertIsNone(orch.store.find_user_price(workflow_id, "m1", "Double Chance", "Home 1X"))
+        exact = orch.store.find_user_price(workflow_id, "other-fixture", "Double Chance", "Home 1X")
+        self.assertEqual(exact["price"], 9.99)
 
     def test_state_survives_store_restart(self):
         orch, _ = self.make([stage1_valid()])
@@ -351,6 +369,132 @@ class PredictorOrchestratorTests(unittest.TestCase):
         self.assertEqual(body["error"]["code"], "PREDICTOR_VALIDATION_FAILED")
         self.assertNotIn("raw_payload", str(body))
         self.assertNotIn("99.0", str(body))
+
+    def test_stage1_context_endpoint_is_server_owned_and_hashed(self):
+        class FakeSource:
+            def __init__(self, context):
+                self.context = deepcopy(context)
+                self.calls = []
+            def build_stage1_context(self, scope):
+                self.calls.append(deepcopy(scope))
+                return deepcopy(self.context)
+
+        orch, _ = self.make([])
+        cfg = self.config()
+        source = FakeSource(self.stage1_context())
+        app = create_app(config=cfg, orchestrator=orch, stage1_source=source)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        created = client.post("/api/predictor/workflows", json={"scope": {"date": "2026-10-07", "window_tr": ["18:00", "24:00"]}}, headers=headers)
+        workflow_id = created.get_json()["workflow"]["workflow_id"]
+        prepared = client.post(f"/api/predictor/workflows/{workflow_id}/stage1/context", headers=headers)
+        self.assertEqual(prepared.status_code, 200, prepared.get_data(as_text=True))
+        body = prepared.get_json()
+        self.assertEqual(len(body["context_sha256"]), 64)
+        self.assertEqual(body["analysis_context"]["source_fixture_ids"], ["m1", "m2"])
+        stored = orch.store.get_trusted_context(workflow_id, "STAGE1")
+        self.assertEqual(stored["context_sha256"], body["context_sha256"])
+        self.assertEqual(source.calls[0]["date"], "2026-10-07")
+
+    def test_external_stage1_requires_server_owned_context(self):
+        orch, _ = self.make([])
+        cfg = self.config()
+        app = create_app(config=cfg, orchestrator=orch)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        created = client.post("/api/predictor/workflows", json={"scope": {}}, headers=headers)
+        workflow_id = created.get_json()["workflow"]["workflow_id"]
+        response = client.post(
+            f"/api/predictor/workflows/{workflow_id}/stage1/submit",
+            json={"generated": stage1_valid()},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()["error"]["code"], "PREDICTOR_TRUSTED_CONTEXT_REQUIRED")
+
+    def test_external_agent_submit_recomposes_authority_fields(self):
+        orch, _ = self.make([])
+        cfg = self.config()
+        app = create_app(config=cfg, orchestrator=orch)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        created = client.post("/api/predictor/workflows", json={"scope": {"window": ["18:00", "24:00"]}}, headers=headers)
+        workflow_id = created.get_json()["workflow"]["workflow_id"]
+        orch.store.save_trusted_context(workflow_id, "STAGE1", self.stage1_context())
+        generated = stage1_valid()
+        generated["run_id"] = "evil-model-run"
+        generated["stage"] = "STAGE3"
+        generated["external_research_used"] = True
+        response = client.post(
+            f"/api/predictor/workflows/{workflow_id}/stage1/submit",
+            json={
+                "trusted_context": {"source_fixture_ids": ["evil-fixture"]},
+                "generated": generated,
+                "agent_model": "chatgpt-test-agent",
+            },
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 200, response.get_data(as_text=True))
+        body = response.get_json()
+        self.assertTrue(body["validated"])
+        stored = orch.store.get_stage_output(workflow_id, "STAGE1")
+        self.assertEqual(stored["payload"]["stage"], "STAGE1")
+        self.assertFalse(stored["payload"]["external_research_used"])
+        self.assertNotEqual(stored["payload"]["run_id"], "evil-model-run")
+        self.assertEqual(stored["model"], "chatgpt-test-agent")
+
+    def test_external_agent_invalid_submit_fails_closed_without_raw_leak(self):
+        orch, _ = self.make([])
+        cfg = self.config()
+        app = create_app(config=cfg, orchestrator=orch)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        created = client.post("/api/predictor/workflows", json={"scope": {}}, headers=headers)
+        workflow_id = created.get_json()["workflow"]["workflow_id"]
+        orch.store.save_trusted_context(workflow_id, "STAGE1", self.stage1_context())
+        generated = stage1_invalid_partial_scan()
+        generated["secret_model_note"] = "must-never-leak"
+        response = client.post(
+            f"/api/predictor/workflows/{workflow_id}/stage1/submit",
+            json={"trusted_context": {"source_fixture_ids": ["evil"]}, "generated": generated},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 422)
+        text = response.get_data(as_text=True)
+        self.assertNotIn("must-never-leak", text)
+        self.assertIsNone(orch.store.get_stage_output(workflow_id, "STAGE1"))
+        self.assertIsNone(orch.get_workflow(workflow_id).state.stage1_run_id)
+
+    def test_external_agent_stage2_requires_explicit_authorization(self):
+        orch, _ = self.make([stage1_valid()])
+        workflow_id = self.complete_stage1(orch)
+        cfg = self.config()
+        app = create_app(config=cfg, orchestrator=orch)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        response = client.post(
+            f"/api/predictor/workflows/{workflow_id}/stage2/submit",
+            json={"generated": stage2_valid()},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.get_json()["error"]["code"], "USER_AUTHORIZATION_REQUIRED")
+
+    def test_http_price_endpoint_requires_fixture_id(self):
+        orch, _ = self.make([])
+        cfg = self.config()
+        app = create_app(config=cfg, orchestrator=orch)
+        client = app.test_client()
+        headers = {"Authorization": "Bearer test-secret"}
+        created = client.post("/api/predictor/workflows", json={"scope": {}}, headers=headers)
+        workflow_id = created.get_json()["workflow"]["workflow_id"]
+        response = client.post(
+            f"/api/predictor/workflows/{workflow_id}/prices",
+            json={"market": "Double Chance", "selection": "Home 1X", "price": 1.55},
+            headers=headers,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"]["code"], "BAD_REQUEST")
 
     def test_http_stage2_requires_explicit_user_authorized_flag(self):
         orch, _ = self.make([])
