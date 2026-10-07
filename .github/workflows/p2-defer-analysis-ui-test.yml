@@ -115,6 +115,8 @@ jobs:
               assert "typeof window.openTrendsModal !== 'function'" in block
               assert 'return window.openTrendsModal(tab);' in block
           PYTEST
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
       - name: Run deferred UI regressions
         run: python -m pytest -q tests/test_deferred_analysis_ui.py
       - name: Commit tested implementation
