@@ -1,0 +1,112 @@
+name: P2 Modal Split Analysis
+
+on:
+  push:
+    branches: [perf/p2-modal-split-analysis]
+
+permissions:
+  contents: read
+
+jobs:
+  analyze-modal-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-modal-split-analysis
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Analyze JS function sizes and references
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          src = Path('static/js/app.js.src').read_text(encoding='utf-8')
+
+          decl = re.compile(r'(?m)^(async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(')
+
+          def find_end(start):
+              brace = src.find('{', start)
+              if brace < 0:
+                  return None
+              depth = 0
+              i = brace
+              in_s = in_d = in_t = False
+              in_line = in_block = False
+              esc = False
+              while i < len(src):
+                  c = src[i]
+                  n = src[i+1] if i + 1 < len(src) else ''
+                  if in_line:
+                      if c == '\n': in_line = False
+                  elif in_block:
+                      if c == '*' and n == '/':
+                          in_block = False; i += 1
+                  elif in_s:
+                      if esc: esc = False
+                      elif c == '\\': esc = True
+                      elif c == "'": in_s = False
+                  elif in_d:
+                      if esc: esc = False
+                      elif c == '\\': esc = True
+                      elif c == '"': in_d = False
+                  elif in_t:
+                      if esc: esc = False
+                      elif c == '\\': esc = True
+                      elif c == '`': in_t = False
+                  else:
+                      if c == '/' and n == '/': in_line = True; i += 1
+                      elif c == '/' and n == '*': in_block = True; i += 1
+                      elif c == "'": in_s = True
+                      elif c == '"': in_d = True
+                      elif c == '`': in_t = True
+                      elif c == '{': depth += 1
+                      elif c == '}':
+                          depth -= 1
+                          if depth == 0:
+                              return i + 1
+                  i += 1
+              return None
+
+          funcs = []
+          for m in decl.finditer(src):
+              end = find_end(m.start())
+              if not end: continue
+              body = src[m.start():end]
+              name = m.group(2)
+              line1 = src.count('\n', 0, m.start()) + 1
+              line2 = src.count('\n', 0, end) + 1
+              total_refs = len(re.findall(r'\b' + re.escape(name) + r'\b', src))
+              outside = src[:m.start()] + src[end:]
+              outside_refs = len(re.findall(r'\b' + re.escape(name) + r'\b', outside))
+              funcs.append((len(body.encode('utf-8')), line2-line1+1, name, line1, line2, total_refs, outside_refs))
+
+          print('TOP_FUNCTIONS_BY_BYTES')
+          for row in sorted(funcs, reverse=True)[:60]:
+              print('bytes=%d lines=%d name=%s range=%d-%d refs=%d outside_refs=%d' % row)
+
+          print('\nMODAL_NAMED_FUNCTIONS')
+          modal_kw = ('modal','chart','alarm','history','trend','snapshot','matchinfo','live')
+          for row in sorted(funcs, key=lambda x: x[3]):
+              if any(k in row[2].lower() for k in modal_kw):
+                  print('bytes=%d lines=%d name=%s range=%d-%d refs=%d outside_refs=%d' % row)
+
+          markers = [
+              'async function openMatchModalFromMatches',
+              'async function openMatchModalFromAPI',
+              'async function openMatchModal(',
+              'function resetModalState',
+              'async function loadChartWithTrends',
+              'function updateMatchInfoCard',
+              'function closeModal',
+              "document.addEventListener('DOMContentLoaded'",
+          ]
+          print('\nMARKERS')
+          for marker in markers:
+              pos = src.find(marker)
+              line = src.count('\n', 0, pos) + 1 if pos >= 0 else -1
+              print(f'{marker} => line {line}')
+          PY
