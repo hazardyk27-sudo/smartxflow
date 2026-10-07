@@ -1,5 +1,5 @@
 {
-  "policy_version": 3,
+  "policy_version": 4,
   "status": "ACTIVE",
   "canonical": true,
   "precedence": "For Predictor workflow invariants, this executable policy controls over conflicting markdown summaries. Markdown remains human-readable documentation.",
@@ -65,6 +65,7 @@
       "SXF-PRICE-003": "USER_SUPPLIED is valid observed price evidence and does not require independent web verification, but the agent may not alter, round into another price, transfer it to another market/selection or silently refresh it.",
       "SXF-PRICE-004": "Ambiguous/stale user-supplied prices must be marked stale/needs-confirmation or converted to a conditional threshold; never pretend they are current.",
       "SXF-PRICE-005": "A threshold is not actual odds. A priced formal non-native BET requires an actual observed price from EXTERNAL_VERIFIED or USER_SUPPLIED.",
+      "SXF-PRICE-006": "Every price evidence record is fixture-scoped. fixture_id, market and selection must refer to the exact same carried match; price evidence may never be transferred between fixtures.",
       "origins": ["SXF_NATIVE", "EXTERNAL_VERIFIED", "USER_SUPPLIED", "THRESHOLD_ONLY"]
     },
     "archive": {
