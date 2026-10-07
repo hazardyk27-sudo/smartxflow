@@ -4,6 +4,7 @@ on:
   push:
     branches: [perf/p2-live-tab-split]
     paths:
+      - 'tests/test_production_debug_log_cleanup.js'
       - '.github/workflows/p2-live-tab-split-test.yml'
   workflow_dispatch:
 
