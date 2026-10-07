@@ -1923,7 +1923,7 @@ async function fetchAnalysisMatchHashes() {
 function getAnalysisStarHtml(matchId) {
     if (!matchId || !_analysisMatchHashes.length) return '';
     if (_analysisMatchHashes.indexOf(matchId) === -1) return '';
-    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openTrendsModal(\'analysis\');">★</span>';
+    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openDeferredTrendsModal(\'analysis\');">★</span>';
 }
 
 function _renderMatchRow(match, idx) {
@@ -11040,7 +11040,7 @@ function _testGuardAnalysis(btn) {
         _showTestLockedToast(btn || null);
         return;
     }
-    openTrendsModal('analysis');
+    openDeferredTrendsModal('analysis');
 }
 
 function _addMobileMktLockIcons() {
