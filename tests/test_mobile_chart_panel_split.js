@@ -38,8 +38,9 @@ test('mobile panel loader inherits app asset version and is single-flight/retrya
 });
 
 test('loadChart awaits mobile panel runtime only on mobile', () => {
-  assert.match(mainSource, /await loadModalChartRuntime\(\);\s*if \(typeof isMobile === 'function' && isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/);
-  assert.match(mainRuntime, /await loadModalChartRuntime\(\);\s*if \(typeof isMobile === 'function' && isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/);
+  const loadChartSequence = /await\s+loadModalChartRuntime\(\);\s*if\s*\(\s*typeof\s+isMobile\s*===\s*'function'\s*&&\s*isMobile\(\)\s*\)\s*await\s+loadMobileChartPanelRuntime\(\);\s*return\s+window\.__sxfLoadChartImpl/;
+  assert.match(mainSource, loadChartSequence);
+  assert.match(mainRuntime, loadChartSequence);
 });
 
 test('chart plugins and mobile detection remain eager', () => {
