@@ -40,7 +40,6 @@ jobs:
 
           primary = '''    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:\n        """Return this user's favorites and global counts from one table read."""\n        if not self.is_available or not license_key:\n            return {'favorites': [], 'counts': {}}\n        if not self._ensure_favorites_table():\n            return None\n        try:\n            url = f"{self._rest_url('license_favorites')}?select=license_key,match_key"\n            resp = self._get_http_client().get(url, headers=self._headers(), timeout=15)\n            if resp.status_code != 200:\n                return None\n            rows = resp.json()\n            if not isinstance(rows, list):\n                return None\n\n            favorites = []\n            counts: Dict[str, int] = {}\n            for row in rows:\n                if not isinstance(row, dict):\n                    continue\n                match_key = row.get('match_key')\n                if not match_key:\n                    continue\n                counts[match_key] = counts.get(match_key, 0) + 1\n                if row.get('license_key') == license_key:\n                    favorites.append(match_key)\n            return {'favorites': favorites, 'counts': counts}\n        except Exception as e:\n            print(f"[Supabase] get_favorites_bootstrap error: {e}")\n            return None\n\n'''
           wrapper = '''    def get_favorites_bootstrap(self, license_key: str) -> Optional[Dict[str, Any]]:\n        if self.supabase.is_available:\n            return self.supabase.get_favorites_bootstrap(license_key)\n        return None\n\n'''
-
           first = positions[0]
           text = text[:first] + primary + text[first:]
           second = text.find(signature, first + len(primary) + len(signature))
@@ -76,6 +75,26 @@ jobs:
               else:
                   raise SystemExit(f'{filename}: startup favorites anchor missing')
               path.write_text(js)
+
+          test_path = Path('tests/test_app_bootstrap.js')
+          test_text = test_path.read_text()
+          old_line = "    const favoritesStart = bootstrap.search(/Promise\\.all\\(\\[loadUserFavorites\\(\\),\\s*loadFavoriteCounts\\(\\)\\]\\)/);"
+          new_line = "    const favoritesStart = bootstrap.indexOf('loadFavoritesBootstrap()');"
+          if old_line not in test_text:
+              raise SystemExit('bootstrap favoritesStart assertion anchor missing')
+          test_text = test_text.replace(old_line, new_line, 1)
+          test_text = test_text.replace("assert.ok(favoritesStart >= 0, 'favorite requests should still start');", "assert.ok(favoritesStart >= 0, 'favorites bootstrap should still start');", 1)
+          old_wait = '''      /await\\s+Promise\\.all\\(\\[loadUserFavorites\\(\\),\\s*loadFavoriteCounts\\(\\)\\]\\)/,\n      'matches must not wait for favorite requests'\n'''
+          new_wait = '''      /await\\s+loadFavoritesBootstrap\\(\\)/,\n      'matches must not wait for favorites bootstrap'\n'''
+          if old_wait not in test_text:
+              raise SystemExit('bootstrap await-favorites assertion anchor missing')
+          test_text = test_text.replace(old_wait, new_wait, 1)
+          context_anchor = "      loadUserFavorites: () => new Promise(() => {}),\n      loadFavoriteCounts: () => new Promise(() => {}),"
+          context_replacement = "      loadFavoritesBootstrap: () => new Promise(() => {}),\n      loadUserFavorites: () => new Promise(() => {}),\n      loadFavoriteCounts: () => new Promise(() => {}),"
+          if context_anchor not in test_text:
+              raise SystemExit('bootstrap favorite context anchor missing')
+          test_text = test_text.replace(context_anchor, context_replacement, 1)
+          test_path.write_text(test_text)
           PY
 
           cat > tests/test_favorites_bootstrap.py <<'PYTEST'
@@ -112,7 +131,6 @@ jobs:
               monkeypatch.setattr(client, '_get_http_client', lambda: http)
 
               data = client.get_favorites_bootstrap('u1')
-
               assert data == {
                   'favorites': ['A|B|L', 'C|D|L'],
                   'counts': {'A|B|L': 2, 'C|D|L': 1},
@@ -161,7 +179,7 @@ jobs:
         run: |
           git config user.name 'SmartXFlow CI'
           git config user.email 'smartxflow-ci@users.noreply.github.com'
-          git add app.py services/supabase_client.py static/js/app.js static/js/app.js.src tests/test_favorites_bootstrap.py tests/test_favorites_bootstrap.js
+          git add app.py services/supabase_client.py static/js/app.js static/js/app.js.src tests/test_favorites_bootstrap.py tests/test_favorites_bootstrap.js tests/test_app_bootstrap.js
           git rm .github/workflows/p2-favorites-bootstrap-test.yml
           git commit -m 'perf: collapse favorites startup to one read'
           git push origin HEAD:perf/p2-favorites-bootstrap
