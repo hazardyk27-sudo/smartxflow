@@ -156,7 +156,8 @@ jobs:
 
       - name: Run deferred background live regressions
         run: |
-          node --check static/js/app.js.src
+          cp static/js/app.js.src /tmp/app-src.js
+          node --check /tmp/app-src.js
           node --check static/js/app.js
           node --test tests/test_deferred_background_live.js
           node --test tests/test_app_bootstrap.js
