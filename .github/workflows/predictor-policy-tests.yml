@@ -6,8 +6,10 @@ on:
     paths:
       - '.github/workflows/predictor-policy-tests.yml'
       - 'predictor_policy/**'
+      - 'predictor_orchestrator/**'
       - 'tests/test_predictor_policy.py'
       - 'tests/test_predictor_runtime.py'
+      - 'tests/test_predictor_orchestrator.py'
 
 permissions:
   contents: read
@@ -20,15 +22,28 @@ jobs:
         with:
           ref: preview
           fetch-depth: 1
-      - name: Run predictor policy regressions
+      - name: Install predictor test dependencies
+        run: |
+          python -m pip install --disable-pip-version-check Flask==3.0.0 requests==2.31.0
+      - name: Run predictor policy and orchestrator regressions
         run: |
           python -m unittest \
             tests.test_predictor_policy \
-            tests.test_predictor_runtime
-      - name: Compile predictor policy runtime
+            tests.test_predictor_runtime \
+            tests.test_predictor_orchestrator
+      - name: Compile predictor policy and orchestrator runtime
         run: |
           python -m py_compile \
             predictor_policy/__init__.py \
             predictor_policy/validator.py \
             predictor_policy/runtime.py \
-            predictor_policy/stage_comparison.py
+            predictor_policy/stage_comparison.py \
+            predictor_orchestrator/__init__.py \
+            predictor_orchestrator/config.py \
+            predictor_orchestrator/schemas.py \
+            predictor_orchestrator/store.py \
+            predictor_orchestrator/llm_client.py \
+            predictor_orchestrator/prompts.py \
+            predictor_orchestrator/renderer.py \
+            predictor_orchestrator/service.py \
+            predictor_orchestrator/server.py
