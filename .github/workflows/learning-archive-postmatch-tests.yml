@@ -10,20 +10,24 @@ on:
       - 'learning_archive/ssh_batch_backend.py'
       - 'learning_archive/settlement.py'
       - 'learning_archive/postmatch_learning.py'
+      - 'learning_archive/postmatch_diary.py'
       - 'learning_archive/package.py'
       - 'learning_archive/result_source.py'
       - 'learning_archive/supabase_source.py'
       - 'learning_archive/validator.py'
       - 'learning_archive/reader.py'
+      - 'predictor_policy/stage_comparison.py'
       - 'schemas/learning_archive_match_v1.schema.json'
       - 'scripts/settle_due_learning_cases.py'
       - 'scripts/settle_due_learning_cases_fast.py'
+      - 'scripts/settle_due_learning_cases_with_diary.py'
       - 'scripts/repair_missing_learning_settlements.py'
       - 'deploy/systemd/smartxflow-learning-archive-postmatch.service'
       - 'deploy/systemd/smartxflow-learning-archive-postmatch.timer'
       - 'tests/test_learning_archive_batch_backend.py'
       - 'tests/test_learning_archive_postmatch_fast.py'
       - 'tests/test_learning_archive_postmatch_learning.py'
+      - 'tests/test_learning_archive_postmatch_diary.py'
       - 'tests/test_learning_archive_result_source.py'
       - 'tests/test_learning_archive_supabase_batch.py'
       - 'tests/test_learning_archive_settlement.py'
@@ -48,6 +52,7 @@ jobs:
             tests.test_learning_archive_batch_backend \
             tests.test_learning_archive_postmatch_fast \
             tests.test_learning_archive_postmatch_learning \
+            tests.test_learning_archive_postmatch_diary \
             tests.test_learning_archive_result_source \
             tests.test_learning_archive_supabase_batch \
             tests.test_learning_archive_settlement \
@@ -62,11 +67,14 @@ jobs:
             learning_archive/ssh_batch_backend.py \
             learning_archive/settlement.py \
             learning_archive/postmatch_learning.py \
+            learning_archive/postmatch_diary.py \
             learning_archive/package.py \
             learning_archive/result_source.py \
             learning_archive/supabase_source.py \
             learning_archive/validator.py \
             learning_archive/reader.py \
+            predictor_policy/stage_comparison.py \
             scripts/settle_due_learning_cases.py \
             scripts/settle_due_learning_cases_fast.py \
+            scripts/settle_due_learning_cases_with_diary.py \
             scripts/repair_missing_learning_settlements.py
