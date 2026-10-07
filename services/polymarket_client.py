@@ -825,7 +825,10 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
 
     back_cutoff, cutoff = _compute_match_window(hours_ahead, day_filter)
 
-    rows = _fetch_stored_matches()
+    rows = _fetch_stored_matches(
+        back_cutoff=back_cutoff,
+        cutoff=cutoff,
+    )
     if rows is None:
         return _get_today_matches_live(hours_ahead, day_filter)
 
@@ -975,41 +978,74 @@ def search_matches(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     return results[:limit]
 
 
-_stored_matches_cache = {"data": None, "time": 0}
+_stored_matches_cache: Dict[Tuple[Optional[str], Optional[str]], Dict[str, Any]] = {}
 _stored_matches_cache_lock = threading.Lock()
 _STORED_MATCHES_CACHE_TTL = 30
 
 
-def _fetch_stored_matches(force_refresh: bool = False) -> Optional[List[Dict[str, Any]]]:
-    """Read all rows from the Supabase `polymarket_matches` table (scraper-populated),
-    with a short in-process cache so repeated searches within the same few seconds
-    don't re-hit Supabase. Returns None if Supabase isn't configured/reachable
-    (caller should fall back to the live API in that case)."""
+def _fetch_stored_matches(
+    force_refresh: bool = False,
+    back_cutoff: Optional[datetime] = None,
+    cutoff: Optional[datetime] = None,
+) -> Optional[List[Dict[str, Any]]]:
+    """Read stored matches, optionally restricting the query at Supabase.
+
+    Match-list callers pass their exact kickoff window so PostgREST returns only
+    relevant rows. Search/canonical-identity callers omit bounds and retain the
+    existing broad registry read. Cache entries are keyed by the exact window so
+    a bounded page load can never poison an unbounded identity/search lookup.
+    """
+    def _bound_iso(value: Optional[datetime]) -> Optional[str]:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+    lower_iso = _bound_iso(back_cutoff)
+    upper_iso = _bound_iso(cutoff)
+    cache_key = (lower_iso, upper_iso)
     now = time.time()
     with _stored_matches_cache_lock:
-        if not force_refresh and _stored_matches_cache["data"] is not None and (now - _stored_matches_cache["time"]) < _STORED_MATCHES_CACHE_TTL:
-            return _stored_matches_cache["data"]
+        cached = _stored_matches_cache.get(cache_key)
+        if (
+            not force_refresh
+            and cached is not None
+            and (now - cached["time"]) < _STORED_MATCHES_CACHE_TTL
+        ):
+            return cached["data"]
 
     base = _supabase_base_url()
     if not base:
         return None
     headers = _supabase_headers()
+    params = [
+        ("select", "event_id,slug,home,away,kickoff_utc"),
+        ("order", "kickoff_utc.desc"),
+        ("limit", "5000"),
+    ]
+    if lower_iso is not None:
+        params.append(("kickoff_utc", f"gte.{lower_iso}"))
+    if upper_iso is not None:
+        params.append(("kickoff_utc", f"lte.{upper_iso}"))
+
     try:
         resp = requests.get(
             f"{base}/rest/v1/polymarket_matches",
             headers=headers,
-            params={"select": "event_id,slug,home,away,kickoff_utc", "order": "kickoff_utc.desc", "limit": 5000},
+            params=params,
             timeout=8,
         )
         if resp.status_code != 200:
             return None
         rows = resp.json()
+        if not isinstance(rows, list):
+            return None
     except Exception:
         return None
 
     with _stored_matches_cache_lock:
-        _stored_matches_cache["data"] = rows
-        _stored_matches_cache["time"] = now
+        _stored_matches_cache[cache_key] = {"data": rows, "time": now}
     return rows
 
 
