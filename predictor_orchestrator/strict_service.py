@@ -36,6 +36,52 @@ class StrictPredictorOrchestrator(PredictorOrchestrator):
         )
         self.lifecycle_store = lifecycle_store or PredictorLifecycleStore(config.state_db_path)
 
+    def _compose_stage3(
+        self,
+        *,
+        workflow,
+        stage_run_id: str,
+        generated: dict[str, Any],
+        stage1_payload: dict[str, Any],
+        stage2_payload: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Keep authoritative Stage 1 native prices available to external Stage 3.
+
+        External-agent submit endpoints intentionally ignore caller-supplied trusted
+        context. Stage 1 is the server-owned SXF snapshot, so its fixture-scoped
+        native price evidence is the authoritative fallback for Stage 3 native
+        execution. Any explicitly stored Stage 3 context remains first in lookup
+        order and can therefore override the older Stage 1 snapshot for the exact
+        same fixture/market/selection without allowing cross-fixture transfer.
+        """
+        supplied_context = context if isinstance(context, dict) else {}
+        stage1_record = self.store.get_trusted_context(workflow.workflow_id, "STAGE1")
+        if stage1_record is None or not isinstance(stage1_record.get("context"), dict):
+            price_context = supplied_context
+        else:
+            stage1_context = stage1_record["context"]
+            price_context = dict(stage1_context)
+            price_context.update(supplied_context)
+            current_prices = [
+                item for item in supplied_context.get("price_evidence") or []
+                if isinstance(item, dict)
+            ]
+            baseline_prices = [
+                item for item in stage1_context.get("price_evidence") or []
+                if isinstance(item, dict)
+            ]
+            price_context["price_evidence"] = current_prices + baseline_prices
+
+        return super()._compose_stage3(
+            workflow=workflow,
+            stage_run_id=stage_run_id,
+            generated=generated,
+            stage1_payload=stage1_payload,
+            stage2_payload=stage2_payload,
+            context=price_context,
+        )
+
     @staticmethod
     def _formal_rows(stage3_payload: dict[str, Any]) -> list[dict[str, Any]]:
         return [
