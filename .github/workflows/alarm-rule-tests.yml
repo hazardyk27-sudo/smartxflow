@@ -10,6 +10,7 @@ on:
       - 'live_scraper.py'
       - 'sinyal_engine.py'
       - 'sinyal_engine_runtime.py'
+      - 'sinyal_first_snapshot_fetch.py'
       - 'run_services.sh'
       - 'deploy/setup_hetzner.sh'
       - 'deploy/smartxflow-sinyal.service'
@@ -47,6 +48,7 @@ on:
       - 'tests/test_runtime_scraper_recovery.py'
       - 'tests/test_scheduled_scraper_authoritative_bootstrap.py'
       - 'tests/test_signal_cooldown_timestamp_encoding.py'
+      - 'tests/test_signal_first_snapshot_fetch.py'
       - 'tests/test_sinyal_engine_runtime.py'
       - 'tests/test_analysis_signal_copy.py'
       - 'tests/test_fixture_integrity.py'
@@ -82,6 +84,7 @@ jobs:
           python -m py_compile live_scraper.py
           python -m py_compile sinyal_engine.py
           python -m py_compile sinyal_engine_runtime.py
+          python -m py_compile sinyal_first_snapshot_fetch.py
           python -m py_compile betwatch_prematch.py
           python -m py_compile betwatch_client.py
           python -m py_compile services/__init__.py
@@ -128,6 +131,7 @@ jobs:
           tests/test_runtime_scraper_recovery.py
           tests/test_scheduled_scraper_authoritative_bootstrap.py
           tests/test_signal_cooldown_timestamp_encoding.py
+          tests/test_signal_first_snapshot_fetch.py
           tests/test_sinyal_engine_runtime.py
           tests/test_analysis_signal_copy.py
           tests/test_fixture_integrity.py
