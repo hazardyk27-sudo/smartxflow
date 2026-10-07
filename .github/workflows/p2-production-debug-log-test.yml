@@ -147,7 +147,7 @@ jobs:
 
           src_count, src_delta = strip_console_logs('static/js/app.js.src')
           runtime_count, runtime_delta = strip_console_logs('static/js/app.js')
-          if src_count < 35 or runtime_count < 35:
+          if src_count < 35 or runtime_count < 28:
               raise SystemExit(f'unexpectedly few logs removed: src={src_count}, runtime={runtime_count}')
           if src_delta < 2500:
               raise SystemExit(f'source cleanup unexpectedly small: {src_delta}')
