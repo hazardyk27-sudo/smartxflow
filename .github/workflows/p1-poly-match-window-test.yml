@@ -1,0 +1,222 @@
+name: P1 Poly Match Window Test
+
+on:
+  push:
+    branches: [perf/p1-poly-match-window]
+
+permissions:
+  contents: write
+
+jobs:
+  p1-poly-match-window:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p1-poly-match-window
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply server-side match window
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('services/polymarket_client.py')
+          text = path.read_text()
+
+          old_call = '''    rows = _fetch_stored_matches()\n    if rows is None:\n        return _get_today_matches_live(hours_ahead, day_filter)\n'''
+          new_call = '''    rows = _fetch_stored_matches(\n        back_cutoff=back_cutoff,\n        cutoff=cutoff,\n    )\n    if rows is None:\n        return _get_today_matches_live(hours_ahead, day_filter)\n'''
+          if old_call not in text:
+              raise SystemExit('get_today_matches fetch anchor not found')
+          text = text.replace(old_call, new_call, 1)
+
+          old_cache = '''_stored_matches_cache = {"data": None, "time": 0}\n_stored_matches_cache_lock = threading.Lock()\n_STORED_MATCHES_CACHE_TTL = 30\n\n\ndef _fetch_stored_matches(force_refresh: bool = False) -> Optional[List[Dict[str, Any]]]:\n    """Read all rows from the Supabase `polymarket_matches` table (scraper-populated),\n    with a short in-process cache so repeated searches within the same few seconds\n    don't re-hit Supabase. Returns None if Supabase isn't configured/reachable\n    (caller should fall back to the live API in that case)."""\n    now = time.time()\n    with _stored_matches_cache_lock:\n        if not force_refresh and _stored_matches_cache["data"] is not None and (now - _stored_matches_cache["time"]) < _STORED_MATCHES_CACHE_TTL:\n            return _stored_matches_cache["data"]\n\n    base = _supabase_base_url()\n    if not base:\n        return None\n    headers = _supabase_headers()\n    try:\n        resp = requests.get(\n            f"{base}/rest/v1/polymarket_matches",\n            headers=headers,\n            params={"select": "event_id,slug,home,away,kickoff_utc", "order": "kickoff_utc.desc", "limit": 5000},\n            timeout=8,\n        )\n        if resp.status_code != 200:\n            return None\n        rows = resp.json()\n    except Exception:\n        return None\n\n    with _stored_matches_cache_lock:\n        _stored_matches_cache["data"] = rows\n        _stored_matches_cache["time"] = now\n    return rows\n'''
+          new_cache = '''_stored_matches_cache: Dict[Tuple[Optional[str], Optional[str]], Dict[str, Any]] = {}\n_stored_matches_cache_lock = threading.Lock()\n_STORED_MATCHES_CACHE_TTL = 30\n\n\ndef _fetch_stored_matches(\n    force_refresh: bool = False,\n    back_cutoff: Optional[datetime] = None,\n    cutoff: Optional[datetime] = None,\n) -> Optional[List[Dict[str, Any]]]:\n    """Read stored matches, optionally restricting the query at Supabase.\n\n    Match-list callers pass their exact kickoff window so PostgREST returns only\n    relevant rows. Search/canonical-identity callers omit bounds and retain the\n    existing broad registry read. Cache entries are keyed by the exact window so\n    a bounded page load can never poison an unbounded identity/search lookup.\n    """\n    def _bound_iso(value: Optional[datetime]) -> Optional[str]:\n        if value is None:\n            return None\n        if value.tzinfo is None:\n            value = value.replace(tzinfo=timezone.utc)\n        return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")\n\n    lower_iso = _bound_iso(back_cutoff)\n    upper_iso = _bound_iso(cutoff)\n    cache_key = (lower_iso, upper_iso)\n    now = time.time()\n    with _stored_matches_cache_lock:\n        cached = _stored_matches_cache.get(cache_key)\n        if (\n            not force_refresh\n            and cached is not None\n            and (now - cached["time"]) < _STORED_MATCHES_CACHE_TTL\n        ):\n            return cached["data"]\n\n    base = _supabase_base_url()\n    if not base:\n        return None\n    headers = _supabase_headers()\n    params = [\n        ("select", "event_id,slug,home,away,kickoff_utc"),\n        ("order", "kickoff_utc.desc"),\n        ("limit", "5000"),\n    ]\n    if lower_iso is not None:\n        params.append(("kickoff_utc", f"gte.{lower_iso}"))\n    if upper_iso is not None:\n        params.append(("kickoff_utc", f"lte.{upper_iso}"))\n\n    try:\n        resp = requests.get(\n            f"{base}/rest/v1/polymarket_matches",\n            headers=headers,\n            params=params,\n            timeout=8,\n        )\n        if resp.status_code != 200:\n            return None\n        rows = resp.json()\n        if not isinstance(rows, list):\n            return None\n    except Exception:\n        return None\n\n    with _stored_matches_cache_lock:\n        _stored_matches_cache[cache_key] = {"data": rows, "time": now}\n    return rows\n'''
+          if old_cache not in text:
+              raise SystemExit('stored match cache anchor not found')
+          text = text.replace(old_cache, new_cache, 1)
+          path.write_text(text)
+
+          workflow = Path('.github/workflows/poly-performance-tests.yml')
+          wf = workflow.read_text()
+          old_paths = "      - 'tests/test_polymarket_events_pagination.py'\n      - '.github/workflows/poly-performance-tests.yml'"
+          new_paths = "      - 'tests/test_polymarket_events_pagination.py'\n      - 'tests/test_polymarket_match_window_query.py'\n      - '.github/workflows/poly-performance-tests.yml'"
+          if old_paths not in wf:
+              raise SystemExit('permanent CI paths anchor not found')
+          wf = wf.replace(old_paths, new_paths, 1)
+          wf = wf.replace(
+              'run: python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py',
+              'run: python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py services/polymarket_client.py',
+              1,
+          )
+          old_tests = 'run: python -m pytest -q tests/test_poly_trade_checkpoint_batch.py tests/test_polymarket_events_pagination.py'
+          new_tests = 'run: python -m pytest -q tests/test_poly_trade_checkpoint_batch.py tests/test_polymarket_events_pagination.py tests/test_polymarket_match_window_query.py'
+          if old_tests not in wf:
+              raise SystemExit('permanent CI test anchor not found')
+          wf = wf.replace(old_tests, new_tests, 1)
+          workflow.write_text(wf)
+          PY
+
+          cat > tests/test_polymarket_match_window_query.py <<'PYTEST'
+          from datetime import datetime, timezone
+
+          from services import polymarket_client
+
+
+          class _Response:
+              status_code = 200
+
+              def __init__(self, rows):
+                  self._rows = rows
+
+              def json(self):
+                  return self._rows
+
+
+          def _reset_cache():
+              with polymarket_client._stored_matches_cache_lock:
+                  polymarket_client._stored_matches_cache.clear()
+
+
+          def test_stored_match_fetch_pushes_exact_window_to_postgrest(monkeypatch):
+              _reset_cache()
+              calls = []
+              monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+              monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+
+              def fake_get(url, headers, params, timeout):
+                  calls.append((url, params))
+                  return _Response([])
+
+              monkeypatch.setattr(polymarket_client.requests, 'get', fake_get)
+              lower = datetime(2026, 10, 6, 21, 0, tzinfo=timezone.utc)
+              upper = datetime(2026, 10, 9, 9, 30, tzinfo=timezone.utc)
+              assert polymarket_client._fetch_stored_matches(
+                  back_cutoff=lower,
+                  cutoff=upper,
+              ) == []
+
+              params = calls[0][1]
+              assert ('kickoff_utc', 'gte.2026-10-06T21:00:00Z') in params
+              assert ('kickoff_utc', 'lte.2026-10-09T09:30:00Z') in params
+              assert ('limit', '5000') in params
+
+
+          def test_unbounded_registry_fetch_keeps_no_kickoff_filter(monkeypatch):
+              _reset_cache()
+              calls = []
+              monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+              monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+
+              def fake_get(url, headers, params, timeout):
+                  calls.append(params)
+                  return _Response([])
+
+              monkeypatch.setattr(polymarket_client.requests, 'get', fake_get)
+              assert polymarket_client._fetch_stored_matches() == []
+              assert not any(key == 'kickoff_utc' for key, _value in calls[0])
+
+
+          def test_bounded_and_unbounded_match_caches_are_isolated(monkeypatch):
+              _reset_cache()
+              calls = []
+              monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+              monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+
+              def fake_get(url, headers, params, timeout):
+                  calls.append(params)
+                  return _Response([{'event_id': str(len(calls))}])
+
+              monkeypatch.setattr(polymarket_client.requests, 'get', fake_get)
+              lower = datetime(2026, 10, 6, 21, 0, tzinfo=timezone.utc)
+              upper = datetime(2026, 10, 9, 9, 30, tzinfo=timezone.utc)
+
+              first = polymarket_client._fetch_stored_matches(
+                  back_cutoff=lower,
+                  cutoff=upper,
+              )
+              repeated = polymarket_client._fetch_stored_matches(
+                  back_cutoff=lower,
+                  cutoff=upper,
+              )
+              broad = polymarket_client._fetch_stored_matches()
+
+              assert first == repeated
+              assert broad != first
+              assert len(calls) == 2
+
+
+          def test_today_matches_passes_window_and_keeps_local_guard(monkeypatch):
+              lower = datetime(2026, 10, 6, 21, 0, tzinfo=timezone.utc)
+              upper = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
+              captured = {}
+
+              monkeypatch.setattr(
+                  polymarket_client,
+                  '_compute_match_window',
+                  lambda hours_ahead, day_filter: (lower, upper),
+              )
+
+              def fake_fetch(**kwargs):
+                  captured.update(kwargs)
+                  return [
+                      {
+                          'event_id': 'inside',
+                          'slug': 'inside',
+                          'home': 'A',
+                          'away': 'B',
+                          'kickoff_utc': '2026-10-07T18:00:00Z',
+                      },
+                      {
+                          'event_id': 'outside',
+                          'slug': 'outside',
+                          'home': 'C',
+                          'away': 'D',
+                          'kickoff_utc': '2026-10-09T18:00:00Z',
+                      },
+                  ]
+
+              monkeypatch.setattr(polymarket_client, '_fetch_stored_matches', fake_fetch)
+              rows = polymarket_client.get_today_matches(hours_ahead=36)
+              assert captured == {'back_cutoff': lower, 'cutoff': upper}
+              assert [row['event_id'] for row in rows] == ['inside']
+
+
+          def test_today_matches_preserves_live_fallback(monkeypatch):
+              lower = datetime(2026, 10, 6, 21, 0, tzinfo=timezone.utc)
+              upper = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
+              monkeypatch.setattr(
+                  polymarket_client,
+                  '_compute_match_window',
+                  lambda hours_ahead, day_filter: (lower, upper),
+              )
+              monkeypatch.setattr(
+                  polymarket_client,
+                  '_fetch_stored_matches',
+                  lambda **kwargs: None,
+              )
+              sentinel = [{'event_id': 'live'}]
+              monkeypatch.setattr(
+                  polymarket_client,
+                  '_get_today_matches_live',
+                  lambda hours_ahead, day_filter: sentinel,
+              )
+              assert polymarket_client.get_today_matches(36, None) is sentinel
+          PYTEST
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
+      - name: Compile and run regressions
+        run: |
+          python -m py_compile services/polymarket_client.py polymarket_scraper.py poly_trade_checkpoints.py
+          python -m pytest -q tests/test_polymarket_match_window_query.py tests/test_poly_trade_checkpoint_batch.py tests/test_polymarket_events_pagination.py
+      - name: Commit tested implementation
+        run: |
+          git config user.name 'SmartXFlow CI'
+          git config user.email 'smartxflow-ci@users.noreply.github.com'
+          git add services/polymarket_client.py tests/test_polymarket_match_window_query.py .github/workflows/poly-performance-tests.yml
+          git rm .github/workflows/p1-poly-match-window-test.yml
+          git commit -m 'perf: filter stored Poly matches by kickoff window'
+          git push origin HEAD:perf/p1-poly-match-window
