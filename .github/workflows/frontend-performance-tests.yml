@@ -26,6 +26,7 @@ on:
       - 'static/js/modal-alarms.js'
       - 'static/js/modal-alarms.js.src'
       - 'minify.py'
+      - 'tests/test_alert_band_dead_code_cleanup.js'
       - 'tests/test_admin_panel_code_split.js'
       - 'tests/test_alarm_sidebar_code_split.js'
       - 'tests/test_alarm_identity.js'
@@ -68,6 +69,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run deferred frontend regressions
         run: |
+          node --test tests/test_alert_band_dead_code_cleanup.js
           node --test tests/test_admin_panel_code_split.js
           node --test tests/test_alarm_sidebar_code_split.js
           node --test tests/test_alarm_identity.js
