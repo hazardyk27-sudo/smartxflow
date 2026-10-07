@@ -24,7 +24,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install staging dependencies
-        run: python -m pip install --disable-pip-version-check rjsmin pytest
+        run: python -m pip install --disable-pip-version-check rjsmin pytest httpx pytz
 
       - name: Stage P2.14 split
         run: python scripts/_p2_chart_export_split_stage.py
