@@ -4049,7 +4049,7 @@ async function loadChartWithTrends(home, away, market, league = '', reqId, match
             }
         }
         
-        updateMatchInfoCard();
+        await updateMatchInfoCard();
         
         await loadChart(home, away, market, league);
         hideChartLoading();
@@ -4061,269 +4061,50 @@ async function loadChartWithTrends(home, away, market, league = '', reqId, match
     }
 }
 
-function updateMatchInfoCard() {
-    const card = document.getElementById('matchInfoCard');
-    if (!selectedMatch) { if (card) card.innerHTML = ''; return; }
-    const baseData = selectedMatch.odds || selectedMatch.details || {};
-    const d = modalOddsData || baseData;
-    const p = previousOddsData || {};
-    const isMoneyway = selectedChartMarket.startsWith('moneyway');
-    const isDropping = selectedChartMarket.startsWith('dropping');
-    
-    void 0;
-    void 0;
-    void 0;
-    
-    let html = '';
-    
-    if (selectedChartMarket.includes('1x2')) {
-        const trend1 = isDropping ? getTrendArrow(d.Odds1 || d['1'], p.Odds1 || p['1']) : '';
-        const trendX = isDropping ? getTrendArrow(d.OddsX || d['X'], p.OddsX || p['X']) : '';
-        const trend2 = isDropping ? getTrendArrow(d.Odds2 || d['2'], p.Odds2 || p['2']) : '';
-        
-        if (isMoneyway) {
-            const c1 = getColorClass(d.Pct1);
-            const cX = getColorClass(d.PctX);
-            const c2 = getColorClass(d.Pct2);
-            const pct1 = parseFloat(d.Pct1) || 0;
-            const pctX = parseFloat(d.PctX) || 0;
-            const pct2 = parseFloat(d.Pct2) || 0;
-            html = `
-                <div class="info-columns info-columns-3">
-                    <div class="info-column" data-selection="1">
-                        <div class="column-header">1</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${c1}">${formatVolumeCompact(d.Amt1)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${c1}">${formatPct(d.Pct1)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pct1}%"></div>
-                    </div>
-                    <div class="info-column" data-selection="X">
-                        <div class="column-header">X</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${cX}">${formatVolumeCompact(d.AmtX)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${cX}">${formatPct(d.PctX)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pctX}%"></div>
-                    </div>
-                    <div class="info-column" data-selection="2">
-                        <div class="column-header">2</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${c2}">${formatVolumeCompact(d.Amt2)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${c2}">${formatPct(d.Pct2)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pct2}%"></div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
-        } else {
-            html = `
-                <div class="info-columns">
-                    <div class="info-column">
-                        <div class="column-header">1</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Odds1 || d['1'])}${trend1}</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">X</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsX || d['X'])}${trendX}</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">2</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Odds2 || d['2'])}${trend2}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">Volume</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
+window._sxfModalInfoRuntimePromise = window._sxfModalInfoRuntimePromise || null;
+function _getModalInfoRuntimeUrl() {
+    try {
+        const scripts = document.getElementsByTagName('script');
+        for (let i = scripts.length - 1; i >= 0; i--) {
+            const src = scripts[i].src || '';
+            if (src.indexOf('/static/js/app.js') !== -1) {
+                const queryIndex = src.indexOf('?');
+                const query = queryIndex >= 0 ? src.slice(queryIndex) : '';
+                return '/static/js/modal-info.js' + query;
+            }
         }
-    } else if (selectedChartMarket.includes('ou25')) {
-        const trendUnder = isDropping ? getTrendArrow(d.Under, p.Under) : '';
-        const trendOver = isDropping ? getTrendArrow(d.Over, p.Over) : '';
-        
-        if (isMoneyway) {
-            const cU = getColorClass(d.PctUnder);
-            const cO = getColorClass(d.PctOver);
-            const pctU = parseFloat(d.PctUnder) || 0;
-            const pctO = parseFloat(d.PctOver) || 0;
-            html = `
-                <div class="info-columns">
-                    <div class="info-column" data-selection="Alt">
-                        <div class="column-header">${_t('app.dyn.alt','Alt')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Under)}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${cU}">${formatVolumeCompact(d.AmtUnder)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${cU}">${formatPct(d.PctUnder)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pctU}%"></div>
-                    </div>
-                    <div class="info-column" data-selection="Üst">
-                        <div class="column-header">${_t('app.dyn.ust','Üst')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Over)}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${cO}">${formatVolumeCompact(d.AmtOver)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${cO}">${formatPct(d.PctOver)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pctO}%"></div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
-        } else {
-            html = `
-                <div class="info-columns">
-                    <div class="info-column">
-                        <div class="column-header">${_t('app.dyn.alt','Alt')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Under)}${trendUnder}</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">${_t('app.dyn.ust','Üst')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.Over)}${trendOver}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">Volume</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
-        }
-    } else if (selectedChartMarket.includes('btts')) {
-        const trendYes = isDropping ? getTrendArrow(d.OddsYes || d.Yes, p.OddsYes || p.Yes) : '';
-        const trendNo = isDropping ? getTrendArrow(d.OddsNo || d.No, p.OddsNo || p.No) : '';
-        
-        if (isMoneyway) {
-            const cY = getColorClass(d.PctYes);
-            const cN = getColorClass(d.PctNo);
-            const pctY = parseFloat(d.PctYes) || 0;
-            const pctN = parseFloat(d.PctNo) || 0;
-            html = `
-                <div class="info-columns">
-                    <div class="info-column" data-selection="Evet">
-                        <div class="column-header">${_t('app.dyn.evet','Evet')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${cY}">${formatVolumeCompact(d.AmtYes)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${cY}">${formatPct(d.PctYes)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pctY}%"></div>
-                    </div>
-                    <div class="info-column" data-selection="Hayır">
-                        <div class="column-header">${_t('app.dyn.hayir','Hayır')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}</span>
-                        </div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.amount","Miktar")}</span>
-                            <span class="row-value money ${cN}">${formatVolumeCompact(d.AmtNo)}</span>
-                        </div>
-                        <div class="column-row row-pct">
-                            <span class="row-label label-pct">%</span>
-                            <span class="row-value pct ${cN}">${formatPct(d.PctNo)}</span>
-                        </div>
-                        <div class="mobile-progress" style="width: ${pctN}%"></div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">${_t("app.dyn.toplam_hacim","TOPLAM HACİM")}</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
-        } else {
-            html = `
-                <div class="info-columns">
-                    <div class="info-column">
-                        <div class="column-header">${_t('app.dyn.evet','Evet')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsYes || d.Yes)}${trendYes}</span>
-                        </div>
-                    </div>
-                    <div class="info-column">
-                        <div class="column-header">${_t('app.dyn.hayir','Hayır')}</div>
-                        <div class="column-row">
-                            <span class="row-label">${_t("app.mod.oran_row","Oran")}</span>
-                            <span class="row-value odds">${formatOdds(d.OddsNo || d.No)}${trendNo}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="volume-bar">
-                    <span class="volume-label">Volume</span>
-                    <span class="volume-value">${formatVolume(d.Volume)}</span>
-                </div>
-            `;
-        }
-    }
-    
-    card.innerHTML = html;
+    } catch (e) {}
+    return '/static/js/modal-info.js';
+}
+
+function loadModalInfoRuntime() {
+    if (typeof window.__sxfUpdateMatchInfoCardImpl === 'function') return Promise.resolve();
+    if (window._sxfModalInfoRuntimePromise) return window._sxfModalInfoRuntimePromise;
+
+    window._sxfModalInfoRuntimePromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = _getModalInfoRuntimeUrl();
+        script.async = true;
+        script.onload = () => {
+            if (typeof window.__sxfUpdateMatchInfoCardImpl === 'function') {
+                resolve();
+                return;
+            }
+            window._sxfModalInfoRuntimePromise = null;
+            reject(new Error('Modal info runtime loaded without implementation'));
+        };
+        script.onerror = () => {
+            window._sxfModalInfoRuntimePromise = null;
+            reject(new Error('Modal info runtime failed to load'));
+        };
+        document.head.appendChild(script);
+    });
+    return window._sxfModalInfoRuntimePromise;
+}
+
+async function updateMatchInfoCard(...args) {
+    await loadModalInfoRuntime();
+    return window.__sxfUpdateMatchInfoCardImpl(...args);
 }
 
 function getTrendArrow(current, previous) {
