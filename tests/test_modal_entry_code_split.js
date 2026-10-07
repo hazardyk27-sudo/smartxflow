@@ -57,10 +57,11 @@ test('modal orchestration stays behavior-complete in deferred runtime', () => {
   assert.match(entrySource, /_showTestLockedToast/);
 });
 
-test('shared modal helpers remain eager', () => {
-  assert.match(mainSource, /function\s+resetModalState\s*\(/);
-  assert.match(mainSource, /async function\s+loadAllMarketsAtOnce\s*\(/);
-  assert.match(mainSource, /async function\s+loadChartWithTrends\s*\(/);
+test('modal data helpers keep public lazy entrypoints in main bundle', () => {
+  assert.match(mainSource, /function\s+resetModalState\s*\(\.\.\.args\)/);
+  assert.match(mainSource, /async function\s+loadAllMarketsAtOnce\s*\(\.\.\.args\)/);
+  assert.match(mainSource, /async function\s+loadChartWithTrends\s*\(\.\.\.args\)/);
+  assert.match(mainSource, /loadModalEntryRuntime/);
 });
 
 test('modal-entry runtime is not eagerly executed by template', () => {
