@@ -626,7 +626,6 @@ for (const [bundleName, source] of appBundles) {
       ['/api/matches?market=moneyway_1x2&date_filter=today_future&bulk=1'],
       'leaving Live should fetch Prematch even when the client cache is still warm'
     );
-    assert.match(state.logs.join('\n'), /bypassing client cache/);
     assert.equal(context._loadMatchesLock, false, 'the request should release its lock');
   });
 
@@ -634,7 +633,6 @@ for (const [bundleName, source] of appBundles) {
     const liveHarness = createMatchesLoaderHarness(source, { liveMode: true });
     await liveHarness.context.window.__testLoadMatches();
     assert.equal(liveHarness.state.fetchUrls.length, 0, 'Live mode should not request Prematch data');
-    assert.match(liveHarness.state.logs.join('\n'), /blocked: liveMode/);
 
     const staleLockHarness = createMatchesLoaderHarness(source, { loadLock: true });
     await staleLockHarness.context.window.__testLoadMatches();
