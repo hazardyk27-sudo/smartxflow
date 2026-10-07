@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import unittest
 
-from predictor_orchestrator.sxf_source import SXFStage1Source
+from predictor_orchestrator.sxf_source import SXFSourceError, SXFStage1Source
 
 
 class FakeSXFSource(SXFStage1Source):
@@ -39,6 +39,23 @@ class FakeSXFSource(SXFStage1Source):
         return list(self.market_rows.get(table, []))
 
 
+class BatchProbeSource(SXFStage1Source):
+    def __init__(self, *, timeout_above: int | None = None):
+        self.timeout_above = timeout_above
+        self.request_batch_sizes: list[int] = []
+
+    def _get(self, table, params):
+        encoded = str(params["match_id_hash"])
+        inner = encoded.removeprefix("in.(").removesuffix(")")
+        batch = [item for item in inner.split(",") if item]
+        self.request_batch_sizes.append(len(batch))
+        if self.timeout_above is not None and len(batch) > self.timeout_above:
+            raise SXFSourceError(
+                f'{table} read failed: HTTP 500: {{"code":"57014","message":"canceling statement due to statement timeout"}}'
+            )
+        return [{"match_id_hash": item} for item in batch]
+
+
 class SXFStage1SourceTests(unittest.TestCase):
     def test_server_context_binds_native_prices_to_fixture(self):
         source = FakeSXFSource()
@@ -72,6 +89,20 @@ class SXFStage1SourceTests(unittest.TestCase):
             now=datetime(2026,10,7,19,40,tzinfo=timezone.utc),
         )
         self.assertEqual(context["window"]["start"], "2026-10-07T22:40:00+03:00")
+
+    def test_history_requests_are_bounded_to_eight_fixture_ids(self):
+        source = BatchProbeSource()
+        rows = source._history_rows("moneyway_ou25_history", "match_id_hash,scraped_at", [f"m{i}" for i in range(17)])
+        self.assertEqual(source.request_batch_sizes, [8, 8, 1])
+        self.assertEqual(len(rows), 17)
+
+    def test_statement_timeout_splits_batch_without_duplicate_rows(self):
+        source = BatchProbeSource(timeout_above=2)
+        rows = source._history_rows("moneyway_ou25_history", "match_id_hash,scraped_at", [f"m{i}" for i in range(5)])
+        self.assertEqual(sorted(row["match_id_hash"] for row in rows), ["m0", "m1", "m2", "m3", "m4"])
+        self.assertIn(5, source.request_batch_sizes)
+        self.assertTrue(all(size <= 2 for size in source.request_batch_sizes if size != 5 and size != 3))
+        self.assertIn(3, source.request_batch_sizes)
 
 
 if __name__ == "__main__":
