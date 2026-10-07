@@ -315,7 +315,13 @@ def validate_stage2(payload: dict[str, Any]) -> ValidationResult:
     return ValidationResult(not violations, tuple(violations))
 
 
-def validate_price_evidence(preference: dict[str, Any], price_evidence: dict[str, Any] | None, *, decision: str) -> list[Violation]:
+def validate_price_evidence(
+    preference: dict[str, Any],
+    price_evidence: dict[str, Any] | None,
+    *,
+    decision: str,
+    fixture_id: str | None = None,
+) -> list[Violation]:
     violations: list[Violation] = []
     market = preference.get("market")
     selection = preference.get("selection")
@@ -331,6 +337,10 @@ def validate_price_evidence(preference: dict[str, Any], price_evidence: dict[str
         return [Violation("SXF-PRICE-001", "price_evidence must be an object")]
 
     origin = str(price_evidence.get("origin") or "").upper()
+    if fixture_id is not None:
+        evidence_fixture_id = str(price_evidence.get("fixture_id") or "").strip()
+        if evidence_fixture_id != str(fixture_id).strip():
+            violations.append(Violation("SXF-PRICE-006", "price evidence fixture_id must exactly match the execution fixture"))
     if origin not in _ALLOWED_PRICE_ORIGINS:
         return [Violation("SXF-PRICE-001", f"invalid price origin: {origin!r}")]
     if origin == "SXF_NATIVE" and not native:
@@ -480,7 +490,12 @@ def validate_stage3(payload: dict[str, Any]) -> ValidationResult:
         elif archive_intent != expected_archive:
             violations.append(Violation("SXF-ARCH-001", f"{match_id}: archive_intent must be {expected_archive} for {decision}"))
 
-        violations.extend(validate_price_evidence(preference if isinstance(preference, dict) else {}, match.get("price_evidence"), decision=decision))
+        violations.extend(validate_price_evidence(
+            preference if isinstance(preference, dict) else {},
+            match.get("price_evidence"),
+            decision=decision,
+            fixture_id=match_id,
+        ))
 
     return ValidationResult(not violations, tuple(violations))
 
@@ -498,6 +513,7 @@ def validate_payload(payload: dict[str, Any]) -> ValidationResult:
 
 def user_supplied_price_evidence(
     *,
+    fixture_id: str,
     market: str,
     selection: str,
     price: float,
@@ -508,7 +524,11 @@ def user_supplied_price_evidence(
     effective_time = observed_at or received_at
     if effective_time is None:
         effective_time = datetime.now(timezone.utc).isoformat()
+    fixture_id = str(fixture_id or "").strip()
+    if not fixture_id:
+        raise PredictorPolicyError("SXF-PRICE-006: USER_SUPPLIED price requires fixture_id")
     evidence = {
+        "fixture_id": fixture_id,
         "origin": "USER_SUPPLIED",
         "source": "USER_SUPPLIED",
         "market": market,
@@ -517,7 +537,12 @@ def user_supplied_price_evidence(
         "observed_at": effective_time,
         "status": status.upper(),
     }
-    violations = validate_price_evidence({"market": market, "selection": selection}, evidence, decision="WATCH")
+    violations = validate_price_evidence(
+        {"market": market, "selection": selection},
+        evidence,
+        decision="WATCH",
+        fixture_id=fixture_id,
+    )
     if violations:
         rendered = "; ".join(f"{item.rule_id}: {item.message}" for item in violations)
         raise PredictorPolicyError(rendered)
