@@ -1,7 +1,34 @@
 # Stage 2 Focused Research Protocol
 
 STATUS: ACTIVE
+PROTOCOL_VERSION: 2
 PURPOSE: Keep Stage 2 compact, reliable and model-friendly without eliminating matches just because external information is sparse.
+
+## User-facing language — TURKISH REQUIRED
+
+Stage 2 research shown to the user MUST use Turkish headings, status labels and explanatory language throughout. English internal enum names may remain in code, stored metadata or machine-readable compatibility fields, but they MUST NOT be shown as the primary user-facing research wording.
+
+Mandatory user-facing mappings:
+- `SXF SAYS` -> `SXF NE DİYOR`
+- `RESEARCH SAYS` -> `ARAŞTIRMA NE DİYOR`
+- `RESEARCH SUPPORT` -> `ARAŞTIRMA DESTEĞİ`
+- `RESEARCH COUNTER` -> `EN GÜÇLÜ ÇELİŞKİ`
+- `IMPORTANT ABSENCE` -> `ÖNEMLİ EKSİK`
+- `COVERAGE` -> `ARAŞTIRMA KAPSAMI`
+- `VERDICT` -> `2. AŞAMA SONUCU`
+- `HIGH | MEDIUM | LOW` -> `YÜKSEK | ORTA | DÜŞÜK`
+- `CONFIRMED` -> `DOĞRULANDI`
+- `PARTIALLY_CONFIRMED` -> `KISMEN DOĞRULANDI`
+- `CONTRADICTED` -> `ÇELİŞTİ`
+- `UNEXPLAINED` -> `AÇIKLANAMADI`
+- `UNKNOWN` -> `BİLİNMİYOR`
+- claim relation `SUPPORTS | CONTRADICTS | NEUTRAL` -> `DESTEKLİYOR | ÇELİŞİYOR | NÖTR`
+
+Hard rule:
+- Do not write user-facing lines such as `RESEARCH SAYS: PARTIALLY_CONFIRMED`, `VERDICT: CONFIRMED`, `COVERAGE: HIGH` or equivalent English research labels.
+- Write `ARAŞTIRMA NE DİYOR`, `2. AŞAMA SONUCU: KISMEN DOĞRULANDI`, `ARAŞTIRMA KAPSAMI: YÜKSEK`, etc.
+- Match names, club names, market names, source names and technical identifiers may remain in their canonical/original form where translation would reduce precision.
+- If both machine-readable and human-readable forms are needed, the Turkish wording is primary for the user; the internal English enum may appear only as secondary metadata, never as the visible headline/status.
 
 ## Core principle
 
@@ -31,7 +58,7 @@ For every carried Stage 1 match, research only these mandatory areas first:
    - The strongest contradiction must survive into Stage 3 as structured counterevidence.
 
 +1. **Research coverage / source quality**
-   - Record `HIGH | MEDIUM | LOW` coverage.
+   - Record internal `HIGH | MEDIUM | LOW` coverage if needed for machine compatibility; user-facing output MUST say `YÜKSEK | ORTA | DÜŞÜK`.
    - Sparse research is not negative evidence.
 
 ## Information budget
@@ -60,7 +87,7 @@ Additional articles/statistics should not be collected merely for volume.
 
 Missing or unavailable information must never be treated as negative evidence.
 
-- `UNKNOWN` / low coverage => no Stage 2 boost, but no automatic penalty.
+- Internal `UNKNOWN` / low coverage => no Stage 2 boost, but no automatic penalty. User-facing wording is `BİLİNMİYOR` / `DÜŞÜK` coverage.
 - Only verified adverse evidence may create a counterevidence penalty.
 - A strong Stage 1 thesis remains eligible even when external coverage is weak.
 - Small/obscure leagues must not be downgraded solely because reporting is sparse.
@@ -161,7 +188,7 @@ Small or obscure league:
 1. Flashscore.
 2. Soccerway.
 3. Official/local specialist source only if a critical fact remains unresolved.
-4. Mark coverage `LOW` or `MEDIUM` when appropriate, but do not convert missing information into negative evidence.
+4. Mark coverage internally `LOW` or `MEDIUM` when appropriate, but user-facing output MUST say `DÜŞÜK` or `ORTA`; do not convert missing information into negative evidence.
 
 ## Source-count guardrail
 
@@ -224,7 +251,8 @@ Each important claim should preserve:
 - source;
 - observed_at when available;
 - source tier;
-- `SUPPORTS | CONTRADICTS | NEUTRAL` relationship to the frozen Stage 1 thesis.
+- internal relationship to the frozen Stage 1 thesis: `SUPPORTS | CONTRADICTS | NEUTRAL` when machine-readable compatibility is needed;
+- user-facing relationship: `DESTEKLİYOR | ÇELİŞİYOR | NÖTR`.
 
 Separate FACT from INFERENCE.
 Example:
@@ -252,12 +280,23 @@ Do not label a mixed bundle as `SUPPORTS` if it contains material contradiction.
 
 ## Compact Stage 2 output
 
-For each match output only:
-- `RESEARCH SUPPORT`: strongest 1-2 reasons;
-- `RESEARCH COUNTER`: strongest single contradiction;
-- `IMPORTANT ABSENCE`: only when materially relevant;
-- `COVERAGE`: HIGH | MEDIUM | LOW;
-- `VERDICT`: CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED.
+For each match, user-facing output MUST use this Turkish structure:
+- `SXF NE DİYOR`: frozen Stage 1 thesis/preference in concise form;
+- `ARAŞTIRMA DESTEĞİ`: strongest 1-2 reasons;
+- `EN GÜÇLÜ ÇELİŞKİ`: strongest single contradiction;
+- `ÖNEMLİ EKSİK`: only when materially relevant;
+- `ARAŞTIRMA KAPSAMI`: `YÜKSEK | ORTA | DÜŞÜK`;
+- `ARAŞTIRMA NE DİYOR`: concise synthesis of what the external evidence means for the frozen thesis;
+- `2. AŞAMA SONUCU`: `DOĞRULANDI | KISMEN DOĞRULANDI | ÇELİŞTİ | AÇIKLANAMADI`.
+
+Internal machine-readable compatibility may continue to use:
+- `RESEARCH SUPPORT`;
+- `RESEARCH COUNTER`;
+- `IMPORTANT ABSENCE`;
+- `COVERAGE: HIGH | MEDIUM | LOW`;
+- `VERDICT: CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED`.
+
+Those English forms are internal-only and MUST NOT replace the Turkish user-facing wording.
 
 No final BET/WATCH/PASS is issued in Stage 2.
 
