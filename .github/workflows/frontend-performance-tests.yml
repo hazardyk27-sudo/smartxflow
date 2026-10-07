@@ -16,6 +16,7 @@ on:
       - 'tests/test_deferred_chart_libs.js'
       - 'tests/test_deferred_background_live.js'
       - 'tests/test_deferred_finished_scores.js'
+      - 'tests/test_deferred_modal_prefetch.js'
       - 'tests/test_modal_chart_code_split.js'
       - 'tests/test_modal_alarm_code_split.js'
       - 'tests/test_app_bootstrap.js'
@@ -45,6 +46,7 @@ jobs:
           node --test tests/test_deferred_chart_libs.js
           node --test tests/test_deferred_background_live.js
           node --test tests/test_deferred_finished_scores.js
+          node --test tests/test_deferred_modal_prefetch.js
           node --test tests/test_modal_chart_code_split.js
           node --test tests/test_modal_alarm_code_split.js
           node --test tests/test_app_bootstrap.js

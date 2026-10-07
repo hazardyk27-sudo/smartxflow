@@ -1175,6 +1175,36 @@ function escapeHtml(str) {
     })[c]);
 }
 
+let _sxfDeferredModalPrefetchScheduled = false;
+function scheduleDeferredModalRuntimePrefetch() {
+    if (_sxfDeferredModalPrefetchScheduled) return;
+    _sxfDeferredModalPrefetchScheduled = true;
+
+    const prefetch = () => {
+        const candidates = [];
+        if (typeof window.__sxfLoadChartImpl !== 'function') {
+            candidates.push(_getModalChartRuntimeUrl());
+        }
+        if (typeof window.__sxfRenderMatchAlarmsSectionImpl !== 'function') {
+            candidates.push(_getModalAlarmsRuntimeUrl());
+        }
+        candidates.forEach(url => {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.as = 'script';
+            link.href = url;
+            link.dataset.sxfModalPrefetch = '1';
+            document.head.appendChild(link);
+        });
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(prefetch, { timeout: 7000 });
+    } else {
+        setTimeout(prefetch, 4000);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const allBtn = document.getElementById('allBtn');
     if (allBtn) allBtn.classList.add('active');
@@ -1230,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         })
         .catch(error => console.warn('[Fav] Startup favorites failed:', error)));
     runOptionalStartupTask('background live data', _startBackgroundLiveFetch);
+runOptionalStartupTask('modal runtime prefetch', scheduleDeferredModalRuntimePrefetch);
     runOptionalStartupTask('status check', checkStatus);
     runOptionalStartupTask('status interval', () => {
         window.statusInterval = window.setInterval(checkStatus, 60000);

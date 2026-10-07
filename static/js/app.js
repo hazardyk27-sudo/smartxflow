@@ -142,6 +142,36 @@ const kickoffRaw=alarm.kickoff_utc||alarm.kickoff||alarm.fixture_date;const trig
 const kickoffTime=toTurkeyTime(kickoffRaw);const triggerTime=toTurkeyTime(triggerAtRaw);if(!kickoffTime||!triggerTime||!kickoffTime.isValid()||!triggerTime.isValid()){return 0;}
 const diffHours=kickoffTime.diff(triggerTime,'hour',true);return diffHours>0?diffHours:0;}
 function escapeHtml(str){if(!str)return'';return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+let _sxfDeferredModalPrefetchScheduled = false;
+function scheduleDeferredModalRuntimePrefetch() {
+    if (_sxfDeferredModalPrefetchScheduled) return;
+    _sxfDeferredModalPrefetchScheduled = true;
+
+    const prefetch = () => {
+        const candidates = [];
+        if (typeof window.__sxfLoadChartImpl !== 'function') {
+            candidates.push(_getModalChartRuntimeUrl());
+        }
+        if (typeof window.__sxfRenderMatchAlarmsSectionImpl !== 'function') {
+            candidates.push(_getModalAlarmsRuntimeUrl());
+        }
+        candidates.forEach(url => {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.as = 'script';
+            link.href = url;
+            link.dataset.sxfModalPrefetch = '1';
+            document.head.appendChild(link);
+        });
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(prefetch, { timeout: 7000 });
+    } else {
+        setTimeout(prefetch, 4000);
+    }
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{const allBtn=document.getElementById('allBtn');if(allBtn)allBtn.classList.add('active');const runOptionalStartupTask=(name,task)=>{try{const result=task();if(result&&typeof result.catch==='function'){result.catch(error=>console.warn('[Startup] Optional task failed:',name,error));}}catch(error){console.warn('[Startup] Optional task failed:',name,error);}};runOptionalStartupTask('tab setup',setupTabs);runOptionalStartupTask('search setup',setupSearch);runOptionalStartupTask('chart tab setup',setupModalChartTabs);await _licenseReady;if(!_isLicensed)return;try{const initialMatchLoad=loadMatches();if(initialMatchLoad&&typeof initialMatchLoad.catch==='function'){initialMatchLoad.catch(error=>{console.error('[Matches] Initial load failed before completion:',error);if(!_liveMode)renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');});}}catch(error){console.error('[Matches] Initial load could not be started:',error);if(!_liveMode)renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');}
 runOptionalStartupTask('analysis match hashes',fetchAnalysisMatchHashes);runOptionalStartupTask('finished scores', () => {
     const loadScores = () => loadFinishedScores(true);
@@ -150,7 +180,8 @@ runOptionalStartupTask('analysis match hashes',fetchAnalysisMatchHashes);runOpti
     } else {
         setTimeout(loadScores, 2500);
     }
-});runOptionalStartupTask('favorites',()=>loadFavoritesBootstrap().then(()=>{document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el){const matchKey=el.getAttribute('data-matchkey');el.classList.toggle('fav-active',_userFavorites.has(matchKey));});if(_favFilterActive)_applyFavoritesFilter();}).catch(error=>console.warn('[Fav] Startup favorites failed:',error)));runOptionalStartupTask('background live data',_startBackgroundLiveFetch);runOptionalStartupTask('status check',checkStatus);runOptionalStartupTask('status interval',()=>{window.statusInterval=window.setInterval(checkStatus,60000);});runOptionalStartupTask('auto refresh',setupAutoRefresh);runOptionalStartupTask('visibility handler',()=>{document.addEventListener('visibilitychange',handleVisibilityChange);});});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
+});runOptionalStartupTask('favorites',()=>loadFavoritesBootstrap().then(()=>{document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el){const matchKey=el.getAttribute('data-matchkey');el.classList.toggle('fav-active',_userFavorites.has(matchKey));});if(_favFilterActive)_applyFavoritesFilter();}).catch(error=>console.warn('[Fav] Startup favorites failed:',error)));runOptionalStartupTask('background live data',_startBackgroundLiveFetch);
+runOptionalStartupTask('modal runtime prefetch', scheduleDeferredModalRuntimePrefetch);runOptionalStartupTask('status check',checkStatus);runOptionalStartupTask('status interval',()=>{window.statusInterval=window.setInterval(checkStatus,60000);});runOptionalStartupTask('auto refresh',setupAutoRefresh);runOptionalStartupTask('visibility handler',()=>{document.addEventListener('visibilitychange',handleVisibilityChange);});});function updateLastRefreshDisplay(){const now=dayjs().tz(APP_TIMEZONE);_lastMatchRefreshTime=now;let refreshEl=document.getElementById('lastRefreshTime');if(!refreshEl){const statusArea=document.querySelector('.status-area');if(statusArea){refreshEl=document.createElement('span');refreshEl.id='lastRefreshTime';refreshEl.className='last-refresh-time';refreshEl.style.cssText='margin-left: 15px; color: #888; font-size: 12px;';statusArea.appendChild(refreshEl);}}
 if(refreshEl){refreshEl.textContent=`Son güncelleme: ${now.format('HH:mm')} (TR)`;}}
 function getRefreshJitter(){return Math.floor(Math.random()*60000);}
 function setupAutoRefresh(){updateLastRefreshDisplay();const jitter=getRefreshJitter();const intervalWithJitter=MATCH_REFRESH_INTERVAL+jitter;_matchRefreshInterval=setInterval(async()=>{console.log('[AutoRefresh] 10 dakika doldu, maçlar yenileniyor...');await refreshMatchData();},intervalWithJitter);console.log(`[AutoRefresh] Kuruldu - ${Math.round(intervalWithJitter/1000)}s'de bir yenilenecek (jitter: ${Math.round(jitter/1000)}s)`);}
