@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/_p2_modal_data_pipeline_stage.py'
       - 'scripts/_p2_modal_data_pipeline_compat.py'
+      - 'tests/test_modal_info_code_split.js'
       - '.github/workflows/p2-modal-data-pipeline-test.yml'
   workflow_dispatch:
 
@@ -84,7 +85,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add static/js/app.js static/js/app.js.src static/js/modal-entry.js static/js/modal-entry.js.src tests/test_modal_entry_code_split.js tests/test_modal_data_pipeline_split.js
+          git add static/js/app.js static/js/app.js.src static/js/modal-entry.js static/js/modal-entry.js.src tests/test_modal_entry_code_split.js tests/test_modal_data_pipeline_split.js tests/test_modal_info_code_split.js
           if git diff --cached --quiet; then
             echo 'No staged product changes'
             exit 1
