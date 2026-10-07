@@ -5,7 +5,7 @@ import threading
 from typing import Any
 from uuid import uuid4
 
-from predictor_policy.runtime import PredictorRunState, validate_and_advance
+from predictor_policy.runtime import validate_and_advance
 from predictor_policy.validator import PredictorPolicyError, load_policy, user_supplied_price_evidence
 
 from .config import OrchestratorConfig
@@ -35,6 +35,10 @@ class StageConflict(OrchestratorError):
     code = "PREDICTOR_STAGE_CONFLICT"
 
 
+class UserAuthorizationRequired(StageConflict):
+    code = "USER_AUTHORIZATION_REQUIRED"
+
+
 class ValidationExhausted(OrchestratorError):
     status_code = 422
     code = "PREDICTOR_VALIDATION_FAILED"
@@ -54,6 +58,7 @@ def _fixture_id(value: dict[str, Any]) -> str:
 
 def _preference(value: dict[str, Any] | None) -> dict[str, Any]:
     value = value or {}
+    # Deliberately discard model-supplied price. Price authority belongs to trusted context/store.
     return {
         "market": str(value.get("market") or "").strip(),
         "selection": str(value.get("selection") or "").strip(),
@@ -73,12 +78,11 @@ def _violation_dicts(exc: PredictorPolicyError) -> list[dict[str, str]]:
 
 
 class PredictorOrchestrator:
-    """Only publication path for Predictor model output.
+    """Mandatory publication gate for Predictor model output.
 
-    The LLM can propose analysis fields, but it cannot publish directly. This
-    service injects authoritative workflow fields, validates the complete
-    payload, retries invalid generations, persists immutable accepted stages,
-    and only returns a deterministic rendering after PASS.
+    The LLM proposes analysis only. Workflow authority, stage authorization,
+    predecessor IDs, timestamps, price provenance, final action derivation,
+    validation, persistence and publication are owned by this service.
     """
 
     def __init__(
@@ -143,13 +147,12 @@ class PredictorOrchestrator:
         return normalized
 
     @staticmethod
-    def _stage1_maps(payload: dict[str, Any]) -> tuple[dict[str, dict[str, Any]], list[str]]:
-        matches = {
+    def _stage1_map(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        return {
             _fixture_id(item): item
             for item in payload.get("matches") or []
             if isinstance(item, dict) and _fixture_id(item)
         }
-        return matches, list(matches.keys())
 
     @staticmethod
     def _stage2_map(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -160,9 +163,18 @@ class PredictorOrchestrator:
         }
 
     @staticmethod
-    def _trusted_price(context: dict[str, Any], market: str, selection: str) -> dict[str, Any] | None:
+    def _trusted_price(
+        context: dict[str, Any],
+        market: str,
+        selection: str,
+        *,
+        allowed_origins: set[str],
+    ) -> dict[str, Any] | None:
         for item in context.get("price_evidence") or []:
             if not isinstance(item, dict):
+                continue
+            origin = str(item.get("origin") or "").upper()
+            if origin not in allowed_origins:
                 continue
             if str(item.get("market") or "").strip() == market and str(item.get("selection") or "").strip() == selection:
                 return dict(item)
@@ -175,16 +187,21 @@ class PredictorOrchestrator:
         generated: dict[str, Any],
         context: dict[str, Any],
     ) -> dict[str, Any]:
-        source_ids = context.get("source_fixture_ids")
-        if not isinstance(source_ids, list):
-            source_ids = []
+        if "source_fixture_ids" not in context or not isinstance(context.get("source_fixture_ids"), list):
+            raise OrchestratorError("Stage 1 trusted_context.source_fixture_ids must be an explicit list")
+        source_ids = [str(x) for x in context["source_fixture_ids"]]
         matches: list[dict[str, Any]] = []
         for item in generated.get("matches") or []:
             if not isinstance(item, dict):
                 continue
             pref = _preference(item.get("preference"))
-            trusted = self._trusted_price(context, pref["market"], pref["selection"])
-            if trusted and str(trusted.get("origin") or "").upper() == "SXF_NATIVE" and isinstance(trusted.get("price"), (int, float)):
+            trusted = self._trusted_price(
+                context,
+                pref["market"],
+                pref["selection"],
+                allowed_origins={"SXF_NATIVE"},
+            )
+            if trusted and isinstance(trusted.get("price"), (int, float)):
                 pref["price"] = float(trusted["price"])
             matches.append(
                 {
@@ -198,7 +215,7 @@ class PredictorOrchestrator:
             "run_id": stage_run_id,
             "stage": "STAGE1",
             "external_research_used": False,
-            "scope": {"universe_resolved": True, "source_fixture_ids": [str(x) for x in source_ids]},
+            "scope": {"universe_resolved": True, "source_fixture_ids": source_ids},
             "screening_results": generated.get("screening_results") or [],
             "matches": matches,
         }
@@ -211,7 +228,7 @@ class PredictorOrchestrator:
         generated: dict[str, Any],
         stage1_payload: dict[str, Any],
     ) -> dict[str, Any]:
-        stage1_by_id, _ = self._stage1_maps(stage1_payload)
+        stage1_by_id = self._stage1_map(stage1_payload)
         matches: list[dict[str, Any]] = []
         for item in generated.get("matches") or []:
             if not isinstance(item, dict):
@@ -250,7 +267,7 @@ class PredictorOrchestrator:
         stage2_payload: dict[str, Any],
         context: dict[str, Any],
     ) -> dict[str, Any]:
-        stage1_by_id, _ = self._stage1_maps(stage1_payload)
+        stage1_by_id = self._stage1_map(stage1_payload)
         stage2_by_id = self._stage2_map(stage2_payload)
         recorded_at = _now()
         matches: list[dict[str, Any]] = []
@@ -267,9 +284,15 @@ class PredictorOrchestrator:
             if isinstance(raw_confidence, (int, float)) and not isinstance(raw_confidence, bool):
                 final_confidence = float(raw_confidence) + _COUNTER_PENALTY.get(severity, 0)
 
+            # USER_SUPPLIED can only originate from the dedicated price endpoint/store.
             price_evidence = self.store.find_user_price(workflow.workflow_id, pref["market"], pref["selection"])
             if price_evidence is None:
-                price_evidence = self._trusted_price(context, pref["market"], pref["selection"])
+                price_evidence = self._trusted_price(
+                    context,
+                    pref["market"],
+                    pref["selection"],
+                    allowed_origins={"SXF_NATIVE", "EXTERNAL_VERIFIED", "THRESHOLD_ONLY"},
+                )
             if price_evidence and isinstance(price_evidence.get("price"), (int, float)):
                 pref["price"] = float(price_evidence["price"])
 
@@ -344,24 +367,37 @@ class PredictorOrchestrator:
             )
         raise OrchestratorError(f"unsupported stage {stage}")
 
-    def _preflight(self, workflow: WorkflowRecord, stage: str) -> None:
+    def _preflight(self, workflow: WorkflowRecord, stage: str, *, user_authorized: bool) -> None:
         if self.store.get_stage_output(workflow.workflow_id, stage) is not None:
             raise StageConflict(f"{stage} already completed")
         if stage == "STAGE1" and workflow.state.stage1_run_id:
             raise StageConflict("Stage 1 already completed")
-        if stage == "STAGE2" and not workflow.state.stage1_run_id:
-            raise StageConflict("Stage 2 cannot start before Stage 1")
-        if stage == "STAGE3" and (not workflow.state.stage1_run_id or not workflow.state.stage2_run_id):
-            raise StageConflict("Stage 3 cannot start before Stage 1 and Stage 2")
+        if stage == "STAGE2":
+            if not user_authorized:
+                raise UserAuthorizationRequired("Stage 2 requires explicit user authorization")
+            if not workflow.state.stage1_run_id:
+                raise StageConflict("Stage 2 cannot start before Stage 1")
+        if stage == "STAGE3":
+            if not user_authorized:
+                raise UserAuthorizationRequired("Stage 3 requires explicit user authorization")
+            if not workflow.state.stage1_run_id or not workflow.state.stage2_run_id:
+                raise StageConflict("Stage 3 cannot start before Stage 1 and Stage 2")
 
-    def run_stage(self, *, workflow_id: str, stage: str, trusted_context: dict[str, Any]) -> dict[str, Any]:
+    def run_stage(
+        self,
+        *,
+        workflow_id: str,
+        stage: str,
+        trusted_context: dict[str, Any],
+        user_authorized: bool = False,
+    ) -> dict[str, Any]:
         stage = self._stage_name(stage)
         if not isinstance(trusted_context, dict):
             raise OrchestratorError("trusted_context must be an object")
 
         with self._lock:
             workflow = self.get_workflow(workflow_id)
-            self._preflight(workflow, stage)
+            self._preflight(workflow, stage, user_authorized=user_authorized)
             stage1_record = self.store.get_stage_output(workflow_id, "STAGE1")
             stage2_record = self.store.get_stage_output(workflow_id, "STAGE2")
             stage1_payload = stage1_record["payload"] if stage1_record else None
