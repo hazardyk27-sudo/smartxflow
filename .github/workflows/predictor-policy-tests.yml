@@ -18,6 +18,7 @@ on:
       - 'tests/test_predictor_strict_boundary.py'
       - 'tests/test_predictor_archive_wrapper.py'
       - 'tests/test_predictor_deploy_contract.py'
+      - 'tests/test_predictor_stage3_native_price.py'
 
 permissions:
   contents: read
@@ -43,7 +44,8 @@ jobs:
             tests.test_predictor_sxf_source \
             tests.test_predictor_strict_boundary \
             tests.test_predictor_archive_wrapper \
-            tests.test_predictor_deploy_contract
+            tests.test_predictor_deploy_contract \
+            tests.test_predictor_stage3_native_price
       - name: Compile predictor policy and orchestrator runtime
         run: |
           python -m py_compile \
