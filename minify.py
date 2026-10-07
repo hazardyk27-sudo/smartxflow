@@ -7,6 +7,7 @@ pairs = [
     ('static/css/style.css.src', 'static/css/style.css'),
     ('static/css/alert_band.css.src', 'static/css/alert_band.css'),
     ('static/js/app.js.src', 'static/js/app.js'),
+    ('static/js/admin-panel.js.src', 'static/js/admin-panel.js'),
     ('static/js/live-tab.js.src', 'static/js/live-tab.js'),
     ('static/js/modal-info.js.src', 'static/js/modal-info.js'),
     ('static/js/mobile-chart-panel.js.src', 'static/js/mobile-chart-panel.js'),
