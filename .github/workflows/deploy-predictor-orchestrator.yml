@@ -1,0 +1,71 @@
+name: Deploy Predictor Orchestrator
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Hetzner"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-predictor:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install and verify exact Predictor production SHA
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEPLOY_SHA
+          script: |
+            set -euo pipefail
+            cd /opt/smartxflow
+
+            BRANCH="$(sudo -u smartxflow git branch --show-current)"
+            HEAD="$(sudo -u smartxflow git rev-parse HEAD)"
+            if [ "$BRANCH" != "main" ]; then
+              echo "PREDICTOR DEPLOY STOP: production branch is '$BRANCH'"
+              exit 1
+            fi
+            if [ "$HEAD" != "$DEPLOY_SHA" ]; then
+              echo "PREDICTOR DEPLOY STOP: production HEAD $HEAD != approved deploy SHA $DEPLOY_SHA"
+              exit 1
+            fi
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "PREDICTOR DEPLOY STOP: tracked production tree is dirty"
+              exit 1
+            fi
+
+            sudo /usr/bin/install -m 0644 \
+              /opt/smartxflow/deploy/systemd/smartxflow-predictor-orchestrator.service \
+              /etc/systemd/system/smartxflow-predictor-orchestrator.service
+            sudo /bin/systemctl daemon-reload
+            sudo /bin/systemctl enable smartxflow-predictor-orchestrator.service
+            sudo /bin/systemctl restart smartxflow-predictor-orchestrator.service
+
+            sleep 3
+            sudo /bin/systemctl is-active smartxflow-predictor-orchestrator.service
+            HEALTH="$(curl -fsS http://127.0.0.1:8011/healthz)"
+            python3 - "$HEALTH" <<'PY'
+            import json, sys
+            payload = json.loads(sys.argv[1])
+            if payload.get("ok") is not True:
+                raise SystemExit("Predictor healthz ok=false")
+            if payload.get("stage1_source_enabled") is not True:
+                raise SystemExit("Predictor Stage 1 source is disabled")
+            print("PREDICTOR_HEALTH_OK")
+            PY
+
+            FINAL="$(sudo -u smartxflow git rev-parse HEAD)"
+            if [ "$FINAL" != "$DEPLOY_SHA" ]; then
+              echo "PREDICTOR DEPLOY STOP: HEAD changed during service activation"
+              exit 1
+            fi
+            echo "PREDICTOR_DEPLOY_OK SHA=$FINAL"
