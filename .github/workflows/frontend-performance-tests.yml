@@ -8,6 +8,7 @@ on:
       - 'static/js/app.js'
       - 'static/js/app.js.src'
       - 'tests/test_deferred_analysis_ui.py'
+      - 'tests/test_deferred_analysis_entrypoints.js'
       - 'tests/test_deferred_chart_libs.js'
       - 'tests/test_app_bootstrap.js'
       - '.github/workflows/frontend-performance-tests.yml'
@@ -32,5 +33,6 @@ jobs:
       - name: Run deferred frontend regressions
         run: |
           python -m pytest -q tests/test_deferred_analysis_ui.py
+          node --test tests/test_deferred_analysis_entrypoints.js
           node --test tests/test_deferred_chart_libs.js
           node --test tests/test_app_bootstrap.js
