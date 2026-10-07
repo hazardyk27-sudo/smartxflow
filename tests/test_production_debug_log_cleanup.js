@@ -27,10 +27,21 @@ for (const file of ['static/js/app.js', 'static/js/app.js.src']) {
       'async function loadAllMarketsAtOnce',
       'async function loadOddsTrend',
       'function getOddsTrend',
-      'function renderLiveMatches',
       'async function openMatchModal',
     ]) {
       assert.ok(text.includes(marker), `${marker} must remain`);
     }
+  });
+}
+
+for (const file of ['static/js/live-tab.js', 'static/js/live-tab.js.src']) {
+  test(`${file} has no production console.log calls`, () => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.doesNotMatch(text, /console\.log\s*\(/, 'deferred Live runtime must stay free of production console.log calls');
+  });
+
+  test(`${file} preserves the deferred Live renderer entrypoint`, () => {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.match(text, /function\s+renderLiveMatches\s*\(/, 'renderLiveMatches must remain in the deferred Live runtime');
   });
 }
