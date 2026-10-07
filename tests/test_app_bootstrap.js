@@ -241,6 +241,7 @@ function createLicenseBridgeContext(fetch) {
       state.matchLoads += 1;
     },
     _startBackgroundLiveFetch() {},
+    scheduleDeferredModalRuntimePrefetch() {},
     checkStatus() {},
     setupAutoRefresh() {},
     handleVisibilityChange() {},
@@ -436,6 +437,7 @@ for (const [bundleName, source] of appBundles) {
         matchLoads += 1;
       },
       _startBackgroundLiveFetch() {},
+    scheduleDeferredModalRuntimePrefetch() {},
       checkStatus() {},
       setupAutoRefresh() {},
       handleVisibilityChange() {},

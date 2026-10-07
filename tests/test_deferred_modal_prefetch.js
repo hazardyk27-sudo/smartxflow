@@ -1,39 +1,4 @@
-from pathlib import Path
-import re
-
-PREFETCH_FN = r'''let _sxfDeferredModalPrefetchScheduled = false;
-function scheduleDeferredModalRuntimePrefetch() {
-    if (_sxfDeferredModalPrefetchScheduled) return;
-    _sxfDeferredModalPrefetchScheduled = true;
-
-    const prefetch = () => {
-        const candidates = [];
-        if (typeof window.__sxfLoadChartImpl !== 'function') {
-            candidates.push(_getModalChartRuntimeUrl());
-        }
-        if (typeof window.__sxfRenderMatchAlarmsSectionImpl !== 'function') {
-            candidates.push(_getModalAlarmsRuntimeUrl());
-        }
-        candidates.forEach(url => {
-            const link = document.createElement('link');
-            link.rel = 'prefetch';
-            link.as = 'script';
-            link.href = url;
-            link.dataset.sxfModalPrefetch = '1';
-            document.head.appendChild(link);
-        });
-    };
-
-    if (typeof window.requestIdleCallback === 'function') {
-        window.requestIdleCallback(prefetch, { timeout: 7000 });
-    } else {
-        setTimeout(prefetch, 4000);
-    }
-}
-
-'''
-
-TEST_CONTENT = r'''const assert = require('node:assert/strict');
+const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -142,24 +107,3 @@ for (const [name, source] of bundles) {
     assert.equal(appended[0].href, '/static/js/modal-alarms.js?v=test');
   });
 }
-'''
-
-for filename in ('static/js/app.js.src', 'static/js/app.js'):
-    path = Path(filename)
-    text = path.read_text(encoding='utf-8')
-    if 'function scheduleDeferredModalRuntimePrefetch()' in text:
-        raise SystemExit(f'{filename}: prefetch function already exists')
-    marker = "document.addEventListener('DOMContentLoaded'"
-    pos = text.find(marker)
-    if pos < 0:
-        raise SystemExit(f'{filename}: DOMContentLoaded marker not found')
-    text = text[:pos] + PREFETCH_FN + text[pos:]
-    pattern = re.compile(r"runOptionalStartupTask\('background live data',\s*_startBackgroundLiveFetch\);")
-    match = pattern.search(text)
-    if not match:
-        raise SystemExit(f'{filename}: background live startup anchor not found')
-    insertion = match.group(0) + "\nrunOptionalStartupTask('modal runtime prefetch', scheduleDeferredModalRuntimePrefetch);"
-    text = text[:match.start()] + insertion + text[match.end():]
-    path.write_text(text, encoding='utf-8')
-
-Path('tests/test_deferred_modal_prefetch.js').write_text(TEST_CONTENT, encoding='utf-8')
