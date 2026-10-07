@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .archive_publisher import Stage3ArchivePublisher
+from .archive_wrapper import EnrichedStage3ArchivePublisher
 from .formal_publication import FormalPublicationError, formal_result_from_store
 from .lifecycle_store import PredictorLifecycleStore
 from .service import OrchestratorError, PredictorOrchestrator
@@ -30,7 +30,7 @@ class StrictPredictorOrchestrator(PredictorOrchestrator):
     ):
         super().__init__(config=config, store=store, llm=llm)
         self.archive_publisher = (
-            Stage3ArchivePublisher.from_env_optional()
+            EnrichedStage3ArchivePublisher.from_env_optional()
             if archive_publisher is _UNSET
             else archive_publisher
         )
