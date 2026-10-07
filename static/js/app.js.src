@@ -1212,7 +1212,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     runOptionalStartupTask('analysis match hashes', fetchAnalysisMatchHashes);
-    runOptionalStartupTask('finished scores', loadFinishedScores);
+    runOptionalStartupTask('finished scores', () => {
+    const loadScores = () => loadFinishedScores(true);
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(loadScores, { timeout: 5000 });
+    } else {
+        setTimeout(loadScores, 2500);
+    }
+});
     runOptionalStartupTask('favorites', () => loadFavoritesBootstrap()
         .then(() => {
             document.querySelectorAll('.fav-heart[data-matchkey]').forEach(function(el) {
