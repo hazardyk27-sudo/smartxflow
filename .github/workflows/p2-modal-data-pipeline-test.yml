@@ -34,27 +34,44 @@ jobs:
         run: |
           node --check static/js/app.js
           node --check static/js/modal-entry.js
-      - name: Run frontend regressions
-        run: |
-          node --test tests/test_modal_data_pipeline_split.js
-          node --test tests/test_modal_entry_code_split.js
-          node --test tests/test_deferred_chart_libs.js
-          node --test tests/test_modal_info_code_split.js
-          node --test tests/test_chart_export_code_split.js
-          node --test tests/test_modal_chart_code_split.js
-          node --test tests/test_modal_chart_helper_split.js
-          node --test tests/test_modal_alarm_code_split.js
-          node --test tests/test_modal_live_code_split.js
-          node --test tests/test_mobile_chart_panel_split.js
-          node --test tests/test_deferred_modal_prefetch.js
-          node --test tests/test_deferred_background_live.js
-          node --test tests/test_deferred_finished_scores.js
-          node --test tests/test_deferred_analysis_entrypoints.js
-          node --test tests/test_favorites_bootstrap.js
-          node --test tests/test_alarm_identity.js
-          node --test tests/test_app_bootstrap.js
-          node --test tests/test_sort_hotpath_debug_cleanup.js
-          node --test tests/test_production_debug_log_cleanup.js
+      - name: Test modal data pipeline split
+        run: node --test tests/test_modal_data_pipeline_split.js
+      - name: Test modal entry split
+        run: node --test tests/test_modal_entry_code_split.js
+      - name: Test deferred chart libs
+        run: node --test tests/test_deferred_chart_libs.js
+      - name: Test modal info split
+        run: node --test tests/test_modal_info_code_split.js
+      - name: Test chart export split
+        run: node --test tests/test_chart_export_code_split.js
+      - name: Test modal chart split
+        run: node --test tests/test_modal_chart_code_split.js
+      - name: Test modal chart helper split
+        run: node --test tests/test_modal_chart_helper_split.js
+      - name: Test modal alarm split
+        run: node --test tests/test_modal_alarm_code_split.js
+      - name: Test modal live split
+        run: node --test tests/test_modal_live_code_split.js
+      - name: Test mobile chart panel split
+        run: node --test tests/test_mobile_chart_panel_split.js
+      - name: Test deferred modal prefetch
+        run: node --test tests/test_deferred_modal_prefetch.js
+      - name: Test deferred background live
+        run: node --test tests/test_deferred_background_live.js
+      - name: Test deferred finished scores
+        run: node --test tests/test_deferred_finished_scores.js
+      - name: Test deferred analysis entrypoints
+        run: node --test tests/test_deferred_analysis_entrypoints.js
+      - name: Test favorites bootstrap
+        run: node --test tests/test_favorites_bootstrap.js
+      - name: Test alarm identity
+        run: node --test tests/test_alarm_identity.js
+      - name: Test app bootstrap
+        run: node --test tests/test_app_bootstrap.js
+      - name: Test sort hotpath cleanup
+        run: node --test tests/test_sort_hotpath_debug_cleanup.js
+      - name: Test production debug cleanup
+        run: node --test tests/test_production_debug_log_cleanup.js
       - name: Run Python regressions
         run: |
           python -m pytest -q tests/test_deferred_analysis_ui.py
@@ -63,6 +80,7 @@ jobs:
       - name: Diff check
         run: git diff --check
       - name: Commit tested product output
+        if: ${{ false }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
