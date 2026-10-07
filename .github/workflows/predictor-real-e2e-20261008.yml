@@ -1,0 +1,59 @@
+name: Predictor Real E2E 2026-10-08
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/predictor-real-e2e-20261008.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run exact preview SHA in isolated Hetzner temp checkout
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_SHA
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            TEST_ROOT="$(mktemp -d /tmp/sxf-predictor-real-e2e.XXXXXX)"
+            trap 'rm -rf "$TEST_ROOT"' EXIT
+
+            git clone --quiet --depth 1 --branch preview \
+              https://github.com/hazardyk27-sudo/smartxflow.git \
+              "$TEST_ROOT/repo"
+            cd "$TEST_ROOT/repo"
+
+            ACTUAL_SHA="$(git rev-parse HEAD)"
+            if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
+              echo "REAL_E2E_STOP exact preview mismatch actual=$ACTUAL_SHA expected=$EXPECTED_SHA"
+              exit 1
+            fi
+
+            if [ ! -r /opt/smartxflow/.env ]; then
+              echo "REAL_E2E_STOP production dotenv is not readable"
+              exit 1
+            fi
+            if [ ! -r /var/lib/smartxflow-prematch/github_learning_archive_ed25519 ]; then
+              echo "REAL_E2E_STOP Learning Archive SSH key is not readable"
+              exit 1
+            fi
+
+            export PYTHONPATH="$TEST_ROOT/repo"
+            export SMARTXFLOW_SOURCE_COMMIT="$EXPECTED_SHA"
+            export LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519
+
+            /opt/smartxflow/venv/bin/python \
+              "$TEST_ROOT/repo/scripts/run_predictor_real_e2e_20261008.py"
+
+            echo "REAL_E2E_OK SHA=$EXPECTED_SHA"
