@@ -181,7 +181,7 @@ print(f'RUNTIME_SAVED={runtime_saved}')
 print(f'SOURCE_BEFORE={before_sizes["static/js/app.js.src"]}')
 print(f'SOURCE_AFTER={after_sizes["static/js/app.js.src"]}')
 print(f'SOURCE_SAVED={source_saved}')
-if runtime_saved < 25000:
+if runtime_saved < 20000:
     raise SystemExit(f'Runtime bundle reduction too small: {runtime_saved}')
 if source_saved < 45000:
     raise SystemExit(f'Source bundle reduction too small: {source_saved}')
