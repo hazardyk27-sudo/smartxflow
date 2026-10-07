@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/_p2_alarm_sidebar_stage.mjs'
       - 'tests/test_alarm_sidebar_code_split.js'
+      - 'tests/test_alarm_identity.js'
       - '.github/workflows/p2-alarm-sidebar-test.yml'
   workflow_dispatch:
 
