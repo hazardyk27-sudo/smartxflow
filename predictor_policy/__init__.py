@@ -16,6 +16,7 @@ from .stage_comparison import (
     compare_stage_preferences,
     summarize_comparisons,
 )
+from .runtime import PredictorRunState, validate_and_advance
 
 __all__ = [
     "PredictorPolicyError",
@@ -32,4 +33,6 @@ __all__ = [
     "StageOutcome",
     "compare_stage_preferences",
     "summarize_comparisons",
+    "PredictorRunState",
+    "validate_and_advance",
 ]
