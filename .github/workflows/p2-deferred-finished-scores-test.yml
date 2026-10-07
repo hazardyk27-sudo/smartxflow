@@ -22,7 +22,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          old_source = "runOptionalStartupTask('finished scores', loadFinishedScores);"
           replacement = """runOptionalStartupTask('finished scores', () => {
               const loadScores = () => loadFinishedScores(true);
               if (typeof window.requestIdleCallback === 'function') {
@@ -32,13 +31,17 @@ jobs:
               }
           });"""
 
-          for filename in ('static/js/app.js.src', 'static/js/app.js'):
+          anchors = {
+              'static/js/app.js.src': "runOptionalStartupTask('finished scores', loadFinishedScores);",
+              'static/js/app.js': "runOptionalStartupTask('finished scores',loadFinishedScores);",
+          }
+          for filename, anchor in anchors.items():
               path = Path(filename)
               source = path.read_text()
-              count = source.count(old_source)
+              count = source.count(anchor)
               if count != 1:
                   raise SystemExit(f'{filename}: expected one finished-score startup anchor, got {count}')
-              path.write_text(source.replace(old_source, replacement, 1))
+              path.write_text(source.replace(anchor, replacement, 1))
           PY
 
           cat > tests/test_deferred_finished_scores.js <<'JSTEST'
