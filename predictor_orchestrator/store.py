@@ -108,6 +108,14 @@ class SQLiteOrchestratorStore:
                 """
             )
 
+    @staticmethod
+    def _next_attempt_no(conn: sqlite3.Connection, workflow_id: str, stage: str) -> int:
+        row = conn.execute(
+            "SELECT COALESCE(MAX(attempt_no), 0) AS max_attempt FROM predictor_attempts WHERE workflow_id=? AND stage=?",
+            (workflow_id, stage),
+        ).fetchone()
+        return int(row["max_attempt"] or 0) + 1
+
     def create_workflow(self, workflow_id: str, scope: dict[str, Any]) -> WorkflowRecord:
         now = _utc_now()
         state = PredictorRunState()
@@ -152,23 +160,16 @@ class SQLiteOrchestratorStore:
         violations: list[dict[str, str]],
         accepted: bool,
     ) -> int:
-        """Append one audit attempt and return its durable monotonic sequence number.
-
-        attempt_no is the attempt number inside the current repair loop. Durable
-        numbering is allocated from the database so a later retry after an
-        exhausted run cannot collide with prior attempts.
-        """
+        """Append one non-accepted audit attempt and return durable sequence number."""
         del attempt_no
+        if accepted:
+            raise ValueError("accepted attempts must be persisted atomically through accept_stage")
         with self._lock, self._connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
-                row = conn.execute(
-                    "SELECT COALESCE(MAX(attempt_no), 0) AS max_attempt FROM predictor_attempts WHERE workflow_id=? AND stage=?",
-                    (workflow_id, stage),
-                ).fetchone()
-                durable_attempt = int(row["max_attempt"] or 0) + 1
+                durable_attempt = self._next_attempt_no(conn, workflow_id, stage)
                 conn.execute(
-                    "INSERT INTO predictor_attempts(workflow_id,stage,attempt_no,model,raw_payload_json,violations_json,accepted,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    "INSERT INTO predictor_attempts(workflow_id,stage,attempt_no,model,raw_payload_json,violations_json,accepted,created_at) VALUES(?,?,?,?,?,?,0,?)",
                     (
                         workflow_id,
                         stage,
@@ -176,7 +177,6 @@ class SQLiteOrchestratorStore:
                         model,
                         _dumps(raw_payload) if raw_payload is not None else None,
                         _dumps(violations),
-                        1 if accepted else 0,
                         _utc_now(),
                     ),
                 )
@@ -197,7 +197,8 @@ class SQLiteOrchestratorStore:
         model: str,
         policy_version: int,
         new_state: PredictorRunState,
-    ) -> None:
+    ) -> int:
+        """Atomically persist accepted payload, advanced state and accepted audit row."""
         now = _utc_now()
         status = f"{stage}_COMPLETE"
         with self._lock, self._connect() as conn:
@@ -209,6 +210,7 @@ class SQLiteOrchestratorStore:
                 ).fetchone()
                 if exists:
                     raise RuntimeError(f"{stage} already accepted for workflow {workflow_id}")
+                durable_attempt = self._next_attempt_no(conn, workflow_id, stage)
                 conn.execute(
                     "INSERT INTO predictor_stage_outputs(workflow_id,stage,stage_run_id,payload_json,rendered_json,model,policy_version,accepted_at) VALUES(?,?,?,?,?,?,?,?)",
                     (
@@ -222,6 +224,18 @@ class SQLiteOrchestratorStore:
                         now,
                     ),
                 )
+                conn.execute(
+                    "INSERT INTO predictor_attempts(workflow_id,stage,attempt_no,model,raw_payload_json,violations_json,accepted,created_at) VALUES(?,?,?,?,?,?,1,?)",
+                    (
+                        workflow_id,
+                        stage,
+                        durable_attempt,
+                        model,
+                        _dumps(payload),
+                        _dumps([]),
+                        now,
+                    ),
+                )
                 updated = conn.execute(
                     "UPDATE predictor_workflows SET status=?, state_json=?, updated_at=? WHERE workflow_id=?",
                     (status, _dumps(new_state.to_dict()), now, workflow_id),
@@ -232,6 +246,7 @@ class SQLiteOrchestratorStore:
             except Exception:
                 conn.execute("ROLLBACK")
                 raise
+        return durable_attempt
 
     def get_stage_output(self, workflow_id: str, stage: str) -> dict[str, Any] | None:
         with self._connect() as conn:
