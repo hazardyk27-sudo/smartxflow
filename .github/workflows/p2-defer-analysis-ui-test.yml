@@ -26,51 +26,51 @@ jobs:
 
           path = Path('templates/index.html')
           text = path.read_text()
-
-          eager = '''    <script defer src="/static/js/ui.js?v={{ asset_v("js/ui.js") }}"></script>'''
-          loader = '''    <script>
-    (function () {
-        var analysisUiPromise = null;
-        var analysisUiUrl = '/static/js/ui.js?v={{ asset_v("js/ui.js") }}';
-
-        window.loadSxfAnalysisUi = function () {
-            if (typeof window.openTrendsModal === 'function') {
-                return Promise.resolve();
-            }
-            if (analysisUiPromise) return analysisUiPromise;
-
-            analysisUiPromise = new Promise(function (resolve, reject) {
-                var script = document.createElement('script');
-                script.src = analysisUiUrl;
-                script.async = true;
-                script.onload = function () { resolve(); };
-                script.onerror = function () {
-                    analysisUiPromise = null;
-                    reject(new Error('Analysis UI bundle failed to load'));
-                };
-                document.head.appendChild(script);
-            });
-            return analysisUiPromise;
-        };
-
-        window.openDeferredTrendsModal = function (tab) {
-            return window.loadSxfAnalysisUi()
-                .then(function () {
-                    if (typeof window.openTrendsModal !== 'function') {
-                        throw new Error('Analysis UI bundle loaded without openTrendsModal');
-                    }
-                    return window.openTrendsModal(tab);
-                })
-                .catch(function (error) {
-                    console.error('[AnalysisUI] Lazy-load failed:', error);
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');
-                    }
-                });
-        };
-    })();
-    </script>'''
-
+          eager = '    <script defer src="/static/js/ui.js?v={{ asset_v("js/ui.js") }}"></script>'
+          loader = "\n".join([
+              '    <script>',
+              '    (function () {',
+              '        var analysisUiPromise = null;',
+              '        var analysisUiUrl = \'/static/js/ui.js?v={{ asset_v("js/ui.js") }}\';',
+              '',
+              '        window.loadSxfAnalysisUi = function () {',
+              "            if (typeof window.openTrendsModal === 'function') {",
+              '                return Promise.resolve();',
+              '            }',
+              '            if (analysisUiPromise) return analysisUiPromise;',
+              '',
+              '            analysisUiPromise = new Promise(function (resolve, reject) {',
+              "                var script = document.createElement('script');",
+              '                script.src = analysisUiUrl;',
+              '                script.async = true;',
+              '                script.onload = function () { resolve(); };',
+              '                script.onerror = function () {',
+              '                    analysisUiPromise = null;',
+              "                    reject(new Error('Analysis UI bundle failed to load'));",
+              '                };',
+              '                document.head.appendChild(script);',
+              '            });',
+              '            return analysisUiPromise;',
+              '        };',
+              '',
+              '        window.openDeferredTrendsModal = function (tab) {',
+              '            return window.loadSxfAnalysisUi()',
+              '                .then(function () {',
+              "                    if (typeof window.openTrendsModal !== 'function') {",
+              "                        throw new Error('Analysis UI bundle loaded without openTrendsModal');",
+              '                    }',
+              '                    return window.openTrendsModal(tab);',
+              '                })',
+              '                .catch(function (error) {',
+              "                    console.error('[AnalysisUI] Lazy-load failed:', error);",
+              "                    if (typeof window.showToast === 'function') {",
+              "                        window.showToast('Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');",
+              '                    }',
+              '                });',
+              '        };',
+              '    })();',
+              '    </script>',
+          ])
           if eager not in text:
               raise SystemExit('eager ui.js script anchor not found')
           text = text.replace(eager, loader, 1)
