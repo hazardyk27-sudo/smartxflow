@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import re
 import rjsmin
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,17 +85,31 @@ def extract_region(text: str) -> tuple[int, int, str]:
     return start, end, text[start:end]
 
 
+def extract_function(text: str, marker: str) -> tuple[int, int, str]:
+    start = text.find(marker)
+    if start < 0:
+        raise RuntimeError(f'missing function marker: {marker}')
+    brace = text.find('{', start)
+    if brace < 0:
+        raise RuntimeError(f'missing function body: {marker}')
+    end = find_balanced_end(text, brace)
+    while end < len(text) and text[end] in ' \t':
+        end += 1
+    if end < len(text) and text[end] == ';':
+        end += 1
+    return start, end, text[start:end]
+
+
 source = APP_SRC.read_text()
 runtime = APP_RUN.read_text()
 s0, s1, source_region = extract_region(source)
 r0, r1, runtime_region = extract_region(runtime)
 
-# Fail closed: this target must still be exact canonical minification even though the
-# full served app bundle intentionally is not regenerated wholesale.
+# Fail closed: the target region itself must still be canonical minification, even
+# though the full served app bundle is intentionally not regenerated wholesale.
 if rjsmin.jsmin(source_region).strip() != runtime_region.strip():
     raise SystemExit('P2.16 target source/runtime parity mismatch; refusing to stage')
 
-# The moved region must really contain only the mobile panel implementation surface.
 required = [
     'const mobileBigValueTween',
     'function updateMobileValueHeader',
@@ -170,17 +183,21 @@ loader_runtime = rjsmin.jsmin(loader_source)
 source = source[:s0] + loader_source + source[s1:]
 runtime = runtime[:r0] + loader_runtime + runtime[r1:]
 
-old_src_load = """async function loadChart(...args) {\n    await loadModalChartRuntime();\n    return window.__sxfLoadChartImpl(...args);\n}"""
-new_src_load = """async function loadChart(...args) {\n    await loadModalChartRuntime();\n    if (isMobile()) await loadMobileChartPanelRuntime();\n    return window.__sxfLoadChartImpl(...args);\n}"""
-if source.count(old_src_load) != 1:
-    raise SystemExit(f'expected one source loadChart stub, found {source.count(old_src_load)}')
-source = source.replace(old_src_load, new_src_load, 1)
-
-old_run_load = rjsmin.jsmin(old_src_load)
-new_run_load = rjsmin.jsmin(new_src_load)
-if runtime.count(old_run_load) != 1:
-    raise SystemExit(f'expected one runtime loadChart stub, found {runtime.count(old_run_load)}')
-runtime = runtime.replace(old_run_load, new_run_load, 1)
+sf0, sf1, source_load = extract_function(source, 'async function loadChart(')
+rf0, rf1, runtime_load = extract_function(runtime, 'async function loadChart(')
+if rjsmin.jsmin(source_load).strip() != runtime_load.strip():
+    raise SystemExit('P2.16 loadChart source/runtime parity mismatch; refusing to stage')
+needle = 'await loadModalChartRuntime();'
+if source_load.count(needle) != 1:
+    raise SystemExit(f'expected one modal chart await in loadChart, found {source_load.count(needle)}')
+new_source_load = source_load.replace(
+    needle,
+    needle + '\n    if (isMobile()) await loadMobileChartPanelRuntime();',
+    1,
+)
+new_runtime_load = rjsmin.jsmin(new_source_load)
+source = source[:sf0] + new_source_load + source[sf1:]
+runtime = runtime[:rf0] + new_runtime_load + runtime[rf1:]
 
 APP_SRC.write_text(source)
 APP_RUN.write_text(runtime)
@@ -200,7 +217,6 @@ ci = FRONTEND_CI.read_text()
 path_anchor = "      - 'static/js/modal-info.js.src'\n"
 if "static/js/mobile-chart-panel.js" not in ci:
     if path_anchor not in ci:
-        # P2.15 workflow may not yet list modal-info paths; anchor after app source instead.
         path_anchor = "      - 'static/js/app.js.src'\n"
     insert = "      - 'static/js/mobile-chart-panel.js'\n      - 'static/js/mobile-chart-panel.js.src'\n"
     ci = ci.replace(path_anchor, path_anchor + insert, 1)
@@ -209,7 +225,6 @@ if "test_mobile_chart_panel_split.js" not in ci:
     if run_anchor not in ci:
         run_anchor = "          node --test tests/test_modal_chart_helper_split.js\n"
     ci = ci.replace(run_anchor, run_anchor + "          node --test tests/test_mobile_chart_panel_split.js\n", 1)
-# Ensure the new test itself triggers the workflow.
 test_path = "      - 'tests/test_mobile_chart_panel_split.js'\n"
 if test_path not in ci:
     trigger_anchor = "      - 'tests/test_modal_info_code_split.js'\n"
