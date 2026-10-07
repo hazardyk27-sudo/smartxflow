@@ -1,0 +1,73 @@
+name: P2.19 Alarm Sidebar Split
+
+on:
+  push:
+    branches: [perf/p2-alarm-sidebar-split]
+    paths:
+      - 'scripts/_p2_alarm_sidebar_stage.mjs'
+      - 'tests/test_alarm_sidebar_code_split.js'
+      - '.github/workflows/p2-alarm-sidebar-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-alarm-sidebar-split
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install staging dependencies
+        run: |
+          python -m pip install --disable-pip-version-check rjsmin
+          npm install --no-save --package-lock=false acorn
+      - name: Stage P2.19 split
+        run: |
+          node scripts/_p2_alarm_sidebar_stage.mjs
+          python - <<'PY'
+          from pathlib import Path
+          from rjsmin import jsmin
+          pairs = [
+              ('static/js/app.js.src', 'static/js/app.js'),
+              ('static/js/alarm-sidebar.js.src', 'static/js/alarm-sidebar.js'),
+          ]
+          for src, dst in pairs:
+              Path(dst).write_text(jsmin(Path(src).read_text()))
+              print(dst, Path(dst).stat().st_size)
+          PY
+      - name: Syntax checks
+        run: |
+          node --check static/js/app.js
+          node --check static/js/alarm-sidebar.js
+      - name: Test alarm sidebar split
+        run: node --test tests/test_alarm_sidebar_code_split.js
+      - name: Test alarm identity
+        run: node --test tests/test_alarm_identity.js
+      - name: Test app bootstrap
+        run: node --test tests/test_app_bootstrap.js
+      - name: Test alarm modal split
+        run: node --test tests/test_modal_alarm_code_split.js
+      - name: Test background live regression
+        run: node --test tests/test_deferred_background_live.js
+      - name: Test production debug cleanup
+        run: node --test tests/test_production_debug_log_cleanup.js
+      - name: Diff check
+        run: git diff --check
+      - name: Commit tested product output
+        if: ${{ false }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add static/js/app.js static/js/app.js.src static/js/alarm-sidebar.js static/js/alarm-sidebar.js.src tests/test_alarm_sidebar_code_split.js
+          if git diff --cached --quiet; then
+            echo 'No staged product changes'
+            exit 1
+          fi
+          git commit -m 'perf: defer alarm sidebar list runtime'
+          git push origin HEAD:perf/p2-alarm-sidebar-split
