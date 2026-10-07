@@ -72,6 +72,14 @@ test('Live public entrypoints delegate through the deferred runtime', () => {
   }
 });
 
+test('pending Live activation is cancelled when the user leaves before runtime load completes', () => {
+  assert.match(mainSource, /window\._sxfLiveTabEntryGeneration\s*=\s*window\._sxfLiveTabEntryGeneration\s*\|\|\s*0/);
+  assert.match(mainSource, /function\s+_cancelPendingLiveTabEntry\s*\(\)[\s\S]*?_sxfLiveTabEntryGeneration\s*\+=\s*1/);
+  assert.match(mainSource, /const\s+entryGeneration\s*=\s*\+\+window\._sxfLiveTabEntryGeneration;[\s\S]*?await\s+loadLiveTabRuntime\(\);[\s\S]*?if\s*\(entryGeneration\s*!==\s*window\._sxfLiveTabEntryGeneration\)\s*return;/);
+  assert.match(mainSource, /window\.setTab\s*=\s*function\(market\)[\s\S]*?market\s*!==\s*'live'[\s\S]*?_cancelPendingLiveTabEntry\(\)/);
+  assert.match(mainSource, /window\.setMobileGroup\s*=\s*function\(group\)[\s\S]*?_cancelPendingLiveTabEntry\(\)/);
+});
+
 test('canonical minifier includes the Live-tab runtime', () => {
   assert.match(minifySource, /static\/js\/live-tab\.js\.src/);
   assert.match(minifySource, /static\/js\/live-tab\.js/);
