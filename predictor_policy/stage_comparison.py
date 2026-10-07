@@ -6,6 +6,10 @@ from typing import Any, Iterable
 from learning_archive.settlement import _selection_outcome
 
 
+_ALLOWED_CHANGE_DRIVERS = {"NONE", "STAGE2_RESEARCH", "EXECUTION_OPTIMIZATION", "MARKET_UPDATE", "BOTH"}
+_STAGE2_DRIVERS = {"STAGE2_RESEARCH", "BOTH"}
+
+
 @dataclass(frozen=True)
 class StageOutcome:
     market: str
@@ -22,6 +26,7 @@ class StageComparison:
     stage3_action: str
     preference_changed: bool
     transition: str
+    change_driver: str
 
 
 def _price(value: Any) -> float | None:
@@ -81,10 +86,18 @@ def compare_stage_preferences(
     stage3_preference: dict[str, Any],
     stage3_action: str,
     final_score: str,
+    change_driver: str = "NONE",
 ) -> StageComparison:
     stage1 = _stage_outcome(match, stage1_preference, final_score)
     stage3 = _stage_outcome(match, stage3_preference, final_score)
     changed = (stage1.market, stage1.selection) != (stage3.market, stage3.selection)
+    driver = str(change_driver or "NONE").upper()
+    if driver not in _ALLOWED_CHANGE_DRIVERS:
+        raise ValueError(f"unsupported change_driver: {change_driver!r}")
+    if changed and driver == "NONE":
+        raise ValueError("changed preference requires a non-NONE change_driver")
+    if not changed and driver != "NONE":
+        raise ValueError("unchanged preference requires change_driver=NONE")
     return StageComparison(
         fixture_id=fixture_id,
         stage1=stage1,
@@ -92,6 +105,7 @@ def compare_stage_preferences(
         stage3_action=str(stage3_action or "").upper(),
         preference_changed=changed,
         transition=_transition(stage1.result, stage3.result),
+        change_driver=driver,
     )
 
 
@@ -130,12 +144,36 @@ def _roi(outcomes: Iterable[StageOutcome]) -> dict[str, Any]:
     }
 
 
+def _transition_counts(rows: list[StageComparison]) -> dict[str, int]:
+    return {
+        "IMPROVED": sum(1 for row in rows if row.transition == "IMPROVED"),
+        "WORSENED": sum(1 for row in rows if row.transition == "WORSENED"),
+        "SAME": sum(1 for row in rows if row.transition == "SAME"),
+        "UNRESOLVED": sum(1 for row in rows if row.transition == "UNRESOLVED"),
+    }
+
+
+def _matched_summary(rows: list[StageComparison]) -> dict[str, Any]:
+    stage1_hit = _hit_rate([row.stage1.result for row in rows])
+    stage3_hit = _hit_rate([row.stage3.result for row in rows])
+    return {
+        "matched_cases": len(rows),
+        "stage1_hit_rate": stage1_hit,
+        "stage3_hit_rate": stage3_hit,
+        "hit_rate_delta": None if stage1_hit is None or stage3_hit is None else stage3_hit - stage1_hit,
+        "transitions": _transition_counts(rows),
+    }
+
+
 def summarize_comparisons(comparisons: Iterable[StageComparison]) -> dict[str, Any]:
     rows = list(comparisons)
-    stage1_results = [row.stage1.result for row in rows]
-    stage3_results = [row.stage3.result for row in rows]
-    stage1_hit = _hit_rate(stage1_results)
-    stage3_hit = _hit_rate(stage3_results)
+    stage1_hit = _hit_rate([row.stage1.result for row in rows])
+    stage3_hit = _hit_rate([row.stage3.result for row in rows])
+    stage2_rows = [row for row in rows if row.change_driver in _STAGE2_DRIVERS]
+    by_driver = {
+        driver: _matched_summary([row for row in rows if row.change_driver == driver])
+        for driver in sorted(_ALLOWED_CHANGE_DRIVERS)
+    }
     return {
         "matched_cases": len(rows),
         "stage1": {
@@ -149,11 +187,8 @@ def summarize_comparisons(comparisons: Iterable[StageComparison]) -> dict[str, A
         "hit_rate_delta": None if stage1_hit is None or stage3_hit is None else stage3_hit - stage1_hit,
         "preference_changed": sum(1 for row in rows if row.preference_changed),
         "preference_unchanged": sum(1 for row in rows if not row.preference_changed),
-        "transitions": {
-            "IMPROVED": sum(1 for row in rows if row.transition == "IMPROVED"),
-            "WORSENED": sum(1 for row in rows if row.transition == "WORSENED"),
-            "SAME": sum(1 for row in rows if row.transition == "SAME"),
-            "UNRESOLVED": sum(1 for row in rows if row.transition == "UNRESOLVED"),
-        },
-        "interpretation_rule": "Stage 1 and Stage 3 must be compared on the same settled candidate set. A positive delta is evidence of added value, not proof; a negative delta is evidence that later-stage changes may be hurting baseline performance.",
+        "transitions": _transition_counts(rows),
+        "by_change_driver": by_driver,
+        "stage2_influenced": _matched_summary(stage2_rows),
+        "interpretation_rule": "Compare Stage 1 and Stage 3 on the same settled candidate set. Use change_driver to separate cases influenced by Stage 2 research from execution optimization or later market updates. Positive/negative deltas are evidence, not causal proof.",
     }
