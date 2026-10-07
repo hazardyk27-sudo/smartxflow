@@ -99,6 +99,7 @@ class PredictorPolicyTests(unittest.TestCase):
                     "decision_recorded_at": "2026-10-07T18:00:00+03:00",
                     "archive_intent": True,
                     "price_evidence": {
+                        "fixture_id": "m1",
                         "origin": "SXF_NATIVE",
                         "price": 1.90,
                         "observed_at": "2026-10-07T18:00:00+03:00",
@@ -167,6 +168,13 @@ class PredictorPolicyTests(unittest.TestCase):
         result = validate_stage3(self._stage3_payload())
         self.assertTrue(result.valid, result.violations)
 
+    def test_stage3_rejects_price_evidence_from_other_fixture(self):
+        payload = self._stage3_payload()
+        payload["matches"][0]["price_evidence"]["fixture_id"] = "m2"
+        result = validate_stage3(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-PRICE-006", {item.rule_id for item in result.violations})
+
     def test_stage3_grade_mapping_is_hard(self):
         payload = self._stage3_payload()
         payload["matches"][0]["grade"] = "B"
@@ -181,6 +189,7 @@ class PredictorPolicyTests(unittest.TestCase):
         row["execution_type"] = "NATIVE"
         row["change_driver"] = "EXECUTION_OPTIMIZATION"
         row["price_evidence"] = user_supplied_price_evidence(
+            fixture_id="m1",
             market="Handicap",
             selection="Home +1.5",
             price=1.72,
@@ -192,6 +201,7 @@ class PredictorPolicyTests(unittest.TestCase):
 
     def test_user_supplied_non_native_price_can_support_bet(self):
         price = user_supplied_price_evidence(
+            fixture_id="m1",
             market="Handicap",
             selection="Frosinone +1.5",
             price=1.72,
@@ -210,6 +220,7 @@ class PredictorPolicyTests(unittest.TestCase):
     def test_user_supplied_price_requires_valid_time_when_explicit(self):
         with self.assertRaises(PredictorPolicyError):
             user_supplied_price_evidence(
+                fixture_id="m1",
                 market="Handicap",
                 selection="Frosinone +1.5",
                 price=1.72,
