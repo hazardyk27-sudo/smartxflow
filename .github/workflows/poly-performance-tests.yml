@@ -1,0 +1,35 @@
+name: Poly Performance Tests
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - 'polymarket_scraper.py'
+      - 'poly_trade_checkpoints.py'
+      - 'migrations/2026_10_07_polymarket_latest_trade_checkpoints.sql'
+      - 'services/polymarket_client.py'
+      - 'tests/test_poly_trade_checkpoint_batch.py'
+      - 'tests/test_polymarket_events_pagination.py'
+      - '.github/workflows/poly-performance-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  poly-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
+      - name: Compile Poly runtime
+        run: python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py
+      - name: Run Poly performance regressions
+        run: python -m pytest -q tests/test_poly_trade_checkpoint_batch.py tests/test_polymarket_events_pagination.py
