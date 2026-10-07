@@ -63,7 +63,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add static/js/app.js static/js/app.js.src static/js/mobile-chart-panel.js static/js/mobile-chart-panel.js.src minify.py tests/test_mobile_chart_panel_split.js .github/workflows/frontend-performance-tests.yml
+          git add static/js/app.js static/js/app.js.src static/js/mobile-chart-panel.js static/js/mobile-chart-panel.js.src minify.py tests/test_mobile_chart_panel_split.js
           if git diff --cached --quiet; then
             echo 'No staged product changes'
             exit 1
