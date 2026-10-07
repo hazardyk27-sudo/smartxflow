@@ -7,6 +7,8 @@ on:
       - 'templates/index.html'
       - 'static/js/app.js'
       - 'static/js/app.js.src'
+      - 'static/js/admin-panel.js'
+      - 'static/js/admin-panel.js.src'
       - 'static/js/alarm-sidebar.js'
       - 'static/js/alarm-sidebar.js.src'
       - 'static/js/live-tab.js'
@@ -24,6 +26,7 @@ on:
       - 'static/js/modal-alarms.js'
       - 'static/js/modal-alarms.js.src'
       - 'minify.py'
+      - 'tests/test_admin_panel_code_split.js'
       - 'tests/test_alarm_sidebar_code_split.js'
       - 'tests/test_alarm_identity.js'
       - 'tests/test_live_tab_code_split.js'
@@ -65,6 +68,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Run deferred frontend regressions
         run: |
+          node --test tests/test_admin_panel_code_split.js
           node --test tests/test_alarm_sidebar_code_split.js
           node --test tests/test_alarm_identity.js
           node --test tests/test_live_tab_code_split.js
