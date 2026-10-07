@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: perf/p2-modal-data-pipeline-split
+      - name: Show modal chart-history call sites
+        run: grep -n -C 2 'loadChartWithTrends(' static/js/app.js.src || true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
