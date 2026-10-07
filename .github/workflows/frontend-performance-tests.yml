@@ -9,6 +9,8 @@ on:
       - 'static/js/app.js.src'
       - 'static/js/alarm-sidebar.js'
       - 'static/js/alarm-sidebar.js.src'
+      - 'static/js/live-tab.js'
+      - 'static/js/live-tab.js.src'
       - 'static/js/chart-export.js'
       - 'static/js/chart-export.js.src'
       - 'static/js/mobile-chart-panel.js'
@@ -21,8 +23,10 @@ on:
       - 'static/js/modal-chart.js.src'
       - 'static/js/modal-alarms.js'
       - 'static/js/modal-alarms.js.src'
+      - 'minify.py'
       - 'tests/test_alarm_sidebar_code_split.js'
       - 'tests/test_alarm_identity.js'
+      - 'tests/test_live_tab_code_split.js'
       - 'tests/test_deferred_analysis_ui.py'
       - 'tests/test_deferred_analysis_entrypoints.js'
       - 'tests/test_deferred_chart_libs.js'
@@ -38,6 +42,7 @@ on:
       - 'tests/test_sort_hotpath_debug_cleanup.js'
       - 'tests/test_production_debug_log_cleanup.js'
       - 'tests/test_modal_alarm_code_split.js'
+      - 'tests/test_modal_live_code_split.js'
       - 'tests/test_app_bootstrap.js'
       - '.github/workflows/frontend-performance-tests.yml'
   workflow_dispatch:
@@ -62,6 +67,7 @@ jobs:
         run: |
           node --test tests/test_alarm_sidebar_code_split.js
           node --test tests/test_alarm_identity.js
+          node --test tests/test_live_tab_code_split.js
           python -m pytest -q tests/test_deferred_analysis_ui.py
           node --test tests/test_deferred_analysis_entrypoints.js
           node --test tests/test_deferred_chart_libs.js
@@ -77,4 +83,5 @@ jobs:
           node --test tests/test_sort_hotpath_debug_cleanup.js
           node --test tests/test_production_debug_log_cleanup.js
           node --test tests/test_modal_alarm_code_split.js
+          node --test tests/test_modal_live_code_split.js
           node --test tests/test_app_bootstrap.js
