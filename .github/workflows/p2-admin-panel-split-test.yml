@@ -1,0 +1,84 @@
+name: P2.21 Admin Panel Split
+
+on:
+  push:
+    branches: [perf/p2-admin-panel-split]
+    paths:
+      - 'static/js/app.js'
+      - 'static/js/app.js.src'
+      - 'static/js/admin-panel.js'
+      - 'static/js/admin-panel.js.src'
+      - 'minify.py'
+      - 'tests/test_admin_panel_code_split.js'
+      - 'scripts/_p2_admin_panel_stage.mjs'
+      - '.github/workflows/p2-admin-panel-split-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MATERIALIZE_P221: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-admin-panel-split
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install transform and test dependencies
+        run: |
+          npm install --no-save --package-lock=false acorn@8
+          python -m pip install --disable-pip-version-check rjsmin pytest
+      - name: Stage Admin-panel split
+        run: node scripts/_p2_admin_panel_stage.mjs
+      - name: Minify changed runtimes
+        run: |
+          python - <<'PY'
+          import rjsmin
+          for src, dest in [
+              ('static/js/app.js.src', 'static/js/app.js'),
+              ('static/js/admin-panel.js.src', 'static/js/admin-panel.js'),
+          ]:
+              raw = open(src, encoding='utf-8').read()
+              out = rjsmin.jsmin(raw)
+              open(dest, 'w', encoding='utf-8').write(out)
+              print(f'{dest}: {len(raw)} -> {len(out)} bytes')
+          PY
+      - name: Syntax checks
+        run: |
+          node --check static/js/app.js
+          node --check static/js/admin-panel.js
+      - name: Test P2.21 Admin-panel split
+        run: node --test tests/test_admin_panel_code_split.js
+      - name: Test P2.20 Live-tab split
+        run: node --test tests/test_live_tab_code_split.js
+      - name: Test P2.19 Alarm-sidebar split
+        run: node --test tests/test_alarm_sidebar_code_split.js
+      - name: Test background Live deferral
+        run: node --test tests/test_deferred_background_live.js
+      - name: Test modal Live split
+        run: node --test tests/test_modal_live_code_split.js
+      - name: Test app bootstrap
+        run: node --test tests/test_app_bootstrap.js
+      - name: Diff check
+        run: git diff --check
+      - name: Report bundle sizes
+        run: wc -c static/js/app.js static/js/app.js.src static/js/admin-panel.js static/js/admin-panel.js.src
+      - name: Materialize tested output
+        if: env.MATERIALIZE_P221 == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add static/js/app.js static/js/app.js.src static/js/admin-panel.js static/js/admin-panel.js.src minify.py
+          if git diff --cached --quiet; then
+            echo 'No generated output to commit.'
+            exit 0
+          fi
+          git commit -m 'perf: defer Admin panel runtime'
+          git push origin HEAD:perf/p2-admin-panel-split
