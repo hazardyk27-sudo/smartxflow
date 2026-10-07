@@ -1,0 +1,123 @@
+name: P2 Trend Miss Debug Cleanup Test
+
+on:
+  push:
+    branches: [perf/p2-trend-miss-debug-cleanup]
+
+permissions:
+  contents: write
+
+jobs:
+  trend-miss-cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-trend-miss-debug-cleanup
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Remove dead trend-miss debug work
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def find_balanced_block(text, open_brace):
+              depth = 0
+              quote = None
+              escaped = False
+              line_comment = False
+              block_comment = False
+              i = open_brace
+              while i < len(text):
+                  ch = text[i]
+                  nxt = text[i + 1] if i + 1 < len(text) else ''
+                  if line_comment:
+                      if ch == '\n': line_comment = False
+                      i += 1; continue
+                  if block_comment:
+                      if ch == '*' and nxt == '/': block_comment = False; i += 2
+                      else: i += 1
+                      continue
+                  if quote:
+                      if escaped: escaped = False
+                      elif ch == '\\': escaped = True
+                      elif ch == quote: quote = None
+                      i += 1; continue
+                  if ch == '/' and nxt == '/': line_comment = True; i += 2; continue
+                  if ch == '/' and nxt == '*': block_comment = True; i += 2; continue
+                  if ch in ("'", '"', '`'): quote = ch; i += 1; continue
+                  if ch == '{': depth += 1
+                  elif ch == '}':
+                      depth -= 1
+                      if depth == 0: return i + 1
+                  i += 1
+              raise RuntimeError('closing brace not found')
+
+          def cleanup(path):
+              p = Path(path)
+              text = p.read_text()
+              before = len(text.encode())
+              fn = re.search(r'function\s+getOddsTrendData\s*\(', text)
+              if not fn:
+                  raise RuntimeError(f'{path}: getOddsTrendData missing')
+              miss = re.search(r'if\s*\(\s*!matchData\s*\|\|\s*!matchData\.values\s*\)\s*\{', text[fn.start():])
+              if not miss:
+                  raise RuntimeError(f'{path}: trend miss block missing')
+              start = fn.start() + miss.start()
+              open_brace = text.find('{', start)
+              end = find_balanced_block(text, open_brace)
+              old = text[start:end]
+              if '_trendDebugCount' not in old or 'Object.keys(oddsTrendCache)' not in old:
+                  raise RuntimeError(f'{path}: expected debug work not found in miss block')
+              replacement = 'if (!matchData || !matchData.values) { return null; }'
+              text = text[:start] + replacement + text[end:]
+              p.write_text(text)
+              after = len(text.encode())
+              delta = before - after
+              print(f'{path}: {before} -> {after} ({delta} bytes removed)')
+              if delta < 120:
+                  raise RuntimeError(f'{path}: cleanup unexpectedly small: {delta}')
+
+          cleanup('static/js/app.js.src')
+          cleanup('static/js/app.js')
+          PY
+
+      - name: Frontend regression gates
+        shell: bash
+        run: |
+          cp static/js/app.js.src /tmp/app-src.js
+          node --check static/js/app.js
+          node --check /tmp/app-src.js
+          node --test tests/test_trend_miss_debug_cleanup.js
+          node --test tests/test_production_debug_log_cleanup.js
+          node --test tests/test_sort_hotpath_debug_cleanup.js
+          node --test tests/test_modal_chart_helper_split.js
+          node --test tests/test_modal_chart_code_split.js
+          node --test tests/test_deferred_modal_prefetch.js
+          node --test tests/test_deferred_background_live.js
+          node --test tests/test_deferred_finished_scores.js
+          node --test tests/test_app_bootstrap.js
+
+      - name: Analysis entrypoint sentinel
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/test_deferred_analysis_ui.py
+          node --test tests/test_deferred_analysis_entrypoints.js
+
+      - name: Commit tested implementation
+        shell: bash
+        run: |
+          git config user.name "SmartXFlow CI"
+          git config user.email "smartxflow-ci@users.noreply.github.com"
+          git rm .github/workflows/p2-trend-miss-debug-test.yml
+          git add static/js/app.js static/js/app.js.src tests/test_trend_miss_debug_cleanup.js
+          git commit -m "perf: remove dead trend miss diagnostics"
+          git push origin HEAD:perf/p2-trend-miss-debug-cleanup
