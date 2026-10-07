@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
@@ -54,8 +55,17 @@ class SQLiteOrchestratorStore:
         conn.execute("PRAGMA synchronous=FULL")
         return conn
 
+    @contextmanager
+    def _connection(self):
+        """Yield a configured SQLite connection and always close it."""
+        conn = self._connect()
+        try:
+            yield conn
+        finally:
+            conn.close()
+
     def _init_schema(self) -> None:
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS predictor_workflows (
@@ -119,7 +129,7 @@ class SQLiteOrchestratorStore:
     def create_workflow(self, workflow_id: str, scope: dict[str, Any]) -> WorkflowRecord:
         now = _utc_now()
         state = PredictorRunState()
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
                 conn.execute(
@@ -133,7 +143,7 @@ class SQLiteOrchestratorStore:
         return WorkflowRecord(workflow_id, "CREATED", state, scope, now, now)
 
     def get_workflow(self, workflow_id: str) -> WorkflowRecord | None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT * FROM predictor_workflows WHERE workflow_id=?",
                 (workflow_id,),
@@ -163,7 +173,7 @@ class SQLiteOrchestratorStore:
         """Append a failed audit attempt, or acknowledge an already-atomic accepted row."""
         del attempt_no
         if accepted:
-            with self._lock, self._connect() as conn:
+            with self._lock, self._connection() as conn:
                 row = conn.execute(
                     "SELECT attempt_no FROM predictor_attempts WHERE workflow_id=? AND stage=? AND accepted=1 ORDER BY attempt_no DESC LIMIT 1",
                     (workflow_id, stage),
@@ -188,7 +198,7 @@ class SQLiteOrchestratorStore:
         raw_payload: dict[str, Any] | None,
         violations: list[dict[str, str]],
     ) -> int:
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
                 durable_attempt = self._next_attempt_no(conn, workflow_id, stage)
@@ -225,7 +235,7 @@ class SQLiteOrchestratorStore:
         """Atomically persist accepted payload, advanced state and accepted audit row."""
         now = _utc_now()
         status = f"{stage}_COMPLETE"
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             try:
                 exists = conn.execute(
@@ -273,7 +283,7 @@ class SQLiteOrchestratorStore:
         return durable_attempt
 
     def get_stage_output(self, workflow_id: str, stage: str) -> dict[str, Any] | None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT payload_json, rendered_json, stage_run_id, model, policy_version, accepted_at FROM predictor_stage_outputs WHERE workflow_id=? AND stage=?",
                 (workflow_id, stage),
@@ -290,7 +300,7 @@ class SQLiteOrchestratorStore:
         }
 
     def list_attempts(self, workflow_id: str, stage: str) -> list[dict[str, Any]]:
-        with self._connect() as conn:
+        with self._connection() as conn:
             rows = conn.execute(
                 "SELECT attempt_no, model, violations_json, accepted, created_at FROM predictor_attempts WHERE workflow_id=? AND stage=? ORDER BY attempt_no",
                 (workflow_id, stage),
@@ -316,14 +326,14 @@ class SQLiteOrchestratorStore:
         observed_at: str,
         status: str,
     ) -> None:
-        with self._lock, self._connect() as conn:
+        with self._lock, self._connection() as conn:
             conn.execute(
                 "INSERT INTO predictor_user_prices(workflow_id,market,selection,price,observed_at,status,created_at) VALUES(?,?,?,?,?,?,?)",
                 (workflow_id, market, selection, price, observed_at, status, _utc_now()),
             )
 
     def find_user_price(self, workflow_id: str, market: str, selection: str) -> dict[str, Any] | None:
-        with self._connect() as conn:
+        with self._connection() as conn:
             row = conn.execute(
                 "SELECT market,selection,price,observed_at,status FROM predictor_user_prices WHERE workflow_id=? AND market=? AND selection=? ORDER BY id DESC LIMIT 1",
                 (workflow_id, market, selection),
