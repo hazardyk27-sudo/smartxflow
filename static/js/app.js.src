@@ -7664,7 +7664,11 @@ function proLockPanelHtml() {
 
 
 
+window._sxfLiveTabEntryGeneration = window._sxfLiveTabEntryGeneration || 0;
 window._sxfLiveTabRuntimePromise = window._sxfLiveTabRuntimePromise || null;
+function _cancelPendingLiveTabEntry() {
+    window._sxfLiveTabEntryGeneration += 1;
+}
 function _getLiveTabRuntimeUrl() {
     try {
         const scripts = document.getElementsByTagName('script');
@@ -7706,7 +7710,9 @@ function loadLiveTabRuntime() {
 }
 
 async function switchToLive(...args) {
+    const entryGeneration = ++window._sxfLiveTabEntryGeneration;
     await loadLiveTabRuntime();
+    if (entryGeneration !== window._sxfLiveTabEntryGeneration) return;
     return window.__sxfSwitchToLiveImpl(...args);
 }
 
@@ -7779,6 +7785,7 @@ function switchFromLive() {
 if (typeof window.setTab === 'function') {
     var _realSetTab = window.setTab;
     window.setTab = function(market) {
+        if (market !== 'live') _cancelPendingLiveTabEntry();
         if (_liveMode) switchFromLive();
         _realSetTab(market);
     };
@@ -7788,6 +7795,7 @@ if (typeof window.setMobileGroup === 'function') {
     var _realSetMobileGroup = window.setMobileGroup;
     window.setMobileGroup = function(group) {
         if (group === 'live') { switchToLive(); return; }
+        _cancelPendingLiveTabEntry();
         if (_liveMode) switchFromLive();
         _realSetMobileGroup(group);
     };
@@ -7795,8 +7803,9 @@ if (typeof window.setMobileGroup === 'function') {
 
 document.addEventListener('click', function(e) {
     var tab = e.target.closest('.tab[data-market]');
-    if (tab && tab.dataset.market !== 'live' && _liveMode) {
-        switchFromLive();
+    if (tab && tab.dataset.market !== 'live') {
+        _cancelPendingLiveTabEntry();
+        if (_liveMode) switchFromLive();
     }
 });
 
