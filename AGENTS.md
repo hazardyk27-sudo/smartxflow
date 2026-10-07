@@ -39,15 +39,81 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 10. No model/method silently changes production. Candidate -> historical test -> shadow -> review -> controlled promotion/rejection.
 11. Enforce critical rules in code/tests where practical.
 
-## Mandatory visible preference rule
+## HARD INVARIANT — EVERY VISIBLE MATCH HAS ONE CONCRETE PREFERENCE
 
-For every user-scoped match that is shown in Predictor analysis or a Predictor-derived future-days report, the user-visible output MUST contain a concrete, non-empty preferred market/selection.
+This rule is **absolute for every valid user-scoped match shown in any Predictor output**, including Stage 1, Stage 2 carry-forward summaries, Stage 3, recap tables and non-archived `Gelecek Günler` reports.
 
-- Never use `Bahis yok`, `—`, `no pick`, `none`, an empty selection, or an equivalent placeholder in the preference/selection field.
-- Stage 1 already requires a concrete frozen `SXF PREFERENCE`; later stages must preserve a concrete best-current preference even when evidence is mixed.
-- A formal `PASS`/`GEÇ` decision is allowed to mean **do not place/archive this as a formal bet right now**, but it MUST NOT erase the analytical preference. Example: `Tercih: Atlético Madrid kazanır @1.91 | Karar: GEÇ` is valid; `Tercih: Bahis yok | Karar: GEÇ` is invalid.
-- If a non-native protected/aggressive market is the best preference but its real price is unknown, show the concrete market/selection and clearly mark the price as `doğrulanmadı` or give an explicitly labeled minimum acceptable threshold. Never invent an exact price.
-- This rule also applies to non-archived `Gelecek Günler` reports: every listed match must have one explicit best-current preference, while confidence/quality/AL-İZLE-GEÇ status remains a separate field.
+### Preference and action are different fields
+
+Every visible match MUST always have both concepts kept separate:
+
+1. **PREFERENCE / TERCIH** = the single best-current analytical market + exact selection for that match.
+2. **ACTION / KARAR** = whether that preference is currently strong enough to act on (`BET/AL`, `WATCH/IZLE`, `PASS/GEC`, or the applicable workflow label).
+
+The action label may change or downgrade. **The preference may never disappear.**
+
+### Exceptionless output requirement
+
+For every valid match row shown to the user:
+
+- `preference.market` MUST be concrete and non-empty;
+- `preference.selection` MUST be concrete and non-empty;
+- user-facing wording MUST state the selection explicitly, e.g. `Fulham kazanir`, `Beraberlik`, `2.5 Alt`, `Lyon kaybetmez (X2)`, `Frosinone +1.5`;
+- if the current real price is known, show it;
+- if a non-native execution market is preferred but its real price is unknown, keep the market/selection and say `fiyat dogrulanmadi` or state a clearly labeled minimum acceptable threshold; never invent odds.
+
+The following are **forbidden in any preference/selection field**:
+
+- `Bahis yok`
+- `Tercih yok`
+- `No pick`
+- `None`
+- `N/A`
+- `—`
+- empty/null selection
+- wording whose practical meaning is “I refuse to choose a side/market”
+
+### PASS / GEC can NEVER mean “no preference”
+
+`PASS` / `GEC` has exactly one permitted meaning:
+
+> **A concrete analytical preference exists, but current confidence/risk/value/evidence quality is not strong enough for formal action or archive.**
+
+Therefore:
+
+- `Tercih: Atletico Madrid kazanir @1.91 | Karar: GEC` = VALID.
+- `Tercih: Barcelona kazanir @1.10 | Karar: GEC` = VALID.
+- `Tercih: Bahis yok | Karar: GEC` = INVALID.
+- `Tercih: — | Karar: PASS` = INVALID.
+- `PASS because no defensible formal bet exists` MUST still retain the best-current analytical preference.
+- `no formal case`, `not archived`, `C grade`, `low confidence`, `mixed evidence`, `contradicted research`, `unknown alternative price`, or `material reversal` MUST NOT be interpreted as permission to blank/remove the preference.
+
+### Stage-specific enforcement
+
+- **Stage 1:** every reported match has one frozen native `SXF PREFERENCE` with exact market + exact selection. No blank preference is allowed.
+- **Stage 2:** Stage 1 preference remains visible/frozen; research may confirm or contradict it but may not erase it. If Stage 2 suggests a better future execution expression, record that separately without deleting the frozen preference.
+- **Stage 3:** every carried match must end with one concrete best-current execution preference **before** assigning `BET/WATCH/PASS`. Grade/action is applied to that preference; it is not a substitute for it.
+- **Gelecek Gunler:** every listed match must have one concrete best-current preference even when the report labels it `AL`, `IZLE`, or `GEC`.
+
+### Precedence / anti-misinterpretation rule
+
+This invariant controls the interpretation of every lower-level phrase such as:
+
+- `PASS / no formal case`;
+- `if no formal selection is defensible`;
+- `do not force a bet`;
+- `downgrade to WATCH/PASS`;
+- `omit from archive/diary`.
+
+Those phrases govern **action/archive eligibility only**. They NEVER authorize an empty user-visible preference.
+
+If another Predictor instruction can be read in two ways, always choose the interpretation that preserves:
+
+`ONE VISIBLE MATCH -> ONE CONCRETE PREFERENCE -> SEPARATE ACTION LABEL`
+
+Do not ask the user to choose between candidate preferences merely because confidence is low. The Predictor must rank the available evidence and name its single best-current preference while honestly downgrading the action/confidence if necessary.
+
+A truly invalid/unresolvable fixture identity is not a prediction row: report it explicitly as an identity/data error rather than disguising it as `PASS`, `GEC`, or an empty preference. For every valid analyzed match, the preference requirement has no exception.
 
 ## Learning Archive
 
