@@ -82,6 +82,7 @@ class PredictorRuntimeTests(unittest.TestCase):
                     "decision_recorded_at": "2026-10-07T19:00:00+03:00",
                     "archive_intent": True,
                     "price_evidence": {
+                        "fixture_id": "m1",
                         "origin": "SXF_NATIVE",
                         "price": 1.90,
                         "observed_at": "2026-10-07T19:00:00+03:00",
