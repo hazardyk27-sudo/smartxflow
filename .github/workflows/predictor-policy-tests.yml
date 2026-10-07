@@ -46,4 +46,5 @@ jobs:
             predictor_orchestrator/prompts.py \
             predictor_orchestrator/renderer.py \
             predictor_orchestrator/service.py \
-            predictor_orchestrator/server.py
+            predictor_orchestrator/server.py \
+            predictor_orchestrator/wsgi.py
