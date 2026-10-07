@@ -4,10 +4,12 @@ from .service import (
     OrchestratorError,
     PredictorOrchestrator,
     StageConflict,
+    TrustedContextRequired,
     ValidationExhausted,
     WorkflowNotFound,
 )
 from .store import SQLiteOrchestratorStore, WorkflowRecord
+from .sxf_source import SXFSourceError, SXFStage1Source
 
 __all__ = [
     "OrchestratorConfig",
@@ -18,8 +20,11 @@ __all__ = [
     "OrchestratorError",
     "PredictorOrchestrator",
     "StageConflict",
+    "TrustedContextRequired",
     "ValidationExhausted",
     "WorkflowNotFound",
     "SQLiteOrchestratorStore",
     "WorkflowRecord",
+    "SXFSourceError",
+    "SXFStage1Source",
 ]
