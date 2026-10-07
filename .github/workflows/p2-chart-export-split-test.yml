@@ -31,6 +31,10 @@ jobs:
 
       - name: Syntax checks
         run: |
+          cp static/js/app.js.src /tmp/app-src.js
+          cp static/js/chart-export.js.src /tmp/chart-export-src.js
+          node --check /tmp/app-src.js
+          node --check /tmp/chart-export-src.js
           node --check static/js/app.js
           node --check static/js/chart-export.js
           node --check static/js/modal-chart.js
