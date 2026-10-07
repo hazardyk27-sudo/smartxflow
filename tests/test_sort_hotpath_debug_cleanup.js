@@ -47,6 +47,10 @@ function extractFunction(text, name) {
   assert.fail(`${name} closing brace missing`);
 }
 
+function compact(value) {
+  return value.replace(/\s+/g, '');
+}
+
 for (const file of ['static/js/app.js', 'static/js/app.js.src']) {
   test(`${file} applySorting has no stale production debug scans`, () => {
     const text = fs.readFileSync(path.join(root, file), 'utf8');
@@ -68,6 +72,7 @@ for (const file of ['static/js/app.js', 'static/js/app.js.src']) {
   test(`${file} applySorting keeps all functional filter/sort gates`, () => {
     const text = fs.readFileSync(path.join(root, file), 'utf8');
     const fn = extractFunction(text, 'applySorting');
+    const compactFn = compact(fn);
     for (const marker of [
       "dateFilterMode === 'YESTERDAY'",
       "dateFilterMode === 'TODAY'",
@@ -81,7 +86,7 @@ for (const file of ['static/js/app.js', 'static/js/app.js.src']) {
       'currentSortColumn',
       'currentSortDirection',
     ]) {
-      assert.ok(fn.includes(marker) || fn.replace(/\\s+/g, '').includes(marker.replace(/\\s+/g, '')), `${marker} must remain in applySorting`);
+      assert.ok(fn.includes(marker) || compactFn.includes(compact(marker)), `${marker} must remain in applySorting`);
     }
   });
 }
