@@ -1046,8 +1046,7 @@ return`<span class="trend-arrow-drop trend-stable-drop">↔</span>`;}
 function formatPctChange(pctChange,trend){if(pctChange===0||pctChange===null||pctChange===undefined){return'';}
 const sign=pctChange>0?'+':'';const absVal=Math.abs(pctChange).toFixed(1);let colorClass='pct-stable';if(trend==='down'){colorClass='pct-down';}else if(trend==='up'){colorClass='pct-up';}
 return`<span class="pct-change ${colorClass}">${sign}${pctChange.toFixed(1)}%</span>`;}
-function getOddsTrendData(home,away,selection){const key=`${home}|${away}`;const matchData=oddsTrendCache[key];if(!matchData||!matchData.values){if(!window._trendDebugCount)window._trendDebugCount=0;if(window._trendDebugCount<5){const cacheKeys=Object.keys(oddsTrendCache).slice(0,5);void 0;window._trendDebugCount++;}
-return null;}
+function getOddsTrendData(home,away,selection){const key=`${home}|${away}`;const matchData=oddsTrendCache[key];if (!matchData || !matchData.values) { return null; }
 return matchData.values[selection]||null;}
 function renderOddsWithTrend(oddsValue,trendData){const formattedOdds=formatOdds(oddsValue);const hasHistory=trendData&&trendData.history&&trendData.history.length>=2;const hasTrendOnly=trendData&&trendData.trend&&(trendData.trend==='down'||trendData.trend==='up')&&!hasHistory;if(!hasHistory&&!hasTrendOnly){const trendIcon=generateTrendIconSVG('flat',0);return`
             <div class="odds-trend-cell odds-trend-no-data">

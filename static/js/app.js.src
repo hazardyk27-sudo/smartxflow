@@ -5914,16 +5914,7 @@ function getOddsTrendData(home, away, selection) {
     const key = `${home}|${away}`;
     const matchData = oddsTrendCache[key];
     
-    if (!matchData || !matchData.values) {
-        // Debug: first 5 misses per page load
-        if (!window._trendDebugCount) window._trendDebugCount = 0;
-        if (window._trendDebugCount < 5) {
-            const cacheKeys = Object.keys(oddsTrendCache).slice(0, 5);
-            void 0;
-            window._trendDebugCount++;
-        }
-        return null;
-    }
+    if (!matchData || !matchData.values) { return null; }
     
     return matchData.values[selection] || null;
 }
