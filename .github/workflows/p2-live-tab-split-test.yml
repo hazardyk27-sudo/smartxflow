@@ -11,6 +11,7 @@ on:
       - 'minify.py'
       - 'tests/test_live_tab_code_split.js'
       - 'scripts/_p2_live_tab_stage.mjs'
+      - 'scripts/_p2_live_tab_race_patch.mjs'
       - '.github/workflows/p2-live-tab-split-test.yml'
   workflow_dispatch:
 
@@ -36,7 +37,9 @@ jobs:
           npm install --no-save --package-lock=false acorn@8
           python -m pip install --disable-pip-version-check rjsmin pytest
       - name: Stage Live-tab split
-        run: node scripts/_p2_live_tab_stage.mjs
+        run: |
+          node scripts/_p2_live_tab_stage.mjs
+          node scripts/_p2_live_tab_race_patch.mjs
       - name: Minify changed runtimes
         run: |
           python - <<'PY'
@@ -79,5 +82,5 @@ jobs:
             echo 'No generated output to commit.'
             exit 0
           fi
-          git commit -m 'perf: defer Live tab runtime'
+          git commit -m 'perf: guard deferred Live tab activation'
           git push origin HEAD:perf/p2-live-tab-split
