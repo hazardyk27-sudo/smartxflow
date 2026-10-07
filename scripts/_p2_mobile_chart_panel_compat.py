@@ -13,8 +13,8 @@ for rel in ('static/js/app.js.src', 'static/js/app.js'):
 
 test_path = root / 'tests/test_mobile_chart_panel_split.js'
 test = test_path.read_text()
-old_src = r"/await loadModalChartRuntime\\(\\);\\s*if \\(isMobile\\(\\)\\) await loadMobileChartPanelRuntime\\(\\);\\s*return window\\.__sxfLoadChartImpl/"
-new_src = r"/await loadModalChartRuntime\\(\\);\\s*if \\(typeof isMobile === 'function' && isMobile\\(\\)\\) await loadMobileChartPanelRuntime\\(\\);\\s*return window\\.__sxfLoadChartImpl/"
+old_src = r"/await loadModalChartRuntime\(\);\s*if \(isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/"
+new_src = r"/await loadModalChartRuntime\(\);\s*if \(typeof isMobile === 'function' && isMobile\(\)\) await loadMobileChartPanelRuntime\(\);\s*return window\.__sxfLoadChartImpl/"
 if old_src not in test:
     raise SystemExit('mobile panel test regex anchor missing')
 test_path.write_text(test.replace(old_src, new_src))
