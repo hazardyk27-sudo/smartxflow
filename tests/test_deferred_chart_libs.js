@@ -3,9 +3,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 
-const bundles = [
-  ['runtime', fs.readFileSync(path.join(__dirname, '..', 'static', 'js', 'app.js'), 'utf8')],
-  ['source', fs.readFileSync(path.join(__dirname, '..', 'static', 'js', 'app.js.src'), 'utf8')],
+const root = path.join(__dirname, '..');
+const mainBundles = [
+  ['runtime', fs.readFileSync(path.join(root, 'static/js/app.js'), 'utf8')],
+  ['source', fs.readFileSync(path.join(root, 'static/js/app.js.src'), 'utf8')],
+];
+const entryBundles = [
+  ['runtime', fs.readFileSync(path.join(root, 'static/js/modal-entry.js'), 'utf8')],
+  ['source', fs.readFileSync(path.join(root, 'static/js/modal-entry.js.src'), 'utf8')],
 ];
 
 function extractFunction(source, signature) {
@@ -31,7 +36,7 @@ function extractBootstrap(source) {
   return source.slice(startMatch.index, end);
 }
 
-for (const [name, source] of bundles) {
+for (const [name, source] of mainBundles) {
   test(`chart libraries are absent from dashboard startup (${name})`, () => {
     const bootstrap = extractBootstrap(source);
     assert.doesNotMatch(bootstrap, /loadChartLibs/);
@@ -43,7 +48,22 @@ for (const [name, source] of bundles) {
     'async function openMatchModalFromAPI(',
     'async function openMatchModal(',
   ]) {
-    test(`${signature} keeps on-demand chart loading (${name})`, () => {
+    test(`${signature} is a lazy modal-entry stub (${name})`, () => {
+      const fn = extractFunction(source, signature);
+      assert.match(fn, /loadModalEntryRuntime/);
+      assert.doesNotMatch(fn, /loadChartLibs/);
+      assert.doesNotMatch(fn, /registerChartPlugins/);
+    });
+  }
+}
+
+for (const [name, source] of entryBundles) {
+  for (const signature of [
+    'async function openMatchModalFromMatches(',
+    'async function openMatchModalFromAPI(',
+    'async function openMatchModal(',
+  ]) {
+    test(`${signature} keeps on-demand chart loading in modal-entry (${name})`, () => {
       const fn = extractFunction(source, signature);
       assert.match(fn, /loadChartLibs/);
       assert.match(fn, /registerChartPlugins/);
