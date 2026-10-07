@@ -1,6 +1,6 @@
 # Predictor Current Milestone
 
-MILESTONE_VERSION: 19
+MILESTONE_VERSION: 20
 STATUS: ACTIVE
 
 ## Objective
@@ -52,7 +52,9 @@ When Stage 2 begins, Predictor MUST open and follow:
 
 `/.agents/predictor/STAGE2_FOCUSED_RESEARCH.md`
 
-This is the canonical operational Stage 2 research protocol. The purpose is to improve research quality without overloading the model or eliminating matches merely because external coverage is sparse.
+This is the **canonical operational Stage 2 protocol**. Generic Stage 2 wording elsewhere in the Predictor role or Playbook is only a summary and MUST be interpreted through this file. If generic wording could encourage broader research, unnecessary source collection, or treating missing data as negative evidence, this focused protocol controls.
+
+The purpose is to improve research quality without overloading the model or eliminating matches merely because external coverage is sparse.
 
 ### Mandatory 3+1 research packet
 
@@ -193,12 +195,12 @@ Heuristics, not hard formulas:
 ### 2. Stage 2 — FOCUSED EXTERNAL CAUSE RESEARCH
 
 - Start only after explicit user request.
-- Open and obey `/.agents/predictor/STAGE2_FOCUSED_RESEARCH.md` before researching the carried match set.
 - Carry forward the exact selected match set.
-- Use the mandatory 3+1 packet and information budget above instead of broad unrestricted news collection.
-- Search support and the strongest plausible contradiction; preserve them separately for Stage 3.
+- Open and follow `/.agents/predictor/STAGE2_FOCUSED_RESEARCH.md` before researching the matches.
+- Use the mandatory 3+1 packet and information/source budgets above; do not revert to broad unstructured research.
+- Preserve strongest support and strongest contradiction separately as claim-level evidence.
 - Keep `SXF SAYS` and `RESEARCH SAYS` separate; preserve frozen Stage 1.
-- Missing external information is UNKNOWN, never automatic contradiction.
+- Missing information remains UNKNOWN; it is never automatically adverse.
 - Classify `CONFIRMED | PARTIALLY_CONFIRMED | CONTRADICTED | UNEXPLAINED`.
 - Stage 2 may note whether a protected/aggressive execution line would logically fit, but may not pretend it exists in SXF.
 - No final decision. STOP.
@@ -278,30 +280,29 @@ WATCH outcomes remain hypothetical. Conditional-BET performance must not pretend
 1. Preserve user scope across all stages.
 2. Stage 1 must be raw/native SXF-only and match-by-match.
 3. Stage 1 `SXF PREFERENCE` stays native and frozen.
-4. Stage 2 MUST open and obey `STAGE2_FOCUSED_RESEARCH.md`.
-5. Stage 2 MUST use the 3+1 research packet and default maximum 6 meaningful facts per match.
-6. Stage 2 MUST treat UNKNOWN/low coverage as non-negative and preserve strongest support/counter separately.
-7. Stage 2 MUST use the source stack and early-stop rule instead of unrestricted source accumulation.
-8. Stage 3 must score counterevidence severity and apply the active confidence penalty.
-9. Stage 3 must use joint divergence state; closing price alone never confirms/cancels.
-10. Stage 3 must distinguish `PROTECTION` from `AGGRESSION`.
-11. Stage 3 must grade every match `A+ | A | B | C` and obey the mapping A+/A BET, B WATCH, C PASS.
-12. Stage 3 may transform the native thesis into DC/handicap/alternative totals for better risk/value.
-13. Protection must not destroy price: safer is not automatically better.
-14. Aggression must be justified by expected distribution: do not raise lines merely to chase odds.
-15. Never synthesize exact execution odds. A threshold must be labeled as a threshold.
-16. DNB remains prohibited.
-17. Native SXF history must never be relabeled as history for an alternative execution market.
-18. External execution-market prices, when actually used, require source and `observed_at`.
-19. Formal BET/WATCH cases preserve immutable prediction timing, market, selection, actual entry odds when available, confidence, rationale and counterargument.
-20. PASS is user-visible only and is not archived as a fake formal case.
-21. Formal cases must be durably archived on `learning-archive`; failures are explicit/retryable.
-22. Settled formal cases require append-only postmatch learning notes.
-23. Every active prediction day requires Diary 1 and Diary 2 as separate durable artifacts.
-24. Every formal match requires `Why this prediction` in Diary 1.
-25. Every settled diary match requires `Why it won/lost` in Diary 2.
-26. Case archive completion and diary completion are independent checks; neither implies the other.
-27. End-of-day `DONE` requires archive + both complete diaries.
+4. Stage 2 MUST use the canonical Focused Research protocol and its 3+1 packet, information budget, source routing and early-stop rules.
+5. Stage 2 must preserve strongest support and strongest contradiction separately at claim level.
+6. Missing/low-coverage Stage 2 information is UNKNOWN, not adverse evidence.
+7. Stage 3 must score counterevidence severity and apply the active confidence penalty.
+8. Stage 3 must use joint divergence state; closing price alone never confirms/cancels.
+9. Stage 3 must distinguish `PROTECTION` from `AGGRESSION`.
+10. Stage 3 must grade every match `A+ | A | B | C` and obey the mapping A+/A BET, B WATCH, C PASS.
+11. Stage 3 may transform the native thesis into DC/handicap/alternative totals for better risk/value.
+12. Protection must not destroy price: safer is not automatically better.
+13. Aggression must be justified by expected distribution: do not raise lines merely to chase odds.
+14. Never synthesize exact execution odds. A threshold must be labeled as a threshold.
+15. DNB remains prohibited.
+16. Native SXF history must never be relabeled as history for an alternative execution market.
+17. External execution-market prices, when actually used, require source and `observed_at`.
+18. Formal BET/WATCH cases preserve immutable prediction timing, market, selection, actual entry odds when available, confidence, rationale and counterargument.
+19. PASS is user-visible only and is not archived as a fake formal case.
+20. Formal cases must be durably archived on `learning-archive`; failures are explicit/retryable.
+21. Settled formal cases require append-only postmatch learning notes.
+22. Every active prediction day requires Diary 1 and Diary 2 as separate durable artifacts.
+23. Every formal match requires `Why this prediction` in Diary 1.
+24. Every settled diary match requires `Why it won/lost` in Diary 2.
+25. Case archive completion and diary completion are independent checks; neither implies the other.
+26. End-of-day `DONE` requires archive + both complete diaries.
 
 ## Archive behavior for alternative execution markets
 
@@ -321,7 +322,7 @@ Complete when the full user slate was enumerated, every match was independently 
 
 ## Done per Stage 2
 
-Complete only when every carried match has followed the focused 3+1 protocol, the strongest support and strongest plausible contradiction are preserved separately, coverage is classified, UNKNOWN is not treated as negative evidence, the early-stop rule has been respected, Stage 1 remains frozen, and a verdict is issued without any final `BET | WATCH | PASS` decision.
+Complete only when every carried match has been processed under the canonical Focused Research protocol, the compact 3+1 packet is sufficient for available coverage, strongest support/counterevidence are separated, coverage is classified, Stage 1 remains frozen, and no final `BET | WATCH | PASS` was issued.
 
 ## Done per Stage 3
 
@@ -333,3 +334,5 @@ End-of-day is `DONE` only when:
 1. all settleable formal cases have the required archive/settlement/postmatch state (or explicit unresolved/pending state);
 2. `learning_archive_data/diaries/YYYY/MM/DD/predictions.md` exists durably and every formal match has `Why this prediction`;
 3. `learning_archive_data/diaries/YYYY/MM/DD/postmatch.md` exists durably and every settled match has `Why it won/lost` (unresolved matches explicitly pending).
+
+Anything less is `DIARY_PENDING`, never `DONE`.
