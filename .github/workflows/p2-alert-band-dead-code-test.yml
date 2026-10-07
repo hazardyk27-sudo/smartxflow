@@ -1,0 +1,80 @@
+name: P2.22 Alert Band Dead Code
+
+on:
+  push:
+    branches: [perf/p2-alert-band-dead-code]
+    paths:
+      - 'static/js/app.js'
+      - 'static/js/app.js.src'
+      - 'templates/**'
+      - 'tests/test_alert_band_dead_code_cleanup.js'
+      - 'scripts/_p2_alert_band_dead_code_stage.mjs'
+      - '.github/workflows/p2-alert-band-dead-code-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MATERIALIZE_P222: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-alert-band-dead-code
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install transform and test dependencies
+        run: |
+          npm install --no-save --package-lock=false acorn@8
+          python -m pip install --disable-pip-version-check rjsmin pytest
+      - name: Prove references and stage dead-code cleanup
+        run: node scripts/_p2_alert_band_dead_code_stage.mjs
+      - name: Minify app runtime
+        run: |
+          python - <<'PY'
+          import rjsmin
+          src = 'static/js/app.js.src'
+          dest = 'static/js/app.js'
+          raw = open(src, encoding='utf-8').read()
+          out = rjsmin.jsmin(raw)
+          open(dest, 'w', encoding='utf-8').write(out)
+          print(f'{dest}: {len(raw)} -> {len(out)} bytes')
+          PY
+      - name: Syntax check
+        run: node --check static/js/app.js
+      - name: Test P2.22 Alert Band cleanup
+        run: node --test tests/test_alert_band_dead_code_cleanup.js
+      - name: Test alarm identity
+        run: node --test tests/test_alarm_identity.js
+      - name: Test P2.21 Admin split
+        run: node --test tests/test_admin_panel_code_split.js
+      - name: Test P2.20 Live split
+        run: node --test tests/test_live_tab_code_split.js
+      - name: Test P2.19 Alarm sidebar split
+        run: node --test tests/test_alarm_sidebar_code_split.js
+      - name: Test production debug cleanup
+        run: node --test tests/test_production_debug_log_cleanup.js
+      - name: Test app bootstrap
+        run: node --test tests/test_app_bootstrap.js
+      - name: Diff check
+        run: git diff --check
+      - name: Report bundle sizes
+        run: wc -c static/js/app.js static/js/app.js.src
+      - name: Materialize tested output
+        if: env.MATERIALIZE_P222 == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add static/js/app.js static/js/app.js.src
+          if git diff --cached --quiet; then
+            echo 'No generated output to commit.'
+            exit 0
+          fi
+          git commit -m 'perf: remove dead Alert Band detail renderer'
+          git push origin HEAD:perf/p2-alert-band-dead-code
