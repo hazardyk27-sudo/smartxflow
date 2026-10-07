@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import unittest
 
 from predictor_policy import PredictorPolicyError, PredictorRunState, validate_and_advance
@@ -113,6 +114,16 @@ class PredictorRuntimeTests(unittest.TestCase):
         payload["predecessor_stage1_run_id"] = "other-run"
         with self.assertRaises(PredictorPolicyError):
             validate_and_advance(state, payload)
+
+    def test_duplicate_stage2_fixture_is_rejected_even_when_set_matches(self):
+        state = validate_and_advance(PredictorRunState(), self._stage1())
+        payload = self._stage2()
+        duplicate = deepcopy(payload["matches"][0])
+        duplicate["research_support"] = "Different duplicate content must still be rejected."
+        payload["matches"].append(duplicate)
+        with self.assertRaises(PredictorPolicyError) as caught:
+            validate_and_advance(state, payload)
+        self.assertIn("duplicate fixture IDs", str(caught.exception))
 
 
 if __name__ == "__main__":
