@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -105,6 +106,7 @@ class SQLiteOrchestratorStore:
                 CREATE TABLE IF NOT EXISTS predictor_user_prices (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     workflow_id TEXT NOT NULL,
+                    fixture_id TEXT,
                     market TEXT NOT NULL,
                     selection TEXT NOT NULL,
                     price REAL NOT NULL,
@@ -113,9 +115,25 @@ class SQLiteOrchestratorStore:
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(workflow_id) REFERENCES predictor_workflows(workflow_id)
                 );
+                CREATE TABLE IF NOT EXISTS predictor_trusted_contexts (
+                    workflow_id TEXT NOT NULL,
+                    stage TEXT NOT NULL,
+                    context_json TEXT NOT NULL,
+                    context_sha256 TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(workflow_id, stage),
+                    FOREIGN KEY(workflow_id) REFERENCES predictor_workflows(workflow_id)
+                );
                 CREATE INDEX IF NOT EXISTS idx_predictor_prices_lookup
                     ON predictor_user_prices(workflow_id, market, selection, id DESC);
                 """
+            )
+            price_columns = {row["name"] for row in conn.execute("PRAGMA table_info(predictor_user_prices)").fetchall()}
+            if "fixture_id" not in price_columns:
+                conn.execute("ALTER TABLE predictor_user_prices ADD COLUMN fixture_id TEXT")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_predictor_prices_fixture_lookup "
+                "ON predictor_user_prices(workflow_id, fixture_id, market, selection, id DESC)"
             )
 
     @staticmethod
@@ -316,10 +334,51 @@ class SQLiteOrchestratorStore:
             for row in rows
         ]
 
+    def save_trusted_context(self, workflow_id: str, stage: str, context: dict[str, Any]) -> dict[str, Any]:
+        stage = str(stage or "").upper()
+        encoded = _dumps(context)
+        digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        now = _utc_now()
+        with self._lock, self._connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                exists = conn.execute(
+                    "SELECT 1 FROM predictor_stage_outputs WHERE workflow_id=? AND stage=?",
+                    (workflow_id, stage),
+                ).fetchone()
+                if exists:
+                    raise RuntimeError(f"cannot replace trusted context after {stage} acceptance")
+                conn.execute(
+                    "INSERT INTO predictor_trusted_contexts(workflow_id,stage,context_json,context_sha256,created_at) "
+                    "VALUES(?,?,?,?,?) ON CONFLICT(workflow_id,stage) DO UPDATE SET "
+                    "context_json=excluded.context_json, context_sha256=excluded.context_sha256, created_at=excluded.created_at",
+                    (workflow_id, stage, encoded, digest, now),
+                )
+                conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+        return {"stage": stage, "context_sha256": digest, "created_at": now}
+
+    def get_trusted_context(self, workflow_id: str, stage: str) -> dict[str, Any] | None:
+        with self._connection() as conn:
+            row = conn.execute(
+                "SELECT context_json,context_sha256,created_at FROM predictor_trusted_contexts WHERE workflow_id=? AND stage=?",
+                (workflow_id, str(stage or "").upper()),
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "context": _loads(row["context_json"], {}),
+            "context_sha256": row["context_sha256"],
+            "created_at": row["created_at"],
+        }
+
     def add_user_price(
         self,
         *,
         workflow_id: str,
+        fixture_id: str,
         market: str,
         selection: str,
         price: float,
@@ -328,19 +387,20 @@ class SQLiteOrchestratorStore:
     ) -> None:
         with self._lock, self._connection() as conn:
             conn.execute(
-                "INSERT INTO predictor_user_prices(workflow_id,market,selection,price,observed_at,status,created_at) VALUES(?,?,?,?,?,?,?)",
-                (workflow_id, market, selection, price, observed_at, status, _utc_now()),
+                "INSERT INTO predictor_user_prices(workflow_id,fixture_id,market,selection,price,observed_at,status,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (workflow_id, fixture_id, market, selection, price, observed_at, status, _utc_now()),
             )
 
-    def find_user_price(self, workflow_id: str, market: str, selection: str) -> dict[str, Any] | None:
+    def find_user_price(self, workflow_id: str, fixture_id: str, market: str, selection: str) -> dict[str, Any] | None:
         with self._connection() as conn:
             row = conn.execute(
-                "SELECT market,selection,price,observed_at,status FROM predictor_user_prices WHERE workflow_id=? AND market=? AND selection=? ORDER BY id DESC LIMIT 1",
-                (workflow_id, market, selection),
+                "SELECT fixture_id,market,selection,price,observed_at,status FROM predictor_user_prices WHERE workflow_id=? AND fixture_id=? AND market=? AND selection=? ORDER BY id DESC LIMIT 1",
+                (workflow_id, fixture_id, market, selection),
             ).fetchone()
         if row is None:
             return None
         return {
+            "fixture_id": row["fixture_id"],
             "origin": "USER_SUPPLIED",
             "source": "USER_SUPPLIED",
             "market": row["market"],
