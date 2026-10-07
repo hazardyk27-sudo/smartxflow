@@ -11,6 +11,8 @@ on:
       - 'static/js/chart-export.js.src'
       - 'static/js/mobile-chart-panel.js'
       - 'static/js/mobile-chart-panel.js.src'
+      - 'static/js/modal-entry.js'
+      - 'static/js/modal-entry.js.src'
       - 'static/js/modal-info.js'
       - 'static/js/modal-info.js.src'
       - 'static/js/modal-chart.js'
@@ -23,6 +25,7 @@ on:
       - 'tests/test_deferred_background_live.js'
       - 'tests/test_deferred_finished_scores.js'
       - 'tests/test_deferred_modal_prefetch.js'
+      - 'tests/test_modal_entry_code_split.js'
       - 'tests/test_modal_info_code_split.js'
       - 'tests/test_mobile_chart_panel_split.js'
       - 'tests/test_modal_chart_code_split.js'
@@ -59,6 +62,7 @@ jobs:
           node --test tests/test_deferred_background_live.js
           node --test tests/test_deferred_finished_scores.js
           node --test tests/test_deferred_modal_prefetch.js
+          node --test tests/test_modal_entry_code_split.js
           node --test tests/test_modal_info_code_split.js
           node --test tests/test_mobile_chart_panel_split.js
           node --test tests/test_modal_chart_code_split.js
