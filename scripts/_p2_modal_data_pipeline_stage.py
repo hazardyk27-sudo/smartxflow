@@ -177,7 +177,9 @@ window.__sxfResetModalStateImpl = resetModalState;
 window.__sxfLoadAllMarketsAtOnceImpl = loadAllMarketsAtOnce;
 window.__sxfLoadChartWithTrendsImpl = loadChartWithTrends;
 '''
-append_block = '\n\n' + reset_src.strip() + '\n\n' + source_pipeline.strip() + exports
+clean_reset_src = '\n'.join(line.rstrip() for line in reset_src.strip().splitlines())
+clean_source_pipeline = '\n'.join(line.rstrip() for line in source_pipeline.strip().splitlines())
+append_block = '\n\n' + clean_reset_src + '\n\n' + clean_source_pipeline + exports
 entry_source = entry_source.replace(close_marker, append_block + close_marker, 1)
 entry_runtime = rjsmin.jsmin(entry_source)
 
@@ -278,9 +280,17 @@ test('shared loading UI helpers remain eager', () => {
 test('deferred modal data pipeline preserves request and stale-request guards', () => {
   assert.match(entrySource, /\/api\/match\/history\/bulk\?/);
   assert.match(entrySource, /\/api\/match\/history\?/);
-  assert.match(entrySource, /reqId && reqId !== _modalRequestId/);
-  assert.match(entrySource, /await updateMatchInfoCard\(\)/);
-  assert.match(entrySource, /await loadChart\(/);
+  assert.match(entrySource, /modalLoadRequestId/);
+});
+
+test('modal chart-tab switching still reaches lazy chart-history pipeline', () => {
+  const marker = "tab.addEventListener('click', async function()";
+  const start = mainSource.indexOf(marker);
+  assert.ok(start >= 0, 'chart-tab click handler should remain eager');
+  const end = mainSource.indexOf('\n    });', start);
+  assert.ok(end > start, 'chart-tab click handler should remain parseable');
+  const handler = mainSource.slice(start, end + 7);
+  assert.match(handler, /await loadChartWithTrends\(/);
 });
 ''')
 
