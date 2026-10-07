@@ -1,0 +1,34 @@
+name: Predictor Policy Tests
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/predictor-policy-tests.yml'
+      - 'predictor_policy/**'
+      - 'tests/test_predictor_policy.py'
+      - 'tests/test_predictor_runtime.py'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+          fetch-depth: 1
+      - name: Run predictor policy regressions
+        run: |
+          python -m unittest \
+            tests.test_predictor_policy \
+            tests.test_predictor_runtime
+      - name: Compile predictor policy runtime
+        run: |
+          python -m py_compile \
+            predictor_policy/__init__.py \
+            predictor_policy/validator.py \
+            predictor_policy/runtime.py \
+            predictor_policy/stage_comparison.py
