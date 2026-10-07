@@ -202,10 +202,12 @@ def _indexed_fetch(engine: Any, legacy: Callable, active_keys=None):
 
     candidates = _fetch_current_candidates(engine, unresolved)
     if candidates is None:
-        # Preserve existing behavior if the optimization cannot prove current
-        # state.  This path should be exceptional; correctness wins over speed.
-        engine.log("[FirstSnapIndexed] current state unproven; falling back to legacy scan")
-        return legacy(active_keys)
+        # Fail closed instead of reviving the legacy full-table OFFSET scan.
+        # The runtime already skips signal decisions when a required first
+        # snapshot is unavailable; protecting a degraded DB is safer than
+        # issuing hundreds of deep history pages.
+        engine.log("[FirstSnapIndexed] current state unproven; fail-closed without legacy scan")
+        return result
 
     if not candidates:
         engine.log(

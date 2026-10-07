@@ -214,3 +214,19 @@ def test_unscoped_call_preserves_legacy_loader():
 
     assert engine.fetch_first_snapshots(None) == legacy_result
     assert calls["legacy"] == 1
+
+
+def test_current_table_error_fails_closed_without_global_offset_fallback(monkeypatch):
+    engine, calls = _engine()
+    indexed.install_first_snapshot_fetch(engine)
+    active_key = "A|B|2026-11-12T19:45:00+00:00"
+
+    monkeypatch.setattr(
+        indexed.requests,
+        "get",
+        lambda *args, **kwargs: Response(status_code=503, payload=[], text="temporary failure"),
+    )
+
+    assert engine.fetch_first_snapshots({active_key}) == {}
+    assert calls["legacy"] == 0
+    assert any("fail-closed without legacy scan" in line for line in calls["logs"])
