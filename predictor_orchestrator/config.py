@@ -57,10 +57,14 @@ class OrchestratorConfig:
         if not db_path:
             raise OrchestratorConfigError("PREDICTOR_STATE_DB must not be empty")
 
+        model = os.environ.get("PREDICTOR_LLM_MODEL", "gpt-6.1-sol").strip()
+        if not model:
+            raise OrchestratorConfigError("PREDICTOR_LLM_MODEL must not be empty")
+
         return cls(
             api_key=api_key,
             api_base=os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1").rstrip("/"),
-            model=os.environ.get("PREDICTOR_LLM_MODEL", "gpt-6-sol").strip() or "gpt-6-sol",
+            model=model,
             state_db_path=db_path,
             service_secret=service_secret,
             max_attempts=_int_env("PREDICTOR_MAX_ATTEMPTS", 3, 1, 5),
