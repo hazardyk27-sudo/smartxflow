@@ -28,10 +28,7 @@ function extractFunction(source, signature) {
 for (const [name, source] of bundles) {
   test(`dashboard schedules deferred modal prefetch (${name})`, () => {
     assert.match(source, /function scheduleDeferredModalRuntimePrefetch\(\)/);
-    assert.match(
-      source,
-      /runOptionalStartupTask\('modal runtime prefetch',\s*scheduleDeferredModalRuntimePrefetch\)/
-    );
+    assert.match(source, /runOptionalStartupTask\('modal runtime prefetch',\s*scheduleDeferredModalRuntimePrefetch\)/);
   });
 
   test(`modal prefetch waits for idle and does not execute scripts (${name})`, () => {
@@ -48,33 +45,30 @@ for (const [name, source] of bundles) {
     const context = vm.createContext({
       window: windowObj,
       document: {
-        createElement(tag) {
-          created.push(tag);
-          return { dataset: {} };
-        },
-        head: {
-          appendChild(node) { appended.push(node); }
-        }
+        createElement(tag) { created.push(tag); return { dataset: {} }; },
+        head: { appendChild(node) { appended.push(node); } }
       },
       _getModalChartRuntimeUrl: () => '/static/js/modal-chart.js?v=test',
       _getModalAlarmsRuntimeUrl: () => '/static/js/modal-alarms.js?v=test',
+      _getModalLiveRuntimeUrl: () => '/static/js/modal-live.js?v=test',
       setTimeout() { throw new Error('timer fallback should not run with requestIdleCallback'); },
     });
     vm.runInContext(`let _sxfDeferredModalPrefetchScheduled = false;\n${fn}\nwindow.__testPrefetch = scheduleDeferredModalRuntimePrefetch;`, context);
     windowObj.__testPrefetch();
-    assert.equal(appended.length, 0, 'no prefetch request should start before idle');
+    assert.equal(appended.length, 0);
     assert.equal(typeof idleCallback, 'function');
     idleCallback();
-    assert.deepEqual(created, ['link', 'link'], 'prefetch must use links, not executable script tags');
-    assert.equal(appended.length, 2);
-    assert.deepEqual(appended.map(x => x.rel), ['prefetch', 'prefetch']);
-    assert.deepEqual(appended.map(x => x.as), ['script', 'script']);
+    assert.deepEqual(created, ['link', 'link', 'link']);
+    assert.equal(appended.length, 3);
+    assert.deepEqual(appended.map(x => x.rel), ['prefetch', 'prefetch', 'prefetch']);
+    assert.deepEqual(appended.map(x => x.as), ['script', 'script', 'script']);
     assert.deepEqual(appended.map(x => x.href), [
       '/static/js/modal-chart.js?v=test',
-      '/static/js/modal-alarms.js?v=test'
+      '/static/js/modal-alarms.js?v=test',
+      '/static/js/modal-live.js?v=test'
     ]);
     windowObj.__testPrefetch();
-    assert.equal(appended.length, 2, 'prefetch scheduling must deduplicate repeated calls');
+    assert.equal(appended.length, 3);
   });
 
   test(`modal prefetch skips already loaded runtimes (${name})`, () => {
@@ -84,6 +78,7 @@ for (const [name, source] of bundles) {
     const appended = [];
     const windowObj = {
       __sxfLoadChartImpl: () => {},
+      __sxfCheckModalLiveDataImpl: () => {},
     };
     const context = vm.createContext({
       window: windowObj,
@@ -93,10 +88,8 @@ for (const [name, source] of bundles) {
       },
       _getModalChartRuntimeUrl: () => '/static/js/modal-chart.js?v=test',
       _getModalAlarmsRuntimeUrl: () => '/static/js/modal-alarms.js?v=test',
-      setTimeout(callback, delay) {
-        timerCallback = callback;
-        timerDelay = delay;
-      },
+      _getModalLiveRuntimeUrl: () => '/static/js/modal-live.js?v=test',
+      setTimeout(callback, delay) { timerCallback = callback; timerDelay = delay; },
     });
     vm.runInContext(`let _sxfDeferredModalPrefetchScheduled = false;\n${fn}\nwindow.__testPrefetch = scheduleDeferredModalRuntimePrefetch;`, context);
     windowObj.__testPrefetch();
