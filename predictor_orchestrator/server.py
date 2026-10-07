@@ -9,11 +9,7 @@ from flask import Flask, jsonify, request
 
 from .config import OrchestratorConfig, OrchestratorConfigError
 from .llm_client import LLMClientError, OpenAIResponsesClient
-from .service import (
-    OrchestratorError,
-    PredictorOrchestrator,
-    ValidationExhausted,
-)
+from .service import OrchestratorError, PredictorOrchestrator, ValidationExhausted
 from .store import SQLiteOrchestratorStore
 
 
@@ -115,7 +111,8 @@ def create_app(
         if stage is None:
             return jsonify({"ok": False, "error": {"code": "BAD_STAGE"}}), 404
         body = request.get_json(silent=True) or {}
-        if stage in {"STAGE2", "STAGE3"} and body.get("user_authorized") is not True:
+        user_authorized = body.get("user_authorized") is True
+        if stage in {"STAGE2", "STAGE3"} and not user_authorized:
             return jsonify(
                 {
                     "ok": False,
@@ -128,7 +125,12 @@ def create_app(
         context = body.get("trusted_context")
         if not isinstance(context, dict):
             return jsonify({"ok": False, "error": {"code": "BAD_REQUEST", "message": "trusted_context object is required"}}), 400
-        result = orchestrator.run_stage(workflow_id=workflow_id, stage=stage, trusted_context=context)
+        result = orchestrator.run_stage(
+            workflow_id=workflow_id,
+            stage=stage,
+            trusted_context=context,
+            user_authorized=user_authorized,
+        )
         return jsonify({"ok": True, **result})
 
     @app.get("/api/predictor/workflows/<workflow_id>/<stage_name>/attempts")
