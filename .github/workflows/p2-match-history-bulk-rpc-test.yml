@@ -1,0 +1,175 @@
+name: P2 Match History Bulk RPC Test
+
+on:
+  push:
+    branches: [perf/p2-match-history-bulk-rpc]
+
+permissions:
+  contents: write
+
+jobs:
+  p2-match-history-bulk-rpc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p2-match-history-bulk-rpc
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Wire single-call match history path
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('services/supabase_client.py')
+          text = service.read_text()
+          anchor = '''    def _history_row_to_legacy(self, row: Dict, market: str) -> Dict[str, Any]:\n'''
+          method = '''    def get_match_history_bulk(\n        self,\n        home_team: str,\n        away_team: str,\n        league: str = '',\n    ) -> Optional[Dict[str, List[Dict[str, Any]]]]:\n        """Fetch all six match-history markets through one PostgREST RPC.\n\n        None means the optimized RPC path is unavailable and callers must use\n        the existing per-market queries. A dict (including empty lists) means\n        the RPC completed successfully.\n        """\n        if not self.is_available:\n            return None\n\n        markets = (\n            'moneyway_1x2',\n            'moneyway_ou25',\n            'moneyway_btts',\n            'dropping_1x2',\n            'dropping_ou25',\n            'dropping_btts',\n        )\n        try:\n            url = f"{self._rest_url('rpc/sxf_match_history_bulk_v1')}"\n            response = self._get_http_client().post(\n                url,\n                headers=self._headers(),\n                json={\n                    'p_home': home_team,\n                    'p_away': away_team,\n                    'p_league': league or '',\n                },\n                timeout=30,\n            )\n            if response.status_code != 200:\n                if response.status_code not in (404, 405):\n                    print(\n                        f"[MatchHistory/BulkRPC] HTTP {response.status_code}; "\n                        "falling back to per-market history reads"\n                    )\n                return None\n\n            payload = response.json()\n            if isinstance(payload, list) and len(payload) == 1 and isinstance(payload[0], dict):\n                payload = payload[0]\n            if not isinstance(payload, dict):\n                return None\n\n            result: Dict[str, List[Dict[str, Any]]] = {}\n            for market in markets:\n                rows = payload.get(market, [])\n                if rows is None:\n                    rows = []\n                if not isinstance(rows, list):\n                    return None\n                result[market] = [\n                    self._history_row_to_legacy(row, market)\n                    for row in rows\n                    if isinstance(row, dict)\n                ]\n            return result\n        except Exception as exc:\n            print(\n                f"[MatchHistory/BulkRPC] {exc}; "\n                "falling back to per-market history reads"\n            )\n            return None\n\n'''
+          if anchor not in text:
+              raise SystemExit('SupabaseClient history anchor not found')
+          text = text.replace(anchor, method + anchor, 1)
+          service.write_text(text)
+
+          app = Path('app.py')
+          app_text = app.read_text()
+          old_builder = '''    def _build_market_data(market, use_home, use_away, use_league):\n        history = db.get_match_history(use_home, use_away, market, use_league)\n'''
+          new_builder = '''    def _build_market_data(\n        market,\n        use_home,\n        use_away,\n        use_league,\n        history_override=None,\n    ):\n        history = (\n            history_override\n            if history_override is not None\n            else db.get_match_history(use_home, use_away, market, use_league)\n        )\n'''
+          if old_builder not in app_text:
+              raise SystemExit('bulk history builder anchor not found')
+          app_text = app_text.replace(old_builder, new_builder, 1)
+
+          old_fetch = '''    def _fetch_all_markets(use_home, use_away, use_league):\n        out = {}\n        with ThreadPoolExecutor(max_workers=6) as executor:\n            futures = {executor.submit(_build_market_data, m, use_home, use_away, use_league): m for m in all_markets}\n            for future in futures:\n                market_name, market_data = future.result()\n                out[market_name] = market_data\n        return out\n'''
+          new_fetch = '''    def _fetch_all_markets(use_home, use_away, use_league):\n        bulk_histories = db.get_match_history_bulk(\n            use_home,\n            use_away,\n            use_league,\n        )\n        if bulk_histories is not None:\n            out = {}\n            for market in all_markets:\n                market_name, market_data = _build_market_data(\n                    market,\n                    use_home,\n                    use_away,\n                    use_league,\n                    history_override=bulk_histories.get(market, []),\n                )\n                out[market_name] = market_data\n            return out\n\n        # Backward-compatible fallback while the RPC is unavailable or if a\n        # transient database error occurs. Preserve the old parallel behavior.\n        out = {}\n        with ThreadPoolExecutor(max_workers=6) as executor:\n            futures = {executor.submit(_build_market_data, m, use_home, use_away, use_league): m for m in all_markets}\n            for future in futures:\n                market_name, market_data = future.result()\n                out[market_name] = market_data\n        return out\n'''
+          if old_fetch not in app_text:
+              raise SystemExit('bulk history fetch anchor not found')
+          app_text = app_text.replace(old_fetch, new_fetch, 1)
+          app.write_text(app_text)
+          PY
+
+          cat > tests/test_match_history_bulk_rpc.py <<'PYTEST'
+          from pathlib import Path
+
+          from services.supabase_client import SupabaseClient
+
+
+          MARKETS = (
+              'moneyway_1x2',
+              'moneyway_ou25',
+              'moneyway_btts',
+              'dropping_1x2',
+              'dropping_ou25',
+              'dropping_btts',
+          )
+
+
+          class _Response:
+              def __init__(self, status_code, payload):
+                  self.status_code = status_code
+                  self._payload = payload
+
+              def json(self):
+                  return self._payload
+
+
+          class _HTTP:
+              def __init__(self, response):
+                  self.response = response
+                  self.calls = []
+
+              def post(self, url, headers, json, timeout):
+                  self.calls.append((url, json, timeout))
+                  return self.response
+
+
+          def _client(monkeypatch, response):
+              client = SupabaseClient.__new__(SupabaseClient)
+              client.url = 'https://example.supabase.co'
+              client.key = 'anon-test'
+              client._http_client = None
+              http = _HTTP(response)
+              monkeypatch.setattr(client, '_get_http_client', lambda: http)
+              return client, http
+
+
+          def test_bulk_rpc_uses_one_http_call_and_preserves_market_shape(monkeypatch):
+              payload = {market: [] for market in MARKETS}
+              payload['moneyway_1x2'] = [{
+                  'home': 'Alpha',
+                  'away': 'Beta',
+                  'league': 'League',
+                  'scraped_at': '2026-10-07T12:00:00Z',
+                  'odds1': 1.9,
+                  'oddsx': 3.2,
+                  'odds2': 4.0,
+              }]
+              client, http = _client(monkeypatch, _Response(200, payload))
+
+              result = client.get_match_history_bulk('Alpha', 'Beta', 'League')
+
+              assert result is not None
+              assert set(result) == set(MARKETS)
+              assert result['moneyway_1x2'][0]['Odds1'] == 1.9
+              assert len(http.calls) == 1
+              url, body, timeout = http.calls[0]
+              assert url.endswith('/rest/v1/rpc/sxf_match_history_bulk_v1')
+              assert body == {
+                  'p_home': 'Alpha',
+                  'p_away': 'Beta',
+                  'p_league': 'League',
+              }
+              assert timeout == 30
+
+
+          def test_bulk_rpc_empty_success_is_not_treated_as_failure(monkeypatch):
+              client, http = _client(
+                  monkeypatch,
+                  _Response(200, {market: [] for market in MARKETS}),
+              )
+              result = client.get_match_history_bulk('Alpha', 'Beta')
+              assert result == {market: [] for market in MARKETS}
+              assert len(http.calls) == 1
+
+
+          def test_bulk_rpc_non_200_returns_none_for_legacy_fallback(monkeypatch):
+              client, http = _client(monkeypatch, _Response(404, {}))
+              assert client.get_match_history_bulk('Alpha', 'Beta', 'League') is None
+              assert len(http.calls) == 1
+
+
+          def test_bulk_endpoint_wires_rpc_before_parallel_fallback():
+              source = Path('app.py').read_text()
+              route_start = source.index("@app.route('/api/match/history/bulk')")
+              route_end = source.index("@app.route('/api/favorite/toggle'", route_start)
+              route = source[route_start:route_end]
+              rpc_call = route.index('db.get_match_history_bulk(')
+              fallback_pool = route.index('ThreadPoolExecutor(max_workers=6)', rpc_call)
+              assert rpc_call < fallback_pool
+              assert 'if bulk_histories is not None:' in route
+              assert 'history_override=bulk_histories.get(market, [])' in route
+
+
+          def test_bulk_rpc_migration_is_security_invoker_and_capped():
+              sql = Path('migrations/2026_10_07_match_history_bulk_rpc.sql').read_text().lower()
+              assert 'security invoker' in sql
+              assert 'sxf_match_history_bulk_v1' in sql
+              assert sql.count('limit 10000') == 6
+              for market in MARKETS:
+                  assert f'public.{market}_history' in sql
+          PYTEST
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
+      - name: Compile and run P2 regressions
+        run: |
+          python -m py_compile app.py services/supabase_client.py
+          python -m pytest -q tests/test_match_history_bulk_rpc.py
+      - name: Commit tested P2 implementation
+        run: |
+          git config user.name 'SmartXFlow CI'
+          git config user.email 'smartxflow-ci@users.noreply.github.com'
+          git add app.py services/supabase_client.py tests/test_match_history_bulk_rpc.py
+          git rm .github/workflows/p2-match-history-bulk-rpc-test.yml
+          git commit -m 'perf: batch match history through one RPC'
+          git push origin HEAD:perf/p2-match-history-bulk-rpc
