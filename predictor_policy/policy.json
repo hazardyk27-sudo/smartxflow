@@ -1,5 +1,5 @@
 {
-  "policy_version": 1,
+  "policy_version": 2,
   "status": "ACTIVE",
   "canonical": true,
   "precedence": "For Predictor workflow invariants, this executable policy controls over conflicting markdown summaries. Markdown remains human-readable documentation.",
@@ -8,26 +8,28 @@
       "SXF-WF-001": "Stages run in order STAGE1 -> STAGE2 -> STAGE3.",
       "SXF-WF-002": "STAGE2 and STAGE3 require explicit user authorization.",
       "SXF-WF-003": "A stage may not emit fields reserved for a later stage.",
-      "SXF-WF-004": "Every user-visible match row must contain one concrete preference; screened-out Stage 1 fixtures are not user-visible prediction rows."
+      "SXF-WF-004": "Every user-visible match row must contain one concrete preference; screened-out Stage 1 fixtures are not user-visible prediction rows.",
+      "SXF-WF-005": "Every structured stage payload must identify its run and predecessor so the stage sequence cannot be bypassed by omitting carry-forward state."
     },
     "stage1": {
       "SXF-S1-001": "Use SmartXFlow primary/production stored data only; external football research is forbidden.",
-      "SXF-S1-002": "User date/time/named-match criteria define the source universe. Stage 1 must screen every valid fixture in that universe internally.",
+      "SXF-S1-002": "User date/time/named-match criteria define the source universe. The universe must be explicitly resolved and every valid fixture in it must have one internal screening result.",
       "SXF-S1-003": "Stage 1 user-facing output contains only attention-worthy candidates selected from the screened universe; it must not dump every scanned fixture merely because it was in the source universe.",
       "SXF-S1-004": "Every reported Stage 1 candidate must have a frozen native SXF preference with a concrete market and selection.",
       "SXF-S1-005": "Stage 1 native evidence markets are limited to 1X2, O/U 2.5 and BTTS.",
       "SXF-S1-006": "Stage 1 must inspect the available temporal path, including money, share, money velocity, odds path, price response/resistance, liquidity, reversals, momentum, late moves and native cross-market behavior.",
-      "SXF-S1-007": "Stage 1 may rank/select candidates by analytical value, unusual movement, strength, divergence, persistence, acceleration or other defensible SXF behavior; screening is an analytical selection step, not an invented eligibility filter.",
+      "SXF-S1-007": "Every selected candidate must contain at least one structured attention signal. OTHER is allowed only with a non-empty explanation.",
       "SXF-S1-008": "Stage 1 may not issue BET, WATCH or PASS.",
-      "SXF-S1-009": "The exact reported Stage 1 candidate set becomes the default carry-forward set for Stage 2 and Stage 3 unless the user changes it.",
-      "native_markets": ["1X2", "OU2.5", "BTTS"]
+      "SXF-S1-009": "The exact reported Stage 1 candidate set becomes the default carry-forward set for Stage 2 and Stage 3 unless the user changes it explicitly.",
+      "native_markets": ["1X2", "OU2.5", "BTTS"],
+      "attention_signals": ["MONEY_ACCELERATION", "PRICE_CONFIRMATION", "PRICE_RESISTANCE", "DIVERGENCE", "REVERSAL", "PERSISTENCE", "LIQUIDITY_ADJUSTED_MOVE", "CROSS_MARKET_CONFIRMATION", "CROSS_MARKET_CONFLICT", "LATE_MOVE", "SATURATION", "OTHER"]
     },
     "stage2": {
-      "SXF-S2-001": "Stage 2 starts only after explicit user authorization.",
-      "SXF-S2-002": "Carry the exact Stage 1 candidate set forward unless the user changes it.",
+      "SXF-S2-001": "Stage 2 starts only after explicit user authorization and a validated Stage 1 predecessor.",
+      "SXF-S2-002": "Carry the exact Stage 1 candidate set forward unless an explicit user scope change is recorded.",
       "SXF-S2-003": "Frozen Stage 1 preference is immutable and must remain separate from research conclusions.",
       "SXF-S2-004": "Default maximum is 6 meaningful research facts per match.",
-      "SXF-S2-005": "Each match requires strongest support, strongest counter-case and research coverage classification.",
+      "SXF-S2-005": "Each match requires a completed 3+1 research packet: squad check, performance check, strongest support, strongest counter-case and research coverage classification.",
       "SXF-S2-006": "Missing/low-coverage information is UNKNOWN, not adverse evidence and creates no automatic confidence penalty.",
       "SXF-S2-007": "Stage 2 may not issue BET, WATCH or PASS.",
       "SXF-S2-008": "Claim-level evidence must keep opposite-direction facts separate and distinguish FACT from INFERENCE.",
@@ -36,24 +38,27 @@
       "verdict_values": ["CONFIRMED", "PARTIALLY_CONFIRMED", "CONTRADICTED", "UNEXPLAINED"]
     },
     "stage3": {
-      "SXF-S3-001": "Stage 3 starts only after explicit user authorization.",
+      "SXF-S3-001": "Stage 3 starts only after explicit user authorization and validated Stage 1/Stage 2 predecessor state.",
       "SXF-S3-002": "Determine the underlying thesis before choosing the execution market.",
       "SXF-S3-003": "Strongest counterevidence severity must be scored and deducted from raw confidence.",
       "SXF-S3-004": "Joint divergence state must use price, share, absolute money, liquidity, cross-market and market-regime context; closing price alone is not a veto.",
-      "SXF-S3-005": "Any non-native execution change must be labeled PROTECTION or AGGRESSION.",
+      "SXF-S3-005": "Native execution must be labeled NATIVE. A non-native execution must be labeled PROTECTION or AGGRESSION.",
       "SXF-S3-006": "DNB is forbidden.",
       "SXF-S3-007": "Every carried match receives quality grade before action.",
       "SXF-S3-008": "Grade mapping is mandatory: A+ and A -> BET, B -> WATCH, C -> PASS.",
       "SXF-S3-009": "High confidence cannot override the quality-grade action gate.",
       "SXF-S3-010": "Every Stage 3 row retains one concrete best-current preference even when action is PASS.",
+      "SXF-S3-011": "Every Stage 3 row preserves frozen Stage 1 baseline, Stage 2 verdict, rationale, strongest counterargument and explicit archive intent.",
+      "SXF-S3-012": "prediction_at must equal the recorded decision timestamp; backdating or postdating the immutable cutoff is forbidden.",
       "counter_penalties": {"NONE": 0, "LIGHT": -3, "MEDIUM": -7, "STRONG": -12, "STRUCTURAL": -20},
       "grade_action": {"A+": "BET", "A": "BET", "B": "WATCH", "C": "PASS"},
       "divergence_values": ["CONFIRMED", "MIXED", "ADVERSE", "MATERIAL_REVERSAL"],
-      "execution_types": ["NATIVE", "PROTECTION", "AGGRESSION"]
+      "execution_types": ["NATIVE", "PROTECTION", "AGGRESSION"],
+      "change_drivers": ["NONE", "STAGE2_RESEARCH", "EXECUTION_OPTIMIZATION", "MARKET_UPDATE", "BOTH"]
     },
     "execution_price": {
       "SXF-PRICE-001": "Never invent or mathematically synthesize an exact non-native execution price.",
-      "SXF-PRICE-002": "A user may supply a real current non-native execution price. Store it as origin USER_SUPPLIED with exact market, exact selection, numeric price and observed_at equal to explicit user observation time when provided, otherwise message receipt time.",
+      "SXF-PRICE-002": "A user may supply a real current non-native execution price. Store it as origin USER_SUPPLIED with exact market, exact selection, numeric price and observed_at equal to explicit user observation time when provided, otherwise request/message receipt time supplied by the caller; only as a last runtime fallback use current UTC time.",
       "SXF-PRICE-003": "USER_SUPPLIED is valid observed price evidence and does not require independent web verification, but the agent may not alter, round into another price, transfer it to another market/selection or silently refresh it.",
       "SXF-PRICE-004": "Ambiguous/stale user-supplied prices must be marked stale/needs-confirmation or converted to a conditional threshold; never pretend they are current.",
       "SXF-PRICE-005": "A threshold is not actual odds. A priced formal non-native BET requires an actual observed price from EXTERNAL_VERIFIED or USER_SUPPLIED.",
@@ -69,7 +74,7 @@
       "SXF-PERF-002": "For every settled carried match, separately grade the final Stage 3 best-current preference hypothetically, independent of whether action was BET, WATCH or PASS.",
       "SXF-PERF-003": "Report Stage 1 baseline vs Stage 3 final preference hit-rate on the same matched case set, plus changed/unchanged preference counts and IMPROVED/WORSENED/SAME transitions.",
       "SXF-PERF-004": "Where actual observed prices exist, also compare one-unit hypothetical ROI for Stage 1 baseline and Stage 3 final preference. Never fabricate missing prices.",
-      "SXF-PERF-005": "Treat the Stage 1 vs Stage 3 delta as evidence about whether Stage 2/context/execution changes add value; do not claim benefit from anecdotes or unmatched samples.",
+      "SXF-PERF-005": "Record the reason for each Stage 1 -> Stage 3 preference change so Stage 2 research effects can be separated from execution optimization or later market updates. The delta is evidence, not causal proof.",
       "required": true,
       "transition_values": ["IMPROVED", "WORSENED", "SAME", "UNRESOLVED"]
     }
