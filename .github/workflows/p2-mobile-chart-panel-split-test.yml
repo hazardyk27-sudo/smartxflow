@@ -5,6 +5,7 @@ on:
     branches: [perf/p2-mobile-chart-panel-split]
     paths:
       - 'scripts/_p2_mobile_chart_panel_split_stage.py'
+      - 'scripts/_p2_mobile_chart_panel_compat.py'
       - '.github/workflows/p2-mobile-chart-panel-split-test.yml'
   workflow_dispatch:
 
@@ -25,7 +26,9 @@ jobs:
       - name: Install staging dependencies
         run: python -m pip install --disable-pip-version-check rjsmin pytest httpx pytz
       - name: Stage P2.16 split
-        run: python scripts/_p2_mobile_chart_panel_split_stage.py
+        run: |
+          python scripts/_p2_mobile_chart_panel_split_stage.py
+          python scripts/_p2_mobile_chart_panel_compat.py
       - name: Syntax checks
         run: |
           node --check static/js/app.js
