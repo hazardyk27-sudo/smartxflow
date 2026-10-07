@@ -50,6 +50,8 @@ def _clock(value: str, *, allow_24: bool = False) -> tuple[int, int, bool]:
 class SXFStage1Source:
     """Read-only SmartXFlow Stage 1 context builder backed by Supabase REST."""
 
+    _HISTORY_BATCH_SIZE = 8
+
     _MARKETS = {
         "1X2": {
             "table": "moneyway_1x2_history",
@@ -159,14 +161,18 @@ class SXFStage1Source:
         data = response.json()
         return data if isinstance(data, list) else []
 
-    def _history_rows(self, table: str, select: str, hashes: list[str]) -> list[dict[str, Any]]:
+    @staticmethod
+    def _is_statement_timeout(exc: SXFSourceError) -> bool:
+        text = str(exc).lower()
+        return "statement timeout" in text or '"57014"' in text or "code': '57014" in text
+
+    def _history_rows_batch(self, table: str, select: str, batch: list[str]) -> list[dict[str, Any]]:
+        if not batch:
+            return []
         rows: list[dict[str, Any]] = []
         page_size = 1000
-        for start in range(0, len(hashes), 40):
-            batch = hashes[start:start + 40]
-            if not batch:
-                continue
-            offset = 0
+        offset = 0
+        try:
             while True:
                 page = self._get(
                     table,
@@ -180,10 +186,23 @@ class SXFStage1Source:
                 )
                 rows.extend(page)
                 if len(page) < page_size:
-                    break
+                    return rows
                 offset += page_size
                 if offset >= 50000:
                     raise SXFSourceError(f"{table} pagination safety limit reached")
+        except SXFSourceError as exc:
+            if len(batch) > 1 and self._is_statement_timeout(exc):
+                midpoint = len(batch) // 2
+                left = self._history_rows_batch(table, select, batch[:midpoint])
+                right = self._history_rows_batch(table, select, batch[midpoint:])
+                return left + right
+            raise
+
+    def _history_rows(self, table: str, select: str, hashes: list[str]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for start in range(0, len(hashes), self._HISTORY_BATCH_SIZE):
+            batch = hashes[start:start + self._HISTORY_BATCH_SIZE]
+            rows.extend(self._history_rows_batch(table, select, batch))
         return rows
 
     @staticmethod
