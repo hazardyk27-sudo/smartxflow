@@ -1,0 +1,71 @@
+name: P2.14 Chart Export Split
+
+on:
+  push:
+    branches: [perf/p2-chart-export-split]
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: perf/p2-chart-export-split
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install staging dependencies
+        run: python -m pip install --disable-pip-version-check rjsmin pytest
+
+      - name: Stage P2.14 split
+        run: python scripts/_p2_chart_export_split_stage.py
+
+      - name: Syntax checks
+        run: |
+          node --check static/js/app.js
+          node --check static/js/chart-export.js
+          node --check static/js/modal-chart.js
+          node --check static/js/modal-live.js
+          node --check static/js/modal-alarms.js
+
+      - name: Run frontend regressions
+        run: |
+          node --test tests/test_chart_export_code_split.js
+          node --test tests/test_modal_chart_code_split.js
+          node --test tests/test_modal_chart_helper_split.js
+          node --test tests/test_modal_alarm_code_split.js
+          node --test tests/test_modal_live_code_split.js
+          node --test tests/test_deferred_modal_prefetch.js
+          node --test tests/test_deferred_chart_libs.js
+          node --test tests/test_deferred_background_live.js
+          node --test tests/test_deferred_finished_scores.js
+          node --test tests/test_deferred_analysis_entrypoints.js
+          node --test tests/test_favorites_bootstrap.js
+          node --test tests/test_alarm_identity.js
+          node --test tests/test_sort_hotpath_debug_cleanup.js
+          node --test tests/test_production_debug_log_cleanup.js
+          node --test tests/test_app_bootstrap.js
+          python -m pytest -q tests/test_deferred_analysis_ui.py tests/test_favorites_bootstrap.py tests/test_hash.py
+
+      - name: Verify clean diff formatting
+        run: git diff --check
+
+      - name: Commit tested P2.14 output
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/p2-chart-export-split-test.yml scripts/_p2_chart_export_split_stage.py
+          git add static/js/app.js static/js/app.js.src static/js/chart-export.js static/js/chart-export.js.src minify.py tests/test_chart_export_code_split.js .github/workflows/frontend-performance-tests.yml
+          git commit -m "perf: defer chart export runtime"
+          git push origin HEAD:perf/p2-chart-export-split
