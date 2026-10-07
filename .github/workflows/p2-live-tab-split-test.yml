@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      MATERIALIZE_P220: 'false'
+      MATERIALIZE_P220: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
