@@ -331,6 +331,75 @@ class SupabaseClient:
                     print(f"Error get_match_history from {market}_history (after {max_retries} retries): {e}")
                     return []
     
+    def get_match_history_bulk(
+        self,
+        home_team: str,
+        away_team: str,
+        league: str = '',
+    ) -> Optional[Dict[str, List[Dict[str, Any]]]]:
+        """Fetch all six match-history markets through one PostgREST RPC.
+
+        None means the optimized RPC path is unavailable and callers must use
+        the existing per-market queries. A dict (including empty lists) means
+        the RPC completed successfully.
+        """
+        if not self.is_available:
+            return None
+
+        markets = (
+            'moneyway_1x2',
+            'moneyway_ou25',
+            'moneyway_btts',
+            'dropping_1x2',
+            'dropping_ou25',
+            'dropping_btts',
+        )
+        try:
+            url = f"{self._rest_url('rpc/sxf_match_history_bulk_v1')}"
+            response = self._get_http_client().post(
+                url,
+                headers=self._headers(),
+                json={
+                    'p_home': home_team,
+                    'p_away': away_team,
+                    'p_league': league or '',
+                },
+                timeout=30,
+            )
+            if response.status_code != 200:
+                if response.status_code not in (404, 405):
+                    print(
+                        f"[MatchHistory/BulkRPC] HTTP {response.status_code}; "
+                        "falling back to per-market history reads"
+                    )
+                return None
+
+            payload = response.json()
+            if isinstance(payload, list) and len(payload) == 1 and isinstance(payload[0], dict):
+                payload = payload[0]
+            if not isinstance(payload, dict):
+                return None
+
+            result: Dict[str, List[Dict[str, Any]]] = {}
+            for market in markets:
+                rows = payload.get(market, [])
+                if rows is None:
+                    rows = []
+                if not isinstance(rows, list):
+                    return None
+                result[market] = [
+                    self._history_row_to_legacy(row, market)
+                    for row in rows
+                    if isinstance(row, dict)
+                ]
+            return result
+        except Exception as exc:
+            print(
+                f"[MatchHistory/BulkRPC] {exc}; "
+                "falling back to per-market history reads"
+            )
+            return None
+
     def _history_row_to_legacy(self, row: Dict, market: str) -> Dict[str, Any]:
         result = {
             'ScrapedAt': row.get('scraped_at', ''),

@@ -2408,8 +2408,18 @@ def get_match_history_bulk():
     all_markets = ['moneyway_1x2', 'moneyway_ou25', 'moneyway_btts', 
                    'dropping_1x2', 'dropping_ou25', 'dropping_btts']
     
-    def _build_market_data(market, use_home, use_away, use_league):
-        history = db.get_match_history(use_home, use_away, market, use_league)
+    def _build_market_data(
+        market,
+        use_home,
+        use_away,
+        use_league,
+        history_override=None,
+    ):
+        history = (
+            history_override
+            if history_override is not None
+            else db.get_match_history(use_home, use_away, market, use_league)
+        )
         chart_data = {'labels': [], 'datasets': []}
         if history:
             for h in history:
@@ -2476,6 +2486,26 @@ def get_match_history_bulk():
     from concurrent.futures import ThreadPoolExecutor
     
     def _fetch_all_markets(use_home, use_away, use_league):
+        bulk_histories = db.get_match_history_bulk(
+            use_home,
+            use_away,
+            use_league,
+        )
+        if bulk_histories is not None:
+            out = {}
+            for market in all_markets:
+                market_name, market_data = _build_market_data(
+                    market,
+                    use_home,
+                    use_away,
+                    use_league,
+                    history_override=bulk_histories.get(market, []),
+                )
+                out[market_name] = market_data
+            return out
+
+        # Backward-compatible fallback while the RPC is unavailable or if a
+        # transient database error occurs. Preserve the old parallel behavior.
         out = {}
         with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {executor.submit(_build_market_data, m, use_home, use_away, use_league): m for m in all_markets}
