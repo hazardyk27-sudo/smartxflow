@@ -24,6 +24,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from poly_trade_checkpoints import fetch_latest_trade_checkpoints
 from services.polymarket_client import (
     get_today_matches,
     get_all_active_matches,
@@ -160,6 +161,17 @@ class PolymarketSupabaseWriter:
         except Exception as e:
             log(f"[Checkpoint GET] Hata: {e}")
             return None
+
+    def get_last_traded_at_many(
+        self,
+        condition_ids: List[str],
+    ) -> Dict[str, Optional[int]]:
+        return fetch_latest_trade_checkpoints(
+            self,
+            condition_ids,
+            log=log,
+            ssl_verify=SSL_VERIFY,
+        )
 
     def upsert_trades(self, rows: List[Dict[str, Any]]) -> bool:
         if not rows:
@@ -1090,10 +1102,14 @@ def process_match(writer: PolymarketSupabaseWriter, match: Dict[str, Any]) -> in
         "last_seen_at": datetime.now(timezone.utc).isoformat(),
     })
 
+    checkpoint_by_condition = writer.get_last_traded_at_many(
+        [condition_id for _market_type, condition_id, _market in specs]
+    )
+
     total_new = 0
     for market_type, condition_id, market in specs:
         raw_label = market.get("groupItemTitle") or market.get("question") or ""
-        since_ts = writer.get_last_traded_at(condition_id)
+        since_ts = checkpoint_by_condition.get(condition_id)
         new_trades, truncated = _fetch_new_trades(condition_id, since_ts)
         if truncated:
             log(
