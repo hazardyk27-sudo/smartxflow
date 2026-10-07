@@ -10,6 +10,16 @@ This file is the short common bootstrap for the active specialized learning work
 - `main:/AGENTS.md` remains the repository/release/safety supplement and must also be respected.
 - Do not fall back to stale role definitions on `main` when the active files exist on `preview`.
 
+## Executable Predictor policy — HARD PRECEDENCE
+
+Predictor workflow invariants are machine-readable and code-validated under:
+
+- `predictor_policy/policy.json` — canonical executable rule registry;
+- `predictor_policy/validator.py` — deterministic Stage 1/2/3 and price-truth validator;
+- `predictor_policy/stage_comparison.py` — Stage 1 baseline vs Stage 3 final-preference comparison.
+
+For Predictor workflow behavior, these executable rules control over conflicting or stale wording in lower-level markdown summaries. Markdown remains human-readable explanation. A Predictor stage must not be treated as valid when the corresponding validator would reject its structured payload. Rule violations must be surfaced by rule ID; do not silently relax, skip or reinterpret a hard rule to complete a task faster.
+
 ## Session loading
 
 There are exactly two conversational SmartXFlow roles for this workflow:
@@ -23,12 +33,12 @@ At the start of a specialized session read once, in this order:
 3. only your own `preview:/.agents/roles/<ROLE>.md`
 4. only your own `preview:/.agents/milestones/<ROLE>.md`
 
-Do not routinely reread them. Open detailed contracts only when the active task requires them.
+For every Predictor workflow, also load `predictor_policy/policy.json` once and treat it as executable truth. Do not routinely reread the remaining instruction files. Open detailed contracts only when the active task requires them.
 
 ## Shared learning rules
 
 1. Existing SmartXFlow systems remain the source of live/stored SXF snapshots. Do not build a second scraper for learning.
-2. Archive only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection. A match with no defensible prediction/selection is omitted from the final prediction diary and Learning Archive rather than stored as `PASS`.
+2. Archive only matches materially researched by Predictor and formalized as `BET` or `WATCH` with a concrete non-empty market and selection. A match with no defensible formal action is omitted from the formal case archive rather than stored as a fake `PASS` case.
 3. **The final prediction diary and the Learning Archive case store are separate mandatory artifacts. Individual case folders, `manifest.jsonl` events, settlements, captures or postmatch addenda NEVER count as the daily diary and must never be described as if they do.**
 4. `prediction_at` is the immutable PRE/POST cutoff.
 5. External evidence is PRE only when actual `observed_at <= prediction_at`; publication time alone is insufficient.
@@ -39,9 +49,21 @@ Do not routinely reread them. Open detailed contracts only when the active task 
 10. No model/method silently changes production. Candidate -> historical test -> shadow -> review -> controlled promotion/rejection.
 11. Enforce critical rules in code/tests where practical.
 
+## Stage 1 source universe vs candidate set — HARD RULE
+
+The user's date/time/named-match request defines the **source universe to scan**, not a requirement to dump every fixture into the report.
+
+- Stage 1 must internally inspect every valid fixture that satisfies the user's explicit scope criteria.
+- Stage 1 then selects and reports only matches with analytically useful, attention-worthy SXF behavior: meaningful money/price interaction, divergence, persistence, acceleration, reversal, cross-market confirmation or another defensible SXF reason.
+- A screened-out fixture is not a prediction row and does not need a user-visible preference.
+- Every reported Stage 1 candidate must preserve a concrete frozen native `SXF PREFERENCE` and at least one explicit attention reason.
+- The exact reported Stage 1 candidate set becomes the default carry-forward set for Stage 2 and Stage 3 unless the user changes it.
+- Do not confuse **screening** with an arbitrary eligibility filter. The full requested source universe is still scanned; only the useful candidates are surfaced.
+- If the user explicitly requests every scanned match to be shown, show them all; otherwise the default is scan-all, report-candidates.
+
 ## HARD INVARIANT — EVERY VISIBLE MATCH HAS ONE CONCRETE PREFERENCE
 
-This rule is **absolute for every valid user-scoped match shown in any Predictor output**, including Stage 1, Stage 2 carry-forward summaries, Stage 3, recap tables and non-archived `Gelecek Günler` reports.
+This rule is absolute for every valid match that is actually shown in Predictor output, including reported Stage 1 candidates, Stage 2 carry-forward summaries, Stage 3, recap tables and non-archived `Gelecek Günler` reports.
 
 ### Preference and action are different fields
 
@@ -50,7 +72,7 @@ Every visible match MUST always have both concepts kept separate:
 1. **PREFERENCE / TERCIH** = the single best-current analytical market + exact selection for that match.
 2. **ACTION / KARAR** = whether that preference is currently strong enough to act on (`BET/AL`, `WATCH/IZLE`, `PASS/GEC`, or the applicable workflow label).
 
-The action label may change or downgrade. **The preference may never disappear.**
+The action label may change or downgrade. **The preference may never disappear from a visible prediction row.**
 
 ### Exceptionless output requirement
 
@@ -62,7 +84,7 @@ For every valid match row shown to the user:
 - if the current real price is known, show it;
 - if a non-native execution market is preferred but its real price is unknown, keep the market/selection and say `fiyat dogrulanmadi` or state a clearly labeled minimum acceptable threshold; never invent odds.
 
-The following are **forbidden in any preference/selection field**:
+The following are forbidden in any preference/selection field:
 
 - `Bahis yok`
 - `Tercih yok`
@@ -90,9 +112,9 @@ Therefore:
 
 ### Stage-specific enforcement
 
-- **Stage 1:** every reported match has one frozen native `SXF PREFERENCE` with exact market + exact selection. No blank preference is allowed.
-- **Stage 2:** Stage 1 preference remains visible/frozen; research may confirm or contradict it but may not erase it. If Stage 2 suggests a better future execution expression, record that separately without deleting the frozen preference.
-- **Stage 3:** every carried match must end with one concrete best-current execution preference **before** assigning `BET/WATCH/PASS`. Grade/action is applied to that preference; it is not a substitute for it.
+- **Stage 1:** every **reported candidate** has one frozen native `SXF PREFERENCE` with exact market + exact selection. Screened-out fixtures are not prediction rows and may be omitted from the user-facing Stage 1 report.
+- **Stage 2:** the exact reported Stage 1 candidate set carries forward by default. Stage 1 preference remains visible/frozen; research may confirm or contradict it but may not erase it. If Stage 2 suggests a better future execution expression, record that separately without deleting the frozen preference.
+- **Stage 3:** every carried candidate must end with one concrete best-current execution preference **before** assigning `BET/WATCH/PASS`. Grade/action is applied to that preference; it is not a substitute for it.
 - **Gelecek Gunler:** every listed match must have one concrete best-current preference even when the report labels it `AL`, `IZLE`, or `GEC`.
 
 ### Precedence / anti-misinterpretation rule
@@ -105,7 +127,7 @@ This invariant controls the interpretation of every lower-level phrase such as:
 - `downgrade to WATCH/PASS`;
 - `omit from archive/diary`.
 
-Those phrases govern **action/archive eligibility only**. They NEVER authorize an empty user-visible preference.
+Those phrases govern action/archive eligibility only. They NEVER authorize an empty user-visible preference.
 
 If another Predictor instruction can be read in two ways, always choose the interpretation that preserves:
 
@@ -113,7 +135,40 @@ If another Predictor instruction can be read in two ways, always choose the inte
 
 Do not ask the user to choose between candidate preferences merely because confidence is low. The Predictor must rank the available evidence and name its single best-current preference while honestly downgrading the action/confidence if necessary.
 
-A truly invalid/unresolvable fixture identity is not a prediction row: report it explicitly as an identity/data error rather than disguising it as `PASS`, `GEC`, or an empty preference. For every valid analyzed match, the preference requirement has no exception.
+A truly invalid/unresolvable fixture identity is not a prediction row: report it explicitly as an identity/data error rather than disguising it as `PASS`, `GEC`, or an empty preference.
+
+## User-supplied execution prices — HARD RULE
+
+SmartXFlow does not natively store every execution market. The user may supply a real observed price for an exact non-native market/selection, e.g. `Frosinone +1.5 @1.72`.
+
+- Store origin/source as `USER_SUPPLIED`.
+- Preserve the exact market, exact selection and exact numeric price supplied by the user.
+- `observed_at` is the user's explicitly stated observation time when provided; otherwise use the message receipt time.
+- A clear `USER_SUPPLIED` observed price is valid price evidence and does not require independent web verification.
+- Never alter the user's number, transfer it to another market/selection, synthesize a new price, or silently refresh it later.
+- If the price is ambiguous or stale, mark it `STALE` / `NEEDS_CONFIRMATION` or use it only as a conditional threshold; it cannot support a formal priced BET while stale.
+- A threshold is never actual odds.
+
+## Stage 1 vs Stage 3 performance comparison — MANDATORY LEARNING OUTPUT
+
+The system must measure whether later research/execution logic actually improves the initial SXF baseline.
+
+For every settled Stage 1 candidate:
+
+1. Preserve the frozen Stage 1 market/selection as the baseline.
+2. Grade that Stage 1 baseline against the real result, even when Stage 3 later changes the preference or action becomes PASS.
+3. Separately grade the final Stage 3 best-current preference hypothetically, regardless of BET/WATCH/PASS action.
+4. Compare both on the **same matched case set** and report:
+   - Stage 1 baseline hit rate;
+   - Stage 3 final-preference hit rate;
+   - hit-rate delta;
+   - changed vs unchanged preference count;
+   - `IMPROVED / WORSENED / SAME / UNRESOLVED` transitions;
+   - one-unit hypothetical ROI for each stage only where real observed prices exist.
+5. Treat this delta as evidence about Stage 2/Stage 3 added value. Never claim that external research helps merely because selected anecdotes won.
+6. Development must use the matched comparison to test whether Stage 2 information and execution transformations improve, worsen or merely reshuffle Stage 1 performance.
+
+Canonical implementation: `predictor_policy/stage_comparison.py`.
 
 ## Learning Archive
 
@@ -131,7 +186,7 @@ A truly invalid/unresolvable fixture identity is not a prediction row: report it
 
 ## Daily Prediction Diary — exactly two separate mandatory artifacts
 
-For every calendar day that contains at least one formal Stage 3 `BET` or `WATCH`, Predictor MUST automatically create **exactly two distinct day-level diary artifacts** under:
+For every calendar day that contains at least one formal Stage 3 `BET` or `WATCH`, Predictor MUST automatically create exactly two distinct day-level diary artifacts under:
 
 `learning_archive_data/diaries/YYYY/MM/DD/`
 
@@ -141,7 +196,7 @@ They are mandatory even when every per-match Learning Archive case is already `R
 
 Create/update immediately after Stage 3 final preferences are given, using only information known at that prediction time.
 
-For **every formal final match** include at minimum:
+For every formal final match include at minimum:
 - match identity;
 - final category: `BET`, conditional-BET/execution view, or `WATCH`;
 - execution market + selection;
@@ -156,7 +211,7 @@ This note is a contemporaneous prediction rationale, not a post-result explanati
 
 Create/update after settlement/end-of-day review.
 
-For **every diary match** include at minimum:
+For every diary match include at minimum:
 - original immutable prediction;
 - final score/result;
 - WIN / LOSS / VOID, or hypothetical WIN/LOSS for WATCH;
@@ -174,16 +229,16 @@ Never rewrite the original prediction/rationale after seeing the result. Postmat
 
 ### Hard completion rules
 
-- `cases/YYYY/MM/DD/<case_id>/` is **case evidence**, not either diary.
-- `manifest.jsonl` is **an event index**, not either diary.
-- `settlement.json`, `sxf_snapshots.json.gz`, checksums and per-case addenda are **case package artifacts**, not either diary.
+- `cases/YYYY/MM/DD/<case_id>/` is case evidence, not either diary.
+- `manifest.jsonl` is an event index, not either diary.
+- `settlement.json`, `sxf_snapshots.json.gz`, checksums and per-case addenda are case package artifacts, not either diary.
 - Never say or imply “the diary exists because the cases were archived.”
 - `predictions.md` and `postmatch.md` are independent mandatory artifacts; one never substitutes for the other.
 - If `predictions.md` is missing, prediction-day status is `DIARY_PENDING`.
 - If results are available and any match lacks its postmatch note, end-of-day status is `DIARY_PENDING`.
-- A day is not end-of-day `DONE` until required case archive state **and both diary artifacts with per-match notes** are durable on `learning-archive`.
+- A day is not end-of-day `DONE` until required case archive state and both diary artifacts with per-match notes are durable on `learning-archive`.
 - WATCH outcomes remain hypothetical; never convert them into retroactive bets.
-- Conditional-BET execution must not be claimed unless a qualifying real price was actually verified.
+- Conditional-BET execution must not be claimed unless a qualifying real price was actually verified or explicitly supplied by the user as a current observed price.
 - Diary summaries must reference immutable case truth rather than rewrite it. Corrections are append-only/versioned; never silently alter historical decisions.
 
 See `/.agents/contracts/LEARNING_ARCHIVE.md` when archive/export/validation work requires it.
