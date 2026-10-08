@@ -58,9 +58,9 @@
     it: {
       'app.j.rv_underdog_desc': 'Quota ≥2,90. Con volume £800–£4.999 la quota denaro deve essere ≥55%; da £5.000, ≥50%. Solo casa/trasferta.',
       'app.j.rv_confirmed_desc': 'Volume ≥£5.000, quota denaro >80% negli ultimi 3 snapshot; quota 1,35–2,20 con calo ≥5% dalla prima quota valida.',
-      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, quota denaro ≥88% negli ultimi 3 snapshot; quota 1,55–2,20 con calo ≥7% dalla prima quota valida. Solo casa/trasferta.',
-      'app.j.rv_early_desc': 'Si attiva ≥24 ore prima del calcio d’inizio con volume ≥£5.000 e quota denaro ≥85% sulla stessa selezione per 5 snapshot consecutivi.',
-      'app.j.rv_fake_desc': 'Volume ≥£5.000 e quota denaro >75% negli ultimi 3 snapshot; quota 1,35–2,20 e aumento ≥5% dalla prima quota valida. Solo casa/trasferta.'
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, quota denaro ≥88% negli ultimi 3 snapshot; quota 1,55–2.20 con calo ≥7% dalla prima quota valida. Solo casa/trasferta.',
+      'app.j.rv_early_desc': 'Si attiva ≥24 ore prima del calcio d’inizio con volume £5.000 e quota denaro ≥85% sulla stessa selezione per 5 snapshot consecutivi.',
+      'app.j.rv_fake_desc': 'Volume ≥£5.000 e quota denaro >75% negli ultimi 3 snapshot; quota 1.35–2.20 e aumento ≥5% dalla prima quota valida. Solo casa/trasferta.'
     },
     es: {
       'app.j.rv_underdog_desc': 'Cuota ≥2,90. Con volumen £800–£4.999, el porcentaje de dinero debe ser ≥55%; desde £5.000, ≥50%. Solo local/visitante.',
@@ -168,8 +168,112 @@
     apply: applyDOM
   };
 
+  function addInteractionPreconnect(href) {
+    try {
+      if (document.querySelector('link[data-sxf-interaction-preconnect="' + href + '"]')) return;
+      var link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = href;
+      link.crossOrigin = 'anonymous';
+      link.setAttribute('data-sxf-interaction-preconnect', href);
+      document.head.appendChild(link);
+    } catch (e) {}
+  }
+
+  function prefetchInteractionScript(url) {
+    if (!url) return;
+    try {
+      var links = document.querySelectorAll('link[rel="prefetch"][as="script"]');
+      for (var i = 0; i < links.length; i++) {
+        if (links[i].href === new URL(url, window.location.href).href) return;
+      }
+      var link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'script';
+      link.href = url;
+      link.setAttribute('data-sxf-interaction-prefetch', '1');
+      document.head.appendChild(link);
+    } catch (e) {}
+  }
+
+  function runInteractionWarmup() {
+    var runtimeUrlHelpers = [
+      '_getModalEntryRuntimeUrl',
+      '_getModalInfoRuntimeUrl',
+      '_getLiveTabRuntimeUrl',
+      '_getAdminPanelRuntimeUrl',
+      '_getMobileChartPanelRuntimeUrl'
+    ];
+    runtimeUrlHelpers.forEach(function (name) {
+      try {
+        if (typeof window[name] === 'function') prefetchInteractionScript(window[name]());
+      } catch (e) {}
+    });
+
+    try {
+      if (typeof window.loadSxfAnalysisUi === 'function') {
+        Promise.resolve(window.loadSxfAnalysisUi()).catch(function () {});
+      }
+    } catch (e) {}
+
+    try {
+      if (typeof window.loadChartLibs === 'function') {
+        Promise.resolve(window.loadChartLibs()).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  function scheduleInteractionWarmup() {
+    addInteractionPreconnect('https://cdn.jsdelivr.net');
+
+    var armed = false;
+    var observer = null;
+    var fallbackTimer = null;
+
+    function hasRenderedMatch() {
+      return !!document.querySelector('#matchesTableBody .fav-heart[data-matchkey], #matchCardList .fav-heart[data-matchkey]');
+    }
+
+    function armWarmup() {
+      if (armed) return;
+      armed = true;
+      if (observer) observer.disconnect();
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      var run = function () { runInteractionWarmup(); };
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 1500 });
+      } else {
+        setTimeout(run, 400);
+      }
+    }
+
+    function watchMatches() {
+      if (hasRenderedMatch()) {
+        armWarmup();
+        return;
+      }
+      var tableBody = document.getElementById('matchesTableBody');
+      var cardList = document.getElementById('matchCardList');
+      var target = tableBody || cardList || document.body;
+      if (typeof MutationObserver !== 'undefined' && target) {
+        observer = new MutationObserver(function () {
+          if (hasRenderedMatch()) armWarmup();
+        });
+        observer.observe(target, { childList: true, subtree: true });
+      }
+      fallbackTimer = setTimeout(armWarmup, 6000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', watchMatches, { once: true });
+    } else {
+      watchMatches();
+    }
+  }
+
   var init = detectLang();
   load(init).catch(function () {
     if (init !== DEFAULT_LANG) load(DEFAULT_LANG).catch(function () {});
   });
+  scheduleInteractionWarmup();
 })();
