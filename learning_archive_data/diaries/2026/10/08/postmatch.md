@@ -37,3 +37,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 2, 'roi': -0.06999999999999995, 'pnl_units': -0.1399999999999999}`
 <!-- SXF-STAGE-COMPARISON:03d1a40e66b40ca8:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261007-7168c0ce3b11-d88f01b1e3:BEGIN -->
+### CFR Cluj – Universitatea Cluj
+- Original prediction: **Draw | 1X2**
+- Original action: **WATCH** | confidence: **69.0**
+- prediction_at: `2026-10-07T22:33:10.138608+00:00`
+- Final score: **1-3**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. SUPPORTED: Stage 2 archived evidence contains 3 supporting and 0 contradicting item(s). Final-prematch comparison: entry_odds=3.55; final_prematch_price=3.45; final_share=38.4%; final_money=£ 5579.22; final_market_volume=£ 14545.2
+- Stage 1 baseline: **Draw | 1X2 → LOSS**
+- Stage 3 final preference: **Draw | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261007-7168c0ce3b11-d88f01b1e3:END -->
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **0.0**
+- Stage 3 hit rate: **0.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
+
