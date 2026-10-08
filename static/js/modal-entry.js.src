@@ -335,7 +335,7 @@ async function loadChartWithTrends(home, away, market, league = '', reqId, match
             void 0;
         }
         else {
-            const cacheKey = `${home}|${away}|${league}|${currentSource}`;
+            const cacheKey = `${home}|${away}|${league}|${matchIdHash}|${currentSource}`;
             if (bulkHistoryCacheKey === cacheKey && bulkHistoryCache[market]) {
                 data = bulkHistoryCache[market];
                 void 0;

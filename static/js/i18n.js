@@ -168,8 +168,112 @@
     apply: applyDOM
   };
 
+  function addInteractionPreconnect(href) {
+    try {
+      if (document.querySelector('link[data-sxf-interaction-preconnect="' + href + '"]')) return;
+      var link = document.createElement('link');
+      link.rel = 'preconnect';
+      link.href = href;
+      link.crossOrigin = 'anonymous';
+      link.setAttribute('data-sxf-interaction-preconnect', href);
+      document.head.appendChild(link);
+    } catch (e) {}
+  }
+
+  function prefetchInteractionScript(url) {
+    if (!url) return;
+    try {
+      var links = document.querySelectorAll('link[rel="prefetch"][as="script"]');
+      for (var i = 0; i < links.length; i++) {
+        if (links[i].href === new URL(url, window.location.href).href) return;
+      }
+      var link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.as = 'script';
+      link.href = url;
+      link.setAttribute('data-sxf-interaction-prefetch', '1');
+      document.head.appendChild(link);
+    } catch (e) {}
+  }
+
+  function runInteractionWarmup() {
+    var runtimeUrlHelpers = [
+      '_getModalEntryRuntimeUrl',
+      '_getModalInfoRuntimeUrl',
+      '_getLiveTabRuntimeUrl',
+      '_getAdminPanelRuntimeUrl',
+      '_getMobileChartPanelRuntimeUrl'
+    ];
+    runtimeUrlHelpers.forEach(function (name) {
+      try {
+        if (typeof window[name] === 'function') prefetchInteractionScript(window[name]());
+      } catch (e) {}
+    });
+
+    try {
+      if (typeof window.loadSxfAnalysisUi === 'function') {
+        Promise.resolve(window.loadSxfAnalysisUi()).catch(function () {});
+      }
+    } catch (e) {}
+
+    try {
+      if (typeof window.loadChartLibs === 'function') {
+        Promise.resolve(window.loadChartLibs()).catch(function () {});
+      }
+    } catch (e) {}
+  }
+
+  function scheduleInteractionWarmup() {
+    addInteractionPreconnect('https://cdn.jsdelivr.net');
+
+    var armed = false;
+    var observer = null;
+    var fallbackTimer = null;
+
+    function hasRenderedMatch() {
+      return !!document.querySelector('#matchesTableBody .fav-heart[data-matchkey], #matchCardList .fav-heart[data-matchkey]');
+    }
+
+    function armWarmup() {
+      if (armed) return;
+      armed = true;
+      if (observer) observer.disconnect();
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+      var run = function () { runInteractionWarmup(); };
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 1500 });
+      } else {
+        setTimeout(run, 400);
+      }
+    }
+
+    function watchMatches() {
+      if (hasRenderedMatch()) {
+        armWarmup();
+        return;
+      }
+      var tableBody = document.getElementById('matchesTableBody');
+      var cardList = document.getElementById('matchCardList');
+      var target = tableBody || cardList || document.body;
+      if (typeof MutationObserver !== 'undefined' && target) {
+        observer = new MutationObserver(function () {
+          if (hasRenderedMatch()) armWarmup();
+        });
+        observer.observe(target, { childList: true, subtree: true });
+      }
+      fallbackTimer = setTimeout(armWarmup, 6000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', watchMatches, { once: true });
+    } else {
+      watchMatches();
+    }
+  }
+
   var init = detectLang();
   load(init).catch(function () {
     if (init !== DEFAULT_LANG) load(DEFAULT_LANG).catch(function () {});
   });
+  scheduleInteractionWarmup();
 })();
