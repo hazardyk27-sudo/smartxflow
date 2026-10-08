@@ -87,3 +87,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
 <!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261007-d227a7f83bd2-255c34116f:BEGIN -->
+### Shamrock Rovers – Drogheda
+- Original prediction: **Home | 1X2**
+- Original action: **BET** | confidence: **81.0**
+- prediction_at: `2026-10-07T22:33:10.138608+00:00`
+- Final score: **3-1**
+- Outcome: **WIN**
+- **Why it won/lost:** Original BET settled WIN on final score 3-1. MIXED: Stage 2 archived evidence contains 3 supporting and 2 contradicting item(s). Final-prematch comparison: entry_odds=1.42; final_prematch_price=1.36; final_share=81.0%; final_money=£ 29974.1; final_market_volume=£ 37023.2
+- Stage 1 baseline: **Home | 1X2 → WIN**
+- Stage 3 final preference: **Home | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261007-d227a7f83bd2-255c34116f:END -->
+<!-- SXF-STAGE-COMPARISON:e3bf835e5e3b1e97:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 0.41999999999999993, 'pnl_units': 0.41999999999999993}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 0.41999999999999993, 'pnl_units': 0.41999999999999993}`
+<!-- SXF-STAGE-COMPARISON:e3bf835e5e3b1e97:END -->
+
