@@ -778,14 +778,6 @@ return{label:'BIG MONEY',color:'orange',pillClass:'bigmoney'};}
 if(type==='volumeshock')return{label:_t('app.j.alarm_volume_shock','HACIM SOKU'),color:'gold',pillClass:'volumeshock'};if(type==='dropping'){const level=alarm.level||'L1';if(level==='L3')return{label:_t('app.j.alarm_drop_l3','DÜŞÜŞ L3'),color:'red',pillClass:'dropping-l3'};if(level==='L2')return{label:_t('app.j.alarm_drop_l2','DÜŞÜŞ L2'),color:'red',pillClass:'dropping-l2'};return{label:_t('app.j.alarm_drop_l1','DÜŞÜŞ L1'),color:'red',pillClass:'dropping-l1'};}
 if(type==='publicmove')return{label:'PUBLIC MOVE',color:'gold',pillClass:'publicmove'};if(type==='volumeleader')return{label:_t('app.j.alarm_leader_changed','LIDER DEGISTI'),color:'cyan',pillClass:'volumeleader'};if(type==='mim'){const impact=alarm.impact||alarm.impact_score||alarm.money_impact||0;const impactPct=(impact*100).toFixed(0);return{label:`MIM ${impactPct}%`,color:'cyan',pillClass:'mim'};}
 return{label:'ALERT',color:'green',pillClass:''};}
-function formatAlertValue(alarm){const type=alarm._type;if(type==='sharp'){return'+'+(alarm.sharp_score||0).toFixed(0);}
-if(type==='bigmoney'){const val=alarm.incoming_money||alarm.stake||alarm.volume||0;return'£'+Number(val).toLocaleString('en-GB');}
-if(type==='volumeshock'){const shockValue=alarm.volume_shock_value||alarm.volume_shock||alarm.volume_shock_multiplier||0;return shockValue.toFixed(1)+'x';}
-if(type==='dropping'){const dropPct=alarm.drop_pct||0;return'▼ '+dropPct.toFixed(1)+'%';}
-if(type==='publicmove'){const score=alarm.move_score||alarm.trap_score||alarm.sharp_score||0;return score.toFixed(0);}
-if(type==='volumeleader'){const share=alarm.new_leader_share||0;return'%'+share.toFixed(0);}
-if(type==='mim'){const impact=alarm.impact||alarm.impact_score||alarm.money_impact||0;const level=alarm.mim_level||1;return`L${level} ${impact.toFixed(2)}`;}
-return'';}
 function renderAlertBand(){const track=document.getElementById('alertBandTrack');if(!track)return;if(!alertBandData||alertBandData.length===0){track.innerHTML='<span class="alert-band-empty">Alarm bekleniyor...</span>';return;}
 const top=alertBandData.slice(0,10);const pillsHtml=top.map((alarm,idx)=>{const info=getAlertType(alarm);const home=alarm.home||alarm.home_team||'?';const away=alarm.away||alarm.away_team||'?';const rawSel=(alarm.selection||alarm.side||'').toUpperCase();const selMap={'U':_t('app.dyn.alt','Alt'),'O':_t('app.dyn.ust','Üst'),'Y':_t('app.dyn.evet','Evet'),'N':_t('app.dyn.hayir','Hayır'),'1':'1','X':'X','2':'2','UNDER':_t('app.dyn.alt','Alt'),'OVER':_t('app.dyn.ust','Üst'),'YES':_t('app.dyn.evet','Evet'),'NO':_t('app.dyn.hayir','Hayır')};const selection=selMap[rawSel]||rawSel;let value='';if(alarm._type==='sharp'){value=(alarm.sharp_score||0).toFixed(1);}else if(alarm._type==='volumeshock'){value=`${(alarm.volume_shock_value || alarm.volume_shock || alarm.volume_shock_multiplier || 0).toFixed(1)}x`;}else if(alarm._type==='bigmoney'){value=`£${Math.round(Number(alarm.incoming_money || alarm.stake || 0)).toLocaleString('en-GB')}`;}else if(alarm._type==='dropping'){value=`▼ ${(alarm.drop_pct || 0).toFixed(1)}%`;}else if(alarm._type==='publicmove'){value=`${(alarm.move_score || alarm.trap_score || alarm.sharp_score || 0).toFixed(0)}`;}else if(alarm._type==='volumeleader'){value=`%${(alarm.new_leader_share || 0).toFixed(0)}`;}else if(alarm._type==='mim'){const impact=alarm.impact||alarm.impact_score||alarm.money_impact||0;const prevVol=alarm.prev_volume||alarm.previous_volume||0;const currVol=alarm.current_volume||alarm.curr_volume||alarm.total_volume||alarm.volume||0;const incomingMoney=currVol-prevVol;value=incomingMoney>0?`+£${Math.round(Number(incomingMoney)).toLocaleString('en-GB')}`:`${(impact * 100).toFixed(0)}%`;}
 const matchKey=`${home}_vs_${away}`.replace(/\s+/g,'_');const alarmType=alarm._type||'';const alarmMarket=(alarm.market||'').replace(/'/g,"\\'");const alarmLeague=(alarm.league||'').replace(/'/g,"\\'");const alarmKickoff=(alarm.kickoff_utc||alarm.match_date||alarm.fixture_date||'').replace(/'/g,"\\'");const alarmHash=(alarm.match_id_hash||alarm.match_id||'').replace(/'/g,"\\'");const isMobile=window.innerWidth<=768;const matchDisplay=isMobile?home:`${home} - ${away}`;var _alarmFree=_isTestFreeAlarm(home,away);var _blurClass=(window.userPlan==='test'&&!_alarmFree)?' test-blur-alarm':'';if(alarm._type==='volumeleader'){const oldLeader=alarm.old_leader||alarm.previous_leader||'?';const newLeader=alarm.new_leader||alarm.selection||'?';return`
@@ -815,61 +807,6 @@ return`
     `;}
 function updateAlertBandBadge(){const badge=document.getElementById('alarmsBadge');const mobileBadge=document.getElementById('mobileAlarmBadge');const count=alertBandData.length;if(badge){badge.textContent=count;badge.setAttribute('data-count',count);}
 if(mobileBadge){mobileBadge.textContent=count;}}
-function showAlertBandDetail(index){const alarm=alertBandData[index];if(!alarm)return;const info=getAlertType(alarm);const home=alarm.home||alarm.home_team||'-';const away=alarm.away||alarm.away_team||'-';const value=formatAlertValue(alarm);const modal=document.createElement('div');modal.className='modal-overlay';modal.id='alertBandModal';modal.onclick=(e)=>{if(e.target===modal)modal.remove();};let detailsHtml='';if(alarm._type==='sharp'){detailsHtml=`
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #4ade80; font-size: 20px; font-weight: 700;">${alarm.volume ? '£' + Number(alarm.volume).toLocaleString('en-GB') : '-'}</div>
-                    <div style="color: #7d848c; font-size: 11px;">Volume</div>
-                </div>
-                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #f0883e; font-size: 20px; font-weight: 700;">${alarm.stake_share ? alarm.stake_share.toFixed(1) + '%' : '-'}</div>
-                    <div style="color: #7d848c; font-size: 11px;">Stake Share</div>
-                </div>
-                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #58a6ff; font-size: 20px; font-weight: 700;">${alarm.odds_move ? (alarm.odds_move > 0 ? '+' : '') + alarm.odds_move.toFixed(2) : '-'}</div>
-                    <div style="color: #7d848c; font-size: 11px;">Odds Move</div>
-                </div>
-                <div style="background: #262a2f; border-radius: 8px; padding: 12px; text-align: center;">
-                    <div style="color: #a371f7; font-size: 20px; font-weight: 700;">${alarm.volume_shock ? alarm.volume_shock.toFixed(1) + 'x' : '-'}</div>
-                    <div style="color: #7d848c; font-size: 11px;">Volume Shock</div>
-                </div>
-            </div>
-        `;}else{detailsHtml=`
-            <div style="background: #262a2f; border-radius: 8px; padding: 16px; text-align: center;">
-                <div style="color: #fbbf24; font-size: 28px; font-weight: 700;">${alarm.stake ? '£' + Math.round(Number(alarm.stake)).toLocaleString('en-GB') : (alarm.volume ? '£' + Math.round(Number(alarm.volume)).toLocaleString('en-GB') : '-')}</div>
-                <div style="color: #7d848c; font-size: 12px; margin-top: 4px;">Stake Amount</div>
-            </div>
-        `;}
-const typeColors={sharp:'#ef4444',bigmoney:'#fbbf24',volumeshock:'#F6C343',dropping:'#f85149',publicmove:'#FFCC00',volumeleader:'#06b6d4',mim:'#3B82F6'};modal.innerHTML=`
-        <div class="modal-content" style="max-width: 480px;">
-            <div class="modal-header">
-                <h2 style="display: flex; align-items: center; gap: 10px;">
-                    <span style="background: ${typeColors[alarm._type] || '#7d848c'}; width: 12px; height: 12px; border-radius: 50%;"></span>
-                    ${info.label}
-                </h2>
-                <button class="close-btn" onclick="document.getElementById('alertBandModal').remove()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body" style="padding: 20px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 42px; font-weight: 700; color: ${typeColors[alarm._type] || '#7d848c'};">${value}</div>
-                    <div style="color: #7d848c; font-size: 13px;">${alarm._type === 'sharp' ? 'Sharp Score' : 'Stake'}</div>
-                </div>
-                <div style="background: #141719; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-                    <div style="font-size: 18px; font-weight: 600; color: #fff; text-align: center; margin-bottom: 8px;">
-                        ${home} vs ${away}
-                    </div>
-                    <div style="text-align: center; color: #7d848c; font-size: 13px;">
-                        ${(alarm.market || '-').replace(/O\/U/gi, 'A/Ü')} | <span style="color: #58a6ff;">${{'U': _t('app.dyn.alt','Alt'), 'O': _t('app.dyn.ust','Üst'), 'Y': _t('app.dyn.evet','Evet'), 'N': _t('app.dyn.hayir','Hayır'), 'UNDER': _t('app.dyn.alt','Alt'), 'OVER': _t('app.dyn.ust','Üst'), 'YES': _t('app.dyn.evet','Evet'), 'NO': _t('app.dyn.hayir','Hayır')}[(alarm.selection || alarm.side || '-').toUpperCase()] || (alarm.selection || alarm.side || '-')}</span>
-                    </div>
-                </div>
-                ${detailsHtml}
-            </div>
-        </div>
-    `;document.body.appendChild(modal);}
 setInterval(()=>{if(_isLicensed)loadAlertBand();},120000);document.addEventListener('DOMContentLoaded',async()=>{await _licenseReady;if(!_isLicensed)return;setTimeout(loadAlertBand,500);});let currentAlarmFilter='all';let allAlarmsData=[];let groupedAlarmsData=[];let alarmsDataByType={sharp:[],bigmoney:[],volumeshock:[],dropping:[],publicmove:[],volumeleader:[],mim:[]};let alarmSearchQuery='';let alarmsDisplayCount=10;let alarmsSidebarOpen=false;let openAlarmId=null;var _mobMarkets={moneyway:[{v:'1x2',l:'1X2'},{v:'ou25',l:'2.5'},{v:'btts',l:'KG'}],dropping:[{v:'1x2',l:'1X2'},{v:'ou25',l:'2.5'},{v:'btts',l:'KG'}],live:[{v:'1x2',l:'1X2'},{v:'ou1.5',l:'1.5'},{v:'ou2.5',l:'2.5'},{v:'ou3.5',l:'3.5'},{v:'ou4.5',l:'4.5'}]};var _mobCurCat='moneyway';var _mobCurMkt='1x2';function selectMobCat(cat){_mobCurCat=cat;document.querySelectorAll('#mobCatRow .mob-tab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-cat')===cat);});_updateMobMktRow(cat);if(cat==='live'){switchToLive();}else{setMobileGroup(cat);}}
 function _updateMobMktRow(cat){var row=document.getElementById('mobMktRow');if(!row)return;var opts=_mobMarkets[cat]||_mobMarkets.moneyway;var html='';opts.forEach(function(o,i){html+='<button class="mob-tab'+(i===0?' active':'')+'" data-mkt="'+o.v+'" onclick="selectMobMkt(\''+o.v+'\')">'+o.l+'</button>';});row.innerHTML=html;_mobCurMkt=opts[0].v;_addMobileMktLockIcons();if(cat==='live'){setLiveMarket(opts[0].v);}else{setMobileMarket(opts[0].v);}}
 function selectMobMkt(mkt){if(window.userPlan==='test'&&mkt!=='1x2'){_showTestLockedToast(document.querySelector('#mobMktRow .mob-tab[data-mkt="'+mkt+'"]'));return;}
