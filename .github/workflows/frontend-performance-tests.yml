@@ -7,6 +7,7 @@ on:
       - 'templates/index.html'
       - 'static/js/app.js'
       - 'static/js/app.js.src'
+      - 'static/js/i18n.js'
       - 'static/js/admin-panel.js'
       - 'static/js/admin-panel.js.src'
       - 'static/js/alarm-sidebar.js'
@@ -37,6 +38,9 @@ on:
       - 'tests/test_deferred_finished_scores.js'
       - 'tests/test_deferred_modal_prefetch.js'
       - 'tests/test_modal_entry_code_split.js'
+      - 'tests/test_modal_data_pipeline_split.js'
+      - 'tests/test_modal_history_cache_key.js'
+      - 'tests/test_interaction_warmup.js'
       - 'tests/test_modal_info_code_split.js'
       - 'tests/test_mobile_chart_panel_split.js'
       - 'tests/test_modal_chart_code_split.js'
@@ -80,6 +84,9 @@ jobs:
           node --test tests/test_deferred_finished_scores.js
           node --test tests/test_deferred_modal_prefetch.js
           node --test tests/test_modal_entry_code_split.js
+          node --test tests/test_modal_data_pipeline_split.js
+          node --test tests/test_modal_history_cache_key.js
+          node --test tests/test_interaction_warmup.js
           node --test tests/test_modal_info_code_split.js
           node --test tests/test_mobile_chart_panel_split.js
           node --test tests/test_modal_chart_code_split.js
