@@ -58,9 +58,9 @@
     it: {
       'app.j.rv_underdog_desc': 'Quota ≥2,90. Con volume £800–£4.999 la quota denaro deve essere ≥55%; da £5.000, ≥50%. Solo casa/trasferta.',
       'app.j.rv_confirmed_desc': 'Volume ≥£5.000, quota denaro >80% negli ultimi 3 snapshot; quota 1,35–2,20 con calo ≥5% dalla prima quota valida.',
-      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, quota denaro ≥88% negli ultimi 3 snapshot; quota 1,55–2.20 con calo ≥7% dalla prima quota valida. Solo casa/trasferta.',
-      'app.j.rv_early_desc': 'Si attiva ≥24 ore prima del calcio d’inizio con volume £5.000 e quota denaro ≥85% sulla stessa selezione per 5 snapshot consecutivi.',
-      'app.j.rv_fake_desc': 'Volume ≥£5.000 e quota denaro >75% negli ultimi 3 snapshot; quota 1.35–2.20 e aumento ≥5% dalla prima quota valida. Solo casa/trasferta.'
+      'app.j.rv_confirmed_v2_desc': 'Volume ≥£5.000, quota denaro ≥88% negli ultimi 3 snapshot; quota 1,55–2,20 con calo ≥7% dalla prima quota valida. Solo casa/trasferta.',
+      'app.j.rv_early_desc': 'Si attiva ≥24 ore prima del calcio d’inizio con volume ≥£5.000 e quota denaro ≥85% sulla stessa selezione per 5 snapshot consecutivi.',
+      'app.j.rv_fake_desc': 'Volume ≥£5.000 e quota denaro >75% negli ultimi 3 snapshot; quota 1,35–2,20 e aumento ≥5% dalla prima quota valida. Solo casa/trasferta.'
     },
     es: {
       'app.j.rv_underdog_desc': 'Cuota ≥2,90. Con volumen £800–£4.999, el porcentaje de dinero debe ser ≥55%; desde £5.000, ≥50%. Solo local/visitante.',
