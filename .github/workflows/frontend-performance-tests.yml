@@ -47,6 +47,7 @@ on:
       - 'tests/test_modal_alarm_code_split.js'
       - 'tests/test_modal_live_code_split.js'
       - 'tests/test_app_bootstrap.js'
+      - 'tests/test_alert_band_dead_code_cleanup.js'
       - '.github/workflows/frontend-performance-tests.yml'
   workflow_dispatch:
 
@@ -89,3 +90,4 @@ jobs:
           node --test tests/test_modal_alarm_code_split.js
           node --test tests/test_modal_live_code_split.js
           node --test tests/test_app_bootstrap.js
+          node --test tests/test_alert_band_dead_code_cleanup.js
