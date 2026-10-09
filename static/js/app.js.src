@@ -1560,13 +1560,16 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
     if (!appendMode && !forceNetwork && cached && (Date.now() - cached.ts) < _MATCHES_CACHE_TTL) {
         matches = cached.matches;
         totalMatchCount = cached.total;
-        hasMoreMatches = false;
+        hasMoreMatches = Boolean(cached.hasMore);
         currentOffset = matches.length;
         filteredMatches = applySorting(matches);
         updateTableHeaders();
         renderMatches(filteredMatches);
         if (requestMarket.startsWith('dropping')) {
             attachTrendTooltipListeners();
+        }
+        if (hasMoreMatches && requestDateFilter === 'ALL') {
+            scheduleBackgroundMatchHydration();
         }
         _loadMatchesLock = false;
         _loadMatchesPendingSince = 0;
@@ -1631,7 +1634,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             let apiUrl;
             const srcParam = requestSource !== 'betfair' ? `&source=${requestSource}` : '';
             if (dateFilterMode === 'ALL') {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&limit=20&offset=0${srcParam}`;
             } else if (dateFilterMode === 'YESTERDAY') {
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1${srcParam}`;
             } else if (dateFilterMode === 'TODAY') {
@@ -1640,7 +1643,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                 const daysBack = dateFilterMode.split('_')[1];
                 apiUrl = `/api/matches?market=${requestMarket}&date_filter=d-${daysBack}&bulk=1${srcParam}`;
             } else {
-                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;
+                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&limit=20&offset=0${srcParam}`;
             }
             
             void 0;
@@ -1701,16 +1704,24 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             totalMatchCount = result && !Array.isArray(result) && Number.isFinite(result.total)
                 ? result.total
                 : matches.length;
-            hasMoreMatches = false;
+            hasMoreMatches = Boolean(result && !Array.isArray(result) && result.has_more);
             currentOffset = matches.length;
             
-            _matchesMarketCache[cacheKey] = { matches: matches, total: totalMatchCount, ts: Date.now() };
+            _matchesMarketCache[cacheKey] = {
+                matches: matches,
+                total: totalMatchCount,
+                hasMore: hasMoreMatches,
+                ts: Date.now()
+            };
             
             filteredMatches = applySorting(matches);
             renderMatches(filteredMatches);
             
             if (currentMarket.startsWith('dropping')) {
                 attachTrendTooltipListeners();
+            }
+            if (hasMoreMatches && requestDateFilter === 'ALL') {
+                scheduleBackgroundMatchHydration();
             }
         } catch (error) {
             if (requestId !== _loadMatchesRequestId) {
@@ -1747,8 +1758,65 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
     return _loadMatchesPending;
 }
 
-// Background load all remaining matches after initial page - NO re-render during load
+let _backgroundMatchHydrationTimer = null;
+function scheduleBackgroundMatchHydration() {
+    if (!hasMoreMatches || dateFilterMode !== 'ALL' || _liveMode) return;
+    if (_backgroundMatchHydrationTimer !== null) return;
+
+    const scheduledMarket = currentMarket;
+    const scheduledSource = currentSource;
+    const run = () => {
+        _backgroundMatchHydrationTimer = null;
+        if (_liveMode || dateFilterMode !== 'ALL') return;
+        if (currentMarket !== scheduledMarket || currentSource !== scheduledSource) return;
+        loadAllRemainingMatches();
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+        _backgroundMatchHydrationTimer = window.requestIdleCallback(run, { timeout: 2500 });
+    } else {
+        _backgroundMatchHydrationTimer = setTimeout(run, 1200);
+    }
+}
+
+// Background hydration preserves full-list search/filter behavior without blocking first paint.
 async function loadAllRemainingMatches() {
+    if (dateFilterMode === 'ALL') {
+        const hydrationMarket = currentMarket;
+        const hydrationSource = currentSource;
+        const hydrationKey = `${hydrationMarket}|ALL|${hydrationSource}`;
+        const srcParam = hydrationSource !== 'betfair' ? `&source=${hydrationSource}` : '';
+        const apiUrl = `/api/matches?market=${hydrationMarket}&date_filter=today_future&bulk=1${srcParam}`;
+        try {
+            const payload = await _fetchMatchesWithTimeout(apiUrl, 20000);
+            if (!payload.response.ok) throw new Error(`HTTP ${payload.response.status}`);
+            if (_liveMode || dateFilterMode !== 'ALL') return;
+            if (currentMarket !== hydrationMarket || currentSource !== hydrationSource) return;
+
+            const result = payload.result;
+            const hydrated = result && Array.isArray(result.matches) ? result.matches : null;
+            if (!hydrated) return;
+
+            if (result.finished_scores) _finishedScores = result.finished_scores;
+            matches = hydrated;
+            totalMatchCount = Number.isFinite(result.total) ? result.total : hydrated.length;
+            hasMoreMatches = false;
+            currentOffset = hydrated.length;
+            _matchesMarketCache[hydrationKey] = {
+                matches: hydrated,
+                total: totalMatchCount,
+                hasMore: false,
+                ts: Date.now()
+            };
+            filteredMatches = applySorting(matches);
+            renderMatches(filteredMatches);
+            if (currentMarket.startsWith('dropping')) attachTrendTooltipListeners();
+        } catch (error) {
+            console.warn('[Background] bulk hydration failed; keeping fast first page', error);
+        }
+        return;
+    }
+
     const maxPages = 50; // Safety limit
     let page = 0;
     let allNewMatches = [];

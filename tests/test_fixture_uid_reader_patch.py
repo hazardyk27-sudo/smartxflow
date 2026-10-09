@@ -16,9 +16,12 @@ class FakeResponse:
 
 
 class FakeHttp:
-    def __init__(self, fixture_rows):
+    def __init__(self, fixture_rows, rpc_rows=None, rpc_status=404):
         self.fixture_rows = fixture_rows
+        self.rpc_rows = rpc_rows
+        self.rpc_status = rpc_status
         self.urls = []
+        self.posts = []
 
     def get(self, url, **kwargs):
         self.urls.append(url)
@@ -26,12 +29,16 @@ class FakeHttp:
             return FakeResponse(self.fixture_rows)
         raise AssertionError(f"unexpected URL {url}")
 
+    def post(self, url, **kwargs):
+        self.posts.append((url, kwargs))
+        return FakeResponse(self.rpc_rows or [], self.rpc_status)
+
 
 class FakeClient:
     is_available = True
 
-    def __init__(self, fixture_rows, odds=None):
-        self.http = FakeHttp(fixture_rows)
+    def __init__(self, fixture_rows, odds=None, rpc_rows=None, rpc_status=404):
+        self.http = FakeHttp(fixture_rows, rpc_rows=rpc_rows, rpc_status=rpc_status)
         self.odds = odds or {}
 
     def _rest_url(self, table):
@@ -50,7 +57,7 @@ class FakeClient:
         return dict(self.odds)
 
     def _normalize_history_row(self, row, market):
-        return {"Odds1": row.get("odds1", "-")}
+        return {"Odds1": row.get("odds1", "-"), "Volume": row.get("volume", "")}
 
     def _get_empty_odds(self, market):
         return {"Odds1": "-"}
@@ -122,3 +129,41 @@ def test_uid_enrichment_does_not_guess_ambiguous_physical_identity():
     enriched = enrich_matches_with_fixture_uids(client, matches)
 
     assert "fixture_uid" not in enriched[0]
+
+
+
+def test_first_page_fast_path_uses_rpc_without_full_fixture_fetch():
+    rpc_rows = [
+        {
+            "row_data": {
+                "fixture_uid": "uid-fast",
+                "league": "Fast League",
+                "home": "Fast Home",
+                "away": "Fast Away",
+                "date": "2026-10-09T18:00:00+00:00",
+                "volume": "£ 7124.99",
+                "odds1": "1.80",
+            },
+            "total_count": 1155,
+        }
+    ]
+    client = FakeClient([], rpc_rows=rpc_rows, rpc_status=200)
+
+    result = get_matches_paginated_uid_safe(
+        client,
+        "moneyway_1x2",
+        limit=20,
+        offset=0,
+        today_only=True,
+    )
+
+    assert result["first_page_fast"] is True
+    assert result["total"] == 1155
+    assert result["has_more"] is True
+    assert len(result["matches"]) == 1
+    assert result["matches"][0]["fixture_uid"] == "uid-fast"
+    assert result["matches"][0]["latest"]["Volume"] == "£ 7124.99"
+    assert client.http.urls == [], "fast first page must not fetch the full fixtures table"
+    assert len(client.http.posts) == 1
+    assert client.http.posts[0][0].endswith("/rpc/sxf_matches_first_page_v1")
+    assert client.http.posts[0][1]["json"]["p_limit"] == 20
