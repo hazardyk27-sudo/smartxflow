@@ -1,56 +1,76 @@
 TAP version 13
+# Error loading matches: ReferenceError: matchesDisplayCount is not defined
+#     at evalmachine.<anonymous>:27:188
+#     at loadMatches (evalmachine.<anonymous>:39:506)
+#     at TestContext.<anonymous> (/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:583:11)
+#     at Test.runInAsyncScope (node:async_hooks:214:14)
+#     at Test.run (node:internal/test_runner/test:1047:25)
+#     at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+#     at Test.postRun (node:internal/test_runner/test:1173:19)
+#     at Test.run (node:internal/test_runner/test:1101:12)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+# Error loading matches: ReferenceError: matchesDisplayCount is not defined
+#     at evalmachine.<anonymous>:146:97
+#     at loadMatches (evalmachine.<anonymous>:265:7)
+#     at TestContext.<anonymous> (/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:583:11)
+#     at Test.runInAsyncScope (node:async_hooks:214:14)
+#     at Test.run (node:internal/test_runner/test:1047:25)
+#     at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+#     at Test.postRun (node:internal/test_runner/test:1173:19)
+#     at Test.run (node:internal/test_runner/test:1101:12)
+#     at async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
 # Subtest: license-key login stores canonical dashboard keys and response metadata
 ok 1 - license-key login stores canonical dashboard keys and response metadata
   ---
-  duration_ms: 2.135796
+  duration_ms: 2.652385
   type: 'test'
   ...
 # Subtest: license-key login uses a short ISO expiry fallback when expires_at is absent
 ok 2 - license-key login uses a short ISO expiry fallback when expires_at is absent
   ---
-  duration_ms: 0.59359
+  duration_ms: 0.737944
   type: 'test'
   ...
 # Subtest: legacy license localStorage state migrates to the dashboard key (runtime bundle)
 ok 3 - legacy license localStorage state migrates to the dashboard key (runtime bundle)
   ---
-  duration_ms: 1.847609
+  duration_ms: 2.231666
   type: 'test'
   ...
 # Subtest: license-key login reaches the Prematch bootstrap (runtime bundle)
 ok 4 - license-key login reaches the Prematch bootstrap (runtime bundle)
   ---
-  duration_ms: 2.961489
+  duration_ms: 3.590914
   type: 'test'
   ...
 # Subtest: legacy license localStorage state migrates to the dashboard key (source bundle)
 ok 5 - legacy license localStorage state migrates to the dashboard key (source bundle)
   ---
-  duration_ms: 1.260338
+  duration_ms: 1.501015
   type: 'test'
   ...
 # Subtest: license-key login reaches the Prematch bootstrap (source bundle)
 ok 6 - license-key login reaches the Prematch bootstrap (source bundle)
   ---
-  duration_ms: 1.577909
+  duration_ms: 1.934859
   type: 'test'
   ...
 # Subtest: match loading starts without awaiting optional favorites (runtime bundle)
 ok 7 - match loading starts without awaiting optional favorites (runtime bundle)
   ---
-  duration_ms: 1.014474
+  duration_ms: 1.239835
   type: 'test'
   ...
 # Subtest: match loading starts without awaiting optional favorites (source bundle)
 ok 8 - match loading starts without awaiting optional favorites (source bundle)
   ---
-  duration_ms: 0.564056
+  duration_ms: 0.662482
   type: 'test'
   ...
 # Subtest: match loading reaches a visible terminal state for every response (runtime bundle)
 not ok 9 - match loading reaches a visible terminal state for every response (runtime bundle)
   ---
-  duration_ms: 158.798842
+  duration_ms: 4.221257
   type: 'test'
   location: '/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:456:1'
   failureType: 'testCodeFailure'
@@ -68,7 +88,7 @@ not ok 9 - match loading reaches a visible terminal state for every response (ru
 # Subtest: match loading reaches a visible terminal state for every response (source bundle)
 not ok 10 - match loading reaches a visible terminal state for every response (source bundle)
   ---
-  duration_ms: 1.525881
+  duration_ms: 2.490661
   type: 'test'
   location: '/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:456:1'
   failureType: 'testCodeFailure'
@@ -86,169 +106,169 @@ not ok 10 - match loading reaches a visible terminal state for every response (s
 # Subtest: leaving Live schedules a fresh Prematch request (runtime bundle)
 ok 11 - leaving Live schedules a fresh Prematch request (runtime bundle)
   ---
-  duration_ms: 1.555075
+  duration_ms: 2.731963
   type: 'test'
   ...
 # Subtest: match-load guards are observable and stale locks recover (runtime bundle)
 ok 12 - match-load guards are observable and stale locks recover (runtime bundle)
   ---
-  duration_ms: 1.293097
+  duration_ms: 1.547242
   type: 'test'
   ...
 # Subtest: leaving Live schedules a fresh Prematch request (source bundle)
 ok 13 - leaving Live schedules a fresh Prematch request (source bundle)
   ---
-  duration_ms: 1.179078
+  duration_ms: 1.480456
   type: 'test'
   ...
 # Subtest: match-load guards are observable and stale locks recover (source bundle)
 ok 14 - match-load guards are observable and stale locks recover (source bundle)
   ---
-  duration_ms: 1.24105
+  duration_ms: 1.547963
   type: 'test'
   ...
 # Subtest: match response body is covered by the fetch timeout (runtime bundle)
 ok 15 - match response body is covered by the fetch timeout (runtime bundle)
   ---
-  duration_ms: 1.021004
+  duration_ms: 1.293616
   type: 'test'
   ...
 # Subtest: match response body is covered by the fetch timeout (source bundle)
 ok 16 - match response body is covered by the fetch timeout (source bundle)
   ---
-  duration_ms: 0.612107
+  duration_ms: 0.763372
   type: 'test'
   ...
 # Subtest: test-mode account readiness does not wait for optional free-match data (runtime bundle)
 ok 17 - test-mode account readiness does not wait for optional free-match data (runtime bundle)
   ---
-  duration_ms: 1.011178
+  duration_ms: 1.265754
   type: 'test'
   ...
 # Subtest: test-mode account readiness does not wait for optional free-match data (source bundle)
 ok 18 - test-mode account readiness does not wait for optional free-match data (source bundle)
   ---
-  duration_ms: 0.846715
+  duration_ms: 1.058986
   type: 'test'
   ...
 # Subtest: match loading error controls retry or reload on desktop and mobile (runtime bundle)
 ok 19 - match loading error controls retry or reload on desktop and mobile (runtime bundle)
   ---
-  duration_ms: 6.937182
+  duration_ms: 1.631039
   type: 'test'
   ...
 # Subtest: match loading error controls retry or reload on desktop and mobile (source bundle)
 ok 20 - match loading error controls retry or reload on desktop and mobile (source bundle)
   ---
-  duration_ms: 0.78252
+  duration_ms: 0.98667
   type: 'test'
   ...
 # Subtest: authenticated Supabase accounts unlock the dashboard without a legacy license key
 ok 21 - authenticated Supabase accounts unlock the dashboard without a legacy license key
   ---
-  duration_ms: 0.770452
+  duration_ms: 0.977333
   type: 'test'
   ...
 # Subtest: legacy license gate remains available when no authenticated account session exists
 ok 22 - legacy license gate remains available when no authenticated account session exists
   ---
-  duration_ms: 0.658266
+  duration_ms: 0.867978
   type: 'test'
   ...
 # Subtest: login-required status retains the legacy license gate (runtime bundle)
 ok 23 - login-required status retains the legacy license gate (runtime bundle)
   ---
-  duration_ms: 0.753557
+  duration_ms: 0.912922
   type: 'test'
   ...
 # Subtest: active account session starts match loading (runtime bundle)
 ok 24 - active account session starts match loading (runtime bundle)
   ---
-  duration_ms: 0.757232
+  duration_ms: 0.949461
   type: 'test'
   ...
 # Subtest: valid legacy session status starts Prematch loading (runtime bundle)
 ok 25 - valid legacy session status starts Prematch loading (runtime bundle)
   ---
-  duration_ms: 0.72872
+  duration_ms: 0.936366
   type: 'test'
   ...
 # Subtest: expired account session returns to login (runtime bundle)
 ok 26 - expired account session returns to login (runtime bundle)
   ---
-  duration_ms: 0.622743
+  duration_ms: 0.801032
   type: 'test'
   ...
 # Subtest: email_unverified account status routes correctly (runtime bundle)
 ok 27 - email_unverified account status routes correctly (runtime bundle)
   ---
-  duration_ms: 0.577466
+  duration_ms: 0.712045
   type: 'test'
   ...
 # Subtest: membership_required account status routes correctly (runtime bundle)
 ok 28 - membership_required account status routes correctly (runtime bundle)
   ---
-  duration_ms: 0.611657
+  duration_ms: 0.709871
   type: 'test'
   ...
 # Subtest: session-status failures show a recoverable error (runtime bundle)
 ok 29 - session-status failures show a recoverable error (runtime bundle)
   ---
-  duration_ms: 0.873034
+  duration_ms: 1.550678
   type: 'test'
   ...
 # Subtest: unknown session status shows a recoverable error (runtime bundle)
 ok 30 - unknown session status shows a recoverable error (runtime bundle)
   ---
-  duration_ms: 1.41685
+  duration_ms: 0.729197
   type: 'test'
   ...
 # Subtest: login-required status retains the legacy license gate (source bundle)
 ok 31 - login-required status retains the legacy license gate (source bundle)
   ---
-  duration_ms: 0.499069
+  duration_ms: 0.643888
   type: 'test'
   ...
 # Subtest: active account session starts match loading (source bundle)
 ok 32 - active account session starts match loading (source bundle)
   ---
-  duration_ms: 0.578057
+  duration_ms: 0.767269
   type: 'test'
   ...
 # Subtest: valid legacy session status starts Prematch loading (source bundle)
 ok 33 - valid legacy session status starts Prematch loading (source bundle)
   ---
-  duration_ms: 0.580761
+  duration_ms: 0.758613
   type: 'test'
   ...
 # Subtest: expired account session returns to login (source bundle)
 ok 34 - expired account session returns to login (source bundle)
   ---
-  duration_ms: 0.543445
+  duration_ms: 0.657734
   type: 'test'
   ...
 # Subtest: email_unverified account status routes correctly (source bundle)
 ok 35 - email_unverified account status routes correctly (source bundle)
   ---
-  duration_ms: 0.569514
+  duration_ms: 0.708428
   type: 'test'
   ...
 # Subtest: membership_required account status routes correctly (source bundle)
 ok 36 - membership_required account status routes correctly (source bundle)
   ---
-  duration_ms: 0.524687
+  duration_ms: 0.674115
   type: 'test'
   ...
 # Subtest: session-status failures show a recoverable error (source bundle)
 ok 37 - session-status failures show a recoverable error (source bundle)
   ---
-  duration_ms: 0.632337
+  duration_ms: 0.729989
   type: 'test'
   ...
 # Subtest: unknown session status shows a recoverable error (source bundle)
 ok 38 - unknown session status shows a recoverable error (source bundle)
   ---
-  duration_ms: 0.514933
+  duration_ms: 0.612099
   type: 'test'
   ...
 1..38
@@ -259,4 +279,4 @@ ok 38 - unknown session status shows a recoverable error (source bundle)
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 279.216268
+# duration_ms 155.172048
