@@ -6,6 +6,7 @@ from .archive_wrapper import EnrichedStage3ArchivePublisher
 from .formal_publication import FormalPublicationError, formal_result_from_store
 from .lifecycle_store import PredictorLifecycleStore
 from .service import OrchestratorError, PredictorOrchestrator
+from .stage1_evidence import build_stage1_evidence
 
 
 _UNSET = object()
@@ -16,7 +17,8 @@ class StrictPredictorOrchestrator(PredictorOrchestrator):
 
     The base orchestrator already validates and atomically accepts stages. This
     subclass makes publication depend on reading that accepted row back from the
-    durable store, and it attaches the Stage 3 Learning Archive/Diary lifecycle.
+    durable store, attaches mandatory user-visible evidence transparency, and
+    attaches the Stage 3 Learning Archive/Diary lifecycle.
     """
 
     def __init__(
@@ -35,6 +37,81 @@ class StrictPredictorOrchestrator(PredictorOrchestrator):
             else archive_publisher
         )
         self.lifecycle_store = lifecycle_store or PredictorLifecycleStore(config.state_db_path)
+
+    def _compose_stage1(
+        self,
+        *,
+        stage_run_id: str,
+        generated: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Attach server-owned numeric SXF evidence to every visible candidate.
+
+        The analysis worker may explain the evidence, but it is never trusted to
+        reproduce odds, money, share, velocity or cross-market numbers. Those
+        values are deterministically rebuilt from the same trusted Stage 1 context
+        that was supplied to the model. A formal candidate cannot publish without
+        this evidence packet.
+        """
+        payload = super()._compose_stage1(
+            stage_run_id=stage_run_id,
+            generated=generated,
+            context=context,
+        )
+        for row in payload.get("matches") or []:
+            if not isinstance(row, dict):
+                continue
+            fixture_id = str(row.get("fixture_id") or "").strip()
+            preference = row.get("preference") if isinstance(row.get("preference"), dict) else {}
+            evidence = build_stage1_evidence(
+                context,
+                fixture_id=fixture_id,
+                market=str(preference.get("market") or ""),
+                selection=str(preference.get("selection") or ""),
+            )
+            if evidence is None:
+                raise OrchestratorError(
+                    f"Stage 1 evidence transparency failed for {fixture_id}: selected preference has no trusted SXF evidence packet"
+                )
+            row["sxf_evidence"] = evidence
+        return payload
+
+    def _compose_stage2(
+        self,
+        *,
+        workflow,
+        stage_run_id: str,
+        generated: dict[str, Any],
+        stage1_payload: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Preserve mandatory Stage 2 impact detail and frozen Stage 1 evidence."""
+        payload = super()._compose_stage2(
+            workflow=workflow,
+            stage_run_id=stage_run_id,
+            generated=generated,
+            stage1_payload=stage1_payload,
+            context=context,
+        )
+        generated_by_id = {
+            str(item.get("fixture_id") or item.get("fixture_uid") or item.get("match_id_hash") or "").strip(): item
+            for item in generated.get("matches") or []
+            if isinstance(item, dict)
+        }
+        stage1_by_id = {
+            str(item.get("fixture_id") or item.get("fixture_uid") or item.get("match_id_hash") or "").strip(): item
+            for item in stage1_payload.get("matches") or []
+            if isinstance(item, dict)
+        }
+        for row in payload.get("matches") or []:
+            if not isinstance(row, dict):
+                continue
+            fixture_id = str(row.get("fixture_id") or "").strip()
+            generated_row = generated_by_id.get(fixture_id) or {}
+            stage1_row = stage1_by_id.get(fixture_id) or {}
+            row["absence_assessment"] = generated_row.get("absence_assessment")
+            row["frozen_stage1_evidence"] = stage1_row.get("sxf_evidence")
+        return payload
 
     def _compose_stage3(
         self,
