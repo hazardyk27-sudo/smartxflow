@@ -2172,10 +2172,16 @@ def get_matches():
             resp_data['finished_scores'] = ft_scores
         return jsonify(resp_data)
     
-    # PAGINATED MODE (legacy): Use for non-bulk requests
-    # Use new paginated function for ALL/no date_filter (most common case)
-    if date_filter is None:
-        result = db.get_matches_paginated(market, limit=limit, offset=offset)
+    # FIRST-PAGE/PAGINATED MODE: the default app view must never wait for
+    # bulk hydration before it can paint its first rows. today_future stays
+    # UID-safe through the active reader patch and returns the true volume top-N.
+    if date_filter in (None, 'today_future'):
+        result = db.get_matches_paginated(
+            market,
+            limit=limit,
+            offset=offset,
+            today_only=(date_filter == 'today_future'),
+        )
         
         # Transform to expected format
         enriched = []
@@ -2257,7 +2263,14 @@ def get_matches():
                 'history_count': 1
             })
         
-        ft_scores = _get_finished_scores_map()
+        # A cold finished-score lookup must not re-block the fast first paint.
+        # Reuse it when already warm; the background bulk hydration carries the
+        # full score payload shortly afterwards.
+        if result.get('first_page_fast'):
+            cached_ft = _ft_scores_cache.get('data')
+            ft_scores = cached_ft.get('scores', {}) if isinstance(cached_ft, dict) else {}
+        else:
+            ft_scores = _get_finished_scores_map()
         _enrich_ft_scores_with_match_hashes(ft_scores, enriched)
         resp_data = {
             'matches': enriched,

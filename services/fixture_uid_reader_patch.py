@@ -12,9 +12,10 @@ historical rows whose fixture UID can never be proven, while preferring
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 from urllib.parse import quote
 
 import pytz
@@ -23,6 +24,8 @@ from core.hash_utils import make_fixture_identity_key
 
 
 _MAX_FIXTURES = 10000
+_FIRST_PAGE_RPC = "sxf_matches_first_page_v1"
+_MAX_FIRST_PAGE = 100
 
 
 def _physical_key(row: Mapping[str, Any]):
@@ -102,6 +105,101 @@ def enrich_matches_with_fixture_uids(client: Any, matches: Iterable[Dict[str, An
     return result
 
 
+
+def _fetch_first_page_rows(
+    client: Any,
+    market: str,
+    limit: int,
+    date_gte: str,
+) -> Optional[Tuple[List[Dict[str, Any]], int]]:
+    """Fetch only the globally highest-volume first page from the current table.
+
+    The RPC performs numeric volume ordering inside Postgres and returns at most
+    ``limit`` current-table rows plus the filtered total count.  No fixture table
+    scan and no full market payload crosses the network on this path.
+    """
+    if not getattr(client, "is_available", False):
+        return None
+
+    safe_limit = max(1, min(int(limit or 20), _MAX_FIRST_PAGE))
+    url = client._rest_url(f"rpc/{_FIRST_PAGE_RPC}")
+    body = {
+        "p_market": market,
+        "p_limit": safe_limit,
+        "p_date_gte": f"{date_gte}T00:00:00+00:00" if date_gte else None,
+    }
+    try:
+        response = client._get_http_client().post(
+            url,
+            headers=client._headers(),
+            json=body,
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print(f"[FixtureUIDReader] first-page RPC unavailable: {response.status_code}")
+            return None
+        payload = response.json()
+        if not isinstance(payload, list):
+            return None
+
+        rows: List[Dict[str, Any]] = []
+        total = 0
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            row = item.get("row_data")
+            if isinstance(row, str):
+                try:
+                    row = json.loads(row)
+                except Exception:
+                    row = None
+            if isinstance(row, dict):
+                rows.append(row)
+            try:
+                total = max(total, int(item.get("total_count") or 0))
+            except (TypeError, ValueError):
+                pass
+        if rows and total <= 0:
+            total = len(rows)
+        return rows, total
+    except Exception as exc:
+        print(f"[FixtureUIDReader] first-page RPC failed: {exc}")
+        return None
+
+
+def _current_row_to_match(client: Any, row: Mapping[str, Any], market: str, tr_tz: Any) -> Dict[str, Any]:
+    kickoff_utc = row.get("date", "")
+    date_display = kickoff_utc
+    if kickoff_utc:
+        try:
+            kickoff_dt = (
+                datetime.fromisoformat(str(kickoff_utc).replace("Z", "+00:00"))
+                if isinstance(kickoff_utc, str)
+                else kickoff_utc
+            )
+            date_display = kickoff_dt.astimezone(tr_tz).strftime("%d.%b %H:%M")
+        except Exception:
+            pass
+
+    try:
+        latest = client._normalize_history_row(dict(row), market)
+    except Exception:
+        latest = client._get_empty_odds(market)
+
+    match: Dict[str, Any] = {
+        "fixture_uid": row.get("fixture_uid"),
+        "home_team": row.get("home", ""),
+        "away_team": row.get("away", ""),
+        "league": row.get("league", ""),
+        "date": date_display,
+        "kickoff_utc": kickoff_utc,
+        "latest": latest,
+    }
+    match_hash = str(row.get("match_id_hash") or "").strip()
+    if match_hash:
+        match["match_id_hash"] = match_hash
+    return match
+
 def get_matches_paginated_uid_safe(
     client: Any,
     market: str,
@@ -123,6 +221,25 @@ def get_matches_paginated_uid_safe(
             if today_only
             else seven_days_ago
         )
+
+        # Critical first paint: use the current-table RPC so a 20-row screen never
+        # waits for the full fixture/current-market snapshot to cross the network.
+        # Offset pages remain on the legacy path until Menu Part 2 introduces real
+        # UID-safe pagination for background hydration.
+        if offset == 0 and 0 < limit <= _MAX_FIRST_PAGE:
+            first_page = _fetch_first_page_rows(client, market, limit, date_gte)
+            if first_page is not None:
+                current_rows, total = first_page
+                matches = [
+                    _current_row_to_match(client, row, market, tr_tz)
+                    for row in current_rows
+                ]
+                return {
+                    "matches": matches,
+                    "total": total,
+                    "has_more": total > len(matches),
+                    "first_page_fast": True,
+                }
 
         fixtures = _fetch_fixture_rows(client, date_gte=date_gte)
         fixtures = client._dedupe_fixtures(fixtures)

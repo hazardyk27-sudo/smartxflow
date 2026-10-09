@@ -623,7 +623,7 @@ for (const [bundleName, source] of appBundles) {
 
     assert.deepEqual(
       state.fetchUrls,
-      ['/api/matches?market=moneyway_1x2&date_filter=today_future&bulk=1'],
+      ['/api/matches?market=moneyway_1x2&date_filter=today_future&limit=20&offset=0'],
       'leaving Live should fetch Prematch even when the client cache is still warm'
     );
     assert.equal(context._loadMatchesLock, false, 'the request should release its lock');
