@@ -6,11 +6,14 @@ import json
 import os
 from pathlib import Path
 import sqlite3
-from typing import Any
+from typing import Any, Iterable
 
 from predictor_orchestrator.config import OrchestratorConfig
 from predictor_orchestrator.strict_service import StrictPredictorOrchestrator
 from predictor_orchestrator.store import SQLiteOrchestratorStore
+
+
+_DB_FILENAMES = {"predictor_orchestrator.sqlite3", "predictor-orchestrator.sqlite3"}
 
 
 class _NoLLM:
@@ -39,6 +42,15 @@ def _load_dotenv(path: str | None) -> None:
             os.environ[key] = value
 
 
+def _table_exists(db_path: str, table: str) -> bool:
+    with sqlite3.connect(f"file:{Path(db_path).resolve()}?mode=ro", uri=True) as conn:
+        row = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+            (table,),
+        ).fetchone()
+    return row is not None
+
+
 def _pending_stage_runs(db_path: str) -> list[tuple[str, str]]:
     with sqlite3.connect(db_path) as conn:
         rows = conn.execute(
@@ -53,18 +65,77 @@ def _pending_stage_runs(db_path: str) -> list[tuple[str, str]]:
     return [(str(row[0]), str(row[1])) for row in rows]
 
 
-def retry_pending() -> dict[str, Any]:
+def _candidate_db_paths(explicit: Iterable[str], scan_roots: Iterable[str]) -> list[str]:
+    found: list[Path] = []
+    for raw in explicit:
+        value = str(raw or "").strip()
+        if value:
+            path = Path(value).expanduser().resolve()
+            if path.is_file():
+                found.append(path)
+    for raw in scan_roots:
+        value = str(raw or "").strip()
+        if not value:
+            continue
+        root = Path(value).expanduser().resolve()
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*.sqlite3"):
+            if path.name in _DB_FILENAMES and path.is_file():
+                found.append(path.resolve())
+    unique: list[str] = []
+    seen: set[str] = set()
+    for path in found:
+        value = str(path)
+        if value not in seen:
+            unique.append(value)
+            seen.add(value)
+    return unique
+
+
+def retry_pending(db_path: str | None = None) -> dict[str, Any]:
+    if db_path:
+        os.environ["PREDICTOR_STATE_DB"] = str(Path(db_path).resolve())
     cfg = OrchestratorConfig.from_env(require_secrets=False, require_api_key=False)
-    store = SQLiteOrchestratorStore(cfg.state_db_path)
+    resolved_db = str(Path(cfg.state_db_path).resolve())
+    if not Path(resolved_db).is_file():
+        return {
+            "ok": True,
+            "db_path": resolved_db,
+            "status": "MISSING",
+            "retried_stage_runs": 0,
+            "remaining_pending": 0,
+            "results": [],
+        }
+    if not _table_exists(resolved_db, "predictor_archive_lifecycle"):
+        return {
+            "ok": True,
+            "db_path": resolved_db,
+            "status": "NO_LIFECYCLE_TABLE",
+            "retried_stage_runs": 0,
+            "remaining_pending": 0,
+            "results": [],
+        }
+
+    store = SQLiteOrchestratorStore(resolved_db)
     orch = StrictPredictorOrchestrator(config=cfg, store=store, llm=_NoLLM())
 
-    pending = _pending_stage_runs(cfg.state_db_path)
+    pending = _pending_stage_runs(resolved_db)
     if not pending:
-        return {"ok": True, "retried_stage_runs": 0, "remaining_pending": 0, "results": []}
+        return {
+            "ok": True,
+            "db_path": resolved_db,
+            "status": "CLEAR",
+            "retried_stage_runs": 0,
+            "remaining_pending": 0,
+            "results": [],
+        }
 
     if orch.archive_publisher is None:
         return {
             "ok": False,
+            "db_path": resolved_db,
+            "status": "PUBLISHER_UNAVAILABLE",
             "error": "Learning Archive publisher is not configured",
             "retried_stage_runs": 0,
             "remaining_pending": len(pending),
@@ -101,6 +172,21 @@ def retry_pending() -> dict[str, Any]:
                 stage_run_id=stage_run_id,
                 stage3_payload=accepted["payload"],
             )
+            lifecycle_rows = orch.lifecycle_store.list_for_stage(workflow_id, stage_run_id)
+            archive_commits = sorted(
+                {
+                    str(row.get("archive_commit") or "").strip()
+                    for row in lifecycle_rows
+                    if str(row.get("archive_commit") or "").strip()
+                }
+            )
+            diary_references = sorted(
+                {
+                    str(row.get("diary_reference") or "").strip()
+                    for row in lifecycle_rows
+                    if str(row.get("diary_reference") or "").strip()
+                }
+            )
             results.append(
                 {
                     "workflow_id": workflow_id,
@@ -108,6 +194,8 @@ def retry_pending() -> dict[str, Any]:
                     "status": summary.get("status"),
                     "formal_cases": summary.get("formal_cases"),
                     "diary_status": summary.get("diary_status"),
+                    "archive_commits": archive_commits,
+                    "diary_references": diary_references,
                 }
             )
         except Exception as exc:
@@ -120,23 +208,75 @@ def retry_pending() -> dict[str, Any]:
                 }
             )
 
-    remaining = _pending_stage_runs(cfg.state_db_path)
+    remaining = _pending_stage_runs(resolved_db)
     return {
         "ok": not remaining,
+        "db_path": resolved_db,
+        "status": "CLEAR" if not remaining else "PENDING",
         "retried_stage_runs": len(pending),
         "remaining_pending": len(remaining),
         "results": results,
     }
 
 
+def retry_many(db_paths: list[str]) -> dict[str, Any]:
+    results: list[dict[str, Any]] = []
+    total_retried = 0
+    total_remaining = 0
+    all_ok = True
+    for db_path in db_paths:
+        try:
+            result = retry_pending(db_path)
+        except Exception as exc:
+            result = {
+                "ok": False,
+                "db_path": str(Path(db_path).resolve()),
+                "status": "ERROR",
+                "error": str(exc)[:500],
+                "retried_stage_runs": 0,
+                "remaining_pending": 1,
+                "results": [],
+            }
+        results.append(result)
+        total_retried += int(result.get("retried_stage_runs") or 0)
+        total_remaining += int(result.get("remaining_pending") or 0)
+        all_ok = all_ok and result.get("ok") is True
+    return {
+        "ok": all_ok and total_remaining == 0,
+        "scanned_databases": len(results),
+        "retried_stage_runs": total_retried,
+        "remaining_pending": total_remaining,
+        "databases": results,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Retry durable Predictor archive/diary lifecycle work")
     parser.add_argument("--dotenv", default=None)
+    parser.add_argument("--db", action="append", default=[], help="Existing Predictor SQLite DB to inspect/retry")
+    parser.add_argument("--scan-root", action="append", default=[], help="Directory tree to scan for Predictor SQLite DBs")
     args = parser.parse_args()
 
     try:
         _load_dotenv(args.dotenv)
-        result = retry_pending()
+        explicit = list(args.db)
+        if not explicit and not args.scan_root:
+            explicit = [
+                os.environ.get("PREDICTOR_STATE_DB", "").strip()
+                or str(Path("data") / "predictor_orchestrator.sqlite3")
+            ]
+        candidates = _candidate_db_paths(explicit, args.scan_root)
+        if not candidates:
+            result = {
+                "ok": False,
+                "error": "no existing Predictor SQLite database found",
+                "scanned_databases": 0,
+                "retried_stage_runs": 0,
+                "remaining_pending": 0,
+                "databases": [],
+            }
+        else:
+            result = retry_many(candidates)
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)[:500]}, ensure_ascii=False, sort_keys=True))
         return 1
