@@ -1,5 +1,5 @@
 {
-  "policy_version": 5,
+  "policy_version": 6,
   "status": "ACTIVE",
   "canonical": true,
   "precedence": "For Predictor workflow invariants, this executable policy controls over conflicting markdown summaries. Markdown remains human-readable documentation.",
@@ -24,6 +24,7 @@
       "SXF-S1-007": "Every selected candidate must contain at least one structured attention signal. OTHER is allowed only with a non-empty explanation.",
       "SXF-S1-008": "Stage 1 may not issue BET, WATCH or PASS.",
       "SXF-S1-009": "The exact reported Stage 1 candidate set becomes the default carry-forward set for Stage 2 and Stage 3 unless the user changes it explicitly.",
+      "SXF-S1-010": "Every formal user-visible Stage 1 candidate must expose the exact server-owned SXF evidence used for analysis: first/latest odds, money amount, money share, available time-window deltas, money velocity, liquidity/volume, reversals, same-market comparison and native cross-market snapshot. The model may interpret these numbers but may not supply or alter them.",
       "native_markets": ["1X2", "OU2.5", "BTTS"],
       "attention_signals": ["MONEY_ACCELERATION", "PRICE_CONFIRMATION", "PRICE_RESISTANCE", "DIVERGENCE", "REVERSAL", "PERSISTENCE", "LIQUIDITY_ADJUSTED_MOVE", "CROSS_MARKET_CONFIRMATION", "CROSS_MARKET_CONFLICT", "LATE_MOVE", "SATURATION", "OTHER"]
     },
@@ -41,13 +42,15 @@
       "SXF-S2-011": "Source tiers are determined by the canonical source registry rather than trusted model labels. Critical Tier C/D claims require independent corroboration, and Tier D-only research cannot materially decide the Stage 2 verdict.",
       "SXF-S2-012": "Stage 2 evidence must be PRE and fresh for its category: research cutoff and fixture kickoff are orchestrator-owned, observed/evidence timestamps must precede cutoff/kickoff, and stale squad/lineup/manager/performance evidence is rejected by category-specific windows.",
       "SXF-S2-013": "Research quality is coverage-gated. Meaningful CONFIRMED/PARTIALLY_CONFIRMED conclusions require real support FACTs; meaningful counter evaluation requires real CONTRADICTS FACTs; MEDIUM/HIGH coverage requires multiple facts and independent source hosts, and H2H alone cannot carry the thesis.",
+      "SXF-S2-014": "Every Stage 2 fact must state why it matters. VERIFIED performance requires at least one source-backed quantitative metric with a defined sample. Every match must have an explicit absence_assessment stating NONE, UNKNOWN or an identified absence with role, availability, LOW/MEDIUM/HIGH/CRITICAL importance, thesis effect, evidence fact ids and a concrete importance reason; uncertainty must remain UNKNOWN instead of being guessed.",
       "role": "ADVERSARIAL_VALIDATION_OF_FROZEN_STAGE1",
       "max_meaningful_facts": 6,
       "coverage_values": ["HIGH", "MEDIUM", "LOW"],
       "verdict_values": ["CONFIRMED", "PARTIALLY_CONFIRMED", "CONTRADICTED", "UNEXPLAINED"],
       "check_status_values": ["VERIFIED", "UNKNOWN"],
       "fact_categories": ["SQUAD", "LINEUP", "MANAGER_COMMENT", "PERFORMANCE", "TACTICAL", "CONTEXT", "H2H"],
-      "fact_materiality": ["CRITICAL", "MATERIAL", "CONTEXT"]
+      "fact_materiality": ["CRITICAL", "MATERIAL", "CONTEXT"],
+      "absence_importance": ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"]
     },
     "stage3": {
       "SXF-S3-001": "Stage 3 starts only after explicit user authorization and validated Stage 1/Stage 2 predecessor state.",
