@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
 from typing import Any
 
 
@@ -14,6 +15,17 @@ def _price_text(preference: dict[str, Any], price_evidence: dict[str, Any] | Non
     if isinstance(threshold, (int, float)):
         return f" | minimum {threshold:g}"
     return ""
+
+
+def _source_label(source: Any) -> str:
+    raw = str(source or "").strip()
+    if not raw:
+        return "kaynak yok"
+    try:
+        host = (urlparse(raw).hostname or "").lower()
+    except ValueError:
+        host = ""
+    return host or raw
 
 
 def render_stage1(payload: dict[str, Any]) -> dict[str, Any]:
@@ -53,7 +65,7 @@ def render_stage1(payload: dict[str, Any]) -> dict[str, Any]:
 
 def render_stage2(payload: dict[str, Any]) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
-    text: list[str] = ["STAGE 2 — ODAKLI ARAŞTIRMA"]
+    text: list[str] = ["STAGE 2 — KANITLI ODAKLI ARAŞTIRMA"]
     coverage_tr = {"HIGH": "YÜKSEK", "MEDIUM": "ORTA", "LOW": "DÜŞÜK"}
     verdict_tr = {
         "CONFIRMED": "DOĞRULANDI",
@@ -61,6 +73,18 @@ def render_stage2(payload: dict[str, Any]) -> dict[str, Any]:
         "CONTRADICTED": "ÇELİŞTİ",
         "UNEXPLAINED": "AÇIKLANAMADI",
     }
+    relation_tr = {"SUPPORTS": "DESTEKLİYOR", "CONTRADICTS": "ÇELİŞİYOR", "NEUTRAL": "NÖTR"}
+    category_tr = {
+        "SQUAD": "KADRO",
+        "LINEUP": "İLK 11",
+        "MANAGER_COMMENT": "TEKNİK DİREKTÖR AÇIKLAMASI",
+        "PERFORMANCE": "PERFORMANS",
+        "TACTICAL": "TAKTİK",
+        "CONTEXT": "BAĞLAM",
+        "H2H": "H2H",
+    }
+    status_tr = {"VERIFIED": "DOĞRULANDI", "UNKNOWN": "BİLİNMİYOR"}
+
     for match in payload.get("matches") or []:
         if not isinstance(match, dict):
             continue
@@ -68,15 +92,21 @@ def render_stage2(payload: dict[str, Any]) -> dict[str, Any]:
         frozen = match.get("frozen_stage1_preference") or {}
         coverage = str(match.get("coverage") or "").upper()
         verdict = str(match.get("verdict") or "").upper()
+        facts = match.get("facts") or []
+        checks = match.get("research_checks") if isinstance(match.get("research_checks"), dict) else {}
         row = {
             "fixture_id": fixture_id,
             "frozen_stage1_preference": frozen,
             "research_support": match.get("research_support"),
             "research_counter": match.get("research_counter"),
+            "research_synthesis": match.get("research_synthesis"),
             "important_absence": match.get("important_absence"),
             "coverage": coverage,
             "verdict": verdict,
-            "facts": match.get("facts") or [],
+            "facts": facts,
+            "research_checks": checks,
+            "support_fact_ids": match.get("support_fact_ids") or [],
+            "counter_fact_ids": match.get("counter_fact_ids") or [],
         }
         rows.append(row)
         text.extend(
@@ -84,10 +114,51 @@ def render_stage2(payload: dict[str, Any]) -> dict[str, Any]:
                 "",
                 fixture_id,
                 f"SXF NE DİYOR: {frozen.get('selection')} | {frozen.get('market')}",
-                f"ARAŞTIRMA DESTEĞİ: {row['research_support']}",
-                f"EN GÜÇLÜ ÇELİŞKİ: {row['research_counter']}",
+                "KANITLAR:",
+            ]
+        )
+        for idx, fact in enumerate(facts, start=1):
+            if not isinstance(fact, dict):
+                continue
+            kind = str(fact.get("kind") or "").upper()
+            relationship = str(fact.get("relationship") or "").upper()
+            category = str(fact.get("category") or "").upper()
+            fact_id = str(fact.get("fact_id") or f"fact-{idx}")
+            if kind == "FACT":
+                evidence_at = str(fact.get("evidence_at") or "")
+                text.append(
+                    f"  {idx}. [{fact_id}] {category_tr.get(category, category)} | {relation_tr.get(relationship, relationship)} | "
+                    f"{fact.get('claim')} | Kaynak: {_source_label(fact.get('source'))} (Tier {fact.get('source_tier')}) | Kanıt zamanı: {evidence_at}"
+                )
+                corroborators = fact.get("corroborating_sources") or []
+                if corroborators:
+                    corr_text = ", ".join(
+                        f"{_source_label(item.get('source'))}/Tier {item.get('source_tier')}"
+                        for item in corroborators
+                        if isinstance(item, dict)
+                    )
+                    if corr_text:
+                        text.append(f"     İKİNCİ DOĞRULAMA: {corr_text}")
+            else:
+                derived = ", ".join(str(x) for x in fact.get("derived_from_fact_ids") or []) or "—"
+                text.append(
+                    f"  {idx}. [{fact_id}] ÇIKARIM | {category_tr.get(category, category)} | {relation_tr.get(relationship, relationship)} | "
+                    f"{fact.get('claim')} | Dayanak FACT: {derived}"
+                )
+
+        for check_name, label in (("squad", "KADRO KONTROLÜ"), ("performance", "PERFORMANS KONTROLÜ"), ("counter", "KARŞI TEZ KONTROLÜ")):
+            check = checks.get(check_name) if isinstance(checks.get(check_name), dict) else {}
+            status = str(check.get("status") or "").upper()
+            ids = ", ".join(str(x) for x in check.get("fact_ids") or []) or "—"
+            text.append(f"{label}: {status_tr.get(status, status)} | Kanıt: {ids} | {check.get('note') or ''}")
+
+        text.extend(
+            [
+                f"ARAŞTIRMA DESTEĞİ: {row['research_support']} (FACT: {', '.join(row['support_fact_ids']) or '—'})",
+                f"EN GÜÇLÜ ÇELİŞKİ: {row['research_counter']} (FACT: {', '.join(row['counter_fact_ids']) or '—'})",
                 f"ÖNEMLİ EKSİK: {row['important_absence'] or 'Yok / material değil'}",
                 f"ARAŞTIRMA KAPSAMI: {coverage_tr.get(coverage, coverage)}",
+                f"ARAŞTIRMA NE DİYOR: {row['research_synthesis']}",
                 f"2. AŞAMA SONUCU: {verdict_tr.get(verdict, verdict)}",
             ]
         )
