@@ -39,6 +39,7 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("curl -fsS --max-time 2 http://127.0.0.1:8011/healthz", text)
         self.assertIn("service never became HTTP-ready", text)
         self.assertIn("stage1_source_enabled", text)
+        self.assertIn("PYTHONPATH=/opt/smartxflow", text)
         self.assertIn("retry_predictor_archive_pending.py", text)
         self.assertIn("PREDICTOR_ARCHIVE_RETRY_OK", text)
         self.assertIn("PREDICTOR_DEPLOY_OK", text)
