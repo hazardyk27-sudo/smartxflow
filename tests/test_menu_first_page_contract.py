@@ -17,6 +17,18 @@ def test_first_page_rpc_is_bounded_and_not_security_definer():
         assert market in sql
 
 
+def test_first_page_rpc_date_regex_accepts_iso_kickoffs():
+    sql = (
+        ROOT
+        / "migrations"
+        / "2026_10_09_app_first_page_fast_path_date_regex_fix.sql"
+    ).read_text()
+    assert "^[0-9]{4}-[0-9]{2}-[0-9]{2}T" in sql
+    assert "sxf_matches_first_page_v1" in sql
+    assert "security invoker" in sql.lower()
+    assert "security definer" not in sql.lower()
+
+
 def test_app_first_paint_uses_bounded_endpoint_before_bulk_hydration():
     src = (ROOT / "static" / "js" / "app.js.src").read_text()
     assert "date_filter=today_future&limit=20&offset=0" in src
