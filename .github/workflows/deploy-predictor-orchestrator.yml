@@ -102,6 +102,7 @@ jobs:
             PY
 
             RETRY_OUTPUT="$(sudo -u smartxflow env \
+              PYTHONPATH=/opt/smartxflow \
               PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
               LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
               /opt/smartxflow/venv/bin/python \
