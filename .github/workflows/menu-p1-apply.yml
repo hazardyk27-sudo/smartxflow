@@ -34,7 +34,22 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest pytz requests rjsmin
 
       - name: Apply scoped Menu P1 patch
-        run: python scripts/_menu_p1_apply.py
+        shell: bash
+        run: |
+          set +e
+          python scripts/_menu_p1_apply.py > /tmp/menu-p1-apply.log 2>&1
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            cat /tmp/menu-p1-apply.log
+            cp /tmp/menu-p1-apply.log menu-p1-apply-error.txt
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add menu-p1-apply-error.txt
+            git commit -m 'chore: capture menu P1 apply failure'
+            git push origin HEAD:perf/menu-p1-real-first-page
+            exit "$code"
+          fi
+          cat /tmp/menu-p1-apply.log
 
       - name: Python syntax
         run: python -m py_compile app.py services/fixture_uid_reader_patch.py
