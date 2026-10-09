@@ -84,6 +84,10 @@ class SXFStage1SourceTests(unittest.TestCase):
         for checkpoint in ("h24", "h12", "h6", "h3", "h1", "m30", "m15"):
             self.assertIn(checkpoint, home)
             self.assertIn(f"{checkpoint}_to_latest", home)
+        self.assertIsNone(home["h24"])
+        self.assertIsNone(home["h12"])
+        self.assertIsNone(home["h6"])
+        self.assertIsNone(home["h3"])
 
     def test_temporal_features_resolve_expanded_checkpoint_ladder(self):
         now = datetime(2026, 10, 8, 0, 0, tzinfo=timezone.utc)
