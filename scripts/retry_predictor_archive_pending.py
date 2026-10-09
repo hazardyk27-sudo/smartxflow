@@ -13,9 +13,6 @@ from predictor_orchestrator.strict_service import StrictPredictorOrchestrator
 from predictor_orchestrator.store import SQLiteOrchestratorStore
 
 
-_DB_FILENAMES = {"predictor_orchestrator.sqlite3", "predictor-orchestrator.sqlite3"}
-
-
 class _NoLLM:
     def generate(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("LLM must not be called during archive lifecycle retry")
@@ -51,17 +48,29 @@ def _table_exists(db_path: str, table: str) -> bool:
     return row is not None
 
 
-def _pending_stage_runs(db_path: str) -> list[tuple[str, str]]:
+def _workflow_ids(db_path: str) -> set[str]:
+    if not _table_exists(db_path, "predictor_workflows"):
+        return set()
+    with sqlite3.connect(f"file:{Path(db_path).resolve()}?mode=ro", uri=True) as conn:
+        rows = conn.execute("SELECT workflow_id FROM predictor_workflows").fetchall()
+    return {str(row[0]) for row in rows}
+
+
+def _pending_stage_runs(db_path: str, workflow_filter: set[str] | None = None) -> list[tuple[str, str]]:
+    sql = """
+        SELECT DISTINCT workflow_id, stage_run_id
+        FROM predictor_archive_lifecycle
+        WHERE (archive_status != 'RECORDED'
+           OR COALESCE(diary_status, '') != 'RECORDED')
+    """
+    params: list[str] = []
+    if workflow_filter:
+        placeholders = ",".join("?" for _ in sorted(workflow_filter))
+        sql += f" AND workflow_id IN ({placeholders})"
+        params.extend(sorted(workflow_filter))
+    sql += " ORDER BY workflow_id, stage_run_id"
     with sqlite3.connect(db_path) as conn:
-        rows = conn.execute(
-            """
-            SELECT DISTINCT workflow_id, stage_run_id
-            FROM predictor_archive_lifecycle
-            WHERE archive_status != 'RECORDED'
-               OR COALESCE(diary_status, '') != 'RECORDED'
-            ORDER BY workflow_id, stage_run_id
-            """
-        ).fetchall()
+        rows = conn.execute(sql, params).fetchall()
     return [(str(row[0]), str(row[1])) for row in rows]
 
 
@@ -81,7 +90,7 @@ def _candidate_db_paths(explicit: Iterable[str], scan_roots: Iterable[str]) -> l
         if not root.is_dir():
             continue
         for path in root.rglob("*.sqlite3"):
-            if path.name in _DB_FILENAMES and path.is_file():
+            if path.is_file():
                 found.append(path.resolve())
     unique: list[str] = []
     seen: set[str] = set()
@@ -93,7 +102,10 @@ def _candidate_db_paths(explicit: Iterable[str], scan_roots: Iterable[str]) -> l
     return unique
 
 
-def retry_pending(db_path: str | None = None) -> dict[str, Any]:
+def retry_pending(
+    db_path: str | None = None,
+    workflow_filter: set[str] | None = None,
+) -> dict[str, Any]:
     if db_path:
         os.environ["PREDICTOR_STATE_DB"] = str(Path(db_path).resolve())
     cfg = OrchestratorConfig.from_env(require_secrets=False, require_api_key=False)
@@ -103,6 +115,7 @@ def retry_pending(db_path: str | None = None) -> dict[str, Any]:
             "ok": True,
             "db_path": resolved_db,
             "status": "MISSING",
+            "matched_workflows": [],
             "retried_stage_runs": 0,
             "remaining_pending": 0,
             "results": [],
@@ -112,6 +125,20 @@ def retry_pending(db_path: str | None = None) -> dict[str, Any]:
             "ok": True,
             "db_path": resolved_db,
             "status": "NO_LIFECYCLE_TABLE",
+            "matched_workflows": [],
+            "retried_stage_runs": 0,
+            "remaining_pending": 0,
+            "results": [],
+        }
+
+    present_workflows = _workflow_ids(resolved_db)
+    matched_workflows = sorted(present_workflows & workflow_filter) if workflow_filter else sorted(present_workflows)
+    if workflow_filter and not matched_workflows:
+        return {
+            "ok": True,
+            "db_path": resolved_db,
+            "status": "TARGET_NOT_FOUND",
+            "matched_workflows": [],
             "retried_stage_runs": 0,
             "remaining_pending": 0,
             "results": [],
@@ -120,12 +147,13 @@ def retry_pending(db_path: str | None = None) -> dict[str, Any]:
     store = SQLiteOrchestratorStore(resolved_db)
     orch = StrictPredictorOrchestrator(config=cfg, store=store, llm=_NoLLM())
 
-    pending = _pending_stage_runs(resolved_db)
+    pending = _pending_stage_runs(resolved_db, workflow_filter)
     if not pending:
         return {
             "ok": True,
             "db_path": resolved_db,
             "status": "CLEAR",
+            "matched_workflows": matched_workflows,
             "retried_stage_runs": 0,
             "remaining_pending": 0,
             "results": [],
@@ -136,6 +164,7 @@ def retry_pending(db_path: str | None = None) -> dict[str, Any]:
             "ok": False,
             "db_path": resolved_db,
             "status": "PUBLISHER_UNAVAILABLE",
+            "matched_workflows": matched_workflows,
             "error": "Learning Archive publisher is not configured",
             "retried_stage_runs": 0,
             "remaining_pending": len(pending),
@@ -208,42 +237,54 @@ def retry_pending(db_path: str | None = None) -> dict[str, Any]:
                 }
             )
 
-    remaining = _pending_stage_runs(resolved_db)
+    remaining = _pending_stage_runs(resolved_db, workflow_filter)
     return {
         "ok": not remaining,
         "db_path": resolved_db,
         "status": "CLEAR" if not remaining else "PENDING",
+        "matched_workflows": matched_workflows,
         "retried_stage_runs": len(pending),
         "remaining_pending": len(remaining),
         "results": results,
     }
 
 
-def retry_many(db_paths: list[str]) -> dict[str, Any]:
+def retry_many(
+    db_paths: list[str],
+    workflow_filter: set[str] | None = None,
+    *,
+    require_workflow: bool = False,
+) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     total_retried = 0
     total_remaining = 0
     all_ok = True
+    matched: set[str] = set()
     for db_path in db_paths:
         try:
-            result = retry_pending(db_path)
+            result = retry_pending(db_path, workflow_filter)
         except Exception as exc:
             result = {
                 "ok": False,
                 "db_path": str(Path(db_path).resolve()),
                 "status": "ERROR",
+                "matched_workflows": [],
                 "error": str(exc)[:500],
                 "retried_stage_runs": 0,
                 "remaining_pending": 1,
                 "results": [],
             }
         results.append(result)
+        matched.update(str(item) for item in result.get("matched_workflows") or [])
         total_retried += int(result.get("retried_stage_runs") or 0)
         total_remaining += int(result.get("remaining_pending") or 0)
         all_ok = all_ok and result.get("ok") is True
+    missing_required = bool(require_workflow and workflow_filter and not (matched & workflow_filter))
     return {
-        "ok": all_ok and total_remaining == 0,
+        "ok": all_ok and total_remaining == 0 and not missing_required,
+        "error": "required Predictor workflow was not found in scanned databases" if missing_required else None,
         "scanned_databases": len(results),
+        "matched_workflows": sorted(matched),
         "retried_stage_runs": total_retried,
         "remaining_pending": total_remaining,
         "databases": results,
@@ -254,7 +295,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Retry durable Predictor archive/diary lifecycle work")
     parser.add_argument("--dotenv", default=None)
     parser.add_argument("--db", action="append", default=[], help="Existing Predictor SQLite DB to inspect/retry")
-    parser.add_argument("--scan-root", action="append", default=[], help="Directory tree to scan for Predictor SQLite DBs")
+    parser.add_argument("--scan-root", action="append", default=[], help="Directory tree to scan for SQLite DBs")
+    parser.add_argument("--workflow-id", action="append", default=[], help="Only retry these exact Predictor workflow IDs")
+    parser.add_argument("--require-workflow", action="store_true", help="Fail when none of the requested workflow IDs are found")
     args = parser.parse_args()
 
     try:
@@ -266,17 +309,23 @@ def main() -> int:
                 or str(Path("data") / "predictor_orchestrator.sqlite3")
             ]
         candidates = _candidate_db_paths(explicit, args.scan_root)
+        workflow_filter = {str(item).strip() for item in args.workflow_id if str(item).strip()} or None
         if not candidates:
             result = {
                 "ok": False,
                 "error": "no existing Predictor SQLite database found",
                 "scanned_databases": 0,
+                "matched_workflows": [],
                 "retried_stage_runs": 0,
                 "remaining_pending": 0,
                 "databases": [],
             }
         else:
-            result = retry_many(candidates)
+            result = retry_many(
+                candidates,
+                workflow_filter,
+                require_workflow=args.require_workflow,
+            )
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)[:500]}, ensure_ascii=False, sort_keys=True))
         return 1
