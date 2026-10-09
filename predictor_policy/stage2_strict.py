@@ -4,6 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from .stage2_quality import validate_stage2_quality
+from .stage2_transparency import validate_stage2_transparency
 from .validator import ValidationResult, Violation, validate_stage2 as _legacy_validate_stage2
 
 
@@ -81,6 +82,7 @@ def validate_stage2_strict(payload: dict[str, Any]) -> ValidationResult:
     violations.extend(_source_timestamp_violations(payload))
     violations.extend(_two_sided_evidence_violations(payload))
     violations.extend(validate_stage2_quality(payload))
+    violations.extend(validate_stage2_transparency(payload))
 
     # Keep repair output useful: identical rule/message pairs can arise when the
     # direct guardrail and deep evidence validator catch the same deficiency.
