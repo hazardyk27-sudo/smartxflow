@@ -82,16 +82,67 @@ STAGE1_OUTPUT_SCHEMA = _object(
     ["screening_results", "matches"],
 )
 
+STAGE2_CORROBORATING_SOURCE_SCHEMA = _object(
+    {
+        "source": {"type": "string", "minLength": 1},
+        "source_tier": {"type": "string", "enum": ["A", "B", "C", "D"]},
+        "observed_at": {"type": "string", "minLength": 1},
+        "evidence_at": {"type": "string", "minLength": 1},
+    },
+    ["source", "source_tier", "observed_at", "evidence_at"],
+)
+
 STAGE2_FACT_SCHEMA = _object(
     {
+        "fact_id": {"type": "string", "minLength": 1},
         "kind": {"type": "string", "enum": ["FACT", "INFERENCE"]},
+        "category": {
+            "type": "string",
+            "enum": ["SQUAD", "LINEUP", "MANAGER_COMMENT", "PERFORMANCE", "TACTICAL", "CONTEXT", "H2H"],
+        },
+        "materiality": {"type": "string", "enum": ["CRITICAL", "MATERIAL", "CONTEXT"]},
         "relationship": {"type": "string", "enum": ["SUPPORTS", "CONTRADICTS", "NEUTRAL"]},
         "claim": {"type": "string", "minLength": 1},
         "source": _STRING_OR_NULL,
         "source_tier": {"type": ["string", "null"], "enum": ["A", "B", "C", "D", None]},
         "observed_at": _STRING_OR_NULL,
+        "evidence_at": _STRING_OR_NULL,
+        "derived_from_fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+        },
+        "corroborating_sources": {
+            "type": "array",
+            "maxItems": 3,
+            "items": deepcopy(STAGE2_CORROBORATING_SOURCE_SCHEMA),
+        },
     },
-    ["kind", "relationship", "claim", "source", "source_tier", "observed_at"],
+    [
+        "fact_id",
+        "kind",
+        "category",
+        "materiality",
+        "relationship",
+        "claim",
+        "source",
+        "source_tier",
+        "observed_at",
+        "evidence_at",
+        "derived_from_fact_ids",
+        "corroborating_sources",
+    ],
+)
+
+STAGE2_CHECK_SCHEMA = _object(
+    {
+        "status": {"type": "string", "enum": ["VERIFIED", "UNKNOWN"]},
+        "fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+        },
+        "note": {"type": "string", "minLength": 1},
+    },
+    ["status", "fact_ids", "note"],
 )
 
 STAGE2_OUTPUT_SCHEMA = _object(
@@ -103,20 +154,29 @@ STAGE2_OUTPUT_SCHEMA = _object(
                     "fixture_id": {"type": "string", "minLength": 1},
                     "research_checks": _object(
                         {
-                            "squad_checked": {"type": "boolean"},
-                            "performance_checked": {"type": "boolean"},
-                            "counter_checked": {"type": "boolean"},
-                            "coverage_classified": {"type": "boolean"},
+                            "squad": deepcopy(STAGE2_CHECK_SCHEMA),
+                            "performance": deepcopy(STAGE2_CHECK_SCHEMA),
+                            "counter": deepcopy(STAGE2_CHECK_SCHEMA),
                         },
-                        ["squad_checked", "performance_checked", "counter_checked", "coverage_classified"],
+                        ["squad", "performance", "counter"],
                     ),
                     "facts": {
                         "type": "array",
+                        "minItems": 1,
                         "maxItems": 6,
                         "items": deepcopy(STAGE2_FACT_SCHEMA),
                     },
+                    "support_fact_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                    "counter_fact_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1},
+                    },
                     "research_support": {"type": "string", "minLength": 1},
                     "research_counter": {"type": "string", "minLength": 1},
+                    "research_synthesis": {"type": "string", "minLength": 1},
                     "important_absence": _STRING_OR_NULL,
                     "coverage": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"]},
                     "verdict": {
@@ -128,8 +188,11 @@ STAGE2_OUTPUT_SCHEMA = _object(
                     "fixture_id",
                     "research_checks",
                     "facts",
+                    "support_fact_ids",
+                    "counter_fact_ids",
                     "research_support",
                     "research_counter",
+                    "research_synthesis",
                     "important_absence",
                     "coverage",
                     "verdict",
