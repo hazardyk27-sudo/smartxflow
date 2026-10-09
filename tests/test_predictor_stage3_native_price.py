@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -9,7 +8,7 @@ from predictor_orchestrator.config import OrchestratorConfig
 from predictor_orchestrator.strict_service import StrictPredictorOrchestrator
 from predictor_orchestrator.store import SQLiteOrchestratorStore
 from tests.test_predictor_orchestrator import FakeLLM, stage1_valid, stage2_valid
-from tests.test_predictor_strict_boundary import FakeArchivePublisher
+from tests.test_predictor_strict_boundary import FakeArchivePublisher, StrictPredictorBoundaryTests
 
 
 class StrictStage3NativePriceTests(unittest.TestCase):
@@ -43,42 +42,7 @@ class StrictStage3NativePriceTests(unittest.TestCase):
 
     @staticmethod
     def stage1_context():
-        kickoff1 = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
-        kickoff2 = (datetime.now(timezone.utc) + timedelta(days=1, hours=1)).isoformat()
-        return {
-            "source": "SXF_PRODUCTION_READ_ONLY",
-            "source_fixture_ids": ["m1", "m2"],
-            "fixtures": [
-                {
-                    "fixture_id": "m1",
-                    "home": "Home",
-                    "away": "Away",
-                    "league": "League",
-                    "kickoff_utc": kickoff1,
-                    "markets": {},
-                },
-                {
-                    "fixture_id": "m2",
-                    "home": "Other",
-                    "away": "Guest",
-                    "league": "League",
-                    "kickoff_utc": kickoff2,
-                    "markets": {},
-                },
-            ],
-            "price_evidence": [
-                {
-                    "fixture_id": "m1",
-                    "origin": "SXF_NATIVE",
-                    "source": "SXF",
-                    "market": "1X2",
-                    "selection": "Home",
-                    "price": 1.91,
-                    "observed_at": "2026-10-08T17:00:00+00:00",
-                    "status": "OBSERVED",
-                }
-            ],
-        }
+        return StrictPredictorBoundaryTests.stage1_context()
 
     @staticmethod
     def native_stage3_bet():
