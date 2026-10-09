@@ -56,7 +56,18 @@ class PredictorDeployContractTests(unittest.TestCase):
             text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
         )
 
-    def test_archive_retry_script_is_fail_closed_uses_durable_stage3_and_scans_legacy_dbs(self):
+    def test_predictor_deploy_recovers_exact_stranded_9_october_workflow(self):
+        text = (ROOT / ".github" / "workflows" / "deploy-predictor-orchestrator.yml").read_text(encoding="utf-8")
+        self.assertIn("pred_20261009T134410_bef4b19b53", text)
+        self.assertIn("pred_20261009T134410_bef4b19b53:stage3:a31d6ecd09", text)
+        self.assertIn("--workflow-id \"$TARGET_WORKFLOW\"", text)
+        self.assertIn("--require-workflow", text)
+        self.assertIn("PREDICTOR_LEGACY_RECOVERY_OK", text)
+        self.assertIn("learning_archive_data/diaries/2026/10/09/predictions.md", text)
+        self.assertIn("case_count != 14", text)
+        self.assertIn("PREDICTOR_LEGACY_DIARY_OK", text)
+
+    def test_archive_retry_script_is_fail_closed_uses_durable_stage3_and_targets_legacy_dbs(self):
         text = (ROOT / "scripts" / "retry_predictor_archive_pending.py").read_text(encoding="utf-8")
         self.assertIn("predictor_archive_lifecycle", text)
         self.assertIn("store.get_stage_output(workflow_id, \"STAGE3\")", text)
@@ -64,11 +75,13 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("remaining_pending", text)
         self.assertIn("--dotenv", text)
         self.assertIn("--scan-root", text)
+        self.assertIn("--workflow-id", text)
+        self.assertIn("--require-workflow", text)
+        self.assertIn("TARGET_NOT_FOUND", text)
         self.assertIn("_candidate_db_paths", text)
-        self.assertIn("predictor_orchestrator.sqlite3", text)
-        self.assertIn("predictor-orchestrator.sqlite3", text)
         self.assertIn("archive_commits", text)
         self.assertIn("diary_references", text)
+        self.assertIn("matched_workflows", text)
 
 
 if __name__ == "__main__":
