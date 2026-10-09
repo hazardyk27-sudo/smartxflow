@@ -101,13 +101,19 @@ jobs:
             print("PREDICTOR_HEALTH_OK")
             PY
 
+            # Retry all durable Predictor lifecycle stores that may have been
+            # created before the canonical StateDirectory path was enforced.
+            # This recovers accepted Stage 3 rows without regenerating predictions.
             RETRY_OUTPUT="$(sudo -u smartxflow env \
               PYTHONPATH=/opt/smartxflow \
               PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
               LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
               /opt/smartxflow/venv/bin/python \
               /opt/smartxflow/scripts/retry_predictor_archive_pending.py \
-              --dotenv /opt/smartxflow/.env || true)"
+              --dotenv /opt/smartxflow/.env \
+              --db /var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
+              --scan-root /opt/smartxflow/data \
+              --scan-root /var/lib/smartxflow-predictor || true)"
             echo "$RETRY_OUTPUT"
             python3 - "$RETRY_OUTPUT" <<'PY'
             import json, sys
@@ -118,6 +124,7 @@ jobs:
                 )
             print(
                 "PREDICTOR_ARCHIVE_RETRY_OK "
+                f"scanned_databases={payload.get('scanned_databases', 0)} "
                 f"retried_stage_runs={payload.get('retried_stage_runs', 0)} "
                 f"remaining_pending={payload.get('remaining_pending', 0)}"
             )
