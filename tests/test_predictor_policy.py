@@ -48,23 +48,67 @@ class PredictorPolicyTests(unittest.TestCase):
             "authorized_by_user": True,
             "predecessor_stage1_run_id": "s1-run",
             "stage1_candidate_ids": ["m1"],
+            "research_cutoff_at": "2026-10-07T16:00:00+00:00",
             "matches": [
                 {
                     "fixture_id": "m1",
+                    "fixture_kickoff_utc": "2026-10-07T19:00:00+00:00",
                     "frozen_stage1_preference": {"market": "1X2", "selection": "Home"},
                     "research_checks": {
-                        "squad_checked": True,
-                        "performance_checked": True,
-                        "counter_checked": True,
-                        "coverage_classified": True,
+                        "squad": {"status": "VERIFIED", "fact_ids": ["f1"], "note": "Güncel kadro kaynağı kontrol edildi."},
+                        "performance": {"status": "VERIFIED", "fact_ids": ["f2"], "note": "Yakın dönem performansı kontrol edildi."},
+                        "counter": {"status": "VERIFIED", "fact_ids": ["f3"], "note": "En güçlü karşı senaryo ayrı araştırıldı."},
                     },
                     "facts": [
-                        {"claim": "Starter availability checked.", "kind": "FACT", "relationship": "NEUTRAL"},
-                        {"claim": "Recent chance creation is stable.", "kind": "FACT", "relationship": "SUPPORTS"},
-                        {"claim": "Away transition threat is credible.", "kind": "FACT", "relationship": "CONTRADICTS"},
+                        {
+                            "fact_id": "f1",
+                            "claim": "Ana kadro çekirdeğinde material bir eksik görünmüyor.",
+                            "kind": "FACT",
+                            "category": "SQUAD",
+                            "materiality": "MATERIAL",
+                            "relationship": "NEUTRAL",
+                            "source": "https://www.uefa.com/news/test-squad",
+                            "source_tier": "A",
+                            "observed_at": "2026-10-07T15:00:00+00:00",
+                            "evidence_at": "2026-10-07T14:00:00+00:00",
+                            "derived_from_fact_ids": [],
+                            "corroborating_sources": [],
+                        },
+                        {
+                            "fact_id": "f2",
+                            "claim": "Yakın dönem şut ve üretim profili ev sahibini destekliyor.",
+                            "kind": "FACT",
+                            "category": "PERFORMANCE",
+                            "materiality": "MATERIAL",
+                            "relationship": "SUPPORTS",
+                            "source": "https://www.fotmob.com/matches/test",
+                            "source_tier": "C",
+                            "observed_at": "2026-10-07T15:05:00+00:00",
+                            "evidence_at": "2026-10-05T20:00:00+00:00",
+                            "derived_from_fact_ids": [],
+                            "corroborating_sources": [],
+                        },
+                        {
+                            "fact_id": "f3",
+                            "claim": "Rakibin geçiş tehdidi ve son deplasman performansı beraberlik/away yolunu açık tutuyor.",
+                            "kind": "FACT",
+                            "category": "CONTEXT",
+                            "materiality": "MATERIAL",
+                            "relationship": "CONTRADICTS",
+                            "source": "https://www.reuters.com/sports/soccer/test-counter",
+                            "source_tier": "B",
+                            "observed_at": "2026-10-07T15:10:00+00:00",
+                            "evidence_at": "2026-10-07T12:00:00+00:00",
+                            "derived_from_fact_ids": [],
+                            "corroborating_sources": [],
+                        },
                     ],
-                    "research_support": "Recent underlying performance supports the frozen thesis.",
-                    "research_counter": "Away transition threat is credible.",
+                    "support_fact_ids": ["f2"],
+                    "counter_fact_ids": ["f3"],
+                    "research_support": "Yakın dönem üretim kalitesi frozen Stage 1 yönünü destekliyor.",
+                    "research_counter": "Rakibin geçiş tehdidi ve deplasman performansı ana karşı tez.",
+                    "research_synthesis": "Dış araştırma Stage 1 yönünü destekliyor ancak rakibin geçiş tehdidi nedeniyle tam doğrulama vermiyor.",
+                    "important_absence": None,
                     "coverage": "MEDIUM",
                     "verdict": "PARTIALLY_CONFIRMED",
                 }
@@ -141,28 +185,57 @@ class PredictorPolicyTests(unittest.TestCase):
         self.assertFalse(result.valid)
         self.assertIn("SXF-S1-005", {item.rule_id for item in result.violations})
 
-    def test_stage2_enforces_fact_budget_and_3_plus_1_checks(self):
+    def test_stage2_enforces_fact_budget_and_evidence_backed_3_plus_1_checks(self):
         payload = self._stage2_payload()
-        self.assertTrue(validate_stage2(payload).valid)
-        payload["matches"][0]["facts"].extend(
-            [
-                {"claim": "x", "kind": "FACT", "relationship": "NEUTRAL"},
-                {"claim": "y", "kind": "FACT", "relationship": "NEUTRAL"},
-                {"claim": "z", "kind": "FACT", "relationship": "NEUTRAL"},
-                {"claim": "q", "kind": "FACT", "relationship": "NEUTRAL"},
-            ]
-        )
+        self.assertTrue(validate_stage2(payload).valid, validate_stage2(payload).violations)
+        payload["matches"][0]["facts"].extend([
+            {**payload["matches"][0]["facts"][0], "fact_id": "f4"},
+            {**payload["matches"][0]["facts"][0], "fact_id": "f5"},
+            {**payload["matches"][0]["facts"][0], "fact_id": "f6"},
+            {**payload["matches"][0]["facts"][0], "fact_id": "f7"},
+        ])
         result = validate_stage2(payload)
         self.assertFalse(result.valid)
         self.assertIn("SXF-S2-004", {item.rule_id for item in result.violations})
 
-    def test_stage2_rejects_missing_support_or_skipped_check(self):
+    def test_stage2_rejects_boolean_research_check_bypass(self):
         payload = self._stage2_payload()
-        payload["matches"][0]["research_support"] = ""
-        payload["matches"][0]["research_checks"]["performance_checked"] = False
+        payload["matches"][0]["research_checks"] = {
+            "squad_checked": True,
+            "performance_checked": True,
+            "counter_checked": True,
+            "coverage_classified": True,
+        }
         result = validate_stage2(payload)
         self.assertFalse(result.valid)
-        self.assertIn("SXF-S2-005", {item.rule_id for item in result.violations})
+        self.assertIn("SXF-S2-010", {item.rule_id for item in result.violations})
+
+    def test_stage2_rejects_fact_without_source_or_timestamp(self):
+        payload = self._stage2_payload()
+        fact = payload["matches"][0]["facts"][1]
+        fact["source"] = None
+        fact["source_tier"] = None
+        fact["observed_at"] = None
+        fact["evidence_at"] = None
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        ids = {item.rule_id for item in result.violations}
+        self.assertIn("SXF-S2-009", ids)
+        self.assertIn("SXF-S2-012", ids)
+
+    def test_stage2_rejects_false_source_tier(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["facts"][1]["source_tier"] = "B"
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-011", {item.rule_id for item in result.violations})
+
+    def test_stage2_rejects_stale_squad_news(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["facts"][0]["evidence_at"] = "2026-09-01T12:00:00+00:00"
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-012", {item.rule_id for item in result.violations})
 
     def test_stage3_valid_baseline_passes(self):
         result = validate_stage3(self._stage3_payload())
