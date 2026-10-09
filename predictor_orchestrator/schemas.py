@@ -92,6 +92,16 @@ STAGE2_CORROBORATING_SOURCE_SCHEMA = _object(
     ["source", "source_tier", "observed_at", "evidence_at"],
 )
 
+STAGE2_QUANT_METRIC_SCHEMA = _object(
+    {
+        "metric": {"type": "string", "minLength": 1},
+        "value": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1},
+        "sample": {"type": "string", "minLength": 1},
+    },
+    ["metric", "value", "unit", "sample"],
+)
+
 STAGE2_FACT_SCHEMA = _object(
     {
         "fact_id": {"type": "string", "minLength": 1},
@@ -103,6 +113,12 @@ STAGE2_FACT_SCHEMA = _object(
         "materiality": {"type": "string", "enum": ["CRITICAL", "MATERIAL", "CONTEXT"]},
         "relationship": {"type": "string", "enum": ["SUPPORTS", "CONTRADICTS", "NEUTRAL"]},
         "claim": {"type": "string", "minLength": 1},
+        "importance_reason": {"type": "string", "minLength": 1},
+        "quantitative_context": {
+            "type": "array",
+            "maxItems": 4,
+            "items": deepcopy(STAGE2_QUANT_METRIC_SCHEMA),
+        },
         "source": _STRING_OR_NULL,
         "source_tier": {"type": ["string", "null"], "enum": ["A", "B", "C", "D", None]},
         "observed_at": _STRING_OR_NULL,
@@ -124,6 +140,8 @@ STAGE2_FACT_SCHEMA = _object(
         "materiality",
         "relationship",
         "claim",
+        "importance_reason",
+        "quantitative_context",
         "source",
         "source_tier",
         "observed_at",
@@ -143,6 +161,44 @@ STAGE2_CHECK_SCHEMA = _object(
         "note": {"type": "string", "minLength": 1},
     },
     ["status", "fact_ids", "note"],
+)
+
+STAGE2_ABSENCE_ASSESSMENT_SCHEMA = _object(
+    {
+        "status": {"type": "string", "enum": ["NONE", "UNKNOWN", "IDENTIFIED"]},
+        "subject": _STRING_OR_NULL,
+        "role": _STRING_OR_NULL,
+        "availability": {
+            "type": "string",
+            "enum": ["NONE", "OUT", "DOUBTFUL", "SUSPENDED", "ROTATION_RISK", "UNKNOWN"],
+        },
+        "importance": {
+            "type": "string",
+            "enum": ["NONE", "LOW", "MEDIUM", "HIGH", "CRITICAL", "UNKNOWN"],
+        },
+        "thesis_effect": {"type": "string", "enum": ["SUPPORTS", "CONTRADICTS", "NEUTRAL", "UNKNOWN"]},
+        "importance_reason": {"type": "string", "minLength": 1},
+        "fact_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+        },
+        "quantified_context": {
+            "type": "array",
+            "maxItems": 4,
+            "items": deepcopy(STAGE2_QUANT_METRIC_SCHEMA),
+        },
+    },
+    [
+        "status",
+        "subject",
+        "role",
+        "availability",
+        "importance",
+        "thesis_effect",
+        "importance_reason",
+        "fact_ids",
+        "quantified_context",
+    ],
 )
 
 STAGE2_OUTPUT_SCHEMA = _object(
@@ -178,6 +234,7 @@ STAGE2_OUTPUT_SCHEMA = _object(
                     "research_counter": {"type": "string", "minLength": 1},
                     "research_synthesis": {"type": "string", "minLength": 1},
                     "important_absence": _STRING_OR_NULL,
+                    "absence_assessment": deepcopy(STAGE2_ABSENCE_ASSESSMENT_SCHEMA),
                     "coverage": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"]},
                     "verdict": {
                         "type": "string",
@@ -194,6 +251,7 @@ STAGE2_OUTPUT_SCHEMA = _object(
                     "research_counter",
                     "research_synthesis",
                     "important_absence",
+                    "absence_assessment",
                     "coverage",
                     "verdict",
                 ],
