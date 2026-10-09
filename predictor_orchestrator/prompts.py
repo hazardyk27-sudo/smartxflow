@@ -1,13 +1,27 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from predictor_policy.validator import load_policy
 
 
+_STAGE2_PROTOCOL_PATH = Path(__file__).resolve().parents[1] / ".agents" / "predictor" / "STAGE2_FOCUSED_RESEARCH.md"
+
+
 def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def load_stage2_protocol() -> str:
+    try:
+        text = _STAGE2_PROTOCOL_PATH.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise RuntimeError(f"Stage 2 research protocol is unavailable: {_STAGE2_PROTOCOL_PATH}") from exc
+    if not text:
+        raise RuntimeError("Stage 2 research protocol is empty")
+    return text
 
 
 def system_prompt(stage: str) -> str:
@@ -27,10 +41,13 @@ def system_prompt(stage: str) -> str:
         )
     if stage == "STAGE2":
         return common + (
-            " Stage 2 tests the frozen Stage 1 thesis with focused external football research. "
-            "Use the 3+1 packet: critical squad impact, market-relevant performance, strongest counter-case, coverage. "
-            "Maximum six meaningful facts per match. UNKNOWN is not negative evidence. "
-            "Keep FACT and INFERENCE separate. Do not issue BET/WATCH/PASS."
+            " Stage 2 is an evidence-backed adversarial test of the frozen Stage 1 thesis, not an independent pick generator. "
+            "The full canonical Stage 2 research protocol is included in the user prompt and is mandatory. Follow its source order, market-specific questions, source-quality rules, freshness rules, H2H limits and 3+1 structure. "
+            "Every FACT must have a real URL, a correctly classified source tier, observed_at, evidence_at and a stable fact_id. "
+            "Research checks must cite fact_ids; never claim a check was completed with a boolean or unsupported assertion. "
+            "For MEDIUM/HIGH coverage, use enough independent evidence to support both the main case and the strongest counter-case. "
+            "Maximum six meaningful facts per match. UNKNOWN is not negative evidence. Keep FACT and INFERENCE separate. "
+            "Do not create a new Stage 2 betting preference and do not issue BET/WATCH/PASS."
         )
     if stage == "STAGE3":
         return common + (
@@ -55,8 +72,10 @@ def user_prompt(
     parts = [
         f"STAGE={stage}",
         "CANONICAL_POLICY=" + _json(policy),
-        "TRUSTED_CONTEXT=" + _json(trusted_context),
     ]
+    if stage == "STAGE2":
+        parts.append("STAGE2_RESEARCH_PROTOCOL_BEGIN\n" + load_stage2_protocol() + "\nSTAGE2_RESEARCH_PROTOCOL_END")
+    parts.append("TRUSTED_CONTEXT=" + _json(trusted_context))
     if stage1_payload is not None:
         parts.append("FROZEN_STAGE1=" + _json(stage1_payload))
     if stage2_payload is not None:
