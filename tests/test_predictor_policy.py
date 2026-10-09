@@ -67,6 +67,8 @@ class PredictorPolicyTests(unittest.TestCase):
                             "category": "SQUAD",
                             "materiality": "MATERIAL",
                             "relationship": "NEUTRAL",
+                            "importance_reason": "Kadro sürekliliği frozen Home tezinin eksik oyuncu nedeniyle kırılmadığını gösteriyor.",
+                            "quantitative_context": [],
                             "source": "https://www.uefa.com/news/test-squad",
                             "source_tier": "A",
                             "observed_at": "2026-10-07T15:00:00+00:00",
@@ -81,6 +83,10 @@ class PredictorPolicyTests(unittest.TestCase):
                             "category": "PERFORMANCE",
                             "materiality": "MATERIAL",
                             "relationship": "SUPPORTS",
+                            "importance_reason": "Üretim üstünlüğü Home 1X2 yönünün yalnız piyasa hareketine dayanmadığını gösteriyor.",
+                            "quantitative_context": [
+                                {"metric": "shots_on_target_per_match", "value": 5.4, "unit": "adet", "sample": "son 5 maç"}
+                            ],
                             "source": "https://www.fotmob.com/matches/test",
                             "source_tier": "C",
                             "observed_at": "2026-10-07T15:05:00+00:00",
@@ -95,6 +101,8 @@ class PredictorPolicyTests(unittest.TestCase):
                             "category": "CONTEXT",
                             "materiality": "MATERIAL",
                             "relationship": "CONTRADICTS",
+                            "importance_reason": "Bu doğrudan Home 1X2 tezinin ana başarısızlık yolunu oluşturuyor.",
+                            "quantitative_context": [],
                             "source": "https://www.reuters.com/sports/soccer/test-counter",
                             "source_tier": "B",
                             "observed_at": "2026-10-07T15:10:00+00:00",
@@ -109,6 +117,17 @@ class PredictorPolicyTests(unittest.TestCase):
                     "research_counter": "Rakibin geçiş tehdidi ve deplasman performansı ana karşı tez.",
                     "research_synthesis": "Dış araştırma Stage 1 yönünü destekliyor ancak rakibin geçiş tehdidi nedeniyle tam doğrulama vermiyor.",
                     "important_absence": None,
+                    "absence_assessment": {
+                        "status": "NONE",
+                        "subject": None,
+                        "role": None,
+                        "availability": "NONE",
+                        "importance": "NONE",
+                        "thesis_effect": "NEUTRAL",
+                        "importance_reason": "Güncel kadro kontrolünde market tezini materially değiştiren doğrulanmış bir eksik bulunmadı.",
+                        "fact_ids": ["f1"],
+                        "quantified_context": [],
+                    },
                     "coverage": "MEDIUM",
                     "verdict": "PARTIALLY_CONFIRMED",
                 }
@@ -236,6 +255,54 @@ class PredictorPolicyTests(unittest.TestCase):
         result = validate_stage2(payload)
         self.assertFalse(result.valid)
         self.assertIn("SXF-S2-012", {item.rule_id for item in result.violations})
+
+    def test_stage2_rejects_fact_without_importance_reason(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["facts"][1]["importance_reason"] = ""
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-014", {item.rule_id for item in result.violations})
+
+    def test_stage2_rejects_verified_performance_without_quant_metric(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["facts"][1]["quantitative_context"] = []
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-014", {item.rule_id for item in result.violations})
+
+    def test_stage2_rejects_identified_absence_without_importance(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["absence_assessment"] = {
+            "status": "IDENTIFIED",
+            "subject": "Starter X",
+            "role": "Centre-back",
+            "availability": "OUT",
+            "importance": "UNKNOWN",
+            "thesis_effect": "CONTRADICTS",
+            "importance_reason": "Eksik doğrulandı fakat önem derecesi uydurulmamalı.",
+            "fact_ids": ["f1"],
+            "quantified_context": [],
+        }
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-014", {item.rule_id for item in result.violations})
+
+    def test_stage2_unknown_absence_cannot_guess_impact(self):
+        payload = self._stage2_payload()
+        payload["matches"][0]["absence_assessment"] = {
+            "status": "UNKNOWN",
+            "subject": None,
+            "role": None,
+            "availability": "UNKNOWN",
+            "importance": "HIGH",
+            "thesis_effect": "CONTRADICTS",
+            "importance_reason": "Yeterli veri yok.",
+            "fact_ids": [],
+            "quantified_context": [],
+        }
+        result = validate_stage2(payload)
+        self.assertFalse(result.valid)
+        self.assertIn("SXF-S2-014", {item.rule_id for item in result.violations})
 
     def test_stage3_valid_baseline_passes(self):
         result = validate_stage3(self._stage3_payload())
