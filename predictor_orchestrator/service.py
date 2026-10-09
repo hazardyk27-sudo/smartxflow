@@ -143,6 +143,14 @@ class PredictorOrchestrator:
         return {_fixture_id(item): item for item in payload.get("matches") or [] if isinstance(item, dict) and _fixture_id(item)}
 
     @staticmethod
+    def _fixture_context_map(context: dict[str, Any]) -> dict[str, dict[str, Any]]:
+        return {
+            _fixture_id(item): item
+            for item in context.get("fixtures") or []
+            if isinstance(item, dict) and _fixture_id(item)
+        }
+
+    @staticmethod
     def _trusted_price(context: dict[str, Any], fixture_id: str, market: str, selection: str, *, allowed_origins: set[str]) -> dict[str, Any] | None:
         for item in context.get("price_evidence") or []:
             if not isinstance(item, dict):
@@ -183,21 +191,36 @@ class PredictorOrchestrator:
             "matches": matches,
         }
 
-    def _compose_stage2(self, *, workflow: WorkflowRecord, stage_run_id: str, generated: dict[str, Any], stage1_payload: dict[str, Any]) -> dict[str, Any]:
+    def _compose_stage2(
+        self,
+        *,
+        workflow: WorkflowRecord,
+        stage_run_id: str,
+        generated: dict[str, Any],
+        stage1_payload: dict[str, Any],
+        context: dict[str, Any],
+    ) -> dict[str, Any]:
         stage1_by_id = self._stage1_map(stage1_payload)
+        fixture_context = self._fixture_context_map(context)
+        research_cutoff_at = _now()
         matches: list[dict[str, Any]] = []
         for item in generated.get("matches") or []:
             if not isinstance(item, dict):
                 continue
             fixture_id = _fixture_id(item)
             baseline = _preference((stage1_by_id.get(fixture_id) or {}).get("preference"))
+            fixture = fixture_context.get(fixture_id) or {}
             matches.append({
                 "fixture_id": fixture_id,
+                "fixture_kickoff_utc": fixture.get("kickoff_utc"),
                 "frozen_stage1_preference": baseline,
                 "research_checks": item.get("research_checks"),
                 "facts": item.get("facts"),
+                "support_fact_ids": item.get("support_fact_ids"),
+                "counter_fact_ids": item.get("counter_fact_ids"),
                 "research_support": item.get("research_support"),
                 "research_counter": item.get("research_counter"),
+                "research_synthesis": item.get("research_synthesis"),
                 "important_absence": item.get("important_absence"),
                 "coverage": item.get("coverage"),
                 "verdict": item.get("verdict"),
@@ -208,6 +231,7 @@ class PredictorOrchestrator:
             "authorized_by_user": True,
             "predecessor_stage1_run_id": workflow.state.stage1_run_id,
             "stage1_candidate_ids": list(workflow.state.stage1_candidate_ids),
+            "research_cutoff_at": research_cutoff_at,
             "matches": matches,
         }
 
@@ -273,7 +297,7 @@ class PredictorOrchestrator:
         if stage == "STAGE2":
             if stage1_payload is None:
                 raise StageConflict("Stage 2 requires accepted Stage 1")
-            return self._compose_stage2(workflow=workflow, stage_run_id=stage_run_id, generated=generated, stage1_payload=stage1_payload)
+            return self._compose_stage2(workflow=workflow, stage_run_id=stage_run_id, generated=generated, stage1_payload=stage1_payload, context=context)
         if stage == "STAGE3":
             if stage1_payload is None or stage2_payload is None:
                 raise StageConflict("Stage 3 requires accepted Stage 1 and Stage 2")
@@ -304,9 +328,10 @@ class PredictorOrchestrator:
         with self._lock:
             workflow = self.get_workflow(workflow_id)
             self._preflight(workflow, stage, user_authorized=user_authorized)
-            trusted_record = self.store.get_trusted_context(workflow_id, stage)
-            if stage == "STAGE1" and trusted_record is None:
+            stage1_trusted_record = self.store.get_trusted_context(workflow_id, "STAGE1")
+            if stage == "STAGE1" and stage1_trusted_record is None:
                 raise TrustedContextRequired("Stage 1 requires server-owned trusted SXF context")
+            trusted_record = stage1_trusted_record
             trusted_context = trusted_record["context"] if trusted_record else {}
             stage1_record = self.store.get_stage_output(workflow_id, "STAGE1")
             stage2_record = self.store.get_stage_output(workflow_id, "STAGE2")
@@ -340,6 +365,19 @@ class PredictorOrchestrator:
         with self._lock:
             workflow = self.get_workflow(workflow_id)
             self._preflight(workflow, stage, user_authorized=user_authorized)
+            if stage == "STAGE1":
+                self.store.save_trusted_context(workflow_id, "STAGE1", trusted_context)
+                authoritative_context = trusted_context
+                prompt_context = trusted_context
+            else:
+                stage1_trusted_record = self.store.get_trusted_context(workflow_id, "STAGE1")
+                if stage1_trusted_record is None:
+                    raise TrustedContextRequired(f"{stage} requires the persisted server-owned Stage 1 context")
+                authoritative_context = stage1_trusted_record["context"]
+                prompt_context = {
+                    "stage1_source_context": authoritative_context,
+                    "caller_context": trusted_context,
+                }
             stage1_record = self.store.get_stage_output(workflow_id, "STAGE1")
             stage2_record = self.store.get_stage_output(workflow_id, "STAGE2")
             stage1_payload = stage1_record["payload"] if stage1_record else None
@@ -352,10 +390,10 @@ class PredictorOrchestrator:
                 generated, _response_id = self.llm.generate(
                     stage=stage,
                     system_prompt=system_prompt(stage),
-                    user_prompt=user_prompt(stage=stage, trusted_context=trusted_context, stage1_payload=stage1_payload, stage2_payload=stage2_payload, repair_violations=repair_violations, previous_invalid=previous_invalid),
+                    user_prompt=user_prompt(stage=stage, trusted_context=prompt_context, stage1_payload=stage1_payload, stage2_payload=stage2_payload, repair_violations=repair_violations, previous_invalid=previous_invalid),
                     schema=schema_for_stage(stage),
                 )
-                payload = self._compose(workflow=workflow, stage=stage, stage_run_id=stage_run_id, generated=generated, context=trusted_context, stage1_payload=stage1_payload, stage2_payload=stage2_payload)
+                payload = self._compose(workflow=workflow, stage=stage, stage_run_id=stage_run_id, generated=generated, context=authoritative_context, stage1_payload=stage1_payload, stage2_payload=stage2_payload)
                 try:
                     new_state = validate_and_advance(workflow.state, payload)
                 except PredictorPolicyError as exc:
