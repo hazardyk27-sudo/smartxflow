@@ -20,39 +20,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install scoped minifier
-        run: python -m pip install --quiet rjsmin
-      - name: Apply scoped patch
+      - name: Install scoped dependencies
+        run: python -m pip install --quiet rjsmin pytest
+      - name: Apply UID-safe P4 patch
+        run: python scripts/_tmp_p4_real_first_page_v5.py
+      - name: Validate syntax and focused regressions
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          workflow = Path('.github/workflows/p4-real-first-page-patch.yml').read_text(encoding='utf-8')
-          start_marker = "          python - <<'PY'\n"
-          end_marker = "          PY\n\n      - name: Validate scoped patch"
-          start = workflow.index(start_marker) + len(start_marker)
-          end = workflow.index(end_marker, start)
-          block = workflow[start:end]
-          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in block.splitlines()) + '\n'
-          old = "text = pattern.sub(new_fn, text, count=1)"
-          repair = "new_fn_lines = new_fn.splitlines()\nnew_fn = new_fn_lines[0] + '\\n' + '\\n'.join(('    ' + line if line else line) for line in new_fn_lines[1:]) + '\\n'\ntext = pattern.sub(lambda _m: new_fn, text, count=1)"
-          if script.count(old) != 1:
-              raise SystemExit(f'expected one method substitution, found {script.count(old)}')
-          script = script.replace(old, repair, 1)
-          exec(compile(script, '<p4-scoped-patch>', 'exec'), {'__name__': '__main__'})
-          PY
-      - name: Validate scoped patch
-        run: |
-          python -m py_compile app.py services/supabase_client.py
+          python -m py_compile app.py services/supabase_client.py services/fixture_uid_reader_patch.py services/display_history_fallback.py
           node --check < static/js/app.js.src
           node --check static/js/app.js
           node --test tests/test_real_first_page_path.js
           node --test tests/test_app_bootstrap.js
-      - name: Commit patch and remove temporary workflows
+          python -m pytest -q tests/test_fixture_uid_reader_patch.py tests/test_display_history_fallback.py tests/test_fixture_integrity.py
+      - name: Commit patch and remove temporary tooling
         run: |
+          rm -f scripts/_tmp_p4_real_first_page_v5.py
           rm -f .github/workflows/p4-real-first-page-patch.yml
           rm -f .github/workflows/p4-real-first-page-patch-v2.yml
           rm -f .github/workflows/p4-real-first-page-patch-v3.yml
           rm -f .github/workflows/p4-real-first-page-patch-v4.yml
+          rm -f .github/workflows/p4-real-first-page-patch-v5.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
