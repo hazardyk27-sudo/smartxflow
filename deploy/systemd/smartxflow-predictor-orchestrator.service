@@ -9,6 +9,7 @@ User=smartxflow
 Group=smartxflow
 WorkingDirectory=/opt/smartxflow
 EnvironmentFile=/opt/smartxflow/.env
+EnvironmentFile=-/var/lib/smartxflow-predictor/predictor-orchestrator.env
 Environment=PREDICTOR_BIND=127.0.0.1
 Environment=PREDICTOR_PORT=8011
 Environment=PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3
