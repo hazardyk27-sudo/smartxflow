@@ -41,6 +41,10 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("stage1_source_enabled", text)
         self.assertIn("PYTHONPATH=/opt/smartxflow", text)
         self.assertIn("retry_predictor_archive_pending.py", text)
+        self.assertIn("--db /var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3", text)
+        self.assertIn("--scan-root /opt/smartxflow/data", text)
+        self.assertIn("--scan-root /var/lib/smartxflow-predictor", text)
+        self.assertIn("scanned_databases", text)
         self.assertIn("PREDICTOR_ARCHIVE_RETRY_OK", text)
         self.assertIn("PREDICTOR_DEPLOY_OK", text)
         self.assertLess(
@@ -52,13 +56,19 @@ class PredictorDeployContractTests(unittest.TestCase):
             text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
         )
 
-    def test_archive_retry_script_is_fail_closed_and_uses_durable_stage3(self):
+    def test_archive_retry_script_is_fail_closed_uses_durable_stage3_and_scans_legacy_dbs(self):
         text = (ROOT / "scripts" / "retry_predictor_archive_pending.py").read_text(encoding="utf-8")
         self.assertIn("predictor_archive_lifecycle", text)
         self.assertIn("store.get_stage_output(workflow_id, \"STAGE3\")", text)
         self.assertIn("Learning Archive publisher is not configured", text)
         self.assertIn("remaining_pending", text)
         self.assertIn("--dotenv", text)
+        self.assertIn("--scan-root", text)
+        self.assertIn("_candidate_db_paths", text)
+        self.assertIn("predictor_orchestrator.sqlite3", text)
+        self.assertIn("predictor-orchestrator.sqlite3", text)
+        self.assertIn("archive_commits", text)
+        self.assertIn("diary_references", text)
 
 
 if __name__ == "__main__":
