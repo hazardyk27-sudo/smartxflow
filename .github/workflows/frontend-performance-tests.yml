@@ -45,6 +45,7 @@ on:
       - 'tests/test_mobile_chart_panel_split.js'
       - 'tests/test_modal_chart_code_split.js'
       - 'tests/test_modal_chart_helper_split.js'
+      - 'tests/test_modal_chart_downsampling.js'
       - 'tests/test_chart_export_code_split.js'
       - 'tests/test_sort_hotpath_debug_cleanup.js'
       - 'tests/test_production_debug_log_cleanup.js'
@@ -91,6 +92,7 @@ jobs:
           node --test tests/test_mobile_chart_panel_split.js
           node --test tests/test_modal_chart_code_split.js
           node --test tests/test_modal_chart_helper_split.js
+          node --test tests/test_modal_chart_downsampling.js
           node --test tests/test_chart_export_code_split.js
           node --test tests/test_sort_hotpath_debug_cleanup.js
           node --test tests/test_production_debug_log_cleanup.js
