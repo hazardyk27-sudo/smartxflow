@@ -98,8 +98,6 @@ jobs:
             print("PREDICTOR_HEALTH_OK")
             PY
 
-            # Retry only canonical current stores here. Legacy recovery is handled
-            # separately below with exact workflow/path controls.
             RETRY_OUTPUT="$(sudo -u smartxflow env \
               PYTHONPATH=/opt/smartxflow \
               PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
@@ -128,19 +126,17 @@ jobs:
             )
             PY
 
-            # One-time recovery of the exact formal 2026-10-09 run. Its durable
-            # DB path was discovered read-only by the preceding recovery attempt.
+            # One-time reconciliation of the exact formal 2026-10-09 run. The
+            # archive write succeeded earlier but the local lifecycle receipt write
+            # failed. Reconcile from immutable durable archive truth; never rebuild
+            # or overwrite the historical case package.
             TARGET_WORKFLOW='pred_20261009T134410_bef4b19b53'
             TARGET_STAGE_RUN='pred_20261009T134410_bef4b19b53:stage3:a31d6ecd09'
             LEGACY_DB='/var/lib/smartxflow-predictor/chatgpt-stage1-20261009.sqlite3'
             if ! sudo /usr/bin/test -f "$LEGACY_DB"; then
-              echo "PREDICTOR LEGACY RECOVERY STOP: expected durable DB is missing"
+              echo "PREDICTOR LEGACY RECONCILE STOP: expected durable DB is missing"
               exit 1
             fi
-
-            # The original ad-hoc localhost run created this DB with permissions
-            # that allowed reads but blocked the lifecycle receipt update. Normalize
-            # only this exact Predictor state file and SQLite companion files.
             sudo /bin/chown smartxflow:smartxflow "$LEGACY_DB"
             sudo /bin/chmod 0640 "$LEGACY_DB"
             for SUFFIX in -wal -shm -journal; do
@@ -150,31 +146,46 @@ jobs:
               fi
             done
 
-            LEGACY_OUTPUT="$(sudo -u smartxflow env \
+            VERIFY_TMP="$(mktemp -d /tmp/sxf-learning-archive-verify.XXXXXX)"
+            trap 'rm -rf "$VERIFY_TMP"' EXIT
+            sudo /bin/chown smartxflow:smartxflow "$VERIFY_TMP"
+            sudo -u smartxflow env \
+              GIT_SSH_COMMAND="ssh -i /var/lib/smartxflow-prematch/github_learning_archive_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+              git clone --quiet --depth 1 --single-branch --branch learning-archive \
+              git@github.com:hazardyk27-sudo/smartxflow.git "$VERIFY_TMP/repo"
+            ARCHIVE_COMMIT="$(sudo -u smartxflow git -C "$VERIFY_TMP/repo" rev-parse HEAD)"
+
+            RECONCILE_OUTPUT="$(sudo -u smartxflow env \
               PYTHONPATH=/opt/smartxflow \
-              PREDICTOR_STATE_DB="$LEGACY_DB" \
-              LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
               /opt/smartxflow/venv/bin/python \
-              /opt/smartxflow/scripts/retry_predictor_archive_pending.py \
-              --dotenv /opt/smartxflow/.env \
+              /opt/smartxflow/scripts/reconcile_predictor_archive_lifecycle.py \
               --db "$LEGACY_DB" \
               --workflow-id "$TARGET_WORKFLOW" \
-              --require-workflow || true)"
-            echo "$LEGACY_OUTPUT"
-            python3 - "$LEGACY_OUTPUT" "$TARGET_WORKFLOW" <<'PY'
+              --stage-run-id "$TARGET_STAGE_RUN" \
+              --archive-root "$VERIFY_TMP/repo/learning_archive_data" \
+              --archive-commit "$ARCHIVE_COMMIT" || true)"
+            echo "$RECONCILE_OUTPUT"
+            python3 - "$RECONCILE_OUTPUT" "$TARGET_WORKFLOW" "$TARGET_STAGE_RUN" <<'PY'
             import json, sys
             lines = [line.strip() for line in sys.argv[1].splitlines() if line.strip().startswith('{')]
             if not lines:
-                raise SystemExit('target Predictor recovery returned no JSON receipt')
+                raise SystemExit('target Predictor reconciliation returned no JSON receipt')
             payload = json.loads(lines[-1])
-            target = sys.argv[2]
-            if payload.get('ok') is not True or payload.get('remaining_pending') != 0:
-                raise SystemExit('target Predictor archive recovery is still pending')
-            if target not in set(payload.get('matched_workflows') or []):
-                raise SystemExit('target Predictor workflow was not matched by retry')
+            workflow_id, stage_run_id = sys.argv[2:]
+            if payload.get('ok') is not True:
+                raise SystemExit(f"target Predictor lifecycle reconcile failed: {payload.get('error')}")
+            if payload.get('workflow_id') != workflow_id or payload.get('stage_run_id') != stage_run_id:
+                raise SystemExit('target Predictor reconciliation identity mismatch')
+            if payload.get('formal_cases') != 14:
+                raise SystemExit(f"target reconciliation has {payload.get('formal_cases')} cases, expected 14")
+            if payload.get('archive_status') != 'RECORDED' or payload.get('diary_status') != 'RECORDED':
+                raise SystemExit('target Predictor lifecycle is not fully RECORDED')
+            if len(payload.get('verified_cases') or []) != 14:
+                raise SystemExit('target Predictor durable archive verification did not cover 14 cases')
             print(
-                'PREDICTOR_LEGACY_RECOVERY_OK '
-                f"workflow={target} retried_stage_runs={payload.get('retried_stage_runs', 0)}"
+                'PREDICTOR_LEGACY_RECONCILE_OK '
+                f"workflow={workflow_id} stage_run={stage_run_id} cases=14 "
+                f"archive_commit={payload.get('archive_commit')}"
             )
             PY
 
@@ -195,30 +206,6 @@ jobs:
             if any(a != 'RECORDED' or d != 'RECORDED' for a, d in rows):
                 raise SystemExit('target lifecycle still contains pending archive/diary rows')
             print(f'PREDICTOR_LEGACY_LIFECYCLE_OK stage_run={stage_run_id} cases={len(rows)}')
-            PY
-
-            VERIFY_TMP="$(mktemp -d /tmp/sxf-learning-archive-verify.XXXXXX)"
-            trap 'rm -rf "$VERIFY_TMP"' EXIT
-            sudo env GIT_SSH_COMMAND="ssh -i /var/lib/smartxflow-prematch/github_learning_archive_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
-              git clone --quiet --depth 1 --single-branch --branch learning-archive \
-              git@github.com:hazardyk27-sudo/smartxflow.git "$VERIFY_TMP/repo"
-            sudo python3 - "$VERIFY_TMP/repo/learning_archive_data/diaries/2026/10/09/predictions.md" "$TARGET_STAGE_RUN" <<'PY'
-            from pathlib import Path
-            import sys
-            path = Path(sys.argv[1])
-            stage_run = sys.argv[2]
-            if not path.is_file():
-                raise SystemExit('2026-10-09 predictions.md is missing after recovery')
-            text = path.read_text(encoding='utf-8')
-            begin = f'<!-- SXF-PREDICTOR-STAGE3:{stage_run}:BEGIN -->'
-            end = f'<!-- SXF-PREDICTOR-STAGE3:{stage_run}:END -->'
-            if begin not in text or end not in text:
-                raise SystemExit('target Stage 3 diary block is missing after recovery')
-            block = text.split(begin, 1)[1].split(end, 1)[0]
-            case_count = block.count('- case_id:')
-            if case_count != 14:
-                raise SystemExit(f'target diary has {case_count} cases, expected 14')
-            print(f'PREDICTOR_LEGACY_DIARY_OK stage_run={stage_run} cases={case_count}')
             PY
 
             FINAL="$(sudo -u smartxflow git rev-parse HEAD)"
