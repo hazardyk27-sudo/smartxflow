@@ -1,0 +1,381 @@
+name: P4 Real First Page Patch
+
+on:
+  push:
+    branches:
+      - perf/p4-real-first-page
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p4-real-first-page
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scoped minifier
+        run: python -m pip install --quiet rjsmin
+
+      - name: Apply scoped performance patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          from rjsmin import jsmin
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 exact match, got {count}')
+              return text.replace(old, new, 1)
+
+          # ------------------------------------------------------------
+          # 1) Real DB pagination: fixtures page + odds only for that page
+          # ------------------------------------------------------------
+          p = Path('services/supabase_client.py')
+          text = p.read_text(encoding='utf-8')
+          pattern = re.compile(
+              r"    def get_matches_paginated\(self, market: str, limit: int = 20, offset: int = 0, today_only: bool = False\) -> Dict\[str, Any\]:\n.*?(?=    def _get_empty_odds\()",
+              re.S,
+          )
+          matches = list(pattern.finditer(text))
+          if len(matches) != 1:
+              raise SystemExit(f'get_matches_paginated: expected 1 block, got {len(matches)}')
+
+          new_fn = '''    def get_matches_paginated(self, market: str, limit: int = 20, offset: int = 0, today_only: bool = False) -> Dict[str, Any]:
+              """Fast *real* pagination for the app first paint.
+
+              Fetch only the requested fixture page and only the current-state odds
+              rows needed by that page. The old implementation accepted limit/offset
+              but still downloaded and built every fixture before returning.
+              """
+              if not self.is_available:
+                  return {'matches': [], 'total': 0, 'has_more': False}
+
+              try:
+                  import time
+                  from datetime import datetime, timedelta
+                  from urllib.parse import quote
+                  import pytz
+
+                  started = time.time()
+                  page_limit = max(1, min(int(limit or 20), 200))
+                  page_offset = max(0, int(offset or 0))
+
+                  tr_tz = pytz.timezone('Europe/Istanbul')
+                  today_date = datetime.now(tr_tz).date()
+                  if today_only:
+                      # Preserve the existing today+ window semantics, including the
+                      # one-day UTC/TR boundary buffer.
+                      date_gte = (today_date - timedelta(days=1)).strftime('%Y-%m-%d')
+                  else:
+                      date_gte = (today_date - timedelta(days=7)).strftime('%Y-%m-%d')
+
+                  headers = dict(self._headers())
+                  headers['Prefer'] = 'count=exact'
+                  fix_url = (
+                      f"{self._rest_url('fixtures')}"
+                      f"?select=match_id_hash,home_team,away_team,league,kickoff_utc,fixture_date"
+                      f"&fixture_date=gte.{date_gte}"
+                      f"&order=kickoff_utc.asc"
+                      f"&limit={page_limit}&offset={page_offset}"
+                  )
+                  fix_resp = self._get_http_client().get(fix_url, headers=headers, timeout=20)
+                  if fix_resp.status_code not in (200, 206):
+                      print(f"[Paginated] fixtures page error: {fix_resp.status_code}")
+                      return {'matches': [], 'total': 0, 'has_more': False}
+
+                  raw_fixtures = fix_resp.json()
+                  if not isinstance(raw_fixtures, list):
+                      raw_fixtures = []
+                  fixtures_page = self._dedupe_fixtures(raw_fixtures)
+
+                  total = None
+                  content_range = fix_resp.headers.get('Content-Range', '')
+                  if '/' in content_range:
+                      try:
+                          total_part = content_range.rsplit('/', 1)[1]
+                          if total_part != '*':
+                              total = int(total_part)
+                      except Exception:
+                          total = None
+                  if total is None:
+                      # Conservative fallback when PostgREST does not expose an exact count.
+                      total = page_offset + len(raw_fixtures)
+                      if len(raw_fixtures) >= page_limit:
+                          total += 1
+
+                  def _fetch_page_odds(fixtures):
+                      if not fixtures:
+                          return {}
+                      rows = []
+                      batch_size = 25
+                      for i in range(0, len(fixtures), batch_size):
+                          filters = []
+                          for fix in fixtures[i:i + batch_size]:
+                              home = str(fix.get('home_team', '') or '')
+                              away = str(fix.get('away_team', '') or '')
+                              kickoff = str(fix.get('kickoff_utc', '') or '')
+                              if not home or not away:
+                                  continue
+                              home_q = quote(home, safe='')
+                              away_q = quote(away, safe='')
+                              if kickoff:
+                                  date_q = quote(kickoff, safe='')
+                                  filters.append(
+                                      f"and(home.eq.{home_q},away.eq.{away_q},date.eq.{date_q})"
+                                  )
+                              else:
+                                  filters.append(f"and(home.eq.{home_q},away.eq.{away_q})")
+                          if not filters:
+                              continue
+                          odds_url = (
+                              f"{self._rest_url(market)}?select=*"
+                              f"&or=({','.join(filters)})"
+                              f"&limit={max(100, len(filters) * 4)}"
+                          )
+                          odds_resp = self._get_http_client().get(
+                              odds_url,
+                              headers=self._headers(),
+                              timeout=20,
+                          )
+                          if odds_resp.status_code == 200:
+                              payload = odds_resp.json()
+                              if isinstance(payload, list):
+                                  rows.extend(payload)
+
+                      result = {}
+                      for row in rows:
+                          key = (row.get('home', ''), row.get('away', ''), row.get('date', ''))
+                          result[key] = row
+                      return result
+
+                  page_odds = _fetch_page_odds(fixtures_page)
+                  matches_out = []
+                  for fix in fixtures_page:
+                      home = fix.get('home_team', '')
+                      away = fix.get('away_team', '')
+                      league = fix.get('league', '')
+                      kickoff_utc = fix.get('kickoff_utc', '')
+                      row = page_odds.get((home, away, kickoff_utc))
+                      latest_odds = self._normalize_history_row(row, market) if row else self._get_empty_odds(market)
+
+                      date_display = fix.get('fixture_date', '')
+                      if kickoff_utc:
+                          try:
+                              kickoff_dt = datetime.fromisoformat(str(kickoff_utc).replace('Z', '+00:00'))
+                              date_display = kickoff_dt.astimezone(tr_tz).strftime('%d.%b %H:%M')
+                          except Exception:
+                              pass
+
+                      matches_out.append({
+                          'home_team': home,
+                          'away_team': away,
+                          'league': league,
+                          'date': date_display,
+                          'match_id_hash': fix.get('match_id_hash', ''),
+                          'kickoff_utc': kickoff_utc,
+                          'latest': latest_odds,
+                      })
+
+                  consumed = page_offset + len(raw_fixtures)
+                  has_more = consumed < total
+                  elapsed = time.time() - started
+                  print(
+                      f"[Paginated] page offset={page_offset} limit={page_limit} "
+                      f"returned={len(matches_out)} total={total} in {elapsed:.2f}s"
+                  )
+                  return {
+                      'matches': matches_out,
+                      'total': total,
+                      'has_more': has_more,
+                  }
+              except Exception as e:
+                  print(f"[Paginated] EXCEPTION: {e}")
+                  import traceback
+                  traceback.print_exc()
+                  return {'matches': [], 'total': 0, 'has_more': False}
+
+          '''
+          text = pattern.sub(new_fn, text, count=1)
+          p.write_text(text, encoding='utf-8')
+
+          # ------------------------------------------------------------
+          # 2) Route today_future through the real paginated path
+          # ------------------------------------------------------------
+          p = Path('app.py')
+          text = p.read_text(encoding='utf-8')
+          old = """    # PAGINATED MODE (legacy): Use for non-bulk requests\n    # Use new paginated function for ALL/no date_filter (most common case)\n    if date_filter is None:\n        result = db.get_matches_paginated(market, limit=limit, offset=offset)\n"""
+          new = """    # FAST PAGINATED MODE: initial /app paint and background hydration.\n    # today_future is the default app view; keep its semantics while avoiding a full-table build.\n    if date_filter in (None, 'today_future'):\n        result = db.get_matches_paginated(\n            market,\n            limit=limit,\n            offset=offset,\n            today_only=(date_filter == 'today_future'),\n        )\n"""
+          text = replace_once(text, old, new, 'app.py paginated route')
+          p.write_text(text, encoding='utf-8')
+
+          # ------------------------------------------------------------
+          # 3) Frontend: first 20 now, hydrate the rest after first paint
+          # ------------------------------------------------------------
+          p = Path('static/js/app.js.src')
+          src = p.read_text(encoding='utf-8')
+          old_urls = """            let apiUrl;\n            const srcParam = requestSource !== 'betfair' ? `&source=${requestSource}` : '';\n            if (dateFilterMode === 'ALL') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;\n            } else if (dateFilterMode === 'YESTERDAY') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday&bulk=1${srcParam}`;\n            } else if (dateFilterMode === 'TODAY') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today&bulk=1${srcParam}`;\n            } else if (dateFilterMode && dateFilterMode.startsWith('PAST_')) {\n                const daysBack = dateFilterMode.split('_')[1];\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=d-${daysBack}&bulk=1${srcParam}`;\n            } else {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future&bulk=1${srcParam}`;\n            }\n"""
+          new_urls = """            let apiUrl;\n            const srcParam = requestSource !== 'betfair' ? `&source=${requestSource}` : '';\n            const firstPageParams = `&limit=${matchesDisplayCount}&offset=0`;\n            if (dateFilterMode === 'ALL') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future${firstPageParams}${srcParam}`;\n            } else if (dateFilterMode === 'YESTERDAY') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=yesterday${firstPageParams}${srcParam}`;\n            } else if (dateFilterMode === 'TODAY') {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today${firstPageParams}${srcParam}`;\n            } else if (dateFilterMode && dateFilterMode.startsWith('PAST_')) {\n                const daysBack = dateFilterMode.split('_')[1];\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=d-${daysBack}${firstPageParams}${srcParam}`;\n            } else {\n                apiUrl = `/api/matches?market=${requestMarket}&date_filter=today_future${firstPageParams}${srcParam}`;\n            }\n"""
+          src = replace_once(src, old_urls, new_urls, 'initial match URL block')
+
+          old_state = """            hasMoreMatches = false;\n            currentOffset = matches.length;\n            \n            _matchesMarketCache[cacheKey] = { matches: matches, total: totalMatchCount, ts: Date.now() };\n            \n            filteredMatches = applySorting(matches);\n            renderMatches(filteredMatches);\n            \n            if (currentMarket.startsWith('dropping')) {\n                attachTrendTooltipListeners();\n            }\n"""
+          new_state = """            hasMoreMatches = !!(result && !Array.isArray(result) && result.has_more);\n            currentOffset = matches.length;\n            \n            // Cache only complete market payloads. A 20-row first page must never masquerade\n            // as a complete client cache entry on the next tab visit.\n            if (!hasMoreMatches) {\n                _matchesMarketCache[cacheKey] = { matches: matches, total: totalMatchCount, ts: Date.now() };\n            }\n            \n            filteredMatches = applySorting(matches);\n            renderMatches(filteredMatches);\n            \n            if (hasMoreMatches) {\n                setTimeout(() => {\n                    if (requestIsCurrent()) loadAllRemainingMatches();\n                }, 0);\n            }\n            \n            if (currentMarket.startsWith('dropping')) {\n                attachTrendTooltipListeners();\n            }\n"""
+          src = replace_once(src, old_state, new_state, 'initial response state')
+
+          bg_start = src.index('async function loadAllRemainingMatches()')
+          bg_end = src.index('function updateTableHeaders()', bg_start)
+          if bg_start < 0 or bg_end <= bg_start:
+              raise SystemExit('background loader markers missing')
+          new_bg = '''async function loadAllRemainingMatches() {
+              const pageSize = 200;
+              const maxPages = 20;
+              const loadMarket = currentMarket;
+              const loadSource = currentSource;
+              const loadDateFilter = dateFilterMode;
+              const cacheKey = `${loadMarket}|${loadDateFilter}|${loadSource}`;
+              let pageOffset = currentOffset;
+              let page = 0;
+              let allNewMatches = [];
+
+              const contextStillCurrent = () => (
+                  !_liveMode &&
+                  currentMarket === loadMarket &&
+                  currentSource === loadSource &&
+                  dateFilterMode === loadDateFilter
+              );
+
+              while (hasMoreMatches && page < maxPages && contextStillCurrent()) {
+                  page++;
+                  try {
+                      let apiUrl = `/api/matches?market=${loadMarket}&limit=${pageSize}&offset=${pageOffset}`;
+                      if (loadDateFilter === 'ALL') {
+                          apiUrl += '&date_filter=today_future';
+                      } else if (loadDateFilter === 'YESTERDAY') {
+                          apiUrl += '&date_filter=yesterday';
+                      } else if (loadDateFilter === 'TODAY') {
+                          apiUrl += '&date_filter=today';
+                      } else if (loadDateFilter && loadDateFilter.startsWith('PAST_')) {
+                          apiUrl += `&date_filter=d-${loadDateFilter.split('_')[1]}`;
+                      }
+                      if (loadSource !== 'betfair') {
+                          apiUrl += `&source=${encodeURIComponent(loadSource)}`;
+                      }
+
+                      const response = await fetch(apiUrl);
+                      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                      const result = await response.json();
+                      if (!contextStillCurrent()) return;
+
+                      if (result.finished_scores) {
+                          _finishedScores = result.finished_scores;
+                      }
+                      const newMatches = Array.isArray(result.matches) ? result.matches : [];
+                      if (Number.isFinite(result.total)) totalMatchCount = result.total;
+                      hasMoreMatches = !!result.has_more;
+
+                      if (newMatches.length === 0) {
+                          hasMoreMatches = false;
+                          break;
+                      }
+
+                      allNewMatches = allNewMatches.concat(newMatches);
+                      pageOffset += newMatches.length;
+                      currentOffset = pageOffset;
+                  } catch (error) {
+                      console.error('[Background] Error loading page', page, error);
+                      break;
+                  }
+              }
+
+              if (!contextStillCurrent()) return;
+              if (allNewMatches.length > 0) {
+                  matches = matches.concat(allNewMatches);
+                  filteredMatches = applySorting(matches);
+                  renderMatches(filteredMatches);
+
+                  if (!hasMoreMatches) {
+                      _matchesMarketCache[cacheKey] = {
+                          matches: matches,
+                          total: totalMatchCount,
+                          ts: Date.now()
+                      };
+                  }
+
+                  if (loadMarket.startsWith('dropping')) {
+                      attachTrendTooltipListeners();
+                  }
+              }
+              void 0;
+          }
+
+          '''
+          src = src[:bg_start] + new_bg + src[bg_end:]
+          p.write_text(src, encoding='utf-8')
+
+          # Served runtime: independently splice only the two edited functions.
+          source_loader_start = src.index('async function loadMatches(')
+          source_bg_start = src.index('async function loadAllRemainingMatches()', source_loader_start)
+          source_bg_end = src.index('function updateTableHeaders()', source_bg_start)
+          loader_min = jsmin(src[source_loader_start:source_bg_start]).strip()
+          bg_min = jsmin(src[source_bg_start:source_bg_end]).strip()
+
+          p = Path('static/js/app.js')
+          runtime = p.read_text(encoding='utf-8')
+          runtime_loader_start = runtime.index('async function loadMatches(')
+          runtime_bg_start = runtime.index('async function loadAllRemainingMatches()', runtime_loader_start)
+          runtime = runtime[:runtime_loader_start] + loader_min + runtime[runtime_bg_start:]
+          runtime_bg_start = runtime.index('async function loadAllRemainingMatches()', runtime_loader_start)
+          runtime_bg_end = runtime.index('function updateTableHeaders()', runtime_bg_start)
+          runtime = runtime[:runtime_bg_start] + bg_min + runtime[runtime_bg_end:]
+          p.write_text(runtime, encoding='utf-8')
+
+          # Existing bootstrap expectation follows the new first-page URL.
+          p = Path('tests/test_app_bootstrap.js')
+          text = p.read_text(encoding='utf-8')
+          old_expect = "'/api/matches?market=moneyway_1x2&date_filter=today_future&bulk=1'"
+          new_expect = "'/api/matches?market=moneyway_1x2&date_filter=today_future&limit=20&offset=0'"
+          if old_expect in text:
+              text = text.replace(old_expect, new_expect)
+          p.write_text(text, encoding='utf-8')
+
+          # Canonical frontend workflow must run the new regression.
+          p = Path('.github/workflows/frontend-performance-tests.yml')
+          text = p.read_text(encoding='utf-8')
+          if "tests/test_real_first_page_path.js" not in text:
+              anchor = "      - 'tests/test_interaction_warmup.js'\n"
+              if anchor not in text:
+                  raise SystemExit('frontend workflow path anchor missing')
+              text = text.replace(anchor, anchor + "      - 'tests/test_real_first_page_path.js'\n", 1)
+              run_anchor = "          node --test tests/test_interaction_warmup.js\n"
+              if run_anchor not in text:
+                  raise SystemExit('frontend workflow run anchor missing')
+              text = text.replace(run_anchor, run_anchor + "          node --test tests/test_real_first_page_path.js\n", 1)
+          p.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate scoped patch
+        run: |
+          python -m py_compile app.py services/supabase_client.py
+          node --check static/js/app.js.src
+          node --check static/js/app.js
+          node --test tests/test_real_first_page_path.js
+          node --test tests/test_app_bootstrap.js
+
+      - name: Commit patch and remove temporary workflow
+        run: |
+          rm .github/workflows/p4-real-first-page-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.py services/supabase_client.py static/js/app.js.src static/js/app.js tests/test_app_bootstrap.js tests/test_real_first_page_path.js .github/workflows/frontend-performance-tests.yml .github/workflows/p4-real-first-page-patch.yml
+          git commit -m "perf: make app first paint truly paginated"
+          git push origin HEAD:perf/p4-real-first-page
