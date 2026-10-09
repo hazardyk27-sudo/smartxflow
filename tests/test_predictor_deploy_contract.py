@@ -52,23 +52,36 @@ class PredictorDeployContractTests(unittest.TestCase):
             text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
         )
 
-    def test_predictor_deploy_finalizes_exact_stranded_9_october_lifecycle(self):
+    def test_predictor_deploy_reconciles_exact_stranded_9_october_lifecycle(self):
         text = (ROOT / ".github" / "workflows" / "deploy-predictor-orchestrator.yml").read_text(encoding="utf-8")
         self.assertIn("pred_20261009T134410_bef4b19b53", text)
         self.assertIn("pred_20261009T134410_bef4b19b53:stage3:a31d6ecd09", text)
         self.assertIn("/var/lib/smartxflow-predictor/chatgpt-stage1-20261009.sqlite3", text)
         self.assertIn("chown smartxflow:smartxflow \"$LEGACY_DB\"", text)
         self.assertIn("chmod 0640 \"$LEGACY_DB\"", text)
-        self.assertIn("--workflow-id \"$TARGET_WORKFLOW\"", text)
-        self.assertIn("--require-workflow", text)
-        self.assertIn("PREDICTOR_LEGACY_RECOVERY_OK", text)
+        self.assertIn("reconcile_predictor_archive_lifecycle.py", text)
+        self.assertIn("--archive-root \"$VERIFY_TMP/repo/learning_archive_data\"", text)
+        self.assertIn("--archive-commit \"$ARCHIVE_COMMIT\"", text)
+        self.assertIn("PREDICTOR_LEGACY_RECONCILE_OK", text)
         self.assertIn("PREDICTOR_LEGACY_LIFECYCLE_OK", text)
+        self.assertIn("payload.get('formal_cases') != 14", text)
+        self.assertIn("len(payload.get('verified_cases') or []) != 14", text)
         self.assertIn("len(rows) != 14", text)
         self.assertIn("archive_status", text)
         self.assertIn("diary_status", text)
-        self.assertIn("learning_archive_data/diaries/2026/10/09/predictions.md", text)
-        self.assertIn("case_count != 14", text)
-        self.assertIn("PREDICTOR_LEGACY_DIARY_OK", text)
+
+    def test_archive_reconciliation_script_verifies_durable_truth_before_receipt_repair(self):
+        text = (ROOT / "scripts" / "reconcile_predictor_archive_lifecycle.py").read_text(encoding="utf-8")
+        self.assertIn("store.get_stage_output(workflow_id, \"STAGE3\")", text)
+        self.assertIn("RECORDED manifest event is missing", text)
+        self.assertIn("initial stored-history capture is missing", text)
+        self.assertIn("exact Stage 3 diary block is missing", text)
+        self.assertIn("archived entry_odds does not match accepted Stage 3", text)
+        self.assertIn("archive_status=\"RECORDED\"", text)
+        self.assertIn("diary_status=\"RECORDED\"", text)
+        self.assertIn("lifecycle reconciliation did not reach RECORDED", text)
+        self.assertNotIn("record_case(", text)
+        self.assertNotIn("write_predictions(", text)
 
     def test_archive_retry_script_is_fail_closed_uses_durable_stage3_and_targets_legacy_dbs(self):
         text = (ROOT / "scripts" / "retry_predictor_archive_pending.py").read_text(encoding="utf-8")
