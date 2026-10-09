@@ -99,3 +99,52 @@
 - Stage 3 one-unit ROI: `{'sample_size': 0, 'roi': None, 'pnl_units': None}`
 <!-- SXF-STAGE-COMPARISON:de64a68db782478b:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261009-9bd259e01830-0e3338e58b:BEGIN -->
+### Galatasaray – Kasimpasa
+- Original prediction: **BTTS Yes | BTTS**
+- Original action: **WATCH** | confidence: **75.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **3-1**
+- Outcome: **WIN**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled WIN. MIXED: Stage 2 archived evidence contains 4 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.84; final_prematch_price=1.82; final_share=21.9%; final_money=£ 5951.66; final_market_volume=£ 27122.4
+- Stage 1 baseline: **BTTS Yes | BTTS → WIN**
+- Stage 3 final preference: **BTTS Yes | BTTS → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261009-9bd259e01830-0e3338e58b:END -->
+<!-- SXF-POSTMATCH-CASE:20261009-c2de3f6dcc8a-79bc3e0d24:BEGIN -->
+### Brann – Viking
+- Original prediction: **Away | 1X2**
+- Original action: **BET** | confidence: **86.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **0-2**
+- Outcome: **WIN**
+- **Why it won/lost:** Original BET settled WIN on final score 0-2. MIXED: Stage 2 archived evidence contains 3 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.99; final_prematch_price=1.8; final_share=84.5%; final_money=£ 38570.9; final_market_volume=£ 45654.6
+- Stage 1 baseline: **Away | 1X2 → WIN**
+- Stage 3 final preference: **Away | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261009-c2de3f6dcc8a-79bc3e0d24:END -->
+<!-- SXF-POSTMATCH-CASE:20261009-edbe448ae51c-325c07326d:BEGIN -->
+### FC Nordsjaelland – OB
+- Original prediction: **Over 2.5 | OU2.5**
+- Original action: **BET** | confidence: **85.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **0-0**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original BET settled LOSS on final score 0-0. MIXED: Stage 2 archived evidence contains 3 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.42; final_prematch_price=1.44; final_share=89.1%; final_money=£ 1465.85; final_market_volume=£ 1644.27
+- Stage 1 baseline: **Over 2.5 | OU2.5 → LOSS**
+- Stage 3 final preference: **Over 2.5 | OU2.5 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261009-edbe448ae51c-325c07326d:END -->
+<!-- SXF-STAGE-COMPARISON:a8a3f01c563f8e60:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **3**
+- Stage 1 hit rate: **0.6666666666666666**
+- Stage 3 hit rate: **0.6666666666666666**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 3**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 3, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 3, 'roi': 0.27666666666666667, 'pnl_units': 0.8300000000000001}`
+- Stage 3 one-unit ROI: `{'sample_size': 3, 'roi': 0.27666666666666667, 'pnl_units': 0.8300000000000001}`
+<!-- SXF-STAGE-COMPARISON:a8a3f01c563f8e60:END -->
+
