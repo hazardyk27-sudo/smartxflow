@@ -43,6 +43,14 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("retry_predictor_archive_pending.py", text)
         self.assertIn("PREDICTOR_ARCHIVE_RETRY_OK", text)
         self.assertIn("PREDICTOR_DEPLOY_OK", text)
+        self.assertLess(
+            text.index("openssl rand -hex 32"),
+            text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
+        )
+        self.assertLess(
+            text.index("predictor-orchestrator.env"),
+            text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
+        )
 
     def test_archive_retry_script_is_fail_closed_and_uses_durable_stage3(self):
         text = (ROOT / "scripts" / "retry_predictor_archive_pending.py").read_text(encoding="utf-8")
