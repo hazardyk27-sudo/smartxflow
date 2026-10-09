@@ -43,6 +43,24 @@ jobs:
               exit 1
             fi
 
+            # The orchestrator is localhost-only but its API still requires a
+            # stable server-side bearer secret. Provision it once on the host,
+            # outside the tracked source tree, without ever printing the value.
+            sudo /usr/bin/install -d -m 0750 -o smartxflow -g smartxflow /var/lib/smartxflow-predictor
+            SECRET_FILE=/var/lib/smartxflow-predictor/predictor-orchestrator.env
+            if ! sudo /usr/bin/test -s "$SECRET_FILE"; then
+              GENERATED_SECRET="$(/usr/bin/openssl rand -hex 32)"
+              printf 'PREDICTOR_ORCHESTRATOR_SECRET=%s\n' "$GENERATED_SECRET" \
+                | sudo /usr/bin/tee "$SECRET_FILE" >/dev/null
+              unset GENERATED_SECRET
+            fi
+            sudo /bin/chown root:smartxflow "$SECRET_FILE"
+            sudo /bin/chmod 0640 "$SECRET_FILE"
+            if ! sudo /usr/bin/grep -q '^PREDICTOR_ORCHESTRATOR_SECRET=..' "$SECRET_FILE"; then
+              echo "PREDICTOR DEPLOY STOP: durable orchestrator secret is missing"
+              exit 1
+            fi
+
             sudo /usr/bin/install -m 0644 \
               /opt/smartxflow/deploy/systemd/smartxflow-predictor-orchestrator.service \
               /etc/systemd/system/smartxflow-predictor-orchestrator.service
