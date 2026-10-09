@@ -68,8 +68,17 @@ jobs:
         shell: bash
         run: |
           set +e
+          cp tests/test_app_bootstrap.js /tmp/test_app_bootstrap.js.clean
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tests/test_app_bootstrap.js')
+          s = p.read_text()
+          s = s.replace("console: { log() {}, warn() {}, error() {} },", "console,")
+          p.write_text(s)
+          PY
           node --test tests/test_app_bootstrap.js > /tmp/menu-p1-bootstrap.log 2>&1
           code=$?
+          cp /tmp/test_app_bootstrap.js.clean tests/test_app_bootstrap.js
           cat /tmp/menu-p1-bootstrap.log
           if [ "$code" -ne 0 ]; then
             cp /tmp/menu-p1-bootstrap.log menu-p1-bootstrap-error.txt
