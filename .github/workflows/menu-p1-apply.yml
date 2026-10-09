@@ -35,25 +35,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest pytz requests rjsmin
 
       - name: Apply scoped Menu P1 patch
-        shell: bash
-        run: |
-          set +e
-          python scripts/_menu_p1_runner.py > /tmp/menu-p1-apply.log 2>&1
-          code=$?
-          if [ "$code" -ne 0 ]; then
-            cat /tmp/menu-p1-apply.log
-            cp /tmp/menu-p1-apply.log menu-p1-apply-error.txt
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add menu-p1-apply-error.txt
-            if git diff --cached --quiet; then
-              exit "$code"
-            fi
-            git commit -m 'chore: capture menu P1 apply failure'
-            git push origin HEAD:perf/menu-p1-real-first-page
-            exit "$code"
-          fi
-          cat /tmp/menu-p1-apply.log
+        run: python scripts/_menu_p1_runner.py
 
       - name: Python syntax
         run: python -m py_compile app.py services/fixture_uid_reader_patch.py
@@ -65,35 +47,26 @@ jobs:
         run: node --check < static/js/app.js.src
 
       - name: Bootstrap regression
+        run: node --test tests/test_app_bootstrap.js
+
+      - name: Menu P1 and UID regression
         shell: bash
         run: |
           set +e
-          cp tests/test_app_bootstrap.js /tmp/test_app_bootstrap.js.clean
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('tests/test_app_bootstrap.js')
-          s = p.read_text()
-          s = s.replace("console: { log() {}, warn() {}, error() {} },", "console,")
-          p.write_text(s)
-          PY
-          node --test tests/test_app_bootstrap.js > /tmp/menu-p1-bootstrap.log 2>&1
+          python -m pytest -q tests/test_fixture_uid_reader_patch.py tests/test_menu_first_page_contract.py tests/test_display_history_fallback.py > /tmp/menu-p1-pytest.log 2>&1
           code=$?
-          cp /tmp/test_app_bootstrap.js.clean tests/test_app_bootstrap.js
-          cat /tmp/menu-p1-bootstrap.log
+          cat /tmp/menu-p1-pytest.log
           if [ "$code" -ne 0 ]; then
-            cp /tmp/menu-p1-bootstrap.log menu-p1-bootstrap-error.txt
+            cp /tmp/menu-p1-pytest.log menu-p1-pytest-error.txt
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add menu-p1-bootstrap-error.txt
+            git add menu-p1-pytest-error.txt
             if ! git diff --cached --quiet; then
-              git commit -m 'chore: capture menu P1 bootstrap failure'
+              git commit -m 'chore: capture menu P1 python test failure'
               git push origin HEAD:perf/menu-p1-real-first-page
             fi
             exit "$code"
           fi
-
-      - name: Menu P1 and UID regression
-        run: python -m pytest -q tests/test_fixture_uid_reader_patch.py tests/test_menu_first_page_contract.py tests/test_display_history_fallback.py
 
       - name: Diff sanity
         run: git diff --check
