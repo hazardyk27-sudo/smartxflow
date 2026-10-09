@@ -222,6 +222,7 @@ class PredictorOrchestrator:
                 "research_counter": item.get("research_counter"),
                 "research_synthesis": item.get("research_synthesis"),
                 "important_absence": item.get("important_absence"),
+                "absence_assessment": item.get("absence_assessment"),
                 "coverage": item.get("coverage"),
                 "verdict": item.get("verdict"),
             })
