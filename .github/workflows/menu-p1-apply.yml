@@ -1,0 +1,76 @@
+name: Menu P1 Apply
+
+on:
+  push:
+    branches:
+      - perf/menu-p1-real-first-page
+    paths:
+      - .github/workflows/menu-p1-apply.yml
+      - scripts/_menu_p1_apply.py
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install test dependencies
+        run: python -m pip install --disable-pip-version-check pytest pytz requests rjsmin
+
+      - name: Apply scoped Menu P1 patch
+        run: python scripts/_menu_p1_apply.py
+
+      - name: Python syntax
+        run: python -m py_compile app.py services/fixture_uid_reader_patch.py
+
+      - name: Served JS syntax
+        run: node --check static/js/app.js
+
+      - name: Source JS syntax
+        run: node --check < static/js/app.js.src
+
+      - name: Bootstrap regression
+        run: node --test tests/test_app_bootstrap.js
+
+      - name: Menu P1 and UID regression
+        run: python -m pytest -q tests/test_fixture_uid_reader_patch.py tests/test_menu_first_page_contract.py tests/test_display_history_fallback.py
+
+      - name: Diff sanity
+        run: git diff --check
+
+      - name: Commit validated patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add \
+            app.py \
+            services/fixture_uid_reader_patch.py \
+            static/js/app.js.src \
+            static/js/app.js \
+            tests/test_app_bootstrap.js \
+            tests/test_fixture_uid_reader_patch.py \
+            tests/test_menu_first_page_contract.py
+          if git diff --cached --quiet; then
+            echo 'No patch changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'perf: add bounded first-page load for app'
+          git push origin HEAD:perf/menu-p1-real-first-page
