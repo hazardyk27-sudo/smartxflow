@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/menu-p1-apply.yml
       - scripts/_menu_p1_apply.py
+      - scripts/_menu_p1_runner.py
 
 permissions:
   contents: write
@@ -37,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          python scripts/_menu_p1_apply.py > /tmp/menu-p1-apply.log 2>&1
+          python scripts/_menu_p1_runner.py > /tmp/menu-p1-apply.log 2>&1
           code=$?
           if [ "$code" -ne 0 ]; then
             cat /tmp/menu-p1-apply.log
@@ -45,6 +46,9 @@ jobs:
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add menu-p1-apply-error.txt
+            if git diff --cached --quiet; then
+              exit "$code"
+            fi
             git commit -m 'chore: capture menu P1 apply failure'
             git push origin HEAD:perf/menu-p1-real-first-page
             exit "$code"
