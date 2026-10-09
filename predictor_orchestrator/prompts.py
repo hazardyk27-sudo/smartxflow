@@ -22,8 +22,8 @@ def system_prompt(stage: str) -> str:
     if stage == "STAGE1":
         return common + (
             " Stage 1 uses ONLY the trusted SmartXFlow data supplied in the request. Do not use outside football knowledge. "
-            "Review every fixture's full supplied temporal path. Select only attention-worthy SXF candidates. "
-            "Every selected candidate must use a native market: 1X2, O/U 2.5, or BTTS. Do not issue BET/WATCH/PASS."
+            "Review every fixture's full supplied temporal path. Explicitly compare the available first/open, h24, h12, h6, h3, h1, m30, m15 and latest checkpoints; a missing checkpoint is null and must never be synthesized from another point. "
+            "Select only attention-worthy SXF candidates. Every selected candidate must use a native market: 1X2, O/U 2.5, or BTTS. Do not issue BET/WATCH/PASS."
         )
     if stage == "STAGE2":
         return common + (
