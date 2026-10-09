@@ -13,9 +13,10 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("StrictPredictorOrchestrator", text)
         self.assertIn("orchestrator=orchestrator", text)
 
-    def test_systemd_requires_archive_write_probe_and_key(self):
+    def test_systemd_requires_archive_write_probe_key_and_durable_secret_env(self):
         text = (ROOT / "deploy" / "systemd" / "smartxflow-predictor-orchestrator.service").read_text(encoding="utf-8")
         self.assertIn("LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519", text)
+        self.assertIn("EnvironmentFile=-/var/lib/smartxflow-predictor/predictor-orchestrator.env", text)
         self.assertIn("verify_learning_archive_ssh_write.py", text)
         self.assertIn("predictor_orchestrator.wsgi:app", text)
 
@@ -24,10 +25,14 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("settle_due_learning_cases_with_diary.py", text)
         self.assertNotIn("ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/settle_due_learning_cases_fast.py", text)
 
-    def test_predictor_deploy_verifies_exact_sha_health_and_archive_retry(self):
+    def test_predictor_deploy_verifies_exact_sha_health_secret_and_archive_retry(self):
         text = (ROOT / ".github" / "workflows" / "deploy-predictor-orchestrator.yml").read_text(encoding="utf-8")
         self.assertIn("github.event.workflow_run.head_sha", text)
         self.assertIn("production HEAD $HEAD != approved deploy SHA $DEPLOY_SHA", text)
+        self.assertIn("predictor-orchestrator.env", text)
+        self.assertIn("openssl rand -hex 32", text)
+        self.assertIn("chmod 0640", text)
+        self.assertIn("PREDICTOR_ORCHESTRATOR_SECRET", text)
         self.assertIn("for _ in $(seq 1 90)", text)
         self.assertIn("journalctl -u smartxflow-predictor-orchestrator.service", text)
         self.assertIn("HEALTH=\"\"", text)
