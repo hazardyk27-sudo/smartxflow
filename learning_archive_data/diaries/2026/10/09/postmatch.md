@@ -198,3 +198,40 @@
 - Stage 3 one-unit ROI: `{'sample_size': 0, 'roi': None, 'pnl_units': None}`
 <!-- SXF-STAGE-COMPARISON:fa390015c09d5652:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261009-3c5e2ae7b3f0-4051ff07c4:BEGIN -->
+### Lens – Lyon
+- Original prediction: **X2 | Double Chance**
+- Original action: **WATCH** | confidence: **81.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **2-1**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 4 supporting and 1 contradicting item(s). Final-prematch comparison: No honest selected-market closing comparison is available because the execution market is non-native.
+- Stage 1 baseline: **Away | 1X2 → LOSS**
+- Stage 3 final preference: **X2 | Double Chance → LOSS**
+- Transition: **SAME** | changed: **True** | driver: **EXECUTION_OPTIMIZATION**
+<!-- SXF-POSTMATCH-CASE:20261009-3c5e2ae7b3f0-4051ff07c4:END -->
+<!-- SXF-POSTMATCH-CASE:20261009-c879a7157a51-8247671c55:BEGIN -->
+### Shelbourne – Sligo Rovers
+- Original prediction: **Over 2.5 | OU2.5**
+- Original action: **WATCH** | confidence: **77.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **5-1**
+- Outcome: **WIN**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled WIN. MIXED: Stage 2 archived evidence contains 3 supporting and 2 contradicting item(s). Final-prematch comparison: entry_odds=1.47; final_prematch_price=1.45; final_share=87.9%; final_money=£ 9955.29; final_market_volume=£ 11320.8
+- Stage 1 baseline: **Over 2.5 | OU2.5 → WIN**
+- Stage 3 final preference: **Over 2.5 | OU2.5 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261009-c879a7157a51-8247671c55:END -->
+<!-- SXF-STAGE-COMPARISON:e642e5562ce300ec:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **2**
+- Stage 1 hit rate: **0.5**
+- Stage 3 hit rate: **0.5**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **1 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 2, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 2, 'roi': -0.265, 'pnl_units': -0.53}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 0.47, 'pnl_units': 0.47}`
+<!-- SXF-STAGE-COMPARISON:e642e5562ce300ec:END -->
+
