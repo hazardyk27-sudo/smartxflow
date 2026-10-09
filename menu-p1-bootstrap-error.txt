@@ -1,0 +1,262 @@
+TAP version 13
+# Subtest: license-key login stores canonical dashboard keys and response metadata
+ok 1 - license-key login stores canonical dashboard keys and response metadata
+  ---
+  duration_ms: 1.832452
+  type: 'test'
+  ...
+# Subtest: license-key login uses a short ISO expiry fallback when expires_at is absent
+ok 2 - license-key login uses a short ISO expiry fallback when expires_at is absent
+  ---
+  duration_ms: 0.521834
+  type: 'test'
+  ...
+# Subtest: legacy license localStorage state migrates to the dashboard key (runtime bundle)
+ok 3 - legacy license localStorage state migrates to the dashboard key (runtime bundle)
+  ---
+  duration_ms: 1.53876
+  type: 'test'
+  ...
+# Subtest: license-key login reaches the Prematch bootstrap (runtime bundle)
+ok 4 - license-key login reaches the Prematch bootstrap (runtime bundle)
+  ---
+  duration_ms: 2.734927
+  type: 'test'
+  ...
+# Subtest: legacy license localStorage state migrates to the dashboard key (source bundle)
+ok 5 - legacy license localStorage state migrates to the dashboard key (source bundle)
+  ---
+  duration_ms: 1.082776
+  type: 'test'
+  ...
+# Subtest: license-key login reaches the Prematch bootstrap (source bundle)
+ok 6 - license-key login reaches the Prematch bootstrap (source bundle)
+  ---
+  duration_ms: 1.576237
+  type: 'test'
+  ...
+# Subtest: match loading starts without awaiting optional favorites (runtime bundle)
+ok 7 - match loading starts without awaiting optional favorites (runtime bundle)
+  ---
+  duration_ms: 1.22582
+  type: 'test'
+  ...
+# Subtest: match loading starts without awaiting optional favorites (source bundle)
+ok 8 - match loading starts without awaiting optional favorites (source bundle)
+  ---
+  duration_ms: 0.655224
+  type: 'test'
+  ...
+# Subtest: match loading reaches a visible terminal state for every response (runtime bundle)
+not ok 9 - match loading reaches a visible terminal state for every response (runtime bundle)
+  ---
+  duration_ms: 2.411621
+  type: 'test'
+  location: '/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:456:1'
+  failureType: 'testCodeFailure'
+  error: 'matches'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<tr role="alert">Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.</tr>'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:585:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: match loading reaches a visible terminal state for every response (source bundle)
+not ok 10 - match loading reaches a visible terminal state for every response (source bundle)
+  ---
+  duration_ms: 1.173883
+  type: 'test'
+  location: '/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:456:1'
+  failureType: 'testCodeFailure'
+  error: 'matches'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: '<tr role="alert">Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.</tr>'
+  operator: 'match'
+  stack: |-
+    TestContext.<anonymous> (/home/runner/work/smartxflow/smartxflow/tests/test_app_bootstrap.js:585:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: leaving Live schedules a fresh Prematch request (runtime bundle)
+ok 11 - leaving Live schedules a fresh Prematch request (runtime bundle)
+  ---
+  duration_ms: 1.296928
+  type: 'test'
+  ...
+# Subtest: match-load guards are observable and stale locks recover (runtime bundle)
+ok 12 - match-load guards are observable and stale locks recover (runtime bundle)
+  ---
+  duration_ms: 1.039861
+  type: 'test'
+  ...
+# Subtest: leaving Live schedules a fresh Prematch request (source bundle)
+ok 13 - leaving Live schedules a fresh Prematch request (source bundle)
+  ---
+  duration_ms: 0.978259
+  type: 'test'
+  ...
+# Subtest: match-load guards are observable and stale locks recover (source bundle)
+ok 14 - match-load guards are observable and stale locks recover (source bundle)
+  ---
+  duration_ms: 0.977568
+  type: 'test'
+  ...
+# Subtest: match response body is covered by the fetch timeout (runtime bundle)
+ok 15 - match response body is covered by the fetch timeout (runtime bundle)
+  ---
+  duration_ms: 0.822134
+  type: 'test'
+  ...
+# Subtest: match response body is covered by the fetch timeout (source bundle)
+ok 16 - match response body is covered by the fetch timeout (source bundle)
+  ---
+  duration_ms: 0.518419
+  type: 'test'
+  ...
+# Subtest: test-mode account readiness does not wait for optional free-match data (runtime bundle)
+ok 17 - test-mode account readiness does not wait for optional free-match data (runtime bundle)
+  ---
+  duration_ms: 0.82552
+  type: 'test'
+  ...
+# Subtest: test-mode account readiness does not wait for optional free-match data (source bundle)
+ok 18 - test-mode account readiness does not wait for optional free-match data (source bundle)
+  ---
+  duration_ms: 0.727593
+  type: 'test'
+  ...
+# Subtest: match loading error controls retry or reload on desktop and mobile (runtime bundle)
+ok 19 - match loading error controls retry or reload on desktop and mobile (runtime bundle)
+  ---
+  duration_ms: 1.084148
+  type: 'test'
+  ...
+# Subtest: match loading error controls retry or reload on desktop and mobile (source bundle)
+ok 20 - match loading error controls retry or reload on desktop and mobile (source bundle)
+  ---
+  duration_ms: 0.65245
+  type: 'test'
+  ...
+# Subtest: authenticated Supabase accounts unlock the dashboard without a legacy license key
+ok 21 - authenticated Supabase accounts unlock the dashboard without a legacy license key
+  ---
+  duration_ms: 0.657988
+  type: 'test'
+  ...
+# Subtest: legacy license gate remains available when no authenticated account session exists
+ok 22 - legacy license gate remains available when no authenticated account session exists
+  ---
+  duration_ms: 0.531458
+  type: 'test'
+  ...
+# Subtest: login-required status retains the legacy license gate (runtime bundle)
+ok 23 - login-required status retains the legacy license gate (runtime bundle)
+  ---
+  duration_ms: 0.575293
+  type: 'test'
+  ...
+# Subtest: active account session starts match loading (runtime bundle)
+ok 24 - active account session starts match loading (runtime bundle)
+  ---
+  duration_ms: 0.608734
+  type: 'test'
+  ...
+# Subtest: valid legacy session status starts Prematch loading (runtime bundle)
+ok 25 - valid legacy session status starts Prematch loading (runtime bundle)
+  ---
+  duration_ms: 0.602255
+  type: 'test'
+  ...
+# Subtest: expired account session returns to login (runtime bundle)
+ok 26 - expired account session returns to login (runtime bundle)
+  ---
+  duration_ms: 0.496285
+  type: 'test'
+  ...
+# Subtest: email_unverified account status routes correctly (runtime bundle)
+ok 27 - email_unverified account status routes correctly (runtime bundle)
+  ---
+  duration_ms: 0.439329
+  type: 'test'
+  ...
+# Subtest: membership_required account status routes correctly (runtime bundle)
+ok 28 - membership_required account status routes correctly (runtime bundle)
+  ---
+  duration_ms: 0.471819
+  type: 'test'
+  ...
+# Subtest: session-status failures show a recoverable error (runtime bundle)
+ok 29 - session-status failures show a recoverable error (runtime bundle)
+  ---
+  duration_ms: 0.796997
+  type: 'test'
+  ...
+# Subtest: unknown session status shows a recoverable error (runtime bundle)
+ok 30 - unknown session status shows a recoverable error (runtime bundle)
+  ---
+  duration_ms: 1.31146
+  type: 'test'
+  ...
+# Subtest: login-required status retains the legacy license gate (source bundle)
+ok 31 - login-required status retains the legacy license gate (source bundle)
+  ---
+  duration_ms: 0.428203
+  type: 'test'
+  ...
+# Subtest: active account session starts match loading (source bundle)
+ok 32 - active account session starts match loading (source bundle)
+  ---
+  duration_ms: 0.453731
+  type: 'test'
+  ...
+# Subtest: valid legacy session status starts Prematch loading (source bundle)
+ok 33 - valid legacy session status starts Prematch loading (source bundle)
+  ---
+  duration_ms: 0.459319
+  type: 'test'
+  ...
+# Subtest: expired account session returns to login (source bundle)
+ok 34 - expired account session returns to login (source bundle)
+  ---
+  duration_ms: 0.4067
+  type: 'test'
+  ...
+# Subtest: email_unverified account status routes correctly (source bundle)
+ok 35 - email_unverified account status routes correctly (source bundle)
+  ---
+  duration_ms: 0.409425
+  type: 'test'
+  ...
+# Subtest: membership_required account status routes correctly (source bundle)
+ok 36 - membership_required account status routes correctly (source bundle)
+  ---
+  duration_ms: 0.538028
+  type: 'test'
+  ...
+# Subtest: session-status failures show a recoverable error (source bundle)
+ok 37 - session-status failures show a recoverable error (source bundle)
+  ---
+  duration_ms: 0.644187
+  type: 'test'
+  ...
+# Subtest: unknown session status shows a recoverable error (source bundle)
+ok 38 - unknown session status shows a recoverable error (source bundle)
+  ---
+  duration_ms: 0.398158
+  type: 'test'
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 36
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.564202
