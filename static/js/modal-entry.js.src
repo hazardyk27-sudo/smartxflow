@@ -38,10 +38,9 @@ window.__sxfOpenMatchModalFromMatchesImpl = async function openMatchModalFromMat
         
         const matchIdHash = selectedMatch.match_id || '';
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-        const marketsPromise = loadAllMarketsAtOnce(home, away, league, matchIdHash);
         
         const kickoff = selectedMatch.date || selectedMatch.kickoff_utc || '';
-        const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
+        const chartPipeline = chartLibsPromise.then(() => {
             if (reqId !== _modalRequestId) return;
             return loadChartWithTrends(home, away, selectedChartMarket, league, reqId, matchIdHash);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
@@ -139,10 +138,9 @@ window.__sxfOpenMatchModalFromAPIImpl = async function openMatchModalFromAPI(hom
 
     const matchIdHash2 = selectedMatch.match_id || '';
     const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-    const marketsPromise = loadAllMarketsAtOnce(apiHome, apiAway, apiLeague, matchIdHash2);
 
     try {
-        const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
+        const chartPipeline = chartLibsPromise.then(() => {
             if (reqId !== _modalRequestId) return;
             return loadChartWithTrends(apiHome, apiAway, selectedChartMarket, apiLeague, reqId, matchIdHash2);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));
@@ -204,10 +202,9 @@ window.__sxfOpenMatchModalImpl = async function openMatchModal(index) {
         
         const matchIdHash3 = selectedMatch.match_id || '';
         const chartLibsPromise = window.loadChartLibs ? window.loadChartLibs().then(() => registerChartPlugins()) : Promise.resolve();
-        const marketsPromise = loadAllMarketsAtOnce(home, away, league, matchIdHash3);
         
         const kickoff = selectedMatch.date || selectedMatch.kickoff_utc || '';
-        const chartPipeline = Promise.all([marketsPromise, chartLibsPromise]).then(() => {
+        const chartPipeline = chartLibsPromise.then(() => {
             if (reqId !== _modalRequestId) return;
             return loadChartWithTrends(home, away, selectedChartMarket, league, reqId, matchIdHash3);
         }).catch(e => console.error('[Modal] Chart pipeline error:', e));

@@ -32,8 +32,7 @@ window.loadChartLibs = function() {
             'https://cdn.jsdelivr.net/npm/chart.js'
         ];
         var pluginScripts = [
-            'https://cdn.jsdelivr.net/npm/hammerjs@2.0.8',
-            'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+            'https://cdn.jsdelivr.net/npm/hammerjs@2.0.8'
         ];
         var zoomScript = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
         var failed = [];
@@ -4357,8 +4356,27 @@ function loadChartExportRuntime() {
     return window._sxfChartExportRuntimePromise;
 }
 
+let _html2CanvasExportPromise = null;
+function loadHtml2CanvasForExport() {
+    if (typeof html2canvas === 'function') return Promise.resolve();
+    if (_html2CanvasExportPromise) return _html2CanvasExportPromise;
+    _html2CanvasExportPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => {
+            _html2CanvasExportPromise = null;
+            reject(new Error('html2canvas failed to load'));
+        };
+        document.head.appendChild(script);
+    });
+    return _html2CanvasExportPromise;
+}
+
 async function exportChartPNG(...args) {
     await loadChartExportRuntime();
+    await loadHtml2CanvasForExport();
     return window.__sxfExportChartPNGImpl(...args);
 }
 
