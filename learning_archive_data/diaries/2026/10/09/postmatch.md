@@ -148,3 +148,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 3, 'roi': 0.27666666666666667, 'pnl_units': 0.8300000000000001}`
 <!-- SXF-STAGE-COMPARISON:a8a3f01c563f8e60:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261009-c5246df97d6c-689de49536:BEGIN -->
+### Mosta – Birzebbuga St Peters
+- Original prediction: **Home | 1X2**
+- Original action: **BET** | confidence: **82.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **2-2**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original BET settled LOSS on final score 2-2. MIXED: Stage 2 archived evidence contains 3 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=2.28; final_prematch_price=1.75; final_share=76.4%; final_money=£ 7580.15; final_market_volume=£ 9915.69
+- Stage 1 baseline: **Home | 1X2 → LOSS**
+- Stage 3 final preference: **Home | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261009-c5246df97d6c-689de49536:END -->
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **0.0**
+- Stage 3 hit rate: **0.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
+
