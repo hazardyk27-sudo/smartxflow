@@ -1,0 +1,47 @@
+name: P4 Real First Page Patch V5
+
+on:
+  push:
+    branches:
+      - perf/p4-real-first-page
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p4-real-first-page
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install scoped dependencies
+        run: python -m pip install --quiet rjsmin pytest
+      - name: Apply P4 patch
+        run: python scripts/_tmp_p4_real_first_page_v5.py
+      - name: Validate syntax and focused regressions
+        run: |
+          python -m py_compile app.py services/supabase_client.py services/fixture_uid_reader_patch.py services/display_history_fallback.py
+          node --check < static/js/app.js.src
+          node --check static/js/app.js
+          node --test tests/test_real_first_page_path.js
+          node --test tests/test_app_bootstrap.js
+          python -m pytest -q tests/test_fixture_uid_reader_patch.py tests/test_display_history_fallback.py tests/test_fixture_integrity.py
+      - name: Commit patch and remove temporary tooling
+        run: |
+          rm -f scripts/_tmp_p4_real_first_page_v5.py
+          rm -f .github/workflows/p4-real-first-page-patch.yml
+          rm -f .github/workflows/p4-real-first-page-patch-v2.yml
+          rm -f .github/workflows/p4-real-first-page-patch-v3.yml
+          rm -f .github/workflows/p4-real-first-page-patch-v4.yml
+          rm -f .github/workflows/p4-real-first-page-patch-v5.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "perf: make app first paint truly paginated"
+          git push origin HEAD:perf/p4-real-first-page
