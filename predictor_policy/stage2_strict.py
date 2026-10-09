@@ -50,14 +50,40 @@ def _source_timestamp_violations(payload: dict[str, Any]) -> list[Violation]:
     return violations
 
 
+def _two_sided_evidence_violations(payload: dict[str, Any]) -> list[Violation]:
+    """Meaningful coverage must actively test both sides of the frozen thesis.
+
+    LOW/UNKNOWN research is deliberately allowed to stay unresolved; forcing a
+    fabricated supporting or contradicting fact in an obscure competition would
+    violate the UNKNOWN-is-not-negative rule. MEDIUM/HIGH claims, however, must
+    prove that both support and disconfirmation were actually found and cited.
+    """
+    violations: list[Violation] = []
+    for index, match in enumerate(payload.get("matches") or []):
+        if not isinstance(match, dict):
+            continue
+        coverage = str(match.get("coverage") or "").upper()
+        if coverage not in {"MEDIUM", "HIGH"}:
+            continue
+        match_id = str(match.get("fixture_id") or match.get("fixture_uid") or match.get("match_id_hash") or index)
+        support_ids = [str(item).strip() for item in match.get("support_fact_ids") or [] if str(item).strip()]
+        counter_ids = [str(item).strip() for item in match.get("counter_fact_ids") or [] if str(item).strip()]
+        if not support_ids:
+            violations.append(Violation("SXF-S2-013", f"{match_id}: {coverage} coverage requires at least one real supporting FACT"))
+        if not counter_ids:
+            violations.append(Violation("SXF-S2-013", f"{match_id}: {coverage} coverage requires at least one real contradicting FACT"))
+    return violations
+
+
 def validate_stage2_strict(payload: dict[str, Any]) -> ValidationResult:
     legacy = _legacy_validate_stage2(_legacy_compatible_payload(payload))
     violations = list(legacy.violations)
     violations.extend(_source_timestamp_violations(payload))
+    violations.extend(_two_sided_evidence_violations(payload))
     violations.extend(validate_stage2_quality(payload))
 
-    # Keep repair output useful: identical rule/message pairs can arise when a
-    # missing source/timestamp is caught by both the direct and deep validators.
+    # Keep repair output useful: identical rule/message pairs can arise when the
+    # direct guardrail and deep evidence validator catch the same deficiency.
     unique: list[Violation] = []
     seen: set[tuple[str, str]] = set()
     for item in violations:
