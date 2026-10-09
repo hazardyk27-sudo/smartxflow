@@ -50,8 +50,25 @@ jobs:
             sudo /bin/systemctl enable smartxflow-predictor-orchestrator.service
             sudo /bin/systemctl restart smartxflow-predictor-orchestrator.service
 
-            sleep 3
-            sudo /bin/systemctl is-active smartxflow-predictor-orchestrator.service
+            STATE=""
+            for _ in $(seq 1 90); do
+              STATE="$(sudo /bin/systemctl is-active smartxflow-predictor-orchestrator.service || true)"
+              if [ "$STATE" = "active" ]; then
+                break
+              fi
+              if [ "$STATE" = "failed" ] || [ "$STATE" = "inactive" ]; then
+                sudo /bin/journalctl -u smartxflow-predictor-orchestrator.service -n 120 --no-pager || true
+                echo "PREDICTOR DEPLOY STOP: service state is '$STATE'"
+                exit 1
+              fi
+              sleep 2
+            done
+            if [ "$STATE" != "active" ]; then
+              sudo /bin/journalctl -u smartxflow-predictor-orchestrator.service -n 120 --no-pager || true
+              echo "PREDICTOR DEPLOY STOP: service did not become active (state '$STATE')"
+              exit 1
+            fi
+
             HEALTH="$(curl -fsS http://127.0.0.1:8011/healthz)"
             python3 - "$HEALTH" <<'PY'
             import json, sys
@@ -61,6 +78,27 @@ jobs:
             if payload.get("stage1_source_enabled") is not True:
                 raise SystemExit("Predictor Stage 1 source is disabled")
             print("PREDICTOR_HEALTH_OK")
+            PY
+
+            RETRY_OUTPUT="$(sudo -u smartxflow env \
+              PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
+              LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
+              /opt/smartxflow/venv/bin/python \
+              /opt/smartxflow/scripts/retry_predictor_archive_pending.py \
+              --dotenv /opt/smartxflow/.env || true)"
+            echo "$RETRY_OUTPUT"
+            python3 - "$RETRY_OUTPUT" <<'PY'
+            import json, sys
+            payload = json.loads(sys.argv[1])
+            if payload.get("ok") is not True:
+                raise SystemExit(
+                    f"Predictor archive retry still pending: {payload.get('remaining_pending')} stage run(s)"
+                )
+            print(
+                "PREDICTOR_ARCHIVE_RETRY_OK "
+                f"retried_stage_runs={payload.get('retried_stage_runs', 0)} "
+                f"remaining_pending={payload.get('remaining_pending', 0)}"
+            )
             PY
 
             FINAL="$(sudo -u smartxflow git rev-parse HEAD)"
