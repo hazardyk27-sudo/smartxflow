@@ -391,6 +391,27 @@ window.__sxfLoadChartImpl = async function loadChart(home, away, market, league 
             }
         }
 
+        const chartPointBudget = isMobile() ? 220 : 320;
+        if (datasets.length > 0 && labels.length > chartPointBudget) {
+            const sourcePointCount = labels.length;
+            const sampleIndexes = getChartRenderSampleIndexes(datasets, chartPointBudget);
+            if (sampleIndexes.length > 1 && sampleIndexes.length < sourcePointCount) {
+                const sampledLabels = sampleIndexes.map(i => labels[i]);
+                const sampledHistory = sampleIndexes.map(i => historyData[i]);
+                datasets.forEach(ds => {
+                    ds.data = sampleIndexes.map(i => ds.data[i]);
+                    ['pointRadius', 'pointBackgroundColor', 'pointBorderColor'].forEach(prop => {
+                        if (Array.isArray(ds[prop]) && ds[prop].length === sourcePointCount) {
+                            ds[prop] = sampleIndexes.map(i => ds[prop][i]);
+                        }
+                    });
+                });
+                labels.splice(0, labels.length, ...sampledLabels);
+                historyData.splice(0, historyData.length, ...sampledHistory);
+                console.log('[Chart] Render downsample:', sourcePointCount, '->', labels.length, 'points');
+            }
+        }
+
         const tooltipHistory = historyData;
         
         // Store history data for mobile value panel
@@ -1066,6 +1087,74 @@ function getBucketConfig() {
         default:
             return { bucketMinutes: 1440, labelFormat: 'date' };
     }
+}
+
+function getChartRenderSampleIndexes(datasets, maxPoints) {
+    const sourceLength = datasets.reduce((maxLen, ds) => {
+        return Math.max(maxLen, Array.isArray(ds.data) ? ds.data.length : 0);
+    }, 0);
+    if (sourceLength === 0) return [];
+
+    const limit = Math.max(3, Math.floor(maxPoints || sourceLength));
+    if (sourceLength <= limit) {
+        return Array.from({ length: sourceLength }, (_, idx) => idx);
+    }
+
+    const ranges = datasets.map(ds => {
+        const values = (Array.isArray(ds.data) ? ds.data : [])
+            .map(Number)
+            .filter(Number.isFinite);
+        if (values.length === 0) return 1;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        return Math.max(max - min, 1e-9);
+    });
+
+    const interiorBudget = limit - 2;
+    const interiorLength = sourceLength - 2;
+    const bucketSize = interiorLength / interiorBudget;
+    const indexes = [0];
+    let lastAdded = 0;
+
+    for (let bucket = 0; bucket < interiorBudget; bucket++) {
+        let start = 1 + Math.floor(bucket * bucketSize);
+        let end = 1 + Math.floor((bucket + 1) * bucketSize);
+        if (bucket === interiorBudget - 1) end = sourceLength - 1;
+        start = Math.min(Math.max(start, 1), sourceLength - 2);
+        end = Math.min(Math.max(end, start + 1), sourceLength - 1);
+
+        let bestIndex = start;
+        let bestScore = -1;
+        for (let idx = start; idx < end; idx++) {
+            let score = 0;
+            datasets.forEach((ds, dsIdx) => {
+                if (!Array.isArray(ds.data)) return;
+                const value = Number(ds.data[idx]);
+                if (!Number.isFinite(value)) return;
+                const prev = Number(ds.data[Math.max(0, idx - 1)]);
+                const next = Number(ds.data[Math.min(sourceLength - 1, idx + 1)]);
+                let baseline = value;
+                if (Number.isFinite(prev) && Number.isFinite(next)) baseline = (prev + next) / 2;
+                else if (Number.isFinite(prev)) baseline = prev;
+                else if (Number.isFinite(next)) baseline = next;
+                score = Math.max(score, Math.abs(value - baseline) / ranges[dsIdx]);
+            });
+            if (score > bestScore) {
+                bestScore = score;
+                bestIndex = idx;
+            }
+        }
+
+        if (bestIndex > lastAdded && bestIndex < sourceLength - 1) {
+            indexes.push(bestIndex);
+            lastAdded = bestIndex;
+        }
+    }
+
+    if (indexes[indexes.length - 1] !== sourceLength - 1) {
+        indexes.push(sourceLength - 1);
+    }
+    return indexes;
 }
 
 function formatTimeLabel(date) {
