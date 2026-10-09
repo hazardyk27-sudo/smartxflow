@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import tempfile
@@ -76,36 +77,68 @@ def stage1_invalid_partial_scan():
 
 
 def stage2_valid():
+    now = datetime.now(timezone.utc)
+    observed = (now - timedelta(minutes=10)).isoformat()
+    recent = (now - timedelta(hours=2)).isoformat()
+    performance_time = (now - timedelta(days=2)).isoformat()
     return {
         "matches": [
             {
                 "fixture_id": "m1",
                 "research_checks": {
-                    "squad_checked": True,
-                    "performance_checked": True,
-                    "counter_checked": True,
-                    "coverage_classified": True,
+                    "squad": {"status": "VERIFIED", "fact_ids": ["f1"], "note": "Güncel kadro/availability kaynağı kontrol edildi."},
+                    "performance": {"status": "VERIFIED", "fact_ids": ["f2"], "note": "Yakın dönem market-relevant performans kontrol edildi."},
+                    "counter": {"status": "VERIFIED", "fact_ids": ["f3"], "note": "Frozen Stage 1 tezine karşı en güçlü senaryo ayrıca araştırıldı."},
                 },
                 "facts": [
                     {
+                        "fact_id": "f1",
                         "kind": "FACT",
-                        "relationship": "SUPPORTS",
-                        "claim": "Ev sahibi ana kadro sürekliliğini koruyor.",
-                        "source": "official.example",
+                        "category": "SQUAD",
+                        "materiality": "MATERIAL",
+                        "relationship": "NEUTRAL",
+                        "claim": "Güncel resmi kadro bilgisinde ev sahibi çekirdeğini bozan material bir eksik görünmüyor.",
+                        "source": "https://www.uefa.com/news/test-squad",
                         "source_tier": "A",
-                        "observed_at": "2026-10-07T18:00:00+03:00",
+                        "observed_at": observed,
+                        "evidence_at": recent,
+                        "derived_from_fact_ids": [],
+                        "corroborating_sources": [],
                     },
                     {
-                        "kind": "INFERENCE",
+                        "fact_id": "f2",
+                        "kind": "FACT",
+                        "category": "PERFORMANCE",
+                        "materiality": "MATERIAL",
+                        "relationship": "SUPPORTS",
+                        "claim": "Yakın dönem üretim/şut profili ev sahibinin Stage 1 yönünü destekliyor.",
+                        "source": "https://www.fotmob.com/matches/test-performance",
+                        "source_tier": "C",
+                        "observed_at": observed,
+                        "evidence_at": performance_time,
+                        "derived_from_fact_ids": [],
+                        "corroborating_sources": [],
+                    },
+                    {
+                        "fact_id": "f3",
+                        "kind": "FACT",
+                        "category": "CONTEXT",
+                        "materiality": "MATERIAL",
                         "relationship": "CONTRADICTS",
-                        "claim": "Rakibin geçiş tehdidi beraberlik yolunu açık tutuyor.",
-                        "source": None,
-                        "source_tier": None,
-                        "observed_at": None,
+                        "claim": "Rakibin geçiş tehdidi ve güncel maç bağlamı beraberlik/deplasman yolunu açık tutuyor.",
+                        "source": "https://www.reuters.com/sports/soccer/test-counter",
+                        "source_tier": "B",
+                        "observed_at": observed,
+                        "evidence_at": recent,
+                        "derived_from_fact_ids": [],
+                        "corroborating_sources": [],
                     },
                 ],
-                "research_support": "Kadro sürekliliği Stage 1 yönünü destekliyor.",
-                "research_counter": "Rakibin geçiş tehdidi en güçlü karşı tez.",
+                "support_fact_ids": ["f2"],
+                "counter_fact_ids": ["f3"],
+                "research_support": "Yakın dönem üretim kalitesi Stage 1 yönünü destekliyor.",
+                "research_counter": "Rakibin geçiş tehdidi en güçlü doğrulanmış karşı tez.",
+                "research_synthesis": "Dış araştırma frozen Stage 1 tezini kısmen doğruluyor; performans desteği var fakat rakibin geçiş tehdidi nedeniyle tam doğrulama yok.",
                 "important_absence": None,
                 "coverage": "MEDIUM",
                 "verdict": "PARTIALLY_CONFIRMED",
@@ -185,11 +218,12 @@ class PredictorOrchestratorTests(unittest.TestCase):
 
     @staticmethod
     def stage1_context():
+        kickoff = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
         return {
             "source_fixture_ids": ["m1", "m2"],
             "fixtures": [
-                {"fixture_id": "m1", "home": "Home", "away": "Away", "sxf_history": [{"t": 1}, {"t": 2}]},
-                {"fixture_id": "m2", "home": "Other", "away": "Guest", "sxf_history": [{"t": 1}, {"t": 2}]},
+                {"fixture_id": "m1", "home": "Home", "away": "Away", "kickoff_utc": kickoff, "sxf_history": [{"t": 1}, {"t": 2}]},
+                {"fixture_id": "m2", "home": "Other", "away": "Guest", "kickoff_utc": kickoff, "sxf_history": [{"t": 1}, {"t": 2}]},
             ],
             "price_evidence": [
                 {
