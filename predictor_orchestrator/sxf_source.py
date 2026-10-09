@@ -208,7 +208,7 @@ class SXFStage1Source:
     @staticmethod
     def _point_before(points: list[tuple], target: datetime):
         candidates = [item for item in points if item[0] <= target]
-        return candidates[-1] if candidates else (points[0] if points else None)
+        return candidates[-1] if candidates else None
 
     @classmethod
     def _selection_feature(cls, rows: list[dict[str, Any]], odds_key: str, pct_key: str, amt_key: str, now: datetime) -> dict[str, Any] | None:
