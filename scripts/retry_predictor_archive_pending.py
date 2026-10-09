@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
+import os
+from pathlib import Path
 import sqlite3
-import sys
 from typing import Any
 
 from predictor_orchestrator.config import OrchestratorConfig
@@ -14,6 +16,27 @@ from predictor_orchestrator.store import SQLiteOrchestratorStore
 class _NoLLM:
     def generate(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         raise RuntimeError("LLM must not be called during archive lifecycle retry")
+
+
+def _load_dotenv(path: str | None) -> None:
+    if not path:
+        return
+    dotenv = Path(path)
+    if not dotenv.is_file():
+        raise RuntimeError(f"dotenv file is missing: {dotenv}")
+    for raw in dotenv.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if key.startswith("export "):
+            key = key[7:].strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def _pending_stage_runs(db_path: str) -> list[tuple[str, str]]:
@@ -107,7 +130,12 @@ def retry_pending() -> dict[str, Any]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Retry durable Predictor archive/diary lifecycle work")
+    parser.add_argument("--dotenv", default=None)
+    args = parser.parse_args()
+
     try:
+        _load_dotenv(args.dotenv)
         result = retry_pending()
     except Exception as exc:
         print(json.dumps({"ok": False, "error": str(exc)[:500]}, ensure_ascii=False, sort_keys=True))
