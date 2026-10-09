@@ -227,10 +227,13 @@ class SXFStage1Source:
         points.sort(key=lambda item: item[0])
         first, last = points[0], points[-1]
         checkpoints = {
+            "h24": cls._point_before(points, now - timedelta(hours=24)),
+            "h12": cls._point_before(points, now - timedelta(hours=12)),
             "h6": cls._point_before(points, now - timedelta(hours=6)),
             "h3": cls._point_before(points, now - timedelta(hours=3)),
             "h1": cls._point_before(points, now - timedelta(hours=1)),
             "m30": cls._point_before(points, now - timedelta(minutes=30)),
+            "m15": cls._point_before(points, now - timedelta(minutes=15)),
         }
         directions: list[int] = []
         pivot = points[0][1]
