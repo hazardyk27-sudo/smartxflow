@@ -51,25 +51,28 @@ jobs:
             sudo /bin/systemctl restart smartxflow-predictor-orchestrator.service
 
             STATE=""
+            HEALTH=""
             for _ in $(seq 1 90); do
               STATE="$(sudo /bin/systemctl is-active smartxflow-predictor-orchestrator.service || true)"
-              if [ "$STATE" = "active" ]; then
-                break
-              fi
               if [ "$STATE" = "failed" ] || [ "$STATE" = "inactive" ]; then
                 sudo /bin/journalctl -u smartxflow-predictor-orchestrator.service -n 120 --no-pager || true
                 echo "PREDICTOR DEPLOY STOP: service state is '$STATE'"
                 exit 1
               fi
+              if [ "$STATE" = "active" ]; then
+                HEALTH="$(curl -fsS --max-time 2 http://127.0.0.1:8011/healthz 2>/dev/null || true)"
+                if [ -n "$HEALTH" ]; then
+                  break
+                fi
+              fi
               sleep 2
             done
-            if [ "$STATE" != "active" ]; then
+            if [ -z "$HEALTH" ]; then
               sudo /bin/journalctl -u smartxflow-predictor-orchestrator.service -n 120 --no-pager || true
-              echo "PREDICTOR DEPLOY STOP: service did not become active (state '$STATE')"
+              echo "PREDICTOR DEPLOY STOP: service never became HTTP-ready (state '$STATE')"
               exit 1
             fi
 
-            HEALTH="$(curl -fsS http://127.0.0.1:8011/healthz)"
             python3 - "$HEALTH" <<'PY'
             import json, sys
             payload = json.loads(sys.argv[1])
