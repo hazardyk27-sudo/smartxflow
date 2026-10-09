@@ -43,26 +43,29 @@ class PredictorDeployContractTests(unittest.TestCase):
         self.assertIn("retry_predictor_archive_pending.py", text)
         self.assertIn("--db /var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3", text)
         self.assertIn("--scan-root /opt/smartxflow/data", text)
-        self.assertIn("--scan-root /var/lib/smartxflow-predictor", text)
-        self.assertIn("scanned_databases", text)
+        self.assertNotIn("--scan-root /var/lib/smartxflow-predictor || true", text)
+        self.assertIn("startswith('{')", text)
         self.assertIn("PREDICTOR_ARCHIVE_RETRY_OK", text)
         self.assertIn("PREDICTOR_DEPLOY_OK", text)
         self.assertLess(
             text.index("openssl rand -hex 32"),
             text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
         )
-        self.assertLess(
-            text.index("predictor-orchestrator.env"),
-            text.index("systemctl restart smartxflow-predictor-orchestrator.service"),
-        )
 
-    def test_predictor_deploy_recovers_exact_stranded_9_october_workflow(self):
+    def test_predictor_deploy_finalizes_exact_stranded_9_october_lifecycle(self):
         text = (ROOT / ".github" / "workflows" / "deploy-predictor-orchestrator.yml").read_text(encoding="utf-8")
         self.assertIn("pred_20261009T134410_bef4b19b53", text)
         self.assertIn("pred_20261009T134410_bef4b19b53:stage3:a31d6ecd09", text)
+        self.assertIn("/var/lib/smartxflow-predictor/chatgpt-stage1-20261009.sqlite3", text)
+        self.assertIn("chown smartxflow:smartxflow \"$LEGACY_DB\"", text)
+        self.assertIn("chmod 0640 \"$LEGACY_DB\"", text)
         self.assertIn("--workflow-id \"$TARGET_WORKFLOW\"", text)
         self.assertIn("--require-workflow", text)
         self.assertIn("PREDICTOR_LEGACY_RECOVERY_OK", text)
+        self.assertIn("PREDICTOR_LEGACY_LIFECYCLE_OK", text)
+        self.assertIn("len(rows) != 14", text)
+        self.assertIn("archive_status", text)
+        self.assertIn("diary_status", text)
         self.assertIn("learning_archive_data/diaries/2026/10/09/predictions.md", text)
         self.assertIn("case_count != 14", text)
         self.assertIn("PREDICTOR_LEGACY_DIARY_OK", text)
