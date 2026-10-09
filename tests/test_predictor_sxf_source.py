@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import unittest
 
 from predictor_orchestrator.sxf_source import SXFSourceError, SXFStage1Source
@@ -81,6 +81,47 @@ class SXFStage1SourceTests(unittest.TestCase):
         self.assertAlmostEqual(home["open_to_latest"]["amount_delta"], 170.0)
         self.assertEqual(home["last"]["odds"], 1.9)
         self.assertGreaterEqual(home["history_count"], 2)
+        for checkpoint in ("h24", "h12", "h6", "h3", "h1", "m30", "m15"):
+            self.assertIn(checkpoint, home)
+            self.assertIn(f"{checkpoint}_to_latest", home)
+
+    def test_temporal_features_resolve_expanded_checkpoint_ladder(self):
+        now = datetime(2026, 10, 8, 0, 0, tzinfo=timezone.utc)
+        samples = [
+            (timedelta(hours=24, minutes=30), 2.50, 10, 10),
+            (timedelta(hours=12, minutes=30), 2.40, 20, 20),
+            (timedelta(hours=6, minutes=30), 2.30, 30, 30),
+            (timedelta(hours=3, minutes=30), 2.20, 40, 40),
+            (timedelta(hours=1, minutes=30), 2.10, 50, 50),
+            (timedelta(minutes=40), 2.00, 60, 60),
+            (timedelta(minutes=20), 1.90, 70, 70),
+            (timedelta(minutes=5), 1.80, 80, 80),
+        ]
+        rows = [
+            {
+                "odds1": str(odds),
+                "pct1": str(share),
+                "amt1": str(amount),
+                "volume": str(amount),
+                "scraped_at": (now - age).isoformat(),
+            }
+            for age, odds, share, amount in samples
+        ]
+
+        feature = SXFStage1Source._selection_feature(rows, "odds1", "pct1", "amt1", now)
+
+        self.assertIsNotNone(feature)
+        self.assertEqual(feature["first"]["odds"], 2.5)
+        self.assertEqual(feature["h24"]["odds"], 2.5)
+        self.assertEqual(feature["h12"]["odds"], 2.4)
+        self.assertEqual(feature["h6"]["odds"], 2.3)
+        self.assertEqual(feature["h3"]["odds"], 2.2)
+        self.assertEqual(feature["h1"]["odds"], 2.1)
+        self.assertEqual(feature["m30"]["odds"], 2.0)
+        self.assertEqual(feature["m15"]["odds"], 1.9)
+        self.assertEqual(feature["last"]["odds"], 1.8)
+        self.assertAlmostEqual(feature["h24_to_latest"]["odds_delta"], -0.7)
+        self.assertAlmostEqual(feature["m15_to_latest"]["amount_delta"], 10.0)
 
     def test_future_only_moves_start_to_now_for_today(self):
         source = FakeSXFSource()
