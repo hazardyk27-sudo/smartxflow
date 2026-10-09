@@ -1,0 +1,68 @@
+name: P4 Real First Page Patch V2
+
+on:
+  push:
+    branches:
+      - perf/p4-real-first-page
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/p4-real-first-page
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scoped minifier
+        run: python -m pip install --quiet rjsmin
+
+      - name: Apply original scoped patch with indentation repair
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/p4-real-first-page-patch.yml').read_text(encoding='utf-8')
+          start_marker = "          python - <<'PY'\n"
+          end_marker = "          PY\n\n      - name: Validate scoped patch"
+          start = workflow.index(start_marker) + len(start_marker)
+          end = workflow.index(end_marker, start)
+          block = workflow[start:end]
+          lines = block.splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+
+          old = "text = pattern.sub(new_fn, text, count=1)"
+          repair = """new_fn_lines = new_fn.splitlines()
+new_fn = new_fn_lines[0] + '\\n' + '\\n'.join(('    ' + line if line else line) for line in new_fn_lines[1:]) + '\\n'
+text = pattern.sub(lambda _m: new_fn, text, count=1)"""
+          if script.count(old) != 1:
+              raise SystemExit(f'expected one method substitution, found {script.count(old)}')
+          script = script.replace(old, repair, 1)
+          exec(compile(script, '<p4-scoped-patch>', 'exec'), {'__name__': '__main__'})
+          PY
+
+      - name: Validate scoped patch
+        run: |
+          python -m py_compile app.py services/supabase_client.py
+          node --check static/js/app.js.src
+          node --check static/js/app.js
+          node --test tests/test_real_first_page_path.js
+          node --test tests/test_app_bootstrap.js
+
+      - name: Commit patch and remove temporary workflows
+        run: |
+          rm .github/workflows/p4-real-first-page-patch.yml
+          rm .github/workflows/p4-real-first-page-patch-v2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.py services/supabase_client.py static/js/app.js.src static/js/app.js tests/test_app_bootstrap.js tests/test_real_first_page_path.js .github/workflows/frontend-performance-tests.yml .github/workflows/p4-real-first-page-patch.yml .github/workflows/p4-real-first-page-patch-v2.yml
+          git commit -m "perf: make app first paint truly paginated"
+          git push origin HEAD:perf/p4-real-first-page
