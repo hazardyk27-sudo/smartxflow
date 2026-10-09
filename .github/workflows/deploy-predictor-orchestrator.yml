@@ -43,9 +43,6 @@ jobs:
               exit 1
             fi
 
-            # The orchestrator is localhost-only but its API still requires a
-            # stable server-side bearer secret. Provision it once on the host,
-            # outside the tracked source tree, without ever printing the value.
             sudo /usr/bin/install -d -m 0750 -o smartxflow -g smartxflow /var/lib/smartxflow-predictor
             SECRET_FILE=/var/lib/smartxflow-predictor/predictor-orchestrator.env
             if ! sudo /usr/bin/test -s "$SECRET_FILE"; then
@@ -101,9 +98,6 @@ jobs:
             print("PREDICTOR_HEALTH_OK")
             PY
 
-            # Retry all durable Predictor lifecycle stores that may have been
-            # created before the canonical StateDirectory path was enforced.
-            # This recovers accepted Stage 3 rows without regenerating predictions.
             RETRY_OUTPUT="$(sudo -u smartxflow env \
               PYTHONPATH=/opt/smartxflow \
               PREDICTOR_STATE_DB=/var/lib/smartxflow-predictor/predictor-orchestrator.sqlite3 \
@@ -128,6 +122,115 @@ jobs:
                 f"retried_stage_runs={payload.get('retried_stage_runs', 0)} "
                 f"remaining_pending={payload.get('remaining_pending', 0)}"
             )
+            PY
+
+            # One-time compatibility recovery for the 2026-10-09 formal run that
+            # was accepted through a localhost orchestrator before the canonical
+            # StateDirectory DB path was enforced. The search is read-only and
+            # exact-workflow scoped; no other SQLite lifecycle can be published.
+            TARGET_WORKFLOW='pred_20261009T134410_bef4b19b53'
+            TARGET_STAGE_RUN='pred_20261009T134410_bef4b19b53:stage3:a31d6ecd09'
+            mapfile -t TARGET_DBS < <(sudo python3 - "$TARGET_WORKFLOW" <<'PY'
+            import os, sqlite3, sys
+            target = sys.argv[1]
+            roots = ['/opt/smartxflow', '/var/lib', '/home', '/root', '/tmp']
+            seen = set()
+            for root in roots:
+                if not os.path.isdir(root):
+                    continue
+                for base, dirs, files in os.walk(root):
+                    dirs[:] = [d for d in dirs if d not in {'.git', 'node_modules', 'venv', '.venv', '__pycache__'}]
+                    for name in files:
+                        if not name.endswith('.sqlite3'):
+                            continue
+                        path = os.path.realpath(os.path.join(base, name))
+                        if path in seen:
+                            continue
+                        seen.add(path)
+                        try:
+                            con = sqlite3.connect(f'file:{path}?mode=ro', uri=True, timeout=2)
+                            try:
+                                table = con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='predictor_workflows'").fetchone()
+                                if not table:
+                                    continue
+                                row = con.execute('SELECT 1 FROM predictor_workflows WHERE workflow_id=? LIMIT 1', (target,)).fetchone()
+                                if row:
+                                    print(path)
+                            finally:
+                                con.close()
+                        except Exception:
+                            pass
+            PY
+            )
+
+            if [ "${#TARGET_DBS[@]}" -eq 0 ]; then
+              echo "PREDICTOR LEGACY RECOVERY STOP: target workflow $TARGET_WORKFLOW was not found on durable host storage"
+              exit 1
+            fi
+
+            for TARGET_DB in "${TARGET_DBS[@]}"; do
+              OWNER="$(sudo stat -c '%U' "$TARGET_DB")"
+              if [ "$OWNER" = "smartxflow" ]; then
+                LEGACY_OUTPUT="$(sudo -u smartxflow env \
+                  PYTHONPATH=/opt/smartxflow \
+                  PREDICTOR_STATE_DB="$TARGET_DB" \
+                  LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
+                  /opt/smartxflow/venv/bin/python \
+                  /opt/smartxflow/scripts/retry_predictor_archive_pending.py \
+                  --dotenv /opt/smartxflow/.env \
+                  --db "$TARGET_DB" \
+                  --workflow-id "$TARGET_WORKFLOW" \
+                  --require-workflow || true)"
+              else
+                LEGACY_OUTPUT="$(sudo env \
+                  PYTHONPATH=/opt/smartxflow \
+                  PREDICTOR_STATE_DB="$TARGET_DB" \
+                  LEARNING_ARCHIVE_GIT_SSH_KEY=/var/lib/smartxflow-prematch/github_learning_archive_ed25519 \
+                  /opt/smartxflow/venv/bin/python \
+                  /opt/smartxflow/scripts/retry_predictor_archive_pending.py \
+                  --dotenv /opt/smartxflow/.env \
+                  --db "$TARGET_DB" \
+                  --workflow-id "$TARGET_WORKFLOW" \
+                  --require-workflow || true)"
+              fi
+              echo "$LEGACY_OUTPUT"
+              python3 - "$LEGACY_OUTPUT" "$TARGET_WORKFLOW" <<'PY'
+            import json, sys
+            payload = json.loads(sys.argv[1])
+            target = sys.argv[2]
+            if payload.get('ok') is not True or payload.get('remaining_pending') != 0:
+                raise SystemExit('target Predictor archive recovery is still pending')
+            if target not in set(payload.get('matched_workflows') or []):
+                raise SystemExit('target Predictor workflow was not matched by retry')
+            print(
+                'PREDICTOR_LEGACY_RECOVERY_OK '
+                f"workflow={target} retried_stage_runs={payload.get('retried_stage_runs', 0)}"
+            )
+            PY
+            done
+
+            VERIFY_TMP="$(mktemp -d /tmp/sxf-learning-archive-verify.XXXXXX)"
+            trap 'rm -rf "$VERIFY_TMP"' EXIT
+            sudo env GIT_SSH_COMMAND="ssh -i /var/lib/smartxflow-prematch/github_learning_archive_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+              git clone --quiet --depth 1 --single-branch --branch learning-archive \
+              git@github.com:hazardyk27-sudo/smartxflow.git "$VERIFY_TMP/repo"
+            sudo python3 - "$VERIFY_TMP/repo/learning_archive_data/diaries/2026/10/09/predictions.md" "$TARGET_STAGE_RUN" <<'PY'
+            from pathlib import Path
+            import sys
+            path = Path(sys.argv[1])
+            stage_run = sys.argv[2]
+            if not path.is_file():
+                raise SystemExit('2026-10-09 predictions.md is missing after recovery')
+            text = path.read_text(encoding='utf-8')
+            begin = f'<!-- SXF-PREDICTOR-STAGE3:{stage_run}:BEGIN -->'
+            end = f'<!-- SXF-PREDICTOR-STAGE3:{stage_run}:END -->'
+            if begin not in text or end not in text:
+                raise SystemExit('target Stage 3 diary block is missing after recovery')
+            block = text.split(begin, 1)[1].split(end, 1)[0]
+            case_count = block.count('- case_id:')
+            if case_count != 14:
+                raise SystemExit(f'target diary has {case_count} cases, expected 14')
+            print(f'PREDICTOR_LEGACY_DIARY_OK stage_run={stage_run} cases={case_count}')
             PY
 
             FINAL="$(sudo -u smartxflow git rev-parse HEAD)"
