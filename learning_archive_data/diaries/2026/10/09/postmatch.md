@@ -74,3 +74,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 2, 'roi': -1.0, 'pnl_units': -2.0}`
 <!-- SXF-STAGE-COMPARISON:71858dccb7eeb538:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261009-50706b6a484b-185d30e051:BEGIN -->
+### FC Heidenheim – Kaiserslautern
+- Original prediction: **Under 3.5 | Total Goals**
+- Original action: **WATCH** | confidence: **76.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **0-0**
+- Outcome: **WIN**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled WIN. MIXED: Stage 2 archived evidence contains 2 supporting and 2 contradicting item(s). Final-prematch comparison: No honest selected-market closing comparison is available because the execution market is non-native.
+- Stage 1 baseline: **Under 2.5 | OU2.5 → WIN**
+- Stage 3 final preference: **Under 3.5 | Total Goals → WIN**
+- Transition: **SAME** | changed: **True** | driver: **EXECUTION_OPTIMIZATION**
+<!-- SXF-POSTMATCH-CASE:20261009-50706b6a484b-185d30e051:END -->
+<!-- SXF-STAGE-COMPARISON:de64a68db782478b:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **1 / 0**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 1.52, 'pnl_units': 1.52}`
+- Stage 3 one-unit ROI: `{'sample_size': 0, 'roi': None, 'pnl_units': None}`
+<!-- SXF-STAGE-COMPARISON:de64a68db782478b:END -->
+
