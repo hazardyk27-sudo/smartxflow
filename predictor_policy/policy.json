@@ -1,5 +1,5 @@
 {
-  "policy_version": 4,
+  "policy_version": 5,
   "status": "ACTIVE",
   "canonical": true,
   "precedence": "For Predictor workflow invariants, this executable policy controls over conflicting markdown summaries. Markdown remains human-readable documentation.",
@@ -30,15 +30,24 @@
     "stage2": {
       "SXF-S2-001": "Stage 2 starts only after explicit user authorization and a validated Stage 1 predecessor.",
       "SXF-S2-002": "Carry the exact Stage 1 candidate set forward unless an explicit user scope change is recorded.",
-      "SXF-S2-003": "Frozen Stage 1 preference is immutable and must remain separate from research conclusions.",
+      "SXF-S2-003": "Frozen Stage 1 preference is immutable and must remain separate from research conclusions. Stage 2 is an adversarial validation layer for that frozen thesis, not an independent betting-pick generator.",
       "SXF-S2-004": "Default maximum is 6 meaningful research facts per match.",
       "SXF-S2-005": "Each match requires a completed 3+1 research packet: squad check, performance check, strongest support, strongest counter-case and research coverage classification.",
       "SXF-S2-006": "Missing/low-coverage information is UNKNOWN, not adverse evidence and creates no automatic confidence penalty.",
-      "SXF-S2-007": "Stage 2 may not issue BET, WATCH or PASS.",
+      "SXF-S2-007": "Stage 2 may not issue BET, WATCH or PASS and may not replace the frozen Stage 1 preference with an independent Stage 2 selection.",
       "SXF-S2-008": "Claim-level evidence must keep opposite-direction facts separate and distinguish FACT from INFERENCE.",
+      "SXF-S2-009": "Every Stage 2 FACT must have a stable fact_id, a real http/https source URL, a verified evidence category/materiality, source metadata and explicit observed_at/evidence_at timestamps. INFERENCE rows must derive from cited FACT ids and may not masquerade as sourced facts.",
+      "SXF-S2-010": "Research completion markers are evidence-backed objects, not self-attested booleans. VERIFIED squad/performance/counter checks must reference compatible real FACT ids; UNKNOWN must remain explicitly unsupported rather than pretending completion.",
+      "SXF-S2-011": "Source tiers are determined by the canonical source registry rather than trusted model labels. Critical Tier C/D claims require independent corroboration, and Tier D-only research cannot materially decide the Stage 2 verdict.",
+      "SXF-S2-012": "Stage 2 evidence must be PRE and fresh for its category: research cutoff and fixture kickoff are orchestrator-owned, observed/evidence timestamps must precede cutoff/kickoff, and stale squad/lineup/manager/performance evidence is rejected by category-specific windows.",
+      "SXF-S2-013": "Research quality is coverage-gated. Meaningful CONFIRMED/PARTIALLY_CONFIRMED conclusions require real support FACTs; meaningful counter evaluation requires real CONTRADICTS FACTs; MEDIUM/HIGH coverage requires multiple facts and independent source hosts, and H2H alone cannot carry the thesis.",
+      "role": "ADVERSARIAL_VALIDATION_OF_FROZEN_STAGE1",
       "max_meaningful_facts": 6,
       "coverage_values": ["HIGH", "MEDIUM", "LOW"],
-      "verdict_values": ["CONFIRMED", "PARTIALLY_CONFIRMED", "CONTRADICTED", "UNEXPLAINED"]
+      "verdict_values": ["CONFIRMED", "PARTIALLY_CONFIRMED", "CONTRADICTED", "UNEXPLAINED"],
+      "check_status_values": ["VERIFIED", "UNKNOWN"],
+      "fact_categories": ["SQUAD", "LINEUP", "MANAGER_COMMENT", "PERFORMANCE", "TACTICAL", "CONTEXT", "H2H"],
+      "fact_materiality": ["CRITICAL", "MATERIAL", "CONTEXT"]
     },
     "stage3": {
       "SXF-S3-001": "Stage 3 starts only after explicit user authorization and validated Stage 1/Stage 2 predecessor state.",
