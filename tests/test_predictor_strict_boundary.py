@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
@@ -77,6 +78,8 @@ class StrictPredictorBoundaryTests(unittest.TestCase):
 
     @staticmethod
     def stage1_context():
+        kickoff1 = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+        kickoff2 = (datetime.now(timezone.utc) + timedelta(days=1, hours=1)).isoformat()
         return {
             "source": "SXF_PRODUCTION_READ_ONLY",
             "source_fixture_ids": ["m1", "m2"],
@@ -86,7 +89,7 @@ class StrictPredictorBoundaryTests(unittest.TestCase):
                     "home": "Home",
                     "away": "Away",
                     "league": "League",
-                    "kickoff_utc": "2026-10-08T18:00:00+00:00",
+                    "kickoff_utc": kickoff1,
                     "markets": {},
                 },
                 {
@@ -94,7 +97,7 @@ class StrictPredictorBoundaryTests(unittest.TestCase):
                     "home": "Other",
                     "away": "Guest",
                     "league": "League",
-                    "kickoff_utc": "2026-10-08T19:00:00+00:00",
+                    "kickoff_utc": kickoff2,
                     "markets": {},
                 },
             ],
