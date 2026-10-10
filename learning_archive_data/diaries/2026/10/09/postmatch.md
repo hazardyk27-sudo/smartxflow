@@ -260,3 +260,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 0, 'roi': None, 'pnl_units': None}`
 <!-- SXF-STAGE-COMPARISON:00ea35ad2b747233:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261009-7e445fbf4f12-208baf8750:BEGIN -->
+### Croatia (W) – Iceland (W)
+- Original prediction: **Croatia +1.5 | Handicap**
+- Original action: **WATCH** | confidence: **70.0**
+- prediction_at: `2026-10-09T14:08:10.041482+00:00`
+- Final score: **0-4**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 2 supporting and 2 contradicting item(s). Final-prematch comparison: No honest selected-market closing comparison is available because the execution market is non-native.
+- Stage 1 baseline: **Home | 1X2 → LOSS**
+- Stage 3 final preference: **Croatia +1.5 | Handicap → LOSS**
+- Transition: **SAME** | changed: **True** | driver: **BOTH**
+<!-- SXF-POSTMATCH-CASE:20261009-7e445fbf4f12-208baf8750:END -->
+<!-- SXF-STAGE-COMPARISON:de11ee3274e0e247:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **0.0**
+- Stage 3 hit rate: **0.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **1 / 0**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+- Stage 3 one-unit ROI: `{'sample_size': 0, 'roi': None, 'pnl_units': None}`
+<!-- SXF-STAGE-COMPARISON:de11ee3274e0e247:END -->
+
