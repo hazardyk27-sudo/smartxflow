@@ -54,10 +54,22 @@ def _norm(value: Any) -> str:
 
 
 def _team_aliases(value: Any) -> set[str]:
-    key = _norm(value)
+    raw = str(value or "").strip()
+    key = _norm(raw)
     if not key:
         return set()
     aliases = {key}
+
+    # Archive fixtures can carry an explicit terminal women's-team marker,
+    # while a frozen human-readable execution selection may omit it (for
+    # example "Croatia +1.5" vs "Croatia (W)"). Strip only this exact
+    # terminal marker so materially different team names still fail closed.
+    without_women_marker = re.sub(r"\s*\(W\)\s*$", "", raw, flags=re.I)
+    if without_women_marker != raw:
+        stripped_key = _norm(without_women_marker)
+        if stripped_key:
+            aliases.add(stripped_key)
+
     # Provider/team labels occasionally render a roman-II reserve suffix as
     # "Il" or "2". Keep this narrow and terminal-only so settlement remains
     # fail-closed for materially different team names.
