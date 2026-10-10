@@ -172,7 +172,7 @@ def _persistent_price_move(selected: dict[str, Any]) -> tuple[bool, int]:
     return persistent, len(supporting_points)
 
 
-def _market_quality(selected: dict[str, Any]) -> dict[str, Any]:
+def _market_quality(selected: dict[str, Any], *, market: str, selection: str) -> dict[str, Any]:
     last = selected.get("last") if isinstance(selected.get("last"), dict) else {}
     latest_volume = _number(last.get("volume"))
     latest_amount = _number(last.get("amount"))
@@ -194,7 +194,8 @@ def _market_quality(selected: dict[str, Any]) -> dict[str, Any]:
     share_only_risk = odds_move < 1.0 and amount_delta < 1000.0 and (latest_amount or 0.0) < 5000.0
 
     underdog_status = "NOT_UNDERDOG"
-    if latest_odds is not None and latest_odds >= _UNDERDOG_ODDS_MIN:
+    is_1x2_side = market == "1X2" and selection in {"Home", "Away"}
+    if is_1x2_side and latest_odds is not None and latest_odds >= _UNDERDOG_ODDS_MIN:
         if (
             (latest_volume or 0.0) >= _UNDERDOG_MIN_VOLUME
             and (latest_amount or 0.0) >= _UNDERDOG_MIN_AMOUNT
@@ -291,7 +292,7 @@ def build_stage1_evidence(
         "market": canonical_market,
         "selection": selection,
         "selected_selection": selected,
-        "market_quality": _market_quality(selected),
+        "market_quality": _market_quality(selected, market=canonical_market, selection=selection),
         "market_comparison": market_comparison,
         "cross_market_snapshot": cross_market_snapshot,
     }
