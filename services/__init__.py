@@ -57,3 +57,10 @@ bind_display_history_fallback()
 from .polymarket_visibility_patch import bind_polymarket_visibility_patch
 
 bind_polymarket_visibility_patch()
+
+# Gamma Soccer event payloads are large. Bound live match discovery to the
+# scraper's actual date window and compact each keyset page before fetching the
+# next one so production memory does not scale with all active events.
+from .polymarket_match_discovery_patch import bind_polymarket_match_discovery_patch
+
+bind_polymarket_match_discovery_patch()
