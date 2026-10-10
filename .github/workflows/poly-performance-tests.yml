@@ -8,9 +8,26 @@ on:
       - 'poly_trade_checkpoints.py'
       - 'migrations/2026_10_07_polymarket_latest_trade_checkpoints.sql'
       - 'services/polymarket_client.py'
+      - 'services/polymarket_visibility_patch.py'
+      - 'services/__init__.py'
+      - 'scripts/backfill_poly_bettor_ledger_unfiltered.py'
       - 'tests/test_poly_trade_checkpoint_batch.py'
       - 'tests/test_polymarket_events_pagination.py'
       - 'tests/test_polymarket_match_window_query.py'
+      - 'tests/test_polymarket_visibility_patch.py'
+      - '.github/workflows/poly-performance-tests.yml'
+  pull_request:
+    paths:
+      - 'polymarket_scraper.py'
+      - 'poly_trade_checkpoints.py'
+      - 'services/polymarket_client.py'
+      - 'services/polymarket_visibility_patch.py'
+      - 'services/__init__.py'
+      - 'scripts/backfill_poly_bettor_ledger_unfiltered.py'
+      - 'tests/test_poly_trade_checkpoint_batch.py'
+      - 'tests/test_polymarket_events_pagination.py'
+      - 'tests/test_polymarket_match_window_query.py'
+      - 'tests/test_polymarket_visibility_patch.py'
       - '.github/workflows/poly-performance-tests.yml'
   workflow_dispatch:
 
@@ -31,6 +48,11 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install --disable-pip-version-check pytest httpx requests certifi pytz flask python-dateutil
       - name: Compile Poly runtime
-        run: python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py services/polymarket_client.py
+        run: python -m py_compile polymarket_scraper.py poly_trade_checkpoints.py services/polymarket_client.py services/polymarket_visibility_patch.py scripts/backfill_poly_bettor_ledger_unfiltered.py
       - name: Run Poly performance regressions
-        run: python -m pytest -q tests/test_poly_trade_checkpoint_batch.py tests/test_polymarket_events_pagination.py tests/test_polymarket_match_window_query.py
+        run: >-
+          python -m pytest -q
+          tests/test_poly_trade_checkpoint_batch.py
+          tests/test_polymarket_events_pagination.py
+          tests/test_polymarket_match_window_query.py
+          tests/test_polymarket_visibility_patch.py
