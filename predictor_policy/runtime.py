@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from .stage1_quality import enforce_stage1_market_quality
 from .stage2_strict import validate_stage2_strict
 from .validator import PredictorPolicyError, validate_payload
 
@@ -50,6 +51,8 @@ def validate_and_advance(state: PredictorRunState, payload: dict[str, Any]) -> P
     stage = str(payload.get("stage") or "").upper()
     result = validate_stage2_strict(payload) if stage == "STAGE2" else validate_payload(payload)
     result.raise_for_errors()
+    if stage == "STAGE1":
+        enforce_stage1_market_quality(payload)
     run_id = str(payload.get("run_id") or "").strip()
     match_ids = _candidate_ids(payload)
     _ensure_unique(match_ids, label=f"{stage}.matches")
