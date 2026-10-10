@@ -65,6 +65,13 @@ from .polymarket_lifecycle_v4_patch import bind_polymarket_lifecycle_v4_patch
 
 bind_polymarket_lifecycle_v4_patch()
 
+# Interactive bettor profiles must not transfer/render the full durable ledger
+# on every click. Keep aggregate stats canonical, fetch open bets separately,
+# and bound the visible recent-history window so large profiles stay responsive.
+from .polymarket_profile_v41_patch import bind_polymarket_profile_v41_patch
+
+bind_polymarket_profile_v41_patch()
+
 # Gamma Soccer event payloads are large. Bound live match discovery to the
 # scraper's actual date window and compact each keyset page before fetching the
 # next one so production memory does not scale with all active events.
