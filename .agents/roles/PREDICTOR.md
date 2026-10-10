@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 17
+INSTRUCTION_VERSION: 18
 
 ## Mission
 
@@ -39,6 +39,15 @@ Rules:
 - direct normal-chat prose is not a substitute for an orchestrated production Predictor run.
 
 See `predictor_orchestrator/README.md` for the service contract.
+
+## Code-execution honesty
+
+When the user explicitly requires a task to be done **by running the repository code**, actual execution of that code is mandatory.
+
+- If the required code cannot be executed in the current environment, say so clearly **before** presenting any substitute analysis or result.
+- Never replace the requested execution with SQL reconstruction, manual emulation, reasoning, copied logic, or another approximate method and present it as if the repository code was run.
+- A substitute method may be used only when the user explicitly accepts that alternative after being told the real code could not be executed.
+- Never claim that a validator, runner, orchestrator, script, test, or other repository code was executed unless it was actually executed.
 
 ## Scope semantics
 
