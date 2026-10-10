@@ -53,6 +53,40 @@ Default production bind:
 
 The orchestrator is intentionally local-only. `PREDICTOR_ORCHESTRATOR_SECRET` is a server-side credential and must never be embedded in browser JavaScript.
 
+## Production external-agent bridge
+
+`scripts/predictor_agent_bridge.py` is the supported transport for an external ChatGPT/Predictor agent when the production orchestrator is running with `internal_llm_enabled=false`.
+
+The bridge is a **local Hetzner CLI**, not a public HTTP service. It is intended to be invoked through an already-authorized remote execution channel. It reads the durable orchestrator credential on the server and forwards only allowlisted Predictor operations to the loopback orchestrator. The raw secret is never returned or printed.
+
+Supported bridge actions:
+
+- `health`
+- `create_workflow`
+- `get_workflow`
+- `prepare_stage1_context`
+- `get_stage1_context`
+- `add_price`
+- `submit_stage`
+
+Security properties:
+
+- orchestrator target must be HTTP loopback (`127.0.0.1`, `localhost` or `::1`);
+- redirects are refused so the Authorization header cannot be forwarded to another host;
+- workflow IDs and stage names are validated before requests are issued;
+- Stage 2 and Stage 3 require explicit `user_authorized=true` before any submit request is sent;
+- input and response sizes are bounded;
+- bridge actions are allowlisted; there is no arbitrary path, shell or URL forwarding;
+- production submission fails closed if the orchestrator is unavailable or returns invalid data.
+
+For `submit_stage`, a successful HTTP response is **not enough**. The bridge immediately reads the production workflow back from the orchestrator store and verifies the same `stage_run_id` plus a non-empty `accepted_at`. Only after that readback does it emit:
+
+`bridge_receipt.status = ACCEPTED_PERSISTED`
+
+with `verification = PRODUCTION_STORE_READBACK`.
+
+Therefore a temporary/local SQLite run must never be presented as a production Predictor publication when this bridge path is expected.
+
 ## Required environment
 
 - `OPENAI_API_KEY`
@@ -72,9 +106,12 @@ Routes:
 - `POST /api/predictor/workflows` — create workflow and freeze source request metadata.
 - `GET /api/predictor/workflows/<workflow_id>` — accepted state/reports only.
 - `POST /api/predictor/workflows/<workflow_id>/prices` — record exact `USER_SUPPLIED` price evidence.
-- `POST /api/predictor/workflows/<workflow_id>/stage1` — Stage 1.
-- `POST /api/predictor/workflows/<workflow_id>/stage2` — Stage 2; requires `user_authorized=true`.
-- `POST /api/predictor/workflows/<workflow_id>/stage3` — Stage 3; requires `user_authorized=true`.
+- `POST /api/predictor/workflows/<workflow_id>/stage1/context` — build and persist server-owned Stage 1 SXF context.
+- `GET /api/predictor/workflows/<workflow_id>/stage1/context` — read the persisted Stage 1 analysis context.
+- `POST /api/predictor/workflows/<workflow_id>/<stage>/submit` — submit external-agent structured output through strict validation/publication.
+- `POST /api/predictor/workflows/<workflow_id>/stage1` — internally generated Stage 1 when internal LLM is enabled.
+- `POST /api/predictor/workflows/<workflow_id>/stage2` — internally generated Stage 2; requires `user_authorized=true`.
+- `POST /api/predictor/workflows/<workflow_id>/stage3` — internally generated Stage 3; requires `user_authorized=true`.
 - `GET /api/predictor/workflows/<workflow_id>/<stage>/attempts` — audit status/violations only; raw invalid payload is not exposed.
 
 ## Trust boundary
@@ -94,18 +131,7 @@ The model receives the canonical policy plus trusted prior-stage data. Validatio
 
 ## Tests
 
-`tests/test_predictor_orchestrator.py` covers:
-
-- invalid-first / valid-second repair;
-- validation exhaustion with no state advance;
-- safe retry after exhaustion;
-- model-price stripping;
-- direct-service Stage 2 authorization gate;
-- exact stored `USER_SUPPLIED` non-native pricing;
-- forged user-price provenance rejection;
-- state recovery after store restart;
-- HTTP secret enforcement;
-- no raw invalid output in public error responses.
+`tests/test_predictor_orchestrator.py` covers the core service boundary. `tests/test_predictor_agent_bridge.py` covers loopback-only transport, credential loading, allowlisted actions, explicit Stage 2/3 authorization and production-store readback before `ACCEPTED_PERSISTED`.
 
 CI: `.github/workflows/predictor-policy-tests.yml`.
 
