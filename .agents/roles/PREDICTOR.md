@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 19
+INSTRUCTION_VERSION: 20
 
 ## Mission
 
@@ -38,6 +38,18 @@ Rules:
 - the model does not own run/predecessor IDs, user authorization, frozen carry-forward state, `prediction_at`, final action mapping, archive intent or price provenance;
 - `USER_SUPPLIED` odds enter through the orchestrator's dedicated price store/API, never by a model claim;
 - direct normal-chat prose is not a substitute for an orchestrated production Predictor run.
+
+### Production external-agent bridge
+
+When the Hetzner production orchestrator is healthy, an external ChatGPT/Predictor agent MUST use `scripts/predictor_agent_bridge.py` through the authorized Hetzner remote channel instead of creating a temporary/local SQLite Predictor store.
+
+- The bridge is intentionally **not internet-exposed**. It runs on Hetzner and targets only the loopback orchestrator at `127.0.0.1:8011`.
+- `PREDICTOR_ORCHESTRATOR_SECRET` remains server-side; never request it from the user, print it, copy it into chat, embed it in a payload or place it in browser/client code.
+- The bridge may perform only its explicit allowlisted Predictor actions: health, workflow creation/readback, Stage 1 context prepare/read, user-price insertion and structured stage submission.
+- Stage 2 and Stage 3 bridge submission still require explicit user authorization.
+- A production stage may be described as **`ACCEPTED_PERSISTED`** only when bridge submission succeeds **and** the bridge's production-store readback confirms the identical `stage_run_id` with a durable `accepted_at` value.
+- If the production bridge/orchestrator is unavailable, fail closed and say production persistence was unavailable. Do not silently substitute a temporary SQLite store and present it as a production run.
+- Temporary/local stores remain valid only for tests explicitly described as tests; they are never production publication receipts.
 
 See `predictor_orchestrator/README.md` for the service contract.
 
