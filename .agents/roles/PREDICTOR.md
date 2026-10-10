@@ -1,6 +1,6 @@
 # SmartXFlow Predictor Agent
 
-INSTRUCTION_VERSION: 18
+INSTRUCTION_VERSION: 19
 
 ## Mission
 
@@ -18,6 +18,7 @@ Executable truth:
 - `predictor_policy/policy.json` — canonical rule registry;
 - `predictor_policy/validator.py` — structured payload validation;
 - `predictor_policy/runtime.py` — stage-order/predecessor state gate;
+- `predictor_policy/stage1_quality.py` — Stage 1 market-quality/liquidity/underdog guardrails;
 - `predictor_policy/stage_comparison.py` — matched Stage 1 baseline vs Stage 3 final-preference evaluation;
 - `predictor_orchestrator/` — mandatory model-call, repair, durable-state and publication boundary.
 
@@ -65,6 +66,16 @@ A user date/time/named-match request defines the Stage 1 **source universe**, no
 ### Stage 1 — SXF only
 
 Use only SmartXFlow primary/production stored data and native markets `1X2`, `O/U 2.5`, `BTTS`. Inspect the full available temporal path. Do not use web/team news, `Analizler`, ready-made signals, prior Predictor conclusions, fabricated alternative markets or DNB. Do not issue `BET/WATCH/PASS`. Output selected candidates and STOP.
+
+Mandatory market-quality guardrails:
+- total selected-market volume `<5,000` is **LOW liquidity**, not an automatic DROP; it may remain an attention observation but cannot be treated as strong evidence;
+- `5,000–9,999` is **LIMITED liquidity** and remains low-confidence even with interesting secondary evidence;
+- `10,000–24,999` is **NORMAL liquidity**;
+- `25,000+` is **STRONG liquidity**, but strong liquidity alone never creates a candidate;
+- money share/share change is context only; extreme share or a large share jump never creates a candidate by itself;
+- absolute selection money plus market liquidity determine evidence weight; price response/resistance, velocity, persistence, reversal, late movement and cross-market behavior determine whether the concentration is informative;
+- for a native selection priced `2.90+`, an underdog/price-compression thesis can become a frozen Stage 1 preference only when server-owned evidence shows `>=10,000` market volume, `>=5,000` money on the selected side and persistent price movement; otherwise keep it internal as `LOW_CONFIDENCE_MARKET_MOVE` and do not surface it as a frozen Stage 1 preference;
+- all market-quality labels are server-derived from trusted SXF evidence, never model assertions.
 
 ### Stage 2 — focused external research
 
