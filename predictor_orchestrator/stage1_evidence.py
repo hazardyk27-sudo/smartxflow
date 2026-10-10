@@ -5,6 +5,9 @@ from typing import Any
 
 
 _WINDOW_NAMES = ("h24", "h12", "h6", "h3", "h1", "m30", "m15")
+_UNDERDOG_ODDS_MIN = 2.90
+_UNDERDOG_MIN_VOLUME = 10000.0
+_UNDERDOG_MIN_AMOUNT = 5000.0
 
 
 def _number(value: Any) -> float | None:
@@ -135,6 +138,94 @@ def _selection_evidence(feature: Any) -> dict[str, Any] | None:
     }
 
 
+def _liquidity_band(volume: float | None) -> str:
+    if volume is None or volume < 5000.0:
+        return "LOW"
+    if volume < 10000.0:
+        return "LIMITED"
+    if volume < 25000.0:
+        return "NORMAL"
+    return "STRONG"
+
+
+def _persistent_price_move(selected: dict[str, Any]) -> tuple[bool, int]:
+    open_metrics = selected.get("open_to_latest") if isinstance(selected.get("open_to_latest"), dict) else {}
+    overall = _number(open_metrics.get("odds_delta_pct"))
+    if overall is None or abs(overall) < 1.0 or int(selected.get("history_count") or 0) < 3:
+        return False, 0
+    direction = 1 if overall > 0 else -1
+    supporting_points: set[str] = set()
+    windows = selected.get("windows") if isinstance(selected.get("windows"), dict) else {}
+    for name in _WINDOW_NAMES:
+        item = windows.get(name)
+        if not isinstance(item, dict):
+            continue
+        metrics = item.get("metrics") if isinstance(item.get("metrics"), dict) else {}
+        move = _number(metrics.get("odds_delta_pct"))
+        source = item.get("from") if isinstance(item.get("from"), dict) else {}
+        observed_at = str(source.get("observed_at") or "").strip()
+        if move is None or not observed_at:
+            continue
+        if direction * move >= 0.5:
+            supporting_points.add(observed_at)
+    persistent = len(supporting_points) >= 2 and int(selected.get("reversal_segments") or 0) <= 2
+    return persistent, len(supporting_points)
+
+
+def _market_quality(selected: dict[str, Any]) -> dict[str, Any]:
+    last = selected.get("last") if isinstance(selected.get("last"), dict) else {}
+    latest_volume = _number(last.get("volume"))
+    latest_amount = _number(last.get("amount"))
+    latest_share = _number(last.get("share"))
+    latest_odds = _number(last.get("odds"))
+    band = _liquidity_band(latest_volume)
+
+    if band in {"LOW", "LIMITED"}:
+        evidence_weight = "LOW"
+    elif band == "NORMAL":
+        evidence_weight = "NORMAL" if (latest_amount or 0.0) >= 5000.0 else "LOW"
+    else:
+        evidence_weight = "STRONG" if (latest_amount or 0.0) >= 10000.0 else "NORMAL"
+
+    persistent, supporting_windows = _persistent_price_move(selected)
+    open_metrics = selected.get("open_to_latest") if isinstance(selected.get("open_to_latest"), dict) else {}
+    odds_move = abs(_number(open_metrics.get("odds_delta_pct")) or 0.0)
+    amount_delta = abs(_number(open_metrics.get("amount_delta")) or 0.0)
+    share_only_risk = odds_move < 1.0 and amount_delta < 1000.0 and (latest_amount or 0.0) < 5000.0
+
+    underdog_status = "NOT_UNDERDOG"
+    if latest_odds is not None and latest_odds >= _UNDERDOG_ODDS_MIN:
+        if (
+            (latest_volume or 0.0) >= _UNDERDOG_MIN_VOLUME
+            and (latest_amount or 0.0) >= _UNDERDOG_MIN_AMOUNT
+            and persistent
+        ):
+            underdog_status = "QUALIFIED"
+        else:
+            underdog_status = "LOW_CONFIDENCE_MARKET_MOVE"
+
+    return {
+        "latest_volume": latest_volume,
+        "latest_amount": latest_amount,
+        "latest_share": latest_share,
+        "latest_odds": latest_odds,
+        "liquidity_band": band,
+        "evidence_weight": evidence_weight,
+        "persistent_price_move": persistent,
+        "persistence_supporting_windows": supporting_windows,
+        "share_only_risk": share_only_risk,
+        "underdog_status": underdog_status,
+        "thresholds": {
+            "liquidity_low_lt": 5000.0,
+            "liquidity_limited_lt": 10000.0,
+            "liquidity_normal_lt": 25000.0,
+            "underdog_odds_min": _UNDERDOG_ODDS_MIN,
+            "underdog_min_volume": _UNDERDOG_MIN_VOLUME,
+            "underdog_min_amount": _UNDERDOG_MIN_AMOUNT,
+        },
+    }
+
+
 def build_stage1_evidence(
     context: dict[str, Any],
     *,
@@ -200,6 +291,7 @@ def build_stage1_evidence(
         "market": canonical_market,
         "selection": selection,
         "selected_selection": selected,
+        "market_quality": _market_quality(selected),
         "market_comparison": market_comparison,
         "cross_market_snapshot": cross_market_snapshot,
     }
