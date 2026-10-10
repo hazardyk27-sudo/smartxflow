@@ -49,3 +49,11 @@ bind_fixture_uid_reader_patch()
 from .display_history_fallback import bind_display_history_fallback
 
 bind_display_history_fallback()
+
+# Polymarket bettor profiles must never hide a qualifying canonical bet because
+# sport classification is missing, uncertain, or non-football. Classification
+# remains metadata; visibility is controlled only by the tracked-wallet stake
+# contract and canonical lifecycle accounting.
+from .polymarket_visibility_patch import bind_polymarket_visibility_patch
+
+bind_polymarket_visibility_patch()
