@@ -7,9 +7,9 @@ on:
       - '.github/workflows/predictor-policy-tests.yml'
       - '.github/workflows/deploy-predictor-orchestrator.yml'
       - 'deploy/systemd/smartxflow-predictor-orchestrator.service'
-      - 'deploy/systemd/smartxflow-learning-archive-postmatch.service'
       - 'predictor_policy/**'
       - 'predictor_orchestrator/**'
+      - 'scripts/predictor_agent_bridge.py'
       - 'tests/test_predictor_policy.py'
       - 'tests/test_predictor_runtime.py'
       - 'tests/test_predictor_orchestrator.py'
@@ -19,6 +19,7 @@ on:
       - 'tests/test_predictor_archive_wrapper.py'
       - 'tests/test_predictor_deploy_contract.py'
       - 'tests/test_predictor_stage3_native_price.py'
+      - 'tests/test_predictor_agent_bridge.py'
 
 permissions:
   contents: read
@@ -45,8 +46,9 @@ jobs:
             tests.test_predictor_strict_boundary \
             tests.test_predictor_archive_wrapper \
             tests.test_predictor_deploy_contract \
-            tests.test_predictor_stage3_native_price
-      - name: Compile predictor policy and orchestrator runtime
+            tests.test_predictor_stage3_native_price \
+            tests.test_predictor_agent_bridge
+      - name: Compile predictor policy, orchestrator and bridge runtime
         run: |
           python -m py_compile \
             predictor_policy/__init__.py \
@@ -68,4 +70,5 @@ jobs:
             predictor_orchestrator/strict_service.py \
             predictor_orchestrator/server.py \
             predictor_orchestrator/sxf_source.py \
-            predictor_orchestrator/wsgi.py
+            predictor_orchestrator/wsgi.py \
+            scripts/predictor_agent_bridge.py
