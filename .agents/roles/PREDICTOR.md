@@ -74,7 +74,8 @@ Mandatory market-quality guardrails:
 - `25,000+` is **STRONG liquidity**, but strong liquidity alone never creates a candidate;
 - money share/share change is context only; extreme share or a large share jump never creates a candidate by itself;
 - absolute selection money plus market liquidity determine evidence weight; price response/resistance, velocity, persistence, reversal, late movement and cross-market behavior determine whether the concentration is informative;
-- for a native selection priced `2.90+`, an underdog/price-compression thesis can become a frozen Stage 1 preference only when server-owned evidence shows `>=10,000` market volume, `>=5,000` money on the selected side and persistent price movement; otherwise keep it internal as `LOW_CONFIDENCE_MARKET_MOVE` and do not surface it as a frozen Stage 1 preference;
+- for a `1X2` Home/Away selection priced `2.90+`, an underdog/price-compression thesis can become a frozen Stage 1 preference only when server-owned evidence shows `>=10,000` total 1X2 volume, `>=5,000` money on the selected side and persistent price movement; otherwise keep it internal as `LOW_CONFIDENCE_MARKET_MOVE` and do not surface it as a frozen Stage 1 preference;
+- Draw and non-1X2 markets are not classified as underdogs by the preceding rule;
 - all market-quality labels are server-derived from trusted SXF evidence, never model assertions.
 
 ### Stage 2 — focused external research
