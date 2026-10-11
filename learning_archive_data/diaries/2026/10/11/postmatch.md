@@ -211,3 +211,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 0.54, 'pnl_units': 0.54}`
 <!-- SXF-STAGE-COMPARISON:0cb2e3262ce25386:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-484233345dcf-04ed119514:BEGIN -->
+### Lillestrom – Molde
+- Original prediction: **Home | 1X2**
+- Original action: **WATCH** | confidence: **75.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **2-2**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. SUPPORTED: Stage 2 archived evidence contains 2 supporting and 0 contradicting item(s). Final-prematch comparison: entry_odds=2.62; final_prematch_price=2.42; final_share=53.3%; final_money=£ 8004.8; final_market_volume=£ 15009
+- Stage 1 baseline: **Home | 1X2 → LOSS**
+- Stage 3 final preference: **Home | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-484233345dcf-04ed119514:END -->
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **0.0**
+- Stage 3 hit rate: **0.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
+<!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
+
