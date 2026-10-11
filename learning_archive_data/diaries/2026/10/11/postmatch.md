@@ -1,0 +1,63 @@
+# SmartXFlow Postmatch Diary
+
+<!-- SXF-POSTMATCH-CASE:20261011-4f5e57a33939-157d316b8d:BEGIN -->
+### Hull – Everton
+- Original prediction: **Away | 1X2**
+- Original action: **WATCH** | confidence: **76.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **2-2**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 2 supporting and 2 contradicting item(s). Final-prematch comparison: entry_odds=2.08; final_prematch_price=2.02; final_share=77.4%; final_money=£ 632106; final_market_volume=£ 816412
+- Stage 1 baseline: **Away | 1X2 → LOSS**
+- Stage 3 final preference: **Away | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-4f5e57a33939-157d316b8d:END -->
+<!-- SXF-POSTMATCH-CASE:20261011-5aff717d219d-7a6f0bef2d:BEGIN -->
+### Crystal Palace – Nottm Forest
+- Original prediction: **Away | 1X2**
+- Original action: **WATCH** | confidence: **75.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **3-1**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 3 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=2.62; final_prematch_price=2.62; final_share=43.7%; final_money=£ 100907; final_market_volume=£ 230886
+- Stage 1 baseline: **Away | 1X2 → LOSS**
+- Stage 3 final preference: **Away | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-5aff717d219d-7a6f0bef2d:END -->
+<!-- SXF-POSTMATCH-CASE:20261011-956efb5eb911-3b84177fd9:BEGIN -->
+### Lazio – AC Monza
+- Original prediction: **Over 2.5 | OU2.5**
+- Original action: **WATCH** | confidence: **73.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **3-1**
+- Outcome: **WIN**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled WIN. SUPPORTED: Stage 2 archived evidence contains 2 supporting and 0 contradicting item(s). Final-prematch comparison: entry_odds=1.82; final_prematch_price=1.86; final_share=52.3%; final_money=£ 13606.8; final_market_volume=£ 26001.9
+- Stage 1 baseline: **Over 2.5 | OU2.5 → WIN**
+- Stage 3 final preference: **Over 2.5 | OU2.5 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-956efb5eb911-3b84177fd9:END -->
+<!-- SXF-POSTMATCH-CASE:20261011-f67d274187b2-a0ef6e4ac5:BEGIN -->
+### Lecce – Bologna
+- Original prediction: **Draw | 1X2**
+- Original action: **WATCH** | confidence: **70.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **1-2**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 2 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=3.35; final_prematch_price=3.25; final_share=21.7%; final_money=£ 33179.3; final_market_volume=£ 153173
+- Stage 1 baseline: **Draw | 1X2 → LOSS**
+- Stage 3 final preference: **Draw | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-f67d274187b2-a0ef6e4ac5:END -->
+<!-- SXF-STAGE-COMPARISON:6efb67807f80735a:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **4**
+- Stage 1 hit rate: **0.25**
+- Stage 3 hit rate: **0.25**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 4**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 4, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 4, 'roi': -0.5449999999999999, 'pnl_units': -2.1799999999999997}`
+- Stage 3 one-unit ROI: `{'sample_size': 4, 'roi': -0.5449999999999999, 'pnl_units': -2.1799999999999997}`
+<!-- SXF-STAGE-COMPARISON:6efb67807f80735a:END -->
+
