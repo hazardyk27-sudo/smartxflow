@@ -61,3 +61,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 4, 'roi': -0.5449999999999999, 'pnl_units': -2.1799999999999997}`
 <!-- SXF-STAGE-COMPARISON:6efb67807f80735a:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-bbe518850ec7-6b0d36fdf3:BEGIN -->
+### FC Koln – Mgladbach
+- Original prediction: **Home | 1X2**
+- Original action: **BET** | confidence: **81.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **2-1**
+- Outcome: **WIN**
+- **Why it won/lost:** Original BET settled WIN on final score 2-1. SUPPORTED: Stage 2 archived evidence contains 2 supporting and 0 contradicting item(s). Final-prematch comparison: entry_odds=2.04; final_prematch_price=2.02; final_share=75.9%; final_money=£ 166275; final_market_volume=£ 219061
+- Stage 1 baseline: **Home | 1X2 → WIN**
+- Stage 3 final preference: **Home | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-bbe518850ec7-6b0d36fdf3:END -->
+<!-- SXF-STAGE-COMPARISON:83388a78194e52ee:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 1.04, 'pnl_units': 1.04}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 1.04, 'pnl_units': 1.04}`
+<!-- SXF-STAGE-COMPARISON:83388a78194e52ee:END -->
+
