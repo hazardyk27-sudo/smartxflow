@@ -236,3 +236,40 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
 <!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-52154ce6941f-94fdb08da0:BEGIN -->
+### Cagliari – Juventus
+- Original prediction: **Away | 1X2**
+- Original action: **WATCH** | confidence: **72.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **1-1**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 1 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.58; final_prematch_price=1.63; final_share=86.8%; final_money=£ 481734; final_market_volume=£ 554919
+- Stage 1 baseline: **Away | 1X2 → LOSS**
+- Stage 3 final preference: **Away | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-52154ce6941f-94fdb08da0:END -->
+<!-- SXF-POSTMATCH-CASE:20261011-ab4a5673523f-cdd332e459:BEGIN -->
+### ESTAC Troyes – Marseille
+- Original prediction: **Draw | 1X2**
+- Original action: **WATCH** | confidence: **73.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **0-2**
+- Outcome: **LOSS**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled LOSS. MIXED: Stage 2 archived evidence contains 3 supporting and 2 contradicting item(s). Final-prematch comparison: entry_odds=3.85; final_prematch_price=3.7; final_share=8.3%; final_money=£ 27912.1; final_market_volume=£ 337577
+- Stage 1 baseline: **Draw | 1X2 → LOSS**
+- Stage 3 final preference: **Draw | 1X2 → LOSS**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-ab4a5673523f-cdd332e459:END -->
+<!-- SXF-STAGE-COMPARISON:71858dccb7eeb538:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **2**
+- Stage 1 hit rate: **0.0**
+- Stage 3 hit rate: **0.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 2**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 2, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 2, 'roi': -1.0, 'pnl_units': -2.0}`
+- Stage 3 one-unit ROI: `{'sample_size': 2, 'roi': -1.0, 'pnl_units': -2.0}`
+<!-- SXF-STAGE-COMPARISON:71858dccb7eeb538:END -->
+
