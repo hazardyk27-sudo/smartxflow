@@ -136,3 +136,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
 <!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-e6441101dc98-66c982dcb9:BEGIN -->
+### Liverpool – Man City
+- Original prediction: **Away | 1X2**
+- Original action: **BET** | confidence: **85.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **0-3**
+- Outcome: **WIN**
+- **Why it won/lost:** Original BET settled WIN on final score 0-3. MIXED: Stage 2 archived evidence contains 3 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=2.24; final_prematch_price=2.1; final_share=75.1%; final_money=£ 1.69124e+06; final_market_volume=£ 2.25277e+06
+- Stage 1 baseline: **Away | 1X2 → WIN**
+- Stage 3 final preference: **Away | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-e6441101dc98-66c982dcb9:END -->
+<!-- SXF-STAGE-COMPARISON:ceb40da844322a00:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 1.2400000000000002, 'pnl_units': 1.2400000000000002}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 1.2400000000000002, 'pnl_units': 1.2400000000000002}`
+<!-- SXF-STAGE-COMPARISON:ceb40da844322a00:END -->
+
