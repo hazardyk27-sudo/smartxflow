@@ -86,3 +86,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 1.04, 'pnl_units': 1.04}`
 <!-- SXF-STAGE-COMPARISON:83388a78194e52ee:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-ae3f2c899d46-b964a9d5b1:BEGIN -->
+### Real Sociedad – Deportivo
+- Original prediction: **Home | 1X2**
+- Original action: **WATCH** | confidence: **72.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **3-2**
+- Outcome: **WIN**
+- **Why it won/lost:** Original WATCH remains immutable; the watched selection would have settled WIN. MIXED: Stage 2 archived evidence contains 2 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.69; final_prematch_price=1.8; final_share=91.5%; final_money=£ 870833; final_market_volume=£ 951621
+- Stage 1 baseline: **Home | 1X2 → WIN**
+- Stage 3 final preference: **Home | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-ae3f2c899d46-b964a9d5b1:END -->
+<!-- SXF-STAGE-COMPARISON:992bc7c58125dc75:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 0.69, 'pnl_units': 0.69}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 0.69, 'pnl_units': 0.69}`
+<!-- SXF-STAGE-COMPARISON:992bc7c58125dc75:END -->
+
