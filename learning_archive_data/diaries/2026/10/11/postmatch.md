@@ -186,3 +186,28 @@
 - Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': -1.0, 'pnl_units': -1.0}`
 <!-- SXF-STAGE-COMPARISON:cc86279f7f431109:END -->
 
+<!-- SXF-POSTMATCH-CASE:20261011-ca568437414e-984cd7c2e7:BEGIN -->
+### Betis – Osasuna
+- Original prediction: **Home | 1X2**
+- Original action: **BET** | confidence: **91.0**
+- prediction_at: `2026-10-11T12:37:28.421973+00:00`
+- Final score: **5-2**
+- Outcome: **WIN**
+- **Why it won/lost:** Original BET settled WIN on final score 5-2. MIXED: Stage 2 archived evidence contains 2 supporting and 1 contradicting item(s). Final-prematch comparison: entry_odds=1.54; final_prematch_price=1.52; final_share=88.9%; final_money=£ 570087; final_market_volume=£ 641253
+- Stage 1 baseline: **Home | 1X2 → WIN**
+- Stage 3 final preference: **Home | 1X2 → WIN**
+- Transition: **SAME** | changed: **False** | driver: **NONE**
+<!-- SXF-POSTMATCH-CASE:20261011-ca568437414e-984cd7c2e7:END -->
+<!-- SXF-STAGE-COMPARISON:0cb2e3262ce25386:BEGIN -->
+## Stage 1 vs Stage 3 matched comparison snapshot
+
+- Matched cases: **1**
+- Stage 1 hit rate: **1.0**
+- Stage 3 hit rate: **1.0**
+- Hit-rate delta: **0.0**
+- Changed / unchanged: **0 / 1**
+- Transitions: `{'IMPROVED': 0, 'WORSENED': 0, 'SAME': 1, 'UNRESOLVED': 0}`
+- Stage 1 one-unit ROI: `{'sample_size': 1, 'roi': 0.54, 'pnl_units': 0.54}`
+- Stage 3 one-unit ROI: `{'sample_size': 1, 'roi': 0.54, 'pnl_units': 0.54}`
+<!-- SXF-STAGE-COMPARISON:0cb2e3262ce25386:END -->
+
