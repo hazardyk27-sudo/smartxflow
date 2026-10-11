@@ -12,6 +12,7 @@ on:
       - 'services/polymarket_visibility_patch.py'
       - 'services/polymarket_lifecycle_v4_patch.py'
       - 'services/polymarket_profile_v41_patch.py'
+      - 'services/polymarket_profile_v42_patch.py'
       - 'services/__init__.py'
       - 'scripts/backfill_poly_bettor_ledger_unfiltered.py'
       - 'scripts/reconcile_poly_bettor_lifecycle_v4.py'
@@ -22,6 +23,7 @@ on:
       - 'tests/test_polymarket_visibility_patch.py'
       - 'tests/test_polymarket_lifecycle_v4_patch.py'
       - 'tests/test_polymarket_profile_v41_patch.py'
+      - 'tests/test_polymarket_profile_v42_patch.py'
       - '.github/workflows/poly-performance-tests.yml'
   pull_request:
     paths:
@@ -32,6 +34,7 @@ on:
       - 'services/polymarket_visibility_patch.py'
       - 'services/polymarket_lifecycle_v4_patch.py'
       - 'services/polymarket_profile_v41_patch.py'
+      - 'services/polymarket_profile_v42_patch.py'
       - 'services/__init__.py'
       - 'scripts/backfill_poly_bettor_ledger_unfiltered.py'
       - 'scripts/reconcile_poly_bettor_lifecycle_v4.py'
@@ -42,6 +45,7 @@ on:
       - 'tests/test_polymarket_visibility_patch.py'
       - 'tests/test_polymarket_lifecycle_v4_patch.py'
       - 'tests/test_polymarket_profile_v41_patch.py'
+      - 'tests/test_polymarket_profile_v42_patch.py'
       - '.github/workflows/poly-performance-tests.yml'
   workflow_dispatch:
 
@@ -71,6 +75,7 @@ jobs:
           services/polymarket_visibility_patch.py
           services/polymarket_lifecycle_v4_patch.py
           services/polymarket_profile_v41_patch.py
+          services/polymarket_profile_v42_patch.py
           scripts/backfill_poly_bettor_ledger_unfiltered.py
           scripts/reconcile_poly_bettor_lifecycle_v4.py
       - name: Run Poly performance regressions
@@ -83,3 +88,4 @@ jobs:
           tests/test_polymarket_visibility_patch.py
           tests/test_polymarket_lifecycle_v4_patch.py
           tests/test_polymarket_profile_v41_patch.py
+          tests/test_polymarket_profile_v42_patch.py
