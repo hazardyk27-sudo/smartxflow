@@ -88,18 +88,30 @@ Very high shares produced both winners and failures. Examples of failures despit
 
 ---
 
-### 6. The “3.00+ team with >50% money” rule was weak as a standalone filter
+### 6. Revised underdog money-share research band: 2.90–4.49 odds + >=50% money
 
-Across the three days, the 3.00+ Home/Away side with >=50% money had only about **24/43 = 55.8% non-loss** in the pooled sample.
+The earlier broad `3.00+ odds + >=50% money` condition was too weak as a standalone filter. Across the pooled 9–11 October sample it produced about **24/43 = 55.8% non-loss**.
 
-This is not strong enough to be a standalone selection rule.
+A tighter odds band performed materially better:
 
-**Candidate:** only retain this as a secondary anomaly flag when supported by one or more of:
-- abnormal absolute/relative money,
-- early money anomaly,
-- late price confirmation,
-- alarm combination,
-- market-specific contextual evidence.
+| Filter | Sample | Wins | Win rate | Non-losses | Non-loss rate |
+|---|---:|---:|---:|---:|---:|
+| 3.00+ odds + >=50% money | 43 | 11 | 25.6% | 24 | 55.8% |
+| 3.00–4.49 odds + >=50% money | 32 | 10 | 31.3% | 22 | 68.8% |
+| **2.90–4.49 odds + >=50% money** | **37** | **12** | **32.4%** | **26** | **70.3%** |
+
+The five additional 2.90–2.99 cases went **2/5 wins and 4/5 non-losses**, so lowering the lower bound from 3.00 to 2.90 improved rather than diluted the three-day sample.
+
+**Research candidate condition:**
+- selection must be an actual team side (`1` or `2`), not Draw;
+- decimal odds must be **>= 2.90 and <= 4.49**;
+- that team must hold **>= 50% of 1X2 money**.
+
+**No £10k market-volume requirement.** In this three-day sample, imposing >=£10k total market volume reduced the subgroup instead of improving it. Market volume may remain a secondary context feature, not a mandatory threshold.
+
+A >=£2.5k total-market-volume subgroup was **6/8 non-losses = 75.0%**, but the sample is too small to make that a hard rule.
+
+This condition remains a **RESEARCH_CANDIDATE**, not a production betting rule. Next validation should test whether the 2.90–4.49 band remains stable on a much larger time-ordered sample and whether timing/price behavior improves it further.
 
 ---
 
