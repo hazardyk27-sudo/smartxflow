@@ -76,24 +76,10 @@ jobs:
 
             chmod -R o+rx /opt/smartxflow/static/
 
-            # Keep the production Sinyal unit in lockstep with the tracked wrapper.
-            sudo /usr/bin/install -m 0644 \
-              /opt/smartxflow/deploy/smartxflow-sinyal.service \
-              /etc/systemd/system/smartxflow-sinyal.service
-            sudo /usr/bin/install -m 0644 \
-              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service \
-              /etc/systemd/system/smartxflow-learning-archive-prematch.service
-            sudo /usr/bin/install -m 0644 \
-              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.timer \
-              /etc/systemd/system/smartxflow-learning-archive-prematch.timer
-            sudo /usr/bin/install -m 0644 \
-              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.service \
-              /etc/systemd/system/smartxflow-learning-archive-postmatch.service
-            sudo /usr/bin/install -m 0644 \
-              /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.timer \
-              /etc/systemd/system/smartxflow-learning-archive-postmatch.timer
+            # Install the exact tracked runtime units before any restart. The helper
+            # only syncs/enables units; it does not stop or restart services.
+            sudo /bin/bash /opt/smartxflow/deploy/sync_runtime_units.sh
 
-            sudo /bin/systemctl daemon-reload
             sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
             sudo /bin/systemctl enable --now smartxflow-learning-archive-postmatch.timer
 
@@ -158,6 +144,58 @@ jobs:
             sudo /bin/systemctl is-active smartxflow-sinyal  || { echo "sinyal baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
+
+            for unit in \
+              smartxflow-web.service \
+              smartxflow-scraper.service \
+              smartxflow-alarm.service \
+              smartxflow-sinyal.service \
+              smartxflow-live.service \
+              smartxflow-poly.service; do
+              ENABLED="$(sudo /bin/systemctl is-enabled "$unit")"
+              if [ "$ENABLED" != "enabled" ]; then
+                echo "DEPLOY STOP: $unit is not enabled at boot ($ENABLED)"
+                exit 1
+              fi
+            done
+
+            WEB_ENV="$(sudo /bin/systemctl show -p Environment --value smartxflow-web.service)"
+            case "$WEB_ENV" in
+              *SMARTXFLOW_MODE=server*DISABLE_SCRAPER=true*|*DISABLE_SCRAPER=true*SMARTXFLOW_MODE=server*) ;;
+              *)
+                echo "DEPLOY STOP: smartxflow-web missing server/ui-only environment contract"
+                echo "Environment=$WEB_ENV"
+                exit 1
+                ;;
+            esac
+
+            SCRAPER_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-scraper.service)"
+            case "$SCRAPER_EXEC" in
+              *prematch_authoritative_runtime.py*) ;;
+              *)
+                echo "DEPLOY STOP: smartxflow-scraper is not using prematch_authoritative_runtime.py"
+                echo "ExecStart=$SCRAPER_EXEC"
+                exit 1
+                ;;
+            esac
+
+            ALARM_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-alarm.service)"
+            case "$ALARM_EXEC" in
+              *alarm_engine.py*) ;;
+              *) echo "DEPLOY STOP: smartxflow-alarm wrong ExecStart=$ALARM_EXEC"; exit 1 ;;
+            esac
+
+            LIVE_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-live.service)"
+            case "$LIVE_EXEC" in
+              *live_scraper.py*) ;;
+              *) echo "DEPLOY STOP: smartxflow-live wrong ExecStart=$LIVE_EXEC"; exit 1 ;;
+            esac
+
+            POLY_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-poly.service)"
+            case "$POLY_EXEC" in
+              *polymarket_scraper.py*) ;;
+              *) echo "DEPLOY STOP: smartxflow-poly wrong ExecStart=$POLY_EXEC"; exit 1 ;;
+            esac
 
             SINYAL_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-sinyal.service)"
             case "$SINYAL_EXEC" in
