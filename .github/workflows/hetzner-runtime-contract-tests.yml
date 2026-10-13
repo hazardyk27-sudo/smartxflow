@@ -1,0 +1,27 @@
+name: Hetzner Runtime Contract Tests
+
+on:
+  push:
+    branches: [preview, main]
+    paths:
+      - 'deploy/systemd/**'
+      - 'deploy/smartxflow-sinyal.service'
+      - 'tests/test_hetzner_runtime_contract.py'
+      - '.github/workflows/hetzner-runtime-contract-tests.yml'
+  pull_request:
+    paths:
+      - 'deploy/systemd/**'
+      - 'deploy/smartxflow-sinyal.service'
+      - 'tests/test_hetzner_runtime_contract.py'
+      - '.github/workflows/hetzner-runtime-contract-tests.yml'
+
+jobs:
+  runtime-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet pytest
+      - run: python -m pytest -q tests/test_hetzner_runtime_contract.py
