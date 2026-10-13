@@ -7,6 +7,7 @@ ENV_TEMPLATE = ROOT / "deploy" / "env.template"
 UNIT_SYNC = ROOT / "deploy" / "sync_runtime_units.sh"
 PREFLIGHT = ROOT / "deploy" / "hetzner_preflight.sh"
 DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
+CONTRACT_WORKFLOW = ROOT / ".github" / "workflows" / "hetzner-runtime-contract-tests.yml"
 
 
 def _read(name: str) -> str:
@@ -134,6 +135,13 @@ def test_preflight_is_read_only_and_checks_cutover_critical_contracts():
     ]
     for token in forbidden:
         assert token not in text
+
+
+def test_contract_ci_parses_both_operational_shell_scripts():
+    text = CONTRACT_WORKFLOW.read_text(encoding="utf-8")
+    assert "bash -n deploy/sync_runtime_units.sh" in text
+    assert "bash -n deploy/hetzner_preflight.sh" in text
+    assert "python -m pytest -q tests/test_hetzner_runtime_contract.py" in text
 
 
 def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
