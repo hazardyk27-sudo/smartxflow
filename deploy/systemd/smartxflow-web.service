@@ -1,0 +1,20 @@
+[Unit]
+Description=SmartXFlow Web (Gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+# Hetzner web must expose server-only internal APIs, but collection is owned by
+# dedicated systemd workers below rather than the web process.
+Environment=SMARTXFLOW_MODE=server
+Environment=DISABLE_SCRAPER=true
+ExecStart=/opt/smartxflow/venv/bin/gunicorn app:app --workers 2 --bind 127.0.0.1:8000 --timeout 120 --access-logfile /opt/smartxflow/logs/gunicorn-access.log --error-logfile /opt/smartxflow/logs/gunicorn-error.log --log-level info
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
