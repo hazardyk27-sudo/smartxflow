@@ -30,6 +30,7 @@ def test_prematch_unit_is_provider_authoritative():
     text = _read("smartxflow-scraper.service")
     assert "EnvironmentFile=/opt/smartxflow/.env" in text
     assert "Environment=SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true" in text
+    assert "Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod" in text
     assert "/opt/smartxflow/prematch_authoritative_runtime.py" in text
     assert "Restart=always" in text
     assert "replit_guarded_scraper" not in text
@@ -116,8 +117,14 @@ def test_preflight_is_read_only_and_checks_cutover_critical_contracts():
         "SMARTXFLOW_LEARNING_API_BASE_URL",
         "prematch_authoritative_runtime.py",
         "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true",
+        "SMARTXFLOW_RUNTIME_ID=hetzner-prod",
         "SMARTXFLOW_MODE=server",
         "DISABLE_SCRAPER=true",
+        "smartxflow-predictor-orchestrator.service",
+        "predictor_orchestrator.wsgi:app",
+        "MemAvailable",
+        "SwapFree",
+        "runtime memory headroom",
         "sudo -n -l",
         "127\\.0\\.0\\.1:8000",
         "HTTPS root reachable",
