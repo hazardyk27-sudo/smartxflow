@@ -8,6 +8,7 @@ EXPECTED_DOMAIN="${EXPECTED_DOMAIN:-smartxflow.com}"
 EXPECTED_PUBLIC_IP="${EXPECTED_PUBLIC_IP:-91.99.6.245}"
 ENV_FILE="${ENV_FILE:-$APP_DIR/.env}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
+MIN_RUNTIME_HEADROOM_KB="${MIN_RUNTIME_HEADROOM_KB:-524288}"
 
 FAILURES=0
 WARNINGS=0
@@ -171,6 +172,7 @@ check_unit_file_matches smartxflow-alarm.service "$APP_DIR/deploy/systemd/smartx
 check_unit_file_matches smartxflow-sinyal.service "$APP_DIR/deploy/smartxflow-sinyal.service"
 check_unit_file_matches smartxflow-live.service "$APP_DIR/deploy/systemd/smartxflow-live.service"
 check_unit_file_matches smartxflow-poly.service "$APP_DIR/deploy/systemd/smartxflow-poly.service"
+check_unit_file_matches smartxflow-predictor-orchestrator.service "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service"
 check_unit_file_matches smartxflow-learning-archive-prematch.service "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service"
 check_unit_file_matches smartxflow-learning-archive-prematch.timer "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer"
 check_unit_file_matches smartxflow-learning-archive-postmatch.service "$APP_DIR/deploy/systemd/smartxflow-learning-archive-postmatch.service"
@@ -184,6 +186,7 @@ for unit in \
   smartxflow-sinyal.service \
   smartxflow-live.service \
   smartxflow-poly.service \
+  smartxflow-predictor-orchestrator.service \
   smartxflow-learning-archive-prematch.timer \
   smartxflow-learning-archive-postmatch.timer; do
   check_enabled_active "$unit"
@@ -197,6 +200,7 @@ check_exec_contains smartxflow-alarm.service "alarm_engine.py"
 check_exec_contains smartxflow-sinyal.service "sinyal_engine_runtime.py"
 check_exec_contains smartxflow-live.service "live_scraper.py"
 check_exec_contains smartxflow-poly.service "polymarket_scraper.py"
+check_exec_contains smartxflow-predictor-orchestrator.service "predictor_orchestrator.wsgi:app"
 
 web_env="$(systemctl show -p Environment --value smartxflow-web.service 2>/dev/null || true)"
 if [[ "$web_env" == *"SMARTXFLOW_MODE=server"* && "$web_env" == *"DISABLE_SCRAPER=true"* ]]; then
@@ -210,6 +214,11 @@ if [[ "$scraper_env" == *"SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true"* ]]; 
   pass "prematch authoritative flag enforced by systemd"
 else
   fail "prematch authoritative flag not enforced by systemd"
+fi
+if [[ "$scraper_env" == *"SMARTXFLOW_RUNTIME_ID=hetzner-prod"* ]]; then
+  pass "prematch runtime identity enforced by systemd"
+else
+  fail "prematch runtime identity SMARTXFLOW_RUNTIME_ID=hetzner-prod missing"
 fi
 
 section "LOCAL PROCESS DUPLICATION"
@@ -228,6 +237,18 @@ for spec in \
     fail "$pattern process count=$count expected=$expected"
   fi
 done
+
+section "RESOURCE SAFETY"
+mem_available_kb="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+swap_free_kb="$(awk '/^SwapFree:/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
+mem_available_kb="${mem_available_kb:-0}"
+swap_free_kb="${swap_free_kb:-0}"
+runtime_headroom_kb=$((mem_available_kb + swap_free_kb))
+if [ "$runtime_headroom_kb" -ge "$MIN_RUNTIME_HEADROOM_KB" ]; then
+  pass "runtime memory headroom ${runtime_headroom_kb}KiB >= ${MIN_RUNTIME_HEADROOM_KB}KiB"
+else
+  fail "runtime memory headroom ${runtime_headroom_kb}KiB < ${MIN_RUNTIME_HEADROOM_KB}KiB (MemAvailable + SwapFree)"
+fi
 
 section "NETWORK / WEB"
 if command -v getent >/dev/null 2>&1; then
