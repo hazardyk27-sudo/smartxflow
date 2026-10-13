@@ -114,4 +114,23 @@ Conclusion: share retention is more useful for the earlier T-72/T-60/T-40/T-24 m
 - separately flag any case where the side had a strong early share but later fell below 60% as a `RETENTION_BREAK` warning;
 - keep >=75% as an exploratory premium subgroup only, not a hard rule.
 
+## Proposed live strength tiers — research only
+
+The user's proposed live interpretation is directionally sensible, but four-day evidence does **not** yet support a clean monotonic rule where every higher 10-point share band must have a higher win rate. The operational research tiers should therefore be treated as **strength labels**, not proven probability buckets:
+
+- **<60%:** `RETENTION_BREAK` — downgrade / warning. This is the clearest negative state in the current sample.
+- **60–69.9%:** `EARLY MONEY — NORMAL` — the early signal is still alive; broad retained-share filtering around 60% consistently improves the base groups.
+- **70–79.9%:** `EARLY MONEY — STRONG` — reasonable strength upgrade, but four-day data does not consistently outperform the 60–69 band in every early family.
+- **>=80%:** `EARLY MONEY — HIGH CONCENTRATION` — serious alert / highest confidence label for monitoring, but the sample is still small and must not be assigned a guaranteed higher probability yet.
+
+Important nuance: **share does not need to be higher than it was at the original early trigger.** Several winners lost some share while remaining highly concentrated (for example Barcelona, Betis and Atalanta in the T-60 set). Absolute retained concentration matters more than whether the share mathematically increased from the early snapshot.
+
+For the T-60 set at T-5 specifically:
+- baseline: 11/13 = 84.6%
+- >=60%: 10/11 = 90.9%
+- >=70%: 8/9 = 88.9%
+- >=75%: 6/6 = 100% (tiny)
+
+Therefore the current evidence strongly supports **<60 as a downgrade** and **>=60 as retained**, while 70/80 should be used as escalating signal-strength labels pending larger validation rather than hard probability claims.
+
 Next test: combine this retention state with opponent/draw-side money acceleration and compare winners vs failures, then test over a larger archive.
