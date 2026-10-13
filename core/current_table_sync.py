@@ -25,6 +25,35 @@ def _record_error(writer, message: str) -> None:
         errors.append(message)
 
 
+def _homogenize_authoritative_rows_in_place(rows: List[Dict[str, Any]]) -> int:
+    """Give one authoritative bulk payload one identical PostgREST key set.
+
+    PostgREST rejects a JSON array when object keys differ (PGRST102: "All object
+    keys must match"). Provider-authoritative current rows are already identity
+    proven before this helper runs, so missing non-identity keys are represented as
+    explicit NULLs. ``fixture_uid`` is never synthesized here and is validated by
+    the caller before normalization.
+
+    The original row objects are mutated intentionally: the same rows are later
+    reused by the history writer, so current and history receive an identical,
+    valid payload shape.
+    """
+    if not rows:
+        return 0
+
+    keys = set()
+    for row in rows:
+        keys.update(str(key) for key in row.keys() if key != "id")
+
+    added = 0
+    for row in rows:
+        for key in keys:
+            if key not in row:
+                row[key] = None
+                added += 1
+    return added
+
+
 def _normalize_date(value: Any) -> str:
     raw = str(value or "").strip()
     if not raw:
@@ -279,9 +308,11 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
       2. Add ``fixture_uid`` only with provider registry + exact physical proof.
          In legacy mode this enrichment is best-effort. In provider-authoritative
          mode every incoming row must resolve or the write aborts before PostgREST.
-      3. Read the full pre-write current index.
-      4. UPSERT the new feed set using the unchanged legacy logical key.
-      5. Only after a successful UPSERT, delete ids whose logical key is absent
+      3. In provider-authoritative mode, normalize all proven rows to one JSON key
+         set so PostgREST cannot reject the bulk body with PGRST102.
+      4. Read the full pre-write current index.
+      5. UPSERT the new feed set using the unchanged legacy logical key.
+      6. Only after a successful UPSERT, delete ids whose logical key is absent
          from the incoming set.
 
     History/archive tables are never directly written here. An empty incoming set
@@ -299,15 +330,28 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
         mismatched = int((uid_stats or {}).get("identity_mismatch_rows") or 0)
         conflicts = int((uid_stats or {}).get("conflicting_existing_uid") or 0)
         error = str((uid_stats or {}).get("error") or "").strip()
-        if error or unresolved or mismatched or conflicts or tagged != len(rows):
+        missing_uid = sum(
+            1 for row in rows
+            if not str(row.get("fixture_uid") or "").strip()
+        )
+        if error or unresolved or mismatched or conflicts or tagged != len(rows) or missing_uid:
             message = (
                 f"{table}: authoritative fixture_uid binding incomplete; write aborted "
                 f"(tagged={tagged}/{len(rows)}, unresolved={unresolved}, "
-                f"mismatch={mismatched}, conflicts={conflicts}, error={error or 'none'})"
+                f"mismatch={mismatched}, conflicts={conflicts}, missing_uid={missing_uid}, "
+                f"error={error or 'none'})"
             )
             _record_error(writer, message)
             _emit(logger, f"[Current Sync] HATA — {message}")
             return False
+
+        added_keys = _homogenize_authoritative_rows_in_place(rows)
+        if added_keys:
+            _emit(
+                logger,
+                f"[Current Sync] {table}: authoritative payload key-set normalized "
+                f"({added_keys} missing key slot -> NULL)",
+            )
 
     clean_rows: List[Dict[str, Any]] = []
     for row in rows:
