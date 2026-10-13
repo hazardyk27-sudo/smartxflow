@@ -9,6 +9,7 @@ PREFLIGHT = ROOT / "deploy" / "hetzner_preflight.sh"
 SUDOERS = ROOT / "deploy" / "sudoers-smartxflow-deploy"
 DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
 CONTRACT_WORKFLOW = ROOT / ".github" / "workflows" / "hetzner-runtime-contract-tests.yml"
+RUN_SERVICES = ROOT / "run_services.sh"
 
 
 def _read(name: str) -> str:
@@ -63,6 +64,19 @@ def test_canonical_units_do_not_launch_replit_specific_entrypoints():
         text = path.read_text(encoding="utf-8").lower()
         assert "scripts/replit_guarded_scraper.py" not in text
         assert "janeway.replit" not in text
+
+
+def test_replit_supervisor_refuses_production_workers():
+    text = RUN_SERVICES.read_text(encoding="utf-8")
+    assert "REPL_ID" in text
+    assert "REPL_SLUG" in text
+    assert "REPL_OWNER" in text
+    assert "REPL_DEPLOYMENT" in text
+    assert "Replit is preview-only; production workers run on Hetzner" in text
+    guard_pos = text.index("REPL_ID")
+    assert guard_pos < text.index("start_scraper &")
+    assert guard_pos < text.index("start_alarm &")
+    assert guard_pos < text.index("start_live &")
 
 
 def test_hetzner_env_template_contains_required_production_contract():
@@ -173,6 +187,7 @@ def test_contract_ci_parses_shell_sudoers_and_workflow_contracts():
     text = CONTRACT_WORKFLOW.read_text(encoding="utf-8")
     assert "bash -n deploy/sync_runtime_units.sh" in text
     assert "bash -n deploy/hetzner_preflight.sh" in text
+    assert "bash -n run_services.sh" in text
     assert "visudo -cf deploy/sudoers-smartxflow-deploy" in text
     assert "python -m pytest -q tests/test_hetzner_runtime_contract.py" in text
 
