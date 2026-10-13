@@ -137,6 +137,6 @@ def test_entrypoint_sets_flag_before_scheduled_scraper_import():
     text = ENTRYPOINT.read_text()
 
     set_pos = text.index('os.environ[_CANONICAL_FLAG] = "true"')
-    guard_pos = text.index("_install_authoritative_history_guard()")
-    import_pos = text.index("from scheduled_scraper import run_loop")
+    guard_pos = text.index("    _install_authoritative_history_guard()", set_pos)
+    import_pos = text.index("from scheduled_scraper import run_loop", guard_pos)
     assert set_pos < guard_pos < import_pos
