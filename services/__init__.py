@@ -58,27 +58,6 @@ from .polymarket_visibility_patch import bind_polymarket_visibility_patch
 
 bind_polymarket_visibility_patch()
 
-# Large tracked bettors use the durable normalized lifecycle as the canonical
-# profile/stats source. Raw fills are revisited only for assets touched since the
-# previous successful sync; CLOB resolution repairs stale unknown/open results.
-from .polymarket_lifecycle_v4_patch import bind_polymarket_lifecycle_v4_patch
-
-bind_polymarket_lifecycle_v4_patch()
-
-# Interactive bettor profiles must not transfer/render the full durable ledger
-# on every click. Keep aggregate stats canonical, fetch open bets separately,
-# and bound the visible recent-history window so large profiles stay responsive.
-from .polymarket_profile_v41_patch import bind_polymarket_profile_v41_patch
-
-bind_polymarket_profile_v41_patch()
-
-# The persisted tracked_wallets summary can lag lifecycle reconciliation by one
-# stats cycle. Make the visible open-position count come from the same canonical
-# open ledger that builds the interactive open-position rows.
-from .polymarket_profile_v42_patch import bind_polymarket_profile_v42_patch
-
-bind_polymarket_profile_v42_patch()
-
 # Gamma Soccer event payloads are large. Bound live match discovery to the
 # scraper's actual date window and compact each keyset page before fetching the
 # next one so production memory does not scale with all active events.
