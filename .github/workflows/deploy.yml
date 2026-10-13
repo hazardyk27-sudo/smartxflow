@@ -136,6 +136,7 @@ jobs:
             sudo /bin/systemctl restart smartxflow-sinyal
             sudo /bin/systemctl restart smartxflow-live
             sudo /bin/systemctl restart smartxflow-poly
+            sudo /bin/systemctl restart smartxflow-predictor-orchestrator
 
             sleep 4
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
@@ -144,6 +145,7 @@ jobs:
             sudo /bin/systemctl is-active smartxflow-sinyal  || { echo "sinyal baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
+            sudo /bin/systemctl is-active smartxflow-predictor-orchestrator || { echo "predictor orchestrator baslamadi!"; exit 1; }
 
             for unit in \
               smartxflow-web.service \
@@ -151,7 +153,8 @@ jobs:
               smartxflow-alarm.service \
               smartxflow-sinyal.service \
               smartxflow-live.service \
-              smartxflow-poly.service; do
+              smartxflow-poly.service \
+              smartxflow-predictor-orchestrator.service; do
               ENABLED="$(sudo /bin/systemctl is-enabled "$unit")"
               if [ "$ENABLED" != "enabled" ]; then
                 echo "DEPLOY STOP: $unit is not enabled at boot ($ENABLED)"
@@ -203,6 +206,15 @@ jobs:
               *)
                 echo "DEPLOY STOP: smartxflow-sinyal is not using sinyal_engine_runtime.py"
                 echo "ExecStart=$SINYAL_EXEC"
+                exit 1
+                ;;
+            esac
+
+            PREDICTOR_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-predictor-orchestrator.service)"
+            case "$PREDICTOR_EXEC" in
+              *predictor_orchestrator.wsgi:app*) ;;
+              *)
+                echo "DEPLOY STOP: smartxflow-predictor-orchestrator wrong ExecStart=$PREDICTOR_EXEC"
                 exit 1
                 ;;
             esac
