@@ -7,7 +7,10 @@ CREATE TABLE IF NOT EXISTS public.scraper_runtime_lease (
     updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
+ALTER TABLE public.scraper_runtime_lease ENABLE ROW LEVEL SECURITY;
+
 REVOKE ALL ON TABLE public.scraper_runtime_lease FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.scraper_runtime_lease TO service_role;
 
 CREATE OR REPLACE FUNCTION public.acquire_scraper_runtime_lease(
     p_lease_name text,
@@ -16,8 +19,8 @@ CREATE OR REPLACE FUNCTION public.acquire_scraper_runtime_lease(
 )
 RETURNS jsonb
 LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
+SECURITY INVOKER
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
     v_now timestamptz := clock_timestamp();
