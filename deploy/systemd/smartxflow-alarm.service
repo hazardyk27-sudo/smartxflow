@@ -1,0 +1,18 @@
+[Unit]
+Description=SmartXFlow Alarm Engine
+After=network-online.target smartxflow-scraper.service
+Wants=network-online.target
+
+[Service]
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/alarm_engine.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/opt/smartxflow/logs/alarm.log
+StandardError=append:/opt/smartxflow/logs/alarm.log
+
+[Install]
+WantedBy=multi-user.target
