@@ -187,6 +187,8 @@ def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
     assert "systemctl restart smartxflow-sinyal" in text
     assert "systemctl restart smartxflow-live" in text
     assert "systemctl restart smartxflow-poly" in text
+    assert "systemctl restart smartxflow-predictor-orchestrator" in text
+    assert "systemctl is-active smartxflow-predictor-orchestrator" in text
     assert "prematch_authoritative_runtime.py" in text
     assert "SMARTXFLOW_MODE=server" in text
     assert "DISABLE_SCRAPER=true" in text
@@ -194,6 +196,7 @@ def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
     assert "sinyal_engine_runtime.py" in text
     assert "live_scraper.py" in text
     assert "polymarket_scraper.py" in text
+    assert "predictor_orchestrator.wsgi:app" in text
     assert "git merge --ff-only origin/main" in text
     assert "reset --hard" not in text
     assert "git rebase" not in text
