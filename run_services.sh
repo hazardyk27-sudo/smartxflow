@@ -1,4 +1,13 @@
 #!/bin/bash
+set -euo pipefail
+
+# Replit is Preview/UI only. Production workers are owned by Hetzner systemd.
+# Fail closed if an old Replit workflow or deployment tries to launch this
+# supervisor again. This intentionally has no override switch.
+if [ -n "${REPL_ID:-}${REPL_SLUG:-}${REPL_OWNER:-}${REPL_DEPLOYMENT:-}" ]; then
+    echo "[run_services] REFUSED: Replit is preview-only; production workers run on Hetzner."
+    exit 0
+fi
 
 SCRAPER_PID=""
 ALARM_PID=""
@@ -6,10 +15,10 @@ LIVE_PID=""
 
 cleanup() {
     echo "[run_services] SIGTERM received, shutting down..."
-    [ -n "$SCRAPER_PID" ] && kill $SCRAPER_PID 2>/dev/null
-    [ -n "$ALARM_PID" ] && kill $ALARM_PID 2>/dev/null
-    [ -n "$LIVE_PID" ] && kill $LIVE_PID 2>/dev/null
-    wait 2>/dev/null
+    [ -n "$SCRAPER_PID" ] && kill "$SCRAPER_PID" 2>/dev/null || true
+    [ -n "$ALARM_PID" ] && kill "$ALARM_PID" 2>/dev/null || true
+    [ -n "$LIVE_PID" ] && kill "$LIVE_PID" 2>/dev/null || true
+    wait 2>/dev/null || true
     echo "[run_services] All services stopped."
     exit 0
 }
