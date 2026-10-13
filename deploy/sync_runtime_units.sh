@@ -18,6 +18,7 @@ required=(
   "$APP_DIR/deploy/systemd/smartxflow-alarm.service"
   "$APP_DIR/deploy/systemd/smartxflow-live.service"
   "$APP_DIR/deploy/systemd/smartxflow-poly.service"
+  "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service"
   "$APP_DIR/deploy/smartxflow-sinyal.service"
   "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service"
   "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer"
@@ -39,6 +40,7 @@ as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-scraper.ser
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-alarm.service" "$SYSTEMD_DIR/smartxflow-alarm.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-live.service" "$SYSTEMD_DIR/smartxflow-live.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-poly.service" "$SYSTEMD_DIR/smartxflow-poly.service"
+as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service" "$SYSTEMD_DIR/smartxflow-predictor-orchestrator.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/smartxflow-sinyal.service" "$SYSTEMD_DIR/smartxflow-sinyal.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.timer"
@@ -53,6 +55,7 @@ as_root /bin/systemctl enable \
   smartxflow-sinyal.service \
   smartxflow-live.service \
   smartxflow-poly.service \
+  smartxflow-predictor-orchestrator.service \
   smartxflow-learning-archive-prematch.timer \
   smartxflow-learning-archive-postmatch.timer
 
