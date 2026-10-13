@@ -1,231 +1,177 @@
-# SmartXFlow — Hetzner Kurulum Kılavuzu
+# SmartXFlow — Hetzner Production Runtime
 
-## Sunucu Bilgileri
-- **IP:** 91.99.6.245
-- **OS:** Ubuntu 22.04
-- **Model:** CPX22 (2 vCPU, 4GB RAM, 80GB SSD)
-- **Domain:** smartxflow.com
+## Amaç
 
----
+SmartXFlow production runtime tamamen Hetzner üzerinde çalışır. Replit production bağımlılığı değildir; yalnızca `preview` geliştirme/önizleme runner'ı olabilir.
 
-## ADIM 1 — Sunucuya SSH ile bağlan
+Canonical akış:
 
-```bash
-ssh root@91.99.6.245
-# Şifre: Hetzner emailindeki şifre (ilk giriş)
+```text
+GitHub main
+    |
+    v
+Hetzner /opt/smartxflow
+    |
+    +-- Nginx -> Gunicorn / Flask
+    +-- Prematch Scraper
+    +-- Live Scraper
+    +-- Alarm Engine
+    +-- Sinyal Engine
+    +-- Polymarket Scraper
+    +-- Learning Archive timers
+    |
+    v
+Supabase
 ```
 
----
+Production host:
 
-## ADIM 2 — Kurulum scriptini çalıştır
+- IP: `91.99.6.245`
+- Domain: `smartxflow.com`
+- Application root: `/opt/smartxflow`
+- Application user: `smartxflow`
+- Production branch: `main`
+
+## Hard release rules
+
+- GitHub tracked source/history is canonical.
+- `preview` is development/Preview.
+- `main` is the exact user-approved production SHA.
+- Hetzner runs production.
+- Never edit tracked production files directly on Hetzner.
+- Never force-push, reset, rebase or cherry-pick around divergence.
+- Production deploy happens only after explicit user approval and exact-SHA promotion to `main`.
+- Replit source editing/deployment is not part of Hetzner production release.
+
+See `/.agents/contracts/RELEASE_FLOW.md` for the canonical release procedure.
+
+## Canonical production services
+
+| Unit | Entrypoint / purpose |
+|---|---|
+| `smartxflow-web.service` | Gunicorn `app:app`, bound to `127.0.0.1:8000` |
+| `smartxflow-scraper.service` | `prematch_authoritative_runtime.py` |
+| `smartxflow-alarm.service` | `alarm_engine.py` |
+| `smartxflow-sinyal.service` | `sinyal_engine_runtime.py` |
+| `smartxflow-live.service` | `live_scraper.py` |
+| `smartxflow-poly.service` | `polymarket_scraper.py` |
+| `smartxflow-learning-archive-prematch.timer` | Prematch archive capture every 5 min |
+| `smartxflow-learning-archive-postmatch.timer` | Postmatch settlement/diary every 10 min |
+
+Tracked unit source files live under `deploy/systemd/` except the existing Sinyal unit at `deploy/smartxflow-sinyal.service`.
+
+`deploy/sync_runtime_units.sh` installs the exact tracked units. It does not stop or restart services. Privileged commands are explicit and use the least-privilege sudo contract in `deploy/sudoers-smartxflow-deploy`.
+
+## Production environment
+
+The canonical variable list is `deploy/env.template`. Real secrets stay only in `/opt/smartxflow/.env`; never commit them.
+
+Important production requirements include:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SESSION_SECRET`
+- `Betwach_api_key`
+- `LEARNING_ARCHIVE_ACCESS_SECRET`
+- `SMARTXFLOW_LEARNING_API_BASE_URL=https://smartxflow.com`
+- `SMARTXFLOW_MODE=server`
+
+The web service also enforces `DISABLE_SCRAPER=true`, because collection belongs to dedicated systemd workers, not Gunicorn workers.
+
+The prematch unit enforces `SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true`. A fresh `.env` template intentionally leaves the same flag `false` until the DB migration/postflight has been explicitly verified; systemd activation is the controlled production cutover point.
+
+## Read-only preflight
+
+Before any cutover or production release, run the tracked preflight against the exact intended production SHA:
 
 ```bash
-# Önce repoyu geçici olarak çek
-git clone https://github.com/hazardyk27-sudo/SmartXFlow.git /tmp/sxf-setup
-
-# Setup scriptini çalıştır
-bash /tmp/sxf-setup/deploy/setup_hetzner.sh
+cd /opt/smartxflow || exit 1
+bash deploy/hetzner_preflight.sh <EXACT_40_CHARACTER_MAIN_SHA>
 ```
 
-Script şunları otomatik yapar:
-- Sistem güncellemesi
-- UFW firewall (22/80/443)
-- `smartxflow` kullanıcısı
-- Python 3.11 + virtualenv + tüm bağımlılıklar
-- GitHub reposu → `/opt/smartxflow`
-- 4 adet systemd servisi
-- Nginx HTTP konfigürasyonu
+The preflight is read-only. It checks:
 
-Script `.env` dosyası oluşturur ve durur. **Değerleri gir:**
+- branch, exact HEAD and clean tracked worktree;
+- required environment variable presence without printing secret values;
+- deploy-user sudo capability;
+- installed systemd units vs tracked unit files;
+- enabled/active service state;
+- exact runtime entrypoints;
+- authoritative prematch flag;
+- duplicate local worker processes;
+- `smartxflow.com` DNS;
+- Gunicorn `127.0.0.1:8000` listener;
+- Nginx state and HTTPS reachability.
 
-```bash
-nano /opt/smartxflow/.env
+`HETZNER_PREFLIGHT_OK` is required before a cutover is considered ready.
+
+## GitHub Actions deploy
+
+`.github/workflows/deploy.yml` deploys only `main` and must:
+
+1. verify production is on branch `main` and the tracked worktree is clean;
+2. fetch `origin/main`;
+3. refuse divergence and use only fast-forward;
+4. verify the requested GitHub SHA equals `origin/main` and final Hetzner HEAD;
+5. preserve `/opt/smartxflow/.env` and runtime data;
+6. sync canonical systemd units;
+7. restart the six production services;
+8. verify all six are active and boot-enabled;
+9. verify their actual `ExecStart`/environment contract;
+10. verify HEAD and tracked tree did not change during deployment.
+
+No database migrations or destructive data actions are hidden inside this deploy workflow.
+
+## DNS / HTTPS
+
+Expected DNS:
+
+```text
+smartxflow.com      A  91.99.6.245
+www.smartxflow.com  A  91.99.6.245
 ```
 
-Gerekli değerler:
-| Key | Açıklama |
-|-----|----------|
-| `SUPABASE_URL` | Supabase proje URL'i |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `SESSION_SECRET` | Rastgele güçlü string (en az 32 karakter) |
-| `PAYMENT_BOT_TOKEN` | Telegram bot token |
-| `PAYMENT_CHAT_ID` | Telegram chat ID |
-| `APIFOOTBALL_KEY` | API-Football key |
-| `BETWATCH_COOKIE` | Betwatch.fr cookie |
-| `excapper_cookie` | Excapper.com cookie |
+Nginx proxies HTTPS traffic to Gunicorn on `127.0.0.1:8000`. TLS is managed with Let's Encrypt/Certbot.
 
-`.env` doldurulduktan sonra servisleri başlat:
-
-```bash
-sudo systemctl start smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
-
-# Durum kontrol:
-sudo systemctl status smartxflow-web
-sudo journalctl -u smartxflow-web -f
-```
-
----
-
-## ADIM 3 — DNS Güncelle
-
-Domain yönetim panelinden **A kaydı** ekle:
-
-| Tip | Ad | Değer | TTL |
-|-----|----|-------|-----|
-| A | @ (veya smartxflow.com) | 91.99.6.245 | 300 |
-| A | www | 91.99.6.245 | 300 |
-
-DNS yayılması 1-24 saat sürebilir. Kontrol:
+Useful read-only checks:
 
 ```bash
 dig smartxflow.com +short
-# → 91.99.6.245 görünmeli
-
-dig www.smartxflow.com +short
-# → 91.99.6.245 görünmeli
-```
-
----
-
-## ADIM 4 — HTTPS / SSL Sertifikası (Let's Encrypt)
-
-> **Önkoşul:** DNS A kaydı doğru çözümlenmiş olmalı (Adım 3).
-
-DNS 91.99.6.245'e çözümlenince SSL setup scriptini çalıştır:
-
-```bash
-sudo bash /opt/smartxflow/deploy/setup_ssl.sh
-```
-
-Script otomatik olarak:
-1. DNS kaydının doğru çözümlendiğini doğrular (yanlışsa hata verir)
-2. Certbot'u kontrol eder / kurar
-3. Nginx HTTP konfigürasyonunu aktif eder
-4. `certbot --nginx` ile Let's Encrypt sertifikasını alır
-5. Nginx'i HTTP → HTTPS yönlendirme + 443 SSL bloğu ile yeniden yapılandırır
-
-**Başarılı kurulum sonrası:**
-- `https://smartxflow.com` → çalışır
-- `https://www.smartxflow.com` → çalışır
-- `http://smartxflow.com` → otomatik HTTPS yönlendirmesi (301)
-
-**Doğrulama:**
-```bash
-curl -I http://smartxflow.com
-# → HTTP/1.1 301 Moved Permanently
-# → Location: https://smartxflow.com/...
-
 curl -I https://smartxflow.com
-# → HTTP/2 200
-
-# SSL sertifika detayları:
-certbot certificates
+systemctl is-active nginx
+systemctl is-active smartxflow-web
+ss -ltn | grep '127.0.0.1:8000'
 ```
 
-**Otomatik Yenileme:**
-Certbot, Let's Encrypt sertifikasını her 90 günde otomatik yeniler.
-Systemd timer aktif olduğunu kontrol et:
-```bash
-systemctl list-timers | grep certbot
-# → certbot.timer görünmeli
-```
-
----
-
-## ADIM 5 — GitHub Actions Auto-Deploy Kurulumu
-
-### 5a. Sunucuda SSH key çifti oluştur
+## Logs
 
 ```bash
-# Sunucuda root olarak çalıştır
-ssh-keygen -t ed25519 -C "github-actions@smartxflow" -f /tmp/deploy_key -N ""
-
-# Public key'i smartxflow kullanıcısının authorized_keys'ine ekle
-mkdir -p /opt/smartxflow/.ssh
-cat /tmp/deploy_key.pub >> /opt/smartxflow/.ssh/authorized_keys
-chown -R smartxflow:smartxflow /opt/smartxflow/.ssh
-chmod 700 /opt/smartxflow/.ssh
-chmod 600 /opt/smartxflow/.ssh/authorized_keys
-
-# Private key'i kopyala (GitHub Secrets'a yapıştıracaksın)
-cat /tmp/deploy_key
-```
-
-### 5b. GitHub Secrets ekle
-
-GitHub → repo → Settings → Secrets and variables → Actions → **New repository secret**:
-
-| Secret Adı | Değer |
-|------------|-------|
-| `HETZNER_HOST` | `91.99.6.245` |
-| `HETZNER_USER` | `smartxflow` |
-| `HETZNER_SSH_KEY` | `/tmp/deploy_key` içeriği (-----BEGIN... dahil) |
-
-### 5c. Test Et
-
-```bash
-# Replit'ten push yap:
-git push --force
-
-# GitHub Actions sekmesini aç → deploy job'u izle
-# Hetzner'da:
-sudo journalctl -u smartxflow-web -f
-```
-
----
-
-## Nginx Konfigürasyonu
-
-SSL kurulduktan sonra aktif Nginx yapısı (`/etc/nginx/sites-available/smartxflow`):
-
-```
-HTTP :80  →  301 HTTPS yönlendirme  (Let's Encrypt challenge hariç)
-HTTPS :443 → Gunicorn :8000 proxy
-```
-
-Referans dosya: `deploy/nginx-smartxflow.conf`
-
-Nginx'i manuel test/yeniden yüklemek için:
-```bash
-nginx -t                  # Konfigürasyon test
-systemctl reload nginx    # Sıfırsız yeniden yükleme
-```
-
----
-
-## Log Komutları
-
-```bash
-# Web (gunicorn)
-journalctl -u smartxflow-web -f
-
-# Scraper
+tail -f /opt/smartxflow/logs/gunicorn-error.log
 tail -f /opt/smartxflow/logs/scraper.log
-
-# Alarm Engine
 tail -f /opt/smartxflow/logs/alarm.log
-
-# Live Scraper
+tail -f /opt/smartxflow/logs/sinyal.log
 tail -f /opt/smartxflow/logs/live.log
-
-# Polymarket Trade Ledger Scraper
 tail -f /opt/smartxflow/logs/poly.log
-
-# Nginx erişim / hata
-tail -f /var/log/nginx/access.log
-tail -f /var/log/nginx/error.log
 ```
 
-## Servis Yönetimi
+Learning Archive systemd diagnostics:
 
 ```bash
-# Tüm servisleri yeniden başlat
-sudo systemctl restart smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly
-
-# Tek servis
-sudo systemctl restart smartxflow-web
-
-# Durum
-sudo systemctl status smartxflow-web
+systemctl status smartxflow-learning-archive-prematch.timer --no-pager
+systemctl status smartxflow-learning-archive-postmatch.timer --no-pager
+journalctl -u smartxflow-learning-archive-prematch.service -n 50 --no-pager
+journalctl -u smartxflow-learning-archive-postmatch.service -n 100 --no-pager
 ```
+
+## Replit after final cutover
+
+After Hetzner has passed preflight and at least one complete production data cycle has been verified, Replit production workers must be stopped. Replit must not run:
+
+- `scheduled_scraper.py` / `prematch_authoritative_runtime.py`
+- `live_scraper.py`
+- `alarm_engine.py`
+- `sinyal_engine_runtime.py`
+- `polymarket_scraper.py`
+
+Replit may remain only as an optional exact-`preview` web runner. The final independence test is simple: with Replit fully stopped, `smartxflow.com`, prematch, live, alarm, signal, Poly and Learning Archive must all continue normally from Hetzner.
