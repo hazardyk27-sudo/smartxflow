@@ -180,13 +180,31 @@ def _table_supports_fixture_uid(writer, table: str) -> bool:
     return supported
 
 
-def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]], logger=None) -> None:
-    """Best-effort provider-gated UID enrichment; legacy writes stay authoritative."""
+def _attach_fixture_uid_dual_write(
+    writer,
+    table: str,
+    rows: List[Dict[str, Any]],
+    logger=None,
+) -> Optional[Dict[str, Any]]:
+    """Provider-gated UID enrichment with authoritative fail-closed visibility.
+
+    Legacy mode remains best-effort. Provider-authoritative mode is handled by the
+    caller and must abort before any current/history write when this function cannot
+    prove a UID for every incoming row.
+    """
     if table not in PREMATCH_CURRENT_TABLES or not rows:
-        return
+        return None
     if not _table_supports_fixture_uid(writer, table):
         _emit(logger, f"[FixtureUID] WARN — {table}: fixture_uid_column_unavailable; legacy write devam ediyor")
-        return
+        return {
+            "rows": len(rows),
+            "tagged_rows": 0,
+            "unresolved_rows": len(rows),
+            "identity_mismatch_rows": 0,
+            "conflicting_existing_uid": 0,
+            "legacy_hash_drift_rows": 0,
+            "error": "fixture_uid_column_unavailable",
+        }
     try:
         stats = attach_provider_verified_fixture_uids(
             writer,
@@ -207,7 +225,7 @@ def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]
                 logger,
                 f"[FixtureUID] WARN — {table}: {stats['error']}; legacy write devam ediyor",
             )
-            return
+            return stats
         if stats.get("conflicting_existing_uid"):
             _emit(
                 logger,
@@ -224,10 +242,22 @@ def _attach_fixture_uid_dual_write(writer, table: str, rows: List[Dict[str, Any]
             logger,
             f"[FixtureUID] {table}: tagged={stats['tagged_rows']} "
             f"unresolved={stats['unresolved_rows']} "
-            f"provider_context={stats['provider_context_hashes']}",
+            f"provider_context={stats.get('provider_context_hashes', 0)} "
+            f"legacy_hash_drift={stats.get('legacy_hash_drift_rows', 0)}",
         )
+        return stats
     except Exception as exc:  # pragma: no cover - final non-authoritative safety net
-        _emit(logger, f"[FixtureUID] WARN — {table}: dual-write atlandı: {str(exc)[:200]}")
+        message = str(exc)[:200]
+        _emit(logger, f"[FixtureUID] WARN — {table}: dual-write atlandı: {message}")
+        return {
+            "rows": len(rows),
+            "tagged_rows": 0,
+            "unresolved_rows": len(rows),
+            "identity_mismatch_rows": 0,
+            "conflicting_existing_uid": 0,
+            "legacy_hash_drift_rows": 0,
+            "error": message,
+        }
 
 
 def _flush_identity_shadow(writer, logger=None) -> None:
@@ -246,9 +276,9 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
     Safety order is intentional:
       1. Flush the staged Identity V2 shadow batch after the scraper's unchanged
          legacy fixture write. The shadow remains observational and fail-soft.
-      2. Best-effort add ``fixture_uid`` only when provider registry + exact
-         physical fixture metadata agree. The original row objects are enriched
-         so the later history append receives the same UID.
+      2. Add ``fixture_uid`` only with provider registry + exact physical proof.
+         In legacy mode this enrichment is best-effort. In provider-authoritative
+         mode every incoming row must resolve or the write aborts before PostgREST.
       3. Read the full pre-write current index.
       4. UPSERT the new feed set using the unchanged legacy logical key.
       5. Only after a successful UPSERT, delete ids whose logical key is absent
@@ -259,11 +289,25 @@ def sync_current_table(writer, table: str, rows: List[Dict[str, Any]], logger=No
     a successful index read. If the index cannot be read, new rows may still be
     upserted, while pruning is skipped and the run is marked degraded.
     """
-    # In the Betwatch scraper, legacy fixtures are written before the first current
-    # table. Flushing here gives the provider-gated dual-write the registry proof it
-    # needs while keeping shadow failures fully outside legacy correctness.
     _flush_identity_shadow(writer, logger=logger)
-    _attach_fixture_uid_dual_write(writer, table, rows, logger=logger)
+    uid_stats = _attach_fixture_uid_dual_write(writer, table, rows, logger=logger)
+
+    authoritative = bool(getattr(writer, "_fixture_identity_authoritative_active", False))
+    if authoritative and table in PREMATCH_CURRENT_TABLES and rows:
+        tagged = int((uid_stats or {}).get("tagged_rows") or 0)
+        unresolved = int((uid_stats or {}).get("unresolved_rows") or 0)
+        mismatched = int((uid_stats or {}).get("identity_mismatch_rows") or 0)
+        conflicts = int((uid_stats or {}).get("conflicting_existing_uid") or 0)
+        error = str((uid_stats or {}).get("error") or "").strip()
+        if error or unresolved or mismatched or conflicts or tagged != len(rows):
+            message = (
+                f"{table}: authoritative fixture_uid binding incomplete; write aborted "
+                f"(tagged={tagged}/{len(rows)}, unresolved={unresolved}, "
+                f"mismatch={mismatched}, conflicts={conflicts}, error={error or 'none'})"
+            )
+            _record_error(writer, message)
+            _emit(logger, f"[Current Sync] HATA — {message}")
+            return False
 
     clean_rows: List[Dict[str, Any]] = []
     for row in rows:
