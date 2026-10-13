@@ -147,6 +147,23 @@ else
   done
 fi
 
+section "DEPLOY PRIVILEGE"
+if [ "$(id -u)" -eq 0 ]; then
+  pass "preflight running as root; deploy privilege available"
+else
+  sudo_policy="$(sudo -n -l 2>/dev/null || true)"
+  if [ -z "$sudo_policy" ]; then
+    fail "non-interactive sudo policy unavailable for deploy user"
+  elif [[ "$sudo_policy" == *"/usr/bin/install"* && "$sudo_policy" == *"/bin/systemctl"* ]]; then
+    pass "deploy user exposes explicit install/systemctl sudo capabilities"
+  else
+    fail "deploy sudo policy does not expose required install/systemctl capabilities"
+  fi
+  if [[ "$sudo_policy" == *"NOPASSWD: ALL"* ]]; then
+    warn "deploy user has broader NOPASSWD: ALL privilege than the tracked least-privilege contract"
+  fi
+fi
+
 section "TRACKED SYSTEMD CONTRACT"
 check_unit_file_matches smartxflow-web.service "$APP_DIR/deploy/systemd/smartxflow-web.service"
 check_unit_file_matches smartxflow-scraper.service "$APP_DIR/deploy/systemd/smartxflow-scraper.service"
@@ -224,10 +241,14 @@ else
   warn "getent unavailable; DNS check skipped"
 fi
 
-if ss -ltn 2>/dev/null | grep -Eq '127\.0\.0\.1:8000\b'; then
-  pass "Gunicorn listener present on 127.0.0.1:8000"
+if command -v ss >/dev/null 2>&1; then
+  if ss -ltn 2>/dev/null | grep -Eq '127\.0\.0\.1:8000\b'; then
+    pass "Gunicorn listener present on 127.0.0.1:8000"
+  else
+    fail "Gunicorn listener missing on 127.0.0.1:8000"
+  fi
 else
-  fail "Gunicorn listener missing on 127.0.0.1:8000"
+  warn "ss unavailable; local Gunicorn port check skipped"
 fi
 
 nginx_state="$(systemctl is-active nginx 2>/dev/null || true)"
