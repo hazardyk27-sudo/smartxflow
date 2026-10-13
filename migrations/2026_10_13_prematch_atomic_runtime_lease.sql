@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.scraper_runtime_lease (
 
 ALTER TABLE public.scraper_runtime_lease ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON TABLE public.scraper_runtime_lease FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.scraper_runtime_lease FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.scraper_runtime_lease TO service_role;
 
 CREATE OR REPLACE FUNCTION public.acquire_scraper_runtime_lease(
