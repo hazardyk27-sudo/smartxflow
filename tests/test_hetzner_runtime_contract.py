@@ -49,6 +49,14 @@ def test_worker_units_are_dedicated_and_restartable():
         assert "replit_guarded_scraper" not in text
 
 
+def test_predictor_orchestrator_unit_is_canonical_and_local_only():
+    text = _read("smartxflow-predictor-orchestrator.service")
+    assert "EnvironmentFile=/opt/smartxflow/.env" in text
+    assert "predictor_orchestrator.wsgi:app" in text
+    assert "--bind 127.0.0.1:8011" in text
+    assert "Restart=on-failure" in text
+
+
 def test_canonical_units_do_not_launch_replit_specific_entrypoints():
     for path in sorted(SYSTEMD.glob("smartxflow-*.service")):
         text = path.read_text(encoding="utf-8").lower()
@@ -80,6 +88,7 @@ def test_unit_sync_installs_all_runtime_units_without_restarting_or_stopping():
         "smartxflow-sinyal.service",
         "smartxflow-live.service",
         "smartxflow-poly.service",
+        "smartxflow-predictor-orchestrator.service",
         "smartxflow-learning-archive-prematch.timer",
         "smartxflow-learning-archive-postmatch.timer",
     ]
