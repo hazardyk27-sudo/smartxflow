@@ -4,11 +4,6 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/smartxflow}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 
-if [ "$(id -u)" -ne 0 ]; then
-  echo "UNIT SYNC STOP: must run as root" >&2
-  exit 1
-fi
-
 required=(
   "$APP_DIR/deploy/systemd/smartxflow-web.service"
   "$APP_DIR/deploy/systemd/smartxflow-scraper.service"
@@ -29,19 +24,21 @@ for path in "${required[@]}"; do
   fi
 done
 
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-web.service" "$SYSTEMD_DIR/smartxflow-web.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-scraper.service" "$SYSTEMD_DIR/smartxflow-scraper.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-alarm.service" "$SYSTEMD_DIR/smartxflow-alarm.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-live.service" "$SYSTEMD_DIR/smartxflow-live.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-poly.service" "$SYSTEMD_DIR/smartxflow-poly.service"
-install -m 0644 "$APP_DIR/deploy/smartxflow-sinyal.service" "$SYSTEMD_DIR/smartxflow-sinyal.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.timer"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-postmatch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-postmatch.service"
-install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-postmatch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-postmatch.timer"
+# Never elevate an arbitrary shell. Each privileged operation is explicit and
+# non-interactive so missing sudo policy fails closed rather than hanging.
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-web.service" "$SYSTEMD_DIR/smartxflow-web.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-scraper.service" "$SYSTEMD_DIR/smartxflow-scraper.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-alarm.service" "$SYSTEMD_DIR/smartxflow-alarm.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-live.service" "$SYSTEMD_DIR/smartxflow-live.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-poly.service" "$SYSTEMD_DIR/smartxflow-poly.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/smartxflow-sinyal.service" "$SYSTEMD_DIR/smartxflow-sinyal.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.timer"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-postmatch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-postmatch.service"
+sudo -n /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-postmatch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-postmatch.timer"
 
-systemctl daemon-reload
-systemctl enable \
+sudo -n /bin/systemctl daemon-reload
+sudo -n /bin/systemctl enable \
   smartxflow-web.service \
   smartxflow-scraper.service \
   smartxflow-alarm.service \
