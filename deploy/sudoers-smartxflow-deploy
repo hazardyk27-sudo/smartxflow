@@ -1,6 +1,6 @@
 # SmartXFlow least-privilege deployment commands.
 # Install as /etc/sudoers.d/smartxflow-deploy with mode 0440 after visudo validation.
-# Do NOT grant passwordless sudo for /bin/bash, /bin/sh, editors, git, cp or mv.
+# Do NOT grant passwordless sudo for interactive shells, editors, git or generic file movers.
 
 Cmnd_Alias SXF_UNIT_INSTALL = \
     /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-web.service /etc/systemd/system/smartxflow-web.service, \
