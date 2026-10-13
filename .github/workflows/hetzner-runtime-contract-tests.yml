@@ -8,6 +8,7 @@ on:
       - 'deploy/smartxflow-sinyal.service'
       - 'deploy/env.template'
       - 'deploy/sync_runtime_units.sh'
+      - '.github/workflows/deploy.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'deploy/smartxflow-sinyal.service'
       - 'deploy/env.template'
       - 'deploy/sync_runtime_units.sh'
+      - '.github/workflows/deploy.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
 
@@ -27,6 +29,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install --quiet pytest
+      - run: python -m pip install --quiet pytest pyyaml
       - run: bash -n deploy/sync_runtime_units.sh
+      - run: python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml', encoding='utf-8'))"
       - run: python -m pytest -q tests/test_hetzner_runtime_contract.py
