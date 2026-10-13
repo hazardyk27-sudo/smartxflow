@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SYSTEMD = ROOT / "deploy" / "systemd"
 ENV_TEMPLATE = ROOT / "deploy" / "env.template"
 UNIT_SYNC = ROOT / "deploy" / "sync_runtime_units.sh"
+PREFLIGHT = ROOT / "deploy" / "hetzner_preflight.sh"
 DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
 
 
@@ -90,6 +91,49 @@ def test_unit_sync_installs_all_runtime_units_without_restarting_or_stopping():
     assert "systemctl stop" not in text
     assert "systemctl disable" not in text
     assert "reset --hard" not in text
+
+
+def test_preflight_is_read_only_and_checks_cutover_critical_contracts():
+    text = PREFLIGHT.read_text(encoding="utf-8")
+    required_checks = [
+        "EXPECTED_SHA",
+        "tracked worktree clean",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "LEARNING_ARCHIVE_ACCESS_SECRET",
+        "SMARTXFLOW_LEARNING_API_BASE_URL",
+        "prematch_authoritative_runtime.py",
+        "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true",
+        "SMARTXFLOW_MODE=server",
+        "DISABLE_SCRAPER=true",
+        "127\\.0\\.0\\.1:8000",
+        "HTTPS root reachable",
+        "HETZNER_PREFLIGHT_OK",
+    ]
+    for token in required_checks:
+        assert token in text
+
+    forbidden = [
+        "systemctl restart",
+        "systemctl stop",
+        "systemctl start",
+        "systemctl enable",
+        "systemctl disable",
+        "systemctl daemon-reload",
+        "git fetch",
+        "git pull",
+        "git merge",
+        "git checkout",
+        "git switch",
+        "git reset",
+        "git rebase",
+        "git cherry-pick",
+        "rm -rf",
+        "truncate ",
+        "DELETE FROM",
+        "DROP TABLE",
+    ]
+    for token in forbidden:
+        assert token not in text
 
 
 def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
