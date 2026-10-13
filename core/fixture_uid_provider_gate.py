@@ -61,9 +61,26 @@ def _context_physical(value: Any) -> Optional[PhysicalKey]:
     )
 
 
-def _fixture_matches(row: Mapping[str, Any], fixture: Mapping[str, Any], match_hash: str) -> bool:
+def _fixture_matches(
+    row: Mapping[str, Any],
+    fixture: Mapping[str, Any],
+    match_hash: str,
+    *,
+    allow_legacy_hash_drift: bool = False,
+) -> bool:
+    """Verify current-row identity against the resolved fixture.
+
+    In provider-authoritative mode, ``source_event_id -> fixture_uid`` plus exact
+    current physical metadata is the identity proof. ``match_id_hash`` is only a
+    compatibility fingerprint after the UID cutover and may legitimately drift
+    when the provider changes a label (for example a league display name).
+
+    Hash-scoped compatibility mode remains strict: without authoritative physical
+    context the legacy hash must still match exactly.
+    """
+    hash_matches = str(fixture.get("match_id_hash") or "").strip() == match_hash
     return (
-        str(fixture.get("match_id_hash") or "").strip() == match_hash
+        (allow_legacy_hash_drift or hash_matches)
         and str(fixture.get("league") or "").strip() == str(row.get("league") or "").strip()[:150]
         and str(fixture.get("home_team") or "").strip() == str(row.get("home") or "").strip()[:100]
         and str(fixture.get("away_team") or "").strip() == str(row.get("away") or "").strip()[:100]
@@ -133,10 +150,11 @@ def attach_provider_verified_fixture_uids(
 ) -> Dict[str, Any]:
     """Attach current-row fixture UIDs only with provider + exact physical proof.
 
-    Part 8 prefers an exact physical-row -> provider-event context so two rematches
-    may safely share the same legacy ``match_id_hash``. During coexistence, the
-    older hash-scoped context remains as a compatibility fallback when the
-    authoritative writer flag is off.
+    Provider-authoritative mode prefers an exact physical-row -> provider-event
+    context. In that mode an already-mapped provider event may keep its stored
+    legacy compatibility hash even if the provider later changes a display label.
+    Hash-scoped coexistence mode remains strict and still requires the legacy hash
+    to match.
     """
     request_get = request_get or requests.get
     stats: Dict[str, Any] = {
@@ -150,6 +168,7 @@ def attach_provider_verified_fixture_uids(
         "provider_context_mode": "none",
         "resolved_hashes": 0,
         "resolved_rows": 0,
+        "legacy_hash_drift_rows": 0,
         "error": None,
     }
     if not rows:
@@ -171,6 +190,9 @@ def attach_provider_verified_fixture_uids(
     physical_by_hash = getattr(writer, "_fixture_identity_physical_by_hash", None)
 
     use_physical = bool(physical_event)
+    authoritative_physical = bool(
+        use_physical and getattr(writer, "_fixture_identity_authoritative_active", False)
+    )
     if use_physical:
         stats["provider_context_mode"] = "physical"
         stats["provider_context_physical"] = sum(
@@ -222,10 +244,19 @@ def attach_provider_verified_fixture_uids(
 
         fixture_uid = str(event_uid.get(event_id) or "").strip()
         fixture = fixture_map.get(fixture_uid)
-        if not fixture_uid or not fixture or not _fixture_matches(row, fixture, match_hash):
+        if not fixture_uid or not fixture or not _fixture_matches(
+            row,
+            fixture,
+            match_hash,
+            allow_legacy_hash_drift=authoritative_physical,
+        ):
             stats["identity_mismatch_rows"] += 1
             stats["unresolved_rows"] += 1
             continue
+
+        stored_hash = str(fixture.get("match_id_hash") or "").strip()
+        if authoritative_physical and stored_hash != match_hash:
+            stats["legacy_hash_drift_rows"] += 1
 
         existing = str(row.get("fixture_uid") or "").strip()
         if existing and existing != fixture_uid:
