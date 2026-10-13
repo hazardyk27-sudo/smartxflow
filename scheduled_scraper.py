@@ -10,6 +10,11 @@ import os
 
 os.environ["SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE"] = "true"
 
+import scheduled_scraper_legacy as _legacy  # noqa: E402
+from core.prematch_atomic_lease import install_authoritative_atomic_lease_guard  # noqa: E402
+
+install_authoritative_atomic_lease_guard(_legacy)
+
 from scheduled_scraper_legacy import *  # noqa: F401,F403,E402
 
 
