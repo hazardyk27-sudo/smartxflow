@@ -109,28 +109,80 @@ Conclusion: share retention is more useful for the earlier T-72/T-60/T-40/T-24 m
 **EARLY MONEY + SHARE RETENTION**
 
 - detect the original early-money signal at T-72/T-60/T-40/T-24;
-- at the later evening checkpoint, do not require the odds to shorten;
+- at each later checkpoint (T-6/T-5/T-4/T-3), do not require the odds to shorten;
 - require the same side to still carry meaningful concentration, with **>=60% share as the current broad research candidate**;
 - separately flag any case where the side had a strong early share but later fell below 60% as a `RETENTION_BREAK` warning;
 - keep >=75% as an exploratory premium subgroup only, not a hard rule.
 
 ## Proposed live strength tiers — research only
 
-The user's proposed live interpretation is directionally sensible, but four-day evidence does **not** yet support a clean monotonic rule where every higher 10-point share band must have a higher win rate. The operational research tiers should therefore be treated as **strength labels**, not proven probability buckets:
+The current absolute-share tiers are:
+- **<60%:** `RETENTION_BREAK` — downgrade / warning.
+- **60–69.9%:** `EARLY MONEY — NORMAL`.
+- **70–79.9%:** `EARLY MONEY — STRONG`.
+- **>=80%:** `EARLY MONEY — HIGH CONCENTRATION`.
 
-- **<60%:** `RETENTION_BREAK` — downgrade / warning. This is the clearest negative state in the current sample.
-- **60–69.9%:** `EARLY MONEY — NORMAL` — the early signal is still alive; broad retained-share filtering around 60% consistently improves the base groups.
-- **70–79.9%:** `EARLY MONEY — STRONG` — reasonable strength upgrade, but four-day data does not consistently outperform the 60–69 band in every early family.
-- **>=80%:** `EARLY MONEY — HIGH CONCENTRATION` — serious alert / highest confidence label for monitoring, but the sample is still small and must not be assigned a guaranteed higher probability yet.
+These are strength labels, not proven probability buckets.
 
-Important nuance: **share does not need to be higher than it was at the original early trigger.** Several winners lost some share while remaining highly concentrated (for example Barcelona, Betis and Atalanta in the T-60 set). Absolute retained concentration matters more than whether the share mathematically increased from the early snapshot.
+## Clarification: checkpoint, not “evening”
 
-For the T-60 set at T-5 specifically:
-- baseline: 11/13 = 84.6%
-- >=60%: 10/11 = 90.9%
-- >=70%: 8/9 = 88.9%
-- >=75%: 6/6 = 100% (tiny)
+Earlier wording used “evening checkpoint”. That is imprecise. The intended meaning is simply the later **T-6/T-5/T-4/T-3 checkpoint relative to kickoff**, regardless of clock time.
 
-Therefore the current evidence strongly supports **<60 as a downgrade** and **>=60 as retained**, while 70/80 should be used as escalating signal-strength labels pending larger validation rather than hard probability claims.
+## Share trajectory test: raw percentage-point change alone is not enough
+
+The proposed idea was to compare the selected side's share at the **first qualifying early signal** with its share at T-6/T-5/T-4/T-3 and score an increase positively, a decrease negatively, and no change neutrally.
+
+This is intuitive, but the four-day sample shows that raw direction alone should **not** be the primary score:
+
+- T-6: share DOWN 13/15 = **86.7%**; share UP 5/7 = **71.4%**
+- T-5: share DOWN 14/16 = **87.5%**; share UP 4/6 = **66.7%**
+- T-4: share DOWN 10/12 = **83.3%**; share UP 8/10 = **80.0%**
+- T-3: share DOWN 11/13 = **84.6%**; share UP 7/9 = **77.8%**
+
+Reason: many strong winners started with extremely high shares. A move from 98% to 86% is mathematically negative but still represents very strong retained concentration. Conversely, moving from 58% to 66% is positive trajectory but only moderate absolute concentration.
+
+A practical ±2 percentage-point neutral zone was also tested. At T-5, for example:
+- neutral ±2pp: 8/8 wins = **100%**
+- +2 to +10pp: 2/4 = **50%**
+- -10 to -2pp: 5/6 = **83.3%**
+- <=-10pp: 3/4 = **75%**
+
+These groups are small, but they reinforce that raw `share up = automatically better` is not supported yet.
+
+## Better trajectory model: concentration-band transition
+
+Instead of scoring every percentage-point move, track whether the selected side stays in, rises into, or falls out of a concentration band:
+
+- Band 0: <60%
+- Band 1: 60–69.9%
+- Band 2: 70–79.9%
+- Band 3: >=80%
+
+Using the **first qualifying early signal** as the starting band, then comparing to the later checkpoint:
+
+| Checkpoint | Band down | Same band | Band up |
+|---|---:|---:|---:|
+| T-6 | 3/4 = 75.0% | 13/15 = **86.7%** | 2/3 = 66.7% |
+| T-5 | 2/3 = 66.7% | 13/15 = **86.7%** | 3/4 = 75.0% |
+| T-4 | 3/5 = 60.0% | 12/13 = **92.3%** | 3/4 = 75.0% |
+| T-3 | 3/5 = 60.0% | 11/12 = **91.7%** | 4/5 = 80.0% |
+
+This is more promising than raw percentage-point direction. The strongest observed state is **staying in the same concentration band**, especially by T-4/T-3. A band drop is the clearest negative transition. A band rise is positive conceptually, but in this tiny sample it did not outperform stable high concentration because many band-up cases started from lower shares.
+
+### Current candidate scoring logic
+
+Use **absolute current band as the primary score** and **band transition as the modifier**:
+
+- current <60%: strong negative / `RETENTION_BREAK`
+- current 60–69.9%: normal
+- current 70–79.9%: strong
+- current >=80%: high concentration
+- band down since first early signal: subtract confidence
+- same band: neutral-to-positive confirmation
+- band up: add a modest positive modifier, but do not automatically rank it above a side that has stayed >=80% throughout
+
+Example:
+- Betis 98% -> 86%: raw delta is negative, but it remains in the >=80% band, so it should remain a high-concentration signal rather than be penalized simply for falling 12pp.
+- Newcastle 75% -> 55%: it drops from the 70–79.9% band to <60%, so this is a major negative transition / retention break.
 
 Next test: combine this retention state with opponent/draw-side money acceleration and compare winners vs failures, then test over a larger archive.
