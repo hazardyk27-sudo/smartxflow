@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SYSTEMD = ROOT / "deploy" / "systemd"
 ENV_TEMPLATE = ROOT / "deploy" / "env.template"
+UNIT_SYNC = ROOT / "deploy" / "sync_runtime_units.sh"
 
 
 def _read(name: str) -> str:
@@ -66,3 +67,25 @@ def test_env_template_keeps_identity_cutover_fail_safe_by_default():
     # A fresh server template must not silently enable the authoritative writer
     # before its DB migration/postflight is explicitly verified.
     assert "SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=false" in text
+
+
+def test_unit_sync_installs_all_runtime_units_without_restarting_or_stopping():
+    text = UNIT_SYNC.read_text(encoding="utf-8")
+    required = [
+        "smartxflow-web.service",
+        "smartxflow-scraper.service",
+        "smartxflow-alarm.service",
+        "smartxflow-sinyal.service",
+        "smartxflow-live.service",
+        "smartxflow-poly.service",
+        "smartxflow-learning-archive-prematch.timer",
+        "smartxflow-learning-archive-postmatch.timer",
+    ]
+    for unit in required:
+        assert unit in text
+    assert "systemctl daemon-reload" in text
+    assert "systemctl enable" in text
+    assert "systemctl restart" not in text
+    assert "systemctl stop" not in text
+    assert "systemctl disable" not in text
+    assert "reset --hard" not in text
