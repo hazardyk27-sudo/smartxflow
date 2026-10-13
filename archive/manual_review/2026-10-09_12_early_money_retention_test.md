@@ -97,11 +97,11 @@ Conclusion: share retention is more useful for the earlier T-72/T-60/T-40/T-24 m
 ## Current research interpretation
 
 1. **Absolute retained share is more useful than simple leader status or raw amount growth.**
-2. A broad retained-share floor around **60%** is the most consistent four-day improvement across T-72/T-60/T-40/T-24.
+2. A broad retained-share floor around **60%** was the best four-day statistical improvement across T-72/T-60/T-40/T-24, but the user-selected operational research floor is now **55%** to avoid over-filtering winners.
 3. Raising the floor to 65–70% does not consistently improve results and can remove good winners.
 4. >=75% retention often looks excellent but sample sizes are too small and overfit risk is high.
 5. Relative share-drop rules (`no more than -5pp/-10pp`) are less consistent than the absolute retained-share floor.
-6. The strongest practical warning pattern is: **early strong money + selected amount keeps growing + selected share falls into the 50s**. Newcastle is the clearest observed failure.
+6. The strongest practical warning pattern is: **early strong money + selected amount keeps growing + selected share falls sharply toward the low-50s**. Newcastle is the clearest observed failure.
 7. This is not production-ready. The candidate should be expanded over a larger time-ordered sample before promotion.
 
 ## Candidate for next validation
@@ -110,19 +110,21 @@ Conclusion: share retention is more useful for the earlier T-72/T-60/T-40/T-24 m
 
 - detect the original early-money signal at T-72/T-60/T-40/T-24;
 - at each later checkpoint (T-6/T-5/T-4/T-3), do not require the odds to shorten;
-- require the same side to still carry meaningful concentration, with **>=60% share as the current broad research candidate**;
-- separately flag any case where the side had a strong early share but later fell below 60% as a `RETENTION_BREAK` warning;
-- keep >=75% as an exploratory premium subgroup only, not a hard rule.
+- user-selected retention floor for future live research: **55%**;
+- if the selected side falls below **55% at any T-6/T-5/T-4/T-3 checkpoint**, mark the Early Money signal as `RETENTION_BREAK` and invalidate the **Early Money** recommendation from that engine;
+- if it later rises back above 55%, the earlier break is not erased;
+- `RETENTION_BREAK` applies only to the Early Money engine. The match itself is **not automatically PASS** if another independent SXF signal (1X2 Concentration, Heavy 1X2, Over, BTTS, etc.) remains valid;
+- no positive bonus is assigned merely because the share rises; share above 55% simply keeps the Early Money signal alive for now.
 
-## Proposed live strength tiers — research only
+## Why 55% was selected operationally
 
-The current absolute-share tiers are:
-- **<60%:** `RETENTION_BREAK` — downgrade / warning.
-- **60–69.9%:** `EARLY MONEY — NORMAL`.
-- **70–79.9%:** `EARLY MONEY — STRONG`.
-- **>=80%:** `EARLY MONEY — HIGH CONCENTRATION`.
+In the deduplicated first-early-signal cohort (22 matches):
+- baseline: 18/22 = **81.8%**;
+- requiring >=55% at the T-6/T-5/T-4 checkpoint kept 20 matches and produced 16/20 = **80.0%**;
+- the two matches below 55% both won in this very small sample, so 55% does **not** improve historical hit rate yet;
+- however, compared with a 60% floor, 55% is deliberately less aggressive and avoids discarding borderline cases too easily while still defining a clear concentration-collapse boundary for future observation.
 
-These are strength labels, not proven probability buckets.
+Therefore 55% is a **user-selected operational research cutoff**, not a statistically proven optimal threshold. It must be tracked prospectively and recalibrated as the sample grows.
 
 ## Clarification: checkpoint, not “evening”
 
@@ -167,22 +169,6 @@ Using the **first qualifying early signal** as the starting band, then comparing
 | T-4 | 3/5 = 60.0% | 12/13 = **92.3%** | 3/4 = 75.0% |
 | T-3 | 3/5 = 60.0% | 11/12 = **91.7%** | 4/5 = 80.0% |
 
-This is more promising than raw percentage-point direction. The strongest observed state is **staying in the same concentration band**, especially by T-4/T-3. A band drop is the clearest negative transition. A band rise is positive conceptually, but in this tiny sample it did not outperform stable high concentration because many band-up cases started from lower shares.
-
-### Current candidate scoring logic
-
-Use **absolute current band as the primary score** and **band transition as the modifier**:
-
-- current <60%: strong negative / `RETENTION_BREAK`
-- current 60–69.9%: normal
-- current 70–79.9%: strong
-- current >=80%: high concentration
-- band down since first early signal: subtract confidence
-- same band: neutral-to-positive confirmation
-- band up: add a modest positive modifier, but do not automatically rank it above a side that has stayed >=80% throughout
-
-Example:
-- Betis 98% -> 86%: raw delta is negative, but it remains in the >=80% band, so it should remain a high-concentration signal rather than be penalized simply for falling 12pp.
-- Newcastle 75% -> 55%: it drops from the 70–79.9% band to <60%, so this is a major negative transition / retention break.
+This is more promising than raw percentage-point direction, but the current user-selected operational handling intentionally keeps share logic simple: only a fall below **55%** invalidates the Early Money signal. All other share movements are observed but do not change strength yet.
 
 Next test: combine this retention state with opponent/draw-side money acceleration and compare winners vs failures, then test over a larger archive.
