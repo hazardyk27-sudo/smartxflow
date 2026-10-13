@@ -1,0 +1,21 @@
+[Unit]
+Description=SmartXFlow Prematch Scraper (provider-authoritative)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+# Defense in depth: the entrypoint also forces this flag and refuses to start
+# without SUPABASE_SERVICE_ROLE_KEY.
+Environment=SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/prematch_authoritative_runtime.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/opt/smartxflow/logs/scraper.log
+StandardError=append:/opt/smartxflow/logs/scraper.log
+
+[Install]
+WantedBy=multi-user.target
