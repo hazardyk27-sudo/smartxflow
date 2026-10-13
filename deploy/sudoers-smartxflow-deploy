@@ -1,0 +1,54 @@
+# SmartXFlow least-privilege deployment commands.
+# Install as /etc/sudoers.d/smartxflow-deploy with mode 0440 after visudo validation.
+# Do NOT grant passwordless sudo for /bin/bash, /bin/sh, editors, git, cp or mv.
+
+Cmnd_Alias SXF_UNIT_INSTALL = \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-web.service /etc/systemd/system/smartxflow-web.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-scraper.service /etc/systemd/system/smartxflow-scraper.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-alarm.service /etc/systemd/system/smartxflow-alarm.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-live.service /etc/systemd/system/smartxflow-live.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-poly.service /etc/systemd/system/smartxflow-poly.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/smartxflow-sinyal.service /etc/systemd/system/smartxflow-sinyal.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.service /etc/systemd/system/smartxflow-learning-archive-prematch.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-prematch.timer /etc/systemd/system/smartxflow-learning-archive-prematch.timer, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.service /etc/systemd/system/smartxflow-learning-archive-postmatch.service, \
+    /usr/bin/install -m 0644 /opt/smartxflow/deploy/systemd/smartxflow-learning-archive-postmatch.timer /etc/systemd/system/smartxflow-learning-archive-postmatch.timer
+
+Cmnd_Alias SXF_SYSTEMD_MUTATE = \
+    /bin/systemctl daemon-reload, \
+    /bin/systemctl enable smartxflow-web.service smartxflow-scraper.service smartxflow-alarm.service smartxflow-sinyal.service smartxflow-live.service smartxflow-poly.service smartxflow-learning-archive-prematch.timer smartxflow-learning-archive-postmatch.timer, \
+    /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer, \
+    /bin/systemctl enable --now smartxflow-learning-archive-postmatch.timer, \
+    /bin/systemctl start smartxflow-learning-archive-prematch.service, \
+    /bin/systemctl start smartxflow-learning-archive-postmatch.service, \
+    /bin/systemctl restart smartxflow-web, \
+    /bin/systemctl restart smartxflow-scraper, \
+    /bin/systemctl restart smartxflow-alarm, \
+    /bin/systemctl restart smartxflow-sinyal, \
+    /bin/systemctl restart smartxflow-live, \
+    /bin/systemctl restart smartxflow-poly
+
+Cmnd_Alias SXF_SYSTEMD_READ = \
+    /bin/systemctl status smartxflow-learning-archive-prematch.timer --no-pager, \
+    /bin/systemctl status smartxflow-learning-archive-prematch.service --no-pager, \
+    /bin/systemctl status smartxflow-learning-archive-postmatch.timer --no-pager, \
+    /bin/systemctl status smartxflow-learning-archive-postmatch.service --no-pager, \
+    /bin/systemctl list-timers smartxflow-learning-archive-prematch.timer smartxflow-learning-archive-postmatch.timer --no-pager, \
+    /bin/systemctl is-active smartxflow-web, \
+    /bin/systemctl is-active smartxflow-scraper, \
+    /bin/systemctl is-active smartxflow-alarm, \
+    /bin/systemctl is-active smartxflow-sinyal, \
+    /bin/systemctl is-active smartxflow-live, \
+    /bin/systemctl is-active smartxflow-poly, \
+    /bin/systemctl show -p ExecStart --value smartxflow-scraper.service, \
+    /bin/systemctl show -p ExecStart --value smartxflow-alarm.service, \
+    /bin/systemctl show -p ExecStart --value smartxflow-sinyal.service, \
+    /bin/systemctl show -p ExecStart --value smartxflow-live.service, \
+    /bin/systemctl show -p ExecStart --value smartxflow-poly.service, \
+    /bin/systemctl show -p Environment --value smartxflow-web.service
+
+Cmnd_Alias SXF_JOURNAL_READ = \
+    /bin/journalctl -u smartxflow-learning-archive-prematch.service -n 50 --no-pager, \
+    /bin/journalctl -u smartxflow-learning-archive-postmatch.service -n 100 --no-pager
+
+smartxflow ALL=(root) NOPASSWD: SXF_UNIT_INSTALL, SXF_SYSTEMD_MUTATE, SXF_SYSTEMD_READ, SXF_JOURNAL_READ
