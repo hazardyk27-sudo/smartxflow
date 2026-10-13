@@ -1,0 +1,18 @@
+[Unit]
+Description=SmartXFlow Live Scraper
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/live_scraper.py
+Restart=always
+RestartSec=30
+StandardOutput=append:/opt/smartxflow/logs/live.log
+StandardError=append:/opt/smartxflow/logs/live.log
+
+[Install]
+WantedBy=multi-user.target
