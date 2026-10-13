@@ -33,11 +33,16 @@ def test_runtime_overrides_false_flag_before_importing_scheduled_scraper(monkeyp
     monkeypatch.setenv(FLAG, "false")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-present")
     monkeypatch.setitem(sys.modules, "scheduled_scraper", fake_scheduled)
+    monkeypatch.setattr(
+        module,
+        "_install_authoritative_history_guard",
+        lambda: calls.append("history_guard"),
+    )
 
     module.run()
 
     assert module.os.environ[FLAG] == "true"
-    assert calls == ["run_loop"]
+    assert calls == ["history_guard", "run_loop"]
 
 
 def test_runtime_fails_closed_without_service_role(monkeypatch):
@@ -58,6 +63,69 @@ def test_runtime_fails_closed_without_service_role(monkeypatch):
     assert imported == []
 
 
+def test_history_guard_skips_history_after_failed_current_and_recovers(monkeypatch):
+    module = _load_entrypoint()
+
+    class FakeWriter:
+        def __init__(self):
+            self.last_write_errors = []
+            self.history_calls = []
+
+        def append_history(self, table, rows, scraped_at):
+            self.history_calls.append((table, list(rows), scraped_at))
+            return True
+
+    outcomes = {
+        "moneyway_1x2": False,
+    }
+
+    fake_prematch = types.ModuleType("betwatch_prematch")
+    fake_prematch.SupabaseWriter = FakeWriter
+
+    def fake_sync(writer, table, rows, logger=None):
+        return outcomes[table]
+
+    fake_prematch.sync_current_table = fake_sync
+    monkeypatch.setitem(sys.modules, "betwatch_prematch", fake_prematch)
+
+    module._install_authoritative_history_guard()
+    writer = FakeWriter()
+
+    assert fake_prematch.sync_current_table(
+        writer,
+        "moneyway_1x2",
+        [{"fixture_uid": "uid-1"}],
+    ) is False
+    assert fake_prematch.SupabaseWriter.append_history(
+        writer,
+        "moneyway_1x2_history",
+        [{"fixture_uid": "uid-1"}],
+        "2026-10-13 18:00:00",
+    ) is False
+    assert writer.history_calls == []
+    assert writer.last_write_errors == [
+        "fixture_uid_current_write:moneyway_1x2"
+    ]
+
+    outcomes["moneyway_1x2"] = True
+    assert fake_prematch.sync_current_table(
+        writer,
+        "moneyway_1x2",
+        [{"fixture_uid": "uid-1"}],
+    ) is True
+    assert fake_prematch.SupabaseWriter.append_history(
+        writer,
+        "moneyway_1x2_history",
+        [{"fixture_uid": "uid-1"}],
+        "2026-10-13 18:05:00",
+    ) is True
+    assert len(writer.history_calls) == 1
+
+    # Installing twice must not stack wrappers.
+    module._install_authoritative_history_guard()
+    assert fake_prematch._SXF_AUTHORITATIVE_HISTORY_GUARD is True
+
+
 def test_supervisor_has_no_direct_legacy_prematch_entrypoint():
     text = SUPERVISOR.read_text()
 
@@ -69,5 +137,6 @@ def test_entrypoint_sets_flag_before_scheduled_scraper_import():
     text = ENTRYPOINT.read_text()
 
     set_pos = text.index('os.environ[_CANONICAL_FLAG] = "true"')
+    guard_pos = text.index("_install_authoritative_history_guard()")
     import_pos = text.index("from scheduled_scraper import run_loop")
-    assert set_pos < import_pos
+    assert set_pos < guard_pos < import_pos
