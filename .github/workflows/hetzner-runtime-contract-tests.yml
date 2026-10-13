@@ -1,3 +1,4 @@
+# Curated Hetzner cutover release gate.
 name: Hetzner Runtime Contract Tests
 
 on:
