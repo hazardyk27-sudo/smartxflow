@@ -77,8 +77,8 @@ jobs:
             chmod -R o+rx /opt/smartxflow/static/
 
             # Install the exact tracked runtime units before any restart. The helper
-            # only syncs/enables units; it does not stop or restart services.
-            sudo /bin/bash /opt/smartxflow/deploy/sync_runtime_units.sh
+            # performs only explicit least-privilege install/daemon-reload/enable calls.
+            /bin/bash /opt/smartxflow/deploy/sync_runtime_units.sh
 
             sudo /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer
             sudo /bin/systemctl enable --now smartxflow-learning-archive-postmatch.timer
