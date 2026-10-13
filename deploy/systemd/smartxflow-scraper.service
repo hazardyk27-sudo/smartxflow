@@ -11,6 +11,8 @@ EnvironmentFile=/opt/smartxflow/.env
 # Defense in depth: the entrypoint also forces this flag and refuses to start
 # without SUPABASE_SERVICE_ROLE_KEY.
 Environment=SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true
+# Stable lease holder identity for atomic cross-host prematch ownership.
+Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/prematch_authoritative_runtime.py
 Restart=always
 RestartSec=30
