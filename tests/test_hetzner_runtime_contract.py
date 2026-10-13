@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SYSTEMD = ROOT / "deploy" / "systemd"
 ENV_TEMPLATE = ROOT / "deploy" / "env.template"
 UNIT_SYNC = ROOT / "deploy" / "sync_runtime_units.sh"
+DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
 
 
 def _read(name: str) -> str:
@@ -89,3 +90,25 @@ def test_unit_sync_installs_all_runtime_units_without_restarting_or_stopping():
     assert "systemctl stop" not in text
     assert "systemctl disable" not in text
     assert "reset --hard" not in text
+
+
+def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
+    text = DEPLOY_WORKFLOW.read_text(encoding="utf-8")
+    assert "deploy/sync_runtime_units.sh" in text
+    assert "systemctl restart smartxflow-web" in text
+    assert "systemctl restart smartxflow-scraper" in text
+    assert "systemctl restart smartxflow-alarm" in text
+    assert "systemctl restart smartxflow-sinyal" in text
+    assert "systemctl restart smartxflow-live" in text
+    assert "systemctl restart smartxflow-poly" in text
+    assert "prematch_authoritative_runtime.py" in text
+    assert "SMARTXFLOW_MODE=server" in text
+    assert "DISABLE_SCRAPER=true" in text
+    assert "alarm_engine.py" in text
+    assert "sinyal_engine_runtime.py" in text
+    assert "live_scraper.py" in text
+    assert "polymarket_scraper.py" in text
+    assert "git merge --ff-only origin/main" in text
+    assert "reset --hard" not in text
+    assert "git rebase" not in text
+    assert "git cherry-pick" not in text
