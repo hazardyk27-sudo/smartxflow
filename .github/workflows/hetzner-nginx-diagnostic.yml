@@ -1,0 +1,61 @@
+name: Hetzner Nginx TLS Diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/hetzner-nginx-20261014
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read-only Hetzner Nginx diagnostic
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            echo '=== PRODUCTION HEAD ==='
+            sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD
+
+            echo '=== NGINX INCLUDE / VHOST FILES ==='
+            sudo /bin/ls -la /etc/nginx/sites-enabled /etc/nginx/conf.d || true
+
+            echo '=== NGINX 443 LISTENER ==='
+            sudo /usr/bin/ss -ltnp '( sport = :443 )' || true
+
+            echo '=== NGINX EFFECTIVE TLS ROUTING ==='
+            sudo /usr/sbin/nginx -T 2>&1 \
+              | /bin/grep -nE 'configuration file /etc/nginx|listen .*443|server_name|ssl_certificate' \
+              || true
+
+            echo '=== SMARTXFLOW CERT FILE ==='
+            sudo /usr/bin/openssl x509 \
+              -in /etc/letsencrypt/live/smartxflow.com/fullchain.pem \
+              -noout -subject -issuer -ext subjectAltName || true
+
+            echo '=== LOCAL SNI smartxflow.com ==='
+            echo | /usr/bin/openssl s_client \
+              -connect 127.0.0.1:443 \
+              -servername smartxflow.com \
+              -showcerts 2>/dev/null \
+              | /usr/bin/openssl x509 -noout -subject -issuer -ext subjectAltName || true
+
+            echo '=== LOCAL SNI www.smartxflow.com ==='
+            echo | /usr/bin/openssl s_client \
+              -connect 127.0.0.1:443 \
+              -servername www.smartxflow.com \
+              -showcerts 2>/dev/null \
+              | /usr/bin/openssl x509 -noout -subject -issuer -ext subjectAltName || true
+
+            echo '=== LOCAL SNI betcapitale.com ==='
+            echo | /usr/bin/openssl s_client \
+              -connect 127.0.0.1:443 \
+              -servername betcapitale.com \
+              -showcerts 2>/dev/null \
+              | /usr/bin/openssl x509 -noout -subject -issuer -ext subjectAltName || true
+
+            echo '=== DIAGNOSTIC COMPLETE ==='
