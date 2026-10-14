@@ -57,6 +57,37 @@ require_authoritative_dns() {
   done <<< "$ns_list"
 }
 
+verify_certificate_file() {
+  local host="$1"
+  local cert="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  openssl x509 -in "$cert" -noout -checkhost "$host" >/dev/null \
+    || fail "certificate file does not cover $host"
+  log "Certificate file covers $host"
+}
+
+verify_local_tls() {
+  local host="$1"
+  local served_cert
+  served_cert="$(mktemp)"
+  if ! openssl s_client \
+      -connect 127.0.0.1:443 \
+      -servername "$host" \
+      -showcerts \
+      </dev/null 2>/dev/null \
+      | openssl x509 -outform PEM > "$served_cert"; then
+    rm -f "$served_cert"
+    fail "could not read local TLS certificate for $host"
+  fi
+  if ! openssl x509 -in "$served_cert" -noout -checkhost "$host" >/dev/null; then
+    log "Local TLS certificate presented for $host:"
+    openssl x509 -in "$served_cert" -noout -subject -issuer -ext subjectAltName || true
+    rm -f "$served_cert"
+    fail "local TLS certificate hostname mismatch for $host"
+  fi
+  rm -f "$served_cert"
+  log "Local TLS certificate covers $host"
+}
+
 rollback() {
   local code=$?
   if [ "$code" -eq 0 ] || [ "$MUTATED" -eq 0 ]; then
@@ -83,6 +114,7 @@ trap rollback EXIT
 [ -f "$CANONICAL_CONF" ] || fail "$CANONICAL_CONF missing"
 command -v dig >/dev/null 2>&1 || fail "dig is required before cutover"
 command -v nginx >/dev/null 2>&1 || fail "nginx is required before cutover"
+command -v openssl >/dev/null 2>&1 || fail "openssl is required before cutover"
 
 log "Preflight: authoritative DNS must point both names to Hetzner"
 require_authoritative_dns "$DOMAIN"
@@ -90,7 +122,8 @@ require_authoritative_dns "$WWW_DOMAIN"
 
 systemctl is-active --quiet smartxflow-web || fail "smartxflow-web is not active"
 systemctl is-active --quiet nginx || fail "nginx is not active"
-curl -fsS --max-time 10 http://127.0.0.1:8000/ >/dev/null || fail "Gunicorn local HTTP check failed"
+curl --noproxy '*' -fsS --max-time 10 http://127.0.0.1:8000/ >/dev/null \
+  || fail "Gunicorn local HTTP check failed"
 nginx -t
 
 mkdir -p "$BACKUP_DIR" /var/www/certbot
@@ -150,15 +183,22 @@ certbot certonly --nginx \
 
 [ -s "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] || fail "certificate fullchain missing"
 [ -s "/etc/letsencrypt/live/$DOMAIN/privkey.pem" ] || fail "certificate private key missing"
+verify_certificate_file "$DOMAIN"
+verify_certificate_file "$WWW_DOMAIN"
 
 install -m 0644 "$CANONICAL_CONF" "$NGINX_CONF"
 ln -sfn "$NGINX_CONF" "$NGINX_LINK"
 nginx -t
 systemctl reload nginx
 
-curl -fsSI --max-time 15 --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/" >/dev/null \
+verify_local_tls "$DOMAIN"
+verify_local_tls "$WWW_DOMAIN"
+
+curl --noproxy '*' -fsSI --max-time 15 \
+  --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/" >/dev/null \
   || fail "local HTTPS smoke test failed for $DOMAIN"
-curl -fsSI --max-time 15 --resolve "$WWW_DOMAIN:443:127.0.0.1" "https://$WWW_DOMAIN/" >/dev/null \
+curl --noproxy '*' -fsSI --max-time 15 \
+  --resolve "$WWW_DOMAIN:443:127.0.0.1" "https://$WWW_DOMAIN/" >/dev/null \
   || fail "local HTTPS smoke test failed for $WWW_DOMAIN"
 
 systemctl is-active --quiet nginx || fail "nginx inactive after cutover"
