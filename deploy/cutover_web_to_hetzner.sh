@@ -24,7 +24,12 @@ fail() {
 
 resolve_a() {
   local host="$1"
-  dig +short A "$host" 2>/dev/null | sed '/^$/d' | sort -u
+  # `dig +short A` may include an intermediate CNAME target. Only compare
+  # literal IPv4 answers so www=CNAME->apex remains valid after propagation.
+  dig +short A "$host" 2>/dev/null \
+    | grep -E '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' \
+    | sort -u \
+    || true
 }
 
 require_exact_dns() {
