@@ -22,27 +22,39 @@ fail() {
   exit 1
 }
 
-resolve_a() {
-  local host="$1"
-  # `dig +short A` may include an intermediate CNAME target. Only compare
-  # literal IPv4 answers so www=CNAME->apex remains valid after propagation.
-  dig +short A "$host" 2>/dev/null \
+authoritative_nameservers() {
+  dig +short NS "$DOMAIN" 2>/dev/null \
+    | sed 's/\.$//' \
+    | sed '/^$/d' \
+    | sort -u
+}
+
+resolve_a_at_ns() {
+  local ns="$1"
+  local host="$2"
+  dig +short "@$ns" A "$host" 2>/dev/null \
     | grep -E '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' \
     | sort -u \
     || true
 }
 
-require_exact_dns() {
+require_authoritative_dns() {
   local host="$1"
-  local values
-  values="$(resolve_a "$host")"
-  [ -n "$values" ] || fail "$host has no A record"
-  if [ "$values" != "$EXPECTED_IP" ]; then
-    log "$host currently resolves to:"
-    printf '%s\n' "$values"
-    fail "$host must resolve only to $EXPECTED_IP before cutover"
-  fi
-  log "DNS OK: $host -> $EXPECTED_IP"
+  local ns_list ns values
+  ns_list="$(authoritative_nameservers)"
+  [ -n "$ns_list" ] || fail "could not resolve authoritative nameservers for $DOMAIN"
+
+  while IFS= read -r ns; do
+    [ -n "$ns" ] || continue
+    values="$(resolve_a_at_ns "$ns" "$host")"
+    [ -n "$values" ] || fail "$host has no authoritative A answer from $ns"
+    if [ "$values" != "$EXPECTED_IP" ]; then
+      log "$host authoritative answer from $ns:"
+      printf '%s\n' "$values"
+      fail "$host must resolve only to $EXPECTED_IP on every authoritative nameserver before cutover"
+    fi
+    log "Authoritative DNS OK: $host -> $EXPECTED_IP via $ns"
+  done <<< "$ns_list"
 }
 
 rollback() {
@@ -72,9 +84,9 @@ trap rollback EXIT
 command -v dig >/dev/null 2>&1 || fail "dig is required before cutover"
 command -v nginx >/dev/null 2>&1 || fail "nginx is required before cutover"
 
-log "Preflight: DNS must already point both names to Hetzner"
-require_exact_dns "$DOMAIN"
-require_exact_dns "$WWW_DOMAIN"
+log "Preflight: authoritative DNS must point both names to Hetzner"
+require_authoritative_dns "$DOMAIN"
+require_authoritative_dns "$WWW_DOMAIN"
 
 systemctl is-active --quiet smartxflow-web || fail "smartxflow-web is not active"
 systemctl is-active --quiet nginx || fail "nginx is not active"
