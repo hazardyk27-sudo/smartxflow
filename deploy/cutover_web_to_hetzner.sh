@@ -65,27 +65,46 @@ verify_certificate_file() {
   log "Certificate file covers $host"
 }
 
-verify_local_tls() {
+wait_for_local_tls() {
   local host="$1"
-  local served_cert
+  local attempt served_cert subject
+
+  for attempt in $(seq 1 20); do
+    served_cert="$(mktemp)"
+    if openssl s_client \
+        -connect 127.0.0.1:443 \
+        -servername "$host" \
+        -showcerts \
+        </dev/null 2>/dev/null \
+        | openssl x509 -outform PEM > "$served_cert" 2>/dev/null; then
+      if openssl x509 -in "$served_cert" -noout -checkhost "$host" >/dev/null 2>&1; then
+        rm -f "$served_cert"
+        log "Local TLS certificate covers $host (attempt $attempt)"
+        return 0
+      fi
+
+      if [ "$attempt" -eq 1 ] || [ "$attempt" -eq 20 ]; then
+        subject="$(openssl x509 -in "$served_cert" -noout -subject 2>/dev/null || true)"
+        log "Waiting for reloaded Nginx TLS worker for $host; currently: ${subject:-unknown certificate}"
+      fi
+    fi
+    rm -f "$served_cert"
+    sleep 0.5
+  done
+
   served_cert="$(mktemp)"
-  if ! openssl s_client \
-      -connect 127.0.0.1:443 \
-      -servername "$host" \
-      -showcerts \
-      </dev/null 2>/dev/null \
-      | openssl x509 -outform PEM > "$served_cert"; then
-    rm -f "$served_cert"
-    fail "could not read local TLS certificate for $host"
-  fi
-  if ! openssl x509 -in "$served_cert" -noout -checkhost "$host" >/dev/null; then
-    log "Local TLS certificate presented for $host:"
+  openssl s_client \
+    -connect 127.0.0.1:443 \
+    -servername "$host" \
+    -showcerts \
+    </dev/null 2>/dev/null \
+    | openssl x509 -outform PEM > "$served_cert" 2>/dev/null || true
+  if [ -s "$served_cert" ]; then
+    log "Final local TLS certificate presented for $host:"
     openssl x509 -in "$served_cert" -noout -subject -issuer -ext subjectAltName || true
-    rm -f "$served_cert"
-    fail "local TLS certificate hostname mismatch for $host"
   fi
   rm -f "$served_cert"
-  log "Local TLS certificate covers $host"
+  fail "local TLS certificate hostname mismatch for $host after Nginx reload grace period"
 }
 
 rollback() {
@@ -191,8 +210,8 @@ ln -sfn "$NGINX_CONF" "$NGINX_LINK"
 nginx -t
 systemctl reload nginx
 
-verify_local_tls "$DOMAIN"
-verify_local_tls "$WWW_DOMAIN"
+wait_for_local_tls "$DOMAIN"
+wait_for_local_tls "$WWW_DOMAIN"
 
 curl --noproxy '*' -fsSI --max-time 15 \
   --resolve "$DOMAIN:443:127.0.0.1" "https://$DOMAIN/" >/dev/null \
