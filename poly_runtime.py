@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Hetzner Polymarket runtime guard.
+"""Hetzner Polymarket runtime guards.
 
-Runs the canonical ``polymarket_scraper.py`` after installing a narrow guard
-around sport-registry persistence.  PostgreSQL raises cardinality violation
-21000 when a single ``INSERT .. ON CONFLICT DO UPDATE`` statement contains the
-same conflict key more than once.  The classifier can legitimately emit the
-same event/condition identity more than once in one collection pass, so we
-collapse those rows before the existing persistence function builds its bulk
-PostgREST payload.
+Runs the canonical ``polymarket_scraper.py`` after installing narrow production
+runtime guards:
 
-The guard preserves the classifier's monotonic state semantics:
+* Hetzner production aliases the process-local Supabase PostgREST credential to
+  ``SUPABASE_SERVICE_ROLE_KEY``.  Preview/desktop runtimes keep their existing
+  anon credential behavior.
+* Sport-registry persistence is deduplicated by conflict key so PostgreSQL does
+  not raise cardinality violation 21000 for duplicate identities in one bulk
+  upsert.
+
+The registry guard preserves the classifier's monotonic state semantics:
 verified > non_football > uncertain.  Equal-strength duplicates use the last
 observation while retaining useful metadata that the winner omitted.
 """
@@ -29,6 +31,35 @@ _CLASS_RANK = {
     _client.FOOTBALL_CLASS_NON_FOOTBALL: 1,
     _client.FOOTBALL_CLASS_VERIFIED: 2,
 }
+
+
+def install_hetzner_service_role_credentials() -> bool:
+    """Use service_role for the dedicated Hetzner Poly worker only.
+
+    ``polymarket_scraper.py`` and ``services.polymarket_client`` historically
+    read ``SUPABASE_ANON_KEY``.  Rather than changing shared desktop/preview
+    code, the canonical Hetzner wrapper replaces that process-local alias before
+    the scraper is executed.  No key material is logged.
+
+    Returns True when the production override was installed.  A Hetzner
+    production runtime without a service-role secret fails closed instead of
+    silently falling back to public mutation privileges.
+    """
+    runtime_id = os.environ.get("SMARTXFLOW_RUNTIME_ID", "").strip()
+    if runtime_id != "hetzner-prod":
+        return False
+
+    service_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    if not service_key:
+        raise RuntimeError(
+            "Hetzner Poly runtime requires SUPABASE_SERVICE_ROLE_KEY"
+        )
+
+    # Both names are consumed by legacy/shared PostgREST helpers.  This change
+    # is local to the Poly process and does not alter the host .env file.
+    os.environ["SUPABASE_ANON_KEY"] = service_key
+    os.environ["SUPABASE_KEY"] = service_key
+    return True
 
 
 def _registry_identity_key(record: Mapping[str, Any]) -> Optional[Tuple[str, str]]:
@@ -127,6 +158,7 @@ def install_registry_dedupe_guard() -> None:
 
 
 def main() -> None:
+    install_hetzner_service_role_credentials()
     install_registry_dedupe_guard()
 
     default_scraper = os.path.join(os.path.dirname(__file__), "polymarket_scraper.py")
