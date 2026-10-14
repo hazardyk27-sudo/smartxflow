@@ -111,7 +111,7 @@ jobs:
           bash -n scripts/replit-sync-preview.sh
           ! grep -q 'sinyal_engine_runtime.py' run_services.sh
           grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
-          grep -q '/opt/smartxflow/deploy/smartxflow-sinyal.service' .github/workflows/deploy.yml
+          grep -q 'deploy/smartxflow-sinyal.service' deploy/sync_runtime_units.sh
           grep -q 'systemctl restart smartxflow-sinyal' .github/workflows/deploy.yml
           grep -q 'systemctl is-active smartxflow-sinyal' .github/workflows/deploy.yml
           grep -q 'smartxflow-sinyal is not using sinyal_engine_runtime.py' .github/workflows/deploy.yml
