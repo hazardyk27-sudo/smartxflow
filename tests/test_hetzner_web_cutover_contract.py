@@ -48,8 +48,17 @@ def test_web_cutover_uses_certonly_then_canonical_nginx():
     assert 'certbot --nginx' not in text
 
 
-def test_web_cutover_verifies_local_https_and_services():
+def test_web_cutover_verifies_certificate_file_and_direct_local_sni():
     text = SCRIPT.read_text(encoding="utf-8")
+    assert 'openssl x509 -in "$cert" -noout -checkhost "$host"' in text
+    assert '-connect 127.0.0.1:443' in text
+    assert '-servername "$host"' in text
+    assert 'local TLS certificate hostname mismatch' in text
+
+
+def test_web_cutover_verifies_local_https_without_proxy_and_services():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "curl --noproxy '*' -fsSI" in text
     assert '--resolve "$DOMAIN:443:127.0.0.1"' in text
     assert '--resolve "$WWW_DOMAIN:443:127.0.0.1"' in text
     assert 'systemctl is-active --quiet nginx' in text
