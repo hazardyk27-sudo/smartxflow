@@ -20,6 +20,12 @@ def test_web_cutover_is_fail_closed_before_nginx_mutation():
     assert 'must resolve only to $EXPECTED_IP before cutover' in text
 
 
+def test_web_cutover_dns_parser_accepts_cname_by_comparing_ipv4_only():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "grep -E '^[0-9]{1,3}(\\.[0-9]{1,3}){3}$'" in text
+    assert 'dig +short A "$host"' in text
+
+
 def test_web_cutover_has_backup_and_rollback_contract():
     text = SCRIPT.read_text(encoding="utf-8")
     assert 'trap rollback EXIT' in text
