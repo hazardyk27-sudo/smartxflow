@@ -56,6 +56,16 @@ def test_web_cutover_verifies_certificate_file_and_direct_local_sni():
     assert 'local TLS certificate hostname mismatch' in text
 
 
+def test_web_cutover_waits_for_reloaded_nginx_tls_worker():
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert 'wait_for_local_tls()' in text
+    assert 'for attempt in $(seq 1 20)' in text
+    assert 'sleep 0.5' in text
+    assert 'Waiting for reloaded Nginx TLS worker' in text
+    assert 'wait_for_local_tls "$DOMAIN"' in text
+    assert 'wait_for_local_tls "$WWW_DOMAIN"' in text
+
+
 def test_web_cutover_verifies_local_https_without_proxy_and_services():
     text = SCRIPT.read_text(encoding="utf-8")
     assert "curl --noproxy '*' -fsSI" in text
