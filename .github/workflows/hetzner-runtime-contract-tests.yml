@@ -16,12 +16,14 @@ on:
       - 'run_services.sh'
       - 'sitecustomize.py'
       - 'web_runtime.py'
+      - 'live_runtime.py'
       - 'core/web_supabase_server_credentials.py'
       - '.github/workflows/deploy.yml'
       - '.github/workflows/hetzner-web-cutover.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - 'tests/test_hetzner_web_cutover_contract.py'
       - 'tests/test_replit_backend_fail_closed.py'
+      - 'tests/test_live_runtime_service_role.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
   pull_request:
     paths:
@@ -36,12 +38,14 @@ on:
       - 'run_services.sh'
       - 'sitecustomize.py'
       - 'web_runtime.py'
+      - 'live_runtime.py'
       - 'core/web_supabase_server_credentials.py'
       - '.github/workflows/deploy.yml'
       - '.github/workflows/hetzner-web-cutover.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - 'tests/test_hetzner_web_cutover_contract.py'
       - 'tests/test_replit_backend_fail_closed.py'
+      - 'tests/test_live_runtime_service_role.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
 
 jobs:
@@ -59,4 +63,4 @@ jobs:
       - run: bash -n run_services.sh
       - run: sudo /usr/sbin/visudo -cf deploy/sudoers-smartxflow-deploy
       - run: python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml', encoding='utf-8')); yaml.safe_load(open('.github/workflows/hetzner-web-cutover.yml', encoding='utf-8'))"
-      - run: python -m pytest -q tests/test_hetzner_runtime_contract.py tests/test_hetzner_web_cutover_contract.py tests/test_replit_backend_fail_closed.py
+      - run: python -m pytest -q tests/test_hetzner_runtime_contract.py tests/test_hetzner_web_cutover_contract.py tests/test_replit_backend_fail_closed.py tests/test_live_runtime_service_role.py
