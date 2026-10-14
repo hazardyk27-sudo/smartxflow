@@ -23,7 +23,7 @@ def _load_entrypoint():
     return module
 
 
-def test_runtime_overrides_false_flag_before_importing_scheduled_scraper(monkeypatch):
+def test_runtime_overrides_false_flag_and_anon_slot_before_import(monkeypatch):
     module = _load_entrypoint()
     calls = []
 
@@ -31,7 +31,8 @@ def test_runtime_overrides_false_flag_before_importing_scheduled_scraper(monkeyp
     fake_scheduled.run_loop = lambda: calls.append("run_loop")
 
     monkeypatch.setenv(FLAG, "false")
-    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-role-present")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "public-anon-key")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "server-service-key")
     monkeypatch.setitem(sys.modules, "scheduled_scraper", fake_scheduled)
     monkeypatch.setattr(
         module,
@@ -42,6 +43,8 @@ def test_runtime_overrides_false_flag_before_importing_scheduled_scraper(monkeyp
     module.run()
 
     assert module.os.environ[FLAG] == "true"
+    assert module.os.environ["SUPABASE_ANON_KEY"] == "server-service-key"
+    assert module.os.environ["SMARTXFLOW_PREMATCH_CREDENTIAL_MODE"] == "service_role"
     assert calls == ["history_guard", "run_loop"]
 
 
@@ -53,6 +56,7 @@ def test_runtime_fails_closed_without_service_role(monkeypatch):
     fake_scheduled.run_loop = lambda: imported.append("run_loop")
 
     monkeypatch.setenv(FLAG, "false")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "public-anon-key")
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     monkeypatch.setitem(sys.modules, "scheduled_scraper", fake_scheduled)
 
@@ -60,6 +64,7 @@ def test_runtime_fails_closed_without_service_role(monkeypatch):
         module.run()
 
     assert module.os.environ[FLAG] == "true"
+    assert module.os.environ["SUPABASE_ANON_KEY"] == "public-anon-key"
     assert imported == []
 
 
@@ -133,10 +138,11 @@ def test_supervisor_has_no_direct_legacy_prematch_entrypoint():
     assert "python scheduled_scraper.py" not in text
 
 
-def test_entrypoint_sets_flag_before_scheduled_scraper_import():
+def test_entrypoint_sets_identity_and_service_role_before_scraper_imports():
     text = ENTRYPOINT.read_text()
 
     set_pos = text.index('os.environ[_CANONICAL_FLAG] = "true"')
-    guard_pos = text.index("    _install_authoritative_history_guard()", set_pos)
+    credential_pos = text.index("    _install_service_role_credentials()", set_pos)
+    guard_pos = text.index("    _install_authoritative_history_guard()", credential_pos)
     import_pos = text.index("from scheduled_scraper import run_loop", guard_pos)
-    assert set_pos < guard_pos < import_pos
+    assert set_pos < credential_pos < guard_pos < import_pos
