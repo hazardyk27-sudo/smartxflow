@@ -22,6 +22,27 @@ _HISTORY_TO_CURRENT = {
 }
 
 
+def _install_service_role_credentials() -> str:
+    """Bind all canonical prematch DB access to the server-only credential.
+
+    The legacy scheduled scraper still reads its database credential from
+    ``SUPABASE_ANON_KEY``. The authoritative Hetzner entrypoint already requires
+    the service-role secret for its fixture-identity RPC, so expose that same
+    server credential through the legacy slot *before* importing scraper code.
+    This removes production prematch writes/heartbeats from the public anon role
+    without changing preview/local entrypoints that run the legacy module
+    directly.
+    """
+    service_key = str(os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not service_key:
+        raise SystemExit(
+            "SUPABASE_SERVICE_ROLE_KEY is required for provider-authoritative prematch runtime"
+        )
+    os.environ["SUPABASE_ANON_KEY"] = service_key
+    os.environ["SMARTXFLOW_PREMATCH_CREDENTIAL_MODE"] = "service_role"
+    return service_key
+
+
 def _install_authoritative_history_guard() -> None:
     """Keep authoritative current/history writes fail-closed as one unit.
 
@@ -72,18 +93,18 @@ def run() -> None:
     # is selected, provider identity is the only allowed fixture authority.
     os.environ[_CANONICAL_FLAG] = "true"
 
-    # The authoritative RPC is service-role only. Fail before importing/starting
-    # the scraper loop rather than entering a retry loop that can never write.
-    if not str(os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip():
-        raise SystemExit(
-            "SUPABASE_SERVICE_ROLE_KEY is required for provider-authoritative prematch runtime"
-        )
-
+    # Fail closed and install the server-only database credential before any
+    # scraper module is imported.
+    _install_service_role_credentials()
     _install_authoritative_history_guard()
 
     from scheduled_scraper import run_loop
 
-    print("[IdentityV2] Prematch runtime: provider-authoritative fixture writer enforced", flush=True)
+    print(
+        "[IdentityV2] Prematch runtime: provider-authoritative fixture writer "
+        "and service-role DB credential enforced",
+        flush=True,
+    )
     run_loop()
 
 
