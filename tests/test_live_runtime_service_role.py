@@ -41,3 +41,16 @@ def test_live_runtime_fails_closed_without_service_role():
 
     assert env["SUPABASE_ANON_KEY"] == "public-anon-key"
     assert "SMARTXFLOW_LIVE_CREDENTIAL_MODE" not in env
+
+
+def test_live_runtime_accepts_only_canonical_live_scraper_target(tmp_path):
+    runtime = _load_runtime()
+    canonical = tmp_path / "live_scraper.py"
+    canonical.write_text("# test target\n", encoding="utf-8")
+
+    assert runtime._resolve_live_target(["live_runtime.py", str(canonical)]) == canonical.resolve()
+
+    unexpected = tmp_path / "other_worker.py"
+    unexpected.write_text("# no\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="unexpected live runtime target"):
+        runtime._resolve_live_target(["live_runtime.py", str(unexpected)])
