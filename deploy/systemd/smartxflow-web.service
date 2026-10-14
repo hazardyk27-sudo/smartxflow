@@ -12,7 +12,9 @@ EnvironmentFile=/opt/smartxflow/.env
 # dedicated systemd workers below rather than the web process.
 Environment=SMARTXFLOW_MODE=server
 Environment=DISABLE_SCRAPER=true
-ExecStart=/opt/smartxflow/venv/bin/gunicorn app:app --workers 2 --bind 127.0.0.1:8000 --timeout 120 --access-logfile /opt/smartxflow/logs/gunicorn-access.log --error-logfile /opt/smartxflow/logs/gunicorn-error.log --log-level info
+# web_runtime installs the server-only Supabase service-role guard before app.py
+# is imported. Desktop/preview client credentials are not changed.
+ExecStart=/opt/smartxflow/venv/bin/gunicorn web_runtime:app --workers 2 --bind 127.0.0.1:8000 --timeout 120 --access-logfile /opt/smartxflow/logs/gunicorn-access.log --error-logfile /opt/smartxflow/logs/gunicorn-error.log --log-level info
 Restart=always
 RestartSec=5
 
