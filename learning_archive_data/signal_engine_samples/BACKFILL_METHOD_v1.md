@@ -1,0 +1,3 @@
+# SXF checkpoint backfill methodology v1
+
+Local fixture dates: Europe/Istanbul. Horizons: T-6, T-5, T-4, T-3. Use native stored Moneyway 1X2, O/U2.5 and BTTS snapshots only at or before each checkpoint, joined by fixture_uid. Keep historical score as postmatch label. Preserve all rule-matching rows including stale snapshot ages; stale observations are not fresh predictions. Do not pool horizons as independent fixtures. Engine definitions: 1X2 V1 >= GBP1000, >=80% and 1.40-2.50 top money; Heavy additionally >=GBP10000; V2 V1 + 3h min share >=70% + adverse odds <=3%; Surprise team 2.90-4.49 >=50%; Stable Over >=GBP1500 >=65% odds 1.40-1.80; Premium Over >=GBP2500 >=75%; BTTS Yes >=GBP750 >=60% odds 1.60-1.90.
