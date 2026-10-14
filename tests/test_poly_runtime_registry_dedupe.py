@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 import poly_runtime
 
 
@@ -96,10 +98,48 @@ def test_install_guard_dedupes_before_calling_canonical_persistence(monkeypatch)
     assert poly_runtime._client._persist_sport_registry_records is wrapped
 
 
+def test_hetzner_poly_runtime_aliases_postgrest_to_service_role(monkeypatch):
+    monkeypatch.setenv("SMARTXFLOW_RUNTIME_ID", "hetzner-prod")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-old")
+    monkeypatch.setenv("SUPABASE_KEY", "anon-old")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-secret")
+
+    installed = poly_runtime.install_hetzner_service_role_credentials()
+
+    assert installed is True
+    assert poly_runtime.os.environ["SUPABASE_ANON_KEY"] == "service-secret"
+    assert poly_runtime.os.environ["SUPABASE_KEY"] == "service-secret"
+
+
+def test_non_hetzner_poly_runtime_keeps_existing_anon_credentials(monkeypatch):
+    monkeypatch.setenv("SMARTXFLOW_RUNTIME_ID", "preview")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-preview")
+    monkeypatch.setenv("SUPABASE_KEY", "anon-preview")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-secret")
+
+    installed = poly_runtime.install_hetzner_service_role_credentials()
+
+    assert installed is False
+    assert poly_runtime.os.environ["SUPABASE_ANON_KEY"] == "anon-preview"
+    assert poly_runtime.os.environ["SUPABASE_KEY"] == "anon-preview"
+
+
+def test_hetzner_poly_runtime_fails_closed_without_service_role(monkeypatch):
+    monkeypatch.setenv("SMARTXFLOW_RUNTIME_ID", "hetzner-prod")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "anon-old")
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+
+    with pytest.raises(RuntimeError, match="SUPABASE_SERVICE_ROLE_KEY"):
+        poly_runtime.install_hetzner_service_role_credentials()
+
+    assert poly_runtime.os.environ["SUPABASE_ANON_KEY"] == "anon-old"
+
+
 def test_hetzner_poly_unit_runs_guard_before_canonical_scraper():
     text = (ROOT / "deploy" / "systemd" / "smartxflow-poly.service").read_text(
         encoding="utf-8"
     )
+    assert "Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod" in text
     assert "/opt/smartxflow/poly_runtime.py" in text
     assert "/opt/smartxflow/polymarket_scraper.py" in text
     assert text.index("poly_runtime.py") < text.index("polymarket_scraper.py")
