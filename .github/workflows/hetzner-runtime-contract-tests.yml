@@ -15,6 +15,7 @@ on:
       - 'deploy/sudoers-smartxflow-deploy'
       - 'run_services.sh'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/hetzner-web-cutover.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - 'tests/test_hetzner_web_cutover_contract.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
@@ -30,6 +31,7 @@ on:
       - 'deploy/sudoers-smartxflow-deploy'
       - 'run_services.sh'
       - '.github/workflows/deploy.yml'
+      - '.github/workflows/hetzner-web-cutover.yml'
       - 'tests/test_hetzner_runtime_contract.py'
       - 'tests/test_hetzner_web_cutover_contract.py'
       - '.github/workflows/hetzner-runtime-contract-tests.yml'
@@ -48,5 +50,5 @@ jobs:
       - run: bash -n deploy/cutover_web_to_hetzner.sh
       - run: bash -n run_services.sh
       - run: sudo /usr/sbin/visudo -cf deploy/sudoers-smartxflow-deploy
-      - run: python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml', encoding='utf-8'))"
+      - run: python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml', encoding='utf-8')); yaml.safe_load(open('.github/workflows/hetzner-web-cutover.yml', encoding='utf-8'))"
       - run: python -m pytest -q tests/test_hetzner_runtime_contract.py tests/test_hetzner_web_cutover_contract.py
