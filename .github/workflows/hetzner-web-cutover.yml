@@ -1,0 +1,69 @@
+name: Hetzner Web Cutover
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/cutover_web_to_hetzner.sh'
+      - 'deploy/nginx-smartxflow.conf'
+      - '.github/workflows/hetzner-web-cutover.yml'
+
+jobs:
+  web-cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cut over SmartXFlow web to Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          CUTOVER_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: CUTOVER_SHA
+          script: |
+            set -euo pipefail
+
+            git config --global --add safe.directory /opt/smartxflow
+            cd /opt/smartxflow
+
+            BRANCH="$(sudo -u smartxflow git branch --show-current)"
+            HEAD_SHA="$(sudo -u smartxflow git rev-parse HEAD)"
+
+            if [ "$BRANCH" != "main" ]; then
+              echo "WEB CUTOVER STOP: production branch is $BRANCH"
+              exit 1
+            fi
+
+            if [ "$HEAD_SHA" != "$CUTOVER_SHA" ]; then
+              echo "WEB CUTOVER STOP: Hetzner HEAD $HEAD_SHA != requested $CUTOVER_SHA"
+              echo "Run/re-run after the normal production deploy has completed."
+              exit 1
+            fi
+
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "WEB CUTOVER STOP: production tracked tree is dirty"
+              sudo -u smartxflow git status --short
+              exit 1
+            fi
+
+            if [ "$(id -u)" -eq 0 ]; then
+              /bin/bash /opt/smartxflow/deploy/cutover_web_to_hetzner.sh
+            else
+              sudo -n /bin/bash /opt/smartxflow/deploy/cutover_web_to_hetzner.sh
+            fi
+
+            FINAL_SHA="$(sudo -u smartxflow git rev-parse HEAD)"
+            [ "$FINAL_SHA" = "$CUTOVER_SHA" ] || {
+              echo "WEB CUTOVER STOP: repository HEAD changed during cutover"
+              exit 1
+            }
+
+            if ! sudo -u smartxflow git diff --quiet || ! sudo -u smartxflow git diff --cached --quiet; then
+              echo "WEB CUTOVER STOP: tracked tree became dirty"
+              exit 1
+            fi
+
+            echo "WEB_CUTOVER_WORKFLOW_OK SHA=$FINAL_SHA"
