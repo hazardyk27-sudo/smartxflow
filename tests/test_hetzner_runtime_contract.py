@@ -10,6 +10,8 @@ SUDOERS = ROOT / "deploy" / "sudoers-smartxflow-deploy"
 DEPLOY_WORKFLOW = ROOT / ".github" / "workflows" / "deploy.yml"
 CONTRACT_WORKFLOW = ROOT / ".github" / "workflows" / "hetzner-runtime-contract-tests.yml"
 RUN_SERVICES = ROOT / "run_services.sh"
+WEB_RUNTIME = ROOT / "web_runtime.py"
+WEB_CREDENTIAL_GUARD = ROOT / "core" / "web_supabase_server_credentials.py"
 
 
 def _read(name: str) -> str:
@@ -21,10 +23,23 @@ def test_web_unit_is_ui_only_server_runtime():
     assert "EnvironmentFile=/opt/smartxflow/.env" in text
     assert "Environment=SMARTXFLOW_MODE=server" in text
     assert "Environment=DISABLE_SCRAPER=true" in text
-    assert "gunicorn app:app" in text
+    assert "gunicorn web_runtime:app" in text
+    assert "gunicorn app:app" not in text
     assert "scheduled_scraper" not in text
     assert "live_scraper" not in text
     assert "alarm_engine.py" not in text
+
+
+def test_web_runtime_installs_service_role_guard_before_importing_app():
+    runtime = WEB_RUNTIME.read_text(encoding="utf-8")
+    guard = WEB_CREDENTIAL_GUARD.read_text(encoding="utf-8")
+    install_pos = runtime.index("install_web_server_service_role_guard()")
+    app_import_pos = runtime.index("from app import app")
+    assert install_pos < app_import_pos
+    assert 'SMARTXFLOW_MODE' in guard
+    assert 'SUPABASE_SERVICE_ROLE_KEY' in guard
+    assert 'services.auth_helpers' in guard
+    assert 'SUPABASE_ANON_KEY' not in guard
 
 
 def test_prematch_unit_is_provider_authoritative():
