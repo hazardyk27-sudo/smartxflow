@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import runpy
+import sys
 from pathlib import Path
 from typing import MutableMapping
 
@@ -35,9 +36,22 @@ def install_live_service_role_guard(
     return service_key
 
 
+def _resolve_live_target(argv: list[str] | None = None) -> Path:
+    args = sys.argv if argv is None else argv
+    if len(args) >= 2:
+        target = Path(args[1]).resolve()
+    else:
+        target = Path(__file__).resolve().with_name("live_scraper.py")
+    if target.name != "live_scraper.py":
+        raise RuntimeError(f"refusing unexpected live runtime target: {target}")
+    if not target.is_file():
+        raise RuntimeError(f"live scraper target missing: {target}")
+    return target
+
+
 def main() -> int:
     install_live_service_role_guard()
-    live_path = Path(__file__).resolve().with_name("live_scraper.py")
+    live_path = _resolve_live_target()
     runpy.run_path(str(live_path), run_name="__main__")
     return 0
 
