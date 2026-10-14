@@ -1,0 +1,68 @@
+local_date,kickoff,league,home_team,away_team,score,status,match_id_hash,early_h,side,odds,amount,share,won
+2026-10-09,19:00,"Czech 1 Liga","Zlin","Slavia Prague",0-1,ft,c80f26a946d3,12,AWAY,1.30,1045.82,99.5,true
+2026-10-09,19:30,"German Bundesliga 2","FC Heidenheim","Kaiserslautern",0-0,ft,50706b6a484b,12,HOME,1.96,5759.32,82.0,false
+2026-10-09,20:00,"Turkish Super League","Galatasaray","Kasimpasa",3-1,ft,9bd259e01830,12,HOME,1.30,9276.27,88.9,true
+2026-10-09,21:00,"Romanian Liga I","ACS Sepsi OSK","Dinamo Bucharest",0-2,ft,0b6396ed9eae,12,AWAY,1.69,2717.58,94.6,true
+2026-10-09,21:30,"German Bundesliga","Dortmund","Werder Bremen",2-2,ft,7769b0345e8c,40,HOME,1.38,24339.60,81.2,false
+2026-10-09,21:45,"Irish Division 1","Cork City","Finn Harps",2-0,ft,52b401a0afa7,12,HOME,1.16,1543.75,97.9,true
+2026-10-09,21:45,"French Ligue 1","Lens","Lyon",2-1,ft,3c5e2ae7b3f0,24,HOME,2.46,13560.00,57.2,true
+2026-10-09,21:45,"Irish Premier Division","Shelbourne","Sligo Rovers",5-1,ft,c879a7157a51,12,HOME,1.33,1437.26,92.4,true
+2026-10-09,22:00,"English Sky Bet Championship","West Ham","QPR",1-1,ft,a8c9c4e62e0b,24,HOME,1.50,22461.50,87.8,false
+2026-10-10,16:30,"German Bundesliga","Augsburg","Bayern Munich",2-2,ft,6f4b0e5ef0a1,12,AWAY,1.19,19495.60,82.2,false
+2026-10-10,17:00,"Norwegian Eliteserien","Bodo Glimt","Kristiansund",3-1,ft,f3877582158e,12,HOME,1.09,2160.30,95.5,true
+2026-10-10,17:00,"English Sky Bet League 1","Bradford","Leyton Orient",0-0,ft,0f9f4a17f125,12,HOME,1.72,2735.95,89.2,false
+2026-10-10,17:00,"English Premier League","Chelsea","Bournemouth",5-1,ft,a9d166157bdf,72,HOME,1.74,18219.80,69.1,true
+2026-10-10,17:00,"English Sky Bet League 2","Cheltenham","Salford City",0-2,ft,f87e1e9b000e,12,AWAY,1.92,1935.55,84.4,true
+2026-10-10,17:00,"English Sky Bet League 2","Crawley Town","Chesterfield",2-2,ft,590a4858fcdc,12,AWAY,1.70,1319.77,86.2,false
+2026-10-10,17:00,"English Sky Bet League 1","Huddersfield","Sheff Wed",2-2,ft,80bafa77d36c,12,HOME,1.75,6325.79,88.9,false
+2026-10-10,17:00,"English Premier League","Ipswich","Fulham",2-1,ft,8b3b512fef6c,72,HOME,2.96,9415.47,60.4,true
+2026-10-10,17:00,"Scottish Premiership","Rangers","Kilmarnock",3-1,ft,d6ea2d158fd4,12,HOME,1.17,5916.54,93.1,true
+2026-10-10,17:00,"English Sky Bet League 1","Stockport","Barnsley",3-1,ft,5b3981152f84,12,HOME,1.47,1867.46,82.7,true
+2026-10-10,17:00,"English Premier League","Sunderland","Brighton",0-2,ft,13acfb2e6f3c,72,AWAY,2.42,23079.50,58.7,true
+2026-10-10,17:00,"English National League","Wealdstone","Yeovil",0-6,ft,fa8a3fa14446,12,AWAY,2.34,1687.39,87.2,true
+2026-10-10,17:00,"English National League","Worthing","Solihull Moors",5-0,ft,c3a271c8cec1,12,HOME,1.67,3034.52,99.8,true
+2026-10-10,17:00,"English Sky Bet League 2","York City","Northampton",1-1,ft,f89391865d54,12,HOME,1.54,3937.55,85.0,false
+2026-10-10,17:15,"Spanish Segunda Division","AD Ceuta FC","Sabadell",1-2,ft,1c4d08b3bb02,40,AWAY,2.30,10567.20,91.9,true
+2026-10-10,17:15,"Spanish La Liga","Alaves","Atletico Madrid",1-2,ft,0db2b7c42909,60,AWAY,1.91,5920.91,70.4,true
+2026-10-10,19:00,"Italian Serie A","Inter","Parma",3-0,ft,1bc72936217c,24,HOME,1.17,21070.70,90.8,true
+2026-10-10,19:00,"Swiss Super League","Lugano","Luzern",4-0,ft,5626d95efc9d,12,HOME,1.67,1323.70,99.2,true
+2026-10-10,19:30,"Greek Super League","AEK Athens","OFI",3-0,ft,581afb17395f,12,HOME,1.30,3712.99,97.5,true
+2026-10-10,19:30,"Spanish La Liga","Barcelona","Getafe",3-0,ft,658068956d87,72,HOME,1.10,203322.00,98.0,true
+2026-10-10,19:30,"English Premier League","Man Utd","Tottenham",1-1,ft,202d1a1d09cd,72,HOME,1.75,23213.20,67.6,false
+2026-10-10,20:00,"Portuguese Primeira Liga","Maritimo","Porto",1-2,ft,abbf6d0e9732,12,AWAY,1.34,9481.60,86.2,true
+2026-10-10,20:00,"US MLS","Toronto FC","CF Montreal",2-1,ft,586fc6821cbd,12,HOME,2.00,1378.41,88.9,true
+2026-10-10,21:30,"Romanian Liga I","FCSB","Otelul Galati",1-0,ft,63bb6af54a36,12,HOME,1.50,1780.19,83.5,true
+2026-10-10,21:45,"Belgian Pro League","Genk","Kortrijk",3-0,ft,dbf56283fc33,12,HOME,1.44,3877.14,95.1,true
+2026-10-10,21:45,"Italian Serie A","Napoli","Frosinone",3-0,ft,bf561c79c512,72,HOME,1.53,6538.63,67.8,true
+2026-10-10,21:45,"French Ligue 1","Paris St-G","Le Mans",3-1,ft,24f5a4b2ee61,60,HOME,1.09,5079.92,95.2,true
+2026-10-10,22:00,"Spanish La Liga","Real Madrid","Villarreal",1-0,ft,6d30e6a02ae8,72,HOME,1.35,18661.50,89.1,true
+2026-10-11,17:00,"Belgian Pro League","Union St Gilloise","Oud-Heverlee Leuven",1-1,ft,8c668caceb55,12,HOME,1.28,3085.57,88.2,false
+2026-10-11,17:15,"Spanish La Liga","Real Sociedad","Deportivo",3-2,ft,ae3f2c899d46,72,HOME,1.67,8925.84,83.7,true
+2026-10-11,18:30,"German Bundesliga","Freiburg","Schalke 04",2-1,ft,f0b2d21a4c40,24,HOME,1.68,11696.00,78.7,true
+2026-10-11,18:30,"English Premier League","Liverpool","Man City",0-3,ft,e6441101dc98,40,AWAY,2.38,113525.00,58.5,true
+2026-10-11,19:00,"Turkish Super League","Besiktas","Kocaelispor",2-1,ft,9844e46171bb,12,HOME,1.27,5067.99,89.8,true
+2026-10-11,19:00,"Czech 1 Liga","Sparta Prague","Pardubice",2-0,ft,32d1f24b883f,12,HOME,1.40,1058.60,84.8,true
+2026-10-11,19:30,"Spanish La Liga","Betis","Osasuna",5-2,ft,ca568437414e,72,HOME,1.59,42060.10,98.6,true
+2026-10-11,19:30,"Belgian Pro League","Westerlo","Antwerp",5-1,ft,e94ab74d7ea3,12,HOME,2.20,1250.56,83.5,true
+2026-10-11,20:00,"Portuguese Primeira Liga","Benfica","Guimaraes",2-0,ft,816961f7e2fa,24,HOME,1.25,10374.60,92.2,true
+2026-10-11,21:45,"French Ligue 1","ESTAC Troyes","Marseille",0-2,ft,ab4a5673523f,24,AWAY,2.06,16095.90,87.9,true
+2026-10-11,22:00,"Brazilian Serie A","Atletico MG","Santos",2-1,ft,163b4856c8d9,12,HOME,2.28,5679.52,90.7,true
+2026-10-12,18:00,"Greek Super League","PAOK","Kalamata",1-3,ft,ed46c6cbce32,12,HOME,1.23,2307.24,94.1,false
+2026-10-12,19:30,"Italian Serie A","Atalanta","Venezia",3-1,ft,776c60042146,60,HOME,1.61,5729.34,86.4,true
+2026-10-12,20:00,"Swedish Allsvenskan","Elfsborg","Halmstads",4-0,ft,6ade646116f7,12,HOME,1.36,2294.66,92.1,true
+2026-10-12,20:00,"Turkish Super League","Eyupspor","Goztepe",0-4,ft,ff9230ea5e8c,12,AWAY,1.97,4534.50,86.8,true
+2026-10-12,22:00,"English Premier League","Coventry","Newcastle",4-1,ft,358b5d1babfa,72,AWAY,2.26,9641.89,72.7,false
+2026-10-12,22:00,"Irish Premier Division","Shamrock Rovers","Bohemians",2-1,ft,100c435427c3,12,HOME,2.32,1482.44,82.8,true
+2026-10-13,19:45,"UEFA Champions League","FC Sabah","Slavia Prague",2-0,ft,f61940a431c3,24,AWAY,2.10,12585.60,77.6,false
+2026-10-13,21:00,"EFL Trophy","Walsall","Fulham U21",3-2,ft,257434588a23,12,AWAY,3.75,3357.79,95.7,false
+2026-10-13,21:45,"English Sky Bet Championship","Bristol City","Blackburn",0-1,ft,55115b5876d1,24,HOME,2.18,10543.10,84.9,false
+2026-10-13,21:45,"English Sky Bet Championship","Burnley","Charlton",2-2,ft,72435eb9c8b4,12,HOME,1.69,2251.59,90.1,false
+2026-10-13,21:45,"English Sky Bet Championship","Millwall","Swansea",0-1,ft,74d7b5393552,12,HOME,2.54,1807.50,88.5,false
+2026-10-13,22:00,"UEFA Champions League","Arsenal","Lille",3-0,ft,7bedce3e9b50,72,HOME,1.25,6869.43,94.4,true
+2026-10-13,22:00,"UEFA Champions League","Atletico Madrid","Man Utd",2-0,ft,aa2ce0d2ac24,72,HOME,2.08,17734.20,86.8,true
+2026-10-13,22:00,"English Sky Bet Championship","Birmingham","Preston",4-0,ft,b3dbc685e603,24,HOME,1.64,15750.90,97.6,true
+2026-10-13,22:00,"UEFA Champions League","Galatasaray","Barcelona",1-4,ft,3347a119dcf6,40,AWAY,1.29,16191.50,92.2,true
+2026-10-13,22:00,"UEFA Champions League","Inter","Club Brugge",3-4,ft,7483b43ae37e,24,HOME,1.29,20043.50,84.4,false
+2026-10-13,22:00,"UEFA Champions League","RB Leipzig","PSV",1-0,ft,f034d0a13656,72,HOME,1.90,9147.25,89.4,true
+2026-10-13,22:00,"UEFA Champions League","Viking","Bayern Munich",3-3,ft,0b59f36ad475,72,AWAY,1.10,5178.97,93.9,false
+2026-10-13,22:00,"UEFA Champions League","Villarreal","Napoli",3-1,ft,305c88527e74,40,HOME,2.20,11957.50,88.5,true
