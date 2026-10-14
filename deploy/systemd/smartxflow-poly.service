@@ -8,6 +8,7 @@ User=smartxflow
 Group=smartxflow
 WorkingDirectory=/opt/smartxflow
 EnvironmentFile=/opt/smartxflow/.env
+Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/poly_runtime.py /opt/smartxflow/polymarket_scraper.py
 Restart=always
 RestartSec=30
