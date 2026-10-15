@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from core.hash_utils import make_fixture_identity_key, make_match_id_hash
+from core.hash_utils import canonicalize_league_name, make_fixture_identity_key, make_match_id_hash
 
 
 def test_same_match_two_scrapes():
@@ -58,6 +58,25 @@ def test_physical_identity_includes_league_and_kickoff():
     assert base != other_kickoff
 
 
+def test_conference_league_old_and_current_names_share_identity():
+    current_hash = make_match_id_hash(
+        "FC Twente", "Thun", "UEFA Conference League", "2026-10-15T19:00:00Z"
+    )
+    legacy_hash = make_match_id_hash(
+        "FC Twente", "Thun", "UEFA Europa Conference League", "2026-10-15T19:00:00Z"
+    )
+    assert current_hash == legacy_hash == "8f658f61ef73"
+
+    current_key = make_fixture_identity_key(
+        "FC Twente", "Thun", "UEFA Conference League", "2026-10-15T19:00:00Z"
+    )
+    legacy_key = make_fixture_identity_key(
+        "FC Twente", "Thun", "UEFA Europa Conference League", "2026-10-15T19:00:00Z"
+    )
+    assert current_key == legacy_key
+    assert canonicalize_league_name("UEFA Europa Conference League") == "UEFA Conference League"
+
+
 def run_all_tests():
     tests = [
         test_same_match_two_scrapes,
@@ -67,6 +86,7 @@ def run_all_tests():
         test_same_kickoff_teams_league_same_hash,
         test_physical_identity_normalizes_timezone_to_utc_minute,
         test_physical_identity_includes_league_and_kickoff,
+        test_conference_league_old_and_current_names_share_identity,
     ]
     for test in tests:
         test()
