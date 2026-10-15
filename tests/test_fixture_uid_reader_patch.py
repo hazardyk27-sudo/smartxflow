@@ -4,6 +4,7 @@ from services.fixture_uid_reader_patch import (
     enrich_matches_with_fixture_uids,
     get_matches_paginated_uid_safe,
 )
+from services.supabase_client import SupabaseClient
 
 
 class FakeResponse:
@@ -130,6 +131,36 @@ def test_uid_enrichment_does_not_guess_ambiguous_physical_identity():
 
     assert "fixture_uid" not in enriched[0]
 
+
+def test_ui_dedupe_collapses_conference_league_alias_rows_and_prefers_current_hash():
+    kickoff = "2026-10-15T19:00:00+00:00"
+    fixtures = [
+        {
+            "fixture_uid": "legacy-uid",
+            "match_id_hash": "6def1982ccdc",
+            "home_team": "FC Twente",
+            "away_team": "Thun",
+            "league": "UEFA Europa Conference League",
+            "kickoff_utc": kickoff,
+            "fixture_date": "2026-10-15",
+        },
+        {
+            "fixture_uid": "current-uid",
+            "match_id_hash": "8f658f61ef73",
+            "home_team": "FC Twente",
+            "away_team": "Thun",
+            "league": "UEFA Conference League",
+            "kickoff_utc": kickoff,
+            "fixture_date": "2026-10-15",
+        },
+    ]
+
+    deduped = SupabaseClient._dedupe_fixtures(fixtures)
+
+    assert len(deduped) == 1
+    assert deduped[0]["fixture_uid"] == "current-uid"
+    assert deduped[0]["match_id_hash"] == "8f658f61ef73"
+    assert deduped[0]["league"] == "UEFA Conference League"
 
 
 def test_first_page_fast_path_uses_rpc_without_full_fixture_fetch():
