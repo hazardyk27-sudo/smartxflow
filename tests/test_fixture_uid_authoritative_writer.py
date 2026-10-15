@@ -46,6 +46,27 @@ def test_same_physical_match_cannot_have_two_provider_events():
     assert stats["physical_event_collision_groups"] == 1
 
 
+def test_conference_league_alias_is_written_with_canonical_name_and_hash():
+    rows, stats = build_betwatch_fixture_rpc_rows([
+        _match(
+            "evt-conf",
+            "2026-10-15T19:00:00Z",
+            home="FC Twente",
+            away="Thun",
+            league="UEFA Europa Conference League",
+        )
+    ])
+    assert stats["error"] is None
+    assert rows == [{
+        "source_event_id": "evt-conf",
+        "match_id_hash": "8f658f61ef73",
+        "home_team": "FC Twente",
+        "away_team": "Thun",
+        "league": "UEFA Conference League",
+        "kickoff_utc": "2026-10-15T19:00:00+00:00",
+    }]
+
+
 def test_missing_provider_id_fails_closed_without_rpc():
     calls = []
 
