@@ -14,6 +14,14 @@ import re
 from datetime import datetime, timezone
 
 
+# Providers can rename the same competition without changing the physical match.
+# Keep those aliases on one identity contract so legacy/current fixture rows do
+# not become separate matches in readers or future writer decisions.
+_LEAGUE_IDENTITY_ALIASES = {
+    "uefa europa conference league": "uefa conference league",
+}
+
+
 def normalize_field(value: str) -> str:
     """Normalize team/league text for canonical match identity."""
     if not value:
@@ -41,7 +49,18 @@ def normalize_field(value: str) -> str:
                 value = value[:-len(token)].strip()
                 changed = True
                 break
-    return value
+
+    return _LEAGUE_IDENTITY_ALIASES.get(value, value)
+
+
+def canonicalize_league_name(value: str) -> str:
+    """Return a stable display/storage label for known competition aliases."""
+    raw = " ".join(str(value or "").strip().split())
+    if not raw:
+        return ""
+    if normalize_field(raw) == "uefa conference league":
+        return "UEFA Conference League"
+    return raw
 
 
 def normalize_kickoff(kickoff: str) -> str:
