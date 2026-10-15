@@ -7,7 +7,7 @@ import requests
 
 from core.fixture_identity_v2 import BETWATCH_SOURCE
 from core.fixture_uid_lookup_auth import identity_lookup_headers
-from core.hash_utils import make_match_id_hash
+from core.hash_utils import canonicalize_league_name, make_match_id_hash
 
 _QUERY_CHUNK = 150
 PhysicalKey = Tuple[str, str, str, str]
@@ -34,7 +34,7 @@ def _normalize_instant(value: Any) -> str:
 def _row_hash(row: Mapping[str, Any]) -> Optional[str]:
     home = str(row.get("home") or "").strip()
     away = str(row.get("away") or "").strip()
-    league = str(row.get("league") or "").strip()
+    league = canonicalize_league_name(row.get("league"))
     date = str(row.get("date") or "").strip()
     if not home or not away:
         return None
@@ -43,7 +43,7 @@ def _row_hash(row: Mapping[str, Any]) -> Optional[str]:
 
 def _row_physical(row: Mapping[str, Any]) -> PhysicalKey:
     return (
-        str(row.get("league") or "").strip(),
+        canonicalize_league_name(row.get("league")),
         str(row.get("home") or "").strip(),
         str(row.get("away") or "").strip(),
         _normalize_instant(row.get("date")),
@@ -54,7 +54,7 @@ def _context_physical(value: Any) -> Optional[PhysicalKey]:
     if not isinstance(value, (tuple, list)) or len(value) != 4:
         return None
     return (
-        str(value[0] or "").strip(),
+        canonicalize_league_name(value[0]),
         str(value[1] or "").strip(),
         str(value[2] or "").strip(),
         _normalize_instant(value[3]),
@@ -81,7 +81,8 @@ def _fixture_matches(
     hash_matches = str(fixture.get("match_id_hash") or "").strip() == match_hash
     return (
         (allow_legacy_hash_drift or hash_matches)
-        and str(fixture.get("league") or "").strip() == str(row.get("league") or "").strip()[:150]
+        and canonicalize_league_name(fixture.get("league"))
+        == canonicalize_league_name(row.get("league"))[:150]
         and str(fixture.get("home_team") or "").strip() == str(row.get("home") or "").strip()[:100]
         and str(fixture.get("away_team") or "").strip() == str(row.get("away") or "").strip()[:100]
         and _normalize_instant(fixture.get("kickoff_utc")) == _normalize_instant(row.get("date"))
