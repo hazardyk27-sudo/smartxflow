@@ -9,7 +9,7 @@ import requests
 from core.fixture_identity_payload_stage import clear_betwatch_authoritative_payload
 from core.fixture_identity_shadow import clear_betwatch_identity_stage
 from core.fixture_identity_v2 import extract_betwatch_identity
-from core.hash_utils import make_match_id_hash
+from core.hash_utils import canonicalize_league_name, make_match_id_hash
 
 
 def _text(value: Any) -> str:
@@ -56,7 +56,7 @@ def build_betwatch_fixture_rpc_rows(
         teams = match.get("teams") or {}
         home = _text(teams.get("v1")) if isinstance(teams, Mapping) else ""
         away = _text(teams.get("v2")) if isinstance(teams, Mapping) else ""
-        league = _text(match.get("league"))
+        league = canonicalize_league_name(match.get("league"))
         kickoff = _kickoff(match.get("kickoff"))
         event_id = _text(identity.event_id)
 
@@ -115,7 +115,7 @@ def _install_physical_provider_context(
         if identity is None or not isinstance(teams, Mapping):
             continue
         physical = (
-            _text(match.get("league")),
+            canonicalize_league_name(match.get("league")),
             _text(teams.get("v1")),
             _text(teams.get("v2")),
             _kickoff(match.get("kickoff")),
