@@ -198,3 +198,41 @@ def test_first_page_fast_path_uses_rpc_without_full_fixture_fetch():
     assert len(client.http.posts) == 1
     assert client.http.posts[0][0].endswith("/rpc/sxf_matches_first_page_v1")
     assert client.http.posts[0][1]["json"]["p_limit"] == 20
+
+
+def test_bulk_limit_100_bypasses_fast_page_to_avoid_top100_plus_fullset_duplicates():
+    fixtures = [
+        _fixture("uid-a", "2026-10-17T14:00:00+00:00", "hash-a"),
+        _fixture("uid-b", "2026-10-17T18:45:00+00:00", "hash-b"),
+    ]
+    rpc_rows = [
+        {
+            "row_data": {
+                "fixture_uid": "uid-a",
+                "league": "League",
+                "home": "Home FC",
+                "away": "Away FC",
+                "date": "2026-10-17T14:00:00+00:00",
+                "volume": "£ 99999",
+                "odds1": "1.25",
+            },
+            "total_count": 200,
+        }
+    ]
+    client = FakeClient(fixtures, rpc_rows=rpc_rows, rpc_status=200)
+
+    result = get_matches_paginated_uid_safe(
+        client,
+        "moneyway_1x2",
+        limit=100,
+        offset=0,
+        today_only=True,
+    )
+
+    assert "first_page_fast" not in result
+    assert result["total"] == 2
+    assert result["has_more"] is False
+    assert {row["fixture_uid"] for row in result["matches"]} == {"uid-a", "uid-b"}
+    assert client.http.posts == [], "bulk hydration must not enter the partial first-page RPC"
+    assert len(client.http.urls) == 1
+    assert "/fixtures?" in client.http.urls[0]
