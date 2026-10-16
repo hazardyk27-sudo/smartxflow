@@ -26,6 +26,7 @@ from core.hash_utils import make_fixture_identity_key
 _MAX_FIXTURES = 10000
 _FIRST_PAGE_RPC = "sxf_matches_first_page_v1"
 _MAX_FIRST_PAGE = 100
+_BULK_HYDRATION_LIMIT = 100
 
 
 def _physical_key(row: Mapping[str, Any]):
@@ -222,11 +223,18 @@ def get_matches_paginated_uid_safe(
             else seven_days_ago
         )
 
-        # Critical first paint: use the current-table RPC so a 20-row screen never
-        # waits for the full fixture/current-market snapshot to cross the network.
-        # Offset pages remain on the legacy path until Menu Part 2 introduces real
-        # UID-safe pagination for background hydration.
-        if offset == 0 and 0 < limit <= _MAX_FIRST_PAGE:
+        # Critical first paint: use the current-table RPC so the normal small
+        # screen never waits for the full fixture/current-market snapshot.
+        # The web bulk hydrator deliberately requests exactly 100 rows. Sending
+        # that request through this RPC and then following has_more with offset
+        # 100 would mix a top-100 partial page with the legacy full-set fallback,
+        # duplicating those first 100 matches. Keep that bulk boundary on the
+        # full UID-safe fallback until true offset pagination exists.
+        if (
+            offset == 0
+            and 0 < limit <= _MAX_FIRST_PAGE
+            and limit < _BULK_HYDRATION_LIMIT
+        ):
             first_page = _fetch_first_page_rows(client, market, limit, date_gte)
             if first_page is not None:
                 current_rows, total = first_page
