@@ -32,7 +32,7 @@ def test_audit_is_append_only_and_is_atomic_with_status_transition():
     assert "CREATE TABLE IF NOT EXISTS public.sxf_base_checkpoint_attempts" in SQL
     assert "UNIQUE(job_id,attempt_number)" in SQL
     assert "AFTER UPDATE ON public.sxf_base_checkpoint_jobs" in SQL
-    assert "OLD.state = 'LEASED'" in SQL
+    assert "OLD.state <> 'LEASED'" in SQL
     assert "OLD.lease_token IS DISTINCT FROM NEW.lease_token" in SQL
     assert "'LEASE_EXPIRED'" in SQL
     assert "sxf_base_checkpoint_attempts_immutable" in SQL
