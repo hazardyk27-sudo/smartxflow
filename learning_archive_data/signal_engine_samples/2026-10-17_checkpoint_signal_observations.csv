@@ -1,0 +1,287 @@
+kickoff,league,home_team,away_team,score,status,match_id_hash,horizon,engine,side,odds,amount,share,snapshot_age_min,min_share_3h,adverse_odds_pct,won
+16:30,German Bundesliga,Union Berlin,Dortmund,0-0,ft,1d9ae47adc31,24,EARLY_MONEY_CORE,AWAY,1.630,13545.42,78.50,5.7,76.80,0.000,false
+16:30,German Bundesliga,Union Berlin,Dortmund,0-0,ft,1d9ae47adc31,5,STABLE_OVER_2_5,OVER,1.550,1851.89,97.40,2.2,,,false
+16:30,German Bundesliga,Union Berlin,Dortmund,0-0,ft,1d9ae47adc31,4,STABLE_OVER_2_5,OVER,1.550,2106.41,97.70,0.3,,,false
+16:30,German Bundesliga,Union Berlin,Dortmund,0-0,ft,1d9ae47adc31,3,PREMIUM_OVER_2_5,OVER,1.550,3272.48,80.60,4.0,,,false
+16:30,German Bundesliga,Union Berlin,Dortmund,0-0,ft,1d9ae47adc31,3,STABLE_OVER_2_5,OVER,1.550,3272.48,80.60,4.0,,,false
+16:30,Lebanese Premier League,Al Hikma,Al-Ahed,1-1,ft,4526e8ceb58e,5,SURPRISE_TEAM,HOME,4.100,116.54,98.30,2.2,83.00,-6.818,false
+16:30,Lebanese Premier League,Al Hikma,Al-Ahed,1-1,ft,4526e8ceb58e,4,SURPRISE_TEAM,HOME,4.100,206.74,98.80,0.3,83.00,-6.818,false
+16:30,Lebanese Premier League,Al Hikma,Al-Ahed,1-1,ft,4526e8ceb58e,3,SURPRISE_TEAM,HOME,4.100,206.74,98.80,4.0,83.00,-6.818,false
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,5,PREMIUM_OVER_2_5,OVER,1.560,3222.64,82.50,2.2,,,true
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,5,STABLE_OVER_2_5,OVER,1.560,3222.64,82.50,2.2,,,true
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,4,PREMIUM_OVER_2_5,OVER,1.560,3300.20,82.40,0.3,,,true
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,4,STABLE_OVER_2_5,OVER,1.560,3300.20,82.40,0.3,,,true
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,3,PREMIUM_OVER_2_5,OVER,1.550,3518.26,76.70,4.0,,,true
+16:30,German Bundesliga,Werder Bremen,Paderborn,2-2,ft,7a70df421a59,3,STABLE_OVER_2_5,OVER,1.550,3518.26,76.70,4.0,,,true
+16:30,Polish I Liga,Pogon Grodzisk Mazowiecki,Polonia Warszawa,0-1,ft,7c19c6d119f5,3,SURPRISE_TEAM,HOME,3.100,290.61,73.10,4.0,71.20,-12.676,false
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,6,PREMIUM_OVER_2_5,OVER,1.650,9788.59,90.00,0.4,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,6,STABLE_OVER_2_5,OVER,1.650,9788.59,90.00,0.4,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,5,PREMIUM_OVER_2_5,OVER,1.620,10533.70,90.00,4.1,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,5,STABLE_OVER_2_5,OVER,1.620,10533.70,90.00,4.1,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,4,PREMIUM_OVER_2_5,OVER,1.610,11318.38,90.10,2.0,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,4,STABLE_OVER_2_5,OVER,1.610,11318.38,90.10,2.0,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,3,PREMIUM_OVER_2_5,OVER,1.640,12380.66,82.80,0.2,,,true
+17:00,English Premier League,Brentford,Liverpool,1-2,ft,0e707bc8edd0,3,STABLE_OVER_2_5,OVER,1.640,12380.66,82.80,0.2,,,true
+17:00,Albanian Superliga,KS Skenderbeu Korce,AF Elbasani,2-1,ft,0f244b9f7333,5,SURPRISE_TEAM,HOME,3.550,5.62,60.30,4.1,30.50,0.000,true
+17:00,Albanian Superliga,KS Skenderbeu Korce,AF Elbasani,2-1,ft,0f244b9f7333,4,SURPRISE_TEAM,HOME,3.350,17.64,67.60,2.0,30.50,-5.634,true
+17:00,Albanian Superliga,KS Skenderbeu Korce,AF Elbasani,2-1,ft,0f244b9f7333,3,SURPRISE_TEAM,HOME,3.050,70.03,82.60,0.2,60.30,-14.085,true
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,12,EARLY_MONEY_T12,AWAY,1.980,2145.56,85.80,0.6,85.70,-0.503,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,6,1X2_CONCENTRATION_V1,AWAY,1.980,2427.51,86.40,0.4,86.10,1.020,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,6,1X2_CONCENTRATION_V2,AWAY,1.980,2427.51,86.40,0.4,86.10,1.020,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,5,1X2_CONCENTRATION_V1,AWAY,1.970,2549.41,86.60,4.1,86.10,0.510,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,5,1X2_CONCENTRATION_V2,AWAY,1.970,2549.41,86.60,4.1,86.10,0.510,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,4,1X2_CONCENTRATION_V1,AWAY,1.980,2751.25,85.10,2.0,85.10,0.508,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,4,1X2_CONCENTRATION_V2,AWAY,1.980,2751.25,85.10,2.0,85.10,0.508,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,3,1X2_CONCENTRATION_V1,AWAY,1.940,3085.97,85.00,0.2,84.80,-2.020,false
+17:00,English Sky Bet League 1,Wigan,Reading,1-0,ft,146a83656500,3,1X2_CONCENTRATION_V2,AWAY,1.940,3085.97,85.00,0.2,84.80,-2.020,false
+17:00,English Sky Bet League 2,Swindon,Walsall,1-1,ft,15a02758ea05,6,SURPRISE_TEAM,HOME,2.900,822.00,57.90,0.4,57.90,0.000,false
+17:00,English Sky Bet League 2,Swindon,Walsall,1-1,ft,15a02758ea05,4,SURPRISE_TEAM,HOME,3.000,1006.85,59.30,2.0,56.90,3.448,false
+17:00,English Sky Bet League 2,Accrington,Gillingham,3-1,ft,1e79366c6be7,6,SURPRISE_TEAM,AWAY,3.300,5458.77,70.80,0.4,70.80,3.125,false
+17:00,English Sky Bet League 2,Accrington,Gillingham,3-1,ft,1e79366c6be7,5,SURPRISE_TEAM,AWAY,3.300,5593.00,68.90,4.1,68.90,3.125,false
+17:00,English Sky Bet League 2,Accrington,Gillingham,3-1,ft,1e79366c6be7,4,SURPRISE_TEAM,AWAY,3.300,5597.75,68.10,2.0,68.10,0.000,false
+17:00,English Sky Bet League 2,Accrington,Gillingham,3-1,ft,1e79366c6be7,3,SURPRISE_TEAM,AWAY,3.300,5597.81,67.60,0.2,67.60,0.000,false
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,12,EARLY_MONEY_T12,HOME,2.100,8028.16,81.00,0.6,81.00,0.000,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,6,1X2_CONCENTRATION_V1,HOME,2.080,11342.20,82.00,0.4,80.20,-0.952,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,6,1X2_CONCENTRATION_V2,HOME,2.080,11342.20,82.00,0.4,80.20,-0.952,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,6,HEAVY_1X2_CONCENTRATION,HOME,2.080,11342.20,82.00,0.4,80.20,-0.952,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,5,1X2_CONCENTRATION_V1,HOME,2.060,11649.43,81.10,4.1,80.20,-1.905,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,5,1X2_CONCENTRATION_V2,HOME,2.060,11649.43,81.10,4.1,80.20,-1.905,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,5,HEAVY_1X2_CONCENTRATION,HOME,2.060,11649.43,81.10,4.1,80.20,-1.905,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,4,1X2_CONCENTRATION_V1,HOME,2.060,12109.59,80.30,2.0,80.20,-0.962,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,4,1X2_CONCENTRATION_V2,HOME,2.060,12109.59,80.30,2.0,80.20,-0.962,true
+17:00,English Sky Bet Championship,Birmingham,QPR,3-0,ft,3b1a689df4a5,4,HEAVY_1X2_CONCENTRATION,HOME,2.060,12109.59,80.30,2.0,80.20,-0.962,true
+17:00,English Sky Bet Championship,Swansea,West Ham,0-1,ft,401372f39b4d,72,EARLY_MONEY_CORE,AWAY,2.340,7786.53,99.40,2.0,99.40,0.000,true
+17:00,English Sky Bet Championship,Swansea,West Ham,0-1,ft,401372f39b4d,60,EARLY_MONEY_CORE,AWAY,2.280,8716.73,97.20,3.5,97.20,-2.564,true
+17:00,English Sky Bet Championship,Swansea,West Ham,0-1,ft,401372f39b4d,40,EARLY_MONEY_CORE,AWAY,2.340,10648.41,83.70,5.2,83.60,1.739,true
+17:00,English Sky Bet Championship,Swansea,West Ham,0-1,ft,401372f39b4d,24,EARLY_MONEY_CORE,AWAY,2.300,11579.96,78.70,1.3,78.50,0.000,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,60,EARLY_MONEY_CORE,HOME,1.770,6782.38,69.30,3.5,69.00,0.000,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,40,EARLY_MONEY_CORE,HOME,1.780,24071.09,79.80,5.2,79.30,0.565,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,24,EARLY_MONEY_CORE,HOME,1.760,49098.72,81.40,1.3,79.90,0.000,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,12,EARLY_MONEY_T12,HOME,1.740,113993.95,81.00,0.6,80.60,-0.571,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,6,1X2_CONCENTRATION_V1,HOME,1.680,191753.50,80.50,0.4,78.80,-1.754,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,6,1X2_CONCENTRATION_V2,HOME,1.680,191753.50,80.50,0.4,78.80,-1.754,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,6,HEAVY_1X2_CONCENTRATION,HOME,1.680,191753.50,80.50,0.4,78.80,-1.754,true
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,6,STABLE_OVER_2_5,OVER,1.800,1978.22,71.50,0.4,,,false
+17:00,English Premier League,Fulham,Hull,1-0,ft,44e91bd8466c,4,STABLE_OVER_2_5,OVER,1.800,2401.00,75.30,2.0,,,false
+17:00,Scottish League Two,Kelty Hearts,Forfar,2-1,ft,52b3ec8d75c7,5,SURPRISE_TEAM,AWAY,3.600,3.08,62.60,4.1,62.60,,false
+17:00,Scottish League Two,Kelty Hearts,Forfar,2-1,ft,52b3ec8d75c7,4,SURPRISE_TEAM,AWAY,3.600,3.08,62.60,2.0,62.60,,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,12,EARLY_MONEY_T12,HOME,1.760,4924.38,96.80,0.6,20.80,-0.565,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,6,1X2_CONCENTRATION_V1,HOME,1.770,5171.36,95.10,0.4,95.00,0.568,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,6,1X2_CONCENTRATION_V2,HOME,1.770,5171.36,95.10,0.4,95.00,0.568,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,5,1X2_CONCENTRATION_V1,HOME,1.760,5228.29,92.40,4.1,92.40,0.000,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,5,1X2_CONCENTRATION_V2,HOME,1.760,5228.29,92.40,4.1,92.40,0.000,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,4,1X2_CONCENTRATION_V1,HOME,1.760,5291.62,87.90,2.0,87.90,0.000,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,4,1X2_CONCENTRATION_V2,HOME,1.760,5291.62,87.90,2.0,87.90,0.000,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,3,1X2_CONCENTRATION_V1,HOME,1.750,5456.67,86.80,0.2,86.80,-1.130,false
+17:00,Scottish Premiership,Hibernian,Falkirk,1-2,ft,53edcfcb01d7,3,1X2_CONCENTRATION_V2,HOME,1.750,5456.67,86.80,0.2,86.80,-1.130,false
+17:00,Scottish Championship,Stenhousemuir,Raith,1-1,ft,56637a6149af,6,SURPRISE_TEAM,HOME,3.450,106.39,75.40,0.4,75.40,0.000,false
+17:00,Scottish Championship,Stenhousemuir,Raith,1-1,ft,56637a6149af,3,SURPRISE_TEAM,HOME,3.300,383.56,63.50,0.2,38.90,-4.348,false
+17:00,Scottish Premiership,St Johnstone,Dundee Utd,1-1,ft,584b0db1e1c3,3,STABLE_OVER_2_5,OVER,1.760,1527.01,90.80,0.2,,,false
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,72,EARLY_MONEY_CORE,HOME,1.230,55827.03,94.00,2.0,94.00,0.000,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,60,EARLY_MONEY_CORE,HOME,1.250,60241.83,93.70,3.5,93.70,0.806,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,40,EARLY_MONEY_CORE,HOME,1.260,88435.95,92.50,5.2,91.40,0.000,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,24,EARLY_MONEY_CORE,HOME,1.270,158532.30,90.80,1.3,90.60,0.794,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,12,EARLY_MONEY_T12,HOME,1.250,268003.09,90.20,0.6,89.80,-0.794,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,6,BTTS_YES,YES,1.770,30429.27,84.50,0.4,,,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,6,HEAVY_1X2_CONCENTRATION,HOME,1.260,328465.97,89.90,0.4,89.20,0.000,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,5,BTTS_YES,YES,1.780,31767.28,81.50,4.1,,,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,5,HEAVY_1X2_CONCENTRATION,HOME,1.250,346706.65,89.60,4.1,89.20,-0.794,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,4,BTTS_YES,YES,1.760,34917.88,78.70,2.0,,,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,4,HEAVY_1X2_CONCENTRATION,HOME,1.260,376638.16,88.70,2.0,88.60,-0.787,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,3,BTTS_YES,YES,1.740,35526.53,78.90,0.2,,,true
+17:00,English Premier League,Man City,Ipswich,3-2,ft,684c125b4144,3,HEAVY_1X2_CONCENTRATION,HOME,1.270,483923.29,88.90,0.2,88.10,0.794,true
+17:00,English Sky Bet League 2,Crewe,Rochdale,3-2,ft,6d8c817d79f9,12,EARLY_MONEY_T12,HOME,1.940,1542.87,83.40,0.6,76.60,-1.020,true
+17:00,English Sky Bet League 1,Leicester,Doncaster,2-1,ft,77cdafb6172e,12,EARLY_MONEY_T12,HOME,2.000,2506.77,81.50,0.6,81.50,0.000,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,6,1X2_CONCENTRATION_V1,HOME,1.400,1049.21,85.20,0.4,85.00,-1.408,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,6,1X2_CONCENTRATION_V2,HOME,1.400,1049.21,85.20,0.4,85.00,-1.408,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,5,1X2_CONCENTRATION_V1,HOME,1.400,1115.25,85.80,4.1,85.00,-0.709,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,5,1X2_CONCENTRATION_V2,HOME,1.400,1115.25,85.80,4.1,85.00,-0.709,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,4,1X2_CONCENTRATION_V1,HOME,1.400,1475.76,85.80,2.0,84.60,0.000,true
+17:00,English Sky Bet League 2,Salford City,Crawley Town,2-1,ft,85a90cbfeced,4,1X2_CONCENTRATION_V2,HOME,1.400,1475.76,85.80,2.0,84.60,0.000,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,12,EARLY_MONEY_T12,HOME,2.380,2437.16,86.30,0.6,86.10,0.847,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,6,1X2_CONCENTRATION_V1,HOME,2.280,4467.74,85.60,0.4,83.30,-5.000,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,6,1X2_CONCENTRATION_V2,HOME,2.280,4467.74,85.60,0.4,83.30,-5.000,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,5,1X2_CONCENTRATION_V1,HOME,2.260,4633.03,83.20,4.1,83.20,-5.042,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,5,1X2_CONCENTRATION_V2,HOME,2.260,4633.03,83.20,4.1,83.20,-5.042,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,4,1X2_CONCENTRATION_V1,HOME,2.240,4790.94,83.10,2.0,83.10,-5.882,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,4,1X2_CONCENTRATION_V2,HOME,2.240,4790.94,83.10,2.0,83.10,-5.882,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,3,1X2_CONCENTRATION_V1,HOME,2.260,5124.89,83.40,0.2,83.10,-0.877,true
+17:00,English Sky Bet League 1,Leyton Orient,Blackpool,2-0,ft,a7ae9d646a03,3,1X2_CONCENTRATION_V2,HOME,2.260,5124.89,83.40,0.2,83.10,-0.877,true
+17:00,English Sky Bet Championship,Norwich,Portsmouth,0-1,ft,acf5b6012b3d,5,STABLE_OVER_2_5,OVER,1.800,2290.11,97.10,4.1,,,false
+17:00,English Sky Bet Championship,Norwich,Portsmouth,0-1,ft,acf5b6012b3d,4,STABLE_OVER_2_5,OVER,1.800,2290.11,97.10,2.0,,,false
+17:00,English Sky Bet Championship,Norwich,Portsmouth,0-1,ft,acf5b6012b3d,3,PREMIUM_OVER_2_5,OVER,1.790,2507.05,89.30,0.2,,,false
+17:00,English Sky Bet Championship,Norwich,Portsmouth,0-1,ft,acf5b6012b3d,3,STABLE_OVER_2_5,OVER,1.790,2507.05,89.30,0.2,,,false
+17:00,English Sky Bet League 2,Grimsby,Northampton,0-2,ft,d1142954e5a2,4,BTTS_YES,YES,1.800,2179.07,87.10,2.0,,,false
+17:00,English Sky Bet League 2,Grimsby,Northampton,0-2,ft,d1142954e5a2,3,BTTS_YES,YES,1.800,2179.07,87.10,0.2,,,false
+17:00,English Sky Bet League 1,Stockport,Bromley,1-0,ft,e966e1048bd1,4,PREMIUM_OVER_2_5,OVER,1.400,2971.16,94.40,2.0,,,false
+17:00,English Sky Bet League 1,Stockport,Bromley,1-0,ft,e966e1048bd1,4,STABLE_OVER_2_5,OVER,1.400,2971.16,94.40,2.0,,,false
+17:00,English Sky Bet League 1,Stockport,Bromley,1-0,ft,e966e1048bd1,3,PREMIUM_OVER_2_5,OVER,1.400,2971.16,94.30,0.2,,,false
+17:00,English Sky Bet League 1,Stockport,Bromley,1-0,ft,e966e1048bd1,3,STABLE_OVER_2_5,OVER,1.400,2971.16,94.30,0.2,,,false
+17:00,English Sky Bet Championship,Southampton,Bolton,0-0,ft,f4ebd0366834,12,EARLY_MONEY_T12,HOME,1.510,4839.33,81.60,0.6,81.30,0.667,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,12,EARLY_MONEY_T12,HOME,1.510,8480.28,80.30,10.0,79.70,1.342,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,6,1X2_CONCENTRATION_V1,HOME,1.450,21267.23,84.30,4.2,84.30,-1.361,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,6,1X2_CONCENTRATION_V2,HOME,1.450,21267.23,84.30,4.2,84.30,-1.361,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,6,HEAVY_1X2_CONCENTRATION,HOME,1.450,21267.23,84.30,4.2,84.30,-1.361,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,5,1X2_CONCENTRATION_V1,HOME,1.450,24287.85,84.50,2.2,84.10,0.000,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,5,1X2_CONCENTRATION_V2,HOME,1.450,24287.85,84.50,2.2,84.10,0.000,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,5,HEAVY_1X2_CONCENTRATION,HOME,1.450,24287.85,84.50,2.2,84.10,0.000,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,4,1X2_CONCENTRATION_V1,HOME,1.450,29790.91,83.30,0.3,83.20,-0.685,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,4,1X2_CONCENTRATION_V2,HOME,1.450,29790.91,83.30,0.3,83.20,-0.685,false
+17:15,Spanish La Liga,Villarreal,Elche,0-0,ft,0a33a6e93553,4,HEAVY_1X2_CONCENTRATION,HOME,1.450,29790.91,83.30,0.3,83.20,-0.685,false
+18:00,Portuguese Cup,AVS Futebol SAD,Moreirense,1-0,ft,0089eab007e9,4,SURPRISE_TEAM,HOME,3.750,24.61,61.20,0.2,61.20,0.000,true
+18:00,Portuguese Cup,AVS Futebol SAD,Moreirense,1-0,ft,0089eab007e9,3,SURPRISE_TEAM,HOME,3.750,24.61,61.20,3.1,61.20,2.740,true
+18:00,Swedish Superettan,Osters,Oddevold,3-1,ft,3e994ebe39b2,5,SURPRISE_TEAM,HOME,3.200,88.99,62.50,2.0,41.50,0.000,true
+18:00,Swedish Superettan,Osters,Oddevold,3-1,ft,3e994ebe39b2,4,SURPRISE_TEAM,HOME,3.250,98.48,64.80,0.2,45.70,-1.515,true
+18:00,Swedish Superettan,Osters,Oddevold,3-1,ft,3e994ebe39b2,3,SURPRISE_TEAM,HOME,3.250,98.48,62.90,3.1,48.60,-4.412,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,12,EARLY_MONEY_T12,AWAY,1.430,19654.00,84.60,2.5,81.70,-0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,6,1X2_CONCENTRATION_V1,AWAY,1.450,35091.88,83.90,2.2,83.20,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,6,1X2_CONCENTRATION_V2,AWAY,1.450,35091.88,83.90,2.2,83.20,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,6,HEAVY_1X2_CONCENTRATION,AWAY,1.450,35091.88,83.90,2.2,83.20,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,5,1X2_CONCENTRATION_V1,AWAY,1.450,38045.14,84.20,0.3,83.50,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,5,1X2_CONCENTRATION_V2,AWAY,1.450,38045.14,84.20,0.3,83.50,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,5,HEAVY_1X2_CONCENTRATION,AWAY,1.450,38045.14,84.20,0.3,83.50,0.694,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,4,1X2_CONCENTRATION_V1,AWAY,1.450,44610.61,82.90,3.9,82.90,0.000,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,4,1X2_CONCENTRATION_V2,AWAY,1.450,44610.61,82.90,3.9,82.90,0.000,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,4,HEAVY_1X2_CONCENTRATION,AWAY,1.450,44610.61,82.90,3.9,82.90,0.000,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,3,1X2_CONCENTRATION_V1,AWAY,1.450,52903.40,83.70,1.3,82.20,0.000,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,3,1X2_CONCENTRATION_V2,AWAY,1.450,52903.40,83.70,1.3,82.20,0.000,true
+18:15,French Ligue 1,Strasbourg,Paris St-G,1-3,ft,2bb782b480ad,3,HEAVY_1X2_CONCENTRATION,AWAY,1.450,52903.40,83.70,1.3,82.20,0.000,true
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,5,PREMIUM_OVER_2_5,OVER,1.730,3554.32,99.80,0.3,,,false
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,5,STABLE_OVER_2_5,OVER,1.730,3554.32,99.80,0.3,,,false
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,4,PREMIUM_OVER_2_5,OVER,1.750,3623.89,99.80,3.9,,,false
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,4,STABLE_OVER_2_5,OVER,1.750,3623.89,99.80,3.9,,,false
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,3,PREMIUM_OVER_2_5,OVER,1.750,3631.54,97.60,1.3,,,false
+18:15,Italian Serie B,Mantova,Palermo,0-2,ft,57f010eedc07,3,STABLE_OVER_2_5,OVER,1.750,3631.54,97.60,1.3,,,false
+18:30,Swedish Allsvenskan,AIK,IFK Goteborg,2-2,ft,808d768dddc0,6,SURPRISE_TEAM,HOME,3.000,722.75,55.20,0.3,37.60,7.914,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,5,1X2_CONCENTRATION_V1,HOME,1.870,2153.20,90.30,2.5,81.10,-3.109,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,5,1X2_CONCENTRATION_V2,HOME,1.870,2153.20,90.30,2.5,81.10,-3.109,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,4,1X2_CONCENTRATION_V1,HOME,1.840,2507.38,90.90,0.5,81.10,-4.663,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,4,1X2_CONCENTRATION_V2,HOME,1.840,2507.38,90.90,0.5,81.10,-4.663,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,3,1X2_CONCENTRATION_V1,HOME,1.810,2513.44,90.90,3.7,81.10,-9.045,false
+18:40,Saudi Professional League,NEOM Sports Club,Al-Ettifaq,0-1,ft,c8186e85d940,3,1X2_CONCENTRATION_V2,HOME,1.810,2513.44,90.90,3.7,81.10,-9.045,false
+19:00,Slovakian Super League,Spartak Trnava,Slovan Bratislava,0-3,ft,7c2b8cdb1f6e,5,SURPRISE_TEAM,HOME,3.150,58.20,61.00,0.2,41.50,-7.353,false
+19:00,Slovakian Super League,Spartak Trnava,Slovan Bratislava,0-3,ft,7c2b8cdb1f6e,4,SURPRISE_TEAM,HOME,3.150,58.20,54.20,3.1,54.20,-3.077,false
+19:00,Slovakian Super League,Spartak Trnava,Slovan Bratislava,0-3,ft,7c2b8cdb1f6e,3,SURPRISE_TEAM,HOME,3.100,58.33,52.10,1.4,52.10,-6.061,false
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,12,EARLY_MONEY_T12,HOME,1.300,1609.67,91.70,2.6,91.40,,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,5,1X2_CONCENTRATION_V1,HOME,1.400,2660.78,85.90,0.2,84.90,0.719,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,5,1X2_CONCENTRATION_V2,HOME,1.400,2660.78,85.90,0.2,84.90,0.719,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,5,STABLE_OVER_2_5,OVER,1.450,1836.59,91.00,0.2,,,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,4,1X2_CONCENTRATION_V1,HOME,1.400,3219.21,84.80,3.1,84.80,0.719,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,4,1X2_CONCENTRATION_V2,HOME,1.400,3219.21,84.80,3.1,84.80,0.719,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,4,STABLE_OVER_2_5,OVER,1.460,1849.32,88.20,3.1,,,true
+19:00,Norwegian Eliteserien,Viking,Fredrikstad,3-2,ft,89bbf154b0a5,3,STABLE_OVER_2_5,OVER,1.440,2328.08,90.40,1.4,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,24,EARLY_MONEY_CORE,AWAY,1.640,14891.60,74.90,1.4,72.60,-1.796,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,6,PREMIUM_OVER_2_5,OVER,1.700,11428.72,82.40,2.0,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,6,STABLE_OVER_2_5,OVER,1.700,11428.72,82.40,2.0,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,5,PREMIUM_OVER_2_5,OVER,1.670,11658.92,81.40,0.2,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,5,STABLE_OVER_2_5,OVER,1.670,11658.92,81.40,0.2,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,4,PREMIUM_OVER_2_5,OVER,1.680,11848.26,81.20,3.1,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,4,STABLE_OVER_2_5,OVER,1.680,11848.26,81.20,3.1,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,3,BTTS_YES,YES,1.710,5589.57,71.70,1.4,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,3,PREMIUM_OVER_2_5,OVER,1.690,11876.98,81.00,1.4,,,true
+19:00,Italian Serie A,Bologna,Inter,1-3,ft,a61cf918014b,3,STABLE_OVER_2_5,OVER,1.690,11876.98,81.00,1.4,,,true
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,6,PREMIUM_OVER_2_5,OVER,1.610,3969.99,85.90,4.0,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,6,STABLE_OVER_2_5,OVER,1.610,3969.99,85.90,4.0,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,5,PREMIUM_OVER_2_5,OVER,1.610,4369.98,85.90,2.1,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,5,STABLE_OVER_2_5,OVER,1.610,4369.98,85.90,2.1,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,4,PREMIUM_OVER_2_5,OVER,1.610,4891.31,86.00,5.1,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,4,STABLE_OVER_2_5,OVER,1.610,4891.31,86.00,5.1,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,3,PREMIUM_OVER_2_5,OVER,1.630,5436.67,83.30,3.2,,,false
+19:30,English Premier League,Newcastle,Aston Villa,0-1,ft,1a2d849ab91d,3,STABLE_OVER_2_5,OVER,1.630,5436.67,83.30,3.2,,,false
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,72,EARLY_MONEY_CORE,AWAY,1.430,24375.03,92.50,4.6,92.50,-0.694,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,60,EARLY_MONEY_CORE,AWAY,1.420,26468.96,92.70,2.6,92.60,,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,40,EARLY_MONEY_CORE,AWAY,1.450,49950.60,94.20,27.3,93.70,0.000,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,24,EARLY_MONEY_CORE,AWAY,1.430,75992.90,94.20,3.1,93.60,0.000,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,12,EARLY_MONEY_T12,AWAY,1.440,121895.05,91.20,4.6,90.80,0.000,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,6,1X2_CONCENTRATION_V1,AWAY,1.480,169394.92,88.70,4.0,88.60,0.680,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,6,1X2_CONCENTRATION_V2,AWAY,1.480,169394.92,88.70,4.0,88.60,0.680,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,6,HEAVY_1X2_CONCENTRATION,AWAY,1.480,169394.92,88.70,4.0,88.60,0.680,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,5,1X2_CONCENTRATION_V1,AWAY,1.480,177177.31,87.80,2.1,87.80,-0.671,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,5,1X2_CONCENTRATION_V2,AWAY,1.480,177177.31,87.80,2.1,87.80,-0.671,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,5,HEAVY_1X2_CONCENTRATION,AWAY,1.480,177177.31,87.80,2.1,87.80,-0.671,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,4,1X2_CONCENTRATION_V1,AWAY,1.490,193690.72,87.20,5.1,87.10,0.676,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,4,1X2_CONCENTRATION_V2,AWAY,1.490,193690.72,87.20,5.1,87.10,0.676,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,4,HEAVY_1X2_CONCENTRATION,AWAY,1.490,193690.72,87.20,5.1,87.10,0.676,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,3,1X2_CONCENTRATION_V1,AWAY,1.500,251850.38,88.90,3.2,86.90,1.351,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,3,1X2_CONCENTRATION_V2,AWAY,1.500,251850.38,88.90,3.2,86.90,1.351,true
+19:30,Spanish La Liga,Betis,Barcelona,2-5,ft,37ad314c6a20,3,HEAVY_1X2_CONCENTRATION,AWAY,1.500,251850.38,88.90,3.2,86.90,1.351,true
+19:30,German Bundesliga,Bayern Munich,RB Leipzig,6-1,ft,7f327f017d20,6,HEAVY_1X2_CONCENTRATION,HOME,1.230,33179.52,80.60,4.0,80.50,0.000,true
+19:30,German Bundesliga,Bayern Munich,RB Leipzig,6-1,ft,7f327f017d20,5,HEAVY_1X2_CONCENTRATION,HOME,1.230,43400.03,83.10,2.1,80.50,0.000,true
+19:30,German Bundesliga,Bayern Munich,RB Leipzig,6-1,ft,7f327f017d20,4,HEAVY_1X2_CONCENTRATION,HOME,1.240,47109.15,82.20,5.1,80.50,1.639,true
+19:30,German Bundesliga,Bayern Munich,RB Leipzig,6-1,ft,7f327f017d20,3,HEAVY_1X2_CONCENTRATION,HOME,1.240,50941.34,81.90,3.2,81.90,0.813,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,5,1X2_CONCENTRATION_V1,HOME,1.470,1453.03,85.10,2.1,76.40,-5.769,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,5,1X2_CONCENTRATION_V2,HOME,1.470,1453.03,85.10,2.1,76.40,-5.769,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,4,1X2_CONCENTRATION_V1,HOME,1.460,1574.26,84.50,5.1,76.80,-3.311,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,4,1X2_CONCENTRATION_V2,HOME,1.460,1574.26,84.50,5.1,76.80,-3.311,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,3,1X2_CONCENTRATION_V1,HOME,1.440,1662.06,83.80,3.2,83.70,-9.434,true
+19:30,Danish 1st Division,Fredericia,Hobro,3-0,ft,813f556046ad,3,1X2_CONCENTRATION_V2,HOME,1.440,1662.06,83.80,3.2,83.70,-9.434,true
+19:45,Spanish Primera Federación - Group 1,Zamora,Ponferradina,1-1,ft,8acd8109f81c,4,SURPRISE_TEAM,AWAY,3.800,17.62,76.80,3.1,76.80,,false
+19:45,Spanish Primera Federación - Group 1,Zamora,Ponferradina,1-1,ft,8acd8109f81c,3,SURPRISE_TEAM,AWAY,3.800,17.62,76.80,1.5,76.80,,false
+21:00,Dutch Eredivisie,SC Telstar,Feyenoord,3-4,ft,b0d3086a13a7,12,EARLY_MONEY_T12,AWAY,1.390,2234.20,81.50,4.0,81.30,0.000,true
+21:30,Romanian Liga I,Rapid Bucharest,FC Hunedoara,2-0,ft,04ee9f6d258c,3,1X2_CONCENTRATION_V1,HOME,1.610,1022.60,84.40,0.8,79.20,-0.617,true
+21:30,Romanian Liga I,Rapid Bucharest,FC Hunedoara,2-0,ft,04ee9f6d258c,3,1X2_CONCENTRATION_V2,HOME,1.610,1022.60,84.40,0.8,79.20,-0.617,true
+21:30,German Bundesliga 2,Hannover,St Pauli,1-1,ft,bcf188119d1d,6,SURPRISE_TEAM,AWAY,2.920,3202.93,57.50,5.1,57.50,0.000,false
+21:30,German Bundesliga 2,Hannover,St Pauli,1-1,ft,bcf188119d1d,5,SURPRISE_TEAM,AWAY,2.940,3453.29,55.60,3.2,55.60,2.797,false
+21:30,German Bundesliga 2,Hannover,St Pauli,1-1,ft,bcf188119d1d,4,SURPRISE_TEAM,AWAY,2.920,3484.53,51.70,1.9,51.70,2.817,false
+21:30,German Bundesliga 2,Hannover,St Pauli,1-1,ft,bcf188119d1d,3,SURPRISE_TEAM,AWAY,2.900,3648.01,52.30,0.8,51.40,-0.685,false
+21:45,French Ligue 1,Lille,Brest,1-1,ft,20748f32db7e,4,BTTS_YES,YES,1.710,1423.93,67.10,0.3,,,true
+21:45,French Ligue 1,Lille,Brest,1-1,ft,20748f32db7e,3,BTTS_YES,YES,1.690,1430.63,65.30,4.8,,,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,60,EARLY_MONEY_CORE,HOME,1.500,27370.32,89.20,1.7,89.20,0.671,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,40,EARLY_MONEY_CORE,HOME,1.520,49310.57,84.40,3.8,84.30,-0.654,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,24,EARLY_MONEY_CORE,HOME,1.610,139641.12,87.00,1.8,85.80,-0.617,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,12,EARLY_MONEY_T12,HOME,1.630,179078.29,87.20,4.2,86.80,1.875,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,6,1X2_CONCENTRATION_V1,HOME,1.620,210123.30,85.10,3.1,84.60,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,6,1X2_CONCENTRATION_V2,HOME,1.620,210123.30,85.10,3.1,84.60,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,6,HEAVY_1X2_CONCENTRATION,HOME,1.620,210123.30,85.10,3.1,84.60,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,5,1X2_CONCENTRATION_V1,HOME,1.620,217102.67,85.40,1.5,84.70,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,5,1X2_CONCENTRATION_V2,HOME,1.620,217102.67,85.40,1.5,84.70,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,5,HEAVY_1X2_CONCENTRATION,HOME,1.620,217102.67,85.40,1.5,84.70,-1.220,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,4,1X2_CONCENTRATION_V1,HOME,1.620,279847.42,87.90,0.3,84.90,0.000,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,4,1X2_CONCENTRATION_V2,HOME,1.620,279847.42,87.90,0.3,84.90,0.000,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,4,HEAVY_1X2_CONCENTRATION,HOME,1.620,279847.42,87.90,0.3,84.90,0.000,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,3,1X2_CONCENTRATION_V1,HOME,1.610,297347.36,88.30,4.8,85.10,-0.617,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,3,1X2_CONCENTRATION_V2,HOME,1.610,297347.36,88.30,4.8,85.10,-0.617,true
+21:45,Italian Serie A,Roma,Genoa,2-0,ft,351f68b977ca,3,HEAVY_1X2_CONCENTRATION,HOME,1.610,297347.36,88.30,4.8,85.10,-0.617,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,12,EARLY_MONEY_T12,AWAY,1.960,10808.33,84.50,4.2,84.50,2.618,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,6,1X2_CONCENTRATION_V1,AWAY,1.950,14937.86,83.60,3.1,81.80,0.515,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,6,1X2_CONCENTRATION_V2,AWAY,1.950,14937.86,83.60,3.1,81.80,0.515,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,6,HEAVY_1X2_CONCENTRATION,AWAY,1.950,14937.86,83.60,3.1,81.80,0.515,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,5,1X2_CONCENTRATION_V1,AWAY,1.940,17000.55,85.30,1.5,81.90,-1.020,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,5,1X2_CONCENTRATION_V2,AWAY,1.940,17000.55,85.30,1.5,81.90,-1.020,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,5,HEAVY_1X2_CONCENTRATION,AWAY,1.940,17000.55,85.30,1.5,81.90,-1.020,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,4,1X2_CONCENTRATION_V1,AWAY,1.930,18122.84,83.60,0.3,82.50,-2.525,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,4,1X2_CONCENTRATION_V2,AWAY,1.930,18122.84,83.60,0.3,82.50,-2.525,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,4,HEAVY_1X2_CONCENTRATION,AWAY,1.930,18122.84,83.60,0.3,82.50,-2.525,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,3,1X2_CONCENTRATION_V1,AWAY,1.950,20180.91,83.00,4.8,82.60,0.000,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,3,1X2_CONCENTRATION_V2,AWAY,1.950,20180.91,83.00,4.8,82.60,0.000,true
+21:45,French Ligue 1,ESTAC Troyes,Lens,1-3,ft,59479b8a1c19,3,HEAVY_1X2_CONCENTRATION,AWAY,1.950,20180.91,83.00,4.8,82.60,0.000,true
+21:45,Irish Premier Division,Sligo Rovers,Dundalk,1-1,ft,fc19bbb02544,4,SURPRISE_TEAM,HOME,4.400,178.97,55.80,0.3,13.00,-4.348,false
+21:45,Irish Premier Division,Sligo Rovers,Dundalk,1-1,ft,fc19bbb02544,3,SURPRISE_TEAM,HOME,4.400,178.97,54.70,4.8,15.20,-4.348,false
+22:00,Spanish La Liga,Valencia,Athletic Bilbao,0-0,ft,ab45b2d4c5c1,5,BTTS_YES,YES,1.890,1812.88,89.70,5.3,,,false
+22:00,Spanish La Liga,Valencia,Athletic Bilbao,0-0,ft,ab45b2d4c5c1,4,BTTS_YES,YES,1.900,1900.59,88.20,4.1,,,false
+22:00,Spanish La Liga,Valencia,Athletic Bilbao,0-0,ft,ab45b2d4c5c1,3,BTTS_YES,YES,1.890,1919.85,88.20,3.3,,,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,5,1X2_CONCENTRATION_V1,AWAY,1.440,2113.46,81.00,5.3,77.90,0.000,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,5,1X2_CONCENTRATION_V2,AWAY,1.440,2113.46,81.00,5.3,77.90,0.000,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,4,1X2_CONCENTRATION_V1,AWAY,1.440,2656.91,83.70,4.1,78.60,0.699,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,4,1X2_CONCENTRATION_V2,AWAY,1.440,2656.91,83.70,4.1,78.60,0.699,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,3,1X2_CONCENTRATION_V1,AWAY,1.440,3395.22,82.20,3.3,78.60,0.699,false
+22:00,Scottish Premiership,Dundee,Rangers,2-2,ft,df7a0d4e81f7,3,1X2_CONCENTRATION_V2,AWAY,1.440,3395.22,82.20,3.3,78.60,0.699,false
+22:30,Brazilian Serie B,Ceara SC Fortaleza,Juventude,2-2,ft,5cf3df2fa20b,6,SURPRISE_TEAM,HOME,3.150,362.74,90.20,3.2,89.80,5.000,false
+22:30,Brazilian Serie B,Ceara SC Fortaleza,Juventude,2-2,ft,5cf3df2fa20b,5,SURPRISE_TEAM,HOME,3.100,473.39,89.80,1.9,89.50,-1.587,false
+22:30,Brazilian Serie B,Ceara SC Fortaleza,Juventude,2-2,ft,5cf3df2fa20b,4,SURPRISE_TEAM,HOME,3.100,595.50,90.90,0.8,89.50,-1.587,false
+22:30,Brazilian Serie B,Ceara SC Fortaleza,Juventude,2-2,ft,5cf3df2fa20b,3,SURPRISE_TEAM,HOME,3.050,723.02,82.30,0.2,81.80,-3.175,false
+23:00,Canadian Premier League,Cavalry,Pacific,,,0805ba79c643,12,EARLY_MONEY_T12,HOME,1.190,2756.19,96.80,0.4,94.40,0.847,
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,12,EARLY_MONEY_T12,AWAY,1.530,1330.17,83.90,0.4,57.60,-7.273,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,6,1X2_CONCENTRATION_V1,AWAY,1.510,2501.12,87.70,5.3,83.00,-2.581,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,6,1X2_CONCENTRATION_V2,AWAY,1.510,2501.12,87.70,5.3,83.00,-2.581,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,5,1X2_CONCENTRATION_V1,AWAY,1.510,2504.56,87.70,4.1,83.00,-2.581,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,5,1X2_CONCENTRATION_V2,AWAY,1.510,2504.56,87.70,4.1,83.00,-2.581,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,4,1X2_CONCENTRATION_V1,AWAY,1.510,2639.95,88.20,3.3,87.70,0.667,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,4,1X2_CONCENTRATION_V2,AWAY,1.510,2639.95,88.20,3.3,87.70,0.667,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,3,1X2_CONCENTRATION_V1,AWAY,1.500,2933.57,89.00,2.7,87.70,-0.662,true
+23:00,Colombian Primera A,Boyaca Chico,Atletico Nacional Medellin,1-4,ft,3dab708fdec7,3,1X2_CONCENTRATION_V2,AWAY,1.500,2933.57,89.00,2.7,87.70,-0.662,true
+23:00,Venezuelan Primera Division,Zamora FC,Academia Anzoategui FC,,,9756399bf9a2,6,SURPRISE_TEAM,HOME,3.150,1.25,64.80,5.3,64.80,,
+23:00,Venezuelan Primera Division,Zamora FC,Academia Anzoategui FC,,,9756399bf9a2,5,SURPRISE_TEAM,HOME,3.150,75.70,99.10,4.1,64.80,-1.563,
+23:00,Venezuelan Primera Division,Zamora FC,Academia Anzoategui FC,,,9756399bf9a2,4,1X2_CONCENTRATION_V1,AWAY,1.960,1913.15,85.60,3.3,0.60,,
+23:00,Venezuelan Primera Division,Zamora FC,Academia Anzoategui FC,,,9756399bf9a2,3,1X2_CONCENTRATION_V1,AWAY,1.920,6460.14,92.90,2.7,0.60,-24.409,
+23:00,Peruvian Primera Division,Juan Pablo II College,Sport Boys (Per),,,c7b41fc37e79,6,SURPRISE_TEAM,AWAY,3.350,108.97,57.60,5.3,19.20,-5.634,
