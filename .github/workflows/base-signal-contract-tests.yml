@@ -47,7 +47,9 @@ jobs:
             tests/test_base_signal_phase4c4_health.py \
             tests/test_base_signal_phase4c4_projection.py \
             tests/test_base_signal_phase5a_source.py \
-            tests/test_base_signal_phase5b_preflight.py
+            tests/test_base_signal_phase5b_preflight.py \
+            tests/test_base_signal_phase5c_shadow.py \
+            tests/test_base_signal_phase5c_observer.py
 
   postgres-contract:
     runs-on: ubuntu-latest
