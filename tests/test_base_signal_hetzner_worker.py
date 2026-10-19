@@ -196,3 +196,36 @@ def test_one_shot_ambiguous_commit_exits_operator_review(monkeypatch):
         {"discovery":"SKIPPED","healthy_cycle":False,
          "lease_uncertain":0,"commit_uncertain":1,"reconcile_uncertain":0})
     assert app.main(["--once","--no-discovery"])==3
+
+
+def test_ambiguous_checkpoint_exits_even_if_health_rpc_would_fail(monkeypatch):
+    """Never mask an unknown commit with generic health failure and auto-restart."""
+    calls=[]
+    class BrokenHealth:
+        def health_snapshot(self):
+            calls.append("health")
+            raise RuntimeError("transport dropped")
+    monkeypatch.setattr(app,"execute_claims",lambda *a,**k:
+        {"claimed":1,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":1})
+    monkeypatch.setattr(app,"reconcile_once",lambda *a,**k:
+        (calls.append("reconcile") or {}))
+    report=app.run_cycle(None,BrokenHealth(),worker_id="w",
+                         discover=False,max_jobs=3,max_reconcile=2)
+    assert calls==[]  # neither a new claim nor health can mask ambiguity
+    assert report["commit_uncertain"]==1
+    assert report["healthy_cycle"] is False
+
+
+def test_transport_timeout_after_claim_requires_operator_review(monkeypatch):
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    monkeypatch.setenv("SUPABASE_URL","https://source.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY","isolated-test-value")
+    monkeypatch.setattr(app,"SupabaseMoneywayReader",lambda *a,**k: object())
+    monkeypatch.setattr(app,"SupabaseCheckpointStore",lambda *a,**k: object())
+    def unknown(*a,**k):
+        from base_signal_engine.storage import DurableStoreError
+        raise DurableStoreError("HTTP timeout after opaque claim")
+    monkeypatch.setattr(app,"run_cycle",unknown)
+    assert app.main(["--once","--no-discovery"])==3
