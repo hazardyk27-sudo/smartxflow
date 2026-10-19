@@ -183,7 +183,7 @@ END $$;
 -- earlier INNER JOIN drift sweep, this also finds missing fixture UIDs.
 CREATE OR REPLACE FUNCTION public.sxf_base_quarantine_obsolete_uid(
     p_fixture_uid uuid,p_limit integer DEFAULT 250)
-RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $
+RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
 DECLARE v_count integer;
 BEGIN
     IF p_fixture_uid IS NULL OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 1000 THEN
@@ -204,13 +204,13 @@ BEGIN
       FROM locked l WHERE j.job_id=l.job_id RETURNING j.job_id
     ) SELECT count(*) INTO v_count FROM updated;
     RETURN v_count;
-END $;
+END $$;
 
 -- A new T6 observation can wake an existing, nonterminal reconciliation.
 -- This does NOT manufacture a correction or restart completed jobs.
 CREATE OR REPLACE FUNCTION public.sxf_base_wake_late_t6(
     p_fixture_uid uuid,p_market text,p_observed_at timestamptz)
-RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $
+RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
 DECLARE v_count integer;
 BEGIN
     IF p_fixture_uid IS NULL OR p_market NOT IN ('1X2','OU25','BTTS')
@@ -225,15 +225,15 @@ BEGIN
                               AND r.kickoff_utc-INTERVAL '6 hours';
     GET DIAGNOSTICS v_count=ROW_COUNT;
     RETURN v_count;
-END $;
+END $$;
 
 -- Read-only fixture state distinguishes an authoritative source delete from a
 -- broken network read. A missing UID returns NULL; no legacy hash inference.
 CREATE OR REPLACE FUNCTION public.sxf_base_source_fixture_state(p_fixture_uid uuid)
 RETURNS timestamptz LANGUAGE sql STABLE SECURITY INVOKER
-SET search_path=pg_catalog,public AS $
+SET search_path=pg_catalog,public AS $$
  SELECT f.kickoff_utc FROM public.fixtures f WHERE f.fixture_uid=p_fixture_uid
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.sxf_base_claim_source_changes(text,integer,integer),
  public.sxf_base_ack_source_change(bigint,uuid),
