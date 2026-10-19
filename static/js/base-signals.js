@@ -55,6 +55,7 @@
   }
   function marketName(v) { return v === 'OU25' ? 'Alt / Üst 2.5' : v === 'BTTS' ? 'Karşılıklı Gol' : 'Maç Sonucu'; }
   function signalStage(item) {
+    if (item.stage_status === 'T8_HISTORICAL') return 'T-8 · Geçmiş ön sinyal';
     if (item.kind === 'CORRECTED') return 'Uzlaştırma kaydı';
     if (item.kind === 'FINAL_SIGNAL') return 'T-6 değerlendirmesi';
     if (item.kind === 'PRELIMINARY_SIGNAL') return 'T-8 ön sinyal';
@@ -134,7 +135,8 @@
       '<div class="sxf-signal-odds is-unavailable">Oran kaydı yok</div>';
     var checkpoint = typeof item.checkpoint === 'number' ? 'T-' + item.checkpoint : 'SXF';
     var source = typeof item.source_checkpoint === 'number' ? 'Kaynak T-' + item.source_checkpoint : '';
-    return '<article class="sxf-signal-card">' +
+    return '<article class="sxf-signal-card' +
+      (item.stage_status === 'T8_HISTORICAL' ? ' is-archived' : '') + '">' +
       '<div class="sxf-signal-card-head"><div class="sxf-signal-league">' +
       '<span class="sxf-league-mark"></span>' + esc(item.league || 'Lig belirtilmemiş') +
       '</div><time>' + esc(trTime(item.kickoff_utc)) + ' TR</time></div>' +
@@ -149,7 +151,9 @@
       '<span class="sxf-signal-moment">Veri ' + esc(trTime(item.observed_at)) +
       '</span></div>' +
       (item.strength_tag ? '<div class="sxf-strength-note">Güç etiketi · ayrı doğrulama değildir</div>' : '') +
-      '</article>';
+      (item.stage_status === 'T8_HISTORICAL'
+        ? '<div class="sxf-strength-note">T-6 piyasa kararı mevcut. Bu kayıt önceki T-8 ön sinyalinin tarihçesidir.</div>'
+        : '') + '</article>';
   }
   function renderContent() {
     var list = allItems().filter(matches);
