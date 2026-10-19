@@ -818,3 +818,38 @@ def test_29_source_trigger_drop_rollback_is_nondestructive_and_restores_capture(
                  "WHERE fixture_uid=%s::uuid AND event_kind='FIXTURE_INSERT'",
                  (uid,))[0]["n"]==1
     assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]==baseline+1
+
+
+def test_30_null_uid_moneyway_rows_never_break_existing_source_writes():
+    """Live source schema explicitly permits NULL fixture_uid; capture must not abort."""
+    sid=932004001
+    before=query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]
+    query("INSERT INTO public.moneyway_snapshots "
+          "(id,fixture_uid,market,selection,scraped_at_utc) "
+          "VALUES(%s,NULL,'1X2','1',now())",(sid,))
+    query("DELETE FROM public.moneyway_snapshots WHERE id=%s",(sid,))
+    after=query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]
+    assert after==before
+
+
+def test_31_null_to_uid_and_uid_to_null_changes_preserve_identity():
+    """When identity arrives or disappears, capture still has a physical UID."""
+    sid=932004002
+    uid=str(uuid4())
+    query("INSERT INTO public.moneyway_snapshots "
+          "(id,fixture_uid,market,selection,scraped_at_utc) "
+          "VALUES(%s,NULL,'1X2','1',now())",(sid,))
+    query("UPDATE public.moneyway_snapshots SET fixture_uid=%s::uuid WHERE id=%s",
+          (uid,sid))
+    change=query("SELECT event_kind,fixture_uid,previous_fixture_uid "
+                 "FROM public.sxf_base_source_changes WHERE snapshot_id=%s ORDER BY change_id",
+                 (sid,))
+    assert len(change)==1 and change[0]["event_kind"]=="SNAPSHOT_CHANGE"
+    assert str(change[0]["fixture_uid"])==uid and change[0]["previous_fixture_uid"] is None
+    query("UPDATE public.moneyway_snapshots SET fixture_uid=NULL WHERE id=%s",(sid,))
+    last=query("SELECT event_kind,fixture_uid,previous_fixture_uid "
+               "FROM public.sxf_base_source_changes WHERE snapshot_id=%s ORDER BY change_id",
+               (sid,))
+    assert len(last)==2 and str(last[-1]["fixture_uid"])==uid
+    assert str(last[-1]["previous_fixture_uid"])==uid
+    query("DELETE FROM public.moneyway_snapshots WHERE id=%s",(sid,))
