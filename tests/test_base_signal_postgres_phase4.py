@@ -101,6 +101,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_18_sxf_base_durable_queue.sql",
         "migrations/2026_10_19_sxf_base_phase4a_waiting_data_hardening.sql",
         "migrations/2026_10_19_sxf_base_phase4b_reconciliation_rpc.sql",
+        "migrations/2026_10_19_sxf_base_phase4c_reconcile_queue.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -238,3 +239,97 @@ def test_06_permissions_no_public_access_or_execution():
         query("SELECT public.sxf_base_append_reconciliation("
               "%s,%s,%s::bigint[],%s::jsonb,%s,%s)",
               ("untrusted","CORRECTED",[1,2,3],"{}",None,None),role="authenticated")
+
+
+def test_07_reconcile_enqueue_is_atomic_with_original_market_decisions():
+    global THIRD_UID, THIRD_KICKOFF
+    THIRD_UID=str(uuid4())
+    THIRD_KICKOFF=KICKOFF+timedelta(hours=1)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc,match_id_hash) "
+          "VALUES(%s::uuid,%s,%s)",(THIRD_UID,THIRD_KICKOFF,"same-legacy-hash"))
+    job=job_data(THIRD_UID,THIRD_KICKOFF)
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS n",
+                 (json.dumps([job]),),role="service_role")[0]["n"]==1
+    claimed=claim("worker-orig")[0]
+    assert str(claimed["fixture_uid"])==THIRD_UID
+    payload=payload_for(claimed)
+    payload["markets"]["1X2"]={"checkpoint":8,"state":"FALLBACK_T8"}
+    assert complete(claimed,payload) is True
+    rows=query("SELECT market,origin_event_key FROM public.sxf_base_reconcile_jobs "
+               "WHERE fixture_uid=%s::uuid ORDER BY market",(THIRD_UID,))
+    assert {x["market"] for x in rows}=={"1X2","OU25","BTTS"}
+    # Only one test claim eligible, even though other fixtures need reconcile.
+    query("UPDATE public.sxf_base_reconcile_jobs SET next_attempt_at=now()+interval '365 days' "
+          "WHERE NOT (fixture_uid=%s::uuid AND market='1X2')",(THIRD_UID,))
+
+
+def test_08_concurrent_reconcile_claim_waits_for_late_source():
+    barrier=Barrier(2)
+    def concurrently(worker):
+        barrier.wait(timeout=10)
+        return query("SELECT * FROM public.sxf_base_claim_reconcile(%s,%s,%s)",
+                     (worker,1,180),role="service_role")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a=pool.submit(concurrently,"rec-A")
+        b=pool.submit(concurrently,"rec-B")
+        rows=a.result(timeout=20)+b.result(timeout=20)
+    assert len(rows)==1 and rows[0]["market"]=="1X2"
+    claim_row=rows[0]
+    assert str(claim_row["fixture_uid"])==THIRD_UID
+    answer=query("SELECT public.sxf_base_retry_reconcile(%s,%s::uuid,%s,%s) AS ok",
+                 (claim_row["reconciliation_id"],str(claim_row["lease_token"]),
+                  "SOURCE_INCOMPLETE",60),role="service_role")
+    assert answer[0]["ok"] is True
+    assert query("SELECT state FROM public.sxf_base_reconcile_jobs "
+                 "WHERE reconciliation_id=%s",(claim_row["reconciliation_id"],))[0]["state"]=="WAITING_DATA"
+    assert query("SELECT public.sxf_base_retry_reconcile(%s,%s::uuid,%s,%s) AS ok",
+                 (claim_row["reconciliation_id"],str(claim_row["lease_token"]),
+                  "SOURCE_INCOMPLETE",60),role="service_role")[0]["ok"] is False
+    query("UPDATE public.sxf_base_reconcile_jobs SET next_attempt_at=now()-interval '1 minute' "
+          "WHERE reconciliation_id=%s",(claim_row["reconciliation_id"],))
+    reclaims=query("SELECT * FROM public.sxf_base_claim_reconcile(%s,%s,%s)",
+                   ("rec-C",1,180),role="service_role")
+    assert len(reclaims)==1
+    assert str(reclaims[0]["lease_token"])!=str(claim_row["lease_token"])
+    test_08_concurrent_reconcile_claim_waits_for_late_source.claim=reclaims[0]
+
+
+def test_09_reconcile_batch_is_atomic_idempotent_and_provenanced():
+    job=test_08_concurrent_reconcile_claim_waits_for_late_source.claim
+    t6=THIRD_KICKOFF-timedelta(hours=6,minutes=5)
+    for i,side,odd,amount,share in (
+        (10,"1",1.75,1500,80),(11,"X",3.3,100,10),(12,"2",4.2,100,10)):
+        query("""INSERT INTO public.moneyway_snapshots
+                 (id,fixture_uid,market,selection,odds,volume,share,scraped_at_utc)
+                 VALUES(%s,%s::uuid,%s,%s,%s,%s,%s,%s)""",
+              (i,THIRD_UID,"1X2",side,odd,amount,share,t6))
+    valid={"engine":"1X2_CONCENTRATION_V1","side":"1","checkpoint":6,
+           "odds":"1.75","amount":"1500","share":"80","observed_at":t6.isoformat(),
+           "label":"SIGNAL","selection_status":"ELIGIBLE"}
+    invalid={**valid,"engine":"SURPRISE_TEAM","amount":"BAD"}
+    rpc="""SELECT public.sxf_base_complete_reconcile(
+              %s,%s::uuid,%s::bigint[],%s::jsonb,%s::jsonb) AS done"""
+    orig_count=query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                     "WHERE kind='CORRECTED'")[0]["n"]
+    with pytest.raises(psycopg2.Error):
+        query(rpc,(job["reconciliation_id"],str(job["lease_token"]),[10,11,12],
+                   json.dumps([valid,invalid]),json.dumps({"reason":"LATE_T6"})),
+              role="service_role")
+    assert query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                 "WHERE kind='CORRECTED'")[0]["n"]==orig_count
+    state=query("SELECT state FROM public.sxf_base_reconcile_jobs WHERE reconciliation_id=%s",
+                (job["reconciliation_id"],))[0]["state"]
+    assert state=="LEASED"
+    assert query(rpc,(job["reconciliation_id"],str(job["lease_token"]),[12,10,11],
+                     json.dumps([valid]),json.dumps({"reason":"LATE_T6"})),
+                 role="service_role")[0]["done"] is True
+    assert query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                 "WHERE kind='CORRECTED'")[0]["n"]==orig_count+1
+    assert query("SELECT state FROM public.sxf_base_reconcile_jobs WHERE reconciliation_id=%s",
+                 (job["reconciliation_id"],))[0]["state"]=="COMPLETED"
+    with pytest.raises(psycopg2.Error):
+        query(rpc,(job["reconciliation_id"],str(job["lease_token"]),[10,11,12],
+                   json.dumps([valid]),"{}"),role="service_role")
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_claim_reconcile(%s,%s,%s)",("anon-recon",1,180),
+              role="anon")

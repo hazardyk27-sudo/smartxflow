@@ -38,7 +38,8 @@ jobs:
             tests/test_base_signal_phase4a_contract.py \
             tests/test_base_signal_phase4b.py \
             tests/test_base_signal_phase4b_reconciliation.py \
-            tests/test_base_signal_phase4c_provenance.py
+            tests/test_base_signal_phase4c_provenance.py \
+            tests/test_base_signal_phase4c_dispatch.py
 
   postgres-contract:
     runs-on: ubuntu-latest
