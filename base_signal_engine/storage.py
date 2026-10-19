@@ -49,6 +49,7 @@ class SupabaseCheckpointStore:
         "sxf_base_retry_source_change", "sxf_base_quarantine_obsolete_uid",
         "sxf_base_wake_late_t6",
         "sxf_base_source_fixture_state",
+        "sxf_base_source_health",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -491,3 +492,14 @@ class SupabaseCheckpointStore:
             return _parse_time(value)
         except (ValueError, TypeError) as exc:
             raise DurableStoreError("invalid source fixture state") from exc
+
+    def source_health(self) -> dict:
+        """Aggregate append-only source changes without claiming commit times."""
+        value = self._rpc("sxf_base_source_health", {})
+        if (not isinstance(value, dict) or
+            value.get("captured_at_semantics") != "TRIGGER_TIME_NOT_COMMIT_TIME" or
+            value.get("source_commit_watermark", "INVALID") is not None or
+            not isinstance(value.get("source_delivery"), dict) or
+            not isinstance(value.get("event_kinds"), dict)):
+            raise DurableStoreError("invalid source change health payload")
+        return value
