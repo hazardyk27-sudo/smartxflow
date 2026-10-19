@@ -1,0 +1,36 @@
+name: Analizler V4 Responsive Chromium Smoke
+on:
+  push:
+    branches: [preview]
+    paths:
+      - 'static/css/base-signals.css'
+      - 'static/js/base-signals.js'
+      - 'static/css/style.css'
+      - 'templates/index.html'
+      - 'tests/test_analysis_v4_browser.py'
+      - '.github/workflows/analysis-v4-browser-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsive-viewports:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned browser test dependency
+        run: python -m pip install --disable-pip-version-check 'playwright==1.55.0'
+      - name: Install headless Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Test real V4 UI at desktop, tablet, phone, compact and landscape sizes
+        run: python tests/test_analysis_v4_browser.py
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analizler-v4-responsive-screenshots
+          path: artifacts/analizler-v4-*.png
+          if-no-files-found: ignore
