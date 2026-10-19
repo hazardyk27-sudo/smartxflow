@@ -1,0 +1,65 @@
+name: Base Hetzner isolated source-tail read-only check
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-readonly-probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-source-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Read-only Hetzner source-tail verification at exact preview SHA
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_PREVIEW_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_PREVIEW_SHA
+          command_timeout: 6m
+          script: |
+            set -euo pipefail
+            DIR='/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191'
+            [ "$(hostname)" = 'smartxflow' ] || { echo WRONG_HOST; exit 1; }
+            [ -d "$DIR/.git" ] || { echo ISOLATED_STAGING_MISSING; exit 1; }
+            [ "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main ] || exit 1
+            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || exit 1
+            [ -z "$(git -C "$DIR" status --porcelain=v1)" ] || exit 1
+            git -C "$DIR" fetch -q --depth 80 origin preview
+            [ "$(git -C "$DIR" rev-parse FETCH_HEAD)" = "$EXPECTED_PREVIEW_SHA" ] || { echo PREVIEW_MOVED; exit 1; }
+            git -C "$DIR" merge --ff-only FETCH_HEAD >/dev/null
+            [ "$(git -C "$DIR" rev-parse HEAD)" = "$EXPECTED_PREVIEW_SHA" ] || { echo SHA_MISMATCH; exit 1; }
+            [ -f "$DIR/base_signal_engine/source_tail_probe.py" ] || exit 1
+            install -d -m 0700 -o smartxflow -g smartxflow /var/tmp/sxf-base-shadow
+            test -f /opt/smartxflow/.env
+            echo "ISOLATED_SOURCE_SHA=$EXPECTED_PREVIEW_SHA"
+            systemd-run --unit="sxf-base-source-tail-${EXPECTED_PREVIEW_SHA:0:12}" \
+              --wait --pipe --collect \
+              --setenv=SXF_BASE_SOURCE_TAIL_PROBE_APPROVED=yes \
+              --property=Type=oneshot \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property="WorkingDirectory=$DIR" \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ReadWritePaths=/var/tmp/sxf-base-shadow \
+              --property=ProtectHome=yes \
+              --property=MemoryMax=128M \
+              --property=TimeoutStartSec=90 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.source_tail_probe \
+              --state /var/tmp/sxf-base-shadow/source-tail-digests.json --limit 500
+            echo "SOURCE_TAIL_READONLY_PASSED"
+            echo "PRODUCTION_SHA=$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
+            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || exit 1
+            for unit in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$unit")" = active || { echo "SERVICE_UNHEALTHY:$unit"; exit 1; }
+            done
+            echo EXISTING_PRODUCTION_SERVICES_ACTIVE
