@@ -33,9 +33,11 @@ jobs:
             [ -d "$DIR/.git" ] || { echo ISOLATED_STAGING_MISSING; exit 1; }
             echo STAGING_EXISTS
             [ "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main ] || exit 1
-            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || { echo PROD_DIRTY; exit 1; }
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet || { echo PROD_TRACKED_DIRTY; exit 1; }
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet || { echo PROD_INDEX_DIRTY; exit 1; }
             echo PROD_SAFE
-            [ -z "$(git -C "$DIR" status --porcelain=v1)" ] || exit 1
+            git -C "$DIR" diff --quiet || { echo STAGING_TRACKED_DIRTY; exit 1; }
+            git -C "$DIR" diff --cached --quiet || { echo STAGING_INDEX_DIRTY; exit 1; }
             echo FETCH_START
             git -C "$DIR" fetch -q --depth 80 origin preview
             echo FETCH_DONE
@@ -66,7 +68,8 @@ jobs:
               --state /var/tmp/sxf-base-shadow/source-tail-digests.json --limit 500
             echo "SOURCE_TAIL_READONLY_PASSED"
             echo "PRODUCTION_SHA=$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
-            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || exit 1
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet || { echo PROD_TRACKED_DIRTY_POST; exit 1; }
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet || { echo PROD_INDEX_DIRTY_POST; exit 1; }
             for unit in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
               test "$(systemctl is-active "$unit")" = active || { echo "SERVICE_UNHEALTHY:$unit"; exit 1; }
             done
