@@ -87,3 +87,76 @@ def test_one_day_cap_and_future_cursor_idle():
     assert status["idle"] and ("release",None) in store.calls
     with pytest.raises(ValueError):
         discover_window_once(object(),store,worker_id="w",now=NOW,window_hours=48)
+
+
+def test_bounded_window_refuses_overflow_without_skipping_any_uid():
+    from base_signal_engine.discovery import discover_window_once
+    class Crowd:
+        def list_between(self,a,b):
+            assert b-a==timedelta(hours=1)
+            return [FixtureRef("00000000-0000-4000-8000-%012d"%n,
+                               a+timedelta(minutes=20)) for n in range(51)]
+    store=Store(start=NOW)
+    result=discover_window_once(None,store,worker_id="w",now=NOW+timedelta(hours=3),
+                                catalog=Crowd(),window_hours=1,max_fixtures=50)
+    assert result["retry"] and not result["advanced"]
+    assert "enqueue" not in store.calls and "advance" not in store.calls
+    assert store.cursor==NOW
+    assert store.calls[-1]==("release","RUNTIMEERROR")
+
+
+def test_bounded_cursor_pauses_without_claiming_or_enqueuing_when_busy():
+    from base_signal_engine.discovery import bounded_cursor_discovery_once
+    class Healthy(Store):
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":250},
+                    "discovery_cursor":{"initialized":True}}
+    store=Healthy()
+    report=bounded_cursor_discovery_once(None,store,worker_id="w")
+    assert report["status"]=="PAUSED_BACKLOG" and report["paused"]
+    assert store.calls==[] and report["enqueued"]==0
+
+
+def test_bounded_cursor_never_auto_initializes():
+    from base_signal_engine.discovery import bounded_cursor_discovery_once
+    class NotReady(Store):
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":0},
+                    "discovery_cursor":{"initialized":False}}
+    store=NotReady()
+    report=bounded_cursor_discovery_once(None,store,worker_id="w")
+    assert report["status"]=="UNINITIALIZED"
+    assert store.calls==[]
+
+
+def test_bounded_cursor_advances_contiguously_and_replays_safely():
+    from base_signal_engine.discovery import bounded_cursor_discovery_once
+    class Healthy(Store):
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":0},
+                    "discovery_cursor":{"initialized":True}}
+    store=Healthy(start=NOW)
+    report=bounded_cursor_discovery_once(
+        None,store,worker_id="w",now=NOW+timedelta(hours=2),
+        catalog=Catalog(),window_hours=1,max_fixtures=10)
+    assert report["status"]=="OK" and report["advanced"]
+    assert report["enqueued"]==11
+    assert store.cursor==NOW+timedelta(hours=1)
+    assert store.calls==["claim","enqueue","advance"]
+
+
+def test_bounded_cursor_rejects_missing_health_metrics_and_unsafe_limits():
+    from base_signal_engine.discovery import bounded_cursor_discovery_once
+    class Invalid(Store):
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":None},
+                    "discovery_cursor":{"initialized":True}}
+    with pytest.raises(DurableStoreError):
+        bounded_cursor_discovery_once(None,Invalid(),worker_id="w")
+    class Unused(Store):
+        def health_snapshot(self):
+            raise AssertionError("preflight should reject settings")
+    for kw in ({"max_fixtures":0},{"max_pending_due":0},
+               {"window_hours":0},{"window_hours":7}):
+        with pytest.raises(ValueError):
+            bounded_cursor_discovery_once(None,Unused(),worker_id="w",**kw)
