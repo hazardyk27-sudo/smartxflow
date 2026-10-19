@@ -104,6 +104,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c_reconcile_queue.sql",
         "migrations/2026_10_19_sxf_base_phase4c_discovery_cursor.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_kickoff_drift.sql",
+        "migrations/2026_10_19_sxf_base_phase4c4_discovery_heartbeat.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -452,3 +453,21 @@ def test_14_kickoff_changing_while_leased_cannot_append_stale_signal():
     assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS total",
                  (json.dumps([job_data(uid,current)]),),
                  role="service_role")[0]["total"]==1
+
+
+def test_15_discovery_heartbeat_fences_stale_or_foreign_tokens():
+    lease=query("SELECT * FROM public.sxf_base_claim_discovery(%s,%s)",
+                ("renew-worker",120),role="service_role")
+    assert len(lease)==1
+    token=str(lease[0]["lease_token"])
+    sql="SELECT public.sxf_base_renew_discovery(%s::uuid,%s) AS renewed"
+    assert query(sql,(token,120),role="service_role")[0]["renewed"] is True
+    assert query(sql,(str(uuid4()),120),role="service_role")[0]["renewed"] is False
+    with pytest.raises(psycopg2.Error):
+        query(sql,(token,30),role="service_role")
+    with pytest.raises(psycopg2.Error):
+        query(sql,(token,120),role="anon")
+    query("UPDATE public.sxf_base_discovery_cursors "
+          "SET lease_expires_at=now()-interval '1 second' "
+          "WHERE lease_token=%s::uuid",(token,))
+    assert query(sql,(token,120),role="service_role")[0]["renewed"] is False
