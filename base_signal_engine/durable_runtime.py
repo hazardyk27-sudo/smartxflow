@@ -13,6 +13,7 @@ from .runtime import SupabaseFixtureCatalog
 from .scheduler import evaluate_job
 from .storage import DurableStoreError, SupabaseCheckpointStore
 from .source_quality import CapturingReader, source_coverage
+from .lease_heartbeat import CooperativeLeaseHeartbeat
 
 
 def retry_delay_seconds(attempt: int) -> int:
@@ -37,7 +38,14 @@ def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStor
 
     for item in claimed:
         try:
-            capture = CapturingReader(reader)
+            heartbeat = None
+            if isinstance(reader, SupabaseMoneywayReader):
+                heartbeat = CooperativeLeaseHeartbeat(
+                    lambda: store.renew(item, lease_seconds=lease_seconds),
+                    lease_seconds=lease_seconds)
+                heartbeat.pulse(force=True)
+            capture = CapturingReader(
+                reader, progress_hook=heartbeat.pulse if heartbeat else None)
             result = evaluate_job(item.job, capture)
             coverage = source_coverage(item.job, capture.source, result)
             result["source_coverage"] = coverage
