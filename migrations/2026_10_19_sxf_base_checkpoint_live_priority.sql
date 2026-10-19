@@ -1,6 +1,5 @@
--- SmartXFlow Base checkpoint queue: prioritize timely live checkpoint review.
--- Changes ONLY sxf_base_claim_due_jobs; no snapshot/legacy table changes.
--- Durable backlog still drains, oldest jobs follow recent due checkpoints.
+-- Priority patch on top of Phase 4A WAITING_DATA-aware claim, never base migration.
+-- Changes only sxf_base_claim_due_jobs; existing lease-fencing remains unchanged.
 BEGIN;
 CREATE OR REPLACE FUNCTION public.sxf_base_claim_due_jobs(
     p_worker text,p_limit integer DEFAULT 25,p_lease_seconds integer DEFAULT 300)
@@ -15,7 +14,7 @@ BEGIN
     END IF;
     RETURN QUERY WITH locked AS (
       SELECT j.job_id FROM public.sxf_base_checkpoint_jobs j
-       WHERE (j.state IN('PENDING','RETRY') AND j.next_attempt_at<=now())
+       WHERE (j.state IN('PENDING','RETRY','WAITING_DATA') AND j.next_attempt_at<=now())
           OR (j.state='LEASED' AND j.lease_expires_at<now())
        ORDER BY
          CASE WHEN j.checkpoint_at >= now()-INTERVAL '3 hours' THEN 0 ELSE 1 END,
