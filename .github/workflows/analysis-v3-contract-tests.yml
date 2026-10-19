@@ -3,7 +3,7 @@ on:
   push:
     branches: [preview]
     paths:
-      - 'services/base_signal_feed.py'
+      - 'base_signal_engine/feed.py'
       - 'app.py'
       - 'templates/index.html'
       - 'static/js/base-signals.js'
