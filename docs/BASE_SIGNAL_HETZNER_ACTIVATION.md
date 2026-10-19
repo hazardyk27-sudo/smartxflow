@@ -37,6 +37,18 @@ services remained active and untouched.
   `main` tracked diff remained zero; seven existing services still active.
   Neither Replit nor legacy signal tables were modified.
 
+**Read-only discovery load preflight:** a separate isolated Hetzner
+one-shot used the real `SupabaseFixtureCatalog` over
+`[now - 1 day, now + 74 hours]`. It returned **428 fixtures**:
+**187** kickoff in the past 24 hours and **241** upcoming inside the
+74-hour window. Full 11-checkpoint fanout would enqueue up to
+**4,708 checkpoint jobs**, many historical, not all due or complete.
+The query succeeded in **318 ms** with **24 MB** peak RAM, and
+performed **zero writes**. Accordingly, do not start the entire
+retrospective fixture fanout before a bounded startup backlog and
+source-retention policy is verified; these read-only metrics prove
+catalog performance, **not** a safe full checkpoint processing rate.
+
 **Shadow gate reality:** this does **not** constitute 24-hour shadow
 coverage. On the live database the `sxf_base_source_health` RPC is
 **absent**, since proposed per-row `source_capture` triggers and
