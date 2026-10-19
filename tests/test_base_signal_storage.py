@@ -153,9 +153,10 @@ def test_retry_backoff_never_exceeds_one_hour():
     assert [retry_delay_seconds(x) for x in (1,2,3,4,10,100)] == [30,60,120,240,3600,3600]
 
 
-def test_execute_claims_success_without_duplicate_local_commit():
+def test_execute_claims_missing_data_waits_without_false_completion():
     row = fake_claim()
-    fake = FakeRpc(result_by_rpc={'sxf_base_claim_due_jobs':[row], 'sxf_base_complete_job':True})
+    fake = FakeRpc(result_by_rpc={
+        'sxf_base_claim_due_jobs': [row], 'sxf_base_wait_for_data': True})
     s = store(fake)
 
     class Reader:
@@ -164,12 +165,11 @@ def test_execute_claims_success_without_duplicate_local_commit():
         def load_checkpoints(self, fixture, *, hours, as_of_utc, include_v2_history, expected_legacy_hash):
             return SimpleNamespace(snapshots=(),fetched_rows=0,discarded_groups=0,hash_drift_rows=0)
 
-    report = execute_claims(Reader(),s,worker_id='test-worker')
-    assert report == {'claimed':1, 'completed':1, 'retry':0, 'lease_lost':0}
-    assert [x[0] for x in fake.calls] == ['sxf_base_claim_due_jobs','sxf_base_complete_job']
-    sent = fake.calls[1][1]['p_payload']
-    assert sent['key'] == JOB.key and sent['family'] == 'BASE'
-    assert set(sent['markets']) == {'1X2','OU25','BTTS'}
+    report = execute_claims(Reader(), s, worker_id='test-worker')
+    assert report == {'claimed':1, 'completed':0, 'waiting_data':1,
+                      'retry':0, 'lease_lost':0, 'commit_uncertain':0}
+    assert [x[0] for x in fake.calls] == ['sxf_base_claim_due_jobs','sxf_base_wait_for_data']
+    assert fake.calls[1][1]['p_reason'] == 'SOURCE_INCOMPLETE'
 
 
 def test_execute_claims_eval_failure_retries_not_completes():

@@ -36,6 +36,7 @@ class SupabaseCheckpointStore:
     _ALLOWED = frozenset({
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
         "sxf_base_renew_lease", "sxf_base_fail_job", "sxf_base_complete_job",
+        "sxf_base_wait_for_data",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -155,3 +156,16 @@ class SupabaseCheckpointStore:
             "p_retry_seconds": delay_seconds,
         }) is not True:
             raise DurableStoreError("checkpoint failure update not acknowledged")
+    def wait_for_data(self, item: ClaimedCheckpoint, *,
+                      reason: str = "INSUFFICIENT_DATA",
+                      delay_seconds: int = 180) -> None:
+        """Mark a missing-source attempt nonterminal with a fenced lease token."""
+        if reason not in ("INSUFFICIENT_DATA", "SOURCE_LAG", "SOURCE_INCOMPLETE"):
+            raise ValueError("unsupported missing-source reason")
+        if not 60 <= delay_seconds <= 3600:
+            raise ValueError("missing-source retry delay outside bounds")
+        if self._rpc("sxf_base_wait_for_data", {
+            "p_job_id": item.job_id, "p_lease_token": item.lease_token,
+            "p_reason": reason, "p_retry_seconds": delay_seconds,
+        }) is not True:
+            raise DurableStoreError("missing-source transition not acknowledged")

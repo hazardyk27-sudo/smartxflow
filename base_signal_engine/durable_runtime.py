@@ -1,8 +1,7 @@
-"""Phase 4, *not deployed*: durable queue orchestration using atomic Supabase RPCs.
+"""Phase 4B, NOT DEPLOYED: conservative durable checkpoint job execution.
 
-Intentionally has no command-line auto-start. DB migration, index benchmark,
-preview integration test, shadow authorization and explicit production approval
-are prerequisites. Legacy signal tables / scraper remain untouched.
+No CLI or service auto-start, no production migration or legacy source writes.
+An immutable source-coverage summary is attached to successful evaluations.
 """
 from __future__ import annotations
 
@@ -12,7 +11,8 @@ from typing import Any
 from .reader import SupabaseMoneywayReader
 from .runtime import SupabaseFixtureCatalog
 from .scheduler import evaluate_job
-from .storage import ClaimedCheckpoint, DurableStoreError, SupabaseCheckpointStore
+from .storage import DurableStoreError, SupabaseCheckpointStore
+from .source_quality import CapturingReader, source_coverage
 
 
 def retry_delay_seconds(attempt: int) -> int:
@@ -22,28 +22,60 @@ def retry_delay_seconds(attempt: int) -> int:
 
 def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStore,
                    *, worker_id: str, limit: int = 1, lease_seconds: int = 900) -> dict:
-    """Claim and finish jobs, independently; DB commits both audit+signals or nothing.
+    """Never claim multiple unstarted leases while waiting for a slow DB read.
 
-    One claim per cycle avoids unstarted jobs expiring while earlier jobs run.
-    The 900s lease is provisional; long-running evaluations must renew before
-    expiry. DB fencing prevents stale-token writes regardless of runtime failures.
+    A timeout during completion may mean the *transaction committed*; therefore
+    mark it uncertain rather than claiming a retry or success. Fencing makes
+    an eventual replay idempotent. Lease renewal before completion narrows the
+    stale-lease window; long-running readers still need periodic heartbeats.
     """
-    claimed = store.claim(worker_id, limit=limit, lease_seconds=lease_seconds)
-    stats = {"claimed": len(claimed), "completed": 0, "retry": 0, "lease_lost": 0}
+    if limit != 1:
+        raise ValueError("claim batch must be one until heartbeat support")
+    claimed = store.claim(worker_id, limit=1, lease_seconds=lease_seconds)
+    stats = {"claimed": len(claimed), "completed": 0, "waiting_data": 0,
+             "retry": 0, "lease_lost": 0, "commit_uncertain": 0}
+
     for item in claimed:
         try:
-            result = evaluate_job(item.job, reader)
-            # A stale worker cannot silently commit: SQL verifies ownership token.
-            store.complete(item, result)
-            stats["completed"] += 1
+            capture = CapturingReader(reader)
+            result = evaluate_job(item.job, capture)
+            coverage = source_coverage(item.job, capture.source, result)
+            result["source_coverage"] = coverage
         except Exception as error:
+            # Restrict reason to exception class, never source URL / credentials.
             code = type(error).__name__.upper()
             try:
                 store.fail(item, code, delay_seconds=retry_delay_seconds(item.attempt_count))
                 stats["retry"] += 1
             except DurableStoreError:
-                # A lost lease may be owned by another worker; do not mutate it.
+                # May be expired/foreign lease OR transport outcome unknown.
                 stats["lease_lost"] += 1
+            continue
+
+        if coverage["disposition"] == "WAITING_DATA":
+            try:
+                store.wait_for_data(
+                    item, reason="SOURCE_INCOMPLETE",
+                    delay_seconds=max(180, retry_delay_seconds(item.attempt_count)))
+                stats["waiting_data"] += 1
+            except DurableStoreError:
+                stats["lease_lost"] += 1
+            continue
+
+        try:
+            store.renew(item, lease_seconds=lease_seconds)
+        except DurableStoreError:
+            # Do NOT commit evidence using a lease whose renewal cannot be proven.
+            stats["lease_lost"] += 1
+            continue
+        try:
+            store.complete(item, result)
+        except DurableStoreError:
+            # The DB could have atomically committed, but the HTTP response was
+            # lost. Replaying a COMPLETED job cannot duplicate the immutable rows.
+            stats["commit_uncertain"] += 1
+        else:
+            stats["completed"] += 1
     return stats
 
 
@@ -57,6 +89,8 @@ def cycle(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStore, *,
     """
     if fixture_backfill_days < 1 or fixture_backfill_days > 30:
         raise ValueError("invalid discovery horizon")
+    if claim_limit != 1:
+        raise ValueError("multi-job claims are gated until lease heartbeats")
     at = now or datetime.now(timezone.utc)
     catalog = catalog or SupabaseFixtureCatalog(reader)
     status = {"fixtures": None, "enqueued": None, "catalog_error": False}
