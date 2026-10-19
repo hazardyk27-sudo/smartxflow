@@ -48,6 +48,7 @@ class SupabaseCheckpointStore:
         "sxf_base_claim_source_changes", "sxf_base_ack_source_change",
         "sxf_base_retry_source_change", "sxf_base_quarantine_obsolete_uid",
         "sxf_base_wake_late_t6",
+        "sxf_base_source_fixture_state",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -479,3 +480,14 @@ class SupabaseCheckpointStore:
         if type(value) is not int or value < 0:
             raise DurableStoreError("invalid wake response")
         return value
+
+    def source_fixture_state(self, fixture_uid: str) -> datetime | None:
+        """Read current source kickoff; None is authoritative deleted UID."""
+        value = self._rpc("sxf_base_source_fixture_state", {
+            "p_fixture_uid": str(UUID(fixture_uid))})
+        if value is None:
+            return None
+        try:
+            return _parse_time(value)
+        except (ValueError, TypeError) as exc:
+            raise DurableStoreError("invalid source fixture state") from exc
