@@ -44,6 +44,7 @@ class SupabaseCheckpointStore:
         "sxf_base_advance_discovery", "sxf_base_release_discovery",
         "sxf_base_quarantine_fixture_drift", "sxf_base_renew_discovery",
         "sxf_base_health_snapshot",
+        "sxf_base_read_market_events",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -374,3 +375,16 @@ class SupabaseCheckpointStore:
         if not isinstance(value, dict) or not needed.issubset(value):
             raise DurableStoreError("unexpected health snapshot response")
         return value
+
+    def read_market_events(self, fixture_uid: str, kickoff_utc: datetime) -> dict:
+        """Read allowlisted market identity and correction metadata only."""
+        uid = str(UUID(fixture_uid))
+        result = self._rpc("sxf_base_read_market_events", {
+            "p_fixture_uid": uid,
+            "p_kickoff_utc": kickoff_utc.isoformat(),
+        })
+        if (not isinstance(result, dict) or
+            type(result.get("fixture_authoritative")) is not bool or
+            not isinstance(result.get("events"), list)):
+            raise DurableStoreError("malformed current projection evidence")
+        return result
