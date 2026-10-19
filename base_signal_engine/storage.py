@@ -40,6 +40,8 @@ class SupabaseCheckpointStore:
         "sxf_base_backfill_reconcile", "sxf_base_claim_reconcile",
         "sxf_base_renew_reconcile", "sxf_base_retry_reconcile",
         "sxf_base_complete_reconcile",
+        "sxf_base_init_discovery", "sxf_base_claim_discovery",
+        "sxf_base_advance_discovery", "sxf_base_release_discovery",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -288,3 +290,57 @@ class SupabaseCheckpointStore:
                            "v2_state": plan.v2_state},
         }) is not True:
             raise DurableStoreError("reconciliation completion not acknowledged")
+
+    def init_discovery(self, start: datetime) -> bool:
+        """Explicit bootstrap only; never infer initial history horizon."""
+        value = self._rpc("sxf_base_init_discovery", {"p_start": start.isoformat()})
+        if type(value) is not bool:
+            raise DurableStoreError("discovery initialization unacknowledged")
+        return value
+
+    def claim_discovery(self, worker_id: str, *, lease_seconds: int = 900) -> dict | None:
+        if not worker_id or len(worker_id.strip()) > 100 or not 60 <= lease_seconds <= 1800:
+            raise ValueError("invalid discovery lease")
+        rows = self._rpc("sxf_base_claim_discovery", {
+            "p_worker": worker_id, "p_lease_seconds": lease_seconds})
+        if not isinstance(rows, list) or len(rows)>1:
+            raise DurableStoreError("invalid discovery claim batch")
+        if not rows:
+            return None
+        r = rows[0]
+        try:
+            if r["cursor_name"] != "BASE_FIXTURES":
+                raise ValueError("wrong cursor")
+            start = _parse_time(r["completed_through"])
+            bootstrap = _parse_time(r["bootstrap_start"])
+            if start<bootstrap or int(r["lease_attempts"]) <1:
+                raise ValueError("invalid highwater")
+            return {"cursor_name": "BASE_FIXTURES","completed_through": start,
+                    "bootstrap_start": bootstrap,
+                    "lease_token": str(UUID(str(r["lease_token"]))),
+                    "lease_attempts": int(r["lease_attempts"])}
+        except (KeyError,ValueError,TypeError) as exc:
+            raise DurableStoreError("malformed discovery claim") from exc
+
+    def advance_discovery(self, item: Mapping[str, Any], *,
+                          end: datetime, fixture_count: int) -> None:
+        if item["cursor_name"]!="BASE_FIXTURES" or type(fixture_count) is not int or fixture_count<0:
+            raise ValueError("invalid discovery advancement")
+        value = self._rpc("sxf_base_advance_discovery", {
+            "p_lease_token": item["lease_token"],
+            "p_start": item["completed_through"].isoformat(),
+            "p_end": end.isoformat(),
+            "p_fixture_count": fixture_count})
+        if value is not True:
+            raise DurableStoreError("discovery watermark advancement rejected")
+
+    def release_discovery(self, item: Mapping[str, Any], *,
+                          error_code: str | None = None) -> None:
+        if error_code is not None and (not error_code or
+              any(x not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for x in error_code) or
+              len(error_code)>64):
+            raise ValueError("unsafe discovery error category")
+        value = self._rpc("sxf_base_release_discovery", {
+            "p_lease_token": item["lease_token"], "p_error_code": error_code})
+        if value is not True:
+            raise DurableStoreError("discovery release not acknowledged")
