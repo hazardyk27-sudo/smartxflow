@@ -43,6 +43,7 @@ class SupabaseCheckpointStore:
         "sxf_base_init_discovery", "sxf_base_claim_discovery",
         "sxf_base_advance_discovery", "sxf_base_release_discovery",
         "sxf_base_quarantine_fixture_drift", "sxf_base_renew_discovery",
+        "sxf_base_health_snapshot",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -364,3 +365,12 @@ class SupabaseCheckpointStore:
             "p_lease_token": item["lease_token"], "p_lease_seconds": lease_seconds,
         }) is not True:
             raise DurableStoreError("discovery renewal rejected")
+
+    def health_snapshot(self) -> dict:
+        """Service-role health-only read; never changes checkpoint state."""
+        value = self._rpc("sxf_base_health_snapshot", {})
+        needed = {"generated_at","checkpoint_queue","reconciliation_queue",
+                  "discovery_cursor","fixture_identity","snapshot_ingestion_watermark"}
+        if not isinstance(value, dict) or not needed.issubset(value):
+            raise DurableStoreError("unexpected health snapshot response")
+        return value
