@@ -189,14 +189,30 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
 def process_due_jobs(fixtures: Sequence[FixtureRef], now: datetime,
                      reader: SnapshotPort, journal: CompletionPort,
                      *, grace: timedelta = INGESTION_GRACE,
-                     limit: int = 250) -> dict:
-    """Fail-closed per job, continue others; failed jobs retry next cycle."""
+                     limit: int = 250, verify_source: bool = False) -> dict:
+    """Fail-closed per job, continue others; missing source retries next cycle.
+
+    For real shadow scans, verify_source=True is mandatory: an absent historic
+    snapshot is WAITING_DATA, *not* an evaluated/completed checkpoint. This
+    changes only lifecycle integrity, never motor rules or thresholds.
+    """
     jobs = due_jobs(fixtures, now, journal, grace=grace, limit=limit)
-    stats = {"due": len(jobs), "committed": 0, "already_done": 0, "failed": 0,
-             "errors": []}
+    stats = {"due": len(jobs), "committed": 0, "already_done": 0,
+             "failed": 0, "waiting_data": 0, "errors": []}
     for job in jobs:
         try:
-            payload = evaluate_job(job, reader, grace=grace)
+            if verify_source:
+                # Local import avoids scheduler <-> source_quality module cycle.
+                from .source_quality import CapturingReader, source_coverage
+                capture = CapturingReader(reader)
+                payload = evaluate_job(job, capture, grace=grace)
+                coverage = source_coverage(job, capture.source, payload)
+                if coverage["disposition"] != "EVALUATE":
+                    stats["waiting_data"] += 1
+                    continue   # IMPORTANT: never write an empty-data checkpoint.
+                payload["source_coverage"] = coverage
+            else:
+                payload = evaluate_job(job, reader, grace=grace)
             if journal.commit(job.key, payload):
                 stats["committed"] += 1
             else:
