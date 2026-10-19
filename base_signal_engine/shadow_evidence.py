@@ -29,7 +29,7 @@ _ALLOWED_COUNTERS = frozenset({
     "checkpoint_pending_due", "checkpoint_waiting_data", "checkpoint_expired_leases",
     "reconcile_pending_due", "reconcile_waiting_data", "reconcile_expired_leases",
     "source_pending_due", "source_review_required", "source_expired_leases",
-    "uncertain_commits",
+    "waiting_data", "uncertain_commits",
 })
 
 
@@ -204,6 +204,8 @@ def assess_shadow(records: list[dict], *,
             blockers.append("ERROR_DURING_SHADOW")
         if counters.get("uncertain_commits",0)>0:
             blockers.append("UNCERTAIN_COMMIT")
+        if counters.get("waiting_data",0)>0:
+            blockers.append("CHECKPOINT_SOURCE_MISSING")
         if any(counters.get(x,0)>0 for x in (
                 "checkpoint_expired_leases","reconcile_expired_leases",
                 "source_expired_leases")):
