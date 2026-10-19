@@ -60,7 +60,7 @@ def test_durable_cycle_rejects_unsafe_work_bounds():
     for kwargs in ({"max_jobs":0},{"max_jobs":31},{"max_reconcile":6},
                    {"lookback_days":0},{"worker_id":""}):
         with pytest.raises(ValueError):
-            app.run_cycle(None,None,worker_id="worker",**kwargs)
+            app.run_cycle(None,None,**({"worker_id":"worker"} | kwargs))
 
 
 def test_corrupt_health_is_never_reported_as_zero(monkeypatch):
