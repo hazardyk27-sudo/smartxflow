@@ -86,11 +86,21 @@ END $$;
 
 CREATE OR REPLACE FUNCTION public.sxf_base_capture_snapshot_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
-SET search_path=pg_catalog,public AS $$
-DECLARE v_id bigint;
+SET search_path=pg_catalog,public AS $
+DECLARE v_id bigint; v_uid uuid;
 BEGIN
     IF TG_TABLE_SCHEMA<>'public' OR TG_TABLE_NAME<>'moneyway_snapshots' THEN
        RAISE EXCEPTION 'invalid snapshot source capture table';
+    END IF;
+    -- The live Moneyway source permits NULL fixture_uid (historic/unresolved
+    -- evidence). A NOT NULL outbox identity must NEVER abort ordinary source
+    -- INSERT/DELETE/UPDATE. Keep changes for a previously identified UID
+    -- even when an UPDATE removes the UID; identity-less writes are ignored.
+    v_uid := COALESCE(
+        CASE WHEN TG_OP='DELETE' THEN OLD.fixture_uid ELSE NEW.fixture_uid END,
+        CASE WHEN TG_OP='INSERT' THEN NULL ELSE OLD.fixture_uid END);
+    IF v_uid IS NULL THEN
+        RETURN COALESCE(NEW,OLD);
     END IF;
     INSERT INTO public.sxf_base_source_changes(
       event_kind,fixture_uid,previous_fixture_uid,snapshot_id,market,source_observed_at)
@@ -98,7 +108,7 @@ BEGIN
       CASE TG_OP WHEN 'INSERT' THEN 'SNAPSHOT_INSERT'
                  WHEN 'DELETE' THEN 'SNAPSHOT_DELETE'
                  ELSE 'SNAPSHOT_CHANGE' END,
-      CASE WHEN TG_OP='DELETE' THEN OLD.fixture_uid ELSE NEW.fixture_uid END,
+      v_uid,
       CASE WHEN TG_OP='INSERT' THEN NULL ELSE OLD.fixture_uid END,
       CASE WHEN TG_OP='DELETE' THEN OLD.id ELSE NEW.id END,
       CASE WHEN TG_OP='DELETE' THEN OLD.market ELSE NEW.market END,
