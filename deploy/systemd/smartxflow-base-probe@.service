@@ -1,0 +1,34 @@
+# STAGED SOURCE ONLY — not installed or enabled in production.
+# A separate exact-SHA release and operator-approved one-shot invocation required.
+# Example instance: smartxflow-base-probe@<canonical-uuid>.service
+[Unit]
+Description=SmartXFlow Base single-UID read-only probe %i
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/opt/smartxflow/base_signal_engine/hetzner_probe.py
+
+[Service]
+Type=oneshot
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+EnvironmentFile=-/etc/smartxflow/base-probe.env
+ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_probe --fixture-uid %i --checkpoint 6
+Restart=no
+TimeoutStartSec=150
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=256M
+TasksMax=32
+StandardOutput=journal
+StandardError=journal
+
+# Intentionally no [Install]: it must never auto-enable or run at boot.
