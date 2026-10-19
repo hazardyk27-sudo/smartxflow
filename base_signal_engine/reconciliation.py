@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Callable
 from uuid import UUID
 
-from .reader import _parse_time
+from .reader import _parse_time, SupabaseMoneywayReader
 from .rules import Fixture, select_snapshot, evaluate_base
 from .scheduler import _market_for_engine, _serialize_signal, INGESTION_GRACE
 
@@ -31,7 +31,8 @@ class ReconciliationPlan:
 
 
 def plan_late_t6(reader: Any, *, origin_event_key: str, fixture_uid: str,
-                 kickoff_utc: datetime, market: str) -> ReconciliationPlan | None:
+                 kickoff_utc: datetime, market: str,
+                 progress_hook: Callable[[], None] | None = None) -> ReconciliationPlan | None:
     """Proof of a completed T-6 market group, never based on a legacy hash.
 
     Returns None when the missing T-6 source has not arrived. Fails closed on
@@ -47,9 +48,12 @@ def plan_late_t6(reader: Any, *, origin_event_key: str, fixture_uid: str,
     if fixture.fixture_uid != canonical or fixture.kickoff_utc != kickoff:
         raise ValueError("fixture identity changed")
     checkpoint = kickoff - timedelta(hours=6)
+    kwargs = {}
+    if progress_hook is not None and isinstance(reader, SupabaseMoneywayReader):
+        kwargs["progress_hook"] = progress_hook
     result = reader.load_checkpoints(
         fixture, hours=(6,), as_of_utc=checkpoint + INGESTION_GRACE,
-        include_v2_history=True, expected_legacy_hash=legacy,
+        include_v2_history=True, expected_legacy_hash=legacy, **kwargs,
     )
     chosen = select_snapshot(fixture, market, 6, result.snapshots)
     if chosen is None:
