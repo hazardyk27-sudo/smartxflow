@@ -204,7 +204,7 @@ def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
     empty=FakeReader([])
     journal=MemoryJournal()
     first=scan_once(empty,journal,now=now,catalog=Catalog(),max_jobs=9)
-    assert first["waiting_data"]==9 and first["committed"]==0
+    assert first["due"]==8 and first["waiting_data"]==8 and first["committed"]==0
     assert journal.logs=={}
     # A later snapshot can be observed on next scan; immutable existing
     # checkpoint timestamps remain the same and motor rules are unchanged.
