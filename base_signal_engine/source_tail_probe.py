@@ -73,9 +73,15 @@ def compare_tail(previous: dict | None, current: dict) -> dict:
     floor=int(current["floor_id"])
     potential_missing=sum(int(i)>=floor for i in old_ids-new_ids)
     head_advanced=current["head_id"]>previous["head_id"]
-    status=("MUTATION_SUSPECTED" if changes or potential_missing else
-            "NO_OVERLAP_UNVERIFIED" if not overlap else
-            "OVERLAP_SAMPLED")
+    if current["head_id"]<previous["head_id"]:
+        # A decreasing highest committed-looking ID is not normal forward
+        # movement. It could reflect retention, a reset or a timing race.
+        # Never label it as a clean sampled overlap.
+        status="HEAD_REGRESSION_REVIEW"
+    else:
+        status=("MUTATION_SUSPECTED" if changes or potential_missing else
+                "NO_OVERLAP_UNVERIFIED" if not overlap else
+                "OVERLAP_SAMPLED")
     return {"status":status,"overlap":len(overlap),"changed":changes,
             "potential_missing":potential_missing,
             "head_advanced":head_advanced,
