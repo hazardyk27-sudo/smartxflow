@@ -1,0 +1,54 @@
+name: Analizler V3 production sync preflight (read-only)
+on:
+  push:
+    branches: [preview]
+    paths: ['.github/workflows/analysis-v3-production-preflight.yml']
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Audit exact main/Hetzner and Base feed prerequisites without deploy
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_PREVIEW_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_PREVIEW_SHA
+          command_timeout: 6m
+          script: |
+            set -euo pipefail
+            echo "SERVER=$(hostname)"
+            test "$(hostname)" = smartxflow
+            echo "EXPECTED_PREVIEW=$EXPECTED_PREVIEW_SHA"
+            CURRENT_MAIN="$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
+            CURRENT_BRANCH="$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)"
+            echo "PRODUCTION_BRANCH=$CURRENT_BRANCH"
+            echo "PRODUCTION_SHA=$CURRENT_MAIN"
+            test "$CURRENT_BRANCH" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            echo PROD_TRACKED_TREE_CLEAN
+            for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SESSION_SECRET; do
+              if grep -q "^$key=." /opt/smartxflow/.env; then echo "$key=PRESENT"; else echo "$key=MISSING"; fi
+            done
+            echo DEPLOY_UNIT_HEALTH
+            for unit in smartxflow-web smartxflow-scraper smartxflow-sinyal smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              echo "$unit=$(systemctl is-active "$unit" || true)"
+            done
+            echo SOURCE_FEED_FILES
+            for f in /opt/smartxflow/static/js/base-signals.js /opt/smartxflow/static/css/base-signals.css /opt/smartxflow/base_signal_engine/feed.py; do
+              if test -f "$f"; then echo "$f=PRESENT"; else echo "$f=ABSENT"; fi
+            done
+            echo HTTP_CONTRACT
+            for path in /api/base-signals/feed /static/js/base-signals.js /static/css/base-signals.css; do
+              status="$(curl --max-time 10 -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:8000$path" || true)"
+              echo "$path=$status"
+            done
+            echo SHADOW_STATE
+            systemctl is-active sxf-base-durable-shadow-20261019.service || true
+            echo READONLY_PREFLIGHT_COMPLETED
