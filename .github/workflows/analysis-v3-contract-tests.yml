@@ -10,6 +10,7 @@ on:
       - 'static/css/base-signals.css'
       - 'tests/test_base_signals_feed.py'
       - 'tests/test_analysis_v3_template.py'
+      - 'tests/test_analysis_v4_interactions.js'
       - '.github/workflows/analysis-v3-contract-tests.yml'
   workflow_dispatch:
 
@@ -32,4 +33,4 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check static/js/base-signals.js
-          node --test tests/test_deferred_analysis_entrypoints.js
+          node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js
