@@ -12,7 +12,7 @@ from uuid import UUID
 import requests
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
-VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED"))
+VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION"))
 KNOWN_ENGINES = (
     "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
@@ -145,6 +145,23 @@ class BaseSignalsFeed:
                     raise BaseFeedUnavailable("duplicate checkpoint identity")
                 jobs[key] = item
 
+        # T-8 signals remain in the append-only ledger after an authentic
+        # T-6 market decision. Label them historical, never silently present
+        # them as a fresh final recommendation.
+        authoritative_t6 = set()
+        for event in rows:
+            if (event.get("kind") != "MARKET_DECISION" or
+                    event.get("job_checkpoint_hours") != 6 or
+                    event.get("source_checkpoint_hours") != 6 or
+                    not isinstance(event.get("details"), dict) or
+                    event["details"].get("state") != "AUTHORITATIVE_T6"):
+                continue
+            source_job = jobs.get(_uid(event.get("job_id")))
+            if source_job and source_job.get("state") == "COMPLETED":
+                authoritative_t6.add(
+                    (_uid(event.get("fixture_uid")), event.get("market"),
+                     _utc(event.get("kickoff_utc"))))
+
         items, dedupe = [], set()
         for row in rows:
             ident = row.get("event_id")
@@ -176,6 +193,13 @@ class BaseSignalsFeed:
             details = row.get("details")
             if not isinstance(details, dict):
                 details = {}
+            if row["kind"] == "CORRECTED" and details.get("decision") != "HIT":
+                # A NO_HIT correction is not a fresh betting signal.
+                continue
+            historical_t8 = (
+                row["kind"] == "PRELIMINARY_SIGNAL"
+                and (uid, market, kickoff) in authoritative_t6
+            )
             observed = details.get("observed_at")
             try:
                 observed = _utc(observed).isoformat() if observed else None
@@ -201,6 +225,7 @@ class BaseSignalsFeed:
                 "market": market,
                 "selection": selection[:32],
                 "kind": row["kind"],
+                "stage_status": "T8_HISTORICAL" if historical_t8 else "AS_RECORDED",
                 "family": str(row.get("family") or "")[:35],
                 "checkpoint": row.get("job_checkpoint_hours"),
                 "source_checkpoint": row.get("source_checkpoint_hours"),
