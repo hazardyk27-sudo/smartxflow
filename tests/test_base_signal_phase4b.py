@@ -174,9 +174,21 @@ def test_guard_multiple_unstarted_claims_without_heartbeat():
     assert not rpc.calls
 
 
-def test_wrong_fixture_uid_cannot_be_reconciled_by_hash():
-    other=CheckpointJob(FixtureRef(str(uuid4()),KO),6,"BASE")
-    quality=source_coverage(other,SimpleNamespace(snapshots=[snap("1X2",6)]),
-                            {"markets":{"1X2":{"checkpoint":6},"OU25":{"checkpoint":None},
-                                        "BTTS":{"checkpoint":None}}})
-    assert quality["state"]=="PARTIAL"  # never derive fixture identity from legacy hash
+def test_source_payload_conflict_is_rejected_before_any_completion():
+    from base_signal_engine.source_quality import CapturingReader
+    from base_signal_engine.scheduler import evaluate_job
+    captured=CapturingReader(Reader([snap("1X2",6)]))
+    payload=evaluate_job(JOB6,captured)
+    payload["markets"]["1X2"]["checkpoint"]=8
+    with pytest.raises(ValueError,match="market/source checkpoint conflict"):
+        source_coverage(JOB6,captured.source,payload)
+
+
+def test_wrong_uid_returned_by_adapter_cannot_be_trusted():
+    from base_signal_engine.source_quality import CapturingReader
+    from base_signal_engine.scheduler import evaluate_job
+    class WrongReader(Reader):
+        def load_fixture(self, uid):
+            return Fixture(str(uuid4()),KO), "same-hash"
+    with pytest.raises(ValueError, match="fixture identity changed"):
+        evaluate_job(JOB6,CapturingReader(WrongReader([snap("1X2",6)])))

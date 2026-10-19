@@ -127,8 +127,9 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
     job completed. No future snapshot can influence a replayed decision.
     """
     fixture, observed_hash = reader.load_fixture(job.fixture.fixture_uid)
-    if fixture.kickoff_utc != job.fixture.kickoff_utc:
-        raise ValueError("kickoff identity changed; refusing ambiguous checkpoint replay")
+    if (fixture.fixture_uid != job.fixture.fixture_uid or
+            fixture.kickoff_utc != job.fixture.kickoff_utc):
+        raise ValueError("fixture identity changed; refusing ambiguous checkpoint replay")
     cutoff = job.timestamp + grace
     data = reader.load_checkpoints(
         fixture, hours=_reader_hours(job), as_of_utc=cutoff,

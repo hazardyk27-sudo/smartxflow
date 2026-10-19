@@ -31,10 +31,11 @@ DECLARE
     v_at timestamptz;
     v_details jsonb;
     v_key text;
+    v_ids bigint[];
     v_added bigint;
 BEGIN
     IF p_origin_event_key IS NULL OR length(p_origin_event_key) NOT BETWEEN 1 AND 450
-       OR p_kind NOT IN ('CONFIRMED','INVALIDATED','CORRECTED')
+       OR p_kind IS NULL OR p_kind NOT IN ('CONFIRMED','INVALIDATED','CORRECTED')
        OR p_details IS NULL OR jsonb_typeof(p_details)<>'object'
        OR length(p_details::text)>8192
        OR p_source_snapshot_ids IS NULL OR cardinality(p_source_snapshot_ids) NOT IN (2,3)
@@ -109,10 +110,12 @@ BEGIN
 
     -- Caller may attach machine-derived metrics, but never override validated
     -- identity, timestamp, source-row provenance or origin lineage.
+    SELECT array_agg(x ORDER BY x) INTO v_ids
+      FROM unnest(p_source_snapshot_ids) AS input_ids(x);
     v_details:=p_details || jsonb_build_object(
         'origin_event_key',v_origin.event_key,
         'origin_event_id',v_origin.event_id,
-        'source_snapshot_ids',p_source_snapshot_ids,
+        'source_snapshot_ids',v_ids,
         'source_observed_at',v_observed,
         'source_checkpoint_hours',6,
         'source_market',v_origin.market);

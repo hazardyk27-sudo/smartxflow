@@ -36,4 +36,34 @@ jobs:
             tests/test_base_signal_scheduler.py \
             tests/test_base_signal_storage.py \
             tests/test_base_signal_phase4a_contract.py \
-            tests/test_base_signal_phase4b.py
+            tests/test_base_signal_phase4b.py \
+            tests/test_base_signal_phase4b_reconciliation.py
+
+  postgres-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local_test_only
+          POSTGRES_DB: sxf_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d sxf_test"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    env:
+      SXF_TEST_DATABASE_URL: postgresql://postgres:local_test_only@127.0.0.1:5432/sxf_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install isolated PostgreSQL test driver
+        run: python -m pip install --disable-pip-version-check "pytest==9.0.2" "psycopg2-binary==2.9.10"
+      - name: Apply proposed migrations ONLY inside disposable CI PostgreSQL
+        run: python -m pytest -q tests/test_base_signal_postgres_phase4.py
