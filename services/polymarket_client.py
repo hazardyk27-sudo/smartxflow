@@ -818,8 +818,8 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
 
     Reads from our own Supabase `polymarket_matches` table (same scraper-populated
     source as search_matches()) instead of hitting Polymarket's live Gamma API on
-    every page load/tab switch. Falls back to the live API if Supabase is
-    unreachable/misconfigured.
+    every page load/tab switch. A missing/unavailable server-side Supabase registry fails closed; page reads
+    must never trigger the unbounded Gamma event pagination.
     """
     from datetime import datetime
 
@@ -830,7 +830,8 @@ def get_today_matches(hours_ahead: Optional[int] = 36, day_filter: Optional[str]
         cutoff=cutoff,
     )
     if rows is None:
-        return _get_today_matches_live(hours_ahead, day_filter)
+        logger.error("[Polymarket] stored match list unavailable; Gamma page fallback disabled")
+        raise RuntimeError("Polymarket stored match registry unavailable")
 
     matches = []
     for row in rows:
@@ -943,8 +944,8 @@ def search_matches(query: str, limit: int = 20) -> List[Dict[str, Any]]:
     slow live pagination (`_fetch_soccer_events` + `_fetch_closed_soccer_events`)
     that made search take several seconds per query.
 
-    Falls back to the live API only if Supabase is unreachable/misconfigured, so
-    search still works even if the scraper table is empty or unavailable.
+    Search fails closed if the stored registry is unavailable rather than
+    triggering unbounded Gamma pagination from a public page request.
     """
     query_norm = _normalize(query)
     if not query_norm:
@@ -952,7 +953,8 @@ def search_matches(query: str, limit: int = 20) -> List[Dict[str, Any]]:
 
     rows = _fetch_stored_matches()
     if rows is None:
-        return _search_matches_live(query_norm, limit)
+        logger.error("[Polymarket] stored search unavailable; Gamma page fallback disabled")
+        raise RuntimeError("Polymarket stored match registry unavailable")
 
     results = []
     for row in rows:
@@ -1019,6 +1021,8 @@ def _fetch_stored_matches(
     if not base:
         return None
     headers = _supabase_headers()
+    if not headers:
+        return None
     params = [
         ("select", "event_id,slug,home,away,kickoff_utc"),
         ("order", "kickoff_utc.desc"),
@@ -1037,11 +1041,13 @@ def _fetch_stored_matches(
             timeout=8,
         )
         if resp.status_code != 200:
+            logger.warning("[Polymarket] stored match registry HTTP %d", resp.status_code)
             return None
         rows = resp.json()
         if not isinstance(rows, list):
             return None
-    except Exception:
+    except Exception as exc:
+        logger.warning("[Polymarket] stored match registry request failed: %s", type(exc).__name__)
         return None
 
     with _stored_matches_cache_lock:
@@ -1198,7 +1204,11 @@ def get_event_market_specs(slug: str):
 
 
 def _supabase_headers() -> Dict[str, str]:
-    key = os.environ.get('SUPABASE_ANON_KEY', '') or os.environ.get('SUPABASE_KEY', '')
+    """Server-only registry access. Never use the public anon credential for RLS-protected Poly tables."""
+    key = (os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or '').strip()
+    if not key:
+        logger.error("[Polymarket] SUPABASE_SERVICE_ROLE_KEY is not configured")
+        return {}
     return {"apikey": key, "Authorization": f"Bearer {key}"}
 
 
