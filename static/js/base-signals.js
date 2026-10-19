@@ -4,6 +4,7 @@
 
   var DAY_MS = 86400000;
   var overlay, rail, engineRail, content, summary, toolbarMessage;
+  var priorFocus = null;
   var current = { start: '', day: '', engine: '*', search: '', payload: null, loading: false, seq: 0 };
   var ENGINE_NAMES = {
     EARLY_MONEY_CORE: 'Early Money Core',
@@ -248,6 +249,7 @@
     current.engine = '*'; current.search = ''; current.payload = null;
     var input = document.getElementById('sxfSignalSearch');
     if (input) input.value = '';
+    priorFocus = document.activeElement;
     overlay.hidden = false;
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('sxf-signals-open');
@@ -261,6 +263,8 @@
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('sxf-signals-open');
     current.seq++; // Cancel any prior asynchronous UI response.
+    if (priorFocus && typeof priorFocus.focus === 'function') priorFocus.focus();
+    priorFocus = null;
   }
   function attach() {
     if (!ensureElements()) return;
@@ -268,7 +272,17 @@
     if (closeBtn) closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !overlay.hidden) close();
+      if (overlay.hidden) return;
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key !== 'Tab') return;
+      var nodes = overlay.querySelectorAll('button:not([disabled]), input:not([disabled])');
+      if (!nodes.length) return;
+      var first = nodes[0], last = nodes[nodes.length-1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
     });
     document.getElementById('sxfSignalPrevious').addEventListener('click', function () { switchWindow(-1); });
     document.getElementById('sxfSignalNext').addEventListener('click', function () { switchWindow(1); });
