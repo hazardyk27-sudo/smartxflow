@@ -42,7 +42,7 @@ class SupabaseCheckpointStore:
         "sxf_base_complete_reconcile",
         "sxf_base_init_discovery", "sxf_base_claim_discovery",
         "sxf_base_advance_discovery", "sxf_base_release_discovery",
-        "sxf_base_quarantine_fixture_drift",
+        "sxf_base_quarantine_fixture_drift", "sxf_base_renew_discovery",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -354,3 +354,13 @@ class SupabaseCheckpointStore:
         if type(result) is not int or not 0 <= result <= limit:
             raise DurableStoreError("invalid drift quarantine acknowledgment")
         return result
+
+    def renew_discovery(self, item: Mapping[str, Any], *,
+                        lease_seconds: int = 900) -> None:
+        """Extend only a currently owned discovery lease."""
+        if type(lease_seconds) is not int or not 60 <= lease_seconds <= 1800:
+            raise ValueError("invalid discovery renewal lease interval")
+        if self._rpc("sxf_base_renew_discovery", {
+            "p_lease_token": item["lease_token"], "p_lease_seconds": lease_seconds,
+        }) is not True:
+            raise DurableStoreError("discovery renewal rejected")
