@@ -759,3 +759,62 @@ def test_27_disposable_pg_parallel_source_delivery_claims_are_disjoint():
                     "WHERE c.fixture_uid=%s::uuid AND c.event_kind='SNAPSHOT_INSERT' "
                     "AND d.state='PENDING'",(SOAK_UID,))[0]["n"]
     assert remaining==140
+
+
+def test_28_restricted_source_writer_trigger_isolation():
+    """Normal writer may insert source rows but cannot read/write Base outbox."""
+    uid=str(uuid4())
+    kickoff=KICKOFF+timedelta(days=16)
+    query("CREATE ROLE sxf_source_writer_test NOLOGIN")
+    query("GRANT USAGE ON SCHEMA public TO sxf_source_writer_test")
+    query("GRANT SELECT,INSERT,UPDATE,DELETE ON public.fixtures,"
+          "public.moneyway_snapshots TO sxf_source_writer_test")
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc,match_id_hash) "
+          "VALUES(%s::uuid,%s,%s)",(uid,kickoff,"restricted"),role="sxf_source_writer_test")
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
+                 "WHERE fixture_uid=%s::uuid AND event_kind='FIXTURE_INSERT'",
+                 (uid,))[0]["n"]==1
+    for sql in (
+        "SELECT count(*) FROM public.sxf_base_source_changes",
+        "SELECT count(*) FROM public.sxf_base_source_deliveries",
+        "INSERT INTO public.sxf_base_source_changes(event_kind,fixture_uid) "
+        "VALUES('FIXTURE_INSERT',gen_random_uuid())",
+        "UPDATE public.sxf_base_source_deliveries SET state='DONE'",
+    ):
+        with pytest.raises(psycopg2.Error):
+            query(sql,role="sxf_source_writer_test")
+    with pytest.raises(psycopg2.Error):
+        query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+              ("reader",1,180),role="sxf_source_writer_test")
+
+
+def test_29_source_trigger_drop_rollback_is_nondestructive_and_restores_capture():
+    """DBA dry-run drop happens only in rollbacked disposable PG transaction."""
+    uid=str(uuid4())
+    kickoff=KICKOFF+timedelta(days=17)
+    baseline=query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]
+    conn=psycopg2.connect(URL,connect_timeout=5)
+    try:
+        conn.autocommit=False
+        with conn.cursor() as cur:
+            cur.execute("DROP TRIGGER sxf_base_fixture_source_capture ON public.fixtures")
+            cur.execute("DROP TRIGGER sxf_base_snapshot_source_capture ON public.moneyway_snapshots")
+            cur.execute("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+                        (uid,kickoff))
+            cur.execute("SELECT count(*) FROM public.sxf_base_source_changes")
+            assert cur.fetchone()[0]==baseline
+        conn.rollback()
+    finally:
+        conn.close()
+    triggers=query("SELECT tgname FROM pg_trigger "
+                   "WHERE tgname IN ('sxf_base_fixture_source_capture',"
+                   "'sxf_base_snapshot_source_capture') ORDER BY tgname")
+    assert [r["tgname"] for r in triggers]==[
+        "sxf_base_fixture_source_capture","sxf_base_snapshot_source_capture"]
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]==baseline
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+          (uid,kickoff))
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
+                 "WHERE fixture_uid=%s::uuid AND event_kind='FIXTURE_INSERT'",
+                 (uid,))[0]["n"]==1
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes")[0]["n"]==baseline+1
