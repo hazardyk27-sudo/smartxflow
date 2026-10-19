@@ -22,7 +22,7 @@ def test_stored_match_fetch_pushes_exact_window_to_postgrest(monkeypatch):
     _reset_cache()
     calls = []
     monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
-    monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+    monkeypatch.setenv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-test')
 
     def fake_get(url, headers, params, timeout):
         calls.append((url, params))
@@ -46,7 +46,7 @@ def test_unbounded_registry_fetch_keeps_no_kickoff_filter(monkeypatch):
     _reset_cache()
     calls = []
     monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
-    monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+    monkeypatch.setenv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-test')
 
     def fake_get(url, headers, params, timeout):
         calls.append(params)
@@ -61,7 +61,7 @@ def test_bounded_and_unbounded_match_caches_are_isolated(monkeypatch):
     _reset_cache()
     calls = []
     monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
-    monkeypatch.setenv('SUPABASE_ANON_KEY', 'anon-test')
+    monkeypatch.setenv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-test')
 
     def fake_get(url, headers, params, timeout):
         calls.append(params)
@@ -122,23 +122,62 @@ def test_today_matches_passes_window_and_keeps_local_guard(monkeypatch):
     assert [row['event_id'] for row in rows] == ['inside']
 
 
-def test_today_matches_preserves_live_fallback(monkeypatch):
+def test_today_matches_fails_closed_without_stored_registry(monkeypatch):
+    import pytest
     lower = datetime(2026, 10, 6, 21, 0, tzinfo=timezone.utc)
     upper = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
     monkeypatch.setattr(
-        polymarket_client,
-        '_compute_match_window',
+        polymarket_client, '_compute_match_window',
         lambda hours_ahead, day_filter: (lower, upper),
     )
-    monkeypatch.setattr(
-        polymarket_client,
-        '_fetch_stored_matches',
-        lambda **kwargs: None,
-    )
-    sentinel = [{'event_id': 'live'}]
-    monkeypatch.setattr(
-        polymarket_client,
-        '_get_today_matches_live',
-        lambda hours_ahead, day_filter: sentinel,
-    )
-    assert polymarket_client.get_today_matches(36, None) is sentinel
+    monkeypatch.setattr(polymarket_client, '_fetch_stored_matches', lambda **kwargs: None)
+
+    def reject_live_fallback(*args, **kwargs):
+        raise AssertionError("public page must not start Gamma event pagination")
+
+    monkeypatch.setattr(polymarket_client, '_get_today_matches_live', reject_live_fallback)
+    with pytest.raises(RuntimeError, match='registry unavailable'):
+        polymarket_client.get_today_matches(36, None)
+
+
+def test_search_fails_closed_without_stored_registry(monkeypatch):
+    import pytest
+    monkeypatch.setattr(polymarket_client, '_fetch_stored_matches', lambda: None)
+
+    def reject_live_fallback(*args, **kwargs):
+        raise AssertionError("public search must not start Gamma event pagination")
+
+    monkeypatch.setattr(polymarket_client, '_search_matches_live', reject_live_fallback)
+    with pytest.raises(RuntimeError, match='registry unavailable'):
+        polymarket_client.search_matches('Arsenal')
+
+
+def test_server_role_header_preferred_and_anon_not_used(monkeypatch):
+    monkeypatch.setenv('SUPABASE_SERVICE_ROLE_KEY', 'server-only-key')
+    monkeypatch.setenv('SUPABASE_ANON_KEY', 'wrong-public-key')
+    assert polymarket_client._supabase_headers() == {
+        'apikey': 'server-only-key', 'Authorization': 'Bearer server-only-key',
+    }
+
+
+def test_no_server_role_fails_closed_even_with_anon(monkeypatch):
+    _reset_cache()
+    monkeypatch.delenv('SUPABASE_SERVICE_ROLE_KEY', raising=False)
+    monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+    monkeypatch.setenv('SUPABASE_ANON_KEY', 'wrong-public-key')
+    assert polymarket_client._supabase_headers() == {}
+    assert polymarket_client._fetch_stored_matches() is None
+
+
+def test_unauthorized_registry_never_falls_back_to_gamma(monkeypatch):
+    import pytest
+    _reset_cache()
+    monkeypatch.setenv('SUPABASE_URL', 'https://example.supabase.co')
+    monkeypatch.setenv('SUPABASE_SERVICE_ROLE_KEY', 'server-only-key')
+    class Unauthorized:
+        status_code = 401
+    monkeypatch.setattr(polymarket_client.requests, 'get', lambda **kwargs: Unauthorized())
+    monkeypatch.setattr(polymarket_client, '_get_today_matches_live',
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError('Gamma called')))
+    with pytest.raises(RuntimeError, match='registry unavailable'):
+        polymarket_client.get_today_matches()
