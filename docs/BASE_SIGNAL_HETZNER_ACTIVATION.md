@@ -1,119 +1,41 @@
-# SmartXFlow Base signal motor — Hetzner-only activation checklist
+# SmartXFlow Base — Hetzner activation and next real checkpoint
 
-**State:** GitHub preview source prepared and tested. **Not installed or running on Hetzner.**
-Replit is not a Base signal worker. Existing Hetzner scraper, alarm, web, sinyal and
-Poly services MUST be preserved.
+**State as of 2026-10-19:** source and durable schema prepared; **worker NOT installed/enabled**, **real 24-hour shadow NOT done**, and **no change to production `main`**. GitHub `preview` owns current development. Replit will not run Base engines.
 
-## Preflight evidence (2026-10-19)
+## What is physically verified
 
-- Preview source includes `base_signal_engine/hetzner_probe.py`, a bounded
-  read-only **single-fixture** Base T-6/T-8 smoke. It reads only two source
-  resources via `SupabaseMoneywayReader` and does not write snapshots,
-  Supabase event tables, local checkpoint journals, alerts or bets.
-- `deploy/systemd/smartxflow-base-probe@.service` is a hardened,
-  non-enabled one-shot template. It is deliberately **absent** from
-  `deploy/sync_runtime_units.sh`; normal production deployment cannot
-  activate it.
-- A command requires an explicit `SXF_BASE_SINGLE_PROBE_APPROVED=yes`
-  server-only environment setting. The approval flag is NOT committed.
-- GitHub Actions passed **156 Python + 29 disposable PostgreSQL tests**,
-  with the new probe contract and genuine source sample regression.
-- A Remote Desktop Commander connector called `smartxflow` was discovered
-  but failed command/ping and later appeared **offline**. Its endpoint
-  hostname/OS/service inventory was not verified. **No remote changes
-  were performed.**
-- Production Supabase `moneyway_snapshots` still lacks an approved
-  `(fixture_uid,scraped_at_utc,id)` composite index and the new Base
-  outbox/queue tables have not been verified as live. Do not enable
-  mass read polling, trigger hooks, or the durable worker.
+- Hetzner host `smartxflow`, `91.99.6.245`, Linux, production root `/opt/smartxflow`. On last successful remote inspection, `main` HEAD was `6f25b926ffc1b3507893cd7e3cb5c6d0911896f7`, tracked worktree clean, and web, scraper, alarm, signal, live, Poly and Predictor services active. `/root/smartxflow` is a **separate scraper checkout** containing pre-existing uncommitted changes; do not touch it.
+- Isolated read-only Hetzner smoke against real Supabase for **Degerfors – Kalmar FF**, physical `fixture_uid=74acc8bd-665e-488c-b1e7-32f95674ccdd`, kickoff `2026-10-19T17:00:00Z`: T-8 fetched **273** rows, three markets `PRELIMINARY_T8`; T-6 fetched **413** rows, three markets `AUTHORITATIVE_T6`. Both complete, zero signals (valid NO_HIT), zero DB writes. Times **548 ms / 597 ms**; peak memory around **24 MB**. These prove only one-fixture source-read + kernel evaluation, not a permanent worker.
+- A sparse, isolated `preview` checkout exists at `/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191`; last verified checkout HEAD `1974ff3584ab4fcaec0bf3d5e4bb17384c351ef6`. It is **older than current preview**, must be verified clean and fast-forwarded; don't assume new worker code is present.
+- Live Supabase composite snapshot index `idx_sxf_base_mw_snapshot_uid_time` on `(fixture_uid,scraped_at_utc,id)` was built with `CREATE INDEX CONCURRENTLY`, validated with `indisvalid=true`, and used in physical-UID/time query EXPLAIN. Its reported size later reached ~281 MB.
+- **Nine approved additive `sxf_base_*` migrations are live:** checkpoint queue, WAITING_DATA hardening, reconciliation RPC and queue, discovery cursor, fixture drift guard, discovery heartbeat, health snapshot and market projection. Seven isolated Base tables have RLS. `public.sxf_base_health_snapshot()` works.
+- **Exactly one** real T-6 checkpoint for this fixture has been queued; `job_key=SXF_BASE_V1_2026_10_18:74acc8bd-665e-488c-b1e7-32f95674ccdd:2026-10-19T17:00:00+00:00:BASE:T-6`, `checkpoint_at=2026-10-19T11:00:00Z`, `run_after=2026-10-19T11:10:00Z`, **PENDING** at last verification. Repeated SQL enqueue returned `added_again=0`; idempotency holds. No evaluations or signals were written for it.
 
-## Actual Hetzner isolated read-only smoke — 2026-10-19
+## What is NOT live
 
-**Verified host:** `smartxflow`, `91.99.6.245`, Linux; actual production root
-`/opt/smartxflow`. Production remained on `main` SHA
-`6f25b926ffc1b3507893cd7e3cb5c6d0911896f7` with a clean
-tracked diff. The separate scraper tree `/root/smartxflow` had existing
-uncommitted changes and was not touched.
+- The proposed Phase 5A **source-capture triggers**, source delivery/outbox tables, dependent source-health RPC, and source-change consumer are **not installed**. The Moneyway source permits NULL `fixture_uid`; code fixed that edge case in `preview`, but per-row trigger write overhead and retention-delete fanout have **not** been benchmarked. Do not enable them as part of an ordinary worker smoke.
+- `deploy/systemd/smartxflow-base-worker.service` and `base_signal_engine/hetzner_worker.py` are `preview` files only. They are deliberately excluded from `deploy/sync_runtime_units.sh`; existing `smartxflow-sinyal.service` is not replaced.
+- The Base discovery cursor remains uninitialized; rolling fixture discovery is only a **bounded rescan**, not proof of complete source change capture. Neither source ingestion watermark nor a continuous 24h observation has been verified.
+- All running Base signal services/rollouts remain unchanged pending exact-SHA approval. Do not claim production-ready results from an empty queue or mocked test.
 
-**Read-only staging:** a sparse, depth-limited GitHub `preview` checkout
-under `/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191`;
-the code was fast-forwarded to exact SHA
-`1974ff3584ab4fcaec0bf3d5e4bb17384c351ef6`. No tracked
-production file was modified, no production service restarted, and no
-new persistent service file installed.
+## Fail-closed worker guarantees prepared on preview
 
-**Initial safety discovery:** a too-tight, 2-page × 50-row cap safely
-returned `SnapshotReadError` (pagination cap). The source-only CLI
-was corrected to bound each merged window at 4 pages × 200 rows
-and its GitHub CI passed. Nothing was committed to the source database.
+- `--once --no-discovery --max-jobs 1 --max-reconcile 0` processes at most one existing durable job and **cannot** mass-enqueue fixtures.
+- A normal cycle uses bounded claims and reads only native SXF `fixtures`/`moneyway_snapshots`, writes only isolated `sxf_base_*` RPCs; no old signals, provider writes, wagers or notifications.
+- If discovery fails, the worker may drain a previously queued item but exits **nonzero** instead of claiming the cycle healthy.
+- If a lease, RPC claim, completion or reconciliation ACK becomes ambiguous, no further claims proceed. Exit **3** requires manual inspection; the proposed service explicitly sets `RestartPreventExitStatus=3` to prevent automated replay. Ordinary explicit errors exit **2**.
+- `SXF_BASE_DURABLE_WORKER_APPROVED=yes` and `SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes` are mandatory, server-only opt-ins; no secrets or approval flags belong in GitHub.
+- Last completed historical Base suite had **162 Python + 31 PostgreSQL** tests passing. Subsequent hardening changed source/tests; **new GitHub Actions runs remain queued as last checked**, so the latest SHA is not yet certified green.
 
-**Executed one-shot checks:** temporary `systemd-run --wait --collect`
-units used the existing server-side restricted `.env` without
-logging its values and ran as the `smartxflow` service user.
-The first transient attempt exited `200/CHDIR` because
-`PrivateTmp=yes` hid the `/var/tmp` staging directory; a new transient
-unit omitted that isolation solely for the staging-directory smoke.
-The tracked production-target unit remains non-enabled.
+## Next allowed sequence when Hetzner access returns
 
-For physical fixture `74acc8bd-665e-488c-b1e7-32f95674ccdd`
-(Degerfors – Kalmar FF, kickoff 2026-10-19T17:00:00Z):
+1. **Read-only host validation:** verify host/IP, `/opt/smartxflow` clean tracked `main` tree and SHA, `/root/smartxflow` untouched, current worker/systemd state, free memory/disk, and connection to the approved Supabase project. Never print `.env`, tokens or source odds.
+2. **Verify CI** for the exact new `preview` SHA; fix any failures. Confirm there is still **one** PENDING Base T-6 job for the expected UID/kickoff/ruleset, and no unrelated queue mutations.
+3. After the appropriate exact-SHA release authorization and a clean isolated GitHub `preview` test checkout, run a **single supervised durable checkpoint smoke**. Use `--once --no-discovery --max-jobs 1 --max-reconcile 0`, bounded service account, existing server-only auth; do not install/enable continuous worker yet. Confirm SQL `PENDING → COMPLETED` **exactly once**, one immutable evaluation and expected three `MARKET_DECISION` events; **zero signals is valid**. If no source evidence, expect `WAITING_DATA`, not a false completion.
+4. For any ambiguous lease/commit, stop; inspect durable SQL before retrying. Do not restart/claim automatically, backfill with guesswork or fabricate results.
+5. After exact SHA approval/promotion to `main` per `.agents/contracts/RELEASE_FLOW.md`, prepare separate new unit. Verify it does not affect scraper, alarm, legacy signal or web units. Progress from constrained discovery to observed checkpoint throughput; measure source DB and memory load. **No implicit trigger migration.**
+6. Run genuine **continuous 24h Hetzner shadow** with independently verified logs, backlog/lease/provenance review and ingestion limitations explicitly reported. Only after that can the permanent motor and user-facing signal activation be considered complete.
 
-| Probe | Source rows | Market outcomes | Result | Time / memory |
-|---|---:|---|---|---|
-| T-6 | 413 | 1X2, OU25, BTTS each `AUTHORITATIVE_T6` | COMPLETE, 0 signals | 597 ms, 24.2 MB peak |
-| T-8 | 273 | 1X2, OU25, BTTS each `PRELIMINARY_T8` | COMPLETE, 0 signals | 548 ms, 24.1 MB peak |
+**Current operational blocker:** the authorized Desktop Commander `smartxflow` agent was last reported **Offline**. No remote commands can presently validate or activate the new durable worker.
 
-The CLI output explicitly reported `writes_performed=false`,
-`production_approved=false` and `shadow_24h_verified=false`. Neither
-sample proved a historical betting signal, and no live signal storage
-was written. After both checks the temporary units were gone, seven
-existing production services checked `active`, and the production
-HEAD/tracked files were unchanged.
-
-**Still blocked:** no Base durable queue/source outbox migration is
-authorized or installed; composite source index is still absent, so
-do not launch full-universe or 24-hour fan-out; exact SHA promotion
-from `preview` to `main` and permanent Hetzner installation remain
-a separate release approval. Replit was not used.
-
-## Safe sequence after remote access returns
-
-1. Confirm the agent's host is really the explicitly authorized Hetzner
-   server, NOT a personal workstation. Read-only: `hostname`,
-   `systemctl list-units 'smartxflow*' --no-pager`, `git -C
-   /opt/smartxflow status --porcelain=v1`, `git -C /opt/smartxflow
-   rev-parse HEAD`, `df -h`, `free -h`. Never reveal environment
-   variable values. Stop on dirty tree, wrong branch or divergence.
-2. Apply the canonical `.agents/contracts/RELEASE_FLOW.md` exact-SHA
-   approval and promotion rules before editing production. The existing
-   `deploy/hetzner_preflight.sh` remains required for production changes.
-   Never copy preview directly into production, modify `main` without
-   authorization, or reset/rebase/force-push any branch.
-3. After an approved exact-`main` release reaches Hetzner and source
-   prerequisites are reviewed, install the tracked probe template into
-   `/etc/systemd/system/smartxflow-base-probe@.service`, run
-   `systemctl daemon-reload`. Do **not** enable at boot. Operator must
-   explicitly set `SXF_BASE_SINGLE_PROBE_APPROVED=yes` inside restricted
-   `/etc/smartxflow/base-probe.env`, with no secrets added to GitHub.
-4. Run exactly one controlled instance against a known physical fixture:
-   `systemctl start smartxflow-base-probe@74acc8bd-665e-488c-b1e7-32f95674ccdd.service`
-   followed by `journalctl -u
-   smartxflow-base-probe@74acc8bd-665e-488c-b1e7-32f95674ccdd.service
-   --no-pager -n 30`. A nonzero one-shot exit may mean missing
-   checkpoint evidence; do not treat it as a signal.
-5. Approve/performance-test the separately gated composite source
-   index before any broad 24-hour polling. Keep the new Base
-   source-capture trigger proposal *deferred* until DBA transaction
-   overhead and source mutation review policy are explicitly approved.
-6. Do a genuine time-continuous Hetzner shadow with remote logging and
-   independent 24-hour attestation; only then review safe durable
-   persistence migration and user-facing signal activation.
-
-## What is still not delivered
-
-This probe is not the automatic 24/7 checkpoint, retry, reconciliation and
-alerts service. It validates only the read-only, single-UID data-to-motor
-path, which is the smallest safe milestone with the database as currently
-indexed. Existing `smartxflow-sinyal.service` is not replaced.
-No successful Hetzner execution can be claimed until the actual unit
-and logs are independently observed on the authorized server.
+See `docs/BASE_SIGNAL_LIVE_DB_PREP_2026_10_19.md` for the actual Supabase migration/index audit and single-job queue record.
