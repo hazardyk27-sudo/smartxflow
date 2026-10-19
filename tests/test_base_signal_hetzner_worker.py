@@ -106,6 +106,7 @@ def test_one_shot_pending_job_mode_skips_discovery_and_reconciliation(monkeypatc
     def fake_cycle(reader,store,*,worker_id,discover,max_jobs,max_reconcile,lookback_days):
         called.append((worker_id,discover,max_jobs,max_reconcile,lookback_days))
         return {"discovery":"SKIPPED","claimed":1,"completed":1,
+                "healthy_cycle":True,
                 "lease_uncertain":0,"commit_uncertain":0,"reconcile_uncertain":0}
     monkeypatch.setattr(app,"run_cycle",fake_cycle)
     assert app.main(["--once","--no-discovery","--max-jobs","1",
