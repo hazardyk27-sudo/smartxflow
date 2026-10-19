@@ -108,6 +108,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c4_discovery_heartbeat.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_health.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_projection.sql",
+        "migrations/2026_10_19_sxf_base_checkpoint_live_priority.sql",
         "migrations/2026_10_19_sxf_base_phase5a_source_capture_PROPOSED.sql",
         "migrations/2026_10_19_sxf_base_phase5b_source_health.sql",
     )
@@ -853,3 +854,26 @@ def test_31_null_to_uid_and_uid_to_null_changes_preserve_identity():
     assert len(last)==2 and str(last[-1]["fixture_uid"])==uid
     assert str(last[-1]["previous_fixture_uid"])==uid
     query("DELETE FROM public.moneyway_snapshots WHERE id=%s",(sid,))
+
+
+def test_32_live_checkpoints_claim_before_stale_bootstrap_debt():
+    """Fresh due T-6 claims beat old T-6 jobs, without deleting either."""
+    now=datetime.now(timezone.utc)
+    uid_old=str(uuid4())
+    uid_live=str(uuid4())
+    old_kickoff=now+timedelta(hours=1)
+    live_kickoff=now+timedelta(hours=5,minutes=45)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES "
+          "(%s::uuid,%s),(%s::uuid,%s)",
+          (uid_old,old_kickoff,uid_live,live_kickoff))
+    for uid,kick in ((uid_old,old_kickoff),(uid_live,live_kickoff)):
+        assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS added",
+                     (json.dumps([job_data(uid,kick)]),),role="service_role")[0]["added"]==1
+    result=claim("priority-smoke")
+    assert len(result)==1
+    assert str(result[0]["fixture_uid"])==uid_live
+    # One claim must not lose or overwrite the other due job.
+    assert query("SELECT state FROM public.sxf_base_checkpoint_jobs "
+                 "WHERE fixture_uid=%s::uuid",(uid_old,))[0]["state"]=="PENDING"
+    assert query("SELECT state FROM public.sxf_base_checkpoint_jobs "
+                 "WHERE fixture_uid=%s::uuid",(uid_live,))[0]["state"]=="LEASED"
