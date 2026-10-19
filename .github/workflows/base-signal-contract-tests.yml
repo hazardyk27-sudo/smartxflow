@@ -54,7 +54,8 @@ jobs:
             tests/test_base_signal_phase5d_release_gate.py \
             tests/test_base_signal_real_source_smoke.py \
             tests/test_base_signal_hetzner_probe.py \
-            tests/test_base_signal_hetzner_worker.py
+            tests/test_base_signal_hetzner_worker.py \
+            tests/test_base_signal_pre_shadow.py
 
   postgres-contract:
     runs-on: ubuntu-latest
