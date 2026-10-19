@@ -227,16 +227,26 @@ BEGIN
     RETURN v_count;
 END $;
 
+-- Read-only fixture state distinguishes an authoritative source delete from a
+-- broken network read. A missing UID returns NULL; no legacy hash inference.
+CREATE OR REPLACE FUNCTION public.sxf_base_source_fixture_state(p_fixture_uid uuid)
+RETURNS timestamptz LANGUAGE sql STABLE SECURITY INVOKER
+SET search_path=pg_catalog,public AS $
+ SELECT f.kickoff_utc FROM public.fixtures f WHERE f.fixture_uid=p_fixture_uid
+$;
+
 REVOKE ALL ON FUNCTION public.sxf_base_claim_source_changes(text,integer,integer),
  public.sxf_base_ack_source_change(bigint,uuid),
  public.sxf_base_retry_source_change(bigint,uuid,text,integer),
  public.sxf_base_quarantine_obsolete_uid(uuid,integer),
- public.sxf_base_wake_late_t6(uuid,text,timestamptz)
+ public.sxf_base_wake_late_t6(uuid,text,timestamptz),
+ public.sxf_base_source_fixture_state(uuid)
  FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.sxf_base_claim_source_changes(text,integer,integer),
  public.sxf_base_ack_source_change(bigint,uuid),
  public.sxf_base_retry_source_change(bigint,uuid,text,integer),
  public.sxf_base_quarantine_obsolete_uid(uuid,integer),
- public.sxf_base_wake_late_t6(uuid,text,timestamptz)
+ public.sxf_base_wake_late_t6(uuid,text,timestamptz),
+ public.sxf_base_source_fixture_state(uuid)
  TO service_role;
 COMMIT;
