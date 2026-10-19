@@ -213,12 +213,15 @@
     }
     content.innerHTML = html;
     document.getElementById('sxfSignalBack').addEventListener('click', function () {
+      var returningFrom = current.engine;
       current.engine = null;
       current.search = '';
       var search = document.getElementById('sxfSignalSearch');
       if (search) search.value = '';
       render();
-      var chosen = content.querySelector('[data-motor="' + CSS.escape(descriptor ? current.engine || '' : '') + '"]');
+      var chosen = Array.from(content.querySelectorAll('[data-motor]')).find(function (node) {
+        return node.dataset.motor === returningFrom;
+      });
       if (chosen) chosen.focus();
       else content.scrollTop = 0;
     });
