@@ -1,0 +1,80 @@
+name: Base Hetzner guarded 24h shadow launch
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-start-shadow-20261019.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Start isolated bounded temporary Base shadow on Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SHADOW_PREVIEW_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: SHADOW_PREVIEW_SHA
+          command_timeout: 8m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            DIR='/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191'
+            PROD_SHA='6f25b926ffc1b3507893cd7e3cb5c6d0911896f7'
+            test -d "$DIR/.git"
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            git -C "$DIR" diff --quiet
+            git -C "$DIR" diff --cached --quiet
+            git -C "$DIR" fetch -q --depth 100 origin preview
+            test "$(git -C "$DIR" rev-parse FETCH_HEAD)" = "$SHADOW_PREVIEW_SHA"
+            git -C "$DIR" merge --ff-only FETCH_HEAD >/dev/null
+            test "$(git -C "$DIR" rev-parse HEAD)" = "$SHADOW_PREVIEW_SHA"
+            test -s /opt/smartxflow/.env
+            [ "$(systemctl is-active sxf-base-durable-shadow-20261019.service || true)" != active ] || { echo SHADOW_ALREADY_ACTIVE; exit 1; }
+            for s in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active
+            done
+            echo "SHADOW_ISOLATED_SOURCE_SHA=$SHADOW_PREVIEW_SHA"
+            systemd-run --unit=sxf-base-durable-shadow-20261019 --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_WORKER_ID=shadow-24h \
+              --property=Type=simple \
+              --property=Restart=no \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property="WorkingDirectory=$DIR" \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=PrivateDevices=true \
+              --property=MemoryMax=256M \
+              --property=TasksMax=32 \
+              --property=RuntimeMaxSec=86400 \
+              --property=TimeoutStartSec=120 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+              --max-jobs 8 --max-reconcile 1 --interval-seconds 60
+            sleep 6
+            test "$(systemctl is-active sxf-base-durable-shadow-20261019.service)" = active
+            echo SHADOW_UNIT_STATE
+            systemctl show sxf-base-durable-shadow-20261019.service -p ActiveState -p SubState -p MemoryCurrent -p RuntimeMaxUSec -p NRestarts
+            echo SHADOW_FIRST_CYCLE
+            journalctl -u sxf-base-durable-shadow-20261019.service --no-pager -n 5 -o cat
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            for s in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active
+            done
+            echo SHADOW_LAUNCHED_LEGACY_UNCHANGED
