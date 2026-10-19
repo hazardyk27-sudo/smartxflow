@@ -37,6 +37,9 @@ class SupabaseCheckpointStore:
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
         "sxf_base_renew_lease", "sxf_base_fail_job", "sxf_base_complete_job",
         "sxf_base_wait_for_data", "sxf_base_append_reconciliation",
+        "sxf_base_backfill_reconcile", "sxf_base_claim_reconcile",
+        "sxf_base_renew_reconcile", "sxf_base_retry_reconcile",
+        "sxf_base_complete_reconcile",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -207,3 +210,81 @@ class SupabaseCheckpointStore:
         if type(result) is not bool:
             raise DurableStoreError("reconciliation not acknowledged")
         return result
+
+    def backfill_reconcile(self, limit: int = 100) -> int:
+        if not 1 <= limit <= 500:
+            raise ValueError("reconcile backfill limit outside bounds")
+        count = self._rpc("sxf_base_backfill_reconcile", {"p_limit": limit})
+        if type(count) is not int or not 0 <= count <= limit:
+            raise DurableStoreError("invalid reconcile backfill response")
+        return count
+
+    def claim_reconcile(self, worker_id: str, *, lease_seconds: int = 900) -> list:
+        if not worker_id or len(worker_id.strip()) > 100 or not 60 <= lease_seconds <= 1800:
+            raise ValueError("invalid reconcile lease settings")
+        rows = self._rpc("sxf_base_claim_reconcile", {
+            "p_worker": worker_id, "p_limit": 1, "p_lease_seconds": lease_seconds})
+        if not isinstance(rows, list) or len(rows) > 1:
+            raise DurableStoreError("invalid reconcile claim response")
+        claims = []
+        for row in rows:
+            try:
+                uid = str(UUID(str(row["fixture_uid"])))
+                market = str(row["market"])
+                if market not in ("1X2", "OU25", "BTTS"):
+                    raise ValueError("invalid market")
+                origin = str(row["origin_event_key"])
+                if not origin or len(origin) > 450:
+                    raise ValueError("invalid origin")
+                attempt = int(row["attempt_count"])
+                rec_id = int(row["reconciliation_id"])
+                if attempt < 1 or rec_id < 1:
+                    raise ValueError("invalid reconcile identity")
+                claims.append({
+                    "reconciliation_id": rec_id, "origin_event_key": origin,
+                    "fixture_uid": uid, "kickoff_utc": _parse_time(row["kickoff_utc"]),
+                    "market": market, "lease_token": str(UUID(str(row["lease_token"]))),
+                    "attempt_count": attempt,
+                })
+            except (KeyError, TypeError, ValueError) as exc:
+                raise DurableStoreError("malformed reconcile claim") from exc
+        return claims
+
+    def renew_reconcile(self, item: Mapping[str, Any], *, lease_seconds: int = 900) -> None:
+        if not 60 <= lease_seconds <= 1800:
+            raise ValueError("invalid reconcile renewal TTL")
+        if self._rpc("sxf_base_renew_reconcile", {
+            "p_reconciliation_id": item["reconciliation_id"],
+            "p_lease_token": item["lease_token"], "p_lease_seconds": lease_seconds}) is not True:
+            raise DurableStoreError("reconcile renewal rejected")
+
+    def retry_reconcile(self, item: Mapping[str, Any], *,
+                        reason: str = "SOURCE_INCOMPLETE", delay_seconds: int = 900) -> None:
+        if reason not in ("SOURCE_INCOMPLETE", "SNAPSHOTREADERROR",
+                          "DURABLESTOREERROR", "VALUEERROR", "CONNECTIONERROR",
+                          "TIMEOUTERROR", "RUNTIMEERROR", "WORKER_ERROR"):
+            raise ValueError("invalid reconciliation failure category")
+        if not 60 <= delay_seconds <= 3600:
+            raise ValueError("invalid reconcile retry interval")
+        if self._rpc("sxf_base_retry_reconcile", {
+            "p_reconciliation_id": item["reconciliation_id"],
+            "p_lease_token": item["lease_token"], "p_reason": reason,
+            "p_delay_seconds": delay_seconds}) is not True:
+            raise DurableStoreError("reconcile retry rejected")
+
+    def complete_reconcile(self, item: Mapping[str, Any], plan: Any, *,
+                           lease_seconds: int = 900) -> None:
+        if (item["origin_event_key"] != plan.origin_event_key or
+            item["fixture_uid"] != plan.fixture_uid or
+            item["kickoff_utc"] != plan.kickoff_utc or
+            item["market"] != plan.market):
+            raise ValueError("reconciliation proof identity mismatch")
+        if self._rpc("sxf_base_complete_reconcile", {
+            "p_reconciliation_id": item["reconciliation_id"],
+            "p_lease_token": item["lease_token"],
+            "p_snapshot_ids": list(plan.source_snapshot_ids),
+            "p_signals": list(plan.signals),
+            "p_evidence": {"source_observed_at": plan.source_observed_at.isoformat(),
+                           "v2_state": plan.v2_state},
+        }) is not True:
+            raise DurableStoreError("reconciliation completion not acknowledged")
