@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from services.base_signal_feed import (
+from base_signal_engine.feed import (
     BaseFeedUnavailable, BaseSignalsFeed, TR_TZ, parse_day
 )
 
