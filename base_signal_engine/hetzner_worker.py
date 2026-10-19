@@ -3,7 +3,7 @@
 NO automatic startup. Reads native SXF Moneyway data, stores ONLY sxf_base_*
 durable jobs/events via token-fenced RPC, never alters legacy signals or source.
 The Phase 5A per-row source triggers are deliberately NOT required for the
-first supervised run: rolling fixture discovery plus scheduled reconciliation
+first supervised run: bounded cursor discovery plus scheduled reconciliation
 retries provide a bounded, conservative baseline.
 """
 from __future__ import annotations
@@ -151,7 +151,7 @@ def main(argv=None) -> int:
             report=run_cycle(reader,store,worker_id=worker_id,
                 max_jobs=args.max_jobs,max_reconcile=args.max_reconcile,
                 lookback_days=args.lookback_days,
-                discover=(not args.no_discovery and iteration%5==0))
+                discover=(not args.no_discovery))
             print(json.dumps(report,sort_keys=True),flush=True)
             if report["lease_uncertain"] or report["commit_uncertain"] or report["reconcile_uncertain"]:
                 return 3  # External operator review rather than blind retry.
