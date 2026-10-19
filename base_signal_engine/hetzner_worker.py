@@ -155,6 +155,10 @@ def main(argv=None) -> int:
             print(json.dumps(report,sort_keys=True),flush=True)
             if report["lease_uncertain"] or report["commit_uncertain"] or report["reconcile_uncertain"]:
                 return 3  # External operator review rather than blind retry.
+            if report["discovery"]=="UNINITIALIZED":
+                # Operator must explicitly set the historical bootstrap cursor.
+                # This is not a transient fault: do not restart forever.
+                return 4
             if not report["healthy_cycle"]:
                 return 2  # Discovery/health failure cannot be silent success.
         except DurableStoreError:
