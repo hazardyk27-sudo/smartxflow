@@ -1,5 +1,76 @@
 # SmartXFlow Base — Hetzner activation and next real checkpoint
 
+## 2026-10-19 — bounded discovery and honest read-only observation
+
+**New fail-closed startup policy on GitHub preview (NOT deployed):**
+`base_signal_engine.discovery.bounded_cursor_discovery_once` uses the
+existing *uninitialized* durable discovery cursor; it never auto-bootstraps.
+One scanning call advances at most **1 hour** of kickoff time, refuses
+to partially enqueue more than **50 fixtures** from that hour,
+and pauses discovery when `checkpoint_queue.pending_due >= 250`.
+No UID may be dropped by truncating a catalog page; SQL cursor advancement
+follows an ACK of all 11 canonical checkpoint jobs per fixture. The
+Hetzner worker now uses this bounded cursor rather than
+`rolling_rescan_once` on normal discovery cycles. Cursor initialization
+and full source-change capture remain separate operator-controlled tasks.
+
+- Independent **live SQL read-only preflight** grouped fixtures by kickoff
+  hour over `[now - 1 day, now + 74h]`: highest observed hour had
+  **31 fixtures** (below 50). A future source burst could exceed the
+  limit; such a window safely stops instead of silently skipping matches.
+- Real isolated Hetzner bounded-discovery preflight used live Base health
+  RPC and returned `UNINITIALIZED`, `advanced=false`,
+  `enqueued=0`, `pending_due=0`. Thus **no new Base work was
+  enqueued** or SQL cursor changed.
+- The source and pre-shadow test suite passed
+  **184 Python + 31 disposable PostgreSQL = 215 tests**
+  (GitHub Actions run **39309627891**).
+- `base_signal_engine.pre_shadow` performs read-only source freshness
+  `GET` plus existing health RPC and appends hash-chained evidence
+  under a restricted local directory. It deliberately reports
+  `source_capture_verified=false`,
+  `source_commit_watermark=null` and
+  `BLOCKED_SOURCE_CAPTURE_UNVERIFIED`. No optimistic source
+  backlog zeros are fabricated.
+
+**Live Hetzner diagnostic observer started and independently verified:**
+
+- Transient, non-enabled systemd unit:
+  `sxf-base-presha-20261019.service`.
+- Process account: `smartxflow`; source: isolated `preview`
+  checkout `/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191`;
+  **no changes to `/opt/smartxflow` or `main`**.
+- Sampling interval: **120 seconds**; hard `RuntimeMaxSec=86400`
+  (24 hours); **`Restart=no`**, `MemoryMax=128M`.
+- Restricted local evidence:
+  `/var/tmp/sxf-base-shadow/pre-shadow-evidence.jsonl`, directory
+  mode 0700, file mode 0600, owned by `smartxflow`. Systemd allows
+  write only to that directory. Secrets reside solely in existing
+  server-only `.env` and are not journaled.
+- `systemctl is-active sxf-base-presha-20261019.service`
+  returned `active`, memory approx **25 MB**, initial evidence
+  sequence 2. The first verified live source snapshot age was
+  **108 seconds**; no pending due checkpoint or expired lease.
+- Its independent `shadow_report --min-hours 24` check
+  returned **exit 1**, `meets_observation_gates=false`,
+  blockers `DURATION_NOT_MET`, `ERROR_DURING_SHADOW`,
+  `MISSING_HEALTH_METRICS`, and
+  `production_approved=false`.
+  The latter two blockers are **expected** while Phase 5A source
+  capture and complete health RPC remain absent.
+- To inspect: `systemctl status sxf-base-presha-20261019.service`,
+  `journalctl -u sxf-base-presha-20261019.service --no-pager -n 20`.
+  To stop the diagnostic unit: `systemctl stop
+  sxf-base-presha-20261019.service`. Do not confuse this temporary
+  diagnostic with the production Base worker.
+
+**Not yet accomplished:** full continuity-qualified 24h shadow,
+source mutation/delivery guarantees, production release approval or
+permanent worker deployment. A healthy raw snapshot freshness metric
+alone cannot prove insert/update/delete capture.
+
+---
+
 ## 2026-10-19 — controlled durable Hetzner T-6 smoke PASSED
 
 Executed from the **isolated preview checkout**, exact SHA
