@@ -38,7 +38,7 @@ def test_new_analizler_cards_are_not_mocks_or_old_analysts():
     assert "var(--bg-main" in css and "var(--bg-card" in css
     assert ".sxf-engine-box" not in css
     assert "grid-template-columns:repeat(3,minmax(0,1fr))" in css
-    assert "@media(max-width:700px)" in css
+    assert "@media(max-width:600px)" in css
     assert "[hidden]" in css
 
 
