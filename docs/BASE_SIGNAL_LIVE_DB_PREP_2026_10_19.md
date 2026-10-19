@@ -91,3 +91,50 @@ logs, lease/queue health and source-mutation review. A 24h shadow
 cannot be declared passed ahead of elapsed real time.
 
 **Production release status: NOT YET APPROVED / NOT ACTIVATED.**
+
+
+## Update — one real checkpoint queued, 2026-10-19
+
+The new durable SQL queue was tested by adding **exactly one real**
+physical fixture checkpoint (not a generic backfill):
+
+- `fixture_uid`: `74acc8bd-665e-488c-b1e7-32f95674ccdd`
+- Fixture: Degerfors – Kalmar FF, kickoff `2026-10-19T17:00:00Z`
+- Family/offset: `BASE` / `T-6`
+- Job key:
+  `SXF_BASE_V1_2026_10_18:74acc8bd-665e-488c-b1e7-32f95674ccdd:2026-10-19T17:00:00+00:00:BASE:T-6`
+- SQL RPC response: `sxf_base_enqueue_jobs(...)=1`
+- Verified durable row: `PENDING`, `checkpoint_at=2026-10-19T11:00:00Z`, `run_after=2026-10-19T11:10:00Z`, attempts `0`.
+- Verified via read-only SQL after enqueue: `checkpoint_queue.total=1`,
+  `pending_due=1`, `completed=0`,
+  `sxf_base_checkpoint_evaluations` count for UID `=0`.
+- Source trigger remains **not installed**. No old SXF signal was inserted or modified.
+
+The Hetzner Remote Desktop Commander device was **Offline** at
+the time of the controlled insert. **No attempt was made to claim or
+evaluate the job without a connected, verified Hetzner runtime.**
+The queue is intentionally durable and remains pending, with no
+blind retry or synthesized engine output.
+
+When the authorized Hetzner bridge reconnects:
+
+1. Read current `main` and `preview` SHA, validate the isolated
+   `/var/tmp` staging checkout and clean production worktree.
+2. Validate that the new Base queue still has **only this one due job**
+   and the UID, kickoff, family and ruleset match exactly.
+3. From the isolated tracked-`preview` checkout, after operator
+   authorization, run `python -m base_signal_engine.hetzner_worker
+   --once --no-discovery --max-jobs 1 --max-reconcile 0` with existing
+   server-only environment and explicit approval gates. Do not install
+   or auto-enable any permanent unit; do not modify `main`.
+4. Inspect `sxf_base_health_snapshot()`, checkpoint evaluations and
+   `MARKET_DECISION` entries for exactly that job. Expect provenance
+   and missing-data constraints to hold; do **not** assume a BET signal.
+5. Stop and investigate if the job does not complete exactly once,
+   source coverage is incomplete, leases are ambiguous, or the
+   sandbox diverges from the expected SHA. Never manually insert
+   an engine signal or fabricate the kernel output.
+
+The 24-hour production shadow and user-facing event activation remain
+separately gated. Do not claim the queue smoke is complete before
+the actual engine has processed and durably committed the job.
