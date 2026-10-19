@@ -37,7 +37,8 @@ jobs:
             tests/test_base_signal_storage.py \
             tests/test_base_signal_phase4a_contract.py \
             tests/test_base_signal_phase4b.py \
-            tests/test_base_signal_phase4b_reconciliation.py
+            tests/test_base_signal_phase4b_reconciliation.py \
+            tests/test_base_signal_phase4c_provenance.py
 
   postgres-contract:
     runs-on: ubuntu-latest
