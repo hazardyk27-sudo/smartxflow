@@ -1,0 +1,41 @@
+name: Base Hetzner shadow post-start health audit
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-shadow-health-20261019.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify isolated shadow and existing Hetzner services without mutations
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 4m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test "$(systemctl is-active sxf-base-durable-shadow-20261019.service)" = active
+            echo SHADOW_SERVICE
+            systemctl show sxf-base-durable-shadow-20261019.service \
+              -p ActiveState -p SubState -p MemoryCurrent -p RuntimeMaxUSec -p NRestarts
+            echo SHADOW_JOURNAL_LAST_FIVE
+            journalctl -u sxf-base-durable-shadow-20261019.service -o cat --no-pager -n 5
+            echo PRE_SHADOW_SERVICE
+            systemctl is-active sxf-base-presha-20261019.service
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 6f25b926ffc1b3507893cd7e3cb5c6d0911896f7
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for s in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active
+            done
+            echo HEALTH_AUDIT_PASSED
