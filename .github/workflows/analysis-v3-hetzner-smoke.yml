@@ -1,0 +1,51 @@
+name: Analizler V3 Hetzner real source read-only smoke
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/analysis-v3-hetzner-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  real-base-feed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Check new UI feed against real Supabase from isolated Hetzner checkout
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_PREVIEW_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_PREVIEW_SHA
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            DIR='/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191'
+            test -d "$DIR/.git"
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            git -C "$DIR" diff --quiet
+            git -C "$DIR" diff --cached --quiet
+            git -C "$DIR" fetch -q --depth 90 origin preview
+            test "$(git -C "$DIR" rev-parse FETCH_HEAD)" = "$EXPECTED_PREVIEW_SHA"
+            git -C "$DIR" merge --ff-only FETCH_HEAD >/dev/null
+            test "$(git -C "$DIR" rev-parse HEAD)" = "$EXPECTED_PREVIEW_SHA"
+            test -f "$DIR/base_signal_engine/feed.py"
+            echo "UI_FEED_SHA=$EXPECTED_PREVIEW_SHA"
+            systemd-run --unit="sxf-base-ui-feed-${EXPECTED_PREVIEW_SHA:0:10}" \
+              --wait --pipe --collect --property=Type=oneshot \
+              --property=User=smartxflow --property=Group=smartxflow \
+              --property="WorkingDirectory=$DIR" \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes --property=ProtectSystem=strict \
+              --property=ProtectHome=yes --property=MemoryMax=128M \
+              --property=TimeoutStartSec=80 \
+              /opt/smartxflow/venv/bin/python -c 'from base_signal_engine.feed import BaseSignalsFeed,TR_TZ; from datetime import datetime,timedelta; import os,json; first=datetime.now(TR_TZ).date()-timedelta(days=10); feed=BaseSignalsFeed(os.environ["SUPABASE_URL"],os.environ["SUPABASE_SERVICE_ROLE_KEY"]); data=feed.read(first,days=21); items=data["items"]; assert data["status"]=="ok"; assert data["phase"]=="SHADOW" and data["source_complete"] is False; assert all(x["uid"] and x["day"] and x["home"] and x["away"] and x["engine"] and x["selection"] for x in items); print(json.dumps({"status":"READ_ONLY_REAL_FEED_PASSED","count":len(items),"days_with_signal":len({x["day"] for x in items}),"motors":len({x["engine"] for x in items}),"shadow":True,"database_writes":False},sort_keys=True))'
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            echo PROD_SOURCE_UNCHANGED
