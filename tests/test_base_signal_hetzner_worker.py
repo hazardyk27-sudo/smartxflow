@@ -118,3 +118,80 @@ def test_no_discovery_requires_single_cycle_even_if_worker_approved(monkeypatch)
     monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
     with pytest.raises(SystemExit,match="2"):
         app.main(["--no-discovery"])
+
+
+def test_uncertain_checkpoint_commit_stops_further_claims_and_reconciliation(monkeypatch):
+    """Do not continue to mutate the queue when an ACK may be ambiguous."""
+    calls=[]
+    monkeypatch.setattr(app,"execute_claims",lambda *args,**kwargs:
+        (calls.append("checkpoint") or
+         {"claimed":1,"completed":0,"waiting_data":0,"retry":0,
+          "lease_lost":0,"commit_uncertain":1}))
+    monkeypatch.setattr(app,"reconcile_once",lambda *args,**kwargs:
+        (calls.append("reconcile") or
+         {"claimed":0,"completed":0,"waiting_data":0,"retried":0,
+          "lease_uncertain":0,"commit_uncertain":0}))
+    result=app.run_cycle(object(),FakeStore(),worker_id="worker",
+                         discover=False,max_jobs=12,max_reconcile=5)
+    assert calls==["checkpoint"]
+    assert result["claimed"]==1
+    assert result["commit_uncertain"]==1
+    assert result["reconcile_claimed"]==0
+    assert result["healthy_cycle"] is False
+
+
+def test_lost_checkpoint_lease_blocks_reconcile_and_further_claims(monkeypatch):
+    calls=[]
+    monkeypatch.setattr(app,"execute_claims",lambda *args,**kwargs:
+        (calls.append("checkpoint") or
+         {"claimed":1,"completed":0,"waiting_data":0,"retry":0,
+          "lease_lost":1,"commit_uncertain":0}))
+    monkeypatch.setattr(app,"reconcile_once",lambda *args,**kwargs:
+        (calls.append("reconcile") or {}))
+    result=app.run_cycle(object(),FakeStore(),worker_id="worker",
+                         discover=False,max_jobs=30,max_reconcile=5)
+    assert calls==["checkpoint"]
+    assert result["lease_uncertain"]==1
+    assert result["healthy_cycle"] is False
+
+
+def test_reconcile_uncertainty_stops_batch(monkeypatch):
+    calls=[]
+    monkeypatch.setattr(app,"execute_claims",lambda *args,**kwargs:
+        {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":0})
+    monkeypatch.setattr(app,"reconcile_once",lambda *args,**kwargs:
+        (calls.append("reconcile") or
+         {"claimed":1,"completed":0,"waiting_data":0,"retried":0,
+          "lease_uncertain":1,"commit_uncertain":0}))
+    result=app.run_cycle(object(),FakeStore(),worker_id="worker",
+                         discover=False,max_jobs=5,max_reconcile=5)
+    assert calls==["reconcile"]
+    assert result["reconcile_uncertain"]==1
+    assert result["healthy_cycle"] is False
+
+
+def test_one_shot_unhealthy_discovery_exits_nonzero(monkeypatch):
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    monkeypatch.setenv("SUPABASE_URL","https://source.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY","isolated-test-value")
+    monkeypatch.setattr(app,"SupabaseMoneywayReader",lambda *a,**k: object())
+    monkeypatch.setattr(app,"SupabaseCheckpointStore",lambda *a,**k: object())
+    monkeypatch.setattr(app,"run_cycle",lambda *a,**k:
+        {"discovery":"ERROR_CATALOGREADERROR","healthy_cycle":False,
+         "lease_uncertain":0,"commit_uncertain":0,"reconcile_uncertain":0})
+    assert app.main(["--once"])==2
+
+
+def test_one_shot_ambiguous_commit_exits_operator_review(monkeypatch):
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    monkeypatch.setenv("SUPABASE_URL","https://source.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY","isolated-test-value")
+    monkeypatch.setattr(app,"SupabaseMoneywayReader",lambda *a,**k: object())
+    monkeypatch.setattr(app,"SupabaseCheckpointStore",lambda *a,**k: object())
+    monkeypatch.setattr(app,"run_cycle",lambda *a,**k:
+        {"discovery":"SKIPPED","healthy_cycle":False,
+         "lease_uncertain":0,"commit_uncertain":1,"reconcile_uncertain":0})
+    assert app.main(["--once","--no-discovery"])==3
