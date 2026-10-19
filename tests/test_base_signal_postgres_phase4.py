@@ -105,6 +105,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c_discovery_cursor.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_kickoff_drift.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_discovery_heartbeat.sql",
+        "migrations/2026_10_19_sxf_base_phase4c4_health.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -471,3 +472,17 @@ def test_15_discovery_heartbeat_fences_stale_or_foreign_tokens():
           "SET lease_expires_at=now()-interval '1 second' "
           "WHERE lease_token=%s::uuid",(token,))
     assert query(sql,(token,120),role="service_role")[0]["renewed"] is False
+
+
+def test_16_health_rpc_is_server_only_and_never_fabricates_ingest_latency():
+    rows=query("SELECT public.sxf_base_health_snapshot() AS report",
+               role="service_role")
+    report=rows[0]["report"]
+    assert report["checkpoint_queue"]["total"]>=1
+    assert report["checkpoint_queue"]["superseded"]>=1
+    assert report["reconciliation_queue"]["total"]>=1
+    assert report["discovery_cursor"]["initialized"] is True
+    assert report["fixture_identity"]["drift_events"]>=1
+    assert report["snapshot_ingestion_watermark"] is None
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_health_snapshot()",role="anon")
