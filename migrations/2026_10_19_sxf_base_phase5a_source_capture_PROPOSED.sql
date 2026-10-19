@@ -179,12 +179,64 @@ BEGIN
     RETURN FOUND;
 END $$;
 
+-- Cleanup for UID deletion or out-of-window kickoff remap: unlike the
+-- earlier INNER JOIN drift sweep, this also finds missing fixture UIDs.
+CREATE OR REPLACE FUNCTION public.sxf_base_quarantine_obsolete_uid(
+    p_fixture_uid uuid,p_limit integer DEFAULT 250)
+RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $
+DECLARE v_count integer;
+BEGIN
+    IF p_fixture_uid IS NULL OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 1000 THEN
+        RAISE EXCEPTION 'invalid obsolete UID quarantine request';
+    END IF;
+    WITH locked AS (
+      SELECT j.job_id FROM public.sxf_base_checkpoint_jobs j
+      WHERE j.fixture_uid=p_fixture_uid AND j.state<>'SUPERSEDED'
+        AND NOT EXISTS (
+          SELECT 1 FROM public.fixtures f WHERE f.fixture_uid=j.fixture_uid
+                AND f.kickoff_utc=j.kickoff_utc
+        )
+      ORDER BY j.job_id LIMIT p_limit FOR UPDATE SKIP LOCKED
+    ), updated AS (
+      UPDATE public.sxf_base_checkpoint_jobs j
+        SET state='SUPERSEDED',lease_owner=NULL,lease_token=NULL,
+            lease_expires_at=NULL,last_error_code='SOURCE_FIXTURE_IDENTITY_CHANGE'
+      FROM locked l WHERE j.job_id=l.job_id RETURNING j.job_id
+    ) SELECT count(*) INTO v_count FROM updated;
+    RETURN v_count;
+END $;
+
+-- A new T6 observation can wake an existing, nonterminal reconciliation.
+-- This does NOT manufacture a correction or restart completed jobs.
+CREATE OR REPLACE FUNCTION public.sxf_base_wake_late_t6(
+    p_fixture_uid uuid,p_market text,p_observed_at timestamptz)
+RETURNS integer LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $
+DECLARE v_count integer;
+BEGIN
+    IF p_fixture_uid IS NULL OR p_market NOT IN ('1X2','OU25','BTTS')
+       OR p_observed_at IS NULL THEN
+        RAISE EXCEPTION 'invalid T6 wake request';
+    END IF;
+    UPDATE public.sxf_base_reconcile_jobs r
+       SET next_attempt_at=now()
+     WHERE r.fixture_uid=p_fixture_uid AND r.market=p_market
+       AND r.state IN ('PENDING','WAITING_DATA','RETRY')
+       AND p_observed_at BETWEEN r.kickoff_utc-INTERVAL '6 hours 30 minutes'
+                              AND r.kickoff_utc-INTERVAL '6 hours';
+    GET DIAGNOSTICS v_count=ROW_COUNT;
+    RETURN v_count;
+END $;
+
 REVOKE ALL ON FUNCTION public.sxf_base_claim_source_changes(text,integer,integer),
  public.sxf_base_ack_source_change(bigint,uuid),
- public.sxf_base_retry_source_change(bigint,uuid,text,integer)
+ public.sxf_base_retry_source_change(bigint,uuid,text,integer),
+ public.sxf_base_quarantine_obsolete_uid(uuid,integer),
+ public.sxf_base_wake_late_t6(uuid,text,timestamptz)
  FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.sxf_base_claim_source_changes(text,integer,integer),
  public.sxf_base_ack_source_change(bigint,uuid),
- public.sxf_base_retry_source_change(bigint,uuid,text,integer)
+ public.sxf_base_retry_source_change(bigint,uuid,text,integer),
+ public.sxf_base_quarantine_obsolete_uid(uuid,integer),
+ public.sxf_base_wake_late_t6(uuid,text,timestamptz)
  TO service_role;
 COMMIT;
