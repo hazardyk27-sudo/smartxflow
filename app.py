@@ -7865,7 +7865,7 @@ def base_signal_feed_api():
     else:
         return jsonify({'error':'LOGIN_REQUIRED'}), 403
 
-    from services.base_signal_feed import (
+    from base_signal_engine.feed import (
         BaseFeedUnavailable, BaseSignalsFeed, parse_day, TR_TZ,
     )
     try:
