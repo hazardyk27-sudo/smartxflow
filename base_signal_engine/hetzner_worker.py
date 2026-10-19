@@ -54,17 +54,24 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         report["retried"]+=result["retry"]
         report["lease_uncertain"]+=result["lease_lost"]
         report["commit_uncertain"]+=result["commit_uncertain"]
-        if result["claimed"]==0:
+        if (result["claimed"]==0 or result["lease_lost"]
+                or result["commit_uncertain"]):
+            # An ambiguous lease/commit needs review. Do not claim more jobs
+            # or begin another reconciliation in the same cycle.
             break
-    for _ in range(max_reconcile):
-        result=reconcile_once(reader,store,worker_id=worker_id)
-        report["reconcile_claimed"]+=result["claimed"]
-        report["reconcile_completed"]+=result["completed"]
-        report["reconcile_waiting_data"]+=result["waiting_data"]
-        report["reconcile_uncertain"]+=(
-            result["lease_uncertain"]+result["commit_uncertain"])
-        if result["claimed"]==0:
-            break
+    if not (report["lease_uncertain"] or report["commit_uncertain"]):
+        for _ in range(max_reconcile):
+            result=reconcile_once(reader,store,worker_id=worker_id)
+            report["reconcile_claimed"]+=result["claimed"]
+            report["reconcile_completed"]+=result["completed"]
+            report["reconcile_waiting_data"]+=result["waiting_data"]
+            report["reconcile_uncertain"]+=(
+                result["lease_uncertain"]+result["commit_uncertain"])
+            if (result["claimed"]==0 or result["lease_uncertain"]
+                    or result["commit_uncertain"]):
+                # Reconcile ACK uncertainty must not be followed by another
+                # claim before an independent durable-state read.
+                break
     # Never declare source health normal: outbox triggers are still deferred.
     health=store.health_snapshot()
     checkpoint=health.get("checkpoint_queue") if isinstance(health,dict) else None
@@ -125,7 +132,9 @@ def main(argv=None) -> int:
                 discover=(not args.no_discovery and iteration%5==0))
             print(json.dumps(report,sort_keys=True),flush=True)
             if report["lease_uncertain"] or report["commit_uncertain"] or report["reconcile_uncertain"]:
-                return 3  # external operator review rather than blind retry.
+                return 3  # External operator review rather than blind retry.
+            if not report["healthy_cycle"]:
+                return 2  # Discovery/health failure cannot be silent success.
         except Exception as exc:
             print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"FAILED",
                               "error_type":type(exc).__name__}),file=sys.stderr,flush=True)
