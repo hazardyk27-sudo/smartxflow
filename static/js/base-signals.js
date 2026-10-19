@@ -278,7 +278,15 @@
     });
   }
   function switchWindow(delta) {
-    current.start = dayShift(current.start, delta * 10);
+    var nextStart = dayShift(current.start, delta * 10);
+    var today = todayTR();
+    // The private API bounds kickoff windows: 45 days back, 21 days ahead.
+    // Never replace an otherwise healthy screen with a predictable 400.
+    if (nextStart < dayShift(today, -45) || nextStart > dayShift(today, 21)) {
+      message('Bu tarih aralığı için kayıt görüntülenemiyor.', 'shadow');
+      return;
+    }
+    current.start = nextStart;
     current.day = dayShift(current.day, delta * 10);
     load();
   }
