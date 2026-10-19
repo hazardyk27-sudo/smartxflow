@@ -26,18 +26,26 @@ jobs:
           command_timeout: 6m
           script: |
             set -euo pipefail
+            echo BRIDGE_CONNECTED
+            echo "REMOTE_HOST=$(hostname)"
             DIR='/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191'
             [ "$(hostname)" = 'smartxflow' ] || { echo WRONG_HOST; exit 1; }
             [ -d "$DIR/.git" ] || { echo ISOLATED_STAGING_MISSING; exit 1; }
+            echo STAGING_EXISTS
             [ "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main ] || exit 1
-            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || exit 1
+            [ -z "$(sudo -u smartxflow git -C /opt/smartxflow status --porcelain=v1)" ] || { echo PROD_DIRTY; exit 1; }
+            echo PROD_SAFE
             [ -z "$(git -C "$DIR" status --porcelain=v1)" ] || exit 1
+            echo FETCH_START
             git -C "$DIR" fetch -q --depth 80 origin preview
+            echo FETCH_DONE
             [ "$(git -C "$DIR" rev-parse FETCH_HEAD)" = "$EXPECTED_PREVIEW_SHA" ] || { echo PREVIEW_MOVED; exit 1; }
             git -C "$DIR" merge --ff-only FETCH_HEAD >/dev/null
+            echo FAST_FORWARD_DONE
             [ "$(git -C "$DIR" rev-parse HEAD)" = "$EXPECTED_PREVIEW_SHA" ] || { echo SHA_MISMATCH; exit 1; }
             [ -f "$DIR/base_signal_engine/source_tail_probe.py" ] || exit 1
             install -d -m 0700 -o smartxflow -g smartxflow /var/tmp/sxf-base-shadow
+            echo EVIDENCE_DIR_READY
             test -f /opt/smartxflow/.env
             echo "ISOLATED_SOURCE_SHA=$EXPECTED_PREVIEW_SHA"
             systemd-run --unit="sxf-base-source-tail-${EXPECTED_PREVIEW_SHA:0:12}" \
