@@ -19,7 +19,7 @@ from .discovery import rolling_rescan_once
 from .durable_runtime import execute_claims
 from .reader import SupabaseMoneywayReader
 from .reconcile_runtime import reconcile_once
-from .storage import SupabaseCheckpointStore
+from .storage import DurableStoreError, SupabaseCheckpointStore
 
 def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               max_jobs: int = 12, max_reconcile: int = 2,
@@ -72,6 +72,14 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
                 # Reconcile ACK uncertainty must not be followed by another
                 # claim before an independent durable-state read.
                 break
+    # A lost lease or ambiguous commit is an operator-review stop, even if
+    # the subsequent health RPC is unavailable. Never turn it into exit 2
+    # (which systemd may automatically restart).
+    if (report["lease_uncertain"] or report["commit_uncertain"]
+            or report["reconcile_uncertain"]):
+        report["healthy_cycle"]=False
+        report["production_release_verified"]=False
+        return report
     # Never declare source health normal: outbox triggers are still deferred.
     health=store.health_snapshot()
     checkpoint=health.get("checkpoint_queue") if isinstance(health,dict) else None
@@ -135,6 +143,12 @@ def main(argv=None) -> int:
                 return 3  # External operator review rather than blind retry.
             if not report["healthy_cycle"]:
                 return 2  # Discovery/health failure cannot be silent success.
+        except DurableStoreError:
+            # RPC timeouts can follow a committed lease or completion. Preserve
+            # ambiguous outcome semantics: systemd must NOT auto-restart.
+            print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"UNCERTAIN",
+                              "error_type":"DURABLESTOREERROR"}),file=sys.stderr,flush=True)
+            return 3
         except Exception as exc:
             print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"FAILED",
                               "error_type":type(exc).__name__}),file=sys.stderr,flush=True)
