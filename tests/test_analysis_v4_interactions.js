@@ -12,6 +12,7 @@ class FakeNode {
     this.ownerDocument = document;
     this.id = id; this.innerHTML = ''; this.textContent = ''; this.dataset = {};
     this.hidden = false; this.value = ''; this.scrollTop = 0; this.listeners = {};
+    this._queryCache = new Map();
     this.classList = { add() {}, remove() {} };
   }
   addEventListener(name, callback) { this.listeners[name] = callback; }
@@ -28,6 +29,8 @@ class FakeNode {
     const attribute = selector === '[data-day]' ? 'day' :
       selector === '[data-motor]' ? 'motor' : null;
     if (!attribute) return [];
+    const key = selector + '\\u0000' + this.innerHTML;
+    if (this._queryCache.has(key)) return this._queryCache.get(key);
     const out = [];
     const regex = new RegExp('<button[^>]*\\bdata-' + attribute + '="([^"]+)"[^>]*>', 'g');
     let match;
@@ -36,6 +39,7 @@ class FakeNode {
       node.dataset[attribute] = match[1];
       out.push(node);
     }
+    this._queryCache.set(key, out);
     return out;
   }
 }
