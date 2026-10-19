@@ -65,7 +65,10 @@ def main():
         browser = p.chromium.launch(headless=True)
         for name, width, height, expected_columns in VIEWPORTS:
             page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
+            # Keep the document on a stable same-origin test URL, not about:blank.
+            page.route("https://sxf-preview.test/", lambda route: route.fulfill(status=200, body="<html></html>"))
             page.route("**/api/base-signals/feed*", lambda route: route.fulfill(status=200, json=payload))
+            page.goto("https://sxf-preview.test/", wait_until="load")
             page.set_content(document, wait_until="load")
             page.add_script_tag(content=js)
             page.evaluate("window.openBaseSignalsPanel()")
