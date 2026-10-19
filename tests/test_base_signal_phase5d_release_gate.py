@@ -91,7 +91,7 @@ def test_operator_mode_also_requires_independent_attestation(tmp_path):
                      "counters":counters,"error_code":None}
             envelope={"payload":payload,"prev_sha256":previous}
             digest=sha256(_encode(envelope)).hexdigest()
-            f.write(_encode({**envelope,"sha256":digest})+b"\\n")
+            f.write(_encode({**envelope,"sha256":digest})+b"\n")
             previous=digest
     r=evaluate_release_evidence(shadow_path=path)
     assert r.shadow["meets_observation_gates"]
