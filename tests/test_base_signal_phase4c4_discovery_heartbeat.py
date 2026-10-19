@@ -47,7 +47,7 @@ def test_discovery_renews_lease_at_page_boundaries_and_before_advance():
 def test_lost_discovery_renewal_prevents_watermark_advance():
     s=Store(fail=True)
     report=discover_window_once(object(),s,worker_id="worker",now=NOW,catalog=Catalog())
-    assert not report["advanced"] and report["uncertain"]
+    assert not report["advanced"] and report["retry"]
     assert "advance" not in s.calls
 
 
