@@ -1,0 +1,67 @@
+name: Base Hetzner bounded shadow one-cycle (isolated)
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-bounded-shadow-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run one supervised Base shadow cycle at exact preview SHA
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_PREVIEW_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_PREVIEW_SHA
+          command_timeout: 8m
+          script: |
+            set -euo pipefail
+            echo HETZNER_SHADOW_ONCE_CONNECT
+            test "$(hostname)" = smartxflow
+            DIR='/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191'
+            test -d "$DIR/.git"
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            git -C "$DIR" diff --quiet
+            git -C "$DIR" diff --cached --quiet
+            git -C "$DIR" fetch -q --depth 90 origin preview
+            test "$(git -C "$DIR" rev-parse FETCH_HEAD)" = "$EXPECTED_PREVIEW_SHA"
+            git -C "$DIR" merge --ff-only FETCH_HEAD >/dev/null
+            test "$(git -C "$DIR" rev-parse HEAD)" = "$EXPECTED_PREVIEW_SHA"
+            test -f "$DIR/base_signal_engine/hetzner_worker.py"
+            test -s /opt/smartxflow/.env
+            echo "SHADOW_SOURCE_SHA=$EXPECTED_PREVIEW_SHA"
+            systemd-run --unit="sxf-base-shadow-once-${EXPECTED_PREVIEW_SHA:0:10}" \
+              --wait --pipe --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_WORKER_ID=shadow-one \
+              --property=Type=oneshot \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property="WorkingDirectory=$DIR" \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=MemoryMax=256M \
+              --property=TimeoutStartSec=150 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+                --once --max-jobs 2 --max-reconcile 0 --interval-seconds 60
+            echo BOUNDED_SHADOW_CYCLE_COMPLETED
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = '6f25b926ffc1b3507893cd7e3cb5c6d0911896f7'
+            for s in smartxflow-scraper smartxflow-sinyal smartxflow-web smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active
+            done
+            echo LEGACY_SERVICES_UNCHANGED
