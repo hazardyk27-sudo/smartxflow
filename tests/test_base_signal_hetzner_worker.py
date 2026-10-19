@@ -91,3 +91,30 @@ def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
     assert "SXF_BASE_DURABLE_WORKER_APPROVED=yes" not in s
     assert "smartxflow-base-worker.service" not in sync
     assert "systemctl start" not in s
+
+
+def test_one_shot_pending_job_mode_skips_discovery_and_reconciliation(monkeypatch,capsys):
+    """The Hetzner pending-job smoke cannot accidentally bulk-enqueue fixtures."""
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    monkeypatch.setenv("SUPABASE_URL","https://source.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY","isolated-test-value")
+    monkeypatch.setattr(app,"SupabaseMoneywayReader",lambda *a,**k: object())
+    monkeypatch.setattr(app,"SupabaseCheckpointStore",lambda *a,**k: object())
+    called=[]
+    def fake_cycle(reader,store,*,worker_id,discover,max_jobs,max_reconcile,lookback_days):
+        called.append((worker_id,discover,max_jobs,max_reconcile,lookback_days))
+        return {"discovery":"SKIPPED","claimed":1,"completed":1,
+                "lease_uncertain":0,"commit_uncertain":0,"reconcile_uncertain":0}
+    monkeypatch.setattr(app,"run_cycle",fake_cycle)
+    assert app.main(["--once","--no-discovery","--max-jobs","1",
+                     "--max-reconcile","0"])==0
+    assert called==[("hetzner-base-one",False,1,0,1)]
+    assert '"completed": 1' in capsys.readouterr().out
+
+
+def test_no_discovery_requires_single_cycle_even_if_worker_approved(monkeypatch):
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    with pytest.raises(SystemExit,match="2"):
+        app.main(["--no-discovery"])
