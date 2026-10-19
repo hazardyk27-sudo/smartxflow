@@ -20,7 +20,7 @@ a = Analysis(
     pathex=['.'],
     binaries=webview_binaries,
     datas=[
-        ('smartxflow.ico', '.'),
+        ('../smartxflow.ico', '.'),
         (certifi_path, 'certifi'),
         # Root-level app files (one level up from desktop/)
         ('../app.py', '.'),
@@ -95,5 +95,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='smartxflow.ico',
+    icon='../smartxflow.ico',
 )
