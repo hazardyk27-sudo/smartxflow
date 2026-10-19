@@ -27,6 +27,55 @@ Poly services MUST be preserved.
   outbox/queue tables have not been verified as live. Do not enable
   mass read polling, trigger hooks, or the durable worker.
 
+## Actual Hetzner isolated read-only smoke — 2026-10-19
+
+**Verified host:** `smartxflow`, `91.99.6.245`, Linux; actual production root
+`/opt/smartxflow`. Production remained on `main` SHA
+`6f25b926ffc1b3507893cd7e3cb5c6d0911896f7` with a clean
+tracked diff. The separate scraper tree `/root/smartxflow` had existing
+uncommitted changes and was not touched.
+
+**Read-only staging:** a sparse, depth-limited GitHub `preview` checkout
+under `/var/tmp/smartxflow-base-probe-83413ac04f4d3470b5f8c14fed682c54cf694191`;
+the code was fast-forwarded to exact SHA
+`1974ff3584ab4fcaec0bf3d5e4bb17384c351ef6`. No tracked
+production file was modified, no production service restarted, and no
+new persistent service file installed.
+
+**Initial safety discovery:** a too-tight, 2-page × 50-row cap safely
+returned `SnapshotReadError` (pagination cap). The source-only CLI
+was corrected to bound each merged window at 4 pages × 200 rows
+and its GitHub CI passed. Nothing was committed to the source database.
+
+**Executed one-shot checks:** temporary `systemd-run --wait --collect`
+units used the existing server-side restricted `.env` without
+logging its values and ran as the `smartxflow` service user.
+The first transient attempt exited `200/CHDIR` because
+`PrivateTmp=yes` hid the `/var/tmp` staging directory; a new transient
+unit omitted that isolation solely for the staging-directory smoke.
+The tracked production-target unit remains non-enabled.
+
+For physical fixture `74acc8bd-665e-488c-b1e7-32f95674ccdd`
+(Degerfors – Kalmar FF, kickoff 2026-10-19T17:00:00Z):
+
+| Probe | Source rows | Market outcomes | Result | Time / memory |
+|---|---:|---|---|---|
+| T-6 | 413 | 1X2, OU25, BTTS each `AUTHORITATIVE_T6` | COMPLETE, 0 signals | 597 ms, 24.2 MB peak |
+| T-8 | 273 | 1X2, OU25, BTTS each `PRELIMINARY_T8` | COMPLETE, 0 signals | 548 ms, 24.1 MB peak |
+
+The CLI output explicitly reported `writes_performed=false`,
+`production_approved=false` and `shadow_24h_verified=false`. Neither
+sample proved a historical betting signal, and no live signal storage
+was written. After both checks the temporary units were gone, seven
+existing production services checked `active`, and the production
+HEAD/tracked files were unchanged.
+
+**Still blocked:** no Base durable queue/source outbox migration is
+authorized or installed; composite source index is still absent, so
+do not launch full-universe or 24-hour fan-out; exact SHA promotion
+from `preview` to `main` and permanent Hetzner installation remain
+a separate release approval. Replit was not used.
+
 ## Safe sequence after remote access returns
 
 1. Confirm the agent's host is really the explicitly authorized Hetzner
