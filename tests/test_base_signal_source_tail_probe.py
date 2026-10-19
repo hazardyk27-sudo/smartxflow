@@ -79,3 +79,12 @@ def test_source_tail_probe_cli_requires_opt_in(monkeypatch):
     monkeypatch.delenv("SXF_BASE_SOURCE_TAIL_PROBE_APPROVED",raising=False)
     with pytest.raises(SystemExit,match="2"):
         probe.main(["--state","/tmp/never-write-source-tail.json"])
+
+
+def test_decreasing_head_requires_review_even_when_some_rows_overlap():
+    old=probe.sample_tail(FakeReader([row(105),row(104),row(103)]),limit=3)
+    new=probe.sample_tail(FakeReader([row(104),row(103)]),limit=3)
+    report=probe.compare_tail(old,new)
+    assert report["status"]=="HEAD_REGRESSION_REVIEW"
+    assert report["head_advanced"] is False
+    assert report["source_mutation_capture_verified"] is False
