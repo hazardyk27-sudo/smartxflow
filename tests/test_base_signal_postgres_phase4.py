@@ -108,6 +108,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c4_health.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_projection.sql",
         "migrations/2026_10_19_sxf_base_phase5a_source_capture_PROPOSED.sql",
+        "migrations/2026_10_19_sxf_base_phase5b_source_health.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -606,3 +607,88 @@ def test_21_source_retry_does_not_lose_immutable_event_and_is_reclaimable():
     assert reclaimed["lease_token"]!=event["lease_token"]
     assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
                  "WHERE change_id=%s",(last,))[0]["n"]==1
+
+
+def test_22_source_health_reports_backlog_and_honest_capture_timestamp():
+    report=query("SELECT public.sxf_base_source_health() AS payload",
+                 role="service_role")[0]["payload"]
+    assert report["captured_at_semantics"]=="TRIGGER_TIME_NOT_COMMIT_TIME"
+    assert report["source_commit_watermark"] is None
+    assert report["source_delivery"]["total"]>=1
+    assert report["event_kinds"]["FIXTURE_INSERT"]>=1
+    assert report["event_kinds"]["SNAPSHOT_INSERT"]>=1
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_source_health()",role="authenticated")
+
+
+def test_23_source_trigger_and_delivery_rollback_together_on_failed_tx():
+    uid=str(uuid4())
+    conn=psycopg2.connect(URL,connect_timeout=5)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+                        (uid,KICKOFF))
+            cur.execute("SELECT count(*) FROM public.sxf_base_source_changes WHERE fixture_uid=%s::uuid",
+                        (uid,))
+            assert cur.fetchone()[0]==1
+        conn.rollback()
+    finally:
+        conn.close()
+    assert query("SELECT count(*) AS n FROM public.fixtures WHERE fixture_uid=%s::uuid",(uid,))[0]["n"]==0
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
+                 "WHERE fixture_uid=%s::uuid",(uid,))[0]["n"]==0
+
+
+def test_24_out_of_order_source_commits_remain_reclaimable_without_id_watermark():
+    # Sequence IDs are assigned before COMMIT; a high-water cursor would drop
+    # a slower earlier transaction. Pending outbox rows cannot suffer this gap.
+    query("UPDATE public.sxf_base_source_deliveries SET state='DONE' "
+          "WHERE state<>'DONE'")
+    slow_uid=str(uuid4())
+    fast_uid=str(uuid4())
+    conn=psycopg2.connect(URL,connect_timeout=5)
+    try:
+        cur=conn.cursor()
+        cur.execute("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+                    (slow_uid,KICKOFF+timedelta(days=4)))
+        cur.execute("SELECT change_id FROM public.sxf_base_source_changes "
+                    "WHERE fixture_uid=%s::uuid",(slow_uid,))
+        slow_id=cur.fetchone()[0]
+        query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+              (fast_uid,KICKOFF+timedelta(days=4,minutes=1)))
+        fast_id=query("SELECT change_id FROM public.sxf_base_source_changes "
+                      "WHERE fixture_uid=%s::uuid",(fast_uid,))[0]["change_id"]
+        assert fast_id>slow_id
+        fast_claim=query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                         ("fast-committer",1,180),role="service_role")[0]
+        assert fast_claim["change_id"]==fast_id
+        assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                     (fast_id,str(fast_claim["lease_token"])),
+                     role="service_role")[0]["ok"] is True
+        conn.commit()
+    finally:
+        conn.close()
+    delayed=query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                  ("slow-committer",1,180),role="service_role")[0]
+    assert delayed["change_id"]==slow_id
+    assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                 (slow_id,str(delayed["lease_token"])),role="service_role")[0]["ok"] is True
+
+
+def test_25_snapshot_index_proposal_has_real_disposable_pg_plan_evidence():
+    from base_signal_engine.performance_preflight import snapshot_index_evidence
+    query("CREATE INDEX idx_sxf_base_mw_snapshot_uid_time ON "
+          "public.moneyway_snapshots(fixture_uid,scraped_at_utc,id)")
+    index=query("SELECT indexdef FROM pg_indexes WHERE schemaname='public' AND "
+                "indexname='idx_sxf_base_mw_snapshot_uid_time'")
+    assert len(index)==1
+    assert "fixture_uid, scraped_at_utc, id" in index[0]["indexdef"]
+    result=query("EXPLAIN (FORMAT JSON) SELECT id,market,selection FROM "
+                 "public.moneyway_snapshots WHERE fixture_uid=%s::uuid "
+                 "AND scraped_at_utc>=%s AND scraped_at_utc<=%s "
+                 "ORDER BY scraped_at_utc ASC,id ASC LIMIT 750",
+                 (UID,KICKOFF-timedelta(hours=8),KICKOFF))
+    plan=result[0]["QUERY PLAN"]
+    assessment=snapshot_index_evidence(plan)
+    assert assessment["result"] in ("INDEX_USAGE_NOT_CONFIRMED","PROPOSED_INDEX_USED")
+    assert not assessment["production_plan_verified"]
