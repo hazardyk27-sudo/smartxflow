@@ -102,6 +102,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4a_waiting_data_hardening.sql",
         "migrations/2026_10_19_sxf_base_phase4b_reconciliation_rpc.sql",
         "migrations/2026_10_19_sxf_base_phase4c_reconcile_queue.sql",
+        "migrations/2026_10_19_sxf_base_phase4c_discovery_cursor.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -333,3 +334,65 @@ def test_09_reconcile_batch_is_atomic_idempotent_and_provenanced():
     with pytest.raises(psycopg2.Error):
         query("SELECT public.sxf_base_claim_reconcile(%s,%s,%s)",("anon-recon",1,180),
               role="anon")
+
+
+def test_10_operator_initialized_discovery_cursor_is_immutable():
+    start=KICKOFF-timedelta(days=7)
+    sql="SELECT public.sxf_base_init_discovery(%s) AS result"
+    assert query(sql,(start,),role="service_role")[0]["result"] is True
+    assert query(sql,(start,),role="service_role")[0]["result"] is False
+    with pytest.raises(psycopg2.Error):
+        query(sql,(start-timedelta(days=1),),role="service_role")
+    row=query("SELECT completed_through,bootstrap_start FROM public.sxf_base_discovery_cursors "
+              "WHERE cursor_name='BASE_FIXTURES'")[0]
+    assert row["completed_through"]==row["bootstrap_start"]==start
+
+
+def test_11_two_discovery_workers_claim_one_lease_and_fence_old_owner():
+    barrier=Barrier(2)
+    def claim_cursor(worker):
+        barrier.wait(timeout=10)
+        return query("SELECT * FROM public.sxf_base_claim_discovery(%s,%s)",
+                     (worker,180),role="service_role")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        one=pool.submit(claim_cursor,"disc-A")
+        two=pool.submit(claim_cursor,"disc-B")
+        winners=one.result(timeout=20)+two.result(timeout=20)
+    assert len(winners)==1
+    first=winners[0]
+    start=first["completed_through"]
+    stop=start+timedelta(hours=24)
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_advance_discovery(%s::uuid,%s,%s,%s)",
+              (str(first["lease_token"]),start,stop+timedelta(days=1),1),
+              role="service_role")
+    assert query("SELECT completed_through FROM public.sxf_base_discovery_cursors")[0]["completed_through"]==start
+    query("UPDATE public.sxf_base_discovery_cursors SET lease_expires_at=now()-interval '1 second'")
+    newer=query("SELECT * FROM public.sxf_base_claim_discovery(%s,%s)",
+                ("disc-C",180),role="service_role")
+    assert len(newer)==1
+    assert newer[0]["lease_token"]!=first["lease_token"]
+    assert query("SELECT public.sxf_base_advance_discovery(%s::uuid,%s,%s,%s) AS ok",
+                 (str(first["lease_token"]),start,stop,2),
+                 role="service_role")[0]["ok"] is False
+    test_11_two_discovery_workers_claim_one_lease_and_fence_old_owner.newer=newer[0]
+
+
+def test_12_advance_only_contiguous_window_and_client_denied():
+    owner=test_11_two_discovery_workers_claim_one_lease_and_fence_old_owner.newer
+    start=owner["completed_through"]
+    stop=start+timedelta(hours=24)
+    assert query("SELECT public.sxf_base_advance_discovery(%s::uuid,%s,%s,%s) AS ok",
+                 (str(owner["lease_token"]),start,stop,12),
+                 role="service_role")[0]["ok"] is True
+    assert query("SELECT completed_through,last_window_fixtures "
+                 "FROM public.sxf_base_discovery_cursors")[0]=={
+                     "completed_through":stop,"last_window_fixtures":12}
+    assert query("SELECT public.sxf_base_advance_discovery(%s::uuid,%s,%s,%s) AS ok",
+                 (str(owner["lease_token"]),start,stop,12),
+                 role="service_role")[0]["ok"] is False
+    with pytest.raises(psycopg2.Error):
+        query("SELECT * FROM public.sxf_base_discovery_cursors",role="anon")
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_claim_discovery(%s,%s)",
+              ("public",180),role="authenticated")
