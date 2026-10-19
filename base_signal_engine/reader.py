@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Callable
 from uuid import UUID
 
 import requests
@@ -128,7 +128,8 @@ class SupabaseMoneywayReader:
 
     def load_checkpoints(self, fixture: Fixture, *, hours: Sequence[int],
                          as_of_utc: datetime, include_v2_history: bool = True,
-                         expected_legacy_hash: str = "") -> SnapshotReadResult:
+                         expected_legacy_hash: str = "",
+                         progress_hook: Callable[[], None] | None = None) -> SnapshotReadResult:
         """Read all complete 1X2/OU25/BTTS snapshots for due checkpoints.
 
         V2 needs the full preceding three hours of 1X2 observations. Therefore
@@ -153,6 +154,8 @@ class SupabaseMoneywayReader:
         for start, end in windows:
             complete = False
             for page in range(self.max_pages):
+                if progress_hook is not None:
+                    progress_hook()
                 rows = self._get("moneyway_snapshots", [
                     ("select", "id,fixture_uid,match_id_hash,market,selection,odds,volume,share,scraped_at_utc"),
                     ("fixture_uid", "eq." + uid),
