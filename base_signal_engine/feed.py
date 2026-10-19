@@ -168,6 +168,10 @@ class BaseSignalsFeed:
             if type(ident) is not int or ident <= 0 or ident in dedupe:
                 raise BaseFeedUnavailable("duplicate/invalid signal event")
             dedupe.add(ident)
+            if row.get("kind") == "MARKET_DECISION":
+                # These are coverage/no-hit records, not picks, even when a
+                # malformed upstream row happens to contain engine/selection.
+                continue
             engine = row.get("engine")
             market = row.get("market")
             selection = row.get("selection")
