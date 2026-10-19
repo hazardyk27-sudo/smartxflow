@@ -15,6 +15,7 @@ class FakeNode {
     this.classList = { add() {}, remove() {} };
   }
   addEventListener(name, callback) { this.listeners[name] = callback; }
+  setAttribute(name, value) { this[name] = value; }
   click() { assert.ok(this.listeners.click, 'click handler for ' + this.id); this.listeners.click({ target: this }); }
   focus() { this.ownerDocument.activeElement = this; }
   closest() { return null; }
