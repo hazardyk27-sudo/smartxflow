@@ -4,6 +4,7 @@ Requires SXF_TEST_DATABASE_URL explicitly; CI supplies a throwaway Postgres.
 NEVER point this at production, staging, or an existing Supabase project.
 """
 from concurrent.futures import ThreadPoolExecutor
+from time import perf_counter
 from datetime import datetime, timedelta, timezone
 import json
 import os
@@ -17,7 +18,7 @@ if not os.environ.get("SXF_TEST_DATABASE_URL"):
     pytest.skip("Only run against a disposable CI PostgreSQL database", allow_module_level=True)
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_values
 
 URL = os.environ["SXF_TEST_DATABASE_URL"]
 ROOT = Path(__file__).resolve().parents[1]
@@ -692,3 +693,63 @@ def test_25_snapshot_index_proposal_has_real_disposable_pg_plan_evidence():
     assessment=snapshot_index_evidence(plan)
     assert assessment["result"] in ("INDEX_USAGE_NOT_CONFIRMED","PROPOSED_INDEX_USED")
     assert not assessment["production_plan_verified"]
+
+
+def test_26_disposable_pg_bulk_source_outbox_atomic_fanout():
+    """CI-only fixture/snapshot insert benchmark; no real production volumes."""
+    global SOAK_UID
+    SOAK_UID=str(uuid4())
+    kickoff=KICKOFF+timedelta(days=11)
+    query("UPDATE public.sxf_base_source_deliveries SET state='DONE' "
+          "WHERE state<>'DONE'")
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+          (SOAK_UID,kickoff))
+    rows=[]
+    for i in range(240):
+        stamp=kickoff-timedelta(hours=8,minutes=(i%20)+1,seconds=i//20)
+        rows.append((50000+i,SOAK_UID,"1X2","1",1.74,2000,80,stamp))
+    elapsed_start=perf_counter()
+    with connect() as conn:
+        with conn.cursor() as cur:
+            execute_values(cur,
+                "INSERT INTO public.moneyway_snapshots "
+                "(id,fixture_uid,market,selection,odds,volume,share,scraped_at_utc) "
+                "VALUES %s",rows,page_size=240)
+    milliseconds=(perf_counter()-elapsed_start)*1000
+    count=query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
+                "WHERE fixture_uid=%s::uuid AND event_kind='SNAPSHOT_INSERT'",
+                (SOAK_UID,))[0]["n"]
+    assert count==240
+    pending=query("SELECT count(*) AS n FROM public.sxf_base_source_deliveries d "
+                  "JOIN public.sxf_base_source_changes c ON c.change_id=d.change_id "
+                  "WHERE c.fixture_uid=%s::uuid AND c.event_kind='SNAPSHOT_INSERT' "
+                  "AND d.state='PENDING'",(SOAK_UID,))[0]["n"]
+    assert pending==240
+    assert milliseconds>=0
+    print("CI_DISPOSABLE_ONLY snapshot_trigger_batch=240 elapsed_ms=" +
+          str(round(milliseconds,2)) + " not_a_production_sla")
+
+
+def test_27_disposable_pg_parallel_source_delivery_claims_are_disjoint():
+    """Four workers claim 25 rows each without skipping/duplicating events."""
+    barrier=Barrier(4)
+    def worker(name):
+        barrier.wait(timeout=15)
+        return query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                     (name,25,180),role="service_role")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures=[pool.submit(worker,"soak-"+str(i)) for i in range(4)]
+        groups=[f.result(timeout=25) for f in futures]
+    claimed=[r for group in groups for r in group]
+    assert len(claimed)==100
+    assert len({r["change_id"] for r in claimed})==100
+    assert all(str(r["fixture_uid"])==SOAK_UID for r in claimed)
+    for record in claimed:
+        assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                     (record["change_id"],str(record["lease_token"])),
+                     role="service_role")[0]["ok"] is True
+    remaining=query("SELECT count(*) AS n FROM public.sxf_base_source_deliveries d "
+                    "JOIN public.sxf_base_source_changes c ON c.change_id=d.change_id "
+                    "WHERE c.fixture_uid=%s::uuid AND c.event_kind='SNAPSHOT_INSERT' "
+                    "AND d.state='PENDING'",(SOAK_UID,))[0]["n"]
+    assert remaining==140
