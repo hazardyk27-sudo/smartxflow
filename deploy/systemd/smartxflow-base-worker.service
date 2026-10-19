@@ -1,0 +1,36 @@
+# SOURCE ONLY: initial activation requires exact approved GitHub main SHA.
+# Does not modify any legacy SXF signal tables, fixtures or snapshot source.
+[Unit]
+Description=SmartXFlow Base durable checkpoint worker (Hetzner)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/smartxflow/base_signal_engine/hetzner_worker.py
+
+[Service]
+Type=simple
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+EnvironmentFile=-/etc/smartxflow/base-worker.env
+Environment=SXF_BASE_WORKER_ID=prod-1
+ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --max-jobs 12 --max-reconcile 2 --lookback-days 1 --interval-seconds 60
+Restart=on-failure
+RestartSec=90
+TimeoutStopSec=40
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=320M
+TasksMax=48
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
