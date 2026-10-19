@@ -139,7 +139,7 @@ def test_malformed_event_identity_fails_closed():
 
 
 def test_pagination_cap_refuses_partial_signals():
-    from services.base_signal_feed import PAGE_SIZE,MAX_PAGES
+    from base_signal_engine.feed import PAGE_SIZE,MAX_PAGES
     start=_day()
     source=Source(start,events=[_event(start,ident=i+1) for i in range(PAGE_SIZE)])
     with pytest.raises(BaseFeedUnavailable,match="safety limit"):
