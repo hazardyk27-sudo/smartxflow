@@ -79,7 +79,8 @@ def scan_once(reader: SupabaseMoneywayReader, journal: CheckpointJsonlJournal,
         raise ValueError("invalid shadow scan bounds")
     catalog = catalog or SupabaseFixtureCatalog(reader)
     fixtures = catalog.list_between(at - timedelta(days=backfill_days), at + timedelta(hours=74))
-    stats = process_due_jobs(fixtures, at, reader, journal, limit=max_jobs)
+    stats = process_due_jobs(fixtures, at, reader, journal, limit=max_jobs,
+                             verify_source=True)
     stats["fixtures_discovered"] = len(fixtures)
     stats["shadow_only"] = True
     return stats
