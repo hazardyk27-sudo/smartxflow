@@ -106,6 +106,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c4_kickoff_drift.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_discovery_heartbeat.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_health.sql",
+        "migrations/2026_10_19_sxf_base_phase4c4_projection.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -486,3 +487,18 @@ def test_16_health_rpc_is_server_only_and_never_fabricates_ingest_latency():
     assert report["snapshot_ingestion_watermark"] is None
     with pytest.raises(psycopg2.Error):
         query("SELECT public.sxf_base_health_snapshot()",role="anon")
+
+
+def test_17_current_projection_rpc_excludes_superseded_and_is_server_only():
+    from base_signal_engine.projection import project_market_events
+    sql="SELECT public.sxf_base_read_market_events(%s::uuid,%s) AS result"
+    current=query(sql,(UID,KICKOFF),role="service_role")[0]["result"]
+    assert current["fixture_authoritative"] is True
+    assert len(current["events"])>=3
+    assert project_market_events(current)["markets"]["1X2"]["status"]=="AUTHORITATIVE_T6_NO_HIT"
+    stale=query(sql,(THIRD_UID,THIRD_KICKOFF),role="service_role")[0]["result"]
+    assert stale=={"fixture_authoritative":False,"events":[]}
+    projected=project_market_events(stale)
+    assert projected["markets"]["1X2"]["status"]=="IDENTITY_NOT_CURRENT"
+    with pytest.raises(psycopg2.Error):
+        query(sql,(UID,KICKOFF),role="anon")
