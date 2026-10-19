@@ -1,5 +1,57 @@
 # SmartXFlow Base — Hetzner activation and next real checkpoint
 
+## 2026-10-19 — controlled durable Hetzner T-6 smoke PASSED
+
+Executed from the **isolated preview checkout**, exact SHA
+`a40e94b7768610de5146b03f8aa961bee48d9f17`, on the
+verified `smartxflow` Hetzner host `91.99.6.245`. Production
+`/opt/smartxflow` remained on clean `main` SHA
+`6f25b926ffc1b3507893cd7e3cb5c6d0911896f7` throughout.
+The seven existing scraper/signal/web/alarm/live/poly/predictor
+services remained active and untouched.
+
+- Exactly one queued `BASE T-6` item was present before execution:
+  `74acc8bd-665e-488c-b1e7-32f95674ccdd`,
+  kickoff `2026-10-19T17:00:00Z`, attempts `0`, state `PENDING`.
+- A temporary `systemd-run --wait --pipe --collect` one-shot, using
+  the `smartxflow` service account and server-only environment, invoked
+  `base_signal_engine.hetzner_worker --once --no-discovery --max-jobs 1
+  --max-reconcile 0`. Explicit runtime opt-in gates were set only
+  for that transient unit. No permanent service installed/enabled.
+- **First run:** `claimed=1`, `completed=1`, `waiting_data=0`,
+  `lease_uncertain=0`, `commit_uncertain=0`,
+  `healthy_cycle=true`; exit `0/SUCCESS`, **1.005 s**,
+  **25.2 MB peak**.
+- **Independent live SQL verification:** same job `COMPLETED`,
+  `attempt_count=1`, `completed_at=2026-10-19T18:49:00Z`;
+  one immutable checkpoint evaluation; `source_coverage.state=COMPLETE`;
+  `fetched_rows=413`; exactly three `MARKET_DECISION`
+  events for 1X2, OU25 and BTTS, all from checkpoint **6**;
+  no qualifying betting signals, i.e. legitimate NO_HIT.
+- **Second isolated one-shot:** `claimed=0`, `completed=0`,
+  no retries/uncertainty, exit success (**436 ms**, **24.4 MB**).
+  Subsequent live SQL totals remained **1 evaluation**,
+  **3 market decisions**, **0 betting signals**, **1 completed job**.
+  This confirms terminal-claim idempotency in the real Supabase RPC path.
+- The temporary units were collected and disappeared. Production
+  `main` tracked diff remained zero; seven existing services still active.
+  Neither Replit nor legacy signal tables were modified.
+
+**Shadow gate reality:** this does **not** constitute 24-hour shadow
+coverage. On the live database the `sxf_base_source_health` RPC is
+**absent**, since proposed per-row `source_capture` triggers and
+source outbox were explicitly deferred. Existing
+`base_signal_engine.shadow_observer.record_shadow_once` calls this
+RPC, so without further instrumentation its evidence recording
+**cannot pass the complete shadow release gate**. Do not fabricate
+`source_pending_due=0` or claim an ingested source-change watermark
+from a read-only snapshot test. Continue with a separately evaluated,
+performance-safe source coverage strategy and exact-SHA release
+approval; no 24/7 worker or full shadow has been activated.
+
+---
+
+
 **State as of 2026-10-19:** source and durable schema prepared; **worker NOT installed/enabled**, **real 24-hour shadow NOT done**, and **no change to production `main`**. GitHub `preview` owns current development. Replit will not run Base engines.
 
 ## What is physically verified
