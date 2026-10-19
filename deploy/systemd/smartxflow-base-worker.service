@@ -16,6 +16,9 @@ EnvironmentFile=-/etc/smartxflow/base-worker.env
 Environment=SXF_BASE_WORKER_ID=prod-1
 ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --max-jobs 12 --max-reconcile 2 --lookback-days 1 --interval-seconds 60
 Restart=on-failure
+# Exit 3 means lease or commit outcome is ambiguous. Never automatically
+# restart/reclaim another job until an operator verifies durable SQL state.
+RestartPreventExitStatus=3
 RestartSec=90
 TimeoutStopSec=40
 NoNewPrivileges=true
