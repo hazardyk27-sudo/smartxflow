@@ -50,7 +50,8 @@ jobs:
             tests/test_base_signal_phase5b_preflight.py \
             tests/test_base_signal_phase5c_shadow.py \
             tests/test_base_signal_phase5c_observer.py \
-            tests/test_base_signal_phase5c_report.py
+            tests/test_base_signal_phase5c_report.py \
+            tests/test_base_signal_phase5d_release_gate.py
 
   postgres-contract:
     runs-on: ubuntu-latest
