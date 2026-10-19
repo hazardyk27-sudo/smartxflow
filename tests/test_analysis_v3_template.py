@@ -70,3 +70,24 @@ def test_day_navigation_and_modal_accessibility():
     assert "aria-selected" in ui
     assert "e.key === 'Escape'" in ui
     assert "encodeURIComponent(current.start)" in ui
+
+def test_v4_app_native_responsive_design_contract():
+    css=(ROOT/"static/css/base-signals.css").read_text()
+    html=(ROOT/"templates/index.html").read_text()
+    # Every color/base spacing treatment comes from /app's live variables.
+    for token in ("--bg-main", "--bg-card", "--bg-card-soft", "--bg-section",
+                  "--border-subtle", "--text-primary", "--text-secondary",
+                  "--accent-green", "--accent-yellow", "--radius-md"):
+        assert "var(" + token in css
+    assert "grid-template-columns:repeat(3,minmax(0,1fr))" in css
+    assert "@media(max-width:900px)" in css
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in css
+    assert "@media(max-width:600px)" in css
+    assert "grid-template-columns:1fr" in css
+    assert "safe-area-inset-bottom" in css and "safe-area-inset-top" in css
+    assert "height:100%" in css and "overflow-y:auto" in css
+    assert "@media(max-height:560px)" in css
+    assert "prefers-reduced-motion:reduce" in css
+    assert "sxf-signal-date-rail" in css and "sxf-engine-grid" in css
+    assert 'id="sxfBaseSignalTitle">Analizler</h2>' in html
+    assert 'placeholder="Takım, lig veya tercih ara"' in html
