@@ -15,9 +15,10 @@ class FakeStore:
 
 def test_hetzner_worker_bounded_real_components_and_debt(monkeypatch):
     called=[]
-    def discovery(reader,store,*,lookback_days):
-        called.append(("discovery",lookback_days))
-        return {"enqueued":7,"fixtures_discovered":3,"superseded_jobs":0}
+    def discovery(reader,store,*,worker_id,window_hours,max_fixtures,max_pending_due):
+        called.append(("discovery",window_hours,max_fixtures,max_pending_due))
+        return {"status":"OK","enqueued":7,"fixtures":3,"paused":False,
+                "pending_due":2,"uncertain":False}
     jobs=[{"claimed":1,"completed":1,"waiting_data":0,"retry":0,
            "lease_lost":0,"commit_uncertain":0},
           {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
@@ -29,7 +30,7 @@ def test_hetzner_worker_bounded_real_components_and_debt(monkeypatch):
         called.append(("reconcile",worker_id))
         return {"claimed":0,"completed":0,"waiting_data":0,"retried":0,
                 "lease_uncertain":0,"commit_uncertain":0}
-    monkeypatch.setattr(app,"rolling_rescan_once",discovery)
+    monkeypatch.setattr(app,"bounded_cursor_discovery_once",discovery)
     monkeypatch.setattr(app,"execute_claims",claim)
     monkeypatch.setattr(app,"reconcile_once",reconcile)
     report=app.run_cycle(object(),FakeStore(),worker_id="hetzner-base-one")
@@ -38,13 +39,13 @@ def test_hetzner_worker_bounded_real_components_and_debt(monkeypatch):
     assert report["checkpoint_pending_due"]==2 and report["reconcile_pending_due"]==1
     assert report["healthy_cycle"] and report["source_capture_enabled"] is False
     assert report["production_release_verified"] is False
-    assert called==[("discovery",1),("reconcile","hetzner-base-one")]
+    assert called==[("discovery",1,50,250),("reconcile","hetzner-base-one")]
 
 
 def test_catalog_error_does_not_hide_previously_durable_job(monkeypatch):
     def broken(*args,**kwargs):
         raise RuntimeError("simulated read-only fixture discovery outage")
-    monkeypatch.setattr(app,"rolling_rescan_once",broken)
+    monkeypatch.setattr(app,"bounded_cursor_discovery_once",broken)
     monkeypatch.setattr(app,"execute_claims",lambda *args,**kw:
         {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
          "lease_lost":0,"commit_uncertain":0})
@@ -230,3 +231,50 @@ def test_transport_timeout_after_claim_requires_operator_review(monkeypatch):
         raise DurableStoreError("HTTP timeout after opaque claim")
     monkeypatch.setattr(app,"run_cycle",unknown)
     assert app.main(["--once","--no-discovery"])==3
+
+
+def test_uninitialized_discovery_does_not_claim_new_source_jobs(monkeypatch):
+    called=[]
+    def discovery(*a,**k):
+        return {"status":"UNINITIALIZED","enqueued":0,"fixtures":0,
+                "paused":False,"pending_due":0,"uncertain":False}
+    monkeypatch.setattr(app,"bounded_cursor_discovery_once",discovery)
+    monkeypatch.setattr(app,"execute_claims",lambda *a,**k:
+        {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":0})
+    monkeypatch.setattr(app,"reconcile_once",lambda *a,**k:
+        {"claimed":0,"completed":0,"waiting_data":0,"retried":0,
+         "lease_uncertain":0,"commit_uncertain":0})
+    report=app.run_cycle(None,FakeStore(),worker_id="w",max_jobs=1)
+    assert report["discovery"]=="UNINITIALIZED"
+    assert report["healthy_cycle"] is False
+
+
+def test_discovery_backpressure_pauses_new_enqueue_but_drains(monkeypatch):
+    called=[]
+    monkeypatch.setattr(app,"bounded_cursor_discovery_once",lambda *a,**k:
+        {"status":"PAUSED_BACKLOG","enqueued":0,"fixtures":0,
+         "paused":True,"pending_due":250,"uncertain":False})
+    def drain(*a,**k):
+        called.append("drain")
+        return {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+                "lease_lost":0,"commit_uncertain":0}
+    monkeypatch.setattr(app,"execute_claims",drain)
+    report=app.run_cycle(None,FakeStore(),worker_id="w",
+                         max_jobs=1,max_reconcile=0)
+    assert report["discovery"]=="PAUSED_BACKLOG"
+    assert report["discovery_paused"] is True
+    assert report["enqueued"]==0 and called==["drain"]
+    assert report["healthy_cycle"]
+
+
+def test_discovery_ambiguous_cursor_advance_prevents_any_claim(monkeypatch):
+    called=[]
+    monkeypatch.setattr(app,"bounded_cursor_discovery_once",lambda *a,**k:
+        {"status":"UNCERTAIN","enqueued":0,"fixtures":0,
+         "paused":False,"pending_due":0,"uncertain":True})
+    monkeypatch.setattr(app,"execute_claims",lambda *a,**k:
+        (called.append("claim") or {}))
+    report=app.run_cycle(None,FakeStore(),worker_id="w",max_jobs=3)
+    assert called==[]
+    assert report["lease_uncertain"]==1 and not report["healthy_cycle"]
