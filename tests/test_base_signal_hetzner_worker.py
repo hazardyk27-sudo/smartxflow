@@ -89,7 +89,7 @@ def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
     assert "ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker" in s
     assert "User=smartxflow" in s and "ProtectSystem=strict" in s
     assert "MemoryMax=320M" in s and "Restart=on-failure" in s
-    assert "RestartPreventExitStatus=3" in s  # Unknown commit => manual review
+    assert "RestartPreventExitStatus=3 4" in s  # Unknown commit or missing cursor => operator
     assert "SXF_BASE_DURABLE_WORKER_APPROVED=yes" not in s
     assert "smartxflow-base-worker.service" not in sync
     assert "systemctl start" not in s
@@ -278,3 +278,16 @@ def test_discovery_ambiguous_cursor_advance_prevents_any_claim(monkeypatch):
     report=app.run_cycle(None,FakeStore(),worker_id="w",max_jobs=3)
     assert called==[]
     assert report["lease_uncertain"]==1 and not report["healthy_cycle"]
+
+
+def test_uninitialized_cursor_requires_operator_not_automatic_restart(monkeypatch):
+    monkeypatch.setenv("SXF_BASE_DURABLE_WORKER_APPROVED","yes")
+    monkeypatch.setenv("SXF_BASE_COMPOSITE_INDEX_VERIFIED","yes")
+    monkeypatch.setenv("SUPABASE_URL","https://source.invalid")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY","isolated-test-value")
+    monkeypatch.setattr(app,"SupabaseMoneywayReader",lambda *a,**k: object())
+    monkeypatch.setattr(app,"SupabaseCheckpointStore",lambda *a,**k: object())
+    monkeypatch.setattr(app,"run_cycle",lambda *a,**k:
+        {"discovery":"UNINITIALIZED","healthy_cycle":False,
+         "lease_uncertain":0,"commit_uncertain":0,"reconcile_uncertain":0})
+    assert app.main(["--once"])==4
