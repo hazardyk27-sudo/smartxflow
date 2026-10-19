@@ -120,9 +120,17 @@ class ShadowEvidenceJournal:
 
     def append(self, *, recorded_at: datetime,
                counters: dict[str,int], error_code: str | None = None) -> int:
-        at=recorded_at.astimezone(timezone.utc)
-        if recorded_at.tzinfo is None:
+        if not isinstance(recorded_at,datetime) or recorded_at.tzinfo is None:
             raise ValueError("timezone-aware evidence time required")
+        at=recorded_at.astimezone(timezone.utc)
+        if not isinstance(counters,dict) or not counters or not set(counters).issubset(_ALLOWED_COUNTERS):
+            raise ShadowEvidenceError("unexpected shadow telemetry fields")
+        if any(type(value) is not int or value<0 for value in counters.values()):
+            raise ShadowEvidenceError("invalid telemetry counter values")
+        if error_code is not None and (
+                not isinstance(error_code,str) or not 1<=len(error_code)<=64 or
+                any(ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for ch in error_code)):
+            raise ShadowEvidenceError("unsafe telemetry error class")
         self.path.parent.mkdir(parents=True,exist_ok=True)
         fd=os.open(self.path,os.O_RDWR|os.O_CREAT,0o600)
         try:
