@@ -40,7 +40,8 @@ class Reply:
 
 
 class Source:
-    def __init__(self, start, events=None, state="COMPLETED"):
+    def __init__(self, start, events=None, state="COMPLETED", results=None):
+        self.results=results or []
         self.start=start
         self.events=events if events is not None else [_event(start)]
         self.state=state
@@ -55,6 +56,8 @@ class Source:
         if url.endswith("sxf_base_checkpoint_jobs"):
             return Reply([{"job_id":JOB,"fixture_uid":UID,
                            "kickoff_utc":_stamp(self.start),"state":self.state}])
+        if url.endswith("live_fixtures"):
+            return Reply(self.results)
         if url.endswith("fixtures"):
             return Reply([{"fixture_uid":UID,"home_team":"Ev Sahibi",
                            "away_team":"Konuk Takım","league":"Süper Lig",
@@ -82,7 +85,7 @@ def test_real_signal_preserves_selection_kickoff_and_turkey_day():
     assert signal["shadow"] is True
     assert all(call[0].startswith("https://example.supabase.co/rest/v1/") for call in source.calls)
     assert {call[0].rsplit("/",1)[-1] for call in source.calls} == {
-        "sxf_base_signal_events","sxf_base_checkpoint_jobs","fixtures"}
+        "sxf_base_signal_events","sxf_base_checkpoint_jobs","fixtures","live_fixtures"}
 
 
 @pytest.mark.parametrize("state",["PENDING","WAITING_DATA","RETRY","LEASED"])
@@ -182,3 +185,98 @@ def test_reconciled_no_hit_is_not_a_fresh_signal():
     corrected=_event(start,kind="CORRECTED")
     corrected["details"]={"decision":"NO_HIT"}
     assert _feed(Source(start,events=[corrected])).read(start)["items"]==[]
+
+def _result_row(start, *, score="1-1", status="ft", minute="FT",
+                home="Ev Sahibi", away="Konuk Takım", league="Süper Lig",
+                match_hash="abc123abc123", kickoff=None, fixture_uid=None):
+    return {
+        "fixture_uid":fixture_uid,"match_id_hash":match_hash,
+        "home_team":home,"away_team":away,"league":league,
+        "kickoff_utc":kickoff or _stamp(start),
+        "score":score,"status":status,"minute":minute,
+        "updated_at":_stamp(start),
+    }
+
+
+@pytest.mark.parametrize("selection,expected",[
+    ("1","LOSS"),("X","WIN"),("2","LOSS")
+])
+def test_1x2_real_ft_uses_hash_fallback_when_live_uid_null(selection,expected):
+    start=_day()
+    result=_feed(Source(start,events=[_event(start,selection=selection)],
+        results=[_result_row(start)])).read(start)
+    item=result["items"][0]
+    assert item["result_state"]=="FT"
+    assert item["final_score"]=="1-1"
+    assert item["outcome"]==expected
+    assert result["results_source_state"]=="ok"
+
+
+@pytest.mark.parametrize("market,selection,score,expected",[
+    ("OU25","O","2-2","WIN"),("OU25","U","2-2","LOSS"),
+    ("OU25","O","1-1","LOSS"),("OU25","U","1-1","WIN"),
+    ("BTTS","Y","1-1","WIN"),("BTTS","N","1-1","LOSS"),
+    ("BTTS","Y","2-0","LOSS"),("BTTS","N","2-0","WIN")
+])
+def test_settlement_matches_actual_result_only(market,selection,score,expected):
+    start=_day()
+    event=_event(start,selection=selection)
+    event["market"]=market
+    item=_feed(Source(start,events=[event],results=[_result_row(start,score=score)])).read(start)["items"][0]
+    assert item["outcome"]==expected
+    assert item["result_state"]=="FT"
+
+
+def test_live_score_is_never_claimed_as_final():
+    start=_day()
+    item=_feed(Source(start,results=[_result_row(start,score="2-1",status="live",minute="90+2'")])).read(start)["items"][0]
+    assert item["result_state"]=="PENDING"
+    assert item["final_score"] is None and item["outcome"] is None
+
+
+@pytest.mark.parametrize("override",[
+    {"home":"Unrelated team"},
+    {"away":"Wrong opposition"},
+    {"league":"Other League"},
+    {"kickoff": "2026-10-01T15:00:00+00:00"},
+    {"fixture_uid":str(uuid4())},
+    {"score":"incomplete"},
+    {"score":"999-2"},
+    {"match_hash":"ffffffffffff"},
+])
+def test_results_fail_closed_on_nonmatching_or_invalid_identity(override):
+    start=_day()
+    item=_feed(Source(start,results=[_result_row(start,**override)])).read(start)["items"][0]
+    assert item["final_score"] is None
+    assert item["outcome"] is None
+
+
+def test_ambiguous_duplicate_result_rows_never_get_settled():
+    start=_day()
+    row=_result_row(start)
+    item=_feed(Source(start,results=[row,row])).read(start)["items"][0]
+    assert item["outcome"] is None and item["result_state"]=="PENDING"
+
+
+def test_optional_scoreboard_outage_does_not_hide_valid_base_signals():
+    start=_day()
+    source=Source(start)
+    normal=source.get
+    def failing(url,*,params,headers,timeout):
+        if url.endswith("live_fixtures"):
+            raise TimeoutError("scoreboard unavailable")
+        return normal(url,params=params,headers=headers,timeout=timeout)
+    source.get=failing
+    # Wrap generic network failures just like requests.Session does.
+    # Use a status failure to exercise the safe optional-source fallback.
+    def failed_http(url,*,params,headers,timeout):
+        if url.endswith("live_fixtures"):
+            response=Reply([])
+            response.status_code=503
+            return response
+        return normal(url,params=params,headers=headers,timeout=timeout)
+    source.get=failed_http
+    feed=_feed(source).read(start)
+    assert len(feed["items"])==1
+    assert feed["items"][0]["result_state"]=="UNAVAILABLE"
+    assert feed["results_source_state"]=="unavailable"

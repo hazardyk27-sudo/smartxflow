@@ -146,3 +146,32 @@ test('malicious team strings are escaped inside one fixture card', async () => {
   assert.ok(!html.includes('<img src=x onerror=alert(1)>'));
   assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
 });
+
+test('confirmed 1-1 scoreboard marks home-pick LOSS; never mistakes selection for actual score', async () => {
+  const data=signals(todayTR());
+  Object.assign(data.items[0], { final_score:'1-1', result_state:'FT', outcome:'LOSS' });
+  Object.assign(data.items[2], { final_score:'1-1', result_state:'FT', outcome:'LOSS' });
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/MAÇ SONUCU <strong>MS 1-1<\\/strong>/);
+  assert.match(html,/KAYBETTİ/);
+  assert.match(html,/SİNYAL TERCİHİ · Maç Sonucu \(1X2\)/);
+  assert.match(html,/Takım V1 kazanır/);
+});
+
+test('unconfirmed in-play score never appears as fulltime or a settled bet', async () => {
+  const data=signals(todayTR());
+  Object.assign(data.items[0], { final_score:null, result_state:'PENDING', outcome:null });
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Henüz doğrulanmadı/);
+  assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|MAÇ SONUCU <strong>MS/);
+});

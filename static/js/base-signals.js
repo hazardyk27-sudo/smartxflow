@@ -49,7 +49,7 @@
   }
   function labelEngine(id) { return (ENGINES[id] && ENGINES[id].name) || String(id).replace(/_/g, ' '); }
   function marketLabel(m) {
-    return m === 'OU25' ? 'Alt / Üst 2.5' : m === 'BTTS' ? 'Karşılıklı Gol' : 'Maç Sonucu';
+    return m === 'OU25' ? 'Alt / Üst 2.5' : m === 'BTTS' ? 'Karşılıklı Gol' : 'Maç Sonucu (1X2)';
   }
   function choice(item) {
     var s = item.selection;
@@ -144,10 +144,13 @@
     var odds = typeof item.odds === 'number' && isFinite(item.odds)
       ? '<span class="sxf-row-odds">Oran <b>' + item.odds.toFixed(2) + '</b></span>'
       : '<span class="sxf-row-no-odds">Oran kayıtlı değil</span>';
+    var settled = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
+    var result = settled ? '<span class="sxf-result-pill ' + (item.outcome === 'WIN' ? 'is-win' : 'is-loss') +
+      '">' + (item.outcome === 'WIN' ? 'KAZANDI' : 'KAYBETTİ') + '</span>' : '';
     return '<div class="sxf-signal-row' + (isHistory ? ' is-archived' : '') + '">' +
-      '<div class="sxf-signal-pick"><span class="sxf-signal-market">' +
+      '<div class="sxf-signal-pick"><span class="sxf-signal-market">SİNYAL TERCİHİ · ' +
       esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
-      '</strong></div>' + odds +
+      '</strong></div>' + odds + result +
       '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
       '</span>' + (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
       (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint
@@ -158,11 +161,15 @@
   }
   function fixtureCard(rows) {
     var item = rows[0];
+    var result = item.result_state === 'FT' && /^\\d{1,2}-\\d{1,2}$/.test(item.final_score || '')
+      ? '<span class="sxf-match-result is-final">MAÇ SONUCU <strong>MS ' + esc(item.final_score) + '</strong></span>'
+      : '<span class="sxf-match-result is-pending">MAÇ SONUCU <strong>Henüz doğrulanmadı</strong></span>';
     return '<article class="sxf-signal-card"><header class="sxf-match-top">' +
       '<span class="sxf-match-league">' + esc(item.league || 'Lig belirtilmemiş') + '</span>' +
       '<time class="sxf-match-time">' + esc(timeTR(item.kickoff_utc)) + ' TR</time></header>' +
       '<h3 class="sxf-match-name">' + esc(item.home || 'Ev sahibi') +
       '<span>–</span>' + esc(item.away || 'Deplasman') + '</h3>' +
+      '<div class="sxf-match-result-bar">' + result + '</div>' +
       '<div class="sxf-match-signals">' + rows.map(signalRow).join('') + '</div></article>';
   }
   function renderHome() {
@@ -264,7 +271,9 @@
     }).then(function (data) {
       if (seq !== current.seq || overlay.hidden) return;
       current.payload = data;
-      message('SHADOW / TEST · Onaylanmış bahis önerisi değildir', 'shadow');
+      message(data.results_source_state === 'unavailable'
+        ? 'SHADOW / TEST · Skor kaynağına erişilemiyor'
+        : 'SHADOW / TEST · Onaylanmış bahis önerisi değildir', 'shadow');
       render();
     }).catch(function (err) {
       if (seq !== current.seq || overlay.hidden) return;

@@ -6,6 +6,7 @@ opens service_role access to browsers. No odds or outcomes are inferred.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+import re
 from zoneinfo import ZoneInfo
 from uuid import UUID
 
@@ -73,7 +74,7 @@ class BaseSignalsFeed:
         self._session = session if session is not None else requests.Session()
 
     def _get(self, table, params):
-        if table not in ("sxf_base_signal_events", "sxf_base_checkpoint_jobs", "fixtures"):
+        if table not in ("sxf_base_signal_events", "sxf_base_checkpoint_jobs", "fixtures", "live_fixtures"):
             raise BaseFeedUnavailable("forbidden source")
         try:
             response = self._session.get(self.base + table, params=params,
@@ -88,6 +89,100 @@ class BaseSignalsFeed:
             raise
         except (requests.RequestException, ValueError, TypeError) as exc:
             raise BaseFeedUnavailable("private signal source unavailable") from exc
+
+
+    def _finished_results(self, items, fixtures):
+        """Optional read-only scoreboard enrichment.
+
+        Historical live_fixtures rows have NULL fixture_uid, so joining only
+        by fixture_uid hides all results. Hash fallback is accepted *only* if
+        the original teams, league and exact kickoff also agree. No score may
+        be inferred from betting selections or from in-play score snapshots.
+        Ambiguous, mismatched or malformed rows have no settlement.
+        """
+        indexed = {}
+        ambiguous = set()
+        for item in items:
+            fixture = fixtures[item["uid"]]
+            match_hash = str(fixture.get("match_id_hash") or "").strip().lower()
+            if not re.fullmatch(r"[0-9a-f]{12}", match_hash):
+                continue
+            prev = indexed.get(match_hash)
+            if prev is not None and prev["fixture_uid"] != item["uid"]:
+                ambiguous.add(match_hash)
+            indexed[match_hash] = fixture
+
+        results = {}
+        source_state = "ok"
+        try:
+            for chunk in _chunks(sorted(indexed)):
+                rows = self._get("live_fixtures", [
+                    ("select", "fixture_uid,match_id_hash,home_team,away_team,league,kickoff_utc,score,status,minute,updated_at"),
+                    ("match_id_hash", "in.(" + ",".join(chunk) + ")"),
+                    ("limit", str(len(chunk) + 1)),
+                ])
+                for result in rows:
+                    h = str(result.get("match_id_hash") or "").strip().lower()
+                    if h not in indexed or h in results:
+                        ambiguous.add(h)
+                    else:
+                        results[h] = result
+        except BaseFeedUnavailable:
+            # The Base pick ledger must remain readable when the independent
+            # scoreboard provider is unhealthy. It simply cannot be settled.
+            source_state = "unavailable"
+            results = {}
+
+        for item in items:
+            item["result_state"] = "UNAVAILABLE" if source_state != "ok" else "PENDING"
+            item["final_score"] = None
+            item["outcome"] = None
+            fixture = fixtures[item["uid"]]
+            h = str(fixture.get("match_id_hash") or "").strip().lower()
+            row = results.get(h)
+            if not row or h in ambiguous:
+                continue
+            # Reject false hash associations, including the historical
+            # fixture_uid backfill gap and any kickoff drift.
+            result_uid = row.get("fixture_uid")
+            if result_uid and result_uid != item["uid"]:
+                continue
+            def normalized(value):
+                return " ".join(str(value or "").split()).casefold()
+            if any(normalized(row.get(k)) != normalized(fixture.get(k)) for k in
+                   ("home_team", "away_team", "league")):
+                continue
+            try:
+                if _utc(row.get("kickoff_utc")) != _utc(fixture.get("kickoff_utc")):
+                    continue
+            except BaseFeedUnavailable:
+                continue
+            status = str(row.get("status") or "").strip().lower()
+            minute = str(row.get("minute") or "").strip().upper()
+            if status not in ("ft", "finished", "fulltime", "full_time") and minute != "FT":
+                continue
+            score = str(row.get("score") or "").strip()
+            m = re.fullmatch(r"(\\d{1,2})\\s*-\\s*(\\d{1,2})", score)
+            if not m:
+                continue
+            home, away = map(int, m.groups())
+            if home > 30 or away > 30:
+                continue
+            item["final_score"] = f"{home}-{away}"
+            item["result_state"] = "FT"
+            selection, market = item["selection"], item["market"]
+            win = None
+            if market == "1X2" and selection in ("1", "X", "2"):
+                winner = "1" if home > away else ("2" if away > home else "X")
+                win = selection == winner
+            elif market == "OU25" and selection in ("O", "U"):
+                win = (home + away > 2) if selection == "O" else (home + away < 3)
+            elif market == "BTTS" and selection in ("Y", "N"):
+                both = home > 0 and away > 0
+                win = both if selection == "Y" else not both
+            if win is not None:
+                item["outcome"] = "WIN" if win else "LOSS"
+        return source_state
 
     def read(self, start: date, *, days: int = 21):
         if not isinstance(start, date) or type(days) is not int or not 1 <= days <= 21:
@@ -239,8 +334,9 @@ class BaseSignalsFeed:
                 "strength_tag": details.get("label") == "STRENGTH_TAG",
                 "shadow": True,
             })
+        results_source_state = self._finished_results(items, fixtures) if items else "ok"
         items.sort(key=lambda x: (x["kickoff_utc"], x["id"]))
         return {"status":"ok", "phase":"SHADOW", "timezone":"Europe/Istanbul",
                 "start":start.isoformat(),"days":days, "engines":list(KNOWN_ENGINES),
-                "items":items, "source_complete":False,
+                "items":items, "results_source_state":results_source_state, "source_complete":False,
                 "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}
