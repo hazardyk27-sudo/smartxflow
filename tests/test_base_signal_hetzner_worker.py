@@ -1,0 +1,93 @@
+"""Hetzner durable worker glue: no auto-activation or legacy writes."""
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from base_signal_engine import hetzner_worker as app
+
+
+class FakeStore:
+    def health_snapshot(self):
+        return {"checkpoint_queue":{"pending_due":2,"expired_leases":0},
+                "reconciliation_queue":{"pending_due":1,"expired_leases":0}}
+
+
+def test_hetzner_worker_bounded_real_components_and_debt(monkeypatch):
+    called=[]
+    def discovery(reader,store,*,lookback_days):
+        called.append(("discovery",lookback_days))
+        return {"enqueued":7,"fixtures_discovered":3,"superseded_jobs":0}
+    jobs=[{"claimed":1,"completed":1,"waiting_data":0,"retry":0,
+           "lease_lost":0,"commit_uncertain":0},
+          {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+           "lease_lost":0,"commit_uncertain":0}]
+    def claim(reader,store,*,worker_id,limit):
+        assert limit==1 and worker_id=="hetzner-base-one"
+        return jobs.pop(0)
+    def reconcile(reader,store,*,worker_id):
+        called.append(("reconcile",worker_id))
+        return {"claimed":0,"completed":0,"waiting_data":0,"retried":0,
+                "lease_uncertain":0,"commit_uncertain":0}
+    monkeypatch.setattr(app,"rolling_rescan_once",discovery)
+    monkeypatch.setattr(app,"execute_claims",claim)
+    monkeypatch.setattr(app,"reconcile_once",reconcile)
+    report=app.run_cycle(object(),FakeStore(),worker_id="hetzner-base-one")
+    assert report["discovery"]=="OK" and report["enqueued"]==7
+    assert report["completed"]==1 and report["claimed"]==1
+    assert report["checkpoint_pending_due"]==2 and report["reconcile_pending_due"]==1
+    assert report["healthy_cycle"] and report["source_capture_enabled"] is False
+    assert report["production_release_verified"] is False
+    assert called==[("discovery",1),("reconcile","hetzner-base-one")]
+
+
+def test_catalog_error_does_not_hide_previously_durable_job(monkeypatch):
+    def broken(*args,**kwargs):
+        raise RuntimeError("simulated read-only fixture discovery outage")
+    monkeypatch.setattr(app,"rolling_rescan_once",broken)
+    monkeypatch.setattr(app,"execute_claims",lambda *args,**kw:
+        {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":0})
+    monkeypatch.setattr(app,"reconcile_once",lambda *args,**kw:
+        {"claimed":0,"completed":0,"waiting_data":0,"retried":0,
+         "lease_uncertain":0,"commit_uncertain":0})
+    report=app.run_cycle(object(),FakeStore(),worker_id="worker",max_jobs=1)
+    assert report["discovery"]=="ERROR_RUNTIMEERROR"
+    assert not report["healthy_cycle"]
+
+
+def test_durable_cycle_rejects_unsafe_work_bounds():
+    for kwargs in ({"max_jobs":0},{"max_jobs":31},{"max_reconcile":6},
+                   {"lookback_days":0},{"worker_id":""}):
+        with pytest.raises(ValueError):
+            app.run_cycle(None,None,worker_id="worker",**kwargs)
+
+
+def test_corrupt_health_is_never_reported_as_zero(monkeypatch):
+    monkeypatch.setattr(app,"execute_claims",lambda *a,**k:
+        {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":0})
+    class Corrupt:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":None,"expired_leases":0},
+                    "reconciliation_queue":{"pending_due":0,"expired_leases":0}}
+    with pytest.raises(ValueError,match="health metric"):
+        app.run_cycle(None,Corrupt(),worker_id="worker",discover=False,max_reconcile=0)
+
+
+def test_cli_requires_explicit_approval(monkeypatch):
+    monkeypatch.delenv("SXF_BASE_DURABLE_WORKER_APPROVED",raising=False)
+    with pytest.raises(SystemExit,match="2"):
+        app.main(["--once"])
+
+
+def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
+    root=Path(__file__).resolve().parents[1]
+    s=(root/"deploy/systemd/smartxflow-base-worker.service").read_text()
+    sync=(root/"deploy/sync_runtime_units.sh").read_text()
+    assert "ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker" in s
+    assert "User=smartxflow" in s and "ProtectSystem=strict" in s
+    assert "MemoryMax=320M" in s and "Restart=on-failure" in s
+    assert "SXF_BASE_DURABLE_WORKER_APPROVED=yes" not in s
+    assert "smartxflow-base-worker.service" not in sync
+    assert "systemctl start" not in s
