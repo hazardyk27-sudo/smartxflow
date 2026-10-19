@@ -42,6 +42,7 @@ def _counters(scan: dict, durable: dict, source: dict) -> dict:
         "committed":_count(scan,"committed"),
         "already_done":_count(scan,"already_done"),
         "failed":_count(scan,"failed"),
+        "waiting_data":_count(scan,"waiting_data"),
         "checkpoint_pending_due":_count(checkpoints,"pending_due"),
         "checkpoint_waiting_data":_count(checkpoints,"waiting_data"),
         "checkpoint_expired_leases":_count(checkpoints,"expired_leases"),
