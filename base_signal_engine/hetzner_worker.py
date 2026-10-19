@@ -90,6 +90,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
 def main(argv=None) -> int:
     parser=argparse.ArgumentParser(description="SXF Base Hetzner-only opt-in durable worker")
     parser.add_argument("--once",action="store_true",help="execute exactly one bounded cycle")
+    parser.add_argument("--no-discovery",action="store_true",
+                        help="one-shot supervised queue verification only; no bulk enqueue")
     parser.add_argument("--max-jobs",type=int,default=12)
     parser.add_argument("--max-reconcile",type=int,default=2)
     parser.add_argument("--lookback-days",type=int,default=1)
@@ -102,6 +104,8 @@ def main(argv=None) -> int:
     if not (1<=args.max_jobs<=30 and 0<=args.max_reconcile<=5
             and 1<=args.lookback_days<=7 and 30<=args.interval_seconds<=600):
         parser.error("unsafe work/sleep bounds")
+    if args.no_discovery and not args.once:
+        parser.error("--no-discovery requires --once")
     url=os.environ.get("SUPABASE_URL","")
     key=os.environ.get("SUPABASE_SERVICE_ROLE_KEY","")
     if not url or not key:
@@ -117,7 +121,8 @@ def main(argv=None) -> int:
         try:
             report=run_cycle(reader,store,worker_id=worker_id,
                 max_jobs=args.max_jobs,max_reconcile=args.max_reconcile,
-                lookback_days=args.lookback_days,discover=(iteration%5==0))
+                lookback_days=args.lookback_days,
+                discover=(not args.no_discovery and iteration%5==0))
             print(json.dumps(report,sort_keys=True),flush=True)
             if report["lease_uncertain"] or report["commit_uncertain"] or report["reconcile_uncertain"]:
                 return 3  # external operator review rather than blind retry.
