@@ -15,6 +15,7 @@
     SURPRISE_TEAM: { name: 'Surprise Team', description: 'Sürpriz takım sinyalleri', market: 'MAÇ SONUCU', code: 'ST' },
     STABLE_OVER_2_5: { name: 'Stable Over 2.5', description: '2.5 üst istikrarı', market: 'ALT / ÜST', code: 'O2' },
     PREMIUM_OVER_2_5: { name: 'Premium Over 2.5', description: '2.5 üst premium hareketleri', market: 'ALT / ÜST', code: 'PO' },
+    PREMIUM_OVER_MIN1_70: { name: 'Premium Over · Min 1.70', description: '1.70+ premium üst · güç etiketi', market: 'ALT / ÜST', code: 'P70' },
     BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' }
   };
   var WEEK = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
@@ -79,7 +80,10 @@
   }
   function items() { return current.payload && Array.isArray(current.payload.items) ? current.payload.items : []; }
   function engineIds() {
-    var known = current.payload && Array.isArray(current.payload.engines) ? current.payload.engines.slice() : Object.keys(ENGINES);
+    var known = Object.keys(ENGINES);
+    if (current.payload && Array.isArray(current.payload.engines)) {
+      current.payload.engines.forEach(function (id) { if (known.indexOf(id) === -1) known.push(id); });
+    }
     items().forEach(function (x) { if (known.indexOf(x.engine) === -1) known.push(x.engine); });
     return known;
   }

@@ -16,7 +16,7 @@ VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL",
 KNOWN_ENGINES = (
     "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
-    "STABLE_OVER_2_5", "PREMIUM_OVER_2_5", "BTTS_YES",
+    "STABLE_OVER_2_5", "PREMIUM_OVER_2_5", "PREMIUM_OVER_MIN1_70", "BTTS_YES",
 )
 FIELDS = "event_id,job_id,fixture_uid,kickoff_utc,kind,engine,market,selection,family,job_checkpoint_hours,source_checkpoint_hours,recorded_at,details"
 PAGE_SIZE = 250
