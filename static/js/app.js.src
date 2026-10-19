@@ -2026,27 +2026,12 @@ function cleanPct(val) {
     return String(val).replace(/%/g, '').trim();
 }
 
+// Retired legacy analysis stars: /app Analizler uses Base signal events only.
 async function fetchAnalysisMatchHashes() {
-    try {
-        const resp = await fetch('/api/analyses/match-hashes');
-        if (resp.ok) {
-            const data = await resp.json();
-            _analysisMatchHashes = Array.isArray(data) ? data : (data.hashes || []);
-            _analysisHashesFetched = true;
-            const ac = (data && typeof data.active_count === 'number') ? data.active_count : 0;
-            document.querySelectorAll('.analysis-active-badge').forEach(el => {
-                el.textContent = ac;
-                el.style.display = ac > 0 ? '' : 'none';
-            });
-        }
-    } catch(e) {}
+    _analysisMatchHashes = [];
+    _analysisHashesFetched = true;
 }
-
-function getAnalysisStarHtml(matchId) {
-    if (!matchId || !_analysisMatchHashes.length) return '';
-    if (_analysisMatchHashes.indexOf(matchId) === -1) return '';
-    return '<span class="analysis-star" title="Bu maç ile ilgili analiz mevcut" onclick="event.stopPropagation(); openDeferredTrendsModal(\'analysis\');">★</span>';
-}
+function getAnalysisStarHtml(matchId) { return ''; }
 
 function _renderMatchRow(match, idx) {
     const d = match.details || match.odds || {};
