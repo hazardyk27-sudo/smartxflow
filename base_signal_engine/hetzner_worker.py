@@ -15,7 +15,7 @@ import os
 import sys
 import time
 
-from .discovery import rolling_rescan_once
+from .discovery import bounded_cursor_discovery_once
 from .durable_runtime import execute_claims
 from .reader import SupabaseMoneywayReader
 from .reconcile_runtime import reconcile_once
@@ -37,13 +37,26 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             "source_capture_enabled":False}
     if discover:
         try:
-            status=rolling_rescan_once(reader,store,lookback_days=lookback_days)
-            report["discovery"]="OK"
+            status=bounded_cursor_discovery_once(
+                reader,store,worker_id=worker_id,window_hours=1,
+                max_fixtures=50,max_pending_due=250)
+            report["discovery"]=status["status"]
             report["enqueued"]=status["enqueued"]
-            report["discovered_fixtures"]=status["fixtures_discovered"]
-            report["superseded"]=status["superseded_jobs"]
+            report["discovered_fixtures"]=status["fixtures"]
+            report["discovery_paused"]=status["paused"]
+            report["discovery_pending_before"]=status["pending_due"]
+            if status["uncertain"]:
+                # Unknown advance/lease result: do not claim ANY additional work.
+                report["lease_uncertain"]=1
+                report["healthy_cycle"]=False
+                report["production_release_verified"]=False
+                return report
+        except DurableStoreError:
+            # RPC failure may follow a committed cursor lease or advance.
+            # Preserve uncertain exit status instead of blind re-run.
+            raise
         except Exception as exc:
-            # A catalog outage never prevents draining already durable jobs.
+            # Catalog errors do not discard previously enqueued checkpoints.
             report["discovery"]="ERROR_"+type(exc).__name__.upper()[:50]
 
     for _ in range(max_jobs):
@@ -93,7 +106,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         if type(metric) is not int or metric<0:
             raise ValueError("missing durable health metric")
         report[name]=metric
-    report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED")
+    report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED","IDLE","PAUSED_BACKLOG")
        and not report["lease_uncertain"] and not report["commit_uncertain"]
        and not report["reconcile_uncertain"]
        and report["checkpoint_expired_leases"]==0
@@ -109,7 +122,8 @@ def main(argv=None) -> int:
                         help="one-shot supervised queue verification only; no bulk enqueue")
     parser.add_argument("--max-jobs",type=int,default=12)
     parser.add_argument("--max-reconcile",type=int,default=2)
-    parser.add_argument("--lookback-days",type=int,default=1)
+    parser.add_argument("--lookback-days",type=int,default=1,
+                        help="legacy CLI compatibility; durable cursor controls discovery")
     parser.add_argument("--interval-seconds",type=int,default=60)
     args=parser.parse_args(argv)
     if os.environ.get("SXF_BASE_DURABLE_WORKER_APPROVED")!="yes":
