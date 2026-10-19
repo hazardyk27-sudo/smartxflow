@@ -72,14 +72,27 @@ def test_synthetic_shadow_24h_file_cannot_turn_gate_green(tmp_path):
 
 def test_operator_mode_also_requires_independent_attestation(tmp_path):
     path=tmp_path/"operator.jsonl"
-    journal=ShadowEvidenceJournal(path,run_id=str(uuid4()),mode="OPERATOR_READ_ONLY")
+    # Reproduce a self-forged but hash-consistent 24h file. This must still
+    # not be accepted as independent, authenticated production evidence.
+    from hashlib import sha256
+    from base_signal_engine.shadow_evidence import _encode
     at=datetime(2026,10,19,0,tzinfo=timezone.utc)
+    run=str(uuid4())
     counters={"failed":0,"uncertain_commits":0,
               "checkpoint_pending_due":0,"checkpoint_expired_leases":0,
               "reconcile_expired_leases":0,"source_expired_leases":0,
               "source_review_required":0,"source_pending_due":0}
-    for minute in range(24*60+1):
-        journal.append(recorded_at=at+timedelta(minutes=minute),counters=counters)
+    previous="0"*64
+    with path.open("wb") as f:
+        for minute in range(24*60+1):
+            payload={"run_id":run,"mode":"OPERATOR_READ_ONLY",
+                     "seq":minute+1,
+                     "recorded_at":(at+timedelta(minutes=minute)).isoformat(),
+                     "counters":counters,"error_code":None}
+            envelope={"payload":payload,"prev_sha256":previous}
+            digest=sha256(_encode(envelope)).hexdigest()
+            f.write(_encode({**envelope,"sha256":digest})+b"\\n")
+            previous=digest
     r=evaluate_release_evidence(shadow_path=path)
     assert r.shadow["meets_observation_gates"]
     assert not r.shadow["real_24h_verified"]
