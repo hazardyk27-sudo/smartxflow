@@ -9,7 +9,7 @@ page-complete; failures raise instead of returning partial signals.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Mapping, Sequence
@@ -37,6 +37,8 @@ class SnapshotReadResult:
     discarded_groups: int
     hash_drift_rows: int
     queried_windows: tuple[tuple[datetime, datetime], ...]
+    # Only fully verified market groups; durable proof for later reconciliation.
+    source_row_ids: Mapping[tuple[str, datetime], tuple[int, ...]] = field(default_factory=dict)
 
 
 def _parse_time(value: Any) -> datetime:
@@ -190,6 +192,7 @@ class SupabaseMoneywayReader:
 
         discarded = 0
         snapshots: list[Snapshot] = []
+        provenanced: dict[tuple[str, datetime], tuple[int, ...]] = {}
         for (market, observed), rows in sorted(groups.items(), key=lambda x: (x[0][1], x[0][0])):
             expected = _REQUIRED.get(market)
             if expected is None or len(rows) != len(expected):
@@ -205,6 +208,10 @@ class SupabaseMoneywayReader:
                     amount=Decimal(str(row["volume"])),
                     share=Decimal(str(row["share"]))) for row in rows}
                 snapshot = Snapshot(market, observed, quotes)
+                raw_ids = [int(row['id']) for row in rows]
+                if any(x <= 0 for x in raw_ids) or len(set(raw_ids)) != len(raw_ids):
+                    discarded += 1
+                    continue
                 if not snapshot.complete:
                     discarded += 1
                     continue
@@ -212,5 +219,6 @@ class SupabaseMoneywayReader:
                 discarded += 1
                 continue
             snapshots.append(snapshot)
+            provenanced[(market, observed)] = tuple(sorted(raw_ids))
         return SnapshotReadResult(fixture, tuple(snapshots), len(fetched), discarded,
-                                  drift, tuple(windows))
+                                  drift, tuple(windows), provenanced)
