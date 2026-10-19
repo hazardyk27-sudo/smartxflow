@@ -107,6 +107,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c4_discovery_heartbeat.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_health.sql",
         "migrations/2026_10_19_sxf_base_phase4c4_projection.sql",
+        "migrations/2026_10_19_sxf_base_phase5a_source_capture_PROPOSED.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -502,3 +503,106 @@ def test_17_current_projection_rpc_excludes_superseded_and_is_server_only():
     assert projected["markets"]["1X2"]["status"]=="IDENTITY_NOT_CURRENT"
     with pytest.raises(psycopg2.Error):
         query(sql,(UID,KICKOFF),role="anon")
+
+
+def test_18_source_change_capture_covers_insert_update_delete_and_snapshot_mutation():
+    global FEED_UID
+    FEED_UID=str(uuid4())
+    before=KICKOFF+timedelta(days=1)
+    after=before+timedelta(hours=3)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc,match_id_hash) "
+          "VALUES(%s::uuid,%s,%s)",(FEED_UID,before,"legacy"))
+    query("UPDATE public.fixtures SET kickoff_utc=%s WHERE fixture_uid=%s::uuid",
+          (after,FEED_UID))
+    query("INSERT INTO public.moneyway_snapshots "
+          "(id,fixture_uid,market,selection,odds,volume,share,scraped_at_utc) "
+          "VALUES(%s,%s::uuid,%s,%s,%s,%s,%s,%s)",
+          (101,FEED_UID,"1X2","1",1.75,1000,70,after-timedelta(hours=6)))
+    query("UPDATE public.moneyway_snapshots SET volume=1100 WHERE id=101")
+    query("DELETE FROM public.moneyway_snapshots WHERE id=101")
+    query("DELETE FROM public.fixtures WHERE fixture_uid=%s::uuid",(FEED_UID,))
+    events=query("SELECT event_kind,captured_at,fixture_uid,previous_fixture_uid "
+                 "FROM public.sxf_base_source_changes WHERE fixture_uid=%s::uuid "
+                 "ORDER BY change_id",(FEED_UID,))
+    assert [e["event_kind"] for e in events]==[
+        "FIXTURE_INSERT","FIXTURE_CHANGE","SNAPSHOT_INSERT",
+        "SNAPSHOT_CHANGE","SNAPSHOT_DELETE","FIXTURE_DELETE"]
+    assert all(e["captured_at"] is not None for e in events)
+    assert query("SELECT public.sxf_base_source_fixture_state(%s::uuid) AS kickoff",
+                 (FEED_UID,),role="service_role")[0]["kickoff"] is None
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_deliveries d "
+                 "JOIN public.sxf_base_source_changes c ON c.change_id=d.change_id "
+                 "WHERE c.fixture_uid=%s::uuid",(FEED_UID,))[0]["n"]==6
+    with pytest.raises(psycopg2.Error):
+        query("UPDATE public.sxf_base_source_changes SET event_kind='FIXTURE_INSERT' "
+              "WHERE fixture_uid=%s::uuid",(FEED_UID,))
+    with pytest.raises(psycopg2.Error):
+        query("SELECT * FROM public.sxf_base_source_changes",role="anon")
+
+
+def test_19_source_outbox_multiworker_claim_and_token_fencing():
+    latest=query("SELECT max(change_id) AS id FROM public.sxf_base_source_changes "
+                 "WHERE fixture_uid=%s::uuid",(FEED_UID,))[0]["id"]
+    query("UPDATE public.sxf_base_source_deliveries SET state='DONE' "
+          "WHERE change_id<>%s",(latest,))
+    barrier=Barrier(2)
+    def take(worker):
+        barrier.wait(timeout=10)
+        return query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                     (worker,1,180),role="service_role")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        one=pool.submit(take,"source-A")
+        two=pool.submit(take,"source-B")
+        rows=one.result(timeout=20)+two.result(timeout=20)
+    assert len(rows)==1 and rows[0]["change_id"]==latest
+    job=rows[0]
+    assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                 (latest,str(uuid4())),role="service_role")[0]["ok"] is False
+    assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                 (latest,str(job["lease_token"])),role="service_role")[0]["ok"] is True
+    assert query("SELECT public.sxf_base_ack_source_change(%s,%s::uuid) AS ok",
+                 (latest,str(job["lease_token"])),role="service_role")[0]["ok"] is False
+    assert query("SELECT state FROM public.sxf_base_source_deliveries WHERE change_id=%s",
+                 (latest,))[0]["state"]=="DONE"
+
+
+def test_20_deleted_fixture_jobs_quarantined_without_source_row():
+    uid=str(uuid4())
+    kickoff=KICKOFF+timedelta(days=2)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+          (uid,kickoff))
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS n",
+                 (json.dumps([job_data(uid,kickoff)]),),
+                 role="service_role")[0]["n"]==1
+    query("DELETE FROM public.fixtures WHERE fixture_uid=%s::uuid",(uid,))
+    assert query("SELECT public.sxf_base_quarantine_obsolete_uid(%s::uuid,%s) AS n",
+                 (uid,250),role="service_role")[0]["n"]==1
+    assert query("SELECT public.sxf_base_quarantine_obsolete_uid(%s::uuid,%s) AS n",
+                 (uid,250),role="service_role")[0]["n"]==0
+    assert query("SELECT state FROM public.sxf_base_checkpoint_jobs "
+                 "WHERE fixture_uid=%s::uuid",(uid,))[0]["state"]=="SUPERSEDED"
+    with pytest.raises(psycopg2.Error):
+        query("SELECT public.sxf_base_quarantine_obsolete_uid(%s::uuid,%s)",
+              (uid,250),role="authenticated")
+
+
+def test_21_source_retry_does_not_lose_immutable_event_and_is_reclaimable():
+    last=query("SELECT max(change_id) AS id FROM public.sxf_base_source_changes")[0]["id"]
+    query("UPDATE public.sxf_base_source_deliveries SET state='DONE' WHERE change_id<>%s",
+          (last,))
+    event=query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                ("source-retry",1,180),role="service_role")[0]
+    assert event["change_id"]==last
+    sql="SELECT public.sxf_base_retry_source_change(%s,%s::uuid,%s,%s) AS ok"
+    assert query(sql,(last,str(event["lease_token"]),"SOURCE_MUTATION_REVIEW",60),
+                 role="service_role")[0]["ok"] is True
+    assert query(sql,(last,str(event["lease_token"]),"SOURCE_MUTATION_REVIEW",60),
+                 role="service_role")[0]["ok"] is False
+    query("UPDATE public.sxf_base_source_deliveries "
+          "SET next_attempt_at=now()-interval '1 second' WHERE change_id=%s",(last,))
+    reclaimed=query("SELECT * FROM public.sxf_base_claim_source_changes(%s,%s,%s)",
+                    ("source-retry2",1,180),role="service_role")[0]
+    assert reclaimed["attempt_count"]==event["attempt_count"]+1
+    assert reclaimed["lease_token"]!=event["lease_token"]
+    assert query("SELECT count(*) AS n FROM public.sxf_base_source_changes "
+                 "WHERE change_id=%s",(last,))[0]["n"]==1
