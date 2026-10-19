@@ -76,10 +76,11 @@ def main(argv=None) -> int:
     if not base or not key:
         parser.error("missing server-only Supabase credentials")
     try:
-        # Tight absolute bound: at most 2 pages of 50 source rows per merged
-        # window, HTTPS-only GET, timeouts. Refuses silently truncated input.
+        # One T-6 probe reads T-8/T-6 plus the V2 persistence window.
+        # Normal five-minute 1X2/OU25/BTTS history exceeds 100 rows.
+        # Bound at 4 x 200 rows per merged window and refuse truncation.
         reader=SupabaseMoneywayReader(
-            base,key,page_size=50,max_pages_per_window=2,
+            base,key,page_size=200,max_pages_per_window=4,
             request_timeout_seconds=12)
         result=probe_fixture(reader,args.fixture_uid,checkpoint=args.checkpoint)
     except Exception as exc:
