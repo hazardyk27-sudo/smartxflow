@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Sequence
 
+from .reader import SupabaseMoneywayReader
 from .rules import Fixture, Snapshot, select_snapshot
 from .scheduler import CheckpointJob
 
@@ -20,14 +21,19 @@ _RETENTION = (6, 5, 4, 3)
 class CapturingReader:
     """Pass-through read adapter; retain only the already-fetched source batch."""
 
-    def __init__(self, reader: Any):
+    def __init__(self, reader: Any, *, progress_hook=None):
         self._reader = reader
+        self._progress_hook = progress_hook
         self.source: Any = None
 
     def load_fixture(self, fixture_uid: str):
+        if self._progress_hook is not None:
+            self._progress_hook()
         return self._reader.load_fixture(fixture_uid)
 
     def load_checkpoints(self, *args: Any, **kwargs: Any):
+        if self._progress_hook is not None and isinstance(self._reader, SupabaseMoneywayReader):
+            kwargs["progress_hook"] = self._progress_hook
         self.source = self._reader.load_checkpoints(*args, **kwargs)
         return self.source
 
