@@ -12,7 +12,7 @@ import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Callable
 from uuid import UUID
 
 from .journal import CheckpointJsonlJournal
@@ -33,11 +33,14 @@ class SupabaseFixtureCatalog:
             raise ValueError("invalid fixture pagination")
         self.reader, self.page_size, self.max_pages = reader, page_size, max_pages
 
-    def list_between(self, start: datetime, end: datetime) -> list[FixtureRef]:
+    def list_between(self, start: datetime, end: datetime, *,
+                     progress_hook: Callable[[], None] | None = None) -> list[FixtureRef]:
         if start.tzinfo is None or end.tzinfo is None or start >= end:
             raise ValueError("invalid fixture time window")
         fixtures: dict[str, FixtureRef] = {}
         for page in range(self.max_pages):
+            if progress_hook is not None:
+                progress_hook()
             rows = self.reader._get("fixtures", [
                 ("select", "fixture_uid,match_id_hash,kickoff_utc"),
                 ("kickoff_utc", "gte." + _iso(start)),
