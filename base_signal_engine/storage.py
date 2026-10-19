@@ -45,6 +45,9 @@ class SupabaseCheckpointStore:
         "sxf_base_quarantine_fixture_drift", "sxf_base_renew_discovery",
         "sxf_base_health_snapshot",
         "sxf_base_read_market_events",
+        "sxf_base_claim_source_changes", "sxf_base_ack_source_change",
+        "sxf_base_retry_source_change", "sxf_base_quarantine_obsolete_uid",
+        "sxf_base_wake_late_t6",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -388,3 +391,91 @@ class SupabaseCheckpointStore:
             not isinstance(result.get("events"), list)):
             raise DurableStoreError("malformed current projection evidence")
         return result
+
+    def claim_source_changes(self, worker_id: str, *, lease_seconds: int = 900) -> list[dict]:
+        """One event at a time: never claim more leases than can be processed."""
+        if not worker_id or len(worker_id.strip()) > 100 or not 60 <= lease_seconds <= 1800:
+            raise ValueError("invalid source worker identity or lease")
+        rows = self._rpc("sxf_base_claim_source_changes", {
+            "p_worker": worker_id, "p_limit": 1, "p_lease_seconds": lease_seconds})
+        if not isinstance(rows, list) or len(rows) > 1:
+            raise DurableStoreError("invalid source outbox claim batch")
+        results = []
+        kinds = frozenset(("FIXTURE_INSERT","FIXTURE_CHANGE","FIXTURE_DELETE",
+                           "SNAPSHOT_INSERT","SNAPSHOT_CHANGE","SNAPSHOT_DELETE"))
+        for row in rows:
+            try:
+                event_kind = str(row["event_kind"])
+                if event_kind not in kinds:
+                    raise ValueError("invalid source event type")
+                change_id = int(row["change_id"])
+                attempt = int(row["attempt_count"])
+                if change_id <= 0 or attempt < 1:
+                    raise ValueError("invalid source delivery identity")
+                previous = (str(UUID(str(row["previous_fixture_uid"])))
+                            if row.get("previous_fixture_uid") else None)
+                snapshot_id = (int(row["snapshot_id"])
+                               if row.get("snapshot_id") is not None else None)
+                if event_kind.startswith("SNAPSHOT_") and (
+                        snapshot_id is None or snapshot_id <= 0):
+                    raise ValueError("invalid source snapshot ID")
+                if event_kind.startswith("FIXTURE_") and snapshot_id is not None:
+                    raise ValueError("fixture event has snapshot ID")
+                results.append({
+                    "change_id": change_id, "event_kind": event_kind,
+                    "fixture_uid": str(UUID(str(row["fixture_uid"]))),
+                    "previous_fixture_uid": previous,
+                    "kickoff_before": (_parse_time(row["kickoff_before"])
+                                       if row.get("kickoff_before") else None),
+                    "kickoff_after": (_parse_time(row["kickoff_after"])
+                                      if row.get("kickoff_after") else None),
+                    "snapshot_id": snapshot_id, "market": row.get("market"),
+                    "source_observed_at": (_parse_time(row["source_observed_at"])
+                        if row.get("source_observed_at") else None),
+                    "captured_at": _parse_time(row["captured_at"]),
+                    "attempt_count": attempt,
+                    "lease_token": str(UUID(str(row["lease_token"]))),
+                })
+            except (ValueError, KeyError, TypeError) as error:
+                raise DurableStoreError("malformed source outbox identity") from error
+        return results
+
+    def ack_source_change(self, item: Mapping[str, Any]) -> None:
+        result = self._rpc("sxf_base_ack_source_change", {
+            "p_change_id": item["change_id"], "p_lease_token": item["lease_token"]})
+        if result is not True:
+            raise DurableStoreError("source delivery acknowledgment rejected")
+
+    def retry_source_change(self, item: Mapping[str, Any], *,
+                            reason: str, delay_seconds: int = 300) -> None:
+        if not reason or len(reason) > 64 or any(
+            ch not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" for ch in reason
+        ):
+            raise ValueError("unsafe source retry classification")
+        if type(delay_seconds) is not int or not 10 <= delay_seconds <= 3600:
+            raise ValueError("invalid source retry delay")
+        result = self._rpc("sxf_base_retry_source_change", {
+            "p_change_id": item["change_id"], "p_lease_token": item["lease_token"],
+            "p_reason": reason, "p_delay_seconds": delay_seconds})
+        if result is not True:
+            raise DurableStoreError("source retry transition rejected")
+
+    def quarantine_obsolete_uid(self, fixture_uid: str, *, limit: int = 250) -> int:
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("invalid UID quarantine limit")
+        count = self._rpc("sxf_base_quarantine_obsolete_uid", {
+            "p_fixture_uid": str(UUID(fixture_uid)), "p_limit": limit})
+        if type(count) is not int or not 0 <= count <= limit:
+            raise DurableStoreError("invalid obsolete UID quarantine response")
+        return count
+
+    def wake_late_t6(self, fixture_uid: str, market: str,
+                     observed_at: datetime) -> int:
+        if market not in ("1X2","OU25","BTTS"):
+            raise ValueError("invalid T6 wake market")
+        value = self._rpc("sxf_base_wake_late_t6", {
+            "p_fixture_uid": str(UUID(fixture_uid)),
+            "p_market": market, "p_observed_at": observed_at.isoformat()})
+        if type(value) is not int or value < 0:
+            raise DurableStoreError("invalid wake response")
+        return value
