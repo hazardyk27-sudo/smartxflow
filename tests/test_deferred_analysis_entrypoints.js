@@ -11,8 +11,10 @@ const bundles = [
 for (const [name, source] of bundles) {
   test(`dashboard analysis entrypoints use lazy loader (${name})`, () => {
     assert.equal((source.match(/openTrendsModal\(/g) || []).length, 0);
-    assert.ok((source.match(/openDeferredTrendsModal\(/g) || []).length >= 2);
+    assert.ok((source.match(/openDeferredTrendsModal\(/g) || []).length >= 1);
     assert.match(source, /function getAnalysisStarHtml\(/);
+    assert.doesNotMatch(source, /\/api\/analyses\/match-hashes/);
+    assert.doesNotMatch(source, /class=\\"analysis-star\\"/);
     assert.match(source, /function _testGuardAnalysis\(/);
   });
 }
