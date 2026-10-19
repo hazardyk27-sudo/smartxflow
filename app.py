@@ -7837,6 +7837,58 @@ def admin_logout():
     return redirect('/admin/login')
 
 
+# SmartXFlow Analizler V3: private, read-only Base signal feed.
+# The legacy analyst/guide APIs remain for their independent consumers,
+# but the /app Analizler button never calls them after the V3 UI switch.
+@app.route('/api/base-signals/feed', methods=['GET'])
+def base_signal_feed_api():
+    if session.get('license_plan') == 'test':
+        return jsonify({'error':'PRO_REQUIRED'}), 403
+
+    # An account-token session must never silently downgrade to a legacy key.
+    if session.get('sb_access_token'):
+        user, profile = resolve_account_session()
+        if user is None:
+            return jsonify({'error':'SESSION_EXPIRED'}), 403
+        if not user.get('email_confirmed'):
+            return jsonify({'error':'EMAIL_NOT_VERIFIED'}), 403
+        if not auth_helpers.is_membership_active(profile):
+            return jsonify({'error':'MEMBERSHIP_REQUIRED'}), 403
+        if str((profile or {}).get('plan') or 'core').lower() != 'pro':
+            return jsonify({'error':'PRO_REQUIRED'}), 403
+    elif _legacy_license_session_valid():
+        license_key = (session.get('license_key') or request.headers.get('X-License-Key', '')).strip()
+        verified = _validated_licenses.get(license_key) or {}
+        plan = (session.get('license_plan') or verified.get('plan') or 'core')
+        if str(plan).lower() != 'pro':
+            return jsonify({'error':'PRO_REQUIRED'}), 403
+    else:
+        return jsonify({'error':'LOGIN_REQUIRED'}), 403
+
+    from services.base_signal_feed import (
+        BaseFeedUnavailable, BaseSignalsFeed, parse_day, TR_TZ,
+    )
+    try:
+        today = datetime.now(TR_TZ).date()
+        first = parse_day(request.args.get('start') or
+                          (today - timedelta(days=10)).isoformat())
+        if first < today - timedelta(days=45) or first > today + timedelta(days=21):
+            return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
+        days_text = request.args.get('days', '21')
+        if days_text != '21':
+            return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
+        result = BaseSignalsFeed(
+            os.environ.get('SUPABASE_URL', ''),
+            os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''),
+        ).read(first, days=21)
+        return jsonify(result)
+    except (ValueError, TypeError):
+        return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
+    except BaseFeedUnavailable:
+        app.logger.warning('[BaseFeed] Private source read or integrity check failed')
+        return jsonify({'error':'SIGNAL_DATA_UNAVAILABLE'}), 503
+
+
 _analyses_cache = {'analysis': {'data': None, 'ts': 0}, 'moves': {'data': None, 'ts': 0}}
 _ANALYSES_CACHE_TTL = 60
 
