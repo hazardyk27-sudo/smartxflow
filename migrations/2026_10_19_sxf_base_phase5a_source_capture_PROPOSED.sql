@@ -86,7 +86,7 @@ END $$;
 
 CREATE OR REPLACE FUNCTION public.sxf_base_capture_snapshot_change()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
-SET search_path=pg_catalog,public AS $
+SET search_path=pg_catalog,public AS $$
 DECLARE v_id bigint; v_uid uuid;
 BEGIN
     IF TG_TABLE_SCHEMA<>'public' OR TG_TABLE_NAME<>'moneyway_snapshots' THEN
