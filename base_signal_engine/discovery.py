@@ -12,6 +12,7 @@ from typing import Any
 from .reader import _parse_time
 from .runtime import SupabaseFixtureCatalog
 from .storage import DurableStoreError
+from .lease_heartbeat import CooperativeLeaseHeartbeat
 
 
 def discover_window_once(reader: Any, store: Any, *,
@@ -37,8 +38,19 @@ def discover_window_once(reader: Any, store: Any, *,
             stats["uncertain"] = True
         return stats
     source = catalog or SupabaseFixtureCatalog(reader)
+    heartbeat = None
     try:
-        fixtures = source.list_between(begin,end)
+        if hasattr(store, "renew_discovery"):
+            heartbeat = CooperativeLeaseHeartbeat(
+                lambda: store.renew_discovery(item, lease_seconds=900),
+                lease_seconds=900)
+            heartbeat.pulse(force=True)
+        if heartbeat is not None and isinstance(source, SupabaseFixtureCatalog):
+            fixtures = source.list_between(begin,end,progress_hook=heartbeat.pulse)
+        else:
+            fixtures = source.list_between(begin,end)
+        if heartbeat is not None:
+            heartbeat.pulse(force=True)
         # Enqueue uses the same 11 frozen tasks per fixture; no filtering.
         enqueued = store.enqueue(fixtures)
     except Exception as error:
@@ -54,6 +66,8 @@ def discover_window_once(reader: Any, store: Any, *,
         return stats
     stats["fixtures"],stats["enqueued"] = len(fixtures),enqueued
     try:
+        if heartbeat is not None:
+            heartbeat.pulse(force=True)
         store.advance_discovery(item,end=end,fixture_count=len(fixtures))
     except DurableStoreError:
         # The advance may have committed but HTTP response was lost.
