@@ -46,10 +46,22 @@ CI run on disposable PostgreSQL does not mean production migration, load
 benchmark, source retention, 24-hour shadow, or operational alarm thresholds
 have been completed.
 
+## Part 4C4D — current market read model (not deployed)
+
+The service-role-only `sxf_base_read_market_events` RPC exposes a bounded
+allow-listed event history for an exact `fixture_uid` and kickoff. The
+`base_signal_engine.projection` module derives a conservative read model:
+T-8 preliminary, T-6 authoritative, T-8 fallback pending reconciliation,
+completed correction of the T-6 market decision, and SUPERSEDED/invalid fixture
+identity are **different statuses**. Uncommitted/manual partial corrections
+cannot override the final projection. This is a read model, not a public
+frontend integration, betting recommendation, or deployed view.
+
 ## Remaining release blockers
 
-1. Immutable-current view/projection of correction chains for frontend.
-   Never show stale T-8 as a final T-6 or a `SUPERSEDED` signal as current.
+1. Integrate the reviewed immutable-current read model into the frontend
+   only after preview approval, and verify that stale T-8, NO_HIT, and
+   `SUPERSEDED` never appear as active final signal decisions.
 2. Reliable source-ingestion change log and fixture-remap/cancellation proof,
    including modifications older than the bounded overlapping scan.
 3. Composite source snapshot lookup index: performance benchmark and
