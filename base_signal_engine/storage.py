@@ -36,7 +36,7 @@ class SupabaseCheckpointStore:
     _ALLOWED = frozenset({
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
         "sxf_base_renew_lease", "sxf_base_fail_job", "sxf_base_complete_job",
-        "sxf_base_wait_for_data",
+        "sxf_base_wait_for_data", "sxf_base_append_reconciliation",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -169,3 +169,41 @@ class SupabaseCheckpointStore:
             "p_reason": reason, "p_retry_seconds": delay_seconds,
         }) is not True:
             raise DurableStoreError("missing-source transition not acknowledged")
+
+    def append_reconciliation(
+        self, *, origin_event_key: str, kind: str,
+        source_snapshot_ids: Sequence[int], details: Mapping[str, Any],
+        engine: str | None = None, selection: str | None = None,
+    ) -> bool:
+        """Append one validated late-T6 event; False means identical replay.
+
+        The DB re-reads every supplied source snapshot ID by PK, checks UID,
+        market, complete side set, timestamp window and frozen source checkpoint.
+        This adapter never accepts hash-only identity or live-money guesses.
+        """
+        if not origin_event_key or len(origin_event_key) > 450:
+            raise ValueError("invalid source event key")
+        if kind not in ("CONFIRMED", "INVALIDATED", "CORRECTED"):
+            raise ValueError("invalid reconciliation type")
+        if not isinstance(details, Mapping):
+            raise ValueError("reconciliation evidence must be a mapping")
+        if (engine is None) != (selection is None):
+            raise ValueError("engine and selection must be supplied together")
+        if kind != "CORRECTED" and engine is not None:
+            raise ValueError("confirmation/invalidation inherits source identity")
+        if not isinstance(source_snapshot_ids, (list, tuple)) or not (
+            2 <= len(source_snapshot_ids) <= 3 and
+            all(type(x) is int and x > 0 for x in source_snapshot_ids) and
+            len(set(source_snapshot_ids)) == len(source_snapshot_ids)
+        ):
+            raise ValueError("expected unique positive snapshot identifiers")
+        result = self._rpc("sxf_base_append_reconciliation", {
+            "p_origin_event_key": origin_event_key,
+            "p_kind": kind,
+            "p_source_snapshot_ids": list(source_snapshot_ids),
+            "p_details": dict(details),
+            "p_engine": engine, "p_selection": selection,
+        })
+        if type(result) is not bool:
+            raise DurableStoreError("reconciliation not acknowledged")
+        return result
