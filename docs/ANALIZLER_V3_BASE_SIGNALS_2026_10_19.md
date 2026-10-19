@@ -83,3 +83,39 @@ validate the responsive UI/browser, account permissions and product wording
 against real PRO and CORE sessions. No Hetzner web deploy until the separate
 production release approval. Base motors remain in limited Hetzner shadow
 pending their own source health and 24h review.
+
+
+## 2026-10-19 — V4 redesign after user screenshot review
+
+- Removed the horizontal list of small engine tabs and the simultaneous,
+  overwhelming mixed-engine signal-card feed.
+- Replaced it with **one substantial click target per Base motor** in a
+  graphite directory. V1/V2 are fully independent cards, as are all other
+  known engines, including those with 0 signals on the selected day.
+- Existing top date rail remains; it displays yellow activity dots for the
+  selected scope. On the directory scope, it counts all engines; inside a
+  motor it counts only that motor's signals. Selecting a day preserves the
+  current motor.
+- Clicking an engine opens **only its own fixtures**, grouped by physical
+  UID + kickoff. Multiple signals on the same fixture are rendered inside
+  one match card, not as visually duplicated matches. A Back button
+  restores focus to the exact originating engine.
+- Removed an unnecessary second horizontal scrollbar. Search is available
+  only within a selected motor. Dates outside the server's bounded feed
+  window fail gracefully before issuing an invalid API request.
+- Uses application's existing shared palette: background `#141719`,
+  cards `#1c1f23`, borders `#2e3238`, restrained green `#22c55e`;
+  no separate blue/teal visual theme.
+- Mobile: two-column compact engine directory on standard phones
+  (one column on very narrow screens); a single-column match list.
+- Historic preliminary T-8 rows stay visibly historical after a real T-6
+  decision; all cards remain explicitly `SHADOW / TEST`.
+- The protected server-side source and data-access contract did not change.
+- New Node interaction tests exercise actual simulated tile clicks,
+  strict V1/V2 separation, date switching, back navigation, grouping
+  multiple signals per physical match, and unsafe HTML escaping.
+
+**Deployment status:** V4 files are on GitHub `preview` only; production
+`main` and Hetzner still carry the earlier V3 release. Do not confuse
+a passing `preview` CI test with a published V4 browser experience.
+Exact-SHA release authorization is required before promotion.
