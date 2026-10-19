@@ -88,6 +88,7 @@ def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
     assert "ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker" in s
     assert "User=smartxflow" in s and "ProtectSystem=strict" in s
     assert "MemoryMax=320M" in s and "Restart=on-failure" in s
+    assert "RestartPreventExitStatus=3" in s  # Unknown commit => manual review
     assert "SXF_BASE_DURABLE_WORKER_APPROVED=yes" not in s
     assert "smartxflow-base-worker.service" not in sync
     assert "systemctl start" not in s
