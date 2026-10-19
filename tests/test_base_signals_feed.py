@@ -125,7 +125,7 @@ def test_historical_or_foreign_kickoff_cannot_be_relabelled_as_same_fixture():
     def swapped(url, *, params, headers, timeout):
         response=original(url,params=params,headers=headers,timeout=timeout)
         if url.endswith("fixtures"):
-            response.data[0]["kickoff_utc"]=(_stamp(start).replace("20:", "21:", 1))
+            response.data[0]["kickoff_utc"]=(datetime.fromisoformat(_stamp(start))+timedelta(hours=1)).isoformat()
         return response
     source.get=swapped
     assert _feed(source).read(start)["items"]==[]
