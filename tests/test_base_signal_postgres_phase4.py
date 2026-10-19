@@ -103,6 +103,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4b_reconciliation_rpc.sql",
         "migrations/2026_10_19_sxf_base_phase4c_reconcile_queue.sql",
         "migrations/2026_10_19_sxf_base_phase4c_discovery_cursor.sql",
+        "migrations/2026_10_19_sxf_base_phase4c4_kickoff_drift.sql",
     )
     for name in migration_paths:
         with connect() as conn:
@@ -396,3 +397,58 @@ def test_12_advance_only_contiguous_window_and_client_denied():
     with pytest.raises(psycopg2.Error):
         query("SELECT public.sxf_base_claim_discovery(%s,%s)",
               ("public",180),role="authenticated")
+
+
+def test_13_kickoff_reschedule_is_immutable_and_quarantined():
+    moved=THIRD_KICKOFF+timedelta(hours=2)
+    old_events=query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                     "WHERE fixture_uid=%s::uuid",(THIRD_UID,))[0]["n"]
+    assert old_events>=4
+    query("UPDATE public.fixtures SET kickoff_utc=%s WHERE fixture_uid=%s::uuid",
+          (moved,THIRD_UID))
+    quarantined=query("SELECT public.sxf_base_quarantine_fixture_drift(%s) AS total",
+                      (1000,),role="service_role")[0]["total"]
+    assert quarantined>=1
+    assert query("SELECT public.sxf_base_quarantine_fixture_drift(%s) AS total",
+                 (1000,),role="service_role")[0]["total"]==0
+    assert query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                 "WHERE fixture_uid=%s::uuid",(THIRD_UID,))[0]["n"]==old_events
+    assert query("SELECT state FROM public.sxf_base_checkpoint_jobs WHERE "
+                 "fixture_uid=%s::uuid AND kickoff_utc=%s",
+                 (THIRD_UID,THIRD_KICKOFF))[0]["state"]=="SUPERSEDED"
+    assert query("SELECT count(*) AS n FROM public.sxf_base_fixture_drift_events "
+                 "WHERE fixture_uid=%s::uuid",(THIRD_UID,))[0]["n"]==1
+    with pytest.raises(psycopg2.Error):
+        query("DELETE FROM public.sxf_base_fixture_drift_events "
+              "WHERE fixture_uid=%s::uuid",(THIRD_UID,))
+    with pytest.raises(psycopg2.Error):
+        query("SELECT * FROM public.sxf_base_fixture_drift_events",role="anon")
+
+
+def test_14_kickoff_changing_while_leased_cannot_append_stale_signal():
+    uid=str(uuid4())
+    original=KICKOFF+timedelta(hours=2)
+    current=original+timedelta(hours=1)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES(%s::uuid,%s)",
+          (uid,original))
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS total",
+                 (json.dumps([job_data(uid,original)]),),
+                 role="service_role")[0]["total"]==1
+    lease=claim("old-kickoff-worker")[0]
+    assert str(lease["fixture_uid"])==uid
+    query("UPDATE public.fixtures SET kickoff_utc=%s WHERE fixture_uid=%s::uuid",
+          (current,uid))
+    with pytest.raises(psycopg2.Error):
+        complete(lease,payload_for(lease))
+    assert query("SELECT count(*) AS n FROM public.sxf_base_checkpoint_evaluations "
+                 "WHERE job_id=%s::uuid",(str(lease["job_id"]),))[0]["n"]==0
+    assert query("SELECT count(*) AS n FROM public.sxf_base_signal_events "
+                 "WHERE job_id=%s::uuid",(str(lease["job_id"]),))[0]["n"]==0
+    assert query("SELECT public.sxf_base_quarantine_fixture_drift(%s) AS total",
+                 (1000,),role="service_role")[0]["total"]>=1
+    assert query("SELECT state FROM public.sxf_base_checkpoint_jobs "
+                 "WHERE job_id=%s::uuid",(str(lease["job_id"]),))[0]["state"]=="SUPERSEDED"
+    # Same physical UID with updated kickoff gets a distinct queue identity.
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS total",
+                 (json.dumps([job_data(uid,current)]),),
+                 role="service_role")[0]["total"]==1
