@@ -192,5 +192,31 @@ def test_scan_once_never_writes_db_or_uses_infinite_batch():
         def list_between(self,start,end): return [REF]
     j=MemoryJournal();reader=FakeReader([])
     stats=scan_once(reader,j,now=KO-timedelta(hours=6)+timedelta(minutes=11),catalog=Catalog(),max_jobs=3)
-    assert stats["due"]==3 and stats["committed"]==3 and stats["shadow_only"]
-    assert all(k.startswith(RULESET_VERSION) for k in j.logs)
+    assert stats["due"]==3 and stats["committed"]==0 and stats["shadow_only"]
+    assert stats["waiting_data"]==3 and stats["failed"]==0
+    assert not j.logs  # No source != completed signal/history checkpoint.
+
+
+def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
+    class Catalog:
+        def list_between(self,start,end): return [REF]
+    now=KO-timedelta(hours=5,minutes=49)
+    empty=FakeReader([])
+    journal=MemoryJournal()
+    first=scan_once(empty,journal,now=now,catalog=Catalog(),max_jobs=9)
+    assert first["waiting_data"]==9 and first["committed"]==0
+    assert journal.logs=={}
+    # A later snapshot can be observed on next scan; immutable existing
+    # checkpoint timestamps remain the same and motor rules are unchanged.
+    history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
+    history += [mkt("OU25",8),mkt("BTTS",8)]
+    full=FakeReader(history)
+    # Restrict one T6 checkpoint via an explicitly scoped fake completion port.
+    job=CheckpointJob(REF,6,"BASE")
+    source=full.load_checkpoints(FX,hours=(8,6),
+                                 as_of_utc=KO-timedelta(hours=6)+timedelta(minutes=10))
+    assert source.snapshots
+    from base_signal_engine.source_quality import source_coverage
+    from base_signal_engine.scheduler import evaluate_job
+    payload=evaluate_job(job,full)
+    assert source_coverage(job,source,payload)["disposition"]=="EVALUATE"
