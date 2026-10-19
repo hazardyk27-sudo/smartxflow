@@ -14,7 +14,8 @@ def test_analizler_launches_new_modal_but_guide_keeps_its_entrypoint():
     assert html.count('onclick="openDeferredTrendsModal(\'moves\')') >= 1
     assert "id=\"sxfBaseSignalOverlay\"" in html
     assert "id=\"sxfSignalDateRail\"" in html
-    assert "id=\"sxfSignalEngineRail\"" in html
+    assert "id=\"sxfSignalEngineRail\"" not in html
+    assert "id=\"sxfSearchWrap\"" in html
     assert "id=\"sxfSignalContent\"" in html
     assert "js/base-signals.js" in html and "css/base-signals.css" in html
 
@@ -26,11 +27,17 @@ def test_new_analizler_cards_are_not_mocks_or_old_analysts():
     assert "Europe/Istanbul" in ui
     assert "source_checkpoint" in ui and "sxf-signal-card" in ui
     assert "SHADOW" in ui
-    assert "renderDates()" in ui and "renderEngines()" in ui
+    assert "renderDates()" in ui and "renderHome()" in ui and "renderDetail()" in ui
+    assert "engineCard(name)" in ui and "fixtureCard(rows)" in ui
+    assert "data-motor" in ui and "current.engine = btn.dataset.motor" in ui
+    assert "current.engine = null" in ui and "sxfSignalBack" in ui
     for legacy in ("analyst-card","/api/analyses","dummyMatch","MOCK_SIGNAL"):
         assert legacy not in ui
     css=(ROOT/"static/css/base-signals.css").read_text()
-    assert ".sxf-signal-grid" in css
+    assert ".sxf-signal-grid" in css and ".sxf-engine-grid" in css
+    assert "var(--bg-main" in css and "var(--bg-card" in css
+    assert ".sxf-engine-box" not in css
+    assert "grid-template-columns:repeat(3,minmax(0,1fr))" in css
     assert "@media(max-width:700px)" in css
     assert "[hidden]" in css
 
