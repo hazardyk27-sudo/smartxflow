@@ -732,6 +732,12 @@ def test_26_disposable_pg_bulk_source_outbox_atomic_fanout():
 
 def test_27_disposable_pg_parallel_source_delivery_claims_are_disjoint():
     """Four workers claim 25 rows each without skipping/duplicating events."""
+    # Isolate the 240 snapshot events from the fixture-insert event created
+    # during setup. This test targets parallel snapshot delivery only.
+    query("UPDATE public.sxf_base_source_deliveries SET state='DONE' WHERE change_id IN "
+          "(SELECT change_id FROM public.sxf_base_source_changes "
+          "WHERE fixture_uid=%s::uuid AND event_kind='FIXTURE_INSERT')",
+          (SOAK_UID,))
     barrier=Barrier(4)
     def worker(name):
         barrier.wait(timeout=15)
