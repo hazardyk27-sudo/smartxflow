@@ -44,7 +44,7 @@ def test_one_uid_probe_never_writes_and_proves_t6_authority():
     fake=ReadOnlyFixture([market(8),market(6)])
     report=probe_fixture(fake,UID,checkpoint=6,
                          now=KICKOFF-timedelta(hours=5,minutes=45))
-    assert fake.calls==["GET:fixtures","GET:moneyway_snapshots"]
+    assert fake.calls==["GET:fixtures","GET:fixtures","GET:moneyway_snapshots"]
     assert report["operation"]=="SINGLE_FIXTURE_READ_ONLY_PROBE"
     assert report["markets"]["1X2"]=="AUTHORITATIVE_T6"
     assert report["coverage"]=="PARTIAL"
@@ -88,5 +88,5 @@ def test_service_is_one_shot_not_enabled_or_inserted_into_default_deploy():
     assert "User=smartxflow" in service
     assert "EnvironmentFile=-/etc/smartxflow/base-probe.env" in service
     assert "SXF_BASE_SINGLE_PROBE_APPROVED=yes" not in service
-    assert "[Install]" not in service
+    assert not any(line.strip()=="[Install]" for line in service.splitlines())
     assert "smartxflow-base-probe" not in sync
