@@ -146,6 +146,8 @@
       '</strong></div>' + odds +
       '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
       '</span>' + (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
+      (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint
+        ? '<span>Kaynak T-' + item.source_checkpoint + '</span>' : '') +
       '<span>Veri ' + esc(timeTR(item.observed_at)) + '</span></div>' +
       (isHistory ? '<div class="sxf-row-warning">T-6 kararı sonrası geçmiş ön sinyal</div>' : '') +
       '</div>';
