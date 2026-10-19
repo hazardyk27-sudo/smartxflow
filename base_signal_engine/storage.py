@@ -42,6 +42,7 @@ class SupabaseCheckpointStore:
         "sxf_base_complete_reconcile",
         "sxf_base_init_discovery", "sxf_base_claim_discovery",
         "sxf_base_advance_discovery", "sxf_base_release_discovery",
+        "sxf_base_quarantine_fixture_drift",
     })
 
     def __init__(self, base_url: str, service_key: str, *, session: Any = None,
@@ -344,3 +345,12 @@ class SupabaseCheckpointStore:
             "p_lease_token": item["lease_token"], "p_error_code": error_code})
         if value is not True:
             raise DurableStoreError("discovery release not acknowledged")
+
+    def quarantine_fixture_drift(self, *, limit: int = 250) -> int:
+        """Disable obsolete UID/kickoff jobs; immutable history stays visible."""
+        if type(limit) is not int or not 1 <= limit <= 1000:
+            raise ValueError("invalid drift quarantine batch size")
+        result = self._rpc("sxf_base_quarantine_fixture_drift", {"p_limit": limit})
+        if type(result) is not int or not 0 <= result <= limit:
+            raise DurableStoreError("invalid drift quarantine acknowledgment")
+        return result

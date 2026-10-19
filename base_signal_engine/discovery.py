@@ -61,3 +61,26 @@ def discover_window_once(reader: Any, store: Any, *,
     else:
         stats["advanced"] = True
     return stats
+
+def rolling_rescan_once(reader: Any, store: Any, *,
+                        now: datetime | None = None, catalog: Any = None,
+                        lookback_days: int = 14, drift_limit: int = 250) -> dict:
+    """Repeat a bounded kickoff window; never claim it is an ingest watermark.
+
+    A late-created fixture or reschedule inside this window is re-enqueued
+    idempotently. SQL quarantine rejects stale jobs even if a reader races
+    rescheduling. Failures propagate, rather than asserting successful coverage.
+    """
+    if type(lookback_days) is not int or not 1 <= lookback_days <= 30:
+        raise ValueError("rolling lookback must be between 1 and 30 days")
+    if type(drift_limit) is not int or not 1 <= drift_limit <= 1000:
+        raise ValueError("drift batch must be between 1 and 1000")
+    at = _parse_time(now or datetime.now(timezone.utc))
+    source = catalog or SupabaseFixtureCatalog(reader)
+    fixtures = source.list_between(at - timedelta(days=lookback_days),
+                                   at + timedelta(hours=74))
+    enqueued = store.enqueue(fixtures)
+    superseded = store.quarantine_fixture_drift(limit=drift_limit)
+    return {"fixtures_discovered": len(fixtures), "enqueued": enqueued,
+            "superseded_jobs": superseded, "lookback_days": lookback_days,
+            "complete_ingestion_history": False}
