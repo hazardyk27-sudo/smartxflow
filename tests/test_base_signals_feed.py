@@ -157,3 +157,28 @@ def test_untrusted_or_unconfigured_source_refused():
 def test_strict_iso_day(value):
     with pytest.raises(ValueError):
         parse_day(value)
+
+
+def test_completed_authoritative_t6_marks_old_t8_as_history_not_new_signal():
+    start=_day()
+    old=_event(start,ident=12)
+    decision=_event(start,ident=13,kind="MARKET_DECISION",engine=None,selection=None)
+    decision["job_checkpoint_hours"]=6
+    decision["source_checkpoint_hours"]=6
+    decision["details"]={"state":"AUTHORITATIVE_T6"}
+    result=_feed(Source(start,events=[old,decision])).read(start)
+    assert len(result["items"])==1
+    assert result["items"][0]["stage_status"]=="T8_HISTORICAL"
+
+
+def test_unresolved_t8_keeps_preliminary_label():
+    start=_day()
+    result=_feed(Source(start)).read(start)
+    assert result["items"][0]["stage_status"]=="AS_RECORDED"
+
+
+def test_reconciled_no_hit_is_not_a_fresh_signal():
+    start=_day()
+    corrected=_event(start,kind="CORRECTED")
+    corrected["details"]={"decision":"NO_HIT"}
+    assert _feed(Source(start,events=[corrected])).read(start)["items"]==[]
