@@ -1,0 +1,83 @@
+name: Base Hetzner bounded priority discovery shadow start 20261020
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-priority-shadow-start-20261020.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-priority-shadow-start-20261020
+  cancel-in-progress: false
+
+jobs:
+  shadow-start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Start controlled temporary 24h Base shadow with priority lanes
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 7m
+          script: |
+            set -euo pipefail
+            PROD_SHA=609eea70ef409aad756074e198b839d82fa3e838
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            test -s /opt/smartxflow/.env
+            test -f /opt/smartxflow/venv/bin/python
+            test "$(systemctl is-active sxf-base-durable-shadow-20261019.service || true)" != active
+            test "$(systemctl is-active sxf-base-priority-shadow-20261020.service || true)" != active
+            test "$(systemctl is-active sxf-base-presha-20261019.service)" = active
+            for unit in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$unit")" = active || { echo "SERVICE_DOWN:$unit"; exit 1; }
+            done
+            echo BASE_SHADOW_START_PREFLIGHT_OK
+            systemd-run --unit=sxf-base-priority-shadow-20261020 --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_PRIORITY_LANES_APPROVED=yes \
+              --setenv=SXF_BASE_WORKER_ID=priority-shadow-20261020 \
+              --property=Type=simple \
+              --property=Restart=no \
+              --property=RestartPreventExitStatus=3 \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property=WorkingDirectory=/opt/smartxflow \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=PrivateDevices=yes \
+              --property=MemoryMax=256M \
+              --property=TasksMax=32 \
+              --property=RuntimeMaxSec=86400 \
+              --property=TimeoutStartSec=120 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+                --near-term-discovery --near-term-rotation \
+                --priority-lanes --max-jobs=6 --max-reconcile=1 \
+                --interval-seconds=60
+            sleep 6
+            test "$(systemctl is-active sxf-base-priority-shadow-20261020.service)" = active
+            echo BASE_NEW_SHADOW_UNIT
+            systemctl show sxf-base-priority-shadow-20261020.service \
+              -p ActiveState -p SubState -p MainPID -p MemoryCurrent -p RuntimeMaxUSec -p NRestarts -p ExecMainStatus
+            echo BASE_NEW_SHADOW_FIRST_CYCLE
+            journalctl -u sxf-base-priority-shadow-20261020.service --no-pager -n 5 -o cat
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for unit in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$unit")" = active || { echo "POST_SERVICE_DOWN:$unit"; exit 1; }
+            done
+            test "$(systemctl is-active sxf-base-presha-20261019.service)" = active
+            echo BASE_PRIORITY_24H_SHADOW_ACTIVE_PRODUCTION_UNCHANGED
