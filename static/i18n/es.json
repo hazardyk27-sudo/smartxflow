@@ -682,7 +682,15 @@
       "email_unverified": "Verifica tu correo electrónico para continuar.",
       "membership_required": "Se necesita una membresía activa para esta sección.",
       "session_expired": "Tu sesión ha caducado. Inicia sesión de nuevo.",
-      "late_evaluation": "Calculado retrospectivamente"
+      "late_evaluation": "Calculado retrospectivamente",
+      "legacy_recorded": "Registro del motor anterior",
+      "legacy_warning": "Registro anterior verificado; no es una señal Base T-6",
+      "mixed_notice": "BASE SHADOW + MOTORES ANTERIORES · No es asesoramiento de apuestas",
+      "legacy_early_desc": "Señales anteriores de Early Money Lock",
+      "legacy_underdog_desc": "Señales anteriores de presión al no favorito",
+      "legacy_cm_v1_desc": "Señales anteriores de Confirmed Money",
+      "legacy_cm_v2_desc": "Señales anteriores de Confirmed Money V2",
+      "legacy_fake_sharp_desc": "Señales anteriores de movimiento inverso de cuotas"
     },
     "live": {
       "pro_gerekli": "Se requiere una suscripción <strong>Pro</strong> para los datos en vivo",

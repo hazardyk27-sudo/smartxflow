@@ -74,7 +74,9 @@ class BaseSignalsFeed:
         self._session = session if session is not None else requests.Session()
 
     def _get(self, table, params):
-        if table not in ("sxf_base_signal_events", "sxf_base_checkpoint_jobs", "fixtures", "live_fixtures"):
+        if table not in ("sxf_base_signal_events", "sxf_base_checkpoint_jobs", "fixtures", "live_fixtures",
+                         "early_money_lock_signals", "underdog_signals", "fake_sharp_signals",
+                         "confirmed_money_signals", "confirmed_money_v2_signals"):
             raise BaseFeedUnavailable("forbidden source")
         try:
             response = self._session.get(self.base + table, params=params,

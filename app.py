@@ -7868,6 +7868,7 @@ def base_signal_feed_api():
     from base_signal_engine.feed import (
         BaseFeedUnavailable, BaseSignalsFeed, parse_day, TR_TZ,
     )
+    from base_signal_engine.legacy_feed import LegacySignalsFeed
     try:
         today = datetime.now(TR_TZ).date()
         first = parse_day(request.args.get('start') or
@@ -7877,10 +7878,25 @@ def base_signal_feed_api():
         days_text = request.args.get('days', '21')
         if days_text != '21':
             return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
-        result = BaseSignalsFeed(
+        source = BaseSignalsFeed(
             os.environ.get('SUPABASE_URL', ''),
             os.environ.get('SUPABASE_SERVICE_ROLE_KEY', ''),
-        ).read(first, days=21)
+        )
+        # Both feeds stay server-side after the same PRO access gate. Legacy
+        # rows only appear when uniquely linked to an authentic fixture.
+        result = source.read(first, days=21)
+        legacy = LegacySignalsFeed(source).read(first, days=21)
+        result['items'].extend(legacy['items'])
+        result['items'].sort(key=lambda item: (item['kickoff_utc'], item['id']))
+        result['engines'].extend(legacy['engines'])
+        result['phase'] = 'BASE_SHADOW_AND_LEGACY_HISTORY'
+        result['legacy_audit'] = {
+            'source_rows': legacy['source_rows'],
+            'identity_excluded': legacy['identity_excluded'],
+            'duplicate_events_removed': legacy['duplicate_events_removed'],
+            'verified_items': len(legacy['items']),
+        }
+        result['message'] = 'Base shadow ve doğrulanmış eski motor sinyal kayıtları. Bahis önerisi değildir.'
         return jsonify(result)
     except (ValueError, TypeError):
         return jsonify({'error':'INVALID_DATE_WINDOW'}), 400

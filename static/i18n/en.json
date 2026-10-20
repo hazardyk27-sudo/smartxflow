@@ -682,7 +682,15 @@
       "email_unverified": "Verify your email address to continue.",
       "membership_required": "An active membership is required for this section.",
       "session_expired": "Your session has expired. Sign in again.",
-      "late_evaluation": "Calculated retrospectively"
+      "late_evaluation": "Calculated retrospectively",
+      "legacy_recorded": "Legacy engine record",
+      "legacy_warning": "Verified legacy engine record; not a Base T-6 signal",
+      "mixed_notice": "BASE SHADOW + LEGACY ENGINE RECORDS · Not betting advice",
+      "legacy_early_desc": "Historical early money lock signals",
+      "legacy_underdog_desc": "Historical underdog pressure signals",
+      "legacy_cm_v1_desc": "Historical confirmed money signals",
+      "legacy_cm_v2_desc": "Historical confirmed money V2 signals",
+      "legacy_fake_sharp_desc": "Historical reverse odds movement signals"
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",

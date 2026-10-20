@@ -682,7 +682,15 @@
       "email_unverified": "E-posta adresini doğrulaman gerekiyor.",
       "membership_required": "Bu bölüm için aktif üyelik gerekiyor.",
       "session_expired": "Oturumun süresi doldu. Yeniden giriş yap.",
-      "late_evaluation": "Geçmişten hesaplandı"
+      "late_evaluation": "Geçmişten hesaplandı",
+      "legacy_recorded": "Eski motor kaydı",
+      "legacy_warning": "Doğrulanmış eski motor kaydı; Base T-6 sinyali değildir",
+      "mixed_notice": "BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir",
+      "legacy_early_desc": "Eski erken para kilidi sinyalleri",
+      "legacy_underdog_desc": "Eski underdog para baskısı sinyalleri",
+      "legacy_cm_v1_desc": "Eski teyitli para sinyalleri",
+      "legacy_cm_v2_desc": "Eski teyitli para V2 sinyalleri",
+      "legacy_fake_sharp_desc": "Eski ters oran hareketi sinyalleri"
     },
     "live": {
       "pro_gerekli": "Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir",

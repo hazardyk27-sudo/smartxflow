@@ -682,7 +682,15 @@
       "email_unverified": "Vérifiez votre adresse e-mail pour continuer.",
       "membership_required": "Un abonnement actif est requis pour cette section.",
       "session_expired": "Votre session a expiré. Reconnectez-vous.",
-      "late_evaluation": "Calculé rétrospectivement"
+      "late_evaluation": "Calculé rétrospectivement",
+      "legacy_recorded": "Historique de l'ancien moteur",
+      "legacy_warning": "Signal historique vérifié ; pas un signal Base T-6",
+      "mixed_notice": "BASE SHADOW + ANCIENS MOTEURS · Pas un conseil de pari",
+      "legacy_early_desc": "Anciens signaux de verrouillage des mises",
+      "legacy_underdog_desc": "Anciens signaux de pression sur l'outsider",
+      "legacy_cm_v1_desc": "Anciens signaux Confirmed Money",
+      "legacy_cm_v2_desc": "Anciens signaux Confirmed Money V2",
+      "legacy_fake_sharp_desc": "Anciens signaux de mouvement inverse des cotes"
     },
     "live": {
       "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",

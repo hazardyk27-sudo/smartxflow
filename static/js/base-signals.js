@@ -16,7 +16,12 @@
     STABLE_OVER_2_5: { name: 'Stable Over 2.5', description: '2.5 üst istikrarı', market: 'ALT / ÜST', code: 'O2' },
     PREMIUM_OVER_2_5: { name: 'Premium Over 2.5', description: '2.5 üst premium hareketleri', market: 'ALT / ÜST', code: 'PO' },
     PREMIUM_OVER_MIN1_70: { name: 'Premium Over · Min 1.70', description: '1.70+ premium üst · güç etiketi', market: 'ALT / ÜST', code: 'P70' },
-    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' }
+    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' },
+    LEGACY_EARLY_MONEY_LOCK: {name:'Early Money Lock',description:'Eski erken para kilidi sinyalleri',market:'PARA AKIŞI',code:'EL'},
+    LEGACY_UNDERDOG: {name:'Underdog Pressure',description:'Eski underdog para baskısı sinyalleri',market:'MAÇ SONUCU',code:'UD'},
+    LEGACY_CONFIRMED_MONEY_V1: {name:'Confirmed Money V1',description:'Eski teyitli para sinyalleri',market:'MAÇ SONUCU',code:'CM'},
+    LEGACY_CONFIRMED_MONEY_V2: {name:'Confirmed Money V2',description:'Eski teyitli para V2 sinyalleri',market:'MAÇ SONUCU',code:'C2'},
+    LEGACY_FAKE_SHARP: {name:'Fake Sharp',description:'Eski ters oran hareketi sinyalleri',market:'MAÇ SONUCU',code:'FS'}
   };
   // All visible text is resolved from the active 7-language app dictionary.
   // Turkish is a temporary compatibility fallback if i18n has not loaded yet.
@@ -43,14 +48,20 @@
     '1X2_CONCENTRATION_V1':'engine_v1_desc', '1X2_CONCENTRATION_V2':'engine_v2_desc',
     HEAVY_1X2_CONCENTRATION:'engine_heavy_desc', SURPRISE_TEAM:'engine_surprise_desc',
     STABLE_OVER_2_5:'engine_stable_over_desc', PREMIUM_OVER_2_5:'engine_premium_over_desc',
-    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc'
+    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc',
+    LEGACY_EARLY_MONEY_LOCK:'legacy_early_desc', LEGACY_UNDERDOG:'legacy_underdog_desc',
+    LEGACY_CONFIRMED_MONEY_V1:'legacy_cm_v1_desc',
+    LEGACY_CONFIRMED_MONEY_V2:'legacy_cm_v2_desc', LEGACY_FAKE_SHARP:'legacy_fake_sharp_desc'
   };
   var CATS = {
     EARLY_MONEY_CORE:'cat_money', EARLY_MONEY_T12:'cat_money',
     '1X2_CONCENTRATION_V1':'cat_1x2', '1X2_CONCENTRATION_V2':'cat_1x2',
     HEAVY_1X2_CONCENTRATION:'cat_1x2', SURPRISE_TEAM:'cat_1x2',
     STABLE_OVER_2_5:'cat_over', PREMIUM_OVER_2_5:'cat_over',
-    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts'
+    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts',
+    LEGACY_EARLY_MONEY_LOCK:'cat_money', LEGACY_UNDERDOG:'cat_1x2',
+    LEGACY_CONFIRMED_MONEY_V1:'cat_1x2', LEGACY_CONFIRMED_MONEY_V2:'cat_1x2',
+    LEGACY_FAKE_SHARP:'cat_1x2'
   };
   function engineDescription(id, descriptor) {
     return t(DESC[id] || 'engine_unknown_desc', descriptor.description);
@@ -107,6 +118,7 @@
     return s;
   }
   function stage(item) {
+    if (item.kind === 'LEGACY_SIGNAL') return t('legacy_recorded','Eski motor kaydı');
     if (item.stage_status === 'T8_HISTORICAL') return t('historical_t8','Geçmiş T-8');
     if (item.kind === 'CORRECTED') return t('reconciled','Uzlaştırma');
     if (item.kind === 'FINAL_SIGNAL') return 'T-6';
@@ -204,6 +216,7 @@
   }
   function signalRow(item) {
     var isHistory = item.stage_status === 'T8_HISTORICAL';
+    var isLegacy = item.kind === 'LEGACY_SIGNAL';
     var odds = typeof item.odds === 'number' && isFinite(item.odds)
       ? '<span class="sxf-row-odds">' + esc(t('odds','Oran')) +
         ' <b>' + item.odds.toFixed(2) + '</b></span>'
@@ -211,7 +224,7 @@
     var settled = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
     var result = settled ? '<span class="sxf-result-pill ' + (item.outcome === 'WIN' ? 'is-win' : 'is-loss') +
       '">' + esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
-    return '<div class="sxf-signal-row' + (isHistory ? ' is-archived' : '') + '">' +
+    return '<div class="sxf-signal-row' + (isHistory || isLegacy ? ' is-archived' : '') + '">' +
       '<div class="sxf-signal-pick"><span class="sxf-signal-market">' +
       esc(t('pick_heading','SİNYAL TERCİHİ')) + ' · ' +
       esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
@@ -227,6 +240,8 @@
       '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span></div>' +
       (isHistory ? '<div class="sxf-row-warning">' +
         esc(t('history_warning','T-6 kararı sonrası geçmiş ön sinyal')) + '</div>' : '') +
+      (isLegacy ? '<div class="sxf-row-warning">' +
+        esc(t('legacy_warning','Doğrulanmış eski motor kaydı; Base T-6 sinyali değildir')) + '</div>' : '') +
       '</div>';
   }
   function fixtureCard(rows) {
@@ -367,9 +382,11 @@
     if (search) current.search = String(search.value || '').toLocaleLowerCase(locale()).trim();
     if (current.payload) {
       render();
-      message(current.payload.results_source_state === 'unavailable'
-        ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
-        : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir'), 'shadow');
+      message(current.payload.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
+        ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
+        : (current.payload.results_source_state === 'unavailable'
+          ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
+          : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir')), 'shadow');
     } else if (current.errorCode) {
       renderError(current.errorCode);
     } else {
@@ -403,9 +420,11 @@
     }).then(function (data) {
       if (seq !== current.seq || overlay.hidden) return;
       current.payload = data;
-      message(data.results_source_state === 'unavailable'
-        ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
-        : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir'), 'shadow');
+      message(data.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
+        ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
+        : (data.results_source_state === 'unavailable'
+          ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
+          : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir')), 'shadow');
       render();
     }).catch(function (err) {
       if (seq !== current.seq || overlay.hidden) return;

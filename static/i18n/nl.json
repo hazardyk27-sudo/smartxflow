@@ -682,7 +682,15 @@
       "email_unverified": "Verifieer je e-mailadres om verder te gaan.",
       "membership_required": "Voor dit onderdeel is een actief lidmaatschap vereist.",
       "session_expired": "Je sessie is verlopen. Log opnieuw in.",
-      "late_evaluation": "Achteraf berekend"
+      "late_evaluation": "Achteraf berekend",
+      "legacy_recorded": "Record van oudere engine",
+      "legacy_warning": "Geverifieerd oud enginerecord; geen Base T-6-signaal",
+      "mixed_notice": "BASE SHADOW + OUDE ENGINE-RECORDS · Geen wedadvies",
+      "legacy_early_desc": "Eerdere Early Money Lock-signalen",
+      "legacy_underdog_desc": "Eerdere Underdog Pressure-signalen",
+      "legacy_cm_v1_desc": "Eerdere Confirmed Money-signalen",
+      "legacy_cm_v2_desc": "Eerdere Confirmed Money V2-signalen",
+      "legacy_fake_sharp_desc": "Eerdere omgekeerde quotebewegingen"
     },
     "live": {
       "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",

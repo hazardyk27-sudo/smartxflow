@@ -82,3 +82,10 @@ Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
 
 - Telemetry now distinguishes `healthy_cycle` (safe lease execution) from `coverage_state=DEGRADED|UNVERIFIED`, with `discovery_fresh` independently computed from actual last-scanned time; a stale discovery cursor is never falsely marked coverage-healthy.
 - The proposed lane RPC is also tested under a two-worker PostgreSQL contention race; stale tokens cannot renew the resulting lease. No live DB migration was applied.
+
+## Part 3 verified identity join and feed wiring (preview only)
+
+- Existing PRO-only `/api/base-signals/feed` now combines Base shadow with five **explicitly legacy-prefixed** old motor sources, preserving their original selection. Distinct provenance prevents treating an early-money historical alert as a Base checkpoint hit.
+- The legacy server-side adapter uses capped pagination, 21-day bounded history, exact team/league/TR date, authentic unique physical fixture matching and exact ISO kickoff where supplied; ambiguous/missing identity records are reported as excluded, not fabricated. Duplicate records of the same engine/fixture/selection are collapsed with an explicit dedupe counter.
+- Legacy price at detection and verified final score are not present in enough source evidence, so their cards intentionally say price unavailable and score unverified. Base existing independent verified scoreboard logic remains unchanged.
+- Last observed 20 October: 9 Base raw signal events across 3 physical fixtures, 14 legacy rows across 12 team pairings; Napoli–Bodø/Glimt had two Underdog records for the same team/selection, making 13 legacy displayed records across 12 fixtures and 22 total displayed signal records across 15 fixtures assuming continued consistency. This is **not verification of the user's 21 distinct fixtures**.

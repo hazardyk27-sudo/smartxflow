@@ -682,7 +682,15 @@
       "email_unverified": "Verifica il tuo indirizzo e-mail per continuare.",
       "membership_required": "Per questa sezione è richiesto un abbonamento attivo.",
       "session_expired": "La sessione è scaduta. Accedi di nuovo.",
-      "late_evaluation": "Calcolato retrospettivamente"
+      "late_evaluation": "Calcolato retrospettivamente",
+      "legacy_recorded": "Registrazione del vecchio motore",
+      "legacy_warning": "Segnale storico verificato; non è un segnale Base T-6",
+      "mixed_notice": "BASE SHADOW + MOTORI PRECEDENTI · Non è un consiglio di scommessa",
+      "legacy_early_desc": "Vecchi segnali Early Money Lock",
+      "legacy_underdog_desc": "Vecchi segnali Underdog Pressure",
+      "legacy_cm_v1_desc": "Vecchi segnali Confirmed Money",
+      "legacy_cm_v2_desc": "Vecchi segnali Confirmed Money V2",
+      "legacy_fake_sharp_desc": "Vecchi segnali di movimento inverso delle quote"
     },
     "live": {
       "pro_gerekli": "Per i dati in diretta è necessario un abbonamento <strong>Pro</strong>",

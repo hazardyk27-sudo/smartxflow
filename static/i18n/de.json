@@ -682,7 +682,15 @@
       "email_unverified": "Bestätige deine E-Mail-Adresse, um fortzufahren.",
       "membership_required": "Für diesen Bereich ist eine aktive Mitgliedschaft erforderlich.",
       "session_expired": "Deine Sitzung ist abgelaufen. Bitte erneut anmelden.",
-      "late_evaluation": "Nachträglich berechnet"
+      "late_evaluation": "Nachträglich berechnet",
+      "legacy_recorded": "Aufzeichnung eines älteren Motors",
+      "legacy_warning": "Verifizierter älterer Motor; kein Base-T-6-Signal",
+      "mixed_notice": "BASE-SHADOW + ALTE MOTOREN · Keine Wettempfehlung",
+      "legacy_early_desc": "Frühere Early-Money-Lock-Signale",
+      "legacy_underdog_desc": "Frühere Underdog-Drucksignale",
+      "legacy_cm_v1_desc": "Frühere Confirmed-Money-Signale",
+      "legacy_cm_v2_desc": "Frühere Confirmed-Money-V2-Signale",
+      "legacy_fake_sharp_desc": "Frühere Gegenbewegungs-Signale"
     },
     "live": {
       "pro_gerekli": "Für Live-Daten ist eine <strong>Pro</strong>-Mitgliedschaft erforderlich",
