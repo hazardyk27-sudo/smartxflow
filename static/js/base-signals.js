@@ -199,7 +199,7 @@
       esc(fmt('signals_count','{count} sinyal',{count:today.length})) +
       '</span>' + (last ? '<span class="sxf-last-day">' +
         esc(fmt('last_seen','Son sinyal: {date}', {date:shortDay(last)})) +
-        '</span>' : '') + '</span><span class="sxf-tile-open"' aria-hidden="true">↗</span></span>' +
+        '</span>' : '') + '</span><span class="sxf-tile-open" aria-hidden="true">↗</span></span>' +
       '</button>';
   }
   function signalRow(item) {
