@@ -1,0 +1,79 @@
+name: Base Hetzner supervised prioritized one-cycle 20261020
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-priority-supervised-once-20261020.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-supervised-20261020
+  cancel-in-progress: false
+
+jobs:
+  supervised-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate production SHA and run a single gated priority cycle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 8m
+          script: |
+            set -euo pipefail
+            PROD_SHA=609eea70ef409aad756074e198b839d82fa3e838
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            test -s /opt/smartxflow/.env
+            test -f /opt/smartxflow/base_signal_engine/hetzner_worker.py
+            test -f /opt/smartxflow/venv/bin/python
+            # A prior temporary worker must not compete for the same runway.
+            if [ "$(systemctl is-active sxf-base-durable-shadow-20261019.service || true)" = active ]; then
+              echo "PREFLIGHT_STOP: earlier shadow worker still active"; exit 1
+            fi
+            if [ "$(systemctl is-active sxf-base-priority-shadow-20261020.service || true)" = active ]; then
+              echo "PREFLIGHT_STOP: priority worker already active"; exit 1
+            fi
+            for svc in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$svc")" = active || { echo "SERVICE_DOWN:$svc"; exit 1; }
+            done
+            echo "BASE_ONCE_PREFLIGHT_OK SHA=$PROD_SHA"
+            # Run in its own transient isolated service; no tracked file edits,
+            # no permanent unit install, no source modifications.
+            systemd-run --unit=sxf-base-priority-once-20261020 --wait --pipe --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_PRIORITY_LANES_APPROVED=yes \
+              --setenv=SXF_BASE_WORKER_ID=priority-once-20261020 \
+              --property=Type=oneshot \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property=WorkingDirectory=/opt/smartxflow \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=PrivateDevices=yes \
+              --property=MemoryMax=256M \
+              --property=TasksMax=32 \
+              --property=TimeoutStartSec=210 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+                --once --near-term-discovery --near-term-hour-offset=6 \
+                --priority-lanes --max-jobs=6 --max-reconcile=0
+            echo "BASE_ONCE_COMPLETED"
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for svc in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$svc")" = active || { echo "POSTCHECK_DOWN:$svc"; exit 1; }
+            done
+            echo "BASE_SUPERVISED_ONCE_PASS PROD_SHA=$PROD_SHA"
