@@ -216,3 +216,37 @@ def test_unknown_near_term_source_failure_still_stops_worker(monkeypatch):
     assert report["near_term_status"]=="ERROR_VALUEERROR"
     assert report["healthy_cycle"] is False
     assert report["near_term_capacity_limited"] is False
+
+
+def test_production_priority_worker_can_use_bounded_2500_due_backlog(monkeypatch):
+    """The previous 1200 cap blocked legitimate heavy-match fanout forever."""
+    monkeypatch.setattr(worker,"bounded_cursor_discovery_once",lambda *a,**kw: {
+        "status":"PAUSED_BACKLOG","enqueued":0,"fixtures":0,
+        "pending_due":1128,"paused":True,"uncertain":False})
+    received=[]
+    def urgent(*a,**kw):
+        received.append(kw["max_pending_due"])
+        return {"status":"ENQUEUED","enqueued":11,"fixtures":1,"pending_due":1128,
+                "window_start":NOW.isoformat(),"window_end":NOW.isoformat()}
+    monkeypatch.setattr(worker,"near_term_discovery_once",urgent)
+    monkeypatch.setattr(worker,"execute_claims",lambda *a,**kw:{
+        "claimed":0,"completed":0,"waiting_data":0,"retry":0,
+        "lease_lost":0,"commit_uncertain":0})
+    class Health:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":1128,
+                "expired_leases":0,"oldest_due_seconds":50000},
+                "reconciliation_queue":{"pending_due":0,"expired_leases":0},
+                "discovery_cursor":{"initialized":True,
+                    "last_scanned_at":NOW.isoformat()}}
+    r=worker.run_cycle(None,Health(),worker_id="prod",now=NOW,
+        near_term=True,near_term_rotation=True,priority_lanes=True,
+        max_jobs=3,max_reconcile=0)
+    assert r["near_term_status"]=="ENQUEUED"
+    assert r["healthy_cycle"] is True
+    assert received==[2500]
+    received.clear()
+    worker.run_cycle(None,Health(),worker_id="old",now=NOW,
+        near_term=True,near_term_rotation=True,priority_lanes=False,
+        max_jobs=1,max_reconcile=0)
+    assert received==[1200]

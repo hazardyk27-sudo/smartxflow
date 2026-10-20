@@ -1,10 +1,13 @@
-# SOURCE ONLY: initial activation requires exact approved GitHub main SHA.
-# Does not modify any legacy SXF signal tables, fixtures or snapshot source.
+# Permanently installed, operator-approved Base discovery and checkpoint worker.
+# The canonical production main SHA is installed by deploy/sync_runtime_units.sh.
+# Only service_role via /opt/smartxflow/.env; no agent, cron or ChatGPT dependency.
+# /etc/smartxflow/base-worker.env holds NON-SECRET explicit activation gates.
 [Unit]
-Description=SmartXFlow Base durable checkpoint worker (Hetzner)
+Description=SmartXFlow Base autonomous fixture discovery and signal worker
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=/opt/smartxflow/base_signal_engine/hetzner_worker.py
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -12,16 +15,16 @@ User=smartxflow
 Group=smartxflow
 WorkingDirectory=/opt/smartxflow
 EnvironmentFile=/opt/smartxflow/.env
-EnvironmentFile=-/etc/smartxflow/base-worker.env
-Environment=SXF_BASE_WORKER_ID=prod-1
-ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --max-jobs 12 --max-reconcile 2 --lookback-days 1 --interval-seconds 60
+EnvironmentFile=/etc/smartxflow/base-worker.env
+Environment=SXF_BASE_WORKER_ID=prod-autonomous-1
+ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --near-term-discovery --near-term-rotation --priority-lanes --max-jobs 12 --max-reconcile 1 --interval-seconds 60
 Restart=on-failure
-# Exit 3 means lease/commit outcome is ambiguous; exit 4 means the
-# discovery cursor has not been explicitly initialized. Both require an
-# operator, not an automatic restart that repeatedly claims or polls work.
+# STOP indefinitely on uncertain database lease/commit or missing explicit
+# discovery initialization; never replay such errors without operator review.
 RestartPreventExitStatus=3 4
-RestartSec=90
-TimeoutStopSec=40
+RestartSec=120
+TimeoutStopSec=45
+KillSignal=SIGTERM
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true

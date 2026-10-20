@@ -19,6 +19,7 @@ required=(
   "$APP_DIR/deploy/systemd/smartxflow-live.service"
   "$APP_DIR/deploy/systemd/smartxflow-poly.service"
   "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service"
+  "$APP_DIR/deploy/systemd/smartxflow-base-worker.service"
   "$APP_DIR/deploy/smartxflow-sinyal.service"
   "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service"
   "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer"
@@ -41,6 +42,9 @@ as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-alarm.servi
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-live.service" "$SYSTEMD_DIR/smartxflow-live.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-poly.service" "$SYSTEMD_DIR/smartxflow-poly.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service" "$SYSTEMD_DIR/smartxflow-predictor-orchestrator.service"
+# Copy only: the activation workflow verifies DB gates and removes the old
+# temporary Base unit before enabling/starting this unit independently.
+as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-base-worker.service" "$SYSTEMD_DIR/smartxflow-base-worker.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/smartxflow-sinyal.service" "$SYSTEMD_DIR/smartxflow-sinyal.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.timer" "$SYSTEMD_DIR/smartxflow-learning-archive-prematch.timer"

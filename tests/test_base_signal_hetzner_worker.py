@@ -82,7 +82,7 @@ def test_cli_requires_explicit_approval(monkeypatch):
         app.main(["--once"])
 
 
-def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
+def test_permanent_base_worker_requires_operator_gates_and_is_installed_by_deploy():
     root=Path(__file__).resolve().parents[1]
     s=(root/"deploy/systemd/smartxflow-base-worker.service").read_text()
     sync=(root/"deploy/sync_runtime_units.sh").read_text()
@@ -91,8 +91,14 @@ def test_hetzner_worker_is_isolated_and_cannot_auto_start_before_approval():
     assert "MemoryMax=320M" in s and "Restart=on-failure" in s
     assert "RestartPreventExitStatus=3 4" in s  # Unknown commit or missing cursor => operator
     assert "SXF_BASE_DURABLE_WORKER_APPROVED=yes" not in s
-    assert "smartxflow-base-worker.service" not in sync
+    assert "EnvironmentFile=/etc/smartxflow/base-worker.env" in s
+    assert "--near-term-discovery --near-term-rotation --priority-lanes" in s
+    assert "RuntimeMaxSec=" not in s
+    assert "WantedBy=multi-user.target" in s
+    assert "StartLimitIntervalSec=0" in s
+    assert "smartxflow-base-worker.service" in sync
     assert "systemctl start" not in s
+    assert "enable \\" not in sync.split('smartxflow-base-worker.service')[-1].split('echo "UNIT_SYNC_OK"')[0] or "smartxflow-base-worker.service \\" not in sync
 
 
 def test_one_shot_pending_job_mode_skips_discovery_and_reconciliation(monkeypatch,capsys):

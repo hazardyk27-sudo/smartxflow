@@ -92,7 +92,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
                 report["near_term_rotation_cycle_minute_utc"] = slot["cycle_minute_utc"]
             urgent = near_term_discovery_once(
                 reader, store, now=now, hour_offset=selected_offset,
-                max_fixtures=50, max_pending_due=1200)
+                max_fixtures=50, max_pending_due=(2500 if priority_lanes else 1200))
             report["near_term_hour_offset"] = selected_offset
             report["near_term_status"] = urgent["status"]
             report["near_term_enqueued"] = urgent["enqueued"]
