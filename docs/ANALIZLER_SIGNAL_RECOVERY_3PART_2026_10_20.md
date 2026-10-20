@@ -1,0 +1,73 @@
+# SmartXFlow Analizler — 3-Part Signal Recovery Plan (20 October 2026)
+
+**Only GitHub \`preview\` changes.** No Replit, personal computer, Hetzner
+deployment, SQL migration, Supabase writes, changes to frozen engine rules, or
+automatic promotion. Production release needs separate user approval.
+
+## Observed incident (read-only evidence; not a production-fix claim)
+
+At approximately 17:30 Europe/Istanbul on 20 October:
+
+- Existing \`sxf_base_health_snapshot()\` returned \`checkpoint_queue.pending_due=467\`,
+  while the contiguous discovery gate is \`250\`. \`sxf_base_discovery_cursors\`
+  reported \`last_scanned_at=2026-10-20T03:58:02Z\`.
+- Current-day Base signal events were nine records on three physical fixtures.
+  The distinct match count must never be confused with event count.
+- The existing legacy engine tables had 14 rows across Early Money Lock and
+  Underdog, not all physical fixtures with canonical \`fixture_uid\`.
+- The last Base durable job completion was fresh; execution was not
+  entirely stopped, but discovery and timely upcoming coverage were lagging.
+- The user's 21-match total is not yet independently reconciled to a
+  canonical fixture-by-fixture, source-by-source 21-row manifest.
+
+### Part 1 / 3 — Near-term discovery isolation (THIS COMMIT)
+
+1. Create an explicitly opt-in, **one UTC kickoff-hour at a time**, durable,
+   idempotent upcoming fixture discovery path independent of the historical
+   \`pending_due>=250\` pause.
+2. Preserve the frozen 11 checkpoint tasks per fixture, canonical physical
+   fixture identity, full catalog pagination and capacity upper bounds.
+   Never truncate a busy window, advance a false watermark, fabricate signals
+   or silently bypass lease/ACK uncertainty.
+3. Add unit and regression tests, including the existing worker's default-off
+   policy, backlog/capacity pauses and the no-migration/no-deployment boundary.
+
+**Part 1 boundary:** \`--near-term-discovery --near-term-hour-offset=N\`
+selects exactly one bounded window (\`-1<=N<=12\`) only on an **already
+separately authorized** durable worker. Default is OFF. It is not automatic
+12-hour coverage, live claim priority or an active production fix.
+Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
+
+### Part 2 / 3 — Timely checkpoint execution and backlog control (NOT STARTED)
+
+1. Introduce a deterministic bounded hour-bucket rotation with restart-safe
+   scan diagnostics, never claiming future-hour coverage prematurely.
+2. Separate urgent *due* T-8/T-6 work capacity from historical
+   \`WAITING_DATA\`/reconciliation debt; explicitly test fair scheduling,
+   lease fencing and failed/unknown ACK handling. Preserve retrospective
+   timing labels instead of presenting late results as prematch real-time.
+3. Add diagnostic metrics/alerts for discovery staleness, due checkpoint
+   age and missing fixture coverage; run disposable and GitHub CI tests.
+
+### Part 3 / 3 — Complete Analizler visibility and end-to-end acceptance (NOT STARTED)
+
+1. Reconcile **each claimed 21-match signal** by canonical physical identity,
+   origin table, motor, kickoff time, stage and API visibility; preserve
+   legacy and Base engines as separately named provenance groups.
+2. Implement authorized, bounded server-side adapter(s) for legacy
+   historical signals and show complete verified Base motor cards.
+   No private table exposed to browser and no user-defined fake signals.
+3. Test date/identity dedupe, PRO auth, API paging, desktop/mobile 7-locale
+   render and no-score-fabrication cases. Prepare an exact-SHA approval
+   package; do **not** deploy without user approval.
+
+## Acceptance for whole project
+
+- Every real engine's expected due scan has a diagnostic audit trail;
+  no stale discovery cursor is reported green.
+- Daily unique fixture counts distinguish raw rows, stage events,
+  source duplicates, source-incomplete records and truly final signals.
+- The app can show each authorized genuine signal in its proper engine
+  while keeping late/unconfirmed data explicit.
+- Database writes, worker activation and Hetzner release remain blocked
+  unless separately authorized and verified.

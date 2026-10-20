@@ -15,7 +15,7 @@ import os
 import sys
 import time
 
-from .discovery import bounded_cursor_discovery_once
+from .discovery import bounded_cursor_discovery_once, near_term_discovery_once
 from .durable_runtime import execute_claims
 from .reader import SupabaseMoneywayReader
 from .reconcile_runtime import reconcile_once
@@ -23,18 +23,25 @@ from .storage import DurableStoreError, SupabaseCheckpointStore
 
 def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               max_jobs: int = 12, max_reconcile: int = 2,
-              lookback_days: int = 1) -> dict:
+              lookback_days: int = 1, near_term: bool = False,
+              near_term_hour_offset: int = 0) -> dict:
     """Work is bounded, independently retryable, and never invents successful ACKs."""
     if not worker_id or len(worker_id)>100 or not (1<=max_jobs<=30) or not (
             0<=max_reconcile<=5) or not (1<=lookback_days<=7):
         raise ValueError("unsafe worker bounds")
+    if type(near_term) is not bool or (near_term and not discover):
+        raise ValueError("near-term discovery requires explicit normal discovery")
+    if type(near_term_hour_offset) is not int or not -1 <= near_term_hour_offset <= 12:
+        raise ValueError("unsafe near-term hour offset")
     report={"mode":"HETZNER_BASE_DURABLE","discovery":"SKIPPED",
             "enqueued":0,"discovered_fixtures":0,"superseded":0,
             "claimed":0,"completed":0,"waiting_data":0,"retried":0,
             "lease_uncertain":0,"commit_uncertain":0,
             "reconcile_claimed":0,"reconcile_completed":0,
             "reconcile_waiting_data":0,"reconcile_uncertain":0,
-            "source_capture_enabled":False}
+            "source_capture_enabled":False,
+            "near_term_status":"DISABLED","near_term_enqueued":0,
+            "near_term_fixtures":0,"near_term_cursor_advanced":False}
     if discover:
         try:
             status=bounded_cursor_discovery_once(
@@ -58,6 +65,28 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         except Exception as exc:
             # Catalog errors do not discard previously enqueued checkpoints.
             report["discovery"]="ERROR_"+type(exc).__name__.upper()[:50]
+
+    # Optional Part 1 safety path. It does not change the historical cursor.
+    # Default OFF; activating the guarded worker and this mode are separate
+    # operator decisions. Never run after discovery uncertainty or failure.
+    if near_term and report["discovery"] in ("OK", "IDLE", "PAUSED_BACKLOG"):
+        try:
+            urgent = near_term_discovery_once(
+                reader, store, hour_offset=near_term_hour_offset,
+                max_fixtures=50, max_pending_due=1200)
+            report["near_term_status"] = urgent["status"]
+            report["near_term_enqueued"] = urgent["enqueued"]
+            report["near_term_fixtures"] = urgent["fixtures"]
+            report["near_term_pending_before"] = urgent["pending_due"]
+            report["near_term_window_start"] = urgent["window_start"]
+            report["near_term_window_end"] = urgent["window_end"]
+        except DurableStoreError:
+            # A lost enqueue ACK is ambiguous; do not continue claiming jobs.
+            raise
+        except Exception as exc:
+            report["near_term_status"] = "ERROR_" + type(exc).__name__.upper()[:50]
+    elif near_term:
+        report["near_term_status"] = "SKIPPED_DISCOVERY_UNHEALTHY"
 
     for _ in range(max_jobs):
         result=execute_claims(reader,store,worker_id=worker_id,limit=1)
@@ -109,6 +138,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED","IDLE","PAUSED_BACKLOG")
        and not report["lease_uncertain"] and not report["commit_uncertain"]
        and not report["reconcile_uncertain"]
+       and (not near_term or
+            report["near_term_status"] in ("ENQUEUED", "IDEMPOTENT", "EMPTY"))
        and report["checkpoint_expired_leases"]==0
        and report["reconcile_expired_leases"]==0)
     report["production_release_verified"]=False
@@ -125,6 +156,10 @@ def main(argv=None) -> int:
     parser.add_argument("--lookback-days",type=int,default=1,
                         help="legacy CLI compatibility; durable cursor controls discovery")
     parser.add_argument("--interval-seconds",type=int,default=60)
+    parser.add_argument("--near-term-discovery",action="store_true",
+                        help="opt-in bounded single-hour scan; default disabled")
+    parser.add_argument("--near-term-hour-offset",type=int,default=0,
+                        help="UTC hour bucket relative to current hour, -1..12")
     args=parser.parse_args(argv)
     if os.environ.get("SXF_BASE_DURABLE_WORKER_APPROVED")!="yes":
         parser.error("durable worker disabled until separately approved production release")
@@ -133,6 +168,11 @@ def main(argv=None) -> int:
     if not (1<=args.max_jobs<=30 and 0<=args.max_reconcile<=5
             and 1<=args.lookback_days<=7 and 30<=args.interval_seconds<=600):
         parser.error("unsafe work/sleep bounds")
+    if (args.near_term_discovery and args.no_discovery) or (
+            args.near_term_hour_offset != 0 and not args.near_term_discovery):
+        parser.error("near-term discovery requires explicit --near-term-discovery and normal discovery")
+    if not -1 <= args.near_term_hour_offset <= 12:
+        parser.error("unsafe near-term hour offset")
     if args.no_discovery and not args.once:
         parser.error("--no-discovery requires --once")
     url=os.environ.get("SUPABASE_URL","")
@@ -148,10 +188,12 @@ def main(argv=None) -> int:
     iteration=0
     while True:
         try:
+            optional = ({"near_term": True, "near_term_hour_offset": args.near_term_hour_offset}
+                        if args.near_term_discovery else {})
             report=run_cycle(reader,store,worker_id=worker_id,
                 max_jobs=args.max_jobs,max_reconcile=args.max_reconcile,
                 lookback_days=args.lookback_days,
-                discover=(not args.no_discovery))
+                discover=(not args.no_discovery), **optional)
             print(json.dumps(report,sort_keys=True),flush=True)
             if report["lease_uncertain"] or report["commit_uncertain"] or report["reconcile_uncertain"]:
                 return 3  # External operator review rather than blind retry.

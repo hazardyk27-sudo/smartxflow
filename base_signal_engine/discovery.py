@@ -156,3 +156,70 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
             "enqueued": result["enqueued"], "pending_due": pending,
             "advanced": result["advanced"], "uncertain": result["uncertain"],
             "paused": False}
+
+
+def near_term_discovery_once(reader: Any, store: Any, *,
+                             now: datetime | None = None,
+                             catalog: Any = None,
+                             hour_offset: int = 0,
+                             max_fixtures: int = 50,
+                             max_pending_due: int = 1200) -> dict:
+    """Operator-opt-in, one-hour near-term discovery independent of old cursor lag.
+
+    Scans exactly ONE UTC kickoff hour. The caller must rotate offsets
+    deliberately; a successful scan is NOT proof of complete source capture.
+    This path never claims or advances the contiguous historical cursor,
+    modifies a signal, or pretends a delayed checkpoint was timely.
+
+    At most 50 physical fixtures are fully enumerated by the existing
+    idempotent 11-job RPC. Capacity uses a worst-case upper bound (rather than
+    assuming previous jobs already exist) and refuses work instead of slicing
+    fixtures or silently overrunning a known backlog.
+    """
+    if (type(hour_offset) is not int or not -1 <= hour_offset <= 12 or
+            type(max_fixtures) is not int or not 1 <= max_fixtures <= 50 or
+            type(max_pending_due) is not int or not 250 <= max_pending_due <= 2500):
+        raise ValueError("unsafe near-term discovery settings")
+    at = _parse_time(now or datetime.now(timezone.utc))
+    begin = at.replace(minute=0, second=0, microsecond=0) + timedelta(hours=hour_offset)
+    end = begin + timedelta(hours=1)
+    health = store.health_snapshot()
+    queue = health.get("checkpoint_queue") if isinstance(health, dict) else None
+    cursor = health.get("discovery_cursor") if isinstance(health, dict) else None
+    if not isinstance(queue, dict) or not isinstance(cursor, dict):
+        raise DurableStoreError("missing near-term discovery health")
+    pending = queue.get("pending_due")
+    if type(pending) is not int or pending < 0:
+        raise DurableStoreError("invalid near-term due backlog")
+    report = {"status": "EMPTY", "fixtures": 0, "enqueued": 0,
+              "pending_due": pending, "paused": False, "uncertain": False,
+              "cursor_advanced": False, "source_capture_verified": False,
+              "window_start": begin.isoformat(), "window_end": end.isoformat()}
+    if cursor.get("initialized") is not True:
+        report["status"] = "UNINITIALIZED"
+        return report
+    if pending >= max_pending_due:
+        report["status"], report["paused"] = "PAUSED_BACKLOG", True
+        return report
+
+    source = catalog or SupabaseFixtureCatalog(reader)
+    fixtures = source.list_between(begin, end)
+    report["fixtures"] = len(fixtures)
+    if len(fixtures) > max_fixtures:
+        report["status"], report["paused"] = "WINDOW_TOO_LARGE", True
+        return report
+    # Full fanout is required by the frozen checkpoint model. Never insert
+    # only preferred bets, silently skip historic jobs or synthesize a signal.
+    if pending + len(fixtures) * 11 > max_pending_due:
+        report["status"], report["paused"] = "PAUSED_CAPACITY", True
+        return report
+    if not fixtures:
+        return report
+    # An uncertain HTTP ACK may mean a successful SQL commit: propagate it
+    # for operator review, rather than blindly claiming repeated success.
+    count = store.enqueue(fixtures)
+    if type(count) is not int or not 0 <= count <= len(fixtures) * 11:
+        raise DurableStoreError("invalid near-term enqueue result")
+    report["enqueued"] = count
+    report["status"] = "ENQUEUED" if count else "IDEMPOTENT"
+    return report
