@@ -107,7 +107,7 @@ def main():
             page.locator("#sxfSignalRefresh").click()
             page.wait_for_function(
                 "(text) => document.querySelector('#sxfSignalNotice').textContent === text",
-                locales[LANGS[-1]]["app"]["v4"]["legacy_unavailable_notice"])
+                arg=locales[LANGS[-1]]["app"]["v4"]["legacy_unavailable_notice"])
             page.locator("#sxfSignalBack").click()
             page.locator(".sxf-legacy-source-alert").wait_for()
             for code in LANGS:
