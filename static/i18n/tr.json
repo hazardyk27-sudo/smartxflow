@@ -522,7 +522,15 @@
       "odds_short": "Oran",
       "total": "Toplam",
       "pending_lbl": "Bekleyen",
-      "load_failed_short": "Yüklenemedi"
+      "load_failed_short": "Yüklenemedi",
+      "match_load_start_failed": "Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.",
+      "match_license_error": "Lisans doğrulanamadı. Yeniden giriş yapmayı deneyin.",
+      "match_load_failed": "Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+      "session_unverified": "Hesap oturumu doğrulanamadı. Sayfayı yenileyip tekrar deneyin.",
+      "license_init_failed": "Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.",
+      "match_retry_page": "Sayfayı yenile",
+      "copied": "Kopyalandı!",
+      "logout_confirm": "Çıkış yapmak istediğinizden emin misiniz?"
     },
     "lic": {
       "activate": "Lisansi Aktif Et",

@@ -522,7 +522,15 @@
       "odds_short": "Quota",
       "total": "Totale",
       "pending_lbl": "In attesa",
-      "load_failed_short": "Caricamento non riuscito"
+      "load_failed_short": "Caricamento non riuscito",
+      "match_load_start_failed": "Impossibile avviare il caricamento delle partite. Riprova.",
+      "match_license_error": "Verifica della licenza non riuscita. Accedi nuovamente.",
+      "match_load_failed": "Impossibile caricare le partite. Controlla la connessione e riprova.",
+      "session_unverified": "Impossibile verificare la sessione. Aggiorna la pagina e riprova.",
+      "license_init_failed": "Impossibile completare la verifica della licenza. Aggiorna la pagina e riprova.",
+      "match_retry_page": "Aggiorna pagina",
+      "copied": "Copiato!",
+      "logout_confirm": "Vuoi davvero uscire?"
     },
     "lic": {
       "activate": "Attiva Licenza",

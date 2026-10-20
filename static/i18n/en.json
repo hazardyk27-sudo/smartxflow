@@ -522,7 +522,15 @@
       "odds_short": "Odds",
       "total": "Total",
       "pending_lbl": "Pending",
-      "load_failed_short": "Failed to load"
+      "load_failed_short": "Failed to load",
+      "match_load_start_failed": "Could not start loading matches. Please try again.",
+      "match_license_error": "License verification failed. Please sign in again.",
+      "match_load_failed": "Could not load matches. Check your connection and try again.",
+      "session_unverified": "Your session could not be verified. Refresh the page and try again.",
+      "license_init_failed": "License verification could not be completed. Refresh the page and try again.",
+      "match_retry_page": "Refresh page",
+      "copied": "Copied!",
+      "logout_confirm": "Are you sure you want to log out?"
     },
     "lic": {
       "activate": "Activate License",

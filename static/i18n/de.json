@@ -522,7 +522,15 @@
       "odds_short": "Quote",
       "total": "Gesamt",
       "pending_lbl": "Ausstehend",
-      "load_failed_short": "Laden fehlgeschlagen"
+      "load_failed_short": "Laden fehlgeschlagen",
+      "match_load_start_failed": "Das Laden der Spielliste konnte nicht gestartet werden. Bitte erneut versuchen.",
+      "match_license_error": "Die Lizenz konnte nicht geprüft werden. Bitte erneut anmelden.",
+      "match_load_failed": "Spiele konnten nicht geladen werden. Verbindung prüfen und erneut versuchen.",
+      "session_unverified": "Ihre Sitzung konnte nicht bestätigt werden. Seite neu laden und erneut versuchen.",
+      "license_init_failed": "Die Lizenzprüfung konnte nicht abgeschlossen werden. Seite neu laden und erneut versuchen.",
+      "match_retry_page": "Seite neu laden",
+      "copied": "Kopiert!",
+      "logout_confirm": "Möchten Sie sich wirklich abmelden?"
     },
     "lic": {
       "activate": "Lizenz Aktivieren",

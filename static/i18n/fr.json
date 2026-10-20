@@ -522,7 +522,15 @@
       "odds_short": "Cote",
       "total": "Total",
       "pending_lbl": "En attente",
-      "load_failed_short": "Échec du chargement"
+      "load_failed_short": "Échec du chargement",
+      "match_load_start_failed": "Impossible de lancer le chargement des matchs. Réessayez.",
+      "match_license_error": "La vérification de la licence a échoué. Reconnectez-vous.",
+      "match_load_failed": "Impossible de charger les matchs. Vérifiez votre connexion et réessayez.",
+      "session_unverified": "Impossible de vérifier votre session. Actualisez la page et réessayez.",
+      "license_init_failed": "Impossible de terminer la vérification de la licence. Actualisez la page et réessayez.",
+      "match_retry_page": "Actualiser la page",
+      "copied": "Copié !",
+      "logout_confirm": "Voulez-vous vraiment vous déconnecter ?"
     },
     "lic": {
       "activate": "Activer la Licence",

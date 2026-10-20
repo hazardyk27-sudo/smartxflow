@@ -522,7 +522,15 @@
       "odds_short": "Cuota",
       "total": "Total",
       "pending_lbl": "Pendiente",
-      "load_failed_short": "No se pudo cargar"
+      "load_failed_short": "No se pudo cargar",
+      "match_load_start_failed": "No se pudo iniciar la carga de partidos. Inténtalo de nuevo.",
+      "match_license_error": "No se pudo verificar la licencia. Vuelve a iniciar sesión.",
+      "match_load_failed": "No se pudieron cargar los partidos. Comprueba la conexión e inténtalo de nuevo.",
+      "session_unverified": "No se pudo verificar tu sesión. Actualiza la página e inténtalo de nuevo.",
+      "license_init_failed": "No se pudo completar la verificación de la licencia. Actualiza la página e inténtalo de nuevo.",
+      "match_retry_page": "Actualizar página",
+      "copied": "¡Copiado!",
+      "logout_confirm": "¿Seguro que quieres cerrar sesión?"
     },
     "lic": {
       "activate": "Activar Licencia",

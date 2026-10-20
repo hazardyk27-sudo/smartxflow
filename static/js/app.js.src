@@ -437,11 +437,11 @@ function showLicenseExpiredOverlay() {
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
         overlay.innerHTML = '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
             + '<div style="font-size:48px;margin-bottom:16px;">⏳</div>'
-            + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Lisansınızın Süresi Doldu</h2>'
-            + '<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
-            + '<a href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
+            + '<h2 data-i18n="app.j.license_expired_title" style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Lisansınızın Süresi Doldu</h2>'
+            + '<p data-i18n="app.j.license_expired_text" style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Lisans süreniz sona ermiştir. Uygulamayı kullanmaya devam etmek için paketinizi yenileyin.</p>'
+            + '<a data-i18n="app.j.view_packages_btn" href="/pricing" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;text-decoration:none;transition:transform 0.2s,box-shadow 0.2s;">Paketleri İncele →</a>'
             + '</div>';
-        document.body.appendChild(overlay);
+        document.body.appendChild(overlay);if(window.SXFI18n)window.SXFI18n.apply();
     }
 }
 
@@ -469,11 +469,11 @@ function showDeviceKickedOverlay() {
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
         overlay.innerHTML = '<div style="background:#1c1f23;border:1px solid #2e3238;border-radius:16px;padding:48px 40px;max-width:440px;width:90%;text-align:center;">'
             + '<div style="font-size:48px;margin-bottom:16px;">🔒</div>'
-            + '<h2 style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Başka Bir Cihazdan Giriş Yapıldı</h2>'
-            + '<p style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
-            + '<button onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
+            + '<h2 data-i18n="app.j.device_kicked_title" style="color:#f0f6fc;font-size:22px;font-weight:700;margin:0 0 12px;">Başka Bir Cihazdan Giriş Yapıldı</h2>'
+            + '<p data-i18n="app.j.device_kicked_text" style="color:#7d848c;font-size:15px;line-height:1.6;margin:0 0 28px;">Hesabınıza başka bir cihazdan giriş yapılmıştır. Aynı anda yalnızca izin verilen sayıda cihazda oturum açılabilir.</p>'
+            + '<button data-i18n="app.j.relogin_btn" onclick="deviceKickedRelogin()" style="display:inline-block;background:linear-gradient(135deg,#2BFF88,#1ae070);color:#141719;font-size:15px;font-weight:700;padding:14px 36px;border-radius:12px;border:none;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;">Tekrar Giriş Yap</button>'
             + '</div>';
-        document.body.appendChild(overlay);
+        document.body.appendChild(overlay);if(window.SXFI18n)window.SXFI18n.apply();
     }
 }
 
@@ -1235,12 +1235,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (initialMatchLoad && typeof initialMatchLoad.catch === 'function') {
             initialMatchLoad.catch(error => {
                 console.error('[Matches] Initial load failed before completion:', error);
-                if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');
+                if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.', false, 'app.j.match_load_start_failed');
             });
         }
     } catch (error) {
         console.error('[Matches] Initial load could not be started:', error);
-        if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.');
+        if (!_liveMode) renderMatchLoadError('Maç listesi yüklemesi başlatılamadı. Tekrar deneyin.', false, 'app.j.match_load_start_failed');
     }
     
     runOptionalStartupTask('analysis match hashes', fetchAnalysisMatchHashes);
@@ -1476,8 +1476,11 @@ async function _fetchMatchesWithTimeout(url, timeoutMs) {
 let _matchesMarketCache = {};
 const _MATCHES_CACHE_TTL = 90000;
 
-function renderMatchLoadError(message, reloadPage = false) {
-    const retryLabel = reloadPage ? 'Sayfayı yenile' : 'Tekrar dene';
+window.addEventListener('i18n:change',function(){const a=window._sxfMatchErrorState;if(a&&a.messageKey&&document.querySelector('.match-load-retry'))renderMatchLoadError(a.message,a.reloadPage,a.messageKey);});
+function renderMatchLoadError(message, reloadPage = false, messageKey = null) {
+    window._sxfMatchErrorState={message,reloadPage,messageKey};
+    const retryLabel=reloadPage?_t('app.j.match_retry_page','Sayfayı yenile'):_t('app.v4.retry','Tekrar dene');
+    if(messageKey)message=_t(messageKey,message);
     const errorMarkup = '<div role="alert" style="text-align:center;padding:20px;color:#b54747"><p>' +
         message + '</p><button type="button" class="match-load-retry" style="padding:8px 14px;border:0;border-radius:6px;background:#315efb;color:#fff;cursor:pointer">' +
         retryLabel + '</button></div>';
@@ -1671,7 +1674,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
                     return;
                 }
                 console.warn('[Matches] 403 License error');
-                renderMatchLoadError('Lisans doğrulanamadı. Yeniden giriş yapmayı deneyin.', true);
+                renderMatchLoadError('Lisans doğrulanamadı. Yeniden giriş yapmayı deneyin.', true, 'app.j.match_license_error');
                 return;
             }
             if (!response.ok) {
@@ -1735,7 +1738,7 @@ async function loadMatches(appendMode = false, forceNetwork = false) {
             console.error('Error loading matches:', error);
             matches = [];
             filteredMatches = [];
-            renderMatchLoadError('Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.');
+            renderMatchLoadError('Maçlar yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.', false, 'app.j.match_load_failed');
         } finally {
             if (requestId === _loadMatchesRequestId) {
                 _loadMatchesLock = false;
@@ -6205,7 +6208,7 @@ async function switchMarketAndFindMatch(targetMarket, homeLower, awayLower, home
             'dropping_ou25': 'Drop 2.5',
             'dropping_btts': 'Drop KG'
         };
-        showToast(`Maç henüz veritabanında yok. Alarm detayları kartta mevcut.`, 'info');
+        showToast(_t('app.j.toast_match_not_in_db','Maç henüz veritabanında yok. Alarm detayları kartta mevcut.'),'info');
     }
 }
 
@@ -6773,7 +6776,7 @@ function _isTestLockedMarket(market) {
 }
 
 function _showTestLockedToast(anchorEl) {
-    showToast(_TEST_LOCKED_TOAST, 'warning', anchorEl || null);
+    showToast(_t('app.j.license_required',_TEST_LOCKED_TOAST),'warning',anchorEl||null);
 }
 
 function _addTestLockIcons() {
@@ -6914,7 +6917,7 @@ async function initLicenseCheck() {
             _isLicensed = false;
             _licenseReadyResolve();
             if (typeof renderMatchLoadError === 'function') {
-                renderMatchLoadError('Hesap oturumu doğrulanamadı. Sayfayı yenileyip tekrar deneyin.', true);
+                renderMatchLoadError('Hesap oturumu doğrulanamadı. Sayfayı yenileyip tekrar deneyin.', true, 'app.j.session_unverified');
             } else {
                 showLicenseGate();
             }
@@ -6975,7 +6978,7 @@ async function initLicenseCheck() {
 }
 
 function logoutWebLicense() {
-    if (confirm('Cikis yapmak istediginize emin misiniz?')) {
+    if (confirm(_t('app.j.logout_confirm','Çıkış yapmak istediğinizden emin misiniz?'))) {
         fetch('/api/licenses/logout', { method: 'POST' }).catch(() => {});
         localStorage.removeItem(WEB_LICENSE_KEY);
         localStorage.removeItem(WEB_LICENSE_VALID_KEY);
@@ -7020,7 +7023,7 @@ function copyLicenseEmail() {
     navigator.clipboard.writeText(email).then(() => {
         if (emailText) {
             const original = emailText.textContent;
-            emailText.textContent = 'Kopyalandi!';
+            emailText.textContent = _t('app.j.copied','Kopyalandı!');
             setTimeout(() => { emailText.textContent = original; }, 1500);
         }
     }).catch(() => {
@@ -7036,7 +7039,7 @@ document.addEventListener('DOMContentLoaded', function() {
         _licenseReadyResolve();
         if (!_isLicensed) {
             if (typeof renderMatchLoadError === 'function') {
-                renderMatchLoadError('Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.', true);
+                renderMatchLoadError('Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.', true, 'app.j.license_init_failed');
             } else {
                 showLicenseGate();
             }

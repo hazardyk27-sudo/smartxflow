@@ -522,7 +522,15 @@
       "odds_short": "Odds",
       "total": "Totaal",
       "pending_lbl": "In afwachting",
-      "load_failed_short": "Laden mislukt"
+      "load_failed_short": "Laden mislukt",
+      "match_load_start_failed": "Het laden van wedstrijden kon niet starten. Probeer het opnieuw.",
+      "match_license_error": "Licentieverificatie mislukt. Log opnieuw in.",
+      "match_load_failed": "Wedstrijden konden niet worden geladen. Controleer je verbinding en probeer opnieuw.",
+      "session_unverified": "Je sessie kon niet worden geverifieerd. Vernieuw de pagina en probeer opnieuw.",
+      "license_init_failed": "Licentieverificatie kon niet worden voltooid. Vernieuw de pagina en probeer opnieuw.",
+      "match_retry_page": "Pagina vernieuwen",
+      "copied": "Gekopieerd!",
+      "logout_confirm": "Weet je zeker dat je wilt uitloggen?"
     },
     "lic": {
       "activate": "Licentie Activeren",
