@@ -502,31 +502,49 @@
         const TR_MONTHS = ['Ocak','Subat','Mart','Nisan','Mayis','Haziran','Temmuz','Agustos','Eylul','Ekim','Kasim','Aralik'];
         const TR_DAYS = ['Pazar','Pazartesi','Sali','Carsamba','Persembe','Cuma','Cumartesi'];
 
+        function analysisLocale() {
+            var code = window.SXFI18n && window.SXFI18n.current
+                ? window.SXFI18n.current() : 'tr';
+            return ({tr:'tr-TR', en:'en-GB', de:'de-DE',
+                fr:'fr-FR', nl:'nl-NL', it:'it-IT', es:'es-ES'})[code] || 'tr-TR';
+        }
+        function analysisT(key, fallback) {
+            var i = window.SXFI18n;
+            var full = 'app.j.' + key;
+            var value = i && typeof i.t === 'function' ? i.t(full) : null;
+            return value && value !== full ? value : fallback;
+        }
         function formatDateTR(dateStr) {
             try {
+                // UTC to preserve the selected day; use current language for text.
                 const parts = dateStr.split('-');
-                const d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-                return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${TR_DAYS[d.getDay()]}`;
+                const d = new Date(Date.UTC(+parts[0], +parts[1]-1, +parts[2]));
+                return new Intl.DateTimeFormat(analysisLocale(),
+                    {day:'numeric',month:'long',year:'numeric',
+                     weekday:'long',timeZone:'UTC'}).format(d);
             } catch(e) { return dateStr; }
         }
-
         function formatTimeTR(isoStr) {
             try {
                 const d = new Date(isoStr);
-                return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                return d.toLocaleString(analysisLocale(), {
+                    timeZone:'Europe/Istanbul',
+                    day:'2-digit',month:'2-digit',year:'numeric',
+                    hour:'2-digit',minute:'2-digit'});
             } catch(e) { return ''; }
         }
-
         function getResultBadge(result) {
-            if (!result) return '<span class="analysis-result-badge badge-pending">Beklemede</span>';
             const map = {
-                'won': ['Kazandı', 'badge-won'],
-                'lost': ['Kaybetti', 'badge-lost'],
-                'push': ['İade', 'badge-push'],
-                'void': ['İptal', 'badge-void']
+                'won': ['result_won', 'Kazandı', 'badge-won'],
+                'lost': ['result_lost', 'Kaybetti', 'badge-lost'],
+                'push': ['result_push', 'İade', 'badge-push'],
+                'void': ['result_void', 'İptal', 'badge-void']
             };
-            const [label, cls] = map[result] || ['Beklemede', 'badge-pending'];
-            return `<span class="analysis-result-badge ${cls}">${label}</span>`;
+            const pair = map[result];
+            const label = pair ? analysisT(pair[0],pair[1])
+                               : analysisT('awaiting','Beklemede');
+            const cls = pair ? pair[2] : 'badge-pending';
+            return '<span class="analysis-result-badge ' + cls + '">' + label + '</span>';
         }
 
         function getAvatarHtml(analyst, size) {
