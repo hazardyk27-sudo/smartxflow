@@ -89,5 +89,6 @@ def test_v4_app_native_responsive_design_contract():
     assert "@media(max-height:560px)" in css
     assert "prefers-reduced-motion:reduce" in css
     assert "sxf-signal-date-rail" in css and "sxf-engine-grid" in css
-    assert 'id="sxfBaseSignalTitle">Analizler</h2>' in html
+    assert 'id="sxfBaseSignalTitle" data-i18n="app.v4.title">Analizler</h2>' in html
     assert 'placeholder="Takım, lig veya tercih ara"' in html
+    assert 'placeholder:app.v4.search_placeholder' in html

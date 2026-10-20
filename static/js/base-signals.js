@@ -332,6 +332,8 @@
   }
   function refreshLanguage() {
     if (!getEls() || overlay.hidden) return;
+    var search = document.getElementById('sxfSignalSearch');
+    if (search) current.search = String(search.value || '').toLocaleLowerCase(locale()).trim();
     if (current.payload) {
       render();
       message(current.payload.results_source_state === 'unavailable'
@@ -345,8 +347,6 @@
       content.innerHTML = '<div class="sxf-zero"><span class="sxf-spinner"></span><p>' +
         esc(t('loading_engines','Motor kayıtları yükleniyor…')) + '</p></div>';
     }
-    var search = document.getElementById('sxfSignalSearch');
-    if (search) current.search = String(search.value || '').toLocaleLowerCase(locale()).trim();
   }
   function load() {
     if (!getEls()) return Promise.resolve();

@@ -6,8 +6,12 @@ on:
       - 'static/css/base-signals.css'
       - 'static/js/base-signals.js'
       - 'static/css/style.css'
+      - 'static/js/i18n.js'
+      - 'static/i18n/**'
       - 'templates/index.html'
       - 'tests/test_analysis_v4_browser.py'
+      - 'tests/test_analysis_v4_i18n_browser.py'
+      - 'tests/test_i18n_coverage.py'
       - '.github/workflows/analysis-v4-browser-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -26,7 +30,10 @@ jobs:
       - name: Install headless Chromium
         run: python -m playwright install --with-deps chromium
       - name: Test real V4 UI at desktop, tablet, phone, compact and landscape sizes
-        run: python tests/test_analysis_v4_browser.py
+        run: |
+          python tests/test_analysis_v4_browser.py
+          python tests/test_analysis_v4_i18n_browser.py
+          python -m unittest discover -s tests -p test_i18n_coverage.py
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
