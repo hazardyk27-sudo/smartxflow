@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Télécharger toutes les données de marché et d'alerte"
+    },
+    "tutorial": {
+      "alert_title": "Bandeau d’alertes",
+      "market_title": "Onglets des marchés",
+      "today_title": "Matchs du jour",
+      "odds_title": "Colonnes de cotes",
+      "volume_title": "Colonne du volume",
+      "dropping_title": "Cotes en baisse",
+      "alarms_title": "Panneau des alertes",
+      "guide_title": "Guide",
+      "analysis_title": "Analyses",
+      "dayfilter_title": "Filtre de jour",
+      "amount_title": "Montant",
+      "alerts_title": "Alertes",
+      "d_alert10": "Bandeau d’alertes en direct — les 10 dernières alertes détectées apparaissent ici.",
+      "d_market": "Passez des écrans Moneyway aux cotes. Consultez les marchés 1X2, 2,5 et BTTS.",
+      "d_today": "Utilisez ce bouton pour afficher les matchs du jour. Cliquez à nouveau pour retirer le filtre.",
+      "d_odds": "Les cotes actuelles s’affichent ici. Le graphique en anneau sous chaque sélection indique sa part du volume total et permet de suivre les flux.",
+      "d_volume": "Volume total d’argent sur le match. Les matchs à fort volume peuvent fournir des signaux plus fiables.",
+      "d_dropping": "Suivez la baisse des cotes sur les dernières 24 heures.",
+      "d_alarms": "Affichez et filtrez toutes les alertes, dont Sharp, Big Money et choc de volume.",
+      "d_guide": "Consultez le guide des mouvements passés pour interpréter les tendances similaires.",
+      "d_analysis": "Retrouvez les analyses, évaluations d’avant-match et commentaires de marché (réservés aux membres PRO).",
+      "d_mobile_alerts": "Bandeau d’alertes en direct — les nouveaux signaux apparaissent ici.",
+      "d_mobile_markets": "Passez de Moneyway aux cotes en baisse. L’onglet cotes indique les baisses des dernières 24 heures.",
+      "d_mobile_day": "Filtrez les matchs d’aujourd’hui ou d’hier.",
+      "d_mobile_analysis": "Analyses professionnelles et commentaires de marché (membres PRO uniquement).",
+      "d_mobile_alarms": "Affichez et filtrez tous les types d’alertes."
     }
   },
   "core": {

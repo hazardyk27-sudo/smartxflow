@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Alle markt- en alarmgegevens downloaden"
+    },
+    "tutorial": {
+      "alert_title": "Meldingenbalk",
+      "market_title": "Markttabbladen",
+      "today_title": "Wedstrijden van vandaag",
+      "odds_title": "Oddskolommen",
+      "volume_title": "Volumekolom",
+      "dropping_title": "Dalende odds",
+      "alarms_title": "Meldingenpaneel",
+      "guide_title": "Handleiding",
+      "analysis_title": "Analyses",
+      "dayfilter_title": "Dagfilter",
+      "amount_title": "Bedrag",
+      "alerts_title": "Meldingen",
+      "d_alert10": "Live meldingenbalk — hier staan de 10 meest recente meldingen.",
+      "d_market": "Wissel tussen Moneyway en Odds. Bekijk de markten 1X2, 2,5 en BTTS.",
+      "d_today": "Gebruik deze knop om wedstrijden van vandaag te filteren. Klik opnieuw om het filter te verwijderen.",
+      "d_odds": "Hier staan de actuele odds. Het ringdiagram onder elke keuze toont het aandeel van het totale geldvolume en de actuele geldstroom.",
+      "d_volume": "Totale geldvolume voor de wedstrijd. Wedstrijden met hoger volume kunnen betrouwbaardere signalen geven.",
+      "d_dropping": "Volg hoeveel de odds in de afgelopen 24 uur zijn gedaald.",
+      "d_alarms": "Bekijk en filter alle meldingen, waaronder Sharp, Big Money en volumeschok.",
+      "d_guide": "Bekijk onze handleiding over eerdere marktbewegingen om vergelijkbare patronen te herkennen.",
+      "d_analysis": "Bekijk hier professionele analyses, voorbeschouwingen en marktcommentaar (alleen PRO-leden).",
+      "d_mobile_alerts": "Live meldingenbalk — hier verschijnen nieuwe signalen.",
+      "d_mobile_markets": "Wissel tussen Moneyway en Dalende odds. Het tabblad Odds toont dalingen in de laatste 24 uur.",
+      "d_mobile_day": "Filter wedstrijden van vandaag of gisteren.",
+      "d_mobile_analysis": "Professionele wedstrijdanalyses en marktcommentaar (alleen PRO-leden).",
+      "d_mobile_alarms": "Bekijk en filter alle meldingen."
     }
   },
   "core": {

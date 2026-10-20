@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Descargar todos los datos de mercado y alertas"
+    },
+    "tutorial": {
+      "alert_title": "Cinta de alertas",
+      "market_title": "Pestañas de mercado",
+      "today_title": "Partidos de hoy",
+      "odds_title": "Columnas de cuotas",
+      "volume_title": "Columna de volumen",
+      "dropping_title": "Cuotas en descenso",
+      "alarms_title": "Panel de alertas",
+      "guide_title": "Guía",
+      "analysis_title": "Análisis",
+      "dayfilter_title": "Filtro de día",
+      "amount_title": "Importe",
+      "alerts_title": "Alertas",
+      "d_alert10": "Cinta de alertas en vivo: aquí aparecen las 10 alertas más recientes.",
+      "d_market": "Cambia entre Moneyway y Cuotas. Consulta los mercados 1X2, 2,5 y ambos marcan.",
+      "d_today": "Usa este botón para filtrar partidos de hoy. Pulsa otra vez para quitar el filtro.",
+      "d_odds": "Aquí aparecen las cuotas actuales. El gráfico circular de cada selección muestra su porcentaje del volumen total y permite seguir el flujo en tiempo real.",
+      "d_volume": "Volumen total de dinero en el partido. Los partidos con mayor volumen pueden ofrecer señales más fiables.",
+      "d_dropping": "Sigue cuánto han bajado las cuotas en las últimas 24 horas.",
+      "d_alarms": "Consulta y filtra las alertas, como Sharp, Big Money e impacto de volumen.",
+      "d_guide": "Consulta la guía de movimientos anteriores para interpretar patrones similares.",
+      "d_analysis": "Accede a análisis profesionales, evaluaciones previas y comentarios de mercado (solo miembros PRO).",
+      "d_mobile_alerts": "Cinta de alertas en vivo: aquí aparecen nuevas señales.",
+      "d_mobile_markets": "Cambia entre Moneyway y Cuotas en descenso. La pestaña de cuotas muestra las caídas de las últimas 24 horas.",
+      "d_mobile_day": "Filtra los partidos de hoy o ayer.",
+      "d_mobile_analysis": "Análisis profesionales y comentarios del mercado (solo miembros PRO).",
+      "d_mobile_alarms": "Ver y filtrar todos los tipos de alertas."
     }
   },
   "core": {

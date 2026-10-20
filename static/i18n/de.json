@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Alle Markt- und Alarmdaten herunterladen"
+    },
+    "tutorial": {
+      "alert_title": "Alarmband",
+      "market_title": "Marktregister",
+      "today_title": "Heutige Spiele",
+      "odds_title": "Quotenspalten",
+      "volume_title": "Volumenspalte",
+      "dropping_title": "Fallende Quoten",
+      "alarms_title": "Alarmübersicht",
+      "guide_title": "Leitfaden",
+      "analysis_title": "Analysen",
+      "dayfilter_title": "Tagesfilter",
+      "amount_title": "Betrag",
+      "alerts_title": "Alarme",
+      "d_alert10": "Live-Alarmband – hier erscheinen die 10 neuesten erkannten Alarme.",
+      "d_market": "Zwischen Moneyway und Quotenansicht wechseln. Die Märkte 1X2, 2,5 und BTTS ansehen.",
+      "d_today": "Mit dieser Schaltfläche nur heutige Spiele anzeigen. Erneut klicken, um den Filter aufzuheben.",
+      "d_odds": "Hier erscheinen aktuelle Wettquoten. Das Ringdiagramm unter jeder Auswahl zeigt den Anteil am Gesamtvolumen und damit den Geldfluss in Echtzeit.",
+      "d_volume": "Gesamter Geldzufluss zum Spiel. Spiele mit höherem Volumen können verlässlichere Signale liefern.",
+      "d_dropping": "Verfolgen Sie, wie stark die Quoten in den letzten 24 Stunden gefallen sind.",
+      "d_alarms": "Alle Alarmarten ansehen und filtern, einschließlich Sharp, Big Money und Volumenschock.",
+      "d_guide": "Im Leitfaden frühere Marktbewegungen ansehen, um ähnliche Muster besser zu deuten.",
+      "d_analysis": "Hier professionelle Analysen, Vorberichte und Marktkommentare abrufen (nur PRO-Mitglieder).",
+      "d_mobile_alerts": "Live-Alarmband – hier erscheinen neue Signale.",
+      "d_mobile_markets": "Zwischen Moneyway und fallenden Quoten wechseln. Der Quotenreiter zeigt Rückgänge der letzten 24 Stunden.",
+      "d_mobile_day": "Spiele von heute oder gestern filtern.",
+      "d_mobile_analysis": "Professionelle Spielanalysen und Marktkommentare (nur PRO-Mitglieder).",
+      "d_mobile_alarms": "Alle Alarmarten ansehen und filtern."
     }
   },
   "core": {

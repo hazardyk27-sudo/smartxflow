@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Download all market and alert data"
+    },
+    "tutorial": {
+      "alert_title": "Alert Ticker",
+      "market_title": "Market Tabs",
+      "today_title": "Today's Matches",
+      "odds_title": "Odds Columns",
+      "volume_title": "Volume Column",
+      "dropping_title": "Dropping Odds",
+      "alarms_title": "Alert Panel",
+      "guide_title": "Guide",
+      "analysis_title": "Analyses",
+      "dayfilter_title": "Day Filter",
+      "amount_title": "Amount",
+      "alerts_title": "Alerts",
+      "d_alert10": "Live alert ticker — the 10 most recently detected alerts appear here.",
+      "d_market": "Switch between Moneyway and Odds screens. View the 1X2, 2.5 and BTTS markets.",
+      "d_today": "Use this button to filter today's matches. Click again to remove the filter.",
+      "d_odds": "Current betting odds appear here. The donut chart under each selection shows its share of total money volume, so you can follow the flow in real time.",
+      "d_volume": "Total money volume entering the match. Higher-volume matches can provide more reliable signals.",
+      "d_dropping": "Track how far the odds have fallen over the last 24 hours.",
+      "d_alarms": "View and filter all alert types here, including Sharp, Big Money and Volume Shock.",
+      "d_guide": "Explore our guide to previous market movements and use those examples to interpret similar patterns.",
+      "d_analysis": "Access professional analyses, pre-match assessments and market commentary here (PRO members only).",
+      "d_mobile_alerts": "Live alert ticker — new signals appear here.",
+      "d_mobile_markets": "Switch between Moneyway and Dropping Odds. The Odds tab shows how far prices fell in the past 24 hours.",
+      "d_mobile_day": "Filter today's or yesterday's matches.",
+      "d_mobile_analysis": "Professional match analyses and market commentary (PRO members only).",
+      "d_mobile_alarms": "View and filter all alert types."
     }
   },
   "core": {

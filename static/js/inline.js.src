@@ -2123,6 +2123,23 @@ var tutorialStepsMobile = [
     { selector: '.mobile-alarm-btn[onclick*="toggleAlarmsSidebar"]', title: 'Alarmlar', desc: 'Tüm alarm türlerini görüntüleyin ve filtreleyin.', pos: 'bottom' }
 ];
 
+var tutorialTitleDesktopKeys=['alert_title','market_title','today_title','odds_title','volume_title','dropping_title','alarms_title','guide_title','analysis_title'];
+var tutorialDescDesktopKeys=['d_alert10','d_market','d_today','d_odds','d_volume','d_dropping','d_alarms','d_guide','d_analysis'];
+var tutorialTitleMobileKeys=['alert_title','market_title','dayfilter_title','odds_title','amount_title','guide_title','analysis_title','alerts_title'];
+var tutorialDescMobileKeys=['d_mobile_alerts','d_mobile_markets','d_mobile_day','d_odds','d_volume','d_guide','d_mobile_analysis','d_mobile_alarms'];
+function translatedTutorialStep(idx,step){
+  var mobile=isMobileView();
+  var titleKey=(mobile?tutorialTitleMobileKeys:tutorialTitleDesktopKeys)[idx];
+  var descKey=(mobile?tutorialDescMobileKeys:tutorialDescDesktopKeys)[idx];
+  return {
+    title:titleKey?_t('app.tutorial.'+titleKey,step.title):step.title,
+    desc:descKey?_t('app.tutorial.'+descKey,step.desc):step.desc
+  };
+}
+if(typeof window.addEventListener==='function')
+  window.addEventListener('i18n:change',function(){
+    if(tutorialActive) showTutorialStep(tutorialCurrentStep);
+  });
 var tutorialCurrentStep = 0;
 var tutorialActive = false;
 var tutorialOverlayEl = null;
@@ -2188,6 +2205,7 @@ function showTutorialStep(index) {
 
     tutorialCurrentStep = index;
     var step = steps[index];
+    var translated = translatedTutorialStep(index,step);
 
     if (tutorialPrevHighlight) {
         tutorialPrevHighlight.classList.remove('tutorial-highlight');
@@ -2222,10 +2240,10 @@ function showTutorialStep(index) {
     tutorialTooltipEl.innerHTML =
         '<div class="tutorial-arrow" id="tutorialArrow"></div>' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;">' +
-            '<div class="tutorial-tooltip-title">' + step.title + '</div>' +
+            '<div class="tutorial-tooltip-title">' + translated.title + '</div>' +
             '<button class="tutorial-btn tutorial-btn-skip" onclick="endTutorial()">' + _t('app.j.tut_skip','Atla') + '</button>' +
         '</div>' +
-        '<div class="tutorial-tooltip-desc">' + step.desc + '</div>' +
+        '<div class="tutorial-tooltip-desc">' + translated.desc + '</div>' +
         '<div class="tutorial-tooltip-footer">' +
             '<span class="tutorial-step-counter">' + currentVisible + ' / ' + visibleCount + '</span>' +
             '<div class="tutorial-tooltip-actions">' +

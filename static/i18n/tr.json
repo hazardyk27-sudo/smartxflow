@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Tüm market ve alarm verilerini indir"
+    },
+    "tutorial": {
+      "alert_title": "Alarm Bandı",
+      "market_title": "Piyasa Sekmeleri",
+      "today_title": "Günün Maçları",
+      "odds_title": "Oran Sütunları",
+      "volume_title": "Miktar Sütunu",
+      "dropping_title": "Oran (Dropping Odds)",
+      "alarms_title": "Alarm Paneli",
+      "guide_title": "Kılavuz",
+      "analysis_title": "Analizler",
+      "dayfilter_title": "Gün Filtresi",
+      "amount_title": "Miktar",
+      "alerts_title": "Alarmlar",
+      "d_alert10": "Canlı alarm bandı — yeni tespit edilen son 10 alarm burada gösterilir.",
+      "d_market": "Moneyway ve Oran sayfaları arasında geçiş yapın. 1X2, 2.5 ve KG marketlerini görüntüleyin.",
+      "d_today": "Sadece bugünkü maçları filtrelemek için bu butonu kullanın. Tekrar tıklayınca filtre kalkar.",
+      "d_odds": "Anlık bahis oranları burada gösterilir. Her seçenek altındaki donut grafik, o tarafa giren paranın toplam hacme oranını yüzde olarak gösterir — paranın hangi yöne aktığını anlık takip edin.",
+      "d_volume": "Maça giren toplam para miktarı. Yüksek hacimli maçlar daha güvenilir sinyal verir.",
+      "d_dropping": "Oranların son 24 saatte ne kadar düştüğünü takip edin.",
+      "d_alarms": "Tüm alarm türlerini buradan görüntüleyin ve filtreleyin. Sharp, BigMoney, Hacim Şoku gibi kategorilere göre ayırın.",
+      "d_guide": "Hareketler hakkında önceki tecrübelerimize buradan ulaşarak bilgi edinebilir ve yaşanan benzer hareketler için çıkarım yapabilirsiniz.",
+      "d_analysis": "Profesyonel analizlere buradan ulaşın. Maç öncesi değerlendirmeler ve piyasa yorumları burada paylaşılır (PRO üyelere özel).",
+      "d_mobile_alerts": "Canlı alarm bandı — yeni sinyaller burada akar.",
+      "d_mobile_markets": "Moneyway ve Dropping Odds arasında geçiş yapın. Oran sekmesinde oranların son 24 saatte ne kadar düştüğünü görebilirsiniz.",
+      "d_mobile_day": "Bugünkü veya dünkü maçları filtreleyin.",
+      "d_mobile_analysis": "Profesyonel maç analizleri ve piyasa yorumları (PRO üyelere özel).",
+      "d_mobile_alarms": "Tüm alarm türlerini görüntüleyin ve filtreleyin."
     }
   },
   "core": {

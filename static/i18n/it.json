@@ -695,6 +695,34 @@
     },
     "chart": {
       "full_txt_tooltip": "Scarica tutti i dati di mercato e degli avvisi"
+    },
+    "tutorial": {
+      "alert_title": "Barra avvisi",
+      "market_title": "Schede mercato",
+      "today_title": "Partite di oggi",
+      "odds_title": "Colonne quote",
+      "volume_title": "Colonna volume",
+      "dropping_title": "Quote in calo",
+      "alarms_title": "Pannello avvisi",
+      "guide_title": "Guida",
+      "analysis_title": "Analisi",
+      "dayfilter_title": "Filtro giorno",
+      "amount_title": "Importo",
+      "alerts_title": "Avvisi",
+      "d_alert10": "Barra avvisi live — qui compaiono gli ultimi 10 avvisi rilevati.",
+      "d_market": "Passa tra le schermate Moneyway e Quote. Visualizza i mercati 1X2, 2,5 e BTTS.",
+      "d_today": "Usa questo pulsante per filtrare le partite di oggi. Premi di nuovo per rimuovere il filtro.",
+      "d_odds": "Qui appaiono le quote attuali. Il grafico ad anello sotto ogni scelta indica la percentuale del volume totale, per seguire il flusso in tempo reale.",
+      "d_volume": "Volume totale di denaro sulla partita. Le partite con più volume possono offrire segnali più affidabili.",
+      "d_dropping": "Segui quanto sono calate le quote nelle ultime 24 ore.",
+      "d_alarms": "Visualizza e filtra tutti gli avvisi, tra cui Sharp, Big Money e shock di volume.",
+      "d_guide": "Consulta la guida ai movimenti passati per interpretare schemi simili.",
+      "d_analysis": "Consulta analisi professionali, valutazioni prepartita e commenti di mercato (solo membri PRO).",
+      "d_mobile_alerts": "Barra avvisi live — qui compaiono i nuovi segnali.",
+      "d_mobile_markets": "Passa tra Moneyway e Quote in calo. La scheda quote mostra le riduzioni delle ultime 24 ore.",
+      "d_mobile_day": "Filtra le partite di oggi o ieri.",
+      "d_mobile_analysis": "Analisi professionali e commenti sul mercato (solo membri PRO).",
+      "d_mobile_alarms": "Visualizza e filtra tutti i tipi di avviso."
     }
   },
   "core": {
