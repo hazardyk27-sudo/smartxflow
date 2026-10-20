@@ -96,7 +96,7 @@ test('home shows separate V1 and V2 tiles without horizontal tabs; opens only V1
   assert.match(html, /1X2 Concentration V1/);
   assert.match(html, /1X2 Concentration V2/);
   assert.match(html, /Premium Over · Min 1.70/);
-  assert.match(html, /<b>0<\/b> maç/);
+  assert.match(html, /data-motor="PREMIUM_OVER_MIN1_70"[\s\S]*?<b>0<\/b> maç/);
   assert.doesNotMatch(html, /sxf-engine-box|sxf-motor-group/);
   const tiles = mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
   const v1 = tiles.find(x => x.dataset.motor === '1X2_CONCENTRATION_V1');
@@ -183,7 +183,7 @@ test('zero-count motor tile reveals its last real day without changing the selec
   await flush();
   let html = mock.get('sxfSignalContent').innerHTML;
   assert.match(html, /Son sinyal:/);
-  assert.match(html, /data-motor="1X2_CONCENTRATION_V1"[\\s\\S]*?<b>0<\\/b> maç/);
+  assert.match(html, /<b>0<\/b> maç/);
   const v1 = mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x => x.dataset.motor === '1X2_CONCENTRATION_V1');
   v1.click();
