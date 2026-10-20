@@ -12,6 +12,18 @@ on:
       - 'tests/test_analysis_v4_browser.py'
       - 'tests/test_analysis_v4_i18n_browser.py'
       - 'tests/test_i18n_coverage.py'
+      - 'tests/test_full_site_i18n_browser.py'
+      - 'static/i18n/auth.json'
+      - 'templates/status.html'
+      - 'templates/login.html'
+      - 'templates/signup.html'
+      - 'templates/forgot_password.html'
+      - 'templates/reset_password.html'
+      - 'templates/verify_email.html'
+      - 'templates/membership_required.html'
+      - 'templates/migrate_account.html'
+      - 'templates/account.html'
+      - 'templates/admin_login.html'
       - '.github/workflows/analysis-v4-browser-smoke.yml'
   workflow_dispatch:
 permissions:
@@ -33,6 +45,7 @@ jobs:
         run: |
           python tests/test_analysis_v4_browser.py
           python tests/test_analysis_v4_i18n_browser.py
+          python tests/test_full_site_i18n_browser.py
           python -m unittest discover -s tests -p test_i18n_coverage.py
       - name: Upload visual evidence
         if: always()
