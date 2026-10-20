@@ -857,44 +857,44 @@
         <section class="sxf-panel" role="dialog" aria-modal="true" aria-labelledby="sxfBaseSignalTitle">
             <header class="sxf-panel-top">
                 <div>
-                    <div class="sxf-brand-kicker">SMARTXFLOW / ANALİZLER</div>
-                    <h2 id="sxfBaseSignalTitle">Analizler</h2>
+                    <div class="sxf-brand-kicker" data-i18n="app.v4.kicker">SMARTXFLOW / ANALİZLER</div>
+                    <h2 id="sxfBaseSignalTitle" data-i18n="app.v4.title">Analizler</h2>
                 </div>
                 <div class="sxf-panel-top-controls">
-                    <span class="sxf-beta-pill" title="Henüz yayın onayı verilmemiş sinyal verileri">SHADOW / TEST</span>
-                    <button class="sxf-icon-btn" type="button" id="sxfSignalClose" aria-label="Sinyal merkezini kapat">
+                    <span class="sxf-beta-pill" data-i18n="app.v4.test_label" data-i18n-attr="title:app.v4.test_title" title="Henüz yayın onayı verilmemiş sinyal verileri">SHADOW / TEST</span>
+                    <button class="sxf-icon-btn" type="button" id="sxfSignalClose" aria-label="Sinyal merkezini kapat" data-i18n-attr="aria-label:app.v4.close">
                         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                 </div>
             </header>
-            <div class="sxf-panel-intro">Sinyal motorunu seçerek gün gün eşleşen maçları görüntüle.</div>
+            <div class="sxf-panel-intro" data-i18n="app.v4.intro">Sinyal motorunu seçerek gün gün eşleşen maçları görüntüle.</div>
             <div class="sxf-action-bar">
                 <div class="sxf-window-controls">
-                    <button class="sxf-icon-btn" type="button" id="sxfSignalPrevious" aria-label="Önceki tarihler">
+                    <button class="sxf-icon-btn" type="button" id="sxfSignalPrevious" aria-label="Önceki tarihler" data-i18n-attr="aria-label:app.v4.previous">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                    <button class="sxf-today-btn" type="button" id="sxfSignalToday">Bugün</button>
-                    <button class="sxf-icon-btn" type="button" id="sxfSignalNext" aria-label="Sonraki tarihler">
+                    <button class="sxf-today-btn" type="button" id="sxfSignalToday" data-i18n="app.v4.today">Bugün</button>
+                    <button class="sxf-icon-btn" type="button" id="sxfSignalNext" aria-label="Sonraki tarihler" data-i18n-attr="aria-label:app.v4.next">
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
                     </button>
                 </div>
                 <label class="sxf-search-wrap" id="sxfSearchWrap" hidden>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg>
-                    <input class="sxf-search" id="sxfSignalSearch" type="search" placeholder="Takım, lig veya tercih ara" aria-label="Sinyallerde ara" autocomplete="off">
+                    <input class="sxf-search" id="sxfSignalSearch" type="search" placeholder="Takım, lig veya tercih ara" aria-label="Sinyallerde ara" data-i18n-attr="placeholder:app.v4.search_placeholder;aria-label:app.v4.search_aria" autocomplete="off">
                 </label>
-                <button class="sxf-icon-btn" type="button" id="sxfSignalRefresh" aria-label="Sinyalleri yenile" title="Sinyalleri yenile">
+                <button class="sxf-icon-btn" type="button" id="sxfSignalRefresh" aria-label="Sinyalleri yenile" title="Sinyalleri yenile" data-i18n-attr="aria-label:app.v4.refresh;title:app.v4.refresh">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 4v6h-6M4 20v-6h6"/><path d="M5 9a8 8 0 0 1 14-3l1 4M4 14a8 8 0 0 0 15 2"/></svg>
                 </button>
             </div>
             <div class="sxf-signal-date-box">
-                <div id="sxfSignalDateRail" class="sxf-signal-date-rail" role="tablist" aria-label="Maç günü seçimi"></div>
+                <div id="sxfSignalDateRail" class="sxf-signal-date-rail" role="tablist" aria-label="Maç günü seçimi" data-i18n-attr="aria-label:app.v4.date_picker"></div>
             </div>
             <div class="sxf-summary-bar">
-                <span class="sxf-summary-title" id="sxfSignalSummary">Motor sinyalleri</span>
-                <span class="sxf-signal-notice" id="sxfSignalNotice" data-mode="shadow">SHADOW · Test sinyalleridir</span>
+                <span class="sxf-summary-title" id="sxfSignalSummary" data-i18n="app.v4.summary_default">Motor sinyalleri</span>
+                <span class="sxf-signal-notice" id="sxfSignalNotice" data-mode="shadow" data-i18n="app.v4.test_initial">SHADOW · Test sinyalleridir</span>
             </div>
             <div class="sxf-signal-scroll" id="sxfSignalContent" aria-live="polite">
-                <div class="sxf-zero"><p>Sinyal ekranı açıldığında veriler yüklenir.</p></div>
+                <div class="sxf-zero"><p data-i18n="app.v4.initial_loading">Sinyal ekranı açıldığında veriler yüklenir.</p></div>
             </div>
         </section>
     </div>
