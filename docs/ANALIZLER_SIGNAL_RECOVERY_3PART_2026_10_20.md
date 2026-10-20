@@ -89,3 +89,8 @@ Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
 - The legacy server-side adapter uses capped pagination, 21-day bounded history, exact team/league/TR date, authentic unique physical fixture matching and exact ISO kickoff where supplied; ambiguous/missing identity records are reported as excluded, not fabricated. Duplicate records of the same engine/fixture/selection are collapsed with an explicit dedupe counter.
 - Legacy price at detection and verified final score are not present in enough source evidence, so their cards intentionally say price unavailable and score unverified. Base existing independent verified scoreboard logic remains unchanged.
 - Last observed 20 October: 9 Base raw signal events across 3 physical fixtures, 14 legacy rows across 12 team pairings; Napoli–Bodø/Glimt had two Underdog records for the same team/selection, making 13 legacy displayed records across 12 fixtures and 22 total displayed signal records across 15 fixtures assuming continued consistency. This is **not verification of the user's 21 distinct fixtures**.
+
+## Part 3 regression gates
+
+- Added isolated tests for all five legacy source engines, canonical one-fixture matching, duplicate same-engine signal consolidation, identity ambiguity rejection, source pagination fail-closed, server-only secret access and no guessed odds/results.
+- Added two-viewport × seven-language Chromium regressions for separate Base/legacy card drill-down and provenance/warning labels; no extra HTTP requests on language switch.

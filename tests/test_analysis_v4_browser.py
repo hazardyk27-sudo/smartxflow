@@ -73,7 +73,7 @@ def main():
             page.add_script_tag(content=js)
             page.evaluate("window.openBaseSignalsPanel()")
             page.locator(".sxf-engine-tile").first.wait_for()
-            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 10")
+            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 15")
             metrics = page.evaluate("""() => {
               const overlay=document.getElementById('sxfBaseSignalOverlay');
               const modal=overlay.querySelector('.sxf-panel');
@@ -98,6 +98,7 @@ def main():
             assert metrics["scrollArea"] == "auto", (name, metrics)
             assert page.locator('.sxf-signal-date-rail').count() == 1
             assert page.locator('[data-motor="PREMIUM_OVER_MIN1_70"]').count() == 1
+            assert page.locator('[data-motor="LEGACY_UNDERDOG"]').count() == 1
             out = Path("artifacts")
             out.mkdir(exist_ok=True)
             page.screenshot(path=str(out / f"analizler-v4-{name}.png"), full_page=True)

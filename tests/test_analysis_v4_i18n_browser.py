@@ -30,8 +30,14 @@ def main():
     b=fixture(now.isoformat(),kickoff,"1X2_CONCENTRATION_V2","Team V2","uid-v2")
     a.update({"final_score":"1-1","result_state":"FT","outcome":"LOSS"})
     b.update({"final_score":"1-1","result_state":"FT","outcome":"LOSS"})
-    payload={"status":"ok","phase":"SHADOW","engines":["1X2_CONCENTRATION_V1","1X2_CONCENTRATION_V2"],
-             "items":[a,b],"results_source_state":"ok"}
+    legacy=fixture(now.isoformat(),kickoff,"LEGACY_EARLY_MONEY_LOCK","Legacy Team","uid-legacy")
+    legacy.update({"id":10000000022,"kind":"LEGACY_SIGNAL","stage_status":"LEGACY_RECORDED",
+                   "checkpoint":None,"source_checkpoint":None,"odds":None,
+                   "observed_at":None,"shadow":False,"result_state":"PENDING",
+                   "final_score":None,"outcome":None})
+    payload={"status":"ok","phase":"BASE_SHADOW_AND_LEGACY_HISTORY",
+             "engines":["1X2_CONCENTRATION_V1","1X2_CONCENTRATION_V2","LEGACY_EARLY_MONEY_LOCK"],
+             "items":[a,b,legacy],"results_source_state":"ok"}
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True)
         for viewport,width,height in (("desktop",1440,900),("phone",390,844)):
@@ -71,6 +77,17 @@ def main():
                 assert lex["lost"] in details,(viewport,code,details)
                 assert lex["back_engines"] in details,(viewport,code,details)
                 assert lex["odds"] in details,(viewport,code,details)
+                assert lex["mixed_notice"] in page.locator("#sxfSignalNotice").inner_text()
+                page.locator("#sxfSignalBack").click()
+                page.locator('[data-motor="LEGACY_EARLY_MONEY_LOCK"]').click()
+                legacy_details=page.locator("#sxfSignalContent").inner_text()
+                assert "Legacy Team" in legacy_details and "Team V1" not in legacy_details
+                assert lex["legacy_recorded"] in legacy_details,(viewport,code,legacy_details)
+                assert lex["legacy_warning"] in legacy_details,(viewport,code,legacy_details)
+                assert lex["odds_missing"] in legacy_details,(viewport,code,legacy_details)
+                assert lex["score_unverified"] in legacy_details,(viewport,code,legacy_details)
+                page.locator("#sxfSignalBack").click()
+                page.locator('[data-motor="1X2_CONCENTRATION_V1"]').click()
                 assert page.locator("#sxfSignalSearch").get_attribute("placeholder")==lex["search_placeholder"]
                 assert page.locator("#sxfSignalRefresh").get_attribute("aria-label")==lex["refresh"]
                 assert page.locator(".sxf-signal-date-rail").locator(".sxf-day-now").inner_text()==lex["today"]

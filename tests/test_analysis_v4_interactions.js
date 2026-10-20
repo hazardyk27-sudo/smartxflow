@@ -206,3 +206,31 @@ test('empty motor with no stored rows never fabricates a last recorded date', as
   v1.click();
   assert.doesNotMatch(mock.get('sxfSignalContent').innerHTML,/sxfSignalShowLast|Son sinyal:/);
 });
+
+
+test('legacy and Base motors have distinct cards, verified-only provenance, no fabricated scores', async () => {
+  const data = signals(todayTR());
+  data.phase = 'BASE_SHADOW_AND_LEGACY_HISTORY';
+  data.engines.push('LEGACY_UNDERDOG');
+  data.items.push({id:10000000022,engine:'LEGACY_UNDERDOG',uid:'uid-c',
+    kickoff_utc:todayTR()+'T18:00:00+00:00',day:todayTR(),home:'Legacy Club',
+    away:'Opponent',league:'UEFA Champions League',market:'1X2',
+    selection:'2',kind:'LEGACY_SIGNAL',stage_status:'LEGACY_RECORDED',
+    source_checkpoint:null,checkpoint:null,odds:null,observed_at:null,
+    result_state:'PENDING',final_score:null,shadow:false});
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  const tiles=mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
+  assert.equal(tiles.length,15);
+  const old=tiles.find(x=>x.dataset.motor==='LEGACY_UNDERDOG');
+  old.click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Legacy Club/);
+  assert.match(html,/Eski motor kaydı/);
+  assert.match(html,/Doğrulanmış eski motor kaydı/);
+  assert.match(html,/Henüz doğrulanmadı/);
+  assert.match(html,/Oran kayıtlı değil/);
+  assert.doesNotMatch(html,/Takım V1|Takım V2|1\.85/);
+  assert.equal(mock.requests.length,1);
+});
