@@ -99,6 +99,21 @@ def main():
                 target.mkdir(exist_ok=True)
                 page.screenshot(path=str(target/f"analizler-v4-i18n-{code}-{viewport}.png"))
                 print(f"I18N_BROWSER_OK {viewport} {code} no-overflow stable-engine no-refetch")
+            # Source outage: genuine Base picks stay visible, legacy count is
+            # not falsely shown as zero in any of the seven languages.
+            payload["legacy_source_status"]="unavailable"
+            payload["phase"]="BASE_SHADOW_LEGACY_UNAVAILABLE"
+            payload["items"]=[a,b]
+            page.locator("#sxfSignalRefresh").click()
+            page.wait_for_function("document.querySelector('.sxf-legacy-source-alert') !== null")
+            for code in LANGS:
+                await_locale=page.evaluate("async lang => await window.SXFI18n.set(lang)",code)
+                lex=locales[code]["app"]["v4"]
+                assert lex["legacy_unavailable_desc"] in page.locator("#sxfSignalContent").inner_text()
+                assert lex["legacy_unavailable_notice"] in page.locator("#sxfSignalNotice").inner_text()
+                page.locator('[data-motor="LEGACY_EARLY_MONEY_LOCK"]').click()
+                assert lex["legacy_unavailable_title"] in page.locator("#sxfSignalContent").inner_text()
+                page.locator("#sxfSignalBack").click()
             assert not errors,errors
             page.close()
         browser.close()
