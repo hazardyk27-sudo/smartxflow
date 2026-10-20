@@ -48,3 +48,7 @@ evaluate and append immutable Base events without an assistant or agent.
   timely pre-match betting alerts.
 - Do not silently reset the queue, rewrite recorded_at, invalidate
   previously finalized bets, or backfill into apparent real-time hits.
+
+## Safe future deploys
+
+Legacy 2026-10-20 one-day runner is deactivated (manual-only and blocked after permanent activation). On future main deployments, a Base unit that is both enabled **and already active** is refreshed to the exact newly deployed Python code. A failed or operator-stopped unit remains stopped to preserve the no-blind-retry invariant.

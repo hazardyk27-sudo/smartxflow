@@ -297,3 +297,16 @@ def test_uninitialized_cursor_requires_operator_not_automatic_restart(monkeypatc
         {"discovery":"UNINITIALIZED","healthy_cycle":False,
          "lease_uncertain":0,"commit_uncertain":0,"reconcile_uncertain":0})
     assert app.main(["--once"])==4
+
+
+def test_future_deploy_refreshes_only_healthy_permanent_worker():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    deploy=(root/".github/workflows/deploy.yml").read_text()
+    legacy=(root/".github/workflows/base-priority-guarded-restart-20261020.yml").read_text()
+    assert "is-enabled --quiet smartxflow-base-worker.service" in deploy
+    assert "is-active --quiet smartxflow-base-worker.service" in deploy
+    assert "systemctl restart smartxflow-base-worker.service" in deploy
+    assert "enabled but stopped; not auto-restarting" in deploy
+    assert "workflow_dispatch:" in legacy and "branches: [main]" not in legacy
+    assert "DEPRECATED_WORKFLOW_STOP" in legacy

@@ -1,11 +1,7 @@
-name: Base Hetzner guarded restart after safe pause fix 20261020
+name: DEPRECATED temporary Base worker restart - manual only
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'base_signal_engine/hetzner_worker.py'
-      - '.github/workflows/base-priority-guarded-restart-20261020.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -34,6 +30,10 @@ jobs:
             test "$(hostname)" = smartxflow
             test -s /opt/smartxflow/.env
             test -x /opt/smartxflow/venv/bin/python
+            if [ "$(systemctl is-enabled smartxflow-base-worker.service || true)" = enabled ]; then
+              echo "DEPRECATED_WORKFLOW_STOP: permanent worker owns Base claims"
+              exit 1
+            fi
             # Deploy to Hetzner workflow runs concurrently on this push.
             # Wait for the exact main SHA without changing files here.
             synced=0

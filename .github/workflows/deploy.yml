@@ -138,6 +138,22 @@ jobs:
             sudo /bin/systemctl restart smartxflow-poly
             sudo /bin/systemctl restart smartxflow-predictor-orchestrator
 
+            # Refresh the permanent Base process on later code releases,
+            # but never resurrect a stopped/failed safety-fenced worker.
+            if sudo /bin/systemctl is-enabled --quiet smartxflow-base-worker.service; then
+              if sudo /bin/systemctl is-active --quiet smartxflow-base-worker.service; then
+                sudo /bin/systemctl restart smartxflow-base-worker.service
+                sleep 3
+                sudo /bin/systemctl is-active --quiet smartxflow-base-worker.service || {
+                  echo "DEPLOY STOP: autonomous Base worker restart failed"
+                  exit 1
+                }
+                echo "AUTONOMOUS_BASE_RELEASE_REFRESHED"
+              else
+                echo "AUTONOMOUS_BASE_OPERATOR_REVIEW: enabled but stopped; not auto-restarting"
+              fi
+            fi
+
             sleep 4
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
