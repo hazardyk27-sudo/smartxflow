@@ -34,9 +34,13 @@ def main():
             for lang in CODES:
                 page.locator("#sxfStandaloneLanguage").select_option(lang)
                 page.wait_for_function("lang => window.SXFI18n.current()===lang",arg=lang)
-                key="app.adminui.sales"
-                expected=admin[lang]["sales"]
-                page.wait_for_function("({key,value}) => [...document.querySelectorAll('[data-i18n]')].some(e=>e.getAttribute('data-i18n')===key && e.textContent.trim()===value)",arg={"key":key,"value":expected})
+                # Verify one actual rendered label from each major admin family.
+                for item in ("sales","help_006","detail_023","management_027",
+                             "management_086","extra_055","common_011"):
+                    key="app.adminui."+item
+                    expected=admin[lang][item]
+                    page.wait_for_function("({key,value}) => [...document.querySelectorAll('[data-i18n]')].some(e=>e.getAttribute('data-i18n')===key && e.textContent.trim()===value)",
+                                           arg={"key":key,"value":expected},timeout=12000)
                 assert page.evaluate("document.documentElement.lang")==lang
             assert not errors,errors
             if mode=="desktop":
