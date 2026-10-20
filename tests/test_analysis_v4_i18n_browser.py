@@ -41,6 +41,11 @@ def main():
     with sync_playwright() as p:
         browser=p.chromium.launch(headless=True)
         for viewport,width,height in (("desktop",1440,900),("phone",390,844)):
+            # Each viewport begins with the fully available source state;
+            # the outage scenario mutates this payload only within that run.
+            payload["legacy_source_status"]="ok"
+            payload["phase"]="BASE_SHADOW_AND_LEGACY_HISTORY"
+            payload["items"]=[a,b,legacy]
             page=browser.new_page(viewport={"width":width,"height":height})
             errors=[]
             page.on("pageerror",lambda e:errors.append(str(e)))
