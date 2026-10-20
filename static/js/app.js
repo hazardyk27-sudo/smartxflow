@@ -173,14 +173,14 @@ const tbody=document.getElementById('matchesTableBody');const colspan=currentMar
             <tr class="loading-row">
                 <td colspan="${colspan}">
                     <div class="loading-spinner"></div>
-                    Yükleniyor...
+                    <span data-i18n="app.j.loading">${_t('app.j.loading','Yükleniyor...')}</span>
                 </td>
             </tr>
         `;const cardList=document.getElementById('matchCardList');if(cardList){cardList.innerHTML=`
                 <div class="match-card" style="justify-content: center; padding: 40px 20px;">
                     <div style="text-align: center; color: #7d848c;">
                         <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
-                        <p style="font-size: 13px; margin: 0;">Yükleniyor...</p>
+                        <p data-i18n="app.j.loading" style="font-size: 13px; margin: 0;">${_t('app.j.loading','Yükleniyor...')}</p>
                     </div>
                 </div>
             `;}}
