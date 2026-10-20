@@ -22,6 +22,8 @@ def main():
         browser=p.chromium.launch(headless=True)
         for width,height in ((1440,900),(390,844)):
             page=browser.new_page(viewport={"width":width,"height":height})
+            errors=[]
+            page.on("pageerror",lambda e: errors.append(str(e)))
             page.route("https://status-i18n.test/status",lambda r:r.fulfill(status=200,content_type="text/html",body="<html><body></body></html>"))
             calls={"scraper":0,"engine":0}
             def endpoint(route):
@@ -39,7 +41,16 @@ def main():
             page.evaluate("() => localStorage.setItem('sxf_lang','tr')")
             page.add_script_tag(content=I18N)
             page.add_script_tag(content=SCRIPT)
-            page.wait_for_function("() => document.querySelector('#engineHistoryBody .badge-success')")
+            page.wait_for_timeout(300)
+            snapshot=page.evaluate("""() => ({
+                statusLang: typeof statusLang,
+                engineRows: document.querySelectorAll('#engineHistoryBody tr').length,
+                engineText: document.querySelector('#engineHistoryBody')?.textContent,
+                engineStatus: document.querySelector('#engineStatusText')?.textContent,
+                scraperStatus: document.querySelector('#mainStatusText')?.textContent
+            })""")
+            assert not errors, (errors,snapshot,calls)
+            assert page.locator("#engineHistoryBody .badge-success").count()>0,(snapshot,calls)
             for lang in LANGS:
                 page.evaluate("lang => window.SXFI18n.set(lang)",lang)
                 for element,key in (("#engineHistoryBody .badge-success","processed"),("#historyBody .badge-success","success"),("#engineState","idle"),("#mainStatusText","active")):
