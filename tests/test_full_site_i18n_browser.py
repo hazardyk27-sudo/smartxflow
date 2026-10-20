@@ -57,11 +57,11 @@ def main():
                 page.wait_for_function("!!document.querySelector('[data-i18n=\"app.auth."+key+"\"]')",timeout=15000)
                 for code in CODES:
                     page.locator("#sxfStandaloneLanguage").select_option(code)
-                    page.wait_for_function("(lang)=>window.SXFI18n.current()===lang",code)
+                    page.wait_for_function("(lang)=>window.SXFI18n.current()===lang",arg=code)
                     # Both the language switch and async source catalog can
                     # finish on separate microtasks; assert eventual UI state.
                     expected=auth[code][key]
-                    page.wait_for_function("({key,value}) => [...document.querySelectorAll('[data-i18n]')].some(e => e.getAttribute('data-i18n')===key && e.textContent.trim()===value)",{"key":"app.auth."+key,"value":expected})
+                    page.wait_for_function("({key,value}) => [...document.querySelectorAll('[data-i18n]')].some(e => e.getAttribute('data-i18n')===key && e.textContent.trim()===value)",arg={"key":"app.auth."+key,"value":expected})
                     assert page.evaluate("document.documentElement.lang")==code
                     select=page.locator("#sxfStandaloneLanguage")
                     assert select.input_value()==code

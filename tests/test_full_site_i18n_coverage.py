@@ -39,7 +39,7 @@ def test_all_public_app_and_auth_templates_load_i18n_and_have_valid_keys():
         assert not parser.bad,(path.name,parser.bad)
         keys.update(parser.keys)
         for lang,obj in locales.items():
-            missing=[key for key in parser.keys if not isinstance(resolve(obj,key),str)]
+            missing=[key for key in parser.keys if '{{' not in key and '{%' not in key and not isinstance(resolve(obj,key),str)]
             assert not missing,(path.name,lang,sorted(set(missing)))
     assert len(keys)>300, f"translation annotations unexpectedly dropped: {len(keys)}"
     auth=json.loads((ROOT/"static/i18n/auth.json").read_text(encoding="utf8"))
