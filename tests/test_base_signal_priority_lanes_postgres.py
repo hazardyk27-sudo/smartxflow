@@ -16,7 +16,7 @@ def test_99_priority_lanes_claim_separately_and_preserve_unclaimed_jobs():
     now=datetime.now(timezone.utc)
     live_uid,old_uid=str(uuid4()),str(uuid4())
     live_kick=now+timedelta(hours=5,minutes=45)
-    old_kick=now+timedelta(minutes=45)
+    old_kick=now-timedelta(minutes=45)  # Now a true post-start backlog job
     query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES "
           "(%s::uuid,%s),(%s::uuid,%s)",(live_uid,live_kick,old_uid,old_kick))
     jobs=[job_data(live_uid,live_kick),job_data(old_uid,old_kick)]
@@ -83,3 +83,43 @@ def test_99c_concurrent_same_lane_claims_do_not_duplicate_leases():
     # Existing lease token fence remains authoritative after prioritized claim.
     assert query("SELECT public.sxf_base_renew_lease(%s::uuid,%s::uuid,%s) AS ok",
         (str(claimed[0]["job_id"]),str(uuid4()),900),role="service_role")[0]["ok"] is False
+
+
+def test_99d_pre_kickoff_t6_t8_remain_live_after_three_hours():
+    now=datetime.now(timezone.utc)
+    uid=str(uuid4())
+    kickoff=now+timedelta(hours=2)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES (%s::uuid,%s)",(uid,kickoff))
+    t6=job_data(uid,kickoff)
+    t8={**t6,"job_key":t6["job_key"].replace(":T-6",":T-8"),"checkpoint_hours":8}
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS n",
+                 (json.dumps([t6,t8]),),role="service_role")[0]["n"]==2
+    rows=query("SELECT checkpoint_hours,checkpoint_at FROM public.sxf_base_checkpoint_jobs "
+               "WHERE fixture_uid=%s::uuid",(uid,))
+    assert len(rows)==2
+    assert all(x["checkpoint_at"]<now-timedelta(hours=3) for x in rows)
+    first=query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
+                ("catchup-t6","LIVE",1,900),role="service_role")
+    assert len(first)==1 and str(first[0]["fixture_uid"])==uid
+    assert first[0]["checkpoint_hours"]==6
+    second=query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
+                 ("catchup-t8","LIVE",1,900),role="service_role")
+    assert len(second)==1 and str(second[0]["fixture_uid"])==uid
+    assert second[0]["checkpoint_hours"]==8
+
+
+def test_99e_started_match_is_only_backlog_not_live():
+    now=datetime.now(timezone.utc)
+    uid=str(uuid4())
+    kickoff=now-timedelta(minutes=15)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES (%s::uuid,%s)",(uid,kickoff))
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS n",
+                 (json.dumps([job_data(uid,kickoff)]),),role="service_role")[0]["n"]==1
+    eligible=query("SELECT (family='BASE' AND checkpoint_hours IN(8,6) AND "
+                   "kickoff_utc>now() AND checkpoint_at<=now() AND "
+                   "checkpoint_at>=now()-interval '8 hours') AS live_eligible "
+                   "FROM public.sxf_base_checkpoint_jobs WHERE fixture_uid=%s::uuid",(uid,))[0]
+    assert eligible["live_eligible"] is False
+    got=query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
+              ("after-start-backlog","BACKLOG",1,900),role="service_role")
+    assert len(got)==1 and str(got[0]["fixture_uid"])==uid

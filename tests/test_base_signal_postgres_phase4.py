@@ -110,6 +110,7 @@ def initialize_empty_test_database():
         "migrations/2026_10_19_sxf_base_phase4c4_projection.sql",
         "migrations/2026_10_19_sxf_base_checkpoint_live_priority.sql",
         "migrations/2026_10_20_sxf_base_claim_lanes_PROPOSED.sql",
+        "migrations/2026_10_20_sxf_base_pre_kickoff_priority_lane_fix_PROPOSED.sql",
         "migrations/2026_10_19_sxf_base_phase5a_source_capture_PROPOSED.sql",
         "migrations/2026_10_19_sxf_base_phase5b_source_health.sql",
     )
