@@ -74,6 +74,7 @@
   var dict = {};
   var currentLang = DEFAULT_LANG;
   var listeners = [];
+  var latestLocaleRequest = 0; // reject out-of-order locale fetch completions
 
   function detectLang() {
     try {
@@ -141,12 +142,14 @@
   }
 
   function load(lang) {
+    var request = ++latestLocaleRequest;
     return fetch(BASE_PATH + lang + '.json?v=1', { cache: 'no-cache' })
       .then(function (r) {
         if (!r.ok) throw new Error('i18n load failed: ' + lang);
         return r.json();
       })
       .then(function (data) {
+        if (request !== latestLocaleRequest) return; // a newer language selection won
         dict = data;
         currentLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
@@ -273,7 +276,9 @@
 
   var init = detectLang();
   load(init).catch(function () {
-    if (init !== DEFAULT_LANG) load(DEFAULT_LANG).catch(function () {});
+    // Do not reset a newer, user-selected locale due to a late boot failure.
+    if (init !== DEFAULT_LANG && latestLocaleRequest === 1)
+      load(DEFAULT_LANG).catch(function () {});
   });
   scheduleInteractionWarmup();
 })();

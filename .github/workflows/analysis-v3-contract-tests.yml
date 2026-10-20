@@ -13,6 +13,8 @@ on:
       - 'tests/test_analysis_v4_interactions.js'
       - 'tests/test_i18n_coverage.py'
       - 'static/i18n/**'
+      - 'static/js/i18n.js'
+      - 'tests/test_i18n_switch_race.js'
       - '.github/workflows/analysis-v3-contract-tests.yml'
   workflow_dispatch:
 
@@ -35,4 +37,4 @@ jobs:
       - name: Validate JavaScript
         run: |
           node --check static/js/base-signals.js
-          node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js
+          node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js tests/test_i18n_switch_race.js
