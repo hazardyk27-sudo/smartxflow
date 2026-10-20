@@ -1,0 +1,84 @@
+name: Base Hetzner guarded old-shadow handover and priority cycle 20261020
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-priority-handover-once-20261020.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-handover-20261020
+  cancel-in-progress: false
+
+jobs:
+  handover-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Stop only expired-design temporary Base worker and verify one prioritized cycle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 8m
+          script: |
+            set -euo pipefail
+            PROD_SHA=609eea70ef409aad756074e198b839d82fa3e838
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            test -s /opt/smartxflow/.env
+            test -f /opt/smartxflow/venv/bin/python
+            test "$(systemctl is-active sxf-base-presha-20261019.service)" = active
+            test "$(systemctl is-active sxf-base-priority-shadow-20261020.service || true)" != active
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active || { echo "SERVICE_NOT_ACTIVE:$s"; exit 1; }
+            done
+            OLD=sxf-base-durable-shadow-20261019.service
+            test "$(systemctl is-active "$OLD")" = active
+            OLD_EXEC="$(systemctl show -p ExecStart --value "$OLD")"
+            case "$OLD_EXEC" in
+              *base_signal_engine.hetzner_worker*--max-jobs\ 8*--max-reconcile\ 1*--interval-seconds\ 60*) ;;
+              *) echo OLD_WORKER_IDENTITY_MISMATCH; exit 1 ;;
+            esac
+            echo "HANDOVER_PRECHECK_OK PROD_SHA=$PROD_SHA"
+            # Only the temporary 24-hour backlog-churning Base shadow stops.
+            # Do not touch the pre-shadow evidence collector or legacy units.
+            systemctl stop "$OLD"
+            test "$(systemctl is-active "$OLD" || true)" != active
+            echo OLD_TEMPORARY_BASE_SHADOW_STOPPED
+            systemd-run --unit=sxf-base-priority-once-handover-20261020 --wait --pipe --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_PRIORITY_LANES_APPROVED=yes \
+              --setenv=SXF_BASE_WORKER_ID=priority-handover-20261020 \
+              --property=Type=oneshot \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property=WorkingDirectory=/opt/smartxflow \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=PrivateDevices=yes \
+              --property=MemoryMax=256M \
+              --property=TasksMax=32 \
+              --property=TimeoutStartSec=210 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+                --once --near-term-discovery --near-term-hour-offset=6 \
+                --priority-lanes --max-jobs=6 --max-reconcile=0
+            echo PRIORITY_ONE_CYCLE_SUCCEEDED
+            test "$(systemctl is-active sxf-base-presha-20261019.service)" = active
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$PROD_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active || { echo "POST_SERVICE_DOWN:$s"; exit 1; }
+            done
+            echo BASE_HANDOVER_ONCE_PASS
