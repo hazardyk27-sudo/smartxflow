@@ -202,7 +202,11 @@
       "yeni_para": "nouvel argent",
       "yukleniyor": "\n                    Chargement...\n                ",
       "yuzde": "POURCENTAGE",
-      "yuzde_d786cd": "\n                % Pourcentage\n            "
+      "yuzde_d786cd": "\n                % Pourcentage\n            ",
+      "alt": "Moins",
+      "evet": "Oui",
+      "hayir": "Non",
+      "1_gun": "1 jour"
     },
     "flt": {
       "all": "Tous",
@@ -484,7 +488,40 @@
       "volume_lbl": "Volume :",
       "won_badge": "✓ GAGNÉ",
       "yes": "Oui",
-      "yesterday": "Hier"
+      "yesterday": "Hier",
+      "saat_kala": "h avant le coup d'envoi",
+      "hacim_puan": "Score du volume",
+      "oran_puan": "Score des cotes",
+      "maca_once": "Avant le match",
+      "oran_degisimi": "Variation des cotes",
+      "dusus_lbl": "Baisse",
+      "eski_lider": "Ancien leader",
+      "yeni_lider": "Nouveau leader",
+      "toplam_hacim_lbl": "Volume total",
+      "market_hacmi": "Volume du marché",
+      "secenek": "Sélection",
+      "sonrasi": "Après",
+      "olay_sonrasi": "Après l'événement",
+      "public_para": "argent du public",
+      "cd_mim": "Mesure l'impact d'un afflux soudain sur une sélection par rapport au volume total du marché.",
+      "pct_view": "% Pourcentage",
+      "money_view": "£ Argent",
+      "result_won": "Gagné",
+      "result_lost": "Perdu",
+      "result_push": "Remboursé",
+      "result_void": "Annulé",
+      "analyst_lbl": "Analyste :",
+      "winner": "Gagnant",
+      "loser": "Perdant",
+      "net_profit": "Bénéfice net",
+      "analysis_word": "ANALYSE",
+      "awaiting": "En attente",
+      "pro_required": "Cette fonctionnalité nécessite un abonnement PRO.",
+      "money_pct": "% Argent",
+      "odds_short": "Cote",
+      "total": "Total",
+      "pending_lbl": "En attente",
+      "load_failed_short": "Échec du chargement"
     },
     "lic": {
       "activate": "Activer la Licence",
@@ -514,7 +551,8 @@
       "amount": "Montant",
       "chart": "Graphique",
       "chart_loading": "Chargement du graphique...",
-      "match_detail": "Détails du Match"
+      "match_detail": "Détails du Match",
+      "oran_row": "Cote"
     },
     "mvh": {
       "last_value": "Dernière valeur",
@@ -542,7 +580,8 @@
       "loading": "Chargement...",
       "match": "MATCH",
       "over": "PLUS",
-      "volume": "VOLUME"
+      "volume": "VOLUME",
+      "alt": "Moins"
     },
     "v4": {
       "title": "Analyses",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Source des scores indisponible",
       "panel_load_error": "Impossible de charger le centre des signaux. Réessayez.",
       "guide_load_error": "Impossible de charger l’écran d’analyse. Veuillez réessayer."
+    },
+    "live": {
+      "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",
+      "proya_gec": "Passer à Pro →",
+      "dk": "MIN",
+      "bos": "Aucun match en direct pour le moment",
+      "bos_sub": "Les matchs en direct apparaîtront ici à leur début",
+      "bos_tablo": "Aucun match en direct trouvé",
+      "henuz_periyot": "Pas encore de données par intervalle",
+      "skor": "SCORE",
+      "oran": "COTES",
+      "oran_degisim": "Variation des cotes",
+      "gelen_para": "Afflux d'argent",
+      "yuzde": "POURCENTAGE",
+      "pct_degisimi": "Variation en %",
+      "canli_maclar": "Matchs en direct",
+      "yukleniyor": "Chargement des matchs en direct..."
     }
   },
   "core": {

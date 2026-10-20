@@ -202,7 +202,11 @@
       "yeni_para": "dinero nuevo",
       "yukleniyor": "\n                    Cargando...\n                ",
       "yuzde": "PORCENTAJE",
-      "yuzde_d786cd": "\n                % Porcentaje\n            "
+      "yuzde_d786cd": "\n                % Porcentaje\n            ",
+      "alt": "Menos",
+      "evet": "Sí",
+      "hayir": "No",
+      "1_gun": "1 día"
     },
     "flt": {
       "all": "Todos",
@@ -484,7 +488,40 @@
       "volume_lbl": "Volumen:",
       "won_badge": "✓ GANADO",
       "yes": "Sí",
-      "yesterday": "Ayer"
+      "yesterday": "Ayer",
+      "saat_kala": "h para el inicio",
+      "hacim_puan": "Puntuación de volumen",
+      "oran_puan": "Puntuación de cuotas",
+      "maca_once": "Hasta el partido",
+      "oran_degisimi": "Cambio de cuotas",
+      "dusus_lbl": "Caída",
+      "eski_lider": "Líder anterior",
+      "yeni_lider": "Nuevo líder",
+      "toplam_hacim_lbl": "Volumen total",
+      "market_hacmi": "Volumen del mercado",
+      "secenek": "Selección",
+      "sonrasi": "Después",
+      "olay_sonrasi": "Después del evento",
+      "public_para": "dinero del público",
+      "cd_mim": "Muestra el impacto de una entrada repentina de dinero en una selección respecto al volumen total del mercado.",
+      "pct_view": "% Porcentaje",
+      "money_view": "£ Dinero",
+      "result_won": "Ganada",
+      "result_lost": "Perdida",
+      "result_push": "Reembolsado",
+      "result_void": "Anulada",
+      "analyst_lbl": "Analista:",
+      "winner": "Ganador",
+      "loser": "Perdedor",
+      "net_profit": "Beneficio neto",
+      "analysis_word": "ANÁLISIS",
+      "awaiting": "Pendiente",
+      "pro_required": "Esta función requiere una suscripción PRO.",
+      "money_pct": "% Dinero",
+      "odds_short": "Cuota",
+      "total": "Total",
+      "pending_lbl": "Pendiente",
+      "load_failed_short": "No se pudo cargar"
     },
     "lic": {
       "activate": "Activar Licencia",
@@ -514,7 +551,8 @@
       "amount": "Importe",
       "chart": "Gráfico",
       "chart_loading": "Cargando gráfico...",
-      "match_detail": "Detalles del Partido"
+      "match_detail": "Detalles del Partido",
+      "oran_row": "Cuota"
     },
     "mvh": {
       "last_value": "Último valor",
@@ -542,7 +580,8 @@
       "loading": "Cargando...",
       "match": "PARTIDO",
       "over": "MÁS",
-      "volume": "VOLUMEN"
+      "volume": "VOLUMEN",
+      "alt": "Menos"
     },
     "v4": {
       "title": "Análisis",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Fuente de resultados no disponible",
       "panel_load_error": "No se pudo cargar el centro de señales. Inténtalo de nuevo.",
       "guide_load_error": "No se pudo cargar la pantalla de análisis. Inténtalo de nuevo."
+    },
+    "live": {
+      "pro_gerekli": "Se requiere una suscripción <strong>Pro</strong> para los datos en vivo",
+      "proya_gec": "Pasar a Pro →",
+      "dk": "MIN",
+      "bos": "No hay partidos en vivo ahora",
+      "bos_sub": "Los partidos en vivo aparecerán aquí cuando comiencen",
+      "bos_tablo": "No se encontraron partidos en vivo",
+      "henuz_periyot": "Aún no hay datos por intervalos",
+      "skor": "MARCADOR",
+      "oran": "CUOTAS",
+      "oran_degisim": "Cambio de cuotas",
+      "gelen_para": "Dinero entrante",
+      "yuzde": "PORCENTAJE",
+      "pct_degisimi": "Cambio %",
+      "canli_maclar": "Partidos en vivo",
+      "yukleniyor": "Cargando partidos en vivo..."
     }
   },
   "core": {

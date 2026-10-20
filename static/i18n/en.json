@@ -202,7 +202,11 @@
       "yeni_para": "new money",
       "yukleniyor": "\n                    Loading...\n                ",
       "yuzde": "PERCENTAGE",
-      "yuzde_d786cd": "\n                % Percentage\n            "
+      "yuzde_d786cd": "\n                % Percentage\n            ",
+      "alt": "Under",
+      "evet": "Yes",
+      "hayir": "No",
+      "1_gun": "1 day"
     },
     "flt": {
       "all": "All",
@@ -484,7 +488,40 @@
       "volume_lbl": "Volume:",
       "won_badge": "✓ WON",
       "yes": "Yes",
-      "yesterday": "Yesterday"
+      "yesterday": "Yesterday",
+      "saat_kala": "hours to kickoff",
+      "hacim_puan": "Volume score",
+      "oran_puan": "Odds score",
+      "maca_once": "Until match",
+      "oran_degisimi": "Odds change",
+      "dusus_lbl": "Drop",
+      "eski_lider": "Previous leader",
+      "yeni_lider": "New leader",
+      "toplam_hacim_lbl": "Total volume",
+      "market_hacmi": "Market volume",
+      "secenek": "Selection",
+      "sonrasi": "Afterwards",
+      "olay_sonrasi": "After the event",
+      "public_para": "public money",
+      "cd_mim": "Shows the impact of a sudden money inflow into one selection relative to total market volume.",
+      "pct_view": "% Percentage",
+      "money_view": "£ Money",
+      "result_won": "Won",
+      "result_lost": "Lost",
+      "result_push": "Push",
+      "result_void": "Void",
+      "analyst_lbl": "Analyst:",
+      "winner": "Winner",
+      "loser": "Loser",
+      "net_profit": "Net profit",
+      "analysis_word": "ANALYSIS",
+      "awaiting": "Pending",
+      "pro_required": "This feature requires PRO membership.",
+      "money_pct": "% Money",
+      "odds_short": "Odds",
+      "total": "Total",
+      "pending_lbl": "Pending",
+      "load_failed_short": "Failed to load"
     },
     "lic": {
       "activate": "Activate License",
@@ -514,7 +551,8 @@
       "amount": "Amount",
       "chart": "Chart",
       "chart_loading": "Loading chart...",
-      "match_detail": "Match Details"
+      "match_detail": "Match Details",
+      "oran_row": "Odds"
     },
     "mvh": {
       "last_value": "Last value",
@@ -542,7 +580,8 @@
       "loading": "Loading...",
       "match": "MATCH",
       "over": "OVER",
-      "volume": "VOLUME"
+      "volume": "VOLUME",
+      "alt": "Under"
     },
     "v4": {
       "title": "Analyses",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Score source unavailable",
       "panel_load_error": "Could not load signal center. Please try again.",
       "guide_load_error": "Could not load the analysis screen. Please try again."
+    },
+    "live": {
+      "pro_gerekli": "<strong>Pro</strong> membership is required for live data",
+      "proya_gec": "Upgrade to Pro →",
+      "dk": "MIN",
+      "bos": "No live matches right now",
+      "bos_sub": "Live matches will appear here when they begin",
+      "bos_tablo": "No live matches found",
+      "henuz_periyot": "No interval data yet",
+      "skor": "SCORE",
+      "oran": "ODDS",
+      "oran_degisim": "Odds change",
+      "gelen_para": "Incoming money",
+      "yuzde": "PERCENT",
+      "pct_degisimi": "% change",
+      "canli_maclar": "Live Matches",
+      "yukleniyor": "Loading live matches..."
     }
   },
   "core": {

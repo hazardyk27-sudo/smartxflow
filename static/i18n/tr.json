@@ -202,7 +202,11 @@
       "yeni_para": "yeni para",
       "yukleniyor": "\n                    Yükleniyor...\n                ",
       "yuzde": "YÜZDE",
-      "yuzde_d786cd": "\n                % Yüzde\n            "
+      "yuzde_d786cd": "\n                % Yüzde\n            ",
+      "alt": "Alt",
+      "evet": "Evet",
+      "hayir": "Hayır",
+      "1_gun": "1 gün"
     },
     "flt": {
       "all": "Tümü",
@@ -484,7 +488,40 @@
       "volume_lbl": "Hacim:",
       "won_badge": "✓ KAZANDI",
       "yes": "Evet",
-      "yesterday": "Dün"
+      "yesterday": "Dün",
+      "saat_kala": "saat kala",
+      "hacim_puan": "Hacim Puanı",
+      "oran_puan": "Oran Puanı",
+      "maca_once": "Maça",
+      "oran_degisimi": "Oran Değişimi",
+      "dusus_lbl": "Düşüş",
+      "eski_lider": "Eski Lider",
+      "yeni_lider": "Yeni Lider",
+      "toplam_hacim_lbl": "Toplam Hacim",
+      "market_hacmi": "Market Hacmi",
+      "secenek": "Seçenek",
+      "sonrasi": "Sonrası",
+      "olay_sonrasi": "Olay sonrası",
+      "public_para": "public para",
+      "cd_mim": "Tek bir seçeneğe gelen ani paranın, ilgili marketin toplam hacmine oranla yarattığı etkiyi gösterir.",
+      "pct_view": "% Yüzde",
+      "money_view": "£ Para",
+      "result_won": "Kazandı",
+      "result_lost": "Kaybetti",
+      "result_push": "İade",
+      "result_void": "İptal",
+      "analyst_lbl": "Analizci:",
+      "winner": "Kazanan",
+      "loser": "Kaybeden",
+      "net_profit": "Net Kâr",
+      "analysis_word": "ANALİZ",
+      "awaiting": "Beklemede",
+      "pro_required": "Bu özellik PRO üyelik gerektirir.",
+      "money_pct": "% Para",
+      "odds_short": "Oran",
+      "total": "Toplam",
+      "pending_lbl": "Bekleyen",
+      "load_failed_short": "Yüklenemedi"
     },
     "lic": {
       "activate": "Lisansi Aktif Et",
@@ -514,7 +551,8 @@
       "amount": "Miktar",
       "chart": "Grafik",
       "chart_loading": "Grafik yukleniyor...",
-      "match_detail": "Maç Detayları"
+      "match_detail": "Maç Detayları",
+      "oran_row": "Oran"
     },
     "mvh": {
       "last_value": "Son değer",
@@ -542,7 +580,8 @@
       "loading": "Yükleniyor...",
       "match": "MAÇ",
       "over": "ÜST",
-      "volume": "HACİM"
+      "volume": "HACİM",
+      "alt": "Alt"
     },
     "v4": {
       "title": "Analizler",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Skor kaynağına erişilemiyor",
       "panel_load_error": "Sinyal merkezi yüklenemedi. Tekrar deneyin.",
       "guide_load_error": "Analiz ekranı yüklenemedi. Lütfen tekrar deneyin."
+    },
+    "live": {
+      "pro_gerekli": "Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir",
+      "proya_gec": "Pro'ya Geç →",
+      "dk": "DK",
+      "bos": "Şu an canlı maç bulunamadı",
+      "bos_sub": "Canlı maçlar başladığında burada görünecek",
+      "bos_tablo": "Canlı maç bulunamadı",
+      "henuz_periyot": "Henüz periyot verisi yok",
+      "skor": "SKOR",
+      "oran": "ORAN",
+      "oran_degisim": "Oran değişimi",
+      "gelen_para": "Gelen para",
+      "yuzde": "YÜZDE",
+      "pct_degisimi": "% değişimi",
+      "canli_maclar": "Canlı Maçlar",
+      "yukleniyor": "Canli maclar yukleniyor..."
     }
   },
   "core": {

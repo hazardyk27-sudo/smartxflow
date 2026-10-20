@@ -202,7 +202,11 @@
       "yeni_para": "neues Geld",
       "yukleniyor": "\n                    Wird geladen...\n                ",
       "yuzde": "PROZENTSATZ",
-      "yuzde_d786cd": "\n                % Prozentsatz\n            "
+      "yuzde_d786cd": "\n                % Prozentsatz\n            ",
+      "alt": "Unter",
+      "evet": "Ja",
+      "hayir": "Nein",
+      "1_gun": "1 Tag"
     },
     "flt": {
       "all": "Alle",
@@ -484,7 +488,40 @@
       "volume_lbl": "Volumen:",
       "won_badge": "✓ GEWONNEN",
       "yes": "Ja",
-      "yesterday": "Gestern"
+      "yesterday": "Gestern",
+      "saat_kala": "Std. bis Anpfiff",
+      "hacim_puan": "Volumenwert",
+      "oran_puan": "Quotenwert",
+      "maca_once": "Bis zum Spiel",
+      "oran_degisimi": "Quotenänderung",
+      "dusus_lbl": "Rückgang",
+      "eski_lider": "Vorheriger Marktführer",
+      "yeni_lider": "Neuer Marktführer",
+      "toplam_hacim_lbl": "Gesamtvolumen",
+      "market_hacmi": "Marktvolumen",
+      "secenek": "Auswahl",
+      "sonrasi": "Danach",
+      "olay_sonrasi": "Nach dem Ereignis",
+      "public_para": "Publikumsgeld",
+      "cd_mim": "Zeigt den Einfluss eines plötzlichen Geldzuflusses in eine Auswahl im Verhältnis zum Marktvolumen.",
+      "pct_view": "% Prozent",
+      "money_view": "£ Geld",
+      "result_won": "Gewonnen",
+      "result_lost": "Verloren",
+      "result_push": "Rückerstattung",
+      "result_void": "Annulliert",
+      "analyst_lbl": "Analyst:",
+      "winner": "Gewinner",
+      "loser": "Verlierer",
+      "net_profit": "Nettogewinn",
+      "analysis_word": "ANALYSE",
+      "awaiting": "Ausstehend",
+      "pro_required": "Diese Funktion erfordert eine PRO-Mitgliedschaft.",
+      "money_pct": "% Geld",
+      "odds_short": "Quote",
+      "total": "Gesamt",
+      "pending_lbl": "Ausstehend",
+      "load_failed_short": "Laden fehlgeschlagen"
     },
     "lic": {
       "activate": "Lizenz Aktivieren",
@@ -514,7 +551,8 @@
       "amount": "Betrag",
       "chart": "Diagramm",
       "chart_loading": "Diagramm wird geladen...",
-      "match_detail": "Spieldetails"
+      "match_detail": "Spieldetails",
+      "oran_row": "Quote"
     },
     "mvh": {
       "last_value": "Letzter Wert",
@@ -542,7 +580,8 @@
       "loading": "Lädt...",
       "match": "SPIEL",
       "over": "ÜBER",
-      "volume": "VOLUMEN"
+      "volume": "VOLUMEN",
+      "alt": "Unter"
     },
     "v4": {
       "title": "Analysen",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Ergebnisquelle nicht verfügbar",
       "panel_load_error": "Signalzentrale konnte nicht geladen werden. Bitte erneut versuchen.",
       "guide_load_error": "Analyseansicht konnte nicht geladen werden. Bitte erneut versuchen."
+    },
+    "live": {
+      "pro_gerekli": "Für Live-Daten ist eine <strong>Pro</strong>-Mitgliedschaft erforderlich",
+      "proya_gec": "Auf Pro upgraden →",
+      "dk": "MIN",
+      "bos": "Derzeit keine Live-Spiele",
+      "bos_sub": "Live-Spiele erscheinen hier nach dem Anpfiff",
+      "bos_tablo": "Keine Live-Spiele gefunden",
+      "henuz_periyot": "Noch keine Intervalldaten",
+      "skor": "ERGEBNIS",
+      "oran": "QUOTEN",
+      "oran_degisim": "Quotenänderung",
+      "gelen_para": "Geldzufluss",
+      "yuzde": "PROZENT",
+      "pct_degisimi": "%-Änderung",
+      "canli_maclar": "Live-Spiele",
+      "yukleniyor": "Live-Spiele werden geladen..."
     }
   },
   "core": {

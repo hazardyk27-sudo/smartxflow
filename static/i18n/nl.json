@@ -202,7 +202,11 @@
       "yeni_para": "nieuw geld",
       "yukleniyor": "\n                    Laden...\n                ",
       "yuzde": "PERCENTAGE",
-      "yuzde_d786cd": "\n                % Percentage\n            "
+      "yuzde_d786cd": "\n                % Percentage\n            ",
+      "alt": "Onder",
+      "evet": "Ja",
+      "hayir": "Nee",
+      "1_gun": "1 dag"
     },
     "flt": {
       "all": "Alle",
@@ -484,7 +488,40 @@
       "volume_lbl": "Volume:",
       "won_badge": "✓ GEWONNEN",
       "yes": "Ja",
-      "yesterday": "Gisteren"
+      "yesterday": "Gisteren",
+      "saat_kala": "uur tot aftrap",
+      "hacim_puan": "Volumescore",
+      "oran_puan": "Oddsscore",
+      "maca_once": "Tot wedstrijd",
+      "oran_degisimi": "Oddsverandering",
+      "dusus_lbl": "Daling",
+      "eski_lider": "Vorige leider",
+      "yeni_lider": "Nieuwe leider",
+      "toplam_hacim_lbl": "Totaal volume",
+      "market_hacmi": "Marktvolume",
+      "secenek": "Selectie",
+      "sonrasi": "Daarna",
+      "olay_sonrasi": "Na de gebeurtenis",
+      "public_para": "publieksgeld",
+      "cd_mim": "Toont de impact van een plotselinge geldinstroom op één keuze ten opzichte van het marktvolume.",
+      "pct_view": "% Percentage",
+      "money_view": "£ Geld",
+      "result_won": "Gewonnen",
+      "result_lost": "Verloren",
+      "result_push": "Terugbetaald",
+      "result_void": "Ongeldig",
+      "analyst_lbl": "Analist:",
+      "winner": "Winnaar",
+      "loser": "Verliezer",
+      "net_profit": "Nettowinst",
+      "analysis_word": "ANALYSE",
+      "awaiting": "In afwachting",
+      "pro_required": "Voor deze functie is een PRO-lidmaatschap vereist.",
+      "money_pct": "% Geld",
+      "odds_short": "Odds",
+      "total": "Totaal",
+      "pending_lbl": "In afwachting",
+      "load_failed_short": "Laden mislukt"
     },
     "lic": {
       "activate": "Licentie Activeren",
@@ -514,7 +551,8 @@
       "amount": "Bedrag",
       "chart": "Grafiek",
       "chart_loading": "Grafiek laden...",
-      "match_detail": "Wedstrijddetails"
+      "match_detail": "Wedstrijddetails",
+      "oran_row": "Odds"
     },
     "mvh": {
       "last_value": "Laatste waarde",
@@ -542,7 +580,8 @@
       "loading": "Laden...",
       "match": "WEDSTRIJD",
       "over": "OVER",
-      "volume": "VOLUME"
+      "volume": "VOLUME",
+      "alt": "Onder"
     },
     "v4": {
       "title": "Analyses",
@@ -629,6 +668,23 @@
       "score_source_error": "SHADOW / TEST · Scorebron niet beschikbaar",
       "panel_load_error": "Signaalcentrum kon niet worden geladen. Probeer opnieuw.",
       "guide_load_error": "Het analysescherm kon niet worden geladen. Probeer opnieuw."
+    },
+    "live": {
+      "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",
+      "proya_gec": "Upgrade naar Pro →",
+      "dk": "MIN",
+      "bos": "Momenteel geen livewedstrijden",
+      "bos_sub": "Livewedstrijden verschijnen hier zodra ze beginnen",
+      "bos_tablo": "Geen livewedstrijden gevonden",
+      "henuz_periyot": "Nog geen intervalgegevens",
+      "skor": "SCORE",
+      "oran": "ODDS",
+      "oran_degisim": "Oddsverandering",
+      "gelen_para": "Inkomend geld",
+      "yuzde": "PROCENT",
+      "pct_degisimi": "%-verandering",
+      "canli_maclar": "Live wedstrijden",
+      "yukleniyor": "Live wedstrijden laden..."
     }
   },
   "core": {
