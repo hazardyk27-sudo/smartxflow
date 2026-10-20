@@ -3537,7 +3537,7 @@
                 scraperSSE = new EventSource('/scraper/stream');
                 scraperSSE.onmessage = (e) => addScraperLog(e.data);
                 scraperSSE.onerror = () => {
-                    document.getElementById('scraperStatus').textContent = 'Bağlantı kesildi';
+                    document.getElementById('scraperStatus').textContent = sxfAdminInlineT('inline_service_disconnected',"Bağlantı kesildi");
                     document.getElementById('scraperStatus').style.color = '#f85149';
                 };
             }
@@ -3592,11 +3592,11 @@
                 if (data.status === 'ok') {
                     showToast(`Interval ${newInterval} dakika olarak ayarlandı`, 'success');
                 } else {
-                    showToast(data.message || 'Ayarlama başarısız', 'error');
+                    showToast(data.message || sxfAdminInlineT('inline_setting_failed',"Ayarlama başarısız"), 'error');
                 }
             })
             .catch(() => {
-                showToast('Bağlantı hatası', 'error');
+                showToast(sxfAdminInlineT('inline_connection_error',"Bağlantı hatası"), 'error');
             });
         }
         
@@ -3615,14 +3615,14 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'ok') {
-                    showToast(action === 'start' ? 'Scraper başlatıldı' : 'Scraper durduruldu', 'success');
+                    showToast(action === 'start' ? sxfAdminInlineT('inline_scraper_started',"Scraper başlatıldı") : sxfAdminInlineT('inline_scraper_stopped',"Scraper durduruldu"), 'success');
                     updateScraperStatus();
                 } else {
-                    showToast(data.message || 'İşlem başarısız', 'error');
+                    showToast(data.message || sxfAdminInlineT('inline_operation_failed',"İşlem başarısız"), 'error');
                 }
             })
             .catch(() => {
-                showToast('Bağlantı hatası', 'error');
+                showToast(sxfAdminInlineT('inline_connection_error',"Bağlantı hatası"), 'error');
             })
             .finally(() => {
                 startBtn.disabled = false;
@@ -3682,7 +3682,7 @@
                     }
                 })
                 .catch(() => {
-                    document.getElementById('scraperStatus').textContent = 'Bağlantı hatası';
+                    document.getElementById('scraperStatus').textContent = sxfAdminInlineT('inline_connection_error',"Bağlantı hatası");
                     document.getElementById('scraperStatus').style.color = '#f85149';
                 });
         }
@@ -3706,7 +3706,7 @@
                 alarmEngineSSE = new EventSource('/alarm-engine/stream');
                 alarmEngineSSE.onmessage = (e) => addAlarmEngineLog(e.data);
                 alarmEngineSSE.onerror = () => {
-                    document.getElementById('alarmEngineStatus').textContent = 'Bağlantı kesildi';
+                    document.getElementById('alarmEngineStatus').textContent = sxfAdminInlineT('inline_service_disconnected',"Bağlantı kesildi");
                     document.getElementById('alarmEngineStatus').style.color = '#f85149';
                 };
             }
@@ -3751,7 +3751,7 @@
             
             if (action === 'start') {
                 startBtn.disabled = true;
-                startBtn.textContent = 'Başlatılıyor...';
+                startBtn.textContent = sxfAdminInlineT('inline_starting',"Başlatılıyor...");
             } else {
                 stopBtn.disabled = true;
                 stopBtn.textContent = 'Durduruluyor...';
@@ -3767,7 +3767,7 @@
                 if (data.status === 'ok') {
                     showToast(data.message, 'success');
                 } else {
-                    showToast(data.message || 'Hata oluştu', 'error');
+                    showToast(data.message || sxfAdminInlineT('inline_error_occurred',"Hata oluştu"), 'error');
                 }
                 updateAlarmEngineStatus();
             })
@@ -3802,7 +3802,7 @@
                         stopBtn.style.opacity = '0.5';
                     }
                     
-                    document.getElementById('alarmEngineConfig').textContent = data.configs_loaded ? 'Yüklendi' : 'Yüklenmedi';
+                    document.getElementById('alarmEngineConfig').textContent = data.configs_loaded ? sxfAdminInlineT('inline_loaded',"Yüklendi") : sxfAdminInlineT('inline_not_loaded',"Yüklenmedi");
                     document.getElementById('alarmEngineCount').textContent = data.last_alarm_count || 0;
                     document.getElementById('alarmEngineDuration').textContent = data.last_duration_seconds ? data.last_duration_seconds + 's' : '-';
                     
@@ -3819,7 +3819,7 @@
                     }
                 })
                 .catch(() => {
-                    document.getElementById('alarmEngineStatus').textContent = 'Bağlantı hatası';
+                    document.getElementById('alarmEngineStatus').textContent = sxfAdminInlineT('inline_connection_error',"Bağlantı hatası");
                     document.getElementById('alarmEngineStatus').style.color = '#f85149';
                 });
         }
@@ -8379,7 +8379,7 @@
                 }
             } catch (e) {
                 status.style.color = '#f85149';
-                status.textContent = 'Bağlantı hatası';
+                status.textContent = sxfAdminInlineT('inline_connection_error',"Bağlantı hatası");
             }
         }
 
