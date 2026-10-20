@@ -681,7 +681,8 @@
       "show_last": "Voir les signaux du {date}",
       "email_unverified": "Vérifiez votre adresse e-mail pour continuer.",
       "membership_required": "Un abonnement actif est requis pour cette section.",
-      "session_expired": "Votre session a expiré. Reconnectez-vous."
+      "session_expired": "Votre session a expiré. Reconnectez-vous.",
+      "late_evaluation": "Calculé rétrospectivement"
     },
     "live": {
       "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",

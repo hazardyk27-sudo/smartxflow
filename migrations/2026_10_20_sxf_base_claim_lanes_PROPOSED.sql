@@ -11,9 +11,9 @@ RETURNS TABLE(job_id uuid,job_key text,ruleset_version text,fixture_uid uuid,
 LANGUAGE plpgsql SECURITY INVOKER SET search_path=public,pg_temp AS $$
 BEGIN
     IF p_worker IS NULL OR length(trim(p_worker))<1 OR length(p_worker)>100
-       OR p_lane NOT IN ('LIVE','BACKLOG')
-       OR p_limit NOT BETWEEN 1 AND 1
-       OR p_lease_seconds NOT BETWEEN 60 AND 1800 THEN
+       OR p_lane IS NULL OR p_lane NOT IN ('LIVE','BACKLOG')
+       OR p_limit IS NULL OR p_limit <> 1
+       OR p_lease_seconds IS NULL OR p_lease_seconds NOT BETWEEN 60 AND 1800 THEN
         RAISE EXCEPTION 'invalid lane claim parameters';
     END IF;
     RETURN QUERY WITH locked AS (

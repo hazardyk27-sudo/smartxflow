@@ -681,7 +681,8 @@
       "show_last": "Show signals from {date}",
       "email_unverified": "Verify your email address to continue.",
       "membership_required": "An active membership is required for this section.",
-      "session_expired": "Your session has expired. Sign in again."
+      "session_expired": "Your session has expired. Sign in again.",
+      "late_evaluation": "Calculated retrospectively"
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",

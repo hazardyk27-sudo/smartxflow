@@ -681,7 +681,8 @@
       "show_last": "Mostra i segnali del {date}",
       "email_unverified": "Verifica il tuo indirizzo e-mail per continuare.",
       "membership_required": "Per questa sezione è richiesto un abbonamento attivo.",
-      "session_expired": "La sessione è scaduta. Accedi di nuovo."
+      "session_expired": "La sessione è scaduta. Accedi di nuovo.",
+      "late_evaluation": "Calcolato retrospettivamente"
     },
     "live": {
       "pro_gerekli": "Per i dati in diretta è necessario un abbonamento <strong>Pro</strong>",

@@ -280,3 +280,28 @@ def test_optional_scoreboard_outage_does_not_hide_valid_base_signals():
     assert len(feed["items"])==1
     assert feed["items"][0]["result_state"]=="UNAVAILABLE"
     assert feed["results_source_state"]=="unavailable"
+
+
+def test_belated_checkpoint_is_explicitly_retroactive_not_an_on_time_alert():
+    start=_day()
+    event=_event(start)
+    # Simulated persisted event written after kickoff for frozen T-8 evidence.
+    event["recorded_at"]=(datetime.fromisoformat(_stamp(start))+
+                          timedelta(minutes=30)).isoformat()
+    signal=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert signal["delivery_timing"]=="LATE_EVALUATION"
+    assert signal["kind"]=="PRELIMINARY_SIGNAL"
+    assert signal["shadow"] is True
+
+def test_checkpoint_window_and_corrections_have_distinct_delivery_labels():
+    start=_day()
+    event=_event(start)
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+
+                          timedelta(minutes=5)).isoformat()
+    signal=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert signal["delivery_timing"]=="CHECKPOINT_WINDOW"
+    corrected=_event(start,kind="CORRECTED")
+    corrected["details"]["decision"]="HIT"
+    signal=_feed(Source(start,events=[corrected])).read(start)["items"][0]
+    assert signal["delivery_timing"]=="RECONCILED_LATER"

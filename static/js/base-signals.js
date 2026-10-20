@@ -217,7 +217,11 @@
       esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
       '</strong></div>' + odds + result +
       '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
-      '</span>' + (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
+      '</span>' + ((item.delivery_timing === 'LATE_EVALUATION' ||
+                    item.delivery_timing === 'RECONCILED_LATER') ?
+        '<span class="sxf-late-evaluation">' + esc(t('late_evaluation','Geçmişten hesaplandı')) +
+        '</span>' : '') +
+      (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
       (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint
         ? '<span>' + esc(t('source_t','Kaynak')) + ' T-' + item.source_checkpoint + '</span>' : '') +
       '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span></div>' +

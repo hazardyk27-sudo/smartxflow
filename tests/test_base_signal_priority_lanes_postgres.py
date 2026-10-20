@@ -48,3 +48,12 @@ def test_99_priority_lanes_claim_separately_and_preserve_unclaimed_jobs():
         with pytest.raises(Exception):
             query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
                   ("unauthorized","LIVE",1,900),role=role)
+
+
+def test_99b_null_lane_or_timeout_is_rejected_before_claim():
+    for args in (("worker",None,1,900),
+                 ("worker","LIVE",None,900),
+                 ("worker","BACKLOG",1,None)):
+        with pytest.raises(Exception):
+            query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
+                  args,role="service_role")

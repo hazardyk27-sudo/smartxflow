@@ -681,7 +681,8 @@
       "show_last": "Ver señales del {date}",
       "email_unverified": "Verifica tu correo electrónico para continuar.",
       "membership_required": "Se necesita una membresía activa para esta sección.",
-      "session_expired": "Tu sesión ha caducado. Inicia sesión de nuevo."
+      "session_expired": "Tu sesión ha caducado. Inicia sesión de nuevo.",
+      "late_evaluation": "Calculado retrospectivamente"
     },
     "live": {
       "pro_gerekli": "Se requiere una suscripción <strong>Pro</strong> para los datos en vivo",

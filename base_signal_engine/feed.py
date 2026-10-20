@@ -311,6 +311,18 @@ class BaseSignalsFeed:
                     odds = None
             except (ValueError, TypeError):
                 odds = None
+            recorded = _utc(row["recorded_at"])
+            checkpoint_hours = row.get("job_checkpoint_hours")
+            # A belated evaluation can preserve frozen pre-match source evidence,
+            # but it is not a contemporaneous alert. Never rewrite the event.
+            if row["kind"] == "CORRECTED":
+                delivery_timing = "RECONCILED_LATER"
+            elif type(checkpoint_hours) is int and 1 <= checkpoint_hours <= 72:
+                grace_end = kickoff - timedelta(hours=checkpoint_hours) + timedelta(minutes=10)
+                delivery_timing = ("LATE_EVALUATION" if recorded > grace_end else
+                                   "CHECKPOINT_WINDOW")
+            else:
+                delivery_timing = "UNKNOWN"
             items.append({
                 "id": ident,
                 "uid": uid,
@@ -328,8 +340,9 @@ class BaseSignalsFeed:
                 "family": str(row.get("family") or "")[:35],
                 "checkpoint": row.get("job_checkpoint_hours"),
                 "source_checkpoint": row.get("source_checkpoint_hours"),
-                "recorded_at": _utc(row["recorded_at"]).isoformat(),
+                "recorded_at": recorded.isoformat(),
                 "observed_at": observed,
+                "delivery_timing": delivery_timing,
                 "odds": odds,
                 "strength_tag": details.get("label") == "STRENGTH_TAG",
                 "shadow": True,

@@ -681,7 +681,8 @@
       "show_last": "Signalen van {date} bekijken",
       "email_unverified": "Verifieer je e-mailadres om verder te gaan.",
       "membership_required": "Voor dit onderdeel is een actief lidmaatschap vereist.",
-      "session_expired": "Je sessie is verlopen. Log opnieuw in."
+      "session_expired": "Je sessie is verlopen. Log opnieuw in.",
+      "late_evaluation": "Achteraf berekend"
     },
     "live": {
       "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",

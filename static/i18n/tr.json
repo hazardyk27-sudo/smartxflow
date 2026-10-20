@@ -681,7 +681,8 @@
       "show_last": "{date} sinyallerini göster",
       "email_unverified": "E-posta adresini doğrulaman gerekiyor.",
       "membership_required": "Bu bölüm için aktif üyelik gerekiyor.",
-      "session_expired": "Oturumun süresi doldu. Yeniden giriş yap."
+      "session_expired": "Oturumun süresi doldu. Yeniden giriş yap.",
+      "late_evaluation": "Geçmişten hesaplandı"
     },
     "live": {
       "pro_gerekli": "Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir",
