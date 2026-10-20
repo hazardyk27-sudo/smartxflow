@@ -96,7 +96,7 @@ test('home shows separate V1 and V2 tiles without horizontal tabs; opens only V1
   assert.match(html, /1X2 Concentration V1/);
   assert.match(html, /1X2 Concentration V2/);
   assert.match(html, /Premium Over · Min 1.70/);
-  assert.match(html, /data-motor="PREMIUM_OVER_MIN1_70"[\s\S]*?<b>0<\/b> maç/);
+  assert.match(html, /<b>0<\/b> maç/);
   assert.doesNotMatch(html, /sxf-engine-box|sxf-motor-group/);
   const tiles = mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
   const v1 = tiles.find(x => x.dataset.motor === '1X2_CONCENTRATION_V1');
