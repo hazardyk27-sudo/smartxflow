@@ -75,6 +75,14 @@
   var currentLang = DEFAULT_LANG;
   var listeners = [];
   var latestLocaleRequest = 0; // reject out-of-order locale fetch completions
+  var canonicalTurkish = null;
+  var canonicalEnglish = null;
+  var authCatalog = null;
+  var authCatalogPromise = null;
+  var autoIndex = null;
+  var autoObserver = null;
+  var autoRefreshPending = false;
+  var autoDirtyNodes = [];
 
   function detectLang() {
     try {
@@ -86,6 +94,11 @@
 
   function get(key) {
     if (!key) return '';
+    if (key.indexOf('app.auth.') === 0 && authCatalog) {
+      var authKey = key.slice('app.auth.'.length);
+      return (authCatalog[currentLang] && authCatalog[currentLang][authKey]) ||
+        (authCatalog.en && authCatalog.en[authKey]) || null;
+    }
     var overrides = RULE_OVERRIDES[currentLang] || RULE_OVERRIDES[DEFAULT_LANG] || {};
     if (Object.prototype.hasOwnProperty.call(overrides, key)) return overrides[key];
     var parts = key.split('.');
@@ -95,6 +108,183 @@
       else return null;
     }
     return typeof v === 'string' ? v : null;
+  }
+
+
+  // Safe fallback for legacy pages and dynamically inserted labels.  The
+  // canonical Turkish UI already has hundreds of complete hand-translated
+  // entries; tag only text-only elements with an *unambiguous exact* match.
+  // Never send phrases, API data, user input or DOM text to a translation API.
+  function normalizeAutoText(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+  function isAuthPage() {
+    var path = (window.location && window.location.pathname) || '';
+    return /^\/(?:login|signup|forgot-password|reset-password|verify-email|auth-callback|membership-required|migrate-account|account|admin-login)(?:\/)?$/.test(path);
+  }
+  function flattenCatalog(obj, path, into) {
+    if (!obj || typeof obj !== 'object') return;
+    Object.keys(obj).forEach(function (key) {
+      var value = obj[key];
+      var full = path ? path + '.' + key : key;
+      if (typeof value === 'string') {
+        var text = normalizeAutoText(value);
+        if (!text || text.length < 3 || text.length > 500 || /<[^>]*>/.test(text)) return;
+        var existing = into[text];
+        if (existing === undefined) into[text] = full;
+        else if (existing !== full) into[text] = null; // ambiguous, never guess
+      } else if (value && typeof value === 'object') {
+        flattenCatalog(value, full, into);
+      }
+    });
+  }
+  function rebuildAutoIndex() {
+    if (!canonicalTurkish) return;
+    var map = Object.create(null);
+    flattenCatalog(canonicalTurkish, '', map);
+    // Authentication and admin-login screens were authored in English.
+    // Do not let their English labels affect match/team data in /app.
+    if (isAuthPage() && authCatalog) {
+      var sourceEnglish = Object.create(null);
+      var sourceTurkish = Object.create(null);
+      flattenCatalog(authCatalog.en, 'app.auth', sourceEnglish);
+      flattenCatalog(authCatalog.tr, 'app.auth', sourceTurkish);
+      Object.keys(sourceEnglish).forEach(function (key) {
+        if (sourceEnglish[key]) map[key] = sourceEnglish[key];
+      });
+      Object.keys(sourceTurkish).forEach(function (key) {
+        if (sourceTurkish[key]) map[key] = sourceTurkish[key];
+      });
+    }
+    autoIndex = map;
+  }
+  function autoEligible(el) {
+    if (!el || el.nodeType !== 1 || !el.tagName) return false;
+    var tag = el.tagName.toLowerCase();
+    if (/^(script|style|noscript|svg|path|code|pre|textarea|iframe)$/.test(tag)) return false;
+    if (tag === 'option' && !el.hasAttribute('value')) return false;
+    if (el.closest && el.closest('[data-i18n],[data-i18n-html],[data-no-i18n],[contenteditable],.lang-picker,.flag-icon')) return false;
+    // Never automatically rewrite statistics, fixture names or financial data.
+    if (el.closest && el.closest('.matches-table,.match-card,.live-period-table,.sxf-signal-card,.chart-container,.wallet-stats-grid')) return false;
+    return true;
+  }
+  function autoKeyFor(value) {
+    return autoIndex && autoIndex[normalizeAutoText(value)] || null;
+  }
+  function autoBindElement(el) {
+    if (!autoEligible(el)) return;
+    if (!el.children || el.children.length === 0) {
+      var key = autoKeyFor(el.textContent);
+      if (key && !el.hasAttribute('data-i18n')) {
+        el.setAttribute('data-i18n', key);
+        var next = get(key);
+        if (next !== null && el.textContent !== next) el.textContent = next;
+      }
+    }
+    if (el.getAttribute && !el.hasAttribute('data-i18n-attr')) {
+      var pairs = [];
+      ['placeholder','title','aria-label'].forEach(function (name) {
+        var value = el.getAttribute(name);
+        if (!value) return;
+        var key = autoKeyFor(value);
+        if (key) pairs.push(name + ':' + key);
+      });
+      if (pairs.length) {
+        el.setAttribute('data-i18n-attr', pairs.join(';'));
+        applyAttrs(el);
+      }
+    }
+  }
+  function autoBindTree(root) {
+    if (!autoIndex || !root) return;
+    if (root.nodeType === 1) autoBindElement(root);
+    var els = root.querySelectorAll ? root.querySelectorAll('*') : [];
+    for (var i = 0; i < els.length; i++) autoBindElement(els[i]);
+  }
+  function applyAutoBody() {
+    if (!autoIndex || !document.body) return;
+    autoBindTree(document.body);
+    var title = document.querySelector && document.querySelector('title');
+    if (title) autoBindElement(title);
+    if (!autoObserver && typeof MutationObserver !== 'undefined') {
+      autoObserver = new MutationObserver(function (records) {
+        records.forEach(function (record) {
+          for (var i = 0; i < record.addedNodes.length; i++) {
+            var node = record.addedNodes[i];
+            if (node.nodeType === 1) autoDirtyNodes.push(node);
+            // textContent assignments commonly add a bare Text node to an
+            // existing error/status box; translate that box without touching data.
+            else if (node.nodeType === 3 && record.target && record.target.nodeType === 1)
+              autoDirtyNodes.push(record.target);
+          }
+        });
+        if (autoRefreshPending || !autoDirtyNodes.length) return;
+        autoRefreshPending = true;
+        setTimeout(function () {
+          autoRefreshPending = false;
+          var nodes = autoDirtyNodes.splice(0);
+          nodes.forEach(autoBindTree);
+        }, 40);
+      });
+      autoObserver.observe(document.body, { childList:true, subtree:true });
+    }
+  }
+  function ensureCanonicalLocales() {
+    if (currentLang === 'tr') canonicalTurkish = dict;
+    if (currentLang === 'en') canonicalEnglish = dict;
+    var pending = [];
+    if (!canonicalTurkish) {
+      pending.push(fetch(BASE_PATH + 'tr.json?v=1', {cache:'no-cache'})
+        .then(function (r) { if (!r.ok) throw new Error('base locale unavailable'); return r.json(); })
+        .then(function (obj) { canonicalTurkish = obj; }).catch(function () {}));
+    }
+    if (isAuthPage() && !authCatalog) {
+      if (!authCatalogPromise) {
+        authCatalogPromise = fetch(BASE_PATH + 'auth.json?v=20261020', {cache:'no-cache'})
+          .then(function (r) { if (!r.ok) throw new Error('auth catalog unavailable'); return r.json(); })
+          .then(function (obj) { authCatalog = obj; })
+          .catch(function () {});
+      }
+      pending.push(authCatalogPromise);
+    }
+    if (!pending.length) { rebuildAutoIndex(); applyAutoBody(); return; }
+    Promise.all(pending).then(function () {
+      rebuildAutoIndex();
+      applyAutoBody();
+    });
+  }
+
+
+  function installStandaloneLanguagePicker() {
+    if (!document.body || !isAuthPage() || document.getElementById('sxfStandaloneLanguage')) return;
+    var control = document.createElement('select');
+    control.id = 'sxfStandaloneLanguage';
+    control.className = 'sxf-standalone-language lang-picker';
+    control.setAttribute('aria-label', 'Language / Dil');
+    control.setAttribute('data-no-i18n', '1');
+    var names = {tr:'Türkçe',en:'English',de:'Deutsch',fr:'Français',
+                 nl:'Nederlands',it:'Italiano',es:'Español'};
+    SUPPORTED.forEach(function (code) {
+      var option = document.createElement('option');
+      option.value = code;
+      option.textContent = names[code];
+      control.appendChild(option);
+    });
+    control.value = currentLang;
+    control.addEventListener('change', function () {
+      window.SXFI18n.set(control.value).catch(function () {
+        control.value = currentLang;
+      });
+    });
+    var css = document.createElement('style');
+    css.textContent =
+      '.sxf-standalone-language{position:fixed;right:12px;bottom:12px;z-index:1700;'+
+      'max-width:150px;background:#171d29;color:#f3f4f6;border:1px solid #394253;'+
+      'border-radius:9px;font:12px system-ui,sans-serif;padding:9px 12px;cursor:pointer;}'+
+      'body.sxf-auth-body{padding-bottom:60px;}'+
+      '.sxf-standalone-language:focus-visible{outline:2px solid #34d399;outline-offset:2px;}';
+    (document.head || document.documentElement).appendChild(css);
+    document.body.appendChild(control);
   }
 
   function applyAttrs(el) {
@@ -129,6 +319,8 @@
       if (tv !== null) document.title = tv;
     }
     document.documentElement.setAttribute('lang', currentLang);
+    var standaloneSelect = document.getElementById('sxfStandaloneLanguage');
+    if (standaloneSelect) standaloneSelect.value = currentLang;
     document.querySelectorAll('.lang-picker-current').forEach(function (el) {
       var flag = FLAGS[currentLang] || '';
       var code = (currentLang === 'en') ? 'EN' : currentLang.toUpperCase();
@@ -154,6 +346,8 @@
         currentLang = lang;
         try { localStorage.setItem(STORAGE_KEY, lang); } catch (e) {}
         applyDOM();
+        ensureCanonicalLocales();
+        installStandaloneLanguagePicker();
         listeners.forEach(function (fn) { try { fn(lang); } catch (e) {} });
         try { window.dispatchEvent(new CustomEvent('i18n:change', { detail: { lang: lang } })); } catch (e) {}
       });
