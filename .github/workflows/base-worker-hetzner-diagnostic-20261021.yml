@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 jobs:
   base-health:
@@ -33,3 +34,23 @@ jobs:
             echo "BASE_JOURNAL_LAST_45"
             journalctl -u smartxflow-base-worker.service -n 45 --no-pager -o cat | tail -n 45
             echo "BASE_DIAGNOSTIC_END"
+
+  publish-diagnostic:
+    name: Publish sanitized worker status
+    needs: base-health
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record redacted diagnostic in GitHub preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name | contains("base-health")) | .id' | head -1)"
+          test -n "$id"
+          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/base-worker-diagnostic-raw.txt
+          grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 70 > /tmp/base-worker-diagnostic-sanitized.txt || true
+          test -s /tmp/base-worker-diagnostic-sanitized.txt
+          CONTENT="$(base64 -w0 /tmp/base-worker-diagnostic-sanitized.txt)"
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_READONLY_DIAGNOSTIC_20261021.txt" -f message="ops: publish sanitized Hetzner Base state (read-only diagnosis)" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
