@@ -17,6 +17,7 @@ on:
       - 'tests/test_admin_i18n_browser.py'
       - 'tests/test_admin_overlay_i18n_browser.py'
       - 'tests/test_admin_dynamic_i18n.py'
+      - 'tests/test_admin_inline_i18n.py'
       - 'tests/test_admin_dynamic_i18n_browser.py'
       - 'static/js/admin-panel.js'
       - 'static/js/admin-panel.js.src'
@@ -67,6 +68,7 @@ jobs:
           python tests/test_admin_i18n_browser.py
           python tests/test_admin_overlay_i18n_browser.py
           python tests/test_admin_dynamic_i18n.py
+          python tests/test_admin_inline_i18n.py
           python tests/test_admin_dynamic_i18n_browser.py
           python tests/test_status_runtime_i18n_browser.py
           python tests/test_status_runtime_i18n.py

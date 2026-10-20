@@ -3578,7 +3578,7 @@
             const newInterval = parseInt(input.value);
             
             if (isNaN(newInterval) || newInterval < 1 || newInterval > 60) {
-                showToast('Interval 1-60 dakika arasında olmalı', 'error');
+                showToast(sxfAdminInlineT('inline_interval_range',"Interval 1-60 dakika arasında olmalı"), 'error');
                 return;
             }
             
@@ -4464,7 +4464,7 @@
                     showToast(`Silme hatasi: ${data.message}`, 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
                 console.error('Delete config error:', error);
             }
         }
@@ -4480,10 +4480,10 @@
                 if (response.ok) {
                     showToast('Ayarlar kaydedildi!', 'success');
                 } else {
-                    showToast('Kaydetme hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_save_failed',"Kaydetme hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -4500,17 +4500,17 @@
         }
 
         async function deleteAllAlarms() {
-            if (!confirm('Tum Sharp alarmlarini silmek istediginizden emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_sharp_delete',"Tum Sharp alarmlarini silmek istediginizden emin misiniz?"))) return;
             try {
                 const response = await fetch('/api/sharp/alarms', { method: 'DELETE' });
                 if (response.ok) {
-                    showToast('Tum alarmlar silindi!', 'success');
+                    showToast(sxfAdminInlineT('inline_all_deleted',"Tum alarmlar silindi!"), 'success');
                     loadAlarms();
                 } else {
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -4525,7 +4525,7 @@
                     showToast('Sharp hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
 
@@ -4549,12 +4549,12 @@
                     setTimeout(() => hideCalcStatus(), 3000);
                 } else {
                     showCalcStatus(false, 'Hesaplama hatasi!');
-                    showToast('Hesaplama hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_calculate_failed',"Hesaplama hatasi!"), 'error');
                 }
             } catch (error) {
                 stopCalcStatusCheck();
                 showCalcStatus(false, 'Baglanti hatasi!');
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -5165,7 +5165,7 @@
                 if (response.ok) {
                     showToast('Public Move ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kaydetme hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_save_failed',"Kaydetme hatasi!"), 'error');
                 }
             } catch (error) {
                 showToast('Hata: ' + error.message, 'error');
@@ -5181,7 +5181,7 @@
                     showToast('Public Move hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
         
@@ -5212,7 +5212,7 @@
                     checkStatus();
                 } else {
                     statusEl.style.display = 'none';
-                    showToast('Hesaplama hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_calculate_failed',"Hesaplama hatasi!"), 'error');
                 }
             } catch (error) {
                 statusEl.style.display = 'none';
@@ -5221,7 +5221,7 @@
         }
 
         async function deleteAllPublicMoveAlarms() {
-            if (!confirm('Tum Public Move alarmlarini silmek istediginize emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_publicmove_delete',"Tum Public Move alarmlarini silmek istediginize emin misiniz?"))) return;
             
             try {
                 const response = await fetch('/api/publicmove/alarms', { method: 'DELETE' });
@@ -5514,15 +5514,15 @@
                 if (response.ok) {
                     showToast('Big Money ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
         async function deleteBigMoneyAlarms() {
-            if (!confirm('Tum Big Money alarmlari silinecek. Emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_bigmoney_delete',"Tum Big Money alarmlari silinecek. Emin misiniz?"))) return;
             
             try {
                 const response = await fetch('/api/bigmoney/delete', { method: 'POST' });
@@ -5533,7 +5533,7 @@
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -5860,10 +5860,10 @@
                 if (response.ok) {
                     showToast('Hacim Soku ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -5879,7 +5879,7 @@
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -5902,7 +5902,7 @@
                     showToast('Hacim Soku hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
         
@@ -5943,7 +5943,7 @@
                 }
             } catch (error) {
                 hideVolumeShockCalcStatus();
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6257,10 +6257,10 @@
                 if (response.ok) {
                     showToast('Hacim Lideri ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6276,7 +6276,7 @@
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6639,15 +6639,15 @@
                 if (response.ok) {
                     showToast('MIM ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
         async function deleteAllMimAlarms() {
-            if (!confirm('Tum MIM alarmlari silinecek. Emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_mim_delete',"Tum MIM alarmlari silinecek. Emin misiniz?"))) return;
             
             try {
                 const response = await fetch('/api/mim/alarms', { method: 'DELETE' });
@@ -6658,7 +6658,7 @@
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6734,10 +6734,10 @@
                 if (response.ok) {
                     showToast('Telegram ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6752,7 +6752,7 @@
                     showToast('Gonderim hatasi: ' + (data.error || 'Bilinmeyen hata'), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6808,7 +6808,7 @@
                     showToast('Hacim Lideri hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
         
@@ -6849,7 +6849,7 @@
                 }
             } catch (error) {
                 hideVolumeLeaderCalcStatus();
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
         
@@ -6911,7 +6911,7 @@
                     showToast('Big Money hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
         
@@ -6933,7 +6933,7 @@
                 }
             } catch (error) {
                 hideBigMoneyCalcStatus();
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -7313,15 +7313,15 @@
                 if (response.ok) {
                     showToast('Dropping ayarlari kaydedildi!', 'success');
                 } else {
-                    showToast('Kayit hatasi!', 'error');
+                    showToast(sxfAdminInlineT('inline_register_failed',"Kayit hatasi!"), 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
         async function deleteAllDroppingAlarms() {
-            if (!confirm('Tum Dropping alarmlarini silmek istediginize emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_dropping_delete',"Tum Dropping alarmlarini silmek istediginize emin misiniz?"))) return;
             
             try {
                 const response = await fetch('/api/dropping/delete', { method: 'POST' });
@@ -7332,7 +7332,7 @@
                     showToast('Silme hatasi!', 'error');
                 }
             } catch (error) {
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -7353,7 +7353,7 @@
                     showToast('Dropping hesaplama sifirlandi!', 'success');
                 }
             } catch (error) {
-                showToast('Sifirlama hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_reset_failed',"Sifirlama hatasi!"), 'error');
             }
         }
         
@@ -7375,7 +7375,7 @@
                 }
             } catch (error) {
                 hideDroppingCalcStatus();
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -7536,7 +7536,7 @@
                     document.getElementById('licenseNote').value = '';
                     document.getElementById('licensePlan').value = 'core';
                     document.getElementById('licenseFree').checked = false;
-                    showToast('Lisans olusturuldu!', 'success');
+                    showToast(sxfAdminInlineT('inline_license_created',"Lisans olusturuldu!"), 'success');
                     loadLicenses();
                     loadLicenseStats();
                 } else {
@@ -7544,7 +7544,7 @@
                 }
             } catch (error) {
                 console.error('Create license error:', error);
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -7810,12 +7810,12 @@
                 }
             } catch (error) {
                 console.error('Extend license error:', error);
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
         async function resetDevices(key) {
-            if (!confirm('Bu lisansa bagli tum cihazlar silinecek. Emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_license_devices',"Bu lisansa bagli tum cihazlar silinecek. Emin misiniz?"))) return;
 
             try {
                 const response = await fetch('/api/licenses/reset-devices', {
@@ -7834,12 +7834,12 @@
                 }
             } catch (error) {
                 console.error('Reset devices error:', error);
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
         async function deleteLicense(key) {
-            if (!confirm('Bu lisans kalici olarak silinecek. Emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_license_delete',"Bu lisans kalici olarak silinecek. Emin misiniz?"))) return;
 
             try {
                 const response = await fetch('/api/licenses/delete', {
@@ -7850,7 +7850,7 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    showToast('Lisans silindi!', 'success');
+                    showToast(sxfAdminInlineT('inline_license_deleted',"Lisans silindi!"), 'success');
                     loadLicenses();
                     loadLicenseStats();
                 } else {
@@ -7858,15 +7858,15 @@
                 }
             } catch (error) {
                 console.error('Delete license error:', error);
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
         function copyLicenseKey(key) {
             navigator.clipboard.writeText(key).then(() => {
-                showToast('Lisans anahtari kopyalandi!', 'success');
+                showToast(sxfAdminInlineT('inline_license_copied',"Lisans anahtari kopyalandi!"), 'success');
             }).catch(() => {
-                showToast('Kopyalama basarisiz!', 'error');
+                showToast(sxfAdminInlineT('inline_copy_failed',"Kopyalama basarisiz!"), 'error');
             });
         }
 
@@ -7984,12 +7984,12 @@
                     }
                 }
 
-                showToast('Lisans guncellendi!', 'success');
+                showToast(sxfAdminInlineT('inline_license_updated',"Lisans guncellendi!"), 'success');
                 closeEditModal();
                 loadLicenses();
             } catch (error) {
                 console.error('Edit license error:', error);
-                showToast('Baglanti hatasi!', 'error');
+                showToast(sxfAdminInlineT('inline_connection_failed',"Baglanti hatasi!"), 'error');
             }
         }
 
@@ -8325,11 +8325,11 @@
 
         function addFreeMatch(hash, home, away, league, date, el) {
             if (_freeMatchSelected.length >= 5) {
-                showToast('En fazla 5 maç seçilebilir', 'error');
+                showToast(sxfAdminInlineT('inline_max_five',"En fazla 5 maç seçilebilir"), 'error');
                 return;
             }
             if (_freeMatchSelected.find(m => m.hash === hash)) {
-                showToast('Bu maç zaten seçili', 'warning');
+                showToast(sxfAdminInlineT('inline_already_selected',"Bu maç zaten seçili"), 'warning');
                 return;
             }
             _freeMatchSelected.push({ hash, home, away, league: league || '', date: date || '' });
@@ -8372,7 +8372,7 @@
                 if (data.success) {
                     status.style.color = '#3fb950';
                     status.textContent = `${data.count} maç kaydedildi`;
-                    showToast('Ücretsiz maçlar kaydedildi', 'success');
+                    showToast(sxfAdminInlineT('inline_free_saved',"Ücretsiz maçlar kaydedildi"), 'success');
                 } else {
                     status.style.color = '#f85149';
                     status.textContent = data.error || 'Hata oluştu';
@@ -8698,7 +8698,7 @@
         }
 
         async function deleteContent(id) {
-            if (!confirm('Bu içeriği silmek istediğinize emin misiniz?')) return;
+            if (!confirm(sxfAdminInlineT('inline_content_delete',"Bu içeriği silmek istediğinize emin misiniz?"))) return;
             try {
                 const resp = await fetch(`/api/analyses/${id}`, { method: 'DELETE' });
                 const data = await resp.json();
@@ -8880,7 +8880,7 @@
         }
 
         async function deleteAnalyst(id) {
-            if (!confirm('Bu analizciyi silmek istediğinize emin misiniz? İlişkili analizler etkilenmez.')) return;
+            if (!confirm(sxfAdminInlineT('inline_analyst_delete',"Bu analizciyi silmek istediğinize emin misiniz? İlişkili analizler etkilenmez."))) return;
             try {
                 const resp = await fetch(`/api/analysts/${id}`, {method:'DELETE'});
                 const data = await resp.json();
@@ -9272,10 +9272,10 @@
                 if (result.status === 'ok') {
                     if (isApproved) {
                         delete _adminApprovedKeys[approveKey];
-                        showToast('Onay kaldırıldı', 'info');
+                        showToast(sxfAdminInlineT('inline_signal_unapproved',"Onay kaldırıldı"), 'info');
                     } else {
                         _adminApprovedKeys[approveKey] = true;
-                        showToast('Sinyal onaylandı ✓', 'success');
+                        showToast(sxfAdminInlineT('inline_signal_approved',"Sinyal onaylandı ✓"), 'success');
                     }
                     document.querySelectorAll('[data-approvekey]').forEach(function(btn) {
                         if (btn.getAttribute('data-approvekey') === approveKey) {
@@ -10464,6 +10464,14 @@ var dateGroups = {};
         if (_pendingShowPage) { var _p = _pendingShowPage; _pendingShowPage = null; showPage(_p); }
 
     </script>
+<script>
+// UI-only translation helper: never transforms API payloads, numeric thresholds or account data.
+function sxfAdminInlineT(key, fallback) {
+    const code = 'app.adminui.' + key;
+    const translated = window.SXFI18n && window.SXFI18n.t ? window.SXFI18n.t(code) : null;
+    return translated && translated !== code ? translated : fallback;
+}
+</script>
 <script src="/static/js/i18n.js?v=20261020-full"></script>
 </body>
 </html>
