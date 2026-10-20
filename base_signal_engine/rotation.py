@@ -7,8 +7,11 @@ NOT considered successful scans. No filesystem or database cursor is created.
 from datetime import datetime, timezone
 from math import isfinite
 
-# Base T-8/T-6 windows first, with remaining hours including the previous hour.
-HOUR_OFFSETS = (6, 8, 7, 5, 4, 9, 3, 10, 2, 11, 1, 12, 0, -1)
+# Priority Base T-8/T-6 windows first. Also scan the *entire* Early horizon:
+# a fixture first seen up to 80h ahead is enqueued before T-72.
+# This rotation is best-effort; the independent durable contiguous cursor
+# provides replay and must not be paused by unrelated historical WAITING_DATA.
+HOUR_OFFSETS = (6, 8, 7, 5, 4, 9, 3, 10, 2, 11, 1, 12, 0, -1) + tuple(range(13, 81))
 
 
 def rotation_slot(at: datetime) -> dict:
