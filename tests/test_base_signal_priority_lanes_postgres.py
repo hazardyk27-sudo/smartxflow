@@ -13,6 +13,13 @@ from tests.test_base_signal_postgres_phase4 import query, job_data
 import json
 
 def test_99_priority_lanes_claim_separately_and_preserve_unclaimed_jobs():
+    # Earlier Phase-4 tests intentionally leave due fixtures in this same
+    # disposable DB. The widened real LIVE predicate correctly sees them.
+    # Delay only those leftovers so priority-lane isolation is deterministic;
+    # never perform this operation against a real database.
+    query("UPDATE public.sxf_base_checkpoint_jobs "
+          "SET next_attempt_at=now()+interval '30 days' "
+          "WHERE state IN ('PENDING','RETRY','WAITING_DATA')")
     now=datetime.now(timezone.utc)
     live_uid,old_uid=str(uuid4()),str(uuid4())
     live_kick=now+timedelta(hours=5,minutes=45)
