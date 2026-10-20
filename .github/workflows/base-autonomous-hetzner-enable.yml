@@ -1,0 +1,99 @@
+name: Enable autonomous Base signal worker on Hetzner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/systemd/smartxflow-base-worker.service'
+      - 'deploy/sync_runtime_units.sh'
+      - 'base_signal_engine/hetzner_worker.py'
+      - '.github/workflows/base-autonomous-hetzner-enable.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-autonomous-activation
+  cancel-in-progress: false
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Install gates and enable verified permanent systemd unit
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEPLOY_SHA
+          command_timeout: 11m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test -s /opt/smartxflow/.env
+            test -x /opt/smartxflow/venv/bin/python
+            echo "AUTONOMOUS_GATE_SHA=$DEPLOY_SHA"
+            # Exact production SHA + actual installed service must BOTH match.
+            synced=0
+            for i in $(seq 1 90); do
+              sha="$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
+              if [ "$sha" = "$DEPLOY_SHA" ] &&
+                cmp -s /opt/smartxflow/deploy/systemd/smartxflow-base-worker.service /etc/systemd/system/smartxflow-base-worker.service &&
+                [ "$(systemctl is-active smartxflow-web || true)" = active ]; then
+                synced=1
+                break
+              fi
+              sleep 3
+            done
+            test "$synced" = 1 || { echo "ACTIVATION_STOP: exact_sha_or_unit_not_deployed"; exit 1; }
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active || { echo "ACTIVATION_STOP:old_service_down=$s"; exit 1; }
+            done
+            # Existing 24-hour temporary unit is replaced, not duplicated.
+            for old in sxf-base-durable-shadow-20261019.service sxf-base-priority-shadow-20261020.service sxf-base-priority-guarded-20261020.service; do
+              if [ "$(systemctl is-active "$old" || true)" = active ]; then
+                original="$(systemctl show "$old" -p ExecStart --value)"
+                case "$original" in
+                  *base_signal_engine.hetzner_worker*--priority-lanes*) ;;
+                  *) echo "ACTIVATION_STOP: unexpected_producer=$old"; exit 1 ;;
+                esac
+                systemctl stop "$old"
+                test "$(systemctl is-active "$old" || true)" != active
+                echo "STOPPED_OLD_TRANSIENT=$old"
+              fi
+            done
+            # Gates contain no credentials; credentials stay in /opt/smartxflow/.env.
+            /usr/bin/install -d -m 0750 -o root -g smartxflow /etc/smartxflow
+            /usr/bin/install -m 0640 -o root -g smartxflow /dev/null /etc/smartxflow/base-worker.env
+            printf '%s\n' \
+              'SXF_BASE_DURABLE_WORKER_APPROVED=yes' \
+              'SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes' \
+              'SXF_BASE_PRIORITY_LANES_APPROVED=yes' \
+              > /etc/smartxflow/base-worker.env
+            systemctl daemon-reload
+            systemctl enable --now smartxflow-base-worker.service
+            test "$(systemctl is-enabled smartxflow-base-worker.service)" = enabled
+            test "$(systemctl is-active smartxflow-base-worker.service)" = active
+            echo "AUTONOMOUS_BASE_UNIT_ENABLED_AT_BOOT"
+            systemctl show smartxflow-base-worker.service \
+              -p ActiveState -p SubState -p MainPID -p Restart -p RestartPreventExitStatus -p RuntimeMaxUSec -p NRestarts
+            sleep 145
+            test "$(systemctl is-active smartxflow-base-worker.service)" = active ||
+              { echo "AUTONOMOUS_FAILURE:worker_exited"; journalctl -u smartxflow-base-worker.service -n 15 --no-pager -o cat; exit 1; }
+            test "$(systemctl is-enabled smartxflow-base-worker.service)" = enabled
+            echo "AUTONOMOUS_BASE_RECENT_CYCLES"
+            journalctl -u smartxflow-base-worker.service --since '-5 minutes' -o cat --no-pager | tail -n 8
+            cycles="$(journalctl -u smartxflow-base-worker.service --since '-5 minutes' -o cat --no-pager | grep -c '"mode": "HETZNER_BASE_DURABLE"' || true)"
+            test "$cycles" -ge 2 || { echo "AUTONOMOUS_FAILURE:less_than_two_cycles=$cycles"; exit 1; }
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA"
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$s")" = active || { echo "AUTONOMOUS_FAILURE:old_service_down=$s"; exit 1; }
+            done
+            echo "AUTONOMOUS_BASE_24_7_OK sha=$DEPLOY_SHA cycles=$cycles"
