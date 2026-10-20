@@ -105,7 +105,9 @@ def main():
             payload["phase"]="BASE_SHADOW_LEGACY_UNAVAILABLE"
             payload["items"]=[a,b]
             page.locator("#sxfSignalRefresh").click()
-            page.wait_for_function("document.querySelector('.sxf-legacy-source-alert') !== null")
+            page.wait_for_function("document.querySelector('#sxfSignalNotice').textContent.includes('Eski motor kaynağı okunamıyor')")
+            page.locator("#sxfSignalBack").click()
+            page.locator(".sxf-legacy-source-alert").wait_for()
             for code in LANGS:
                 await_locale=page.evaluate("async lang => await window.SXFI18n.set(lang)",code)
                 lex=locales[code]["app"]["v4"]
