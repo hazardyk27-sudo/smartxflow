@@ -494,7 +494,10 @@
     "panel_056": "Dropping alarmları silindi",
     "panel_057": "MIM ayarları kaydedildi",
     "panel_058": "Tüm MIM alarmlarını silmek istediğinize emin misiniz?",
-    "panel_059": "MIM alarmları silindi"
+    "panel_059": "MIM alarmları silindi",
+    "panel_dyn_alarms": "Alarmlar",
+    "panel_dyn_more": "diğer alarm...",
+    "panel_dyn_no_mim": "Henüz MIM alarmı yok."
   },
   "en": {
     "system": "System",
@@ -991,7 +994,10 @@
     "panel_056": "Dropping alerts deleted",
     "panel_057": "MIM settings saved",
     "panel_058": "Are you sure you want to delete all MIM alerts?",
-    "panel_059": "MIM alerts deleted"
+    "panel_059": "MIM alerts deleted",
+    "panel_dyn_alarms": "Alerts",
+    "panel_dyn_more": "more alerts...",
+    "panel_dyn_no_mim": "No MIM alerts yet."
   },
   "de": {
     "system": "System",
@@ -1488,7 +1494,10 @@
     "panel_056": "Quotenfallalarme gelöscht",
     "panel_057": "MIM-Einstellungen gespeichert",
     "panel_058": "Möchten Sie wirklich alle MIM-Alarme löschen?",
-    "panel_059": "MIM-Alarme gelöscht"
+    "panel_059": "MIM-Alarme gelöscht",
+    "panel_dyn_alarms": "Alarme",
+    "panel_dyn_more": "weitere Alarme...",
+    "panel_dyn_no_mim": "Noch keine MIM-Alarme."
   },
   "fr": {
     "system": "Système",
@@ -1985,7 +1994,10 @@
     "panel_056": "Alertes de baisse supprimées",
     "panel_057": "Paramètres MIM enregistrés",
     "panel_058": "Voulez-vous vraiment supprimer toutes les alertes MIM ?",
-    "panel_059": "Alertes MIM supprimées"
+    "panel_059": "Alertes MIM supprimées",
+    "panel_dyn_alarms": "Alertes",
+    "panel_dyn_more": "alertes supplémentaires...",
+    "panel_dyn_no_mim": "Aucune alerte MIM pour le moment."
   },
   "nl": {
     "system": "Systeem",
@@ -2482,7 +2494,10 @@
     "panel_056": "Meldingen voor dalende odds verwijderd",
     "panel_057": "MIM-instellingen opgeslagen",
     "panel_058": "Weet je zeker dat je alle MIM-meldingen wilt verwijderen?",
-    "panel_059": "MIM-meldingen verwijderd"
+    "panel_059": "MIM-meldingen verwijderd",
+    "panel_dyn_alarms": "Alarmen",
+    "panel_dyn_more": "meer alarmen...",
+    "panel_dyn_no_mim": "Nog geen MIM-alarmen."
   },
   "it": {
     "system": "Sistema",
@@ -2979,7 +2994,10 @@
     "panel_056": "Avvisi di calo eliminati",
     "panel_057": "Impostazioni MIM salvate",
     "panel_058": "Vuoi davvero eliminare tutti gli avvisi MIM?",
-    "panel_059": "Avvisi MIM eliminati"
+    "panel_059": "Avvisi MIM eliminati",
+    "panel_dyn_alarms": "Allarmi",
+    "panel_dyn_more": "altri allarmi...",
+    "panel_dyn_no_mim": "Nessun allarme MIM al momento."
   },
   "es": {
     "system": "Sistema",
@@ -3476,6 +3494,9 @@
     "panel_056": "Alertas de caída eliminadas",
     "panel_057": "Configuración MIM guardada",
     "panel_058": "¿Seguro que quieres eliminar todas las alertas MIM?",
-    "panel_059": "Alertas MIM eliminadas"
+    "panel_059": "Alertas MIM eliminadas",
+    "panel_dyn_alarms": "Alertas",
+    "panel_dyn_more": "alertas más...",
+    "panel_dyn_no_mim": "Aún no hay alertas MIM."
   }
 }
