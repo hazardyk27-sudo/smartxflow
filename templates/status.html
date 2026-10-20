@@ -13,7 +13,7 @@
     </script>
     <meta http-equiv="Cache-Control" content="no-cache">
     <meta http-equiv="refresh" content="60">
-    <title>SmartXFlow - Sistem Durumu</title>
+    <title data-i18n="status.page_title">SmartXFlow - Sistem Durumu</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="/static/favicon-192.png">
     <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
@@ -244,18 +244,18 @@
         </a>
         <div class="nav-links">
             <a href="/" data-i18n="nav.home">Ana Sayfa</a>
-            <a href="/app">Uygulama</a>
+            <a href="/app" data-i18n="status.app_link">Uygulama</a>
             <a href="/status" class="active" data-i18n="status.nav">Durum</a>
         </div>
     </nav>
 
     <div class="container">
-        <h1 class="page-title">Sistem Durumu</h1>
+        <h1 class="page-title" data-i18n="status.page_title">SmartXFlow - Sistem Durumu</h1>
         <p class="page-subtitle" data-i18n="sta.scraper_alarm_engine_ve_veri_toplama_servislerin">Scraper, Alarm Engine ve veri toplama servislerinin anlık durumu</p>
 
         <div class="status-card">
             <h2>
-                Scraper Durumu
+                <span data-i18n="status.scraper_heading">Scraper Durumu</span>
                 <span id="mainStatus" class="status-indicator status-offline">
                     <span class="status-dot"></span>
                     <span id="mainStatusText">Kontrol ediliyor...</span>
@@ -263,7 +263,7 @@
             </h2>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Son Scrape</div>
+                    <div class="info-label" data-i18n="status.last_scrape">Son Scrape</div>
                     <div class="info-value small" id="lastScrape">-</div>
                 </div>
                 <div class="info-item">
@@ -300,7 +300,7 @@
             <table class="history-table">
                 <thead>
                     <tr>
-                        <th>Zaman (TR)</th>
+                        <th data-i18n="status.time_istanbul">Zaman (TR)</th>
                         <th data-i18n="app.flt.match_count">Maç</th>
                         <th data-i18n="sta.snapshot">Snapshot</th>
                         <th data-i18n="status.col_durum">Durum</th>
@@ -326,7 +326,7 @@
             </div>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Son Heartbeat</div>
+                    <div class="info-label" data-i18n="status.last_heartbeat">Son Heartbeat</div>
                     <div class="info-value small" id="engineLastBeat">-</div>
                 </div>
                 <div class="info-item">
@@ -411,217 +411,180 @@
     </div>
 
     <script>
+
+        // Keep the existing Istanbul timezone while formatting natural language in the active UI locale.
+        const STATUS_LOCALES = {tr:'tr-TR',en:'en-US',de:'de-DE',fr:'fr-FR',nl:'nl-NL',it:'it-IT',es:'es-ES'};
+        let lastScraperPayload = null;
+        let lastEnginePayload = null;
+        let scraperLoadFailed = false;
+        let engineLoadFailed = false;
+        function statusLang() {
+            const code = window.SXFI18n && window.SXFI18n.current ? window.SXFI18n.current() : 'tr';
+            return STATUS_LOCALES[code] ? code : 'tr';
+        }
+        function statusT(key, fallback, params) {
+            const full = 'status.' + key;
+            const value = window.SXFI18n && window.SXFI18n.t ? window.SXFI18n.t(full) : full;
+            let output = value && value !== full ? value : fallback;
+            if (params) Object.keys(params).forEach(k => { output = output.replace('{' + k + '}', String(params[k])); });
+            return output;
+        }
+        function setStatusText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
         function formatTurkeyTime(utcStr) {
             if (!utcStr) return '-';
-            try {
-                const d = new Date(utcStr);
-                return d.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            } catch(e) {
-                return utcStr;
-            }
+            const date = new Date(utcStr);
+            if (Number.isNaN(date.getTime())) return '-';
+            return new Intl.DateTimeFormat(STATUS_LOCALES[statusLang()], {
+                timeZone: 'Europe/Istanbul', day:'2-digit', month:'2-digit', year:'numeric',
+                hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23'
+            }).format(date);
         }
-
         function timeSince(utcStr) {
             if (!utcStr) return '';
-            const now = new Date();
             const then = new Date(utcStr);
-            const diffMs = now - then;
-            const diffMin = Math.floor(diffMs / 60000);
-            if (diffMin < 1) return 'az önce';
-            if (diffMin < 60) return diffMin + ' dk önce';
-            const diffHour = Math.floor(diffMin / 60);
-            if (diffHour < 24) return diffHour + ' saat önce';
-            return Math.floor(diffHour / 24) + ' gün önce';
+            if (Number.isNaN(then.getTime())) return '';
+            const mins = Math.max(0, Math.floor((Date.now() - then.getTime()) / 60000));
+            if (mins < 1) return statusT('just_now', 'az önce');
+            const locale = STATUS_LOCALES[statusLang()];
+            const formatter = new Intl.RelativeTimeFormat(locale, {numeric:'always', style:'long'});
+            if (mins < 60) return formatter.format(-mins,'minute');
+            if (mins < 1440) return formatter.format(-Math.floor(mins / 60),'hour');
+            return formatter.format(-Math.floor(mins / 1440),'day');
         }
-
+        function setIndicator(id, labelId, diffMin, hasData, isError) {
+            const indicator = document.getElementById(id);
+            let kind = 'offline', label;
+            if (isError) label = statusT('error','Hata');
+            else if (!hasData) label = statusT('no_data','Veri yok');
+            else if (Number.isFinite(diffMin) && diffMin < 15) {
+                kind = 'online'; label = statusT('active','Aktif');
+            } else if (Number.isFinite(diffMin) && diffMin < 30) {
+                kind = 'warning'; label = statusT('delayed','Gecikmiş ({minutes} dk)', {minutes:Math.floor(diffMin)});
+            } else label = statusT('offline','Çevrimdışı');
+            indicator.className = 'status-indicator status-' + kind;
+            setStatusText(labelId, label);
+        }
+        function replaceHistoryRows(id, rows, emptyLabel) {
+            const body = document.getElementById(id);
+            body.replaceChildren();
+            if (!rows.length && emptyLabel) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                cell.style.textAlign = 'center';
+                cell.textContent = emptyLabel;
+                row.appendChild(cell);
+                body.appendChild(row);
+            }
+            rows.slice(0,20).forEach(item => {
+                const row = document.createElement('tr');
+                item.cells.forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value == null ? '-' : String(value);
+                    row.appendChild(cell);
+                });
+                const cell = document.createElement('td');
+                const badge = document.createElement('span');
+                badge.className = 'badge-success';
+                badge.textContent = item.badge;
+                cell.appendChild(badge);
+                row.appendChild(cell);
+                body.appendChild(row);
+            });
+        }
+        function renderScraperStatus() {
+            if (scraperLoadFailed) {
+                setIndicator('mainStatus','mainStatusText',NaN,true,true);
+                setStatusText('mainStatusText',statusT('connection_error','Bağlantı hatası'));
+                return;
+            }
+            const data = lastScraperPayload;
+            if (!data) return;
+            const latest = data.signals && data.signals.length ? data.signals[0] : null;
+            const beat = data.heartbeat && data.heartbeat.status ? data.heartbeat.last_heartbeat : null;
+            const stamp = beat || (latest && latest.created_at);
+            setIndicator('mainStatus','mainStatusText',stamp ? (Date.now()-new Date(stamp).getTime())/60000 : NaN,!!stamp,false);
+            setStatusText('lastScrape',latest ? formatTurkeyTime(latest.created_at)+' ('+timeSince(latest.created_at)+')' : '-');
+            setStatusText('lastSnapshotCount',latest ? (latest.snapshot_count ?? '-') : '-');
+            setStatusText('totalRuns',data.signals ? data.signals.length : 0);
+            if (data.active_match_count !== undefined) {
+                setStatusText('scraperActiveMatches',data.active_match_count);
+                setStatusText('scraperActiveMatches2',data.active_match_count);
+            }
+            replaceHistoryRows('historyBody',(data.signals || []).map(s=>({
+                cells:[formatTurkeyTime(s.created_at),s.match_count ?? '-',s.snapshot_count ?? '-'],
+                badge:statusT('success','Başarılı')
+            })));
+        }
+        function renderEngineStatus() {
+            if (engineLoadFailed) {
+                setIndicator('engineStatus','engineStatusText',NaN,true,true);
+                setStatusText('engineStatusText',statusT('connection_error','Bağlantı hatası'));
+                return;
+            }
+            const data = lastEnginePayload;
+            if (!data) return;
+            setStatusText('engineVersion',data.engine_version || '-');
+            setStatusText('engineCalc',data.calculator || '-');
+            const hb = data.heartbeat;
+            const latestSignal = data.processed_signals && data.processed_signals.length ? data.processed_signals[0] : null;
+            const stamp = hb ? hb.last_heartbeat : latestSignal && latestSignal.processed_at;
+            setStatusText('engineLastBeat',stamp ? formatTurkeyTime(stamp)+' ('+timeSince(stamp)+')' : '-');
+            const stateMap = {idle:'idle',calculating:'calculating',started:'started',error:'error',ssl_error:'ssl_error',stopped:'stopped'};
+            const state = hb && hb.status ? hb.status : latestSignal ? 'idle' : 'no_data';
+            setStatusText('engineState',stateMap[state] || state === 'no_data' ? statusT(stateMap[state] || state,state) : state);
+            setIndicator('engineStatus','engineStatusText',stamp ? (Date.now()-new Date(stamp).getTime())/60000 : NaN,!!stamp,state === 'error' || state === 'ssl_error');
+            const stats = data.stats || {};
+            setStatusText('engineAlarmCount',stats.total_active_alarms ?? '-');
+            setStatusText('enginePending',stats.pending_count ?? '-');
+            setStatusText('engineActiveMatches',stats.active_match_count ?? '-');
+            setStatusText('totalActiveAlarms',stats.total_active_alarms ?? '-');
+            const counts = data.alarm_counts || {};
+            ['Sharp','Bigmoney','Volumeshock','Dropping','Volumeleader','Mim'].forEach(kind => {
+                setStatusText('alarmCount'+kind,counts[kind.toLowerCase()] ?? '-');
+            });
+            const processed = data.processed_signals || [];
+            setStatusText('engineTotalProcessed',processed.length);
+            replaceHistoryRows('engineHistoryBody',processed.map(s=>({
+                cells:[formatTurkeyTime(s.created_at),formatTurkeyTime(s.processed_at),s.match_count ?? '-'],
+                badge:statusT('processed','İşlendi')
+            })),statusT('no_processed','İşlenmiş sinyal yok'));
+        }
         async function loadStatus() {
             try {
                 const res = await fetch('/api/scraper-status');
-                const data = await res.json();
-
-                const statusEl = document.getElementById('mainStatus');
-                const statusText = document.getElementById('mainStatusText');
-
-                if (data.heartbeat && data.heartbeat.status) {
-                    const hb = data.heartbeat;
-                    const lastBeat = new Date(hb.last_heartbeat);
-                    const diffMin = (new Date() - lastBeat) / 60000;
-
-                    if (diffMin < 15) {
-                        statusEl.className = 'status-indicator status-online';
-                        statusText.textContent = 'Aktif';
-                    } else if (diffMin < 30) {
-                        statusEl.className = 'status-indicator status-warning';
-                        statusText.textContent = 'Gecikmiş (' + Math.floor(diffMin) + ' dk)';
-                    } else {
-                        statusEl.className = 'status-indicator status-offline';
-                        statusText.textContent = 'Çevrimdışı';
-                    }
-                } else if (data.signals && data.signals.length > 0) {
-                    const lastSignal = new Date(data.signals[0].created_at);
-                    const diffMin = (new Date() - lastSignal) / 60000;
-
-                    if (diffMin < 15) {
-                        statusEl.className = 'status-indicator status-online';
-                        statusText.textContent = 'Aktif';
-                    } else if (diffMin < 30) {
-                        statusEl.className = 'status-indicator status-warning';
-                        statusText.textContent = 'Gecikmiş (' + Math.floor(diffMin) + ' dk)';
-                    } else {
-                        statusEl.className = 'status-indicator status-offline';
-                        statusText.textContent = 'Çevrimdışı';
-                    }
-                }
-
-                if (data.signals && data.signals.length > 0) {
-                    const latest = data.signals[0];
-                    document.getElementById('lastScrape').textContent = formatTurkeyTime(latest.created_at) + ' (' + timeSince(latest.created_at) + ')';
-                    document.getElementById('lastSnapshotCount').textContent = latest.snapshot_count || '-';
-
-                    document.getElementById('totalRuns').textContent = data.signals.length;
-
-                if (data.active_match_count !== undefined) {
-                    document.getElementById('scraperActiveMatches').textContent = data.active_match_count;
-                    document.getElementById('scraperActiveMatches2').textContent = data.active_match_count;
-                }
-
-                    const tbody = document.getElementById('historyBody');
-                    tbody.innerHTML = '';
-                    const showCount = Math.min(data.signals.length, 20);
-                    for (let i = 0; i < showCount; i++) {
-                        const s = data.signals[i];
-                        const tr = document.createElement('tr');
-                        tr.innerHTML =
-                            '<td>' + formatTurkeyTime(s.created_at) + '</td>' +
-                            '<td>' + (s.match_count || '-') + '</td>' +
-                            '<td>' + (s.snapshot_count || '-') + '</td>' +
-                            '<td><span class="badge-success">Basarili</span></td>';
-                        tbody.appendChild(tr);
-                    }
-                }
+                if (!res.ok) throw new Error('scraper HTTP '+res.status);
+                lastScraperPayload = await res.json();
+                scraperLoadFailed = false;
             } catch(e) {
-                console.error('[Status] Error:', e);
-                document.getElementById('mainStatusText').textContent = 'Bağlantı hatası';
+                scraperLoadFailed = true;
+                console.error('[Status] Error:',e);
             }
+            renderScraperStatus();
         }
-
-        loadStatus();
-
         async function loadEngineStatus() {
             try {
                 const res = await fetch('/api/alarm-engine-status');
-                const data = await res.json();
-
-                const statusEl = document.getElementById('engineStatus');
-                const statusText = document.getElementById('engineStatusText');
-
-                document.getElementById('engineVersion').textContent = data.engine_version || '-';
-                document.getElementById('engineCalc').textContent = data.calculator || '-';
-
-                if (data.heartbeat) {
-                    const hb = data.heartbeat;
-                    const lastBeat = new Date(hb.last_heartbeat);
-                    const diffMin = (new Date() - lastBeat) / 60000;
-
-                    document.getElementById('engineLastBeat').textContent = formatTurkeyTime(hb.last_heartbeat) + ' (' + timeSince(hb.last_heartbeat) + ')';
-
-                    const stateMap = {
-                        'idle': 'Beklemede',
-                        'calculating': 'Hesaplama yapiliyor...',
-                        'started': 'Baslatildi',
-                        'error': 'Hata',
-                        'ssl_error': 'SSL Hatasi',
-                        'stopped': 'Durduruldu'
-                    };
-                    document.getElementById('engineState').textContent = stateMap[hb.status] || hb.status || '-';
-
-                    if (hb.status === 'error' || hb.status === 'ssl_error') {
-                        statusEl.className = 'status-indicator status-offline';
-                        statusText.textContent = 'Hata';
-                    } else if (diffMin < 15) {
-                        statusEl.className = 'status-indicator status-online';
-                        statusText.textContent = 'Aktif';
-                    } else if (diffMin < 30) {
-                        statusEl.className = 'status-indicator status-warning';
-                        statusText.textContent = 'Gecikmis (' + Math.floor(diffMin) + ' dk)';
-                    } else {
-                        statusEl.className = 'status-indicator status-offline';
-                        statusText.textContent = 'Cevrimdisi';
-                    }
-                } else if (data.processed_signals && data.processed_signals.length > 0) {
-                    const lastSig = data.processed_signals[0];
-                    const lastTime = new Date(lastSig.processed_at);
-                    const diffMin = (new Date() - lastTime) / 60000;
-
-                    document.getElementById('engineLastBeat').textContent = formatTurkeyTime(lastSig.processed_at) + ' (' + timeSince(lastSig.processed_at) + ')';
-                    document.getElementById('engineState').textContent = 'Beklemede';
-
-                    if (diffMin < 15) {
-                        statusEl.className = 'status-indicator status-online';
-                        statusText.textContent = 'Aktif';
-                    } else if (diffMin < 30) {
-                        statusEl.className = 'status-indicator status-warning';
-                        statusText.textContent = 'Gecikmis (' + Math.floor(diffMin) + ' dk)';
-                    } else {
-                        statusEl.className = 'status-indicator status-offline';
-                        statusText.textContent = 'Cevrimdisi';
-                    }
-                } else {
-                    statusEl.className = 'status-indicator status-offline';
-                    statusText.textContent = 'Veri yok';
-                }
-
-                document.getElementById('engineAlarmCount').textContent = (data.stats && data.stats.total_active_alarms !== undefined) ? data.stats.total_active_alarms : '-';
-
-                const pendingCount = (data.stats && data.stats.pending_count !== undefined) ? data.stats.pending_count : '-';
-                document.getElementById('enginePending').textContent = pendingCount;
-
-                if (data.stats && data.stats.active_match_count !== undefined) {
-                    document.getElementById('engineActiveMatches').textContent = data.stats.active_match_count;
-                }
-
-                if (data.alarm_counts) {
-                    const ac = data.alarm_counts;
-                    document.getElementById('alarmCountSharp').textContent = ac.sharp !== undefined ? ac.sharp : '-';
-                    document.getElementById('alarmCountBigmoney').textContent = ac.bigmoney !== undefined ? ac.bigmoney : '-';
-                    document.getElementById('alarmCountVolumeshock').textContent = ac.volumeshock !== undefined ? ac.volumeshock : '-';
-                    document.getElementById('alarmCountDropping').textContent = ac.dropping !== undefined ? ac.dropping : '-';
-                    document.getElementById('alarmCountVolumeleader').textContent = ac.volumeleader !== undefined ? ac.volumeleader : '-';
-                    document.getElementById('alarmCountMim').textContent = ac.mim !== undefined ? ac.mim : '-';
-                }
-                if (data.stats && data.stats.total_active_alarms !== undefined) {
-                    document.getElementById('totalActiveAlarms').textContent = data.stats.total_active_alarms;
-                }
-
-                if (data.processed_signals && data.processed_signals.length > 0) {
-                    const sigs = data.processed_signals;
-                    document.getElementById('engineTotalProcessed').textContent = sigs.length;
-
-                    const tbody = document.getElementById('engineHistoryBody');
-                    tbody.innerHTML = '';
-                    const showCount = Math.min(sigs.length, 20);
-                    for (let i = 0; i < showCount; i++) {
-                        const s = sigs[i];
-                        const tr = document.createElement('tr');
-                        tr.innerHTML =
-                            '<td>' + formatTurkeyTime(s.created_at) + '</td>' +
-                            '<td>' + formatTurkeyTime(s.processed_at) + '</td>' +
-                            '<td>' + (s.match_count || '-') + '</td>' +
-                            '<td><span class="badge-success" style="color:#2BFF88;background:rgba(43,255,136,0.15);">İşlendi</span></td>';
-                        tbody.appendChild(tr);
-                    }
-                } else {
-                    document.getElementById('engineTotalProcessed').textContent = '0';
-                    document.getElementById('engineHistoryBody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:#484f58;">İşlenmiş sinyal yok</td></tr>';
-                }
+                if (!res.ok) throw new Error('engine HTTP '+res.status);
+                lastEnginePayload = await res.json();
+                engineLoadFailed = false;
             } catch(e) {
-                console.error('[EngineStatus] Error:', e);
-                document.getElementById('engineStatusText').textContent = 'Bağlantı hatası';
+                engineLoadFailed = true;
+                console.error('[EngineStatus] Error:',e);
             }
+            renderEngineStatus();
         }
-
+        // Re-render cached results when the locale changes; never refetch or mutate service data.
+        window.addEventListener('i18n:change',function () {
+            renderScraperStatus();
+            renderEngineStatus();
+        });
+        loadStatus();
         loadEngineStatus();
-    </script>
-<script src="/static/js/i18n.js?v=20261020-full"></script>
+
+    </script><script src="/static/js/i18n.js?v=20261020-full"></script>
 </body>
 </html>
