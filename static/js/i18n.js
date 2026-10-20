@@ -79,6 +79,8 @@
   var canonicalEnglish = null;
   var authCatalog = null;
   var authCatalogPromise = null;
+  var adminCatalog = null;
+  var adminCatalogPromise = null;
   var autoIndex = null;
   var autoObserver = null;
   var autoRefreshPending = false;
@@ -94,6 +96,11 @@
 
   function get(key) {
     if (!key) return '';
+    if (key.indexOf('app.adminui.') === 0 && adminCatalog) {
+      var adminKey = key.slice('app.adminui.'.length);
+      return (adminCatalog[currentLang] && adminCatalog[currentLang][adminKey]) ||
+        (adminCatalog.en && adminCatalog.en[adminKey]) || null;
+    }
     if (key.indexOf('app.auth.') === 0 && authCatalog) {
       var authKey = key.slice('app.auth.'.length);
       return (authCatalog[currentLang] && authCatalog[currentLang][authKey]) ||
@@ -121,6 +128,10 @@
   function isAuthPage() {
     var path = (window.location && window.location.pathname) || '';
     return /^\/(?:login|signup|forgot-password|reset-password|verify-email|auth-callback|membership-required|migrate-account|account|admin-login)(?:\/)?$/.test(path);
+  }
+  function isAdminPage() {
+    var path = (window.location && window.location.pathname) || '';
+    return /^\/admin\/?$/.test(path);
   }
   function flattenCatalog(obj, path, into) {
     if (!obj || typeof obj !== 'object') return;
@@ -154,6 +165,13 @@
       });
       Object.keys(sourceTurkish).forEach(function (key) {
         if (sourceTurkish[key]) map[key] = sourceTurkish[key];
+      });
+    }
+    if (isAdminPage() && adminCatalog) {
+      var adminSource = Object.create(null);
+      flattenCatalog(adminCatalog.tr, 'app.adminui', adminSource);
+      Object.keys(adminSource).forEach(function (key) {
+        if (adminSource[key]) map[key] = adminSource[key];
       });
     }
     autoIndex = map;
@@ -238,6 +256,14 @@
         .then(function (r) { if (!r.ok) throw new Error('base locale unavailable'); return r.json(); })
         .then(function (obj) { canonicalTurkish = obj; }).catch(function () {}));
     }
+    if (isAdminPage() && !adminCatalog) {
+      if (!adminCatalogPromise) {
+        adminCatalogPromise = fetch(BASE_PATH + 'admin.json?v=20261020', {cache:'no-cache'})
+          .then(function (r) { if (!r.ok) throw new Error('admin catalog unavailable'); return r.json(); })
+          .then(function (obj) { adminCatalog = obj; }).catch(function () {});
+      }
+      pending.push(adminCatalogPromise);
+    }
     if (isAuthPage() && !authCatalog) {
       if (!authCatalogPromise) {
         authCatalogPromise = fetch(BASE_PATH + 'auth.json?v=20261020', {cache:'no-cache'})
@@ -256,7 +282,7 @@
 
 
   function installStandaloneLanguagePicker() {
-    if (!document.body || !isAuthPage() || document.getElementById('sxfStandaloneLanguage')) return;
+    if (!document.body || !(isAuthPage() || isAdminPage()) || document.getElementById('sxfStandaloneLanguage')) return;
     var control = document.createElement('select');
     control.id = 'sxfStandaloneLanguage';
     control.className = 'sxf-standalone-language lang-picker';
