@@ -162,7 +162,7 @@ class BaseSignalsFeed:
             if status not in ("ft", "finished", "fulltime", "full_time") and minute != "FT":
                 continue
             score = str(row.get("score") or "").strip()
-            m = re.fullmatch(r"(\\d{1,2})\\s*-\\s*(\\d{1,2})", score)
+            m = re.fullmatch(r"(\d{1,2})\s*-\s*(\d{1,2})", score)
             if not m:
                 continue
             home, away = map(int, m.groups())

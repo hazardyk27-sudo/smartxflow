@@ -161,7 +161,7 @@
   }
   function fixtureCard(rows) {
     var item = rows[0];
-    var result = item.result_state === 'FT' && /^\\d{1,2}-\\d{1,2}$/.test(item.final_score || '')
+    var result = item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '')
       ? '<span class="sxf-match-result is-final">MAÇ SONUCU <strong>MS ' + esc(item.final_score) + '</strong></span>'
       : '<span class="sxf-match-result is-pending">MAÇ SONUCU <strong>Henüz doğrulanmadı</strong></span>';
     return '<article class="sxf-signal-card"><header class="sxf-match-top">' +
