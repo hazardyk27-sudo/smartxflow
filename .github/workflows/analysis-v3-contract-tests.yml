@@ -61,5 +61,4 @@ jobs:
           node --check static/js/modal-chart.js
           node --check static/js/modal-info.js
           node --check static/js/admin-panel.js
-          node --check static/js/admin-panel.js.src
           node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js tests/test_i18n_switch_race.js tests/test_live_alarm_i18n.js tests/test_admin_panel_i18n.js
