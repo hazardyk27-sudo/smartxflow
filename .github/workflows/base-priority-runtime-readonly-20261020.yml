@@ -1,0 +1,36 @@
+name: Base worker status read-only 20261020
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-priority-runtime-readonly-20261020.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-base-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify deployed worker process and most recent cycles
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 4m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 1e89752b72f18111fd545855e6c08d1b52db5ed1
+            echo "BASE_DIAGNOSTIC_BEGIN"
+            date --utc '+UTC %Y-%m-%dT%H:%M:%SZ'
+            for u in sxf-base-priority-shadow-20261020.service sxf-base-durable-shadow-20261019.service sxf-base-presha-20261019.service; do
+              echo "SERVICE=$u"
+              systemctl show "$u" -p ActiveState -p SubState -p MainPID -p ExecMainStatus -p ActiveEnterTimestamp -p RuntimeMaxUSec -p NRestarts -p Result
+            done
+            echo "RECENT_PRIORITY_CYCLES"
+            journalctl -u sxf-base-priority-shadow-20261020.service -o cat --no-pager -n 15 | head -c 15000 || true
+            echo "BASE_DIAGNOSTIC_END"
