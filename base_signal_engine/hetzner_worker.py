@@ -20,7 +20,7 @@ from .durable_runtime import execute_claims
 from .reader import SupabaseMoneywayReader
 from .rotation import rotation_slot, queue_diagnostics
 from .reconcile_runtime import reconcile_once
-from .storage import DurableStoreError, SupabaseCheckpointStore
+from .storage import DurableStoreError, ReadOnlyStoreError, SupabaseCheckpointStore
 
 def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               max_jobs: int = 12, max_reconcile: int = 2,
@@ -41,7 +41,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         raise ValueError("rotating hour conflicts with explicit hour")
     if type(priority_lanes) is not bool or (priority_lanes and max_jobs < 3):
         raise ValueError("priority lanes require 3 or more jobs per cycle")
-    if type(near_term_hour_offset) is not int or not -1 <= near_term_hour_offset <= 12:
+    if type(near_term_hour_offset) is not int or not -1 <= near_term_hour_offset <= 80:
         raise ValueError("unsafe near-term hour offset")
     report={"mode":"HETZNER_BASE_DURABLE","discovery":"SKIPPED",
             "enqueued":0,"discovered_fixtures":0,"superseded":0,
@@ -57,13 +57,20 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             "live_claimed":0,"backlog_claimed":0}
     if discover:
         try:
+            # Autonomous recovery keeps new fixture discovery alive even when
+            # old incomplete snapshots have accumulated in WAITING_DATA.
+            recovery = near_term_rotation and priority_lanes
+            discovery_options = (
+                {"allow_high_backlog": True, "max_fixtures": 100}
+                if recovery else {"max_fixtures": 50})
             status=bounded_cursor_discovery_once(
                 reader,store,worker_id=worker_id,window_hours=1,
-                max_fixtures=50,max_pending_due=250)
+                max_pending_due=250,**discovery_options)
             report["discovery"]=status["status"]
             report["enqueued"]=status["enqueued"]
             report["discovered_fixtures"]=status["fixtures"]
             report["discovery_paused"]=status["paused"]
+            report["discovery_backpressure"]=status.get("backpressure",False)
             report["discovery_pending_before"]=status["pending_due"]
             if status["uncertain"]:
                 # Unknown advance/lease result: do not claim ANY additional work.
@@ -90,13 +97,18 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
                 selected_offset = slot["hour_offset"]
                 report["near_term_rotation_slot"] = slot["slot"]
                 report["near_term_rotation_cycle_minute_utc"] = slot["cycle_minute_utc"]
+            urgent_options = (
+                {"allow_high_backlog": True, "max_fixtures": 100}
+                if near_term_rotation and priority_lanes else {"max_fixtures": 50})
             urgent = near_term_discovery_once(
                 reader, store, now=now, hour_offset=selected_offset,
-                max_fixtures=50, max_pending_due=(2500 if priority_lanes else 1200))
+                max_pending_due=(2500 if priority_lanes else 1200),
+                **urgent_options)
             report["near_term_hour_offset"] = selected_offset
             report["near_term_status"] = urgent["status"]
             report["near_term_enqueued"] = urgent["enqueued"]
             report["near_term_fixtures"] = urgent["fixtures"]
+            report["near_term_backpressure"] = urgent.get("backpressure",False)
             report["near_term_pending_before"] = urgent["pending_due"]
             report["near_term_window_start"] = urgent["window_start"]
             report["near_term_window_end"] = urgent["window_end"]
@@ -234,7 +246,7 @@ def main(argv=None) -> int:
     if (args.near_term_discovery and args.no_discovery) or (
             args.near_term_hour_offset != 0 and not args.near_term_discovery):
         parser.error("near-term discovery requires explicit --near-term-discovery and normal discovery")
-    if not -1 <= args.near_term_hour_offset <= 12:
+    if not -1 <= args.near_term_hour_offset <= 80:
         parser.error("unsafe near-term hour offset")
     if (args.near_term_rotation and
         (not args.near_term_discovery or args.near_term_hour_offset != 0)):
@@ -275,6 +287,12 @@ def main(argv=None) -> int:
                 return 4
             if not report["healthy_cycle"]:
                 return 2  # Discovery/health failure cannot be silent success.
+        except ReadOnlyStoreError:
+            # Health/observation RPC has no DB mutation, so a transient outage
+            # can be safely retried by systemd without operator intervention.
+            print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"READ_RETRY",
+                              "error_type":"READONLYSTOREERROR"}),file=sys.stderr,flush=True)
+            return 2
         except DurableStoreError:
             # RPC timeouts can follow a committed lease or completion. Preserve
             # ambiguous outcome semantics: systemd must NOT auto-restart.
