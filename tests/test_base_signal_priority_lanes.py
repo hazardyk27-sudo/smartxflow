@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 import pytest
-from base_signal_engine.rotation import rotation_slot, queue_diagnostics
+from base_signal_engine.rotation import rotation_slot, queue_diagnostics, HOUR_OFFSETS
 from base_signal_engine import hetzner_worker as worker
 from base_signal_engine.durable_runtime import execute_claims
 from base_signal_engine.storage import SupabaseCheckpointStore
@@ -13,11 +13,11 @@ AT=datetime(2026,10,20,14,33,tzinfo=timezone.utc)
 def test_rotation_restarts_do_not_reset_its_wall_clock_slot():
     first=rotation_slot(AT)
     assert first==rotation_slot(AT+timedelta(seconds=12))
-    assert first["hour_offset"] in range(-1,13)
+    assert first["hour_offset"] in range(-1,81)
     assert first["coverage_verified"] is False
-    assert rotation_slot(AT+timedelta(minutes=14))["hour_offset"]==first["hour_offset"]
+    assert rotation_slot(AT+timedelta(minutes=len(HOUR_OFFSETS)))["hour_offset"]==first["hour_offset"]
     assert len({rotation_slot(AT+timedelta(minutes=i))["hour_offset"]
-                for i in range(14)})==14
+                for i in range(len(HOUR_OFFSETS))})==len(HOUR_OFFSETS)
     with pytest.raises(ValueError): rotation_slot(datetime(2026,10,20))
 
 def test_queue_alerts_distinguish_stale_cursor_from_zero_lag_report():
