@@ -41,5 +41,5 @@ test('opening app admin modal requests only a read-only lazy translation catalog
  const posCatalog=code.indexOf('ensureAdminCatalog()');
  const posOpen=code.indexOf("overlay.classList.add('open')");
  assert(posCatalog>=0&&posOpen>posCatalog);
- assert(typeof win.openAdminPanel==='function');
+ assert(code.includes('function openAdminPanel(')); // function is internal to this lazy module
 });
