@@ -13,6 +13,13 @@ on:
       - 'tests/test_analysis_v4_i18n_browser.py'
       - 'tests/test_i18n_coverage.py'
       - 'tests/test_full_site_i18n_browser.py'
+      - 'tests/test_public_pages_i18n_browser.py'
+      - 'templates/landing.html'
+      - 'templates/pricing.html'
+      - 'templates/rehber*.html'
+      - 'templates/nedir.html'
+      - 'templates/legal.html'
+      - 'templates/analysis.html'
       - 'static/i18n/auth.json'
       - 'templates/status.html'
       - 'templates/login.html'
@@ -46,6 +53,7 @@ jobs:
           python tests/test_analysis_v4_browser.py
           python tests/test_analysis_v4_i18n_browser.py
           python tests/test_full_site_i18n_browser.py
+          python tests/test_public_pages_i18n_browser.py
           python -m unittest discover -s tests -p test_i18n_coverage.py
       - name: Upload visual evidence
         if: always()
