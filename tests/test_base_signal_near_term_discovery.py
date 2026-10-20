@@ -136,7 +136,10 @@ def test_worker_reports_both_paused_queues_unhealthy(monkeypatch):
                     "reconciliation_queue":{"pending_due":0,"expired_leases":0}}
     report=worker.run_cycle(None,WorkerStore(),worker_id="worker",max_jobs=1,
                             max_reconcile=0,near_term=True)
-    assert report["healthy_cycle"] is False
+    assert report["healthy_cycle"] is True
+    assert report["near_term_capacity_limited"] is True
+    assert report["coverage_state"] == "DEGRADED"
+    assert report["production_release_verified"] is False
 
 def test_near_term_never_runs_after_ambiguous_historical_discovery(monkeypatch):
     monkeypatch.setattr(worker,"bounded_cursor_discovery_once",lambda *a,**kw: {
@@ -147,3 +150,69 @@ def test_near_term_never_runs_after_ambiguous_historical_discovery(monkeypatch):
     result=worker.run_cycle(None,object(),worker_id="w",max_jobs=1,
                             max_reconcile=0,near_term=True)
     assert result["lease_uncertain"]==1 and not result["healthy_cycle"]
+
+
+def test_20_oct_production_pause_does_not_kill_priority_worker(monkeypatch):
+    """Real outage: 47 fixtures *11 plus 772 due => controlled PAUSED_CAPACITY.
+
+    No physical fixture is discarded or silently truncated. The next
+    rotation minute can still run, while operators see DEGRADED coverage.
+    """
+    monkeypatch.setattr(worker, "bounded_cursor_discovery_once",
+        lambda *a,**k: {"status":"PAUSED_BACKLOG","enqueued":0,
+            "fixtures":0,"paused":True,"pending_due":772,"uncertain":False})
+    calls=[]
+    monkeypatch.setattr(worker,"near_term_discovery_once",lambda *a,**k:
+        {"status":"PAUSED_CAPACITY","enqueued":0,"fixtures":47,
+         "pending_due":772,"window_start":NOW.isoformat(),
+         "window_end":(NOW+timedelta(hours=1)).isoformat()})
+    monkeypatch.setattr(worker,"execute_claims",lambda *a,**k:
+        (calls.append(k.get("lane","ANY")) or
+         {"claimed":1,"completed":0,"waiting_data":1,"retry":0,
+          "lease_lost":0,"commit_uncertain":0}))
+    class S:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":772,
+                    "oldest_due_seconds":253346.042219,
+                    "expired_leases":0},
+                    "discovery_cursor":{"initialized":True,
+                    "last_scanned_at":NOW.isoformat()},
+                    "reconciliation_queue":{"pending_due":54,
+                    "expired_leases":0}}
+    for minute in (0,1,2):
+        result=worker.run_cycle(None,S(),worker_id="simulated",
+            max_jobs=6,max_reconcile=0,priority_lanes=True,
+            near_term=True,near_term_rotation=True,
+            now=NOW+timedelta(minutes=minute))
+        assert result["near_term_status"]=="PAUSED_CAPACITY"
+        assert result["near_term_capacity_limited"] is True
+        assert result["near_term_rotation_coverage_verified"] is False
+        assert result["coverage_state"]=="DEGRADED"
+        assert result["healthy_cycle"] is True
+        assert result["production_release_verified"] is False
+        assert result["live_claimed"]==4 and result["backlog_claimed"]==2
+    assert len(calls)==18
+
+
+def test_unknown_near_term_source_failure_still_stops_worker(monkeypatch):
+    monkeypatch.setattr(worker,"bounded_cursor_discovery_once",lambda *a,**k:
+        {"status":"PAUSED_BACKLOG","enqueued":0,"fixtures":0,
+         "paused":True,"pending_due":600,"uncertain":False})
+    def broken(*a,**k):
+        raise ValueError("bad catalog")
+    monkeypatch.setattr(worker,"near_term_discovery_once",broken)
+    monkeypatch.setattr(worker,"execute_claims",lambda *a,**k:
+        {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+         "lease_lost":0,"commit_uncertain":0})
+    class S:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":600,
+                "oldest_due_seconds":123,"expired_leases":0},
+                "reconciliation_queue":{"pending_due":0,"expired_leases":0},
+                "discovery_cursor":{"initialized":True,
+                    "last_scanned_at":NOW.isoformat()}}
+    report=worker.run_cycle(None,S(),worker_id="w",max_jobs=3,
+                            max_reconcile=0,near_term=True,near_term_rotation=True,now=NOW)
+    assert report["near_term_status"]=="ERROR_VALUEERROR"
+    assert report["healthy_cycle"] is False
+    assert report["near_term_capacity_limited"] is False

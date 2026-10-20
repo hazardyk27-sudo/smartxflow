@@ -181,11 +181,24 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         if type(metric) is not int or metric<0:
             raise ValueError("missing durable health metric")
         report[name]=metric
+    # A controlled bounded discovery pause is NOT a failed worker cycle.
+    # Important: the 17:22 UTC 2026-10-20 production worker exited 2 after
+    # PAUSED_CAPACITY even though job claims/leases were successful. Continue
+    # the next UTC-hour rotation rather than killing all future checkpoints.
+    # Unknown ACKs, catalog errors, uninitialized discovery and bad health
+    # data still stop execution through the existing fail-closed paths.
+    capacity_pauses = ("PAUSED_CAPACITY", "PAUSED_BACKLOG", "WINDOW_TOO_LARGE")
+    report["near_term_capacity_limited"] = (
+        near_term and report["near_term_status"] in capacity_pauses)
+    if report["near_term_capacity_limited"]:
+        report["coverage_state"] = "DEGRADED"
+        report["near_term_rotation_coverage_verified"] = False
     report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED","IDLE","PAUSED_BACKLOG")
        and not report["lease_uncertain"] and not report["commit_uncertain"]
        and not report["reconcile_uncertain"]
        and (not near_term or
-            report["near_term_status"] in ("ENQUEUED", "IDEMPOTENT", "EMPTY"))
+            report["near_term_status"] in ("ENQUEUED", "IDEMPOTENT", "EMPTY")
+            + capacity_pauses)
        and report["checkpoint_expired_leases"]==0
        and report["reconcile_expired_leases"]==0)
     report["production_release_verified"]=False
