@@ -5,6 +5,7 @@ Idempotent DB enqueue handles restarts/replays; missing cycles are explicitly
 NOT considered successful scans. No filesystem or database cursor is created.
 """
 from datetime import datetime, timezone
+from math import isfinite
 
 # Base T-8/T-6 windows first, with remaining hours including the previous hour.
 HOUR_OFFSETS = (6, 8, 7, 5, 4, 9, 3, 10, 2, 11, 1, 12, 0, -1)
@@ -35,8 +36,15 @@ def queue_diagnostics(health: dict, *, now: datetime) -> dict:
     pending = queue.get("pending_due")
     old = queue.get("oldest_due_seconds")
     reconcile_due = reconcile.get("pending_due")
-    if any(type(v) is not int or v < 0 for v in (pending, old, reconcile_due)):
+    if (type(pending) is not int or pending < 0 or
+            type(reconcile_due) is not int or reconcile_due < 0):
         raise ValueError("invalid queue health counters")
+    # Postgres EXTRACT(EPOCH) returns a decimal through JSON; the health RPC
+    # legitimately reports fractional seconds, and no-due queues may be null.
+    if old is None and pending == 0:
+        old = 0
+    if (type(old) not in (int, float) or not isfinite(old) or old < 0):
+        raise ValueError("invalid oldest due age")
     stamp = cursor.get("last_scanned_at")
     age = None
     if stamp is not None:

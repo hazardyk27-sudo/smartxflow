@@ -35,6 +35,7 @@ class SupabaseCheckpointStore:
 
     _ALLOWED = frozenset({
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
+        "sxf_base_claim_due_jobs_lane",
         "sxf_base_renew_lease", "sxf_base_fail_job", "sxf_base_complete_job",
         "sxf_base_wait_for_data", "sxf_base_append_reconciliation",
         "sxf_base_backfill_reconcile", "sxf_base_claim_reconcile",

@@ -125,3 +125,18 @@ def test_priority_is_not_silently_active_without_operator_gate(monkeypatch):
     monkeypatch.delenv("SXF_BASE_PRIORITY_LANES_APPROVED",raising=False)
     with pytest.raises(SystemExit,match="2"):
         worker.main(["--once","--priority-lanes"])
+
+
+def test_real_health_rpc_fractional_oldest_due_seconds_is_supported():
+    h={"checkpoint_queue":{"pending_due":467,"oldest_due_seconds":156621.473528},
+       "discovery_cursor":{"initialized":True,"last_scanned_at":AT.isoformat()},
+       "reconciliation_queue":{"pending_due":51}}
+    result=queue_diagnostics(h,now=AT)
+    assert result["checkpoint_oldest_due_seconds"]==156621.473528
+    assert "CHECKPOINT_OVERDUE" in result["alerts"]
+    h["checkpoint_queue"]={"pending_due":0,"oldest_due_seconds":None}
+    result=queue_diagnostics(h,now=AT)
+    assert result["checkpoint_oldest_due_seconds"]==0
+    h["checkpoint_queue"]={"pending_due":1,"oldest_due_seconds":None}
+    with pytest.raises(ValueError):
+        queue_diagnostics(h,now=AT)
