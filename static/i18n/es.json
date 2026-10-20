@@ -676,7 +676,12 @@
       "range_error": "No hay datos disponibles para este intervalo.",
       "score_source_error": "SHADOW / TEST · Fuente de resultados no disponible",
       "panel_load_error": "No se pudo cargar el centro de señales. Inténtalo de nuevo.",
-      "guide_load_error": "No se pudo cargar la pantalla de análisis. Inténtalo de nuevo."
+      "guide_load_error": "No se pudo cargar la pantalla de análisis. Inténtalo de nuevo.",
+      "last_seen": "Última señal: {date}",
+      "show_last": "Ver señales del {date}",
+      "email_unverified": "Verifica tu correo electrónico para continuar.",
+      "membership_required": "Se necesita una membresía activa para esta sección.",
+      "session_expired": "Tu sesión ha caducado. Inicia sesión de nuevo."
     },
     "live": {
       "pro_gerekli": "Se requiere una suscripción <strong>Pro</strong> para los datos en vivo",

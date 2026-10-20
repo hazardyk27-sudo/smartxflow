@@ -676,7 +676,12 @@
       "range_error": "Records are unavailable for this date range.",
       "score_source_error": "SHADOW / TEST · Score source unavailable",
       "panel_load_error": "Could not load signal center. Please try again.",
-      "guide_load_error": "Could not load the analysis screen. Please try again."
+      "guide_load_error": "Could not load the analysis screen. Please try again.",
+      "last_seen": "Last signal: {date}",
+      "show_last": "Show signals from {date}",
+      "email_unverified": "Verify your email address to continue.",
+      "membership_required": "An active membership is required for this section.",
+      "session_expired": "Your session has expired. Sign in again."
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",

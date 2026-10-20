@@ -139,6 +139,15 @@
   function fixturesCount(rows) {
     return new Set(rows.map(function (x) { return x.uid + '/' + x.kickoff_utc; })).size;
   }
+  // An empty date is not proof that a motor has no stored signals. Only
+  // offer dates present in the authenticated, bounded server response.
+  function lastRecordedDay(engine, beforeDay) {
+    return items().filter(function (x) {
+      return x.engine === engine && x.day < beforeDay &&
+        x.day >= current.start && x.day < dayShift(current.start, 21);
+    }).map(function (x) { return x.day; }).sort().pop() || null;
+  }
+  function shortDay(day) { return day.slice(8, 10) + '.' + day.slice(5, 7); }
   function renderDates() {
     var today = todayTR(), html = '';
     var weekFmt = new Intl.DateTimeFormat(locale(), {weekday:'short',timeZone:'UTC'});
@@ -175,6 +184,7 @@
     var all = items().filter(function (x) { return x.engine === name; });
     var today = all.filter(function (x) { return x.day === current.day; });
     var fixtures = fixturesCount(today);
+    var last = today.length ? null : lastRecordedDay(name, current.day);
     return '<button type="button" class="sxf-engine-tile" data-motor="' + esc(name) +
       '" aria-label="' + esc(fmt('motor_open','{name} motorunu aç, {count} maç',
         {name:descriptor.name,count:fixtures})) + '">' +
@@ -187,7 +197,9 @@
       '</b> ' + esc(t('match_count','{count} maç').replace('{count}','').trim()) +
       ' <span class="sxf-secondary-count">· ' +
       esc(fmt('signals_count','{count} sinyal',{count:today.length})) +
-      '</span></span><span class="sxf-tile-open" aria-hidden="true">↗</span></span>' +
+      '</span>' + (last ? '<span class="sxf-last-day">' +
+        esc(fmt('last_seen','Son sinyal: {date}', {date:shortDay(last)})) +
+        '</span>' : '') + '</span><span class="sxf-tile-open"' aria-hidden="true">↗</span></span>' +
       '</button>';
   }
   function signalRow(item) {
@@ -282,15 +294,28 @@
       esc(dateTitle(current.day)) + ' · ' +
       esc(fmt('match_count','{count} maç',{count:groups.size})) + '</p></div></div>';
     if (!filtered.length) {
+      // Do not fabricate a match or silently change the user's chosen date.
+      // A separate explicit action reveals the last available recorded day.
+      var last = source.length ? null : lastRecordedDay(current.engine, current.day);
       html += '<div class="sxf-zero"><span class="sxf-zero-icon">◇</span>' +
         '<h4>' + esc(t('empty_title','Bu gün için maç bulunmuyor')) +
         '</h4><p>' + esc(t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
-        '</p></div>';
+        '</p>' + (last ? '<button id="sxfSignalShowLast" type="button" class="sxf-retry">' +
+          esc(fmt('show_last','{date} sinyallerini göster', {date:dateTitle(last)})) +
+          '</button>' : '') + '</div>';
     } else {
       html += '<div class="sxf-signal-grid">' +
         Array.from(groups.values()).map(fixtureCard).join('') + '</div>';
     }
     content.innerHTML = html;
+    var showLast = document.getElementById('sxfSignalShowLast');
+    if (last && showLast) showLast.addEventListener('click', function () {
+      current.day = last;
+      current.search = '';
+      var search = document.getElementById('sxfSignalSearch');
+      if (search) search.value = '';
+      render();
+    });
     document.getElementById('sxfSignalBack').addEventListener('click', function () {
       var returningFrom = current.engine;
       current.engine = null;
@@ -317,9 +342,11 @@
   }
   function renderError(code) {
     var error = code === 'PRO_REQUIRED' ? t('pro_required','Bu bölüm PRO üyelik gerektirir.') :
-      code === 'LOGIN_REQUIRED' || code === 'SESSION_EXPIRED'
-        ? t('login_required','Oturum açman gerekiyor.')
-        : t('load_failed','Sinyal verileri yüklenemedi.');
+      code === 'EMAIL_NOT_VERIFIED' ? t('email_unverified','E-posta adresini doğrulaman gerekiyor.') :
+      code === 'MEMBERSHIP_REQUIRED' ? t('membership_required','Aktif üyelik gerekiyor.') :
+      code === 'SESSION_EXPIRED' ? t('session_expired','Oturumun süresi doldu. Yeniden giriş yap.') :
+      code === 'LOGIN_REQUIRED' ? t('login_required','Oturum açman gerekiyor.') :
+      t('load_failed','Sinyal verileri yüklenemedi.');
     message(error, 'error');
     summary.textContent = t('no_data','Veri alınamadı');
     searchWrap.hidden = true;

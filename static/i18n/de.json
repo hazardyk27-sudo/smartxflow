@@ -676,7 +676,12 @@
       "range_error": "Für diesen Zeitraum sind keine Daten verfügbar.",
       "score_source_error": "SHADOW / TEST · Ergebnisquelle nicht verfügbar",
       "panel_load_error": "Signalzentrale konnte nicht geladen werden. Bitte erneut versuchen.",
-      "guide_load_error": "Analyseansicht konnte nicht geladen werden. Bitte erneut versuchen."
+      "guide_load_error": "Analyseansicht konnte nicht geladen werden. Bitte erneut versuchen.",
+      "last_seen": "Letztes Signal: {date}",
+      "show_last": "Signale vom {date} anzeigen",
+      "email_unverified": "Bestätige deine E-Mail-Adresse, um fortzufahren.",
+      "membership_required": "Für diesen Bereich ist eine aktive Mitgliedschaft erforderlich.",
+      "session_expired": "Deine Sitzung ist abgelaufen. Bitte erneut anmelden."
     },
     "live": {
       "pro_gerekli": "Für Live-Daten ist eine <strong>Pro</strong>-Mitgliedschaft erforderlich",

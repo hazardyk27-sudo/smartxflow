@@ -406,3 +406,6 @@ body.sxf-signals-open{overflow:hidden!important}
   #sxfBaseSignalOverlay .sxf-result-pill{min-height:27px}
   #sxfBaseSignalOverlay .sxf-match-result{max-width:100%}
 }
+
+/* Distinguish no signals on the selected day from no recorded signals at all. */
+#sxfBaseSignalOverlay .sxf-last-day {display:block;line-height:1.4;font-size:11px;color:var(--sxf-secondary);margin-top:4px;overflow-wrap:anywhere}

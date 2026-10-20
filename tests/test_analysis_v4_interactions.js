@@ -175,3 +175,34 @@ test('unconfirmed in-play score never appears as fulltime or a settled bet', asy
   assert.match(html,/Henüz doğrulanmadı/);
   assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|MAÇ SONUCU <strong>MS/);
 });
+
+test('zero-count motor tile reveals its last real day without changing the selected day', async () => {
+  const prior = new Date(Date.parse(todayTR() + 'T12:00:00Z') - 86400000).toISOString().slice(0,10);
+  const mock = setup(signals(prior));
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  let html = mock.get('sxfSignalContent').innerHTML;
+  assert.match(html, /Son sinyal:/);
+  assert.match(html, /data-motor="1X2_CONCENTRATION_V1"[\\s\\S]*?<b>0<\\/b> maç/);
+  const v1 = mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x => x.dataset.motor === '1X2_CONCENTRATION_V1');
+  v1.click();
+  html = mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Bu gün için maç bulunmuyor/);
+  assert.match(html,/id="sxfSignalShowLast"/);
+  assert.doesNotMatch(html,/Takım V1/);
+  mock.get('sxfSignalShowLast').click();
+  html = mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Takım V1/);
+  assert.doesNotMatch(html,/Takım V2/);
+  assert.equal(mock.requests.length,1,'no extra request to browse cached real signals');
+});
+test('empty motor with no stored rows never fabricates a last recorded date', async () => {
+  const mock = setup({status:'ok',engines:['1X2_CONCENTRATION_V1'],items:[]});
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  const v1 = mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x => x.dataset.motor === '1X2_CONCENTRATION_V1');
+  v1.click();
+  assert.doesNotMatch(mock.get('sxfSignalContent').innerHTML,/sxfSignalShowLast|Son sinyal:/);
+});

@@ -676,7 +676,12 @@
       "range_error": "Geen gegevens beschikbaar voor deze periode.",
       "score_source_error": "SHADOW / TEST · Scorebron niet beschikbaar",
       "panel_load_error": "Signaalcentrum kon niet worden geladen. Probeer opnieuw.",
-      "guide_load_error": "Het analysescherm kon niet worden geladen. Probeer opnieuw."
+      "guide_load_error": "Het analysescherm kon niet worden geladen. Probeer opnieuw.",
+      "last_seen": "Laatste signaal: {date}",
+      "show_last": "Signalen van {date} bekijken",
+      "email_unverified": "Verifieer je e-mailadres om verder te gaan.",
+      "membership_required": "Voor dit onderdeel is een actief lidmaatschap vereist.",
+      "session_expired": "Je sessie is verlopen. Log opnieuw in."
     },
     "live": {
       "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",
