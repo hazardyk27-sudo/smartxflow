@@ -22,6 +22,14 @@ class DurableStoreError(RuntimeError):
     """RPC failure; safe for operators to log the class, never credentials."""
 
 
+class ReadOnlyStoreError(DurableStoreError):
+    """A read-only RPC failed; no mutation ACK can be uncertain.
+
+    These requests are made through HTTP POST only because PostgREST RPC
+    requires it. They are semantically read-only, so systemd can safely retry.
+    """
+
+
 @dataclass(frozen=True)
 class ClaimedCheckpoint:
     job_id: str
@@ -32,6 +40,9 @@ class ClaimedCheckpoint:
 
 class SupabaseCheckpointStore:
     """RPC-only atomic queue/client. Caller controls discovery and scanning."""
+
+    _READ_ONLY_RPCS = frozenset({"sxf_base_health_snapshot", "sxf_base_read_market_events",
+                                  "sxf_base_source_fixture_state", "sxf_base_source_health"})
 
     _ALLOWED = frozenset({
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
@@ -73,14 +84,16 @@ class SupabaseCheckpointStore:
                 self._base + name, json=dict(args), headers=self._headers, timeout=self._timeout,
             )
             if response.status_code not in (200, 201):
-                raise DurableStoreError(f"{name} failed: HTTP {response.status_code}")
+                error_class = ReadOnlyStoreError if name in self._READ_ONLY_RPCS else DurableStoreError
+                raise error_class(f"{name} failed: HTTP {response.status_code}")
             return response.json()
         except DurableStoreError:
             raise
         except Exception as error:
             # Do not include URLs, exception messages or response bodies: auth secrets
             # may appear in transport exceptions or provider debug payloads.
-            raise DurableStoreError(f"{name} unavailable ({type(error).__name__})") from error
+            error_class = ReadOnlyStoreError if name in self._READ_ONLY_RPCS else DurableStoreError
+            raise error_class(f"{name} unavailable ({type(error).__name__})") from error
 
     def enqueue(self, fixtures: Sequence[FixtureRef], *, batch_size: int = 200) -> int:
         """Idempotent full-checkpoint enumeration. Never narrow to only due jobs.
