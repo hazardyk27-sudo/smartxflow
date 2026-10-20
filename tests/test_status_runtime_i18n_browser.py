@@ -2,6 +2,7 @@
 import json
 import re
 from pathlib import Path
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
@@ -9,9 +10,9 @@ ROOT=Path(__file__).resolve().parents[1]
 LANGS=("tr","en","de","fr","nl","it","es")
 RAW=(ROOT/"templates/status.html").read_text(encoding="utf8")
 I18N=(ROOT/"static/js/i18n.js").read_text(encoding="utf8")
-SCRIPT=re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>",RAW,flags=re.I)[-1]
+SCRIPT=next(body for body in re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>",RAW,flags=re.I) if "function statusLang" in body)
 HTML=re.sub(r"<script\b[^>]*>[\s\S]*?</script>","",RAW,flags=re.I)
-NOW="2026-10-20T09:00:00Z"
+NOW=datetime.now(timezone.utc).isoformat()
 SCRAPER={"heartbeat":{"status":"active","last_heartbeat":NOW},"signals":[{"created_at":NOW,"match_count":3,"snapshot_count":14}],"active_match_count":3}
 ENGINE={"heartbeat":{"status":"idle","last_heartbeat":NOW},"processed_signals":[{"created_at":NOW,"processed_at":NOW,"match_count":2}],"stats":{"total_active_alarms":4,"pending_count":1,"active_match_count":3},"alarm_counts":{"sharp":2}}
 
