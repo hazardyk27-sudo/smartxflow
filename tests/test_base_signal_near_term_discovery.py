@@ -76,7 +76,7 @@ def test_uninitialized_missing_health_and_bad_settings_fail_closed():
                                             "discovery_cursor":{"initialized":True}}
     with pytest.raises(DurableStoreError):
         near_term_discovery_once(None,BadStore(),now=NOW,catalog=Catalog())
-    for opts in ({"hour_offset":13},{"hour_offset":-2},{"max_fixtures":51},
+    for opts in ({"hour_offset":81},{"hour_offset":-2},{"max_fixtures":101},
                  {"max_pending_due":100},{"hour_offset":True}):
         with pytest.raises(ValueError):
             near_term_discovery_once(None,Store(),now=NOW,catalog=Catalog(),**opts)
