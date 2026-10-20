@@ -25,7 +25,6 @@ class I18NCoverage(unittest.TestCase):
             for c in CODES
         }
     def test_existing_dictionary_key_sets_stay_complete(self):
-        sets=[set(flatten(data)) for data in self.dicts.values()]
         # Compare KEYS, never values; seven locales must have the same tree.
         keysets=[set(k for k,_ in flatten(data)) for data in self.dicts.values()]
         self.assertTrue(all(k==keysets[0] for k in keysets), "locale key drift")
@@ -33,10 +32,10 @@ class I18NCoverage(unittest.TestCase):
     def test_all_v4_visible_keys_are_translated(self):
         js=(ROOT/"static/js/base-signals.js").read_text(encoding="utf-8")
         html=(ROOT/"templates/index.html").read_text(encoding="utf-8")
-        dynamic=set(re.findall(r"\\b(?:t|fmt)\\('([a-z][a-z0-9_]*)'",js))
-        dynamic.update(re.findall(r"\\b(?:DESC|CATS)\\s*=",js) and
+        dynamic=set(re.findall(r"\b(?:t|fmt)\('([a-z][a-z0-9_]*)'",js))
+        dynamic.update(re.findall(r"\b(?:DESC|CATS)\s*=",js) and
                        re.findall(r"['\"](engine_[a-z0-9_]+_desc|cat_[a-z0-9_]+)['\"]",js))
-        attrs=set(re.findall(r"app\\.v4\\.([a-z0-9_]+)",html))
+        attrs=set(re.findall(r"app\.v4\.([a-z0-9_]+)",html))
         keys=dynamic|attrs
         self.assertGreater(len(keys),70, "cannot verify unannotated hardcoded V4")
         for code,locale in self.dicts.items():
