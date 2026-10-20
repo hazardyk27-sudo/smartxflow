@@ -101,7 +101,7 @@
                     .catch(function (error) {
                         console.error('[BaseSignals] Load failed:', error);
                         if (typeof window.showToast === 'function')
-                            window.showToast('Sinyal merkezi yüklenemedi. Tekrar deneyin.', 'error');
+                            window.showToast(window.SXFI18n ? window.SXFI18n.t('app.v4.panel_load_error') : 'Sinyal merkezi yüklenemedi. Tekrar deneyin.', 'error');
                     });
             }
             return window.loadSxfAnalysisUi()
@@ -114,7 +114,7 @@
                 .catch(function (error) {
                     console.error('[AnalysisUI] Lazy-load failed:', error);
                     if (typeof window.showToast === 'function') {
-                        window.showToast('Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');
+                        window.showToast(window.SXFI18n ? window.SXFI18n.t('app.v4.guide_load_error') : 'Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');
                     }
                 });
         };

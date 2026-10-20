@@ -42,8 +42,8 @@ Source-scanned candidate counts (NOT untranslated-item counts): `admin.html` ~20
 
 ## Implemented in this preview batch
 
-- Analizler V4: **82 semantic keys × seven languages = 574 translated strings** under `app.v4`.
-- Localized all V4 static controls, accessibility labels, engine descriptions, cards, market names, outcomes, errors and placeholders.
+- Analizler V4: **84 semantic keys × seven languages = 588 translated strings** under `app.v4`.
+- Localized all V4 static controls, accessibility labels, engine descriptions, cards, market names, outcomes, errors, load-failure toasts and placeholders.
 - Changed weekday / date rendering to the chosen language without changing the TR clock timezone.
 - Added language-change rerender that preserves the engine/day and avoids re-fetching the Base feed.
 - Added Chromium regression for 7 locales on desktop/phone plus existing five-viewport smoke, dictionary parity and template accessibility assertions.
