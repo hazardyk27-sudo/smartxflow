@@ -690,7 +690,11 @@
       "legacy_underdog_desc": "Eerdere Underdog Pressure-signalen",
       "legacy_cm_v1_desc": "Eerdere Confirmed Money-signalen",
       "legacy_cm_v2_desc": "Eerdere Confirmed Money V2-signalen",
-      "legacy_fake_sharp_desc": "Eerdere omgekeerde quotebewegingen"
+      "legacy_fake_sharp_desc": "Eerdere omgekeerde quotebewegingen",
+      "legacy_unavailable_count": "Bron niet beschikbaar",
+      "legacy_unavailable_title": "Oude signalen momenteel niet beschikbaar",
+      "legacy_unavailable_desc": "Base-signalen blijven beschikbaar; de oude enginebron kon niet worden geverifieerd.",
+      "legacy_unavailable_notice": "BASE-SIGNALEN BESCHIKBAAR · Oude bron niet beschikbaar"
     },
     "live": {
       "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",

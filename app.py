@@ -7868,7 +7868,7 @@ def base_signal_feed_api():
     from base_signal_engine.feed import (
         BaseFeedUnavailable, BaseSignalsFeed, parse_day, TR_TZ,
     )
-    from base_signal_engine.legacy_feed import LegacySignalsFeed
+    from base_signal_engine.legacy_feed import LegacySignalsFeed, LEGACY_SOURCES
     try:
         today = datetime.now(TR_TZ).date()
         first = parse_day(request.args.get('start') or
@@ -7885,18 +7885,34 @@ def base_signal_feed_api():
         # Both feeds stay server-side after the same PRO access gate. Legacy
         # rows only appear when uniquely linked to an authentic fixture.
         result = source.read(first, days=21)
-        legacy = LegacySignalsFeed(source).read(first, days=21)
-        result['items'].extend(legacy['items'])
-        result['items'].sort(key=lambda item: (item['kickoff_utc'], item['id']))
-        result['engines'].extend(legacy['engines'])
-        result['phase'] = 'BASE_SHADOW_AND_LEGACY_HISTORY'
-        result['legacy_audit'] = {
-            'source_rows': legacy['source_rows'],
-            'identity_excluded': legacy['identity_excluded'],
-            'duplicate_events_removed': legacy['duplicate_events_removed'],
-            'verified_items': len(legacy['items']),
-        }
-        result['message'] = 'Base shadow ve doğrulanmış eski motor sinyal kayıtları. Bahis önerisi değildir.'
+        try:
+            legacy = LegacySignalsFeed(source).read(first, days=21)
+        except BaseFeedUnavailable:
+            # Do not hide genuine Base signals because an independent legacy
+            # table is unavailable. Explicitly mark all legacy counts UNKNOWN,
+            # never as zero or as a successful complete source snapshot.
+            app.logger.warning('[LegacyFeed] Source unavailable; verified Base feed retained')
+            result['engines'].extend([engine for engine, _ in LEGACY_SOURCES])
+            result['phase'] = 'BASE_SHADOW_LEGACY_UNAVAILABLE'
+            result['legacy_source_status'] = 'unavailable'
+            result['legacy_audit'] = {
+                'source_rows': None, 'identity_excluded': None,
+                'duplicate_events_removed': None, 'verified_items': None,
+            }
+            result['message'] = 'Base sinyalleri gösteriliyor; eski motor kaynağı geçici olarak kullanılamıyor.'
+        else:
+            result['items'].extend(legacy['items'])
+            result['items'].sort(key=lambda item: (item['kickoff_utc'], item['id']))
+            result['engines'].extend(legacy['engines'])
+            result['phase'] = 'BASE_SHADOW_AND_LEGACY_HISTORY'
+            result['legacy_source_status'] = 'ok'
+            result['legacy_audit'] = {
+                'source_rows': legacy['source_rows'],
+                'identity_excluded': legacy['identity_excluded'],
+                'duplicate_events_removed': legacy['duplicate_events_removed'],
+                'verified_items': len(legacy['items']),
+            }
+            result['message'] = 'Base shadow ve doğrulanmış eski motor sinyal kayıtları. Bahis önerisi değildir.'
         return jsonify(result)
     except (ValueError, TypeError):
         return jsonify({'error':'INVALID_DATE_WINDOW'}), 400

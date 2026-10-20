@@ -690,7 +690,11 @@
       "legacy_underdog_desc": "Anciens signaux de pression sur l'outsider",
       "legacy_cm_v1_desc": "Anciens signaux Confirmed Money",
       "legacy_cm_v2_desc": "Anciens signaux Confirmed Money V2",
-      "legacy_fake_sharp_desc": "Anciens signaux de mouvement inverse des cotes"
+      "legacy_fake_sharp_desc": "Anciens signaux de mouvement inverse des cotes",
+      "legacy_unavailable_count": "Source indisponible",
+      "legacy_unavailable_title": "Les anciens signaux sont indisponibles",
+      "legacy_unavailable_desc": "Les signaux Base restent disponibles ; la source des anciens moteurs n'a pas pu être vérifiée.",
+      "legacy_unavailable_notice": "SIGNAUX BASE DISPONIBLES · Source historique indisponible"
     },
     "live": {
       "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",

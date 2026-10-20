@@ -143,6 +143,10 @@
     items().forEach(function (x) { if (known.indexOf(x.engine) === -1) known.push(x.engine); });
     return known;
   }
+  function legacyUnavailable(engine) {
+    return !!(engine && engine.indexOf('LEGACY_') === 0 &&
+      current.payload && current.payload.legacy_source_status === 'unavailable');
+  }
   function dayItems() {
     return items().filter(function (x) {
       return x.day === current.day && (current.engine === null || x.engine === current.engine);
@@ -197,6 +201,7 @@
     var today = all.filter(function (x) { return x.day === current.day; });
     var fixtures = fixturesCount(today);
     var last = today.length ? null : lastRecordedDay(name, current.day);
+    var unavailable = legacyUnavailable(name);
     return '<button type="button" class="sxf-engine-tile" data-motor="' + esc(name) +
       '" aria-label="' + esc(fmt('motor_open','{name} motorunu aç, {count} maç',
         {name:descriptor.name,count:fixtures})) + '">' +
@@ -205,11 +210,14 @@
       esc(engineCategory(name, descriptor)) +
       '</span></span><strong class="sxf-engine-name">' + esc(descriptor.name) + '</strong>' +
       '<span class="sxf-engine-description">' + esc(engineDescription(name, descriptor)) + '</span>' +
-      '<span class="sxf-engine-tile-bottom"><span><b>' + fixtures +
-      '</b> ' + esc(t('match_count','{count} maç').replace('{count}','').trim()) +
-      ' <span class="sxf-secondary-count">· ' +
-      esc(fmt('signals_count','{count} sinyal',{count:today.length})) +
-      '</span>' + (last ? '<span class="sxf-last-day">' +
+      '<span class="sxf-engine-tile-bottom"><span>' +
+      (unavailable ? '<b class="sxf-unknown-count">—</b> ' +
+        esc(t('legacy_unavailable_count','Kaynak okunamıyor')) :
+        '<b>' + fixtures + '</b> ' +
+        esc(t('match_count','{count} maç').replace('{count}','').trim())) +
+      (unavailable ? '' : ' <span class="sxf-secondary-count">· ' +
+        esc(fmt('signals_count','{count} sinyal',{count:today.length})) +
+        '</span>') + (last ? '<span class="sxf-last-day">' +
         esc(fmt('last_seen','Son sinyal: {date}', {date:shortDay(last)})) +
         '</span>' : '') + '</span><span class="sxf-tile-open" aria-hidden="true">↗</span></span>' +
       '</button>';
@@ -273,6 +281,10 @@
       esc(t('choose_engine_desc','Seçtiğin günün maçlarını motor bazında görüntüle.')) +
       '</p></div><span class="sxf-directory-total">' +
       esc(fmt('engines_count','{count} motor',{count:entries.length})) + '</span></div>' +
+      (current.payload && current.payload.legacy_source_status === 'unavailable'
+        ? '<p class="sxf-legacy-source-alert">' +
+          esc(t('legacy_unavailable_desc','Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.')) +
+          '</p>' : '') +
       '<div class="sxf-engine-grid">' + cards + '</div>';
     content.querySelectorAll('[data-motor]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -316,9 +328,14 @@
       // Do not fabricate a match or silently change the user's chosen date.
       // A separate explicit action reveals the last available recorded day.
       var last = source.length ? null : lastRecordedDay(current.engine, current.day);
+      var sourceIsDown = legacyUnavailable(current.engine);
       html += '<div class="sxf-zero"><span class="sxf-zero-icon">◇</span>' +
-        '<h4>' + esc(t('empty_title','Bu gün için maç bulunmuyor')) +
-        '</h4><p>' + esc(t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
+        '<h4>' + esc(sourceIsDown
+          ? t('legacy_unavailable_title','Eski sinyaller şu anda alınamıyor')
+          : t('empty_title','Bu gün için maç bulunmuyor')) +
+        '</h4><p>' + esc(sourceIsDown
+          ? t('legacy_unavailable_desc','Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.')
+          : t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
         '</p>' + (last ? '<button id="sxfSignalShowLast" type="button" class="sxf-retry">' +
           esc(fmt('show_last','{date} sinyallerini göster', {date:dateTitle(last)})) +
           '</button>' : '') + '</div>';
@@ -382,7 +399,9 @@
     if (search) current.search = String(search.value || '').toLocaleLowerCase(locale()).trim();
     if (current.payload) {
       render();
-      message(current.payload.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
+      message(current.payload.legacy_source_status === 'unavailable'
+        ? t('legacy_unavailable_notice','BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor')
+        : current.payload.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
         ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
         : (current.payload.results_source_state === 'unavailable'
           ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
@@ -420,7 +439,9 @@
     }).then(function (data) {
       if (seq !== current.seq || overlay.hidden) return;
       current.payload = data;
-      message(data.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
+      message(data.legacy_source_status === 'unavailable'
+        ? t('legacy_unavailable_notice','BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor')
+        : data.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
         ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
         : (data.results_source_state === 'unavailable'
           ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')

@@ -690,7 +690,11 @@
       "legacy_underdog_desc": "Historical underdog pressure signals",
       "legacy_cm_v1_desc": "Historical confirmed money signals",
       "legacy_cm_v2_desc": "Historical confirmed money V2 signals",
-      "legacy_fake_sharp_desc": "Historical reverse odds movement signals"
+      "legacy_fake_sharp_desc": "Historical reverse odds movement signals",
+      "legacy_unavailable_count": "Source unavailable",
+      "legacy_unavailable_title": "Legacy signals are currently unavailable",
+      "legacy_unavailable_desc": "Base signals remain available; the legacy engine source could not be verified.",
+      "legacy_unavailable_notice": "BASE SIGNALS AVAILABLE · Legacy source unavailable"
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",

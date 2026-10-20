@@ -234,3 +234,28 @@ test('legacy and Base motors have distinct cards, verified-only provenance, no f
   assert.doesNotMatch(html,/Takım V1|Takım V2|1\.85/);
   assert.equal(mock.requests.length,1);
 });
+
+
+test('legacy source outage preserves real Base picks without false zero-count legacy cards', async () => {
+  const data=signals(todayTR());
+  data.legacy_source_status='unavailable';
+  data.phase='BASE_SHADOW_LEGACY_UNAVAILABLE';
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel();
+  await flush();
+  let html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Base sinyalleri erişilebilir/);
+  assert.match(html,/LEGACY_UNDERDOG/);
+  assert.match(html,/Kaynak okunamıyor/);
+  assert.match(mock.get('sxfSignalNotice').textContent,/Eski motor kaynağı okunamıyor/);
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  assert.match(mock.get('sxfSignalContent').innerHTML,/Takım V1/);
+  mock.get('sxfSignalBack').click();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='LEGACY_UNDERDOG').click();
+  html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Eski sinyaller şu anda alınamıyor/);
+  assert.doesNotMatch(html,/Seçili motor için bu tarihte tamamlanmış/);
+  assert.equal(mock.requests.length,1);
+});

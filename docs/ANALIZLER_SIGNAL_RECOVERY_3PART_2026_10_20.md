@@ -94,3 +94,9 @@ Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
 
 - Added isolated tests for all five legacy source engines, canonical one-fixture matching, duplicate same-engine signal consolidation, identity ambiguity rejection, source pagination fail-closed, server-only secret access and no guessed odds/results.
 - Added two-viewport × seven-language Chromium regressions for separate Base/legacy card drill-down and provenance/warning labels; no extra HTTP requests on language switch.
+
+## Release audit — independent legacy feed outage
+
+- A failed 200/206 read of a legacy source no longer converts a successful authenticated Base feed into global 503. The response retains genuine Base records and clearly reports `legacy_source_status=unavailable`, null (unknown) legacy audit counts, and five separately marked legacy cards. There is no misleading 'zero legacy signals' claim. A failed Base ledger read remains fail-closed (503).
+- Production Supabase read-only preflight at 2026-10-20 15:26 UTC: `sxf_base_claim_due_jobs_lane` NOT installed; `checkpoint_queue.pending_due=459`, `waiting_data=689`, `discovery_cursor.last_scanned_at=03:58Z`. Promotion or enabling priority lanes would be unsafe without the separately approved schema migration and verified worker activation.
+- Official `RELEASE_FLOW.md` requires exact-preview-SHA Replit Preview sync and preview approval before any main or Hetzner promotion. User has not authorized Replit operations or exact-SHA production release in this turn. **NO DEPLOY**.

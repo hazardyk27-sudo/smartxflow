@@ -690,7 +690,11 @@
       "legacy_underdog_desc": "Eski underdog para baskısı sinyalleri",
       "legacy_cm_v1_desc": "Eski teyitli para sinyalleri",
       "legacy_cm_v2_desc": "Eski teyitli para V2 sinyalleri",
-      "legacy_fake_sharp_desc": "Eski ters oran hareketi sinyalleri"
+      "legacy_fake_sharp_desc": "Eski ters oran hareketi sinyalleri",
+      "legacy_unavailable_count": "Kaynak okunamıyor",
+      "legacy_unavailable_title": "Eski sinyaller şu anda alınamıyor",
+      "legacy_unavailable_desc": "Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.",
+      "legacy_unavailable_notice": "BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor"
     },
     "live": {
       "pro_gerekli": "Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir",

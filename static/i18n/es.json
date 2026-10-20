@@ -690,7 +690,11 @@
       "legacy_underdog_desc": "Señales anteriores de presión al no favorito",
       "legacy_cm_v1_desc": "Señales anteriores de Confirmed Money",
       "legacy_cm_v2_desc": "Señales anteriores de Confirmed Money V2",
-      "legacy_fake_sharp_desc": "Señales anteriores de movimiento inverso de cuotas"
+      "legacy_fake_sharp_desc": "Señales anteriores de movimiento inverso de cuotas",
+      "legacy_unavailable_count": "Fuente no disponible",
+      "legacy_unavailable_title": "Señales anteriores no disponibles",
+      "legacy_unavailable_desc": "Las señales Base siguen disponibles; no se pudo verificar la fuente de los motores anteriores.",
+      "legacy_unavailable_notice": "SEÑALES BASE DISPONIBLES · Fuente anterior no disponible"
     },
     "live": {
       "pro_gerekli": "Se requiere una suscripción <strong>Pro</strong> para los datos en vivo",
