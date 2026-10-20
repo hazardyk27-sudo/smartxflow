@@ -28,3 +28,7 @@ def test_status_locale_contract():
     assert "renderScraperStatus();" in src and "renderEngineStatus();" in src
     assert "lastScraperPayload = await res.json()" in src
     assert "lastEnginePayload = await res.json()" in src
+
+if __name__ == '__main__':
+    test_status_locale_contract()
+    print('STATUS_LOCALE_CONTRACT_OK')

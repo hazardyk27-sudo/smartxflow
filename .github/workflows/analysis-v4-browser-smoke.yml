@@ -65,7 +65,7 @@ jobs:
           python tests/test_admin_i18n_browser.py
           python tests/test_admin_overlay_i18n_browser.py
           python tests/test_status_runtime_i18n_browser.py
-          python -m pytest -q tests/test_status_runtime_i18n.py
+          python tests/test_status_runtime_i18n.py
           python -m unittest discover -s tests -p test_i18n_coverage.py
       - name: Upload visual evidence
         if: always()
