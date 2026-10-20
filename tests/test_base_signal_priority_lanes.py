@@ -140,3 +140,25 @@ def test_real_health_rpc_fractional_oldest_due_seconds_is_supported():
     h["checkpoint_queue"]={"pending_due":1,"oldest_due_seconds":None}
     with pytest.raises(ValueError):
         queue_diagnostics(h,now=AT)
+
+
+def test_coverage_state_is_degraded_not_green_even_if_checkpoint_cycle_is_healthy(monkeypatch):
+    monkeypatch.setattr(worker,"bounded_cursor_discovery_once",lambda *a,**k: {
+        "status":"PAUSED_BACKLOG","enqueued":0,"fixtures":0,
+        "paused":True,"pending_due":467,"uncertain":False})
+    monkeypatch.setattr(worker,"execute_claims",lambda *a,**k: {
+        "claimed":0,"completed":0,"waiting_data":0,"retry":0,
+        "lease_lost":0,"commit_uncertain":0})
+    class S:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":467,
+                     "oldest_due_seconds":5600.3,"expired_leases":0},
+                    "discovery_cursor":{"initialized":True,
+                     "last_scanned_at":(AT-timedelta(hours=10)).isoformat()},
+                    "reconciliation_queue":{"pending_due":51,"expired_leases":0}}
+    report=worker.run_cycle(None,S(),worker_id="worker",max_jobs=3,
+                            max_reconcile=0,priority_lanes=True,now=AT)
+    assert report["coverage_state"]=="DEGRADED"
+    assert report["discovery_fresh"] is False
+    assert report["healthy_cycle"] is True  # no lease errors, NOT full coverage
+    assert report["production_release_verified"] is False

@@ -57,3 +57,29 @@ def test_99b_null_lane_or_timeout_is_rejected_before_claim():
         with pytest.raises(Exception):
             query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
                   args,role="service_role")
+
+
+def test_99c_concurrent_same_lane_claims_do_not_duplicate_leases():
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    now=datetime.now(timezone.utc)
+    uid=str(uuid4())
+    kickoff=now+timedelta(hours=5,minutes=45)
+    query("INSERT INTO public.fixtures(fixture_uid,kickoff_utc) VALUES (%s::uuid,%s)",
+          (uid,kickoff))
+    assert query("SELECT public.sxf_base_enqueue_jobs(%s::jsonb) AS n",
+                 (json.dumps([job_data(uid,kickoff)]),),role="service_role")[0]["n"]==1
+    gate=Barrier(2)
+    def claim(name):
+        gate.wait(timeout=10)
+        return query("SELECT * FROM public.sxf_base_claim_due_jobs_lane(%s,%s,%s,%s)",
+                     (name,"LIVE",1,900),role="service_role")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        left=pool.submit(claim,"live-race-a")
+        right=pool.submit(claim,"live-race-b")
+        claimed=left.result(timeout=20)+right.result(timeout=20)
+    assert len(claimed)==1, "two LIVE workers must never claim one job twice"
+    assert str(claimed[0]["fixture_uid"])==uid
+    # Existing lease token fence remains authoritative after prioritized claim.
+    assert query("SELECT public.sxf_base_renew_lease(%s::uuid,%s::uuid,%s) AS ok",
+        (str(claimed[0]["job_id"]),str(uuid4()),900),role="service_role")[0]["ok"] is False

@@ -79,3 +79,6 @@ Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
 - `--priority-lanes` additionally requires `SXF_BASE_PRIORITY_LANES_APPROVED=yes`, 3+ max jobs per cycle, and an already deployed authorized lane RPC; old claim behavior remains default. Quotas: 2/3 LIVE, 1/3 BACKLOG, with independent empty-lane handling.
 - `queue_diagnostics` assesses actual latest discovery scan timestamp, pending due count, oldest due age and reconciliation backlog; the known old `lag_seconds=0` metric is never interpreted as freshness when `last_scanned_at` is stale.
 - These changes only prepare for future supervised activation; CI checks a disposable PostgreSQL schema and synthetic time, not a verified real 24-hour operation or a fixed live app.
+
+- Telemetry now distinguishes `healthy_cycle` (safe lease execution) from `coverage_state=DEGRADED|UNVERIFIED`, with `discovery_fresh` independently computed from actual last-scanned time; a stale discovery cursor is never falsely marked coverage-healthy.
+- The proposed lane RPC is also tested under a two-worker PostgreSQL contention race; stale tokens cannot renew the resulting lease. No live DB migration was applied.

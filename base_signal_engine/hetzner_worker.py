@@ -166,6 +166,14 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     if priority_lanes or near_term_rotation:
         report["queue_diagnostics"] = queue_diagnostics(
             health, now=now or datetime.now(timezone.utc))
+        # A worker may successfully process leases while its discovery source
+        # remains stale. Keep those two facts separate for operations:
+        # never treat a successful cycle as evidence of complete coverage.
+        report["coverage_state"] = ("DEGRADED" if
+            report["queue_diagnostics"]["alerts"] else "UNVERIFIED")
+        report["discovery_fresh"] = (
+            "DISCOVERY_STALE" not in report["queue_diagnostics"]["alerts"] and
+            "DISCOVERY_UNINITIALIZED" not in report["queue_diagnostics"]["alerts"])
     for name,metric in (("checkpoint_pending_due",checkpoint.get("pending_due")),
                         ("checkpoint_expired_leases",checkpoint.get("expired_leases")),
                         ("reconcile_pending_due",reconcile.get("pending_due")),
