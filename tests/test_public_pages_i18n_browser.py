@@ -11,7 +11,7 @@ LANGS=("tr","en","de","fr","nl","it","es")
 CASES=(
     ("landing","/","nav.features"),
     ("pricing","/pricing","pricing.header.title"),
-    ("rehber","/rehber","rehber.hero_title"),
+    ("rehber","/rehber","rehber.card1_title"),
     ("rehber_oran_analizi","/rehber/oran-analizi","rehber_oran.s2t"),
     ("rehber_para_hareketi","/rehber/para-hareketi","rehber_para.s1t"),
     ("rehber_canli_oran_takibi","/rehber/canli-oran-takibi","rehber_canli.s1t"),
