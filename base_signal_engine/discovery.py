@@ -113,18 +113,21 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
                                   catalog: Any = None,
                                   window_hours: int = 1,
                                   max_fixtures: int = 50,
-                                  max_pending_due: int = 250) -> dict:
+                                  max_pending_due: int = 250,
+                                  allow_high_backlog: bool = False) -> dict:
     """Backpressure-safe contiguous fixture discovery; no mass rolling fanout.
 
     Requires an explicitly initialized SQL cursor. Never performs bootstrap.
-    A high due backlog pauses *new* discovery but permits the worker to drain
-    already-fenced jobs. Every scanned window advances only after an
+    Normal mode pauses on due-job debt. The approved autonomous recovery
+    mode may continue bounded discovery despite that debt, to prevent
+    historical WAITING_DATA rows from starving fresh checkpoints. Every scanned window advances only after an
     idempotent enqueue of ALL its fixtures; more than max_fixtures is
     a hard retry/error, not a partial cursor advance.
     """
     if (type(window_hours) is not int or not 1 <= window_hours <= 6 or
             type(max_fixtures) is not int or not 1 <= max_fixtures <= 100 or
-            type(max_pending_due) is not int or not 1 <= max_pending_due <= 1000):
+            type(max_pending_due) is not int or not 1 <= max_pending_due <= 1000
+            or type(allow_high_backlog) is not bool):
         raise ValueError("unsafe bounded discovery settings")
     health = store.health_snapshot()
     if not isinstance(health, dict):
@@ -141,10 +144,10 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
         return {"status": "UNINITIALIZED", "fixtures": 0, "enqueued": 0,
                 "pending_due": pending, "advanced": False,
                 "uncertain": False, "paused": False}
-    if pending >= max_pending_due:
+    if pending >= max_pending_due and not allow_high_backlog:
         return {"status": "PAUSED_BACKLOG", "fixtures": 0, "enqueued": 0,
                 "pending_due": pending, "advanced": False,
-                "uncertain": False, "paused": True}
+                "uncertain": False, "paused": True, "backpressure": True}
     result = discover_window_once(
         reader, store, worker_id=worker_id, now=now, catalog=catalog,
         window_hours=window_hours, max_fixtures=max_fixtures)
@@ -155,7 +158,7 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
     return {"status": status, "fixtures": result["fixtures"],
             "enqueued": result["enqueued"], "pending_due": pending,
             "advanced": result["advanced"], "uncertain": result["uncertain"],
-            "paused": False}
+            "paused": False, "backpressure": pending >= max_pending_due}
 
 
 def near_term_discovery_once(reader: Any, store: Any, *,
@@ -163,7 +166,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
                              catalog: Any = None,
                              hour_offset: int = 0,
                              max_fixtures: int = 50,
-                             max_pending_due: int = 1200) -> dict:
+                             max_pending_due: int = 1200,
+                             allow_high_backlog: bool = False) -> dict:
     """Operator-opt-in, one-hour near-term discovery independent of old cursor lag.
 
     Scans exactly ONE UTC kickoff hour. The caller must rotate offsets
@@ -176,9 +180,10 @@ def near_term_discovery_once(reader: Any, store: Any, *,
     assuming previous jobs already exist) and refuses work instead of slicing
     fixtures or silently overrunning a known backlog.
     """
-    if (type(hour_offset) is not int or not -1 <= hour_offset <= 12 or
-            type(max_fixtures) is not int or not 1 <= max_fixtures <= 50 or
-            type(max_pending_due) is not int or not 250 <= max_pending_due <= 2500):
+    if (type(hour_offset) is not int or not -1 <= hour_offset <= 80 or
+            type(max_fixtures) is not int or not 1 <= max_fixtures <= 100 or
+            type(max_pending_due) is not int or not 250 <= max_pending_due <= 2500
+            or type(allow_high_backlog) is not bool):
         raise ValueError("unsafe near-term discovery settings")
     at = _parse_time(now or datetime.now(timezone.utc))
     begin = at.replace(minute=0, second=0, microsecond=0) + timedelta(hours=hour_offset)
@@ -198,7 +203,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
     if cursor.get("initialized") is not True:
         report["status"] = "UNINITIALIZED"
         return report
-    if pending >= max_pending_due:
+    report["backpressure"] = pending >= max_pending_due
+    if pending >= max_pending_due and not allow_high_backlog:
         report["status"], report["paused"] = "PAUSED_BACKLOG", True
         return report
 
@@ -210,7 +216,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
         return report
     # Full fanout is required by the frozen checkpoint model. Never insert
     # only preferred bets, silently skip historic jobs or synthesize a signal.
-    if pending + len(fixtures) * 11 > max_pending_due:
+    report["backpressure"] = pending + len(fixtures) * 11 > max_pending_due
+    if report["backpressure"] and not allow_high_backlog:
         report["status"], report["paused"] = "PAUSED_CAPACITY", True
         return report
     if not fixtures:
