@@ -42,7 +42,7 @@ window.__sxfLoadChartImpl = async function loadChart(home, away, market, league 
                         emptyMsg = document.createElement('div');
                         emptyMsg.className = 'chart-empty-msg';
                         emptyMsg.style.cssText = 'text-align:center;padding:40px 20px;color:rgba(203,213,225,0.4);font-size:13px;';
-                        emptyMsg.textContent = 'Bu maç için grafik verisi bulunamadı';
+                        emptyMsg.textContent = _t('app.j.no_chart_data','Bu maç için grafik verisi bulunamadı');
                         wrap.appendChild(emptyMsg);
                     }
                 }

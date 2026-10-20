@@ -109,7 +109,7 @@ function _updateMatchInfoCardImpl() {
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Volume</span>
+                    <span class="volume-label">${_t('app.j.mod_total_volume','TOPLAM HACİM')}</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;

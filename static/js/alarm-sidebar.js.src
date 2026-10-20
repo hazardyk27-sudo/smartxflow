@@ -752,5 +752,13 @@ window.__sxfSelectDateFilterImpl = selectDateFilter;
 window.__sxfFilterAlarmsImpl = filterAlarms;
 window.__sxfSearchAlarmsImpl = searchAlarms;
 window.__sxfToggleAlarmDetailImpl = toggleAlarmDetail;
+
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('i18n:change', function () {
+    var list = document.getElementById('alarmsList');
+    if (!list || !list.isConnected || !Array.isArray(groupedAlarmsData)) return;
+    renderAlarmsList(currentAlarmFilter);
+  });
+}
 window.__sxfLoadMoreAlarmsImpl = loadMoreAlarms;
 })();

@@ -79,7 +79,7 @@ const baseData=selectedMatch.odds||selectedMatch.details||{};const d=modalOddsDa
                     </div>
                 </div>
                 <div class="volume-bar">
-                    <span class="volume-label">Volume</span>
+                    <span class="volume-label">${_t('app.j.mod_total_volume','TOPLAM HACİM')}</span>
                     <span class="volume-value">${formatVolume(d.Volume)}</span>
                 </div>
             `;}}else if(selectedChartMarket.includes('ou25')){const trendUnder=isDropping?getTrendArrow(d.Under,p.Under):'';const trendOver=isDropping?getTrendArrow(d.Over,p.Over):'';if(isMoneyway){const cU=getColorClass(d.PctUnder);const cO=getColorClass(d.PctOver);const pctU=parseFloat(d.PctUnder)||0;const pctO=parseFloat(d.PctOver)||0;html=`

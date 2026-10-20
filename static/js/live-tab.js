@@ -88,4 +88,20 @@ var volDiff=vol-prevVol;var volDiffStr='-';var volDiffHasVal=false;if(prevS&&vol
 var hi=pct>=50;var divCls=j>0?' lpt-sel-divider':'';html+='<td class="period-dual'+divCls+'"><span class="dual-main period-odds">'+oddsStr+'</span><span class="dual-sub">'+deltaHtml+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-vol">'+(vol?formatLiveVol(vol):'-')+'</span><span class="dual-sub vol-diff'+(volDiffHasVal?' has-val':'')+'">'+volDiffStr+'</span></td>';html+='<td class="period-dual"><span class="dual-main period-pct '+(hi?'pct-high':'pct-low')+'">'+pctStr+'</span><span class="dual-sub">'+pctDeltaHtml+'</span></td>';}
 html+='</tr>';}
 html+='</tbody></table></div>';body.innerHTML=html;}
-window.__sxfSwitchToLiveImpl=switchToLive;window.__sxfSetLiveMarketImpl=setLiveMarket;window.__sxfToggleLiveMarketDropdownImpl=toggleLiveMarketDropdown;window.__sxfSetLiveMarketFromDropdownImpl=setLiveMarketFromDropdown;window.__sxfOpenLiveDetailImpl=openLiveDetail;window.__sxfSetLiveDetailMarketImpl=setLiveDetailMarket;window.__sxfCloseLiveDetailImpl=closeLiveDetail;})();
+window.__sxfSwitchToLiveImpl=switchToLive;window.__sxfSetLiveMarketImpl=setLiveMarket;window.__sxfToggleLiveMarketDropdownImpl=toggleLiveMarketDropdown;window.__sxfSetLiveMarketFromDropdownImpl=setLiveMarketFromDropdown;window.__sxfOpenLiveDetailImpl=openLiveDetail;window.__sxfSetLiveDetailMarketImpl=setLiveDetailMarket;
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('i18n:change', function () {
+    if (!_liveMode) return;
+    var lbl = document.getElementById('matchCountLabel');
+    if (lbl) lbl.textContent = _t('app.live.canli_maclar','Canlı Maçlar') + ' ';
+    if (window.userPlan === 'core') {
+      var banner = document.querySelector('.live-pro-banner');
+      if (banner) banner.outerHTML = _liveProBanner();
+      return;
+    }
+    if (Array.isArray(_liveData)) renderLiveMatches(_liveData, {});
+    if (_liveDetailData && document.getElementById('liveDetailBody'))
+      renderLiveDetail(_liveDetailData, _liveDetailMarket);
+  });
+}
+window.__sxfCloseLiveDetailImpl=closeLiveDetail;})();

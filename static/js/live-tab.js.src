@@ -921,5 +921,21 @@ window.__sxfToggleLiveMarketDropdownImpl = toggleLiveMarketDropdown;
 window.__sxfSetLiveMarketFromDropdownImpl = setLiveMarketFromDropdown;
 window.__sxfOpenLiveDetailImpl = openLiveDetail;
 window.__sxfSetLiveDetailMarketImpl = setLiveDetailMarket;
+
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('i18n:change', function () {
+    if (!_liveMode) return;
+    var lbl = document.getElementById('matchCountLabel');
+    if (lbl) lbl.textContent = _t('app.live.canli_maclar','Canlı Maçlar') + ' ';
+    if (window.userPlan === 'core') {
+      var banner = document.querySelector('.live-pro-banner');
+      if (banner) banner.outerHTML = _liveProBanner();
+      return;
+    }
+    if (Array.isArray(_liveData)) renderLiveMatches(_liveData, {});
+    if (_liveDetailData && document.getElementById('liveDetailBody'))
+      renderLiveDetail(_liveDetailData, _liveDetailMarket);
+  });
+}
 window.__sxfCloseLiveDetailImpl = closeLiveDetail;
 })();

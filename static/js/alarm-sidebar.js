@@ -151,4 +151,12 @@ function toggleAlarmDetail(alarmId){if(openAlarmId===alarmId){openAlarmId=null;}
 renderAlarmsList(currentAlarmFilter);if(openAlarmId){setTimeout(()=>{const detailEl=document.getElementById('detail_'+alarmId);if(detailEl){detailEl.scrollIntoView({behavior:'smooth',block:'nearest'});}},50);}}
 function formatMarketChip(market,selection){let marketShort=market;if(market.toLowerCase().includes('1x2'))marketShort='1X2';else if(market.toLowerCase().includes('ou')||market.toLowerCase().includes('2.5'))marketShort='A/Ü 2.5';else if(market.toLowerCase().includes('btts'))marketShort='KG';const rawSel=(selection||'').toUpperCase();const selMap={'U':_t('app.dyn.alt','Alt'),'O':_t('app.dyn.ust','Üst'),'Y':_t('app.dyn.evet','Evet'),'N':_t('app.dyn.hayir','Hayır'),'1':'1','X':'X','2':'2','UNDER':_t('app.dyn.alt','Alt'),'OVER':_t('app.dyn.ust','Üst'),'YES':_t('app.dyn.evet','Evet'),'NO':_t('app.dyn.hayir','Hayır')};const mappedSel=selMap[rawSel]||rawSel;return`${marketShort} · ${mappedSel}`;}
 function loadMoreAlarms(){alarmsDisplayCount+=10;renderAlarmsList(currentAlarmFilter);const container=document.getElementById('alarmsList');const cards=container.querySelectorAll('.alarm-card');if(cards.length>0){cards[cards.length-30]?.scrollIntoView({behavior:'smooth',block:'start'});}}
-window.__sxfLoadAllAlarmsImpl=loadAllAlarms;window.__sxfSelectDateFilterImpl=selectDateFilter;window.__sxfFilterAlarmsImpl=filterAlarms;window.__sxfSearchAlarmsImpl=searchAlarms;window.__sxfToggleAlarmDetailImpl=toggleAlarmDetail;window.__sxfLoadMoreAlarmsImpl=loadMoreAlarms;})();
+window.__sxfLoadAllAlarmsImpl=loadAllAlarms;window.__sxfSelectDateFilterImpl=selectDateFilter;window.__sxfFilterAlarmsImpl=filterAlarms;window.__sxfSearchAlarmsImpl=searchAlarms;window.__sxfToggleAlarmDetailImpl=toggleAlarmDetail;
+if (typeof window.addEventListener === 'function') {
+  window.addEventListener('i18n:change', function () {
+    var list = document.getElementById('alarmsList');
+    if (!list || !list.isConnected || !Array.isArray(groupedAlarmsData)) return;
+    renderAlarmsList(currentAlarmFilter);
+  });
+}
+window.__sxfLoadMoreAlarmsImpl=loadMoreAlarms;})();
