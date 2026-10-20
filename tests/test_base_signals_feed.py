@@ -113,7 +113,7 @@ def test_midnight_local_date_uses_europe_istanbul_not_utc():
     # The job and fixture must refer to exactly the same physical kickoff.
     def same_kickoff_get(url, *, params, headers, timeout):
         result=Source.get(source,url,params=params,headers=headers,timeout=timeout)
-        if url.endswith(("fixtures","sxf_base_checkpoint_jobs")):
+        if url.endswith(("/fixtures","sxf_base_checkpoint_jobs")):
             result.data[0]["kickoff_utc"]=ts
         return result
     source.get=same_kickoff_get
