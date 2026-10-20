@@ -285,7 +285,7 @@ window.__sxfRenderMatchAlarmsSectionImpl = async function renderMatchAlarmsSecti
             const market = latest.market || '';
             const selection = translateSelection(rawSelection, market);
             const marketTr = translateMarket(market);
-            const levelTooltip = level === 'L1' ? 'Orta seviye düşüş (8-13%)' : (level === 'L2' ? 'Güçlü düşüş (13-20%)' : 'Çok güçlü düşüş (20%+)');
+            const levelTooltip = level === 'L1' ? _t('app.dyn.orta_seviye_dusus_8_13','Orta seviye düşüş (8-13%)') : (level === 'L2' ? _t('app.dyn.guclu_dusus_13_20','Güçlü düşüş (13-20%)') : _t('app.dyn.cok_guclu_dusus_20','Çok güçlü düşüş (20%+)'));
             row2Left = `${selection} (${marketTr})`;
             row2Right = `<span class="sm-level-badge ${level.toLowerCase()}" title="${levelTooltip}">${level}</span>`;
             row3Left = `<span class="sm-dropping-main">${openOdds} → ${currOdds}</span>`;
@@ -349,16 +349,16 @@ window.__sxfRenderMatchAlarmsSectionImpl = async function renderMatchAlarmsSecti
             
             // Alarm tipine göre temalı başlık ve pill formatı
             const tooltipTheme = {
-                bigmoney: { title: 'Geçmiş Big Money Girişleri', pillLabel: (a) => `£${Math.round(Number(a.incoming_money || a.stake || 0)).toLocaleString('en-GB')}` },
-                volumeshock: { title: 'Geçmiş Hacim Şokları', pillLabel: (a) => `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}` },
-                sharp: { title: 'Geçmiş Sharp Alarmları', pillLabel: (a) => `Sharp ${(a.sharp_score || 0).toFixed(0)}` },
-                dropping: { title: 'Geçmiş Oran Düşüşleri', pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
-                publicmove: { title: 'Geçmiş Public Move', pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
-                volumeleader: { title: 'Geçmiş Lider Değişimleri', pillLabel: (a) => a.new_leader || '-' },
-                mim: { title: 'Geçmiş MIM Alarmları', pillLabel: (a) => `${((a.impact || a.impact_score || a.money_impact || 0) * 100).toFixed(0)}%` }
+                bigmoney: { title: _t('app.j.past_bigmoney','Geçmiş Big Money Girişleri'), pillLabel: (a) => `£${Math.round(Number(a.incoming_money || a.stake || 0)).toLocaleString('en-GB')}` },
+                volumeshock: { title: _t('app.j.past_volumeshock','Geçmiş Hacim Şokları'), pillLabel: (a) => `X${(a.volume_shock_value || a.volume_shock || 0).toFixed(1)}` },
+                sharp: { title: _t('app.j.past_sharp','Geçmiş Sharp Alarmları'), pillLabel: (a) => `Sharp ${(a.sharp_score || 0).toFixed(0)}` },
+                dropping: { title: _t('app.j.past_dropping','Geçmiş Oran Düşüşleri'), pillLabel: (a) => `▼${(a.drop_pct || 0).toFixed(1)}%` },
+                publicmove: { title: _t('app.j.past_publicmove','Geçmiş Public Move'), pillLabel: (a) => `%${(a.current_share || a.new_share || 0).toFixed(0)}` },
+                volumeleader: { title: _t('app.j.past_volumeleader','Geçmiş Lider Değişimleri'), pillLabel: (a) => a.new_leader || '-' },
+                mim: { title: _t('app.j.past_mim','Geçmiş MIM Alarmları'), pillLabel: (a) => `${((a.impact || a.impact_score || a.money_impact || 0) * 100).toFixed(0)}%` }
             };
             
-            const theme = tooltipTheme[type] || { title: 'Geçmiş Alarmlar', pillLabel: () => '' };
+            const theme = tooltipTheme[type] || { title: _t('app.j.past_alarms','Geçmiş Alarmlar'), pillLabel: () => '' };
             
             // Alarm tipine göre temalı tooltip item formatı
             // Kartta gösterilen (latest) alarmı atla - timestamp ile karşılaştır
