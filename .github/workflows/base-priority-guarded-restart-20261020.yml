@@ -1,0 +1,90 @@
+name: Base Hetzner guarded restart after safe pause fix 20261020
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'base_signal_engine/hetzner_worker.py'
+      - '.github/workflows/base-priority-guarded-restart-20261020.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-guarded-restart-20261020
+  cancel-in-progress: false
+
+jobs:
+  guarded-restart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify deployed production code and launch bounded Base worker
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEPLOY_SHA
+          command_timeout: 9m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test -s /opt/smartxflow/.env
+            test -x /opt/smartxflow/venv/bin/python
+            # Deploy to Hetzner workflow runs concurrently on this push.
+            # Wait for the exact main SHA without changing files here.
+            synced=0
+            for i in $(seq 1 45); do
+              if [ "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA" ] &&
+                 [ "$(systemctl is-active smartxflow-web || true)" = active ]; then
+                synced=1; break
+              fi
+              sleep 4
+            done
+            test "$synced" = 1 || { echo "BASE_START_ABORT:production_sha_mismatch"; exit 1; }
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for svc in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$svc")" = active || { echo "BASE_START_ABORT:service_$svc"; exit 1; }
+            done
+            for old in sxf-base-durable-shadow-20261019.service sxf-base-priority-shadow-20261020.service sxf-base-priority-guarded-20261020.service; do
+              test "$(systemctl is-active "$old" || true)" != active || { echo "BASE_START_ABORT:duplicate_worker"; exit 1; }
+            done
+            test "$(systemctl is-active sxf-base-presha-20261019.service || true)" = active || echo "PRE_SHADOW_EVIDENCE_STOPPED"
+            echo "BASE_SAFE_PAUSE_WORKER_PREFLIGHT_OK SHA=$DEPLOY_SHA"
+            systemd-run --unit=sxf-base-priority-guarded-20261020 --collect \
+              --setenv=SXF_BASE_DURABLE_WORKER_APPROVED=yes \
+              --setenv=SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes \
+              --setenv=SXF_BASE_PRIORITY_LANES_APPROVED=yes \
+              --setenv=SXF_BASE_WORKER_ID=guarded-20261020 \
+              --property=Type=simple \
+              --property=Restart=no \
+              --property=User=smartxflow \
+              --property=Group=smartxflow \
+              --property=WorkingDirectory=/opt/smartxflow \
+              --property=EnvironmentFile=/opt/smartxflow/.env \
+              --property=NoNewPrivileges=yes \
+              --property=ProtectSystem=strict \
+              --property=ProtectHome=yes \
+              --property=PrivateDevices=yes \
+              --property=MemoryMax=256M \
+              --property=TasksMax=32 \
+              --property=RuntimeMaxSec=86400 \
+              --property=TimeoutStartSec=120 \
+              /opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker \
+                --near-term-discovery --near-term-rotation \
+                --priority-lanes --max-jobs=12 --max-reconcile=1 --interval-seconds=60
+            sleep 70
+            test "$(systemctl is-active sxf-base-priority-guarded-20261020.service)" = active ||
+              { echo "BASE_START_ABORT:worker_exited"; journalctl -u sxf-base-priority-guarded-20261020.service -n 12 --no-pager -o cat; exit 1; }
+            echo "BASE_WORKER_LAST_4_CYCLES"
+            journalctl -u sxf-base-priority-guarded-20261020.service -n 4 --no-pager -o cat
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA"
+            for svc in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+              test "$(systemctl is-active "$svc")" = active || { echo "POST_START_SERVICE_DOWN:$svc"; exit 1; }
+            done
+            echo "BASE_GUARDED_24H_SHADOW_RUNNING SHA=$DEPLOY_SHA"
