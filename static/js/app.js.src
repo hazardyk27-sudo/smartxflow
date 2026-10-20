@@ -899,7 +899,7 @@ function getMatchStatus(dateStr) {
     } else if (diffMinutes <= 113) {
         return '<span class="match-status live">' + _t('app.live.badge','CANLI') + '</span>';
     } else {
-        return '<span class="match-status ended">BİTTİ</span>';
+        return '<span class="match-status ended">' + _t('app.j.ended_status','BİTTİ') + '</span>';
     }
 }
 

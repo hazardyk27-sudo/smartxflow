@@ -206,7 +206,8 @@
       "alt": "Moins",
       "evet": "Oui",
       "hayir": "Non",
-      "1_gun": "1 jour"
+      "1_gun": "1 jour",
+      "ou25_label": "Moins/Plus de 2,5"
     },
     "flt": {
       "all": "Tous",
@@ -684,7 +685,16 @@
       "yuzde": "POURCENTAGE",
       "pct_degisimi": "Variation en %",
       "canli_maclar": "Matchs en direct",
-      "yukleniyor": "Chargement des matchs en direct..."
+      "yukleniyor": "Chargement des matchs en direct...",
+      "badge": "EN DIRECT",
+      "pro_periyot": "Les données par intervalle en direct nécessitent un abonnement PRO."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "Aucun résultat de recherche",
+      "more": "Voir plus"
+    },
+    "chart": {
+      "full_txt_tooltip": "Télécharger toutes les données de marché et d'alerte"
     }
   },
   "core": {

@@ -206,7 +206,8 @@
       "alt": "Alt",
       "evet": "Evet",
       "hayir": "Hayır",
-      "1_gun": "1 gün"
+      "1_gun": "1 gün",
+      "ou25_label": "Alt/Üst 2.5"
     },
     "flt": {
       "all": "Tümü",
@@ -684,7 +685,16 @@
       "yuzde": "YÜZDE",
       "pct_degisimi": "% değişimi",
       "canli_maclar": "Canlı Maçlar",
-      "yukleniyor": "Canli maclar yukleniyor..."
+      "yukleniyor": "Canli maclar yukleniyor...",
+      "badge": "CANLI",
+      "pro_periyot": "Canlı periyot verileri için Pro üyelik gereklidir."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "Arama sonucu bulunamadı",
+      "more": "Daha Fazla"
+    },
+    "chart": {
+      "full_txt_tooltip": "Tüm market ve alarm verilerini indir"
     }
   },
   "core": {

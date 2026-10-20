@@ -206,7 +206,8 @@
       "alt": "Menos",
       "evet": "Sí",
       "hayir": "No",
-      "1_gun": "1 día"
+      "1_gun": "1 día",
+      "ou25_label": "Menos/Más de 2,5"
     },
     "flt": {
       "all": "Todos",
@@ -684,7 +685,16 @@
       "yuzde": "PORCENTAJE",
       "pct_degisimi": "Cambio %",
       "canli_maclar": "Partidos en vivo",
-      "yukleniyor": "Cargando partidos en vivo..."
+      "yukleniyor": "Cargando partidos en vivo...",
+      "badge": "EN VIVO",
+      "pro_periyot": "Los datos de intervalos en vivo requieren suscripción PRO."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "No se encontraron resultados",
+      "more": "Mostrar más"
+    },
+    "chart": {
+      "full_txt_tooltip": "Descargar todos los datos de mercado y alertas"
     }
   },
   "core": {

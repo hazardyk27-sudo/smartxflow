@@ -206,7 +206,8 @@
       "alt": "Under",
       "evet": "Yes",
       "hayir": "No",
-      "1_gun": "1 day"
+      "1_gun": "1 day",
+      "ou25_label": "Under/Over 2.5"
     },
     "flt": {
       "all": "All",
@@ -684,7 +685,16 @@
       "yuzde": "PERCENT",
       "pct_degisimi": "% change",
       "canli_maclar": "Live Matches",
-      "yukleniyor": "Loading live matches..."
+      "yukleniyor": "Loading live matches...",
+      "badge": "LIVE",
+      "pro_periyot": "PRO membership is required for live interval data."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "No search results found",
+      "more": "Show more"
+    },
+    "chart": {
+      "full_txt_tooltip": "Download all market and alert data"
     }
   },
   "core": {

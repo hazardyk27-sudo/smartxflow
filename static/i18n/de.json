@@ -206,7 +206,8 @@
       "alt": "Unter",
       "evet": "Ja",
       "hayir": "Nein",
-      "1_gun": "1 Tag"
+      "1_gun": "1 Tag",
+      "ou25_label": "Unter/Über 2,5"
     },
     "flt": {
       "all": "Alle",
@@ -684,7 +685,16 @@
       "yuzde": "PROZENT",
       "pct_degisimi": "%-Änderung",
       "canli_maclar": "Live-Spiele",
-      "yukleniyor": "Live-Spiele werden geladen..."
+      "yukleniyor": "Live-Spiele werden geladen...",
+      "badge": "LIVE",
+      "pro_periyot": "Für Live-Intervalldaten ist eine PRO-Mitgliedschaft erforderlich."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "Keine Suchergebnisse gefunden",
+      "more": "Mehr anzeigen"
+    },
+    "chart": {
+      "full_txt_tooltip": "Alle Markt- und Alarmdaten herunterladen"
     }
   },
   "core": {

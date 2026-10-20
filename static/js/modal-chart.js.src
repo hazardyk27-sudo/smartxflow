@@ -1443,7 +1443,7 @@ function renderChartLegendFilters(datasets, market) {
                 </svg>
                 CSV
             </button>
-            <button class="chart-export-btn" onclick="exportFullMatchTXT()" title="Tüm market ve alarm verilerini indir" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.15);">
+            <button class="chart-export-btn" onclick="exportFullMatchTXT()" title="${_t('app.chart.full_txt_tooltip','Tüm market ve alarm verilerini indir')}" style="background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.15);">
                 <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7 10 12 15 17 10"/>

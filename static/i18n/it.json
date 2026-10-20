@@ -206,7 +206,8 @@
       "alt": "Sotto",
       "evet": "Sì",
       "hayir": "No",
-      "1_gun": "1 giorno"
+      "1_gun": "1 giorno",
+      "ou25_label": "Under/Over 2,5"
     },
     "flt": {
       "all": "Tutti",
@@ -684,7 +685,16 @@
       "yuzde": "PERCENTUALE",
       "pct_degisimi": "Variazione %",
       "canli_maclar": "Partite live",
-      "yukleniyor": "Caricamento partite live..."
+      "yukleniyor": "Caricamento partite live...",
+      "badge": "LIVE",
+      "pro_periyot": "I dati live per intervallo richiedono un abbonamento PRO."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "Nessun risultato di ricerca",
+      "more": "Mostra altro"
+    },
+    "chart": {
+      "full_txt_tooltip": "Scarica tutti i dati di mercato e degli avvisi"
     }
   },
   "core": {

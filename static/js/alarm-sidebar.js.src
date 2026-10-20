@@ -1,7 +1,7 @@
 (function() {
 async function loadAllAlarms(forceRefresh = false) {
     const body = document.getElementById('alarmsList');
-    body.innerHTML = '<div class="alarms-loading">Alarmlar yukleniyor...</div>';
+    body.innerHTML = '<div class="alarms-loading">' + _t('app.dyn.alarmlar_yukleniyor','Alarmlar yükleniyor...') + '</div>';
     
     try {
         // Use centralized cache system
@@ -55,7 +55,7 @@ async function loadAllAlarms(forceRefresh = false) {
         renderAlarmsList(currentAlarmFilter);
     } catch (error) {
         console.error('Alarm yukleme hatasi:', error);
-        body.innerHTML = '<div class="alarms-empty"><p>Alarmlar yuklenirken hata olustu.</p></div>';
+        body.innerHTML = '<div class="alarms-empty"><p>' + _t('app.dyn.alarmlar_yukleme_hata','Alarmlar yüklenirken hata oluştu.') + '</p></div>';
     }
 }
 
@@ -274,7 +274,7 @@ function renderAlarmsList(filterType) {
     const groups = getFilteredAlarms();
     
     if (groups.length === 0) {
-        body.innerHTML = `<div class="alarms-empty">${alarmSearchQuery ? 'Arama sonucu bulunamadi' : 'Aktif alarm yok'}</div>`;
+        body.innerHTML = `<div class="alarms-empty">${alarmSearchQuery ? _t('app.alarm_sidebar.no_search_results','Arama sonucu bulunamadı') : _t('app.dyn.henuz_alarm_yok','Aktif alarm yok')}</div>`;
         return;
     }
     
@@ -695,7 +695,7 @@ function renderAlarmsList(filterType) {
         html += `
             <div class="load-more-container" style="padding: 8px;">
                 <button class="load-more-btn" style="width: 100%;" onclick="loadMoreAlarms()">
-                    Daha Fazla (${groups.length - alarmsDisplayCount})
+                    ${_t('app.alarm_sidebar.more','Daha Fazla')} (${groups.length - alarmsDisplayCount})
                 </button>
             </div>
         `;

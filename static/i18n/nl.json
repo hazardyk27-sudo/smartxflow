@@ -206,7 +206,8 @@
       "alt": "Onder",
       "evet": "Ja",
       "hayir": "Nee",
-      "1_gun": "1 dag"
+      "1_gun": "1 dag",
+      "ou25_label": "Under/Over 2,5"
     },
     "flt": {
       "all": "Alle",
@@ -684,7 +685,16 @@
       "yuzde": "PROCENT",
       "pct_degisimi": "%-verandering",
       "canli_maclar": "Live wedstrijden",
-      "yukleniyor": "Live wedstrijden laden..."
+      "yukleniyor": "Live wedstrijden laden...",
+      "badge": "LIVE",
+      "pro_periyot": "Voor live-intervalgegevens is een PRO-lidmaatschap vereist."
+    },
+    "alarm_sidebar": {
+      "no_search_results": "Geen zoekresultaten gevonden",
+      "more": "Meer tonen"
+    },
+    "chart": {
+      "full_txt_tooltip": "Alle markt- en alarmgegevens downloaden"
     }
   },
   "core": {
