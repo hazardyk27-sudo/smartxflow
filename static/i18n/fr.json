@@ -626,7 +626,9 @@
       "login_required": "Veuillez vous connecter.",
       "retry": "Réessayer",
       "range_error": "Aucune donnée pour cette période.",
-      "score_source_error": "SHADOW / TEST · Source des scores indisponible"
+      "score_source_error": "SHADOW / TEST · Source des scores indisponible",
+      "panel_load_error": "Impossible de charger le centre des signaux. Réessayez.",
+      "guide_load_error": "Impossible de charger l’écran d’analyse. Veuillez réessayer."
     }
   },
   "core": {

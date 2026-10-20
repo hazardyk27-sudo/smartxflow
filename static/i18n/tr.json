@@ -626,7 +626,9 @@
       "login_required": "Oturum açman gerekiyor.",
       "retry": "Tekrar dene",
       "range_error": "Bu tarih aralığı için kayıt görüntülenemiyor.",
-      "score_source_error": "SHADOW / TEST · Skor kaynağına erişilemiyor"
+      "score_source_error": "SHADOW / TEST · Skor kaynağına erişilemiyor",
+      "panel_load_error": "Sinyal merkezi yüklenemedi. Tekrar deneyin.",
+      "guide_load_error": "Analiz ekranı yüklenemedi. Lütfen tekrar deneyin."
     }
   },
   "core": {

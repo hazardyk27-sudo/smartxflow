@@ -626,7 +626,9 @@
       "login_required": "Log eerst in.",
       "retry": "Opnieuw proberen",
       "range_error": "Geen gegevens beschikbaar voor deze periode.",
-      "score_source_error": "SHADOW / TEST · Scorebron niet beschikbaar"
+      "score_source_error": "SHADOW / TEST · Scorebron niet beschikbaar",
+      "panel_load_error": "Signaalcentrum kon niet worden geladen. Probeer opnieuw.",
+      "guide_load_error": "Het analysescherm kon niet worden geladen. Probeer opnieuw."
     }
   },
   "core": {

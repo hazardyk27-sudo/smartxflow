@@ -626,7 +626,9 @@
       "login_required": "Bitte anmelden.",
       "retry": "Erneut versuchen",
       "range_error": "Für diesen Zeitraum sind keine Daten verfügbar.",
-      "score_source_error": "SHADOW / TEST · Ergebnisquelle nicht verfügbar"
+      "score_source_error": "SHADOW / TEST · Ergebnisquelle nicht verfügbar",
+      "panel_load_error": "Signalzentrale konnte nicht geladen werden. Bitte erneut versuchen.",
+      "guide_load_error": "Analyseansicht konnte nicht geladen werden. Bitte erneut versuchen."
     }
   },
   "core": {

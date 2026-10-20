@@ -626,7 +626,9 @@
       "login_required": "Inicia sesión.",
       "retry": "Reintentar",
       "range_error": "No hay datos disponibles para este intervalo.",
-      "score_source_error": "SHADOW / TEST · Fuente de resultados no disponible"
+      "score_source_error": "SHADOW / TEST · Fuente de resultados no disponible",
+      "panel_load_error": "No se pudo cargar el centro de señales. Inténtalo de nuevo.",
+      "guide_load_error": "No se pudo cargar la pantalla de análisis. Inténtalo de nuevo."
     }
   },
   "core": {

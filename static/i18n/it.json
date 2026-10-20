@@ -626,7 +626,9 @@
       "login_required": "Effettua l’accesso.",
       "retry": "Riprova",
       "range_error": "Nessun dato disponibile per questo intervallo.",
-      "score_source_error": "SHADOW / TEST · Fonte risultati non disponibile"
+      "score_source_error": "SHADOW / TEST · Fonte risultati non disponibile",
+      "panel_load_error": "Impossibile caricare il centro segnali. Riprova.",
+      "guide_load_error": "Impossibile caricare la schermata di analisi. Riprova."
     }
   },
   "core": {
