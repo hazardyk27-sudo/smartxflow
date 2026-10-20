@@ -22,7 +22,8 @@ def retry_delay_seconds(attempt: int) -> int:
 
 
 def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStore,
-                   *, worker_id: str, limit: int = 1, lease_seconds: int = 900) -> dict:
+                   *, worker_id: str, limit: int = 1, lease_seconds: int = 900,
+                   lane: str = "ANY") -> dict:
     """Never claim multiple unstarted leases while waiting for a slow DB read.
 
     A timeout during completion may mean the *transaction committed*; therefore
@@ -32,7 +33,13 @@ def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStor
     """
     if limit != 1:
         raise ValueError("claim batch must be one until heartbeat support")
-    claimed = store.claim(worker_id, limit=1, lease_seconds=lease_seconds)
+    if lane not in ("ANY", "LIVE", "BACKLOG") or type(lane) is not str:
+        raise ValueError("invalid checkpoint lane")
+    if lane == "ANY":
+        claimed = store.claim(worker_id, limit=1, lease_seconds=lease_seconds)
+    else:
+        claimed = store.claim(worker_id, limit=1, lease_seconds=lease_seconds,
+                              lane=lane)
     stats = {"claimed": len(claimed), "completed": 0, "waiting_data": 0,
              "retry": 0, "lease_lost": 0, "commit_uncertain": 0}
 

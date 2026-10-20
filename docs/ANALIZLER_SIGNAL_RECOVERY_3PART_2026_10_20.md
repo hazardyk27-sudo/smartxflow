@@ -38,7 +38,7 @@ separately authorized** durable worker. Default is OFF. It is not automatic
 12-hour coverage, live claim priority or an active production fix.
 Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
 
-### Part 2 / 3 — Timely checkpoint execution and backlog control (NOT STARTED)
+### Part 2 / 3 — Timely checkpoint execution and backlog control (PREVIEW CODE READY; LIVE NOT ENABLED)
 
 1. Introduce a deterministic bounded hour-bucket rotation with restart-safe
    scan diagnostics, never claiming future-hour coverage prematurely.
@@ -71,3 +71,11 @@ Do not interpret \`IDEMPOTENT\` as an observed scan of every future hour.
   while keeping late/unconfirmed data explicit.
 - Database writes, worker activation and Hetzner release remain blocked
   unless separately authorized and verified.
+
+## Part 2 implementation notes
+
+- `rotation.py`: deterministic UTC-minute rotation across 14 relative one-hour kickoff buckets (-1 through +12); no persistent watermark, each missed minute is UNVERIFIED and scans are idempotent on restart. Enabled only with `--near-term-discovery --near-term-rotation` on an already approved worker.
+- New proposed `sxf_base_claim_due_jobs_lane` service-role-only SQL RPC separates recent due BASE T-8/T-6 (<3h old) from the backlog, preserves original token fencing, and rejects multi-row claims. This proposal has **not** been migrated on live Supabase.
+- `--priority-lanes` additionally requires `SXF_BASE_PRIORITY_LANES_APPROVED=yes`, 3+ max jobs per cycle, and an already deployed authorized lane RPC; old claim behavior remains default. Quotas: 2/3 LIVE, 1/3 BACKLOG, with independent empty-lane handling.
+- `queue_diagnostics` assesses actual latest discovery scan timestamp, pending due count, oldest due age and reconciliation backlog; the known old `lag_seconds=0` metric is never interpreted as freshness when `last_scanned_at` is stale.
+- These changes only prepare for future supervised activation; CI checks a disposable PostgreSQL schema and synthetic time, not a verified real 24-hour operation or a fixed live app.

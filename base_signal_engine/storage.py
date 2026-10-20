@@ -114,12 +114,18 @@ class SupabaseCheckpointStore:
         return added
 
     def claim(self, worker_id: str, *, limit: int = 25,
-              lease_seconds: int = 300) -> list[ClaimedCheckpoint]:
+              lease_seconds: int = 300, lane: str = "ANY") -> list[ClaimedCheckpoint]:
         if not worker_id or len(worker_id) > 100 or not 1 <= limit <= 100 or not 60 <= lease_seconds <= 1800:
             raise ValueError("invalid claim settings")
-        rows = self._rpc("sxf_base_claim_due_jobs", {
-            "p_worker": worker_id, "p_limit": limit, "p_lease_seconds": lease_seconds,
-        })
+        if lane not in ("ANY", "LIVE", "BACKLOG") or type(lane) is not str:
+            raise ValueError("invalid checkpoint lane")
+        rpc = ("sxf_base_claim_due_jobs" if lane == "ANY" else
+               "sxf_base_claim_due_jobs_lane")
+        params = {"p_worker": worker_id, "p_limit": limit,
+                  "p_lease_seconds": lease_seconds}
+        if lane != "ANY":
+            params["p_lane"] = lane
+        rows = self._rpc(rpc, params)
         if not isinstance(rows, list) or len(rows) > limit:
             raise DurableStoreError("unexpected claim payload")
         claimed = []
