@@ -150,8 +150,13 @@ function setupSearch(){const searchInput=document.getElementById('searchInput');
 async function _fetchMatchesWithTimeout(url,timeoutMs){const controller=new AbortController();const timeoutId=setTimeout(()=>controller.abort(),timeoutMs);try{const response=await fetch(url,{signal:controller.signal});const result=response.ok?await response.json():null;return{response,result};}finally{clearTimeout(timeoutId);}}
 let _matchesMarketCache={};const _MATCHES_CACHE_TTL=90000;window.addEventListener('i18n:change',function(){const a=window._sxfMatchErrorState;if(a&&a.messageKey&&document.querySelector('.match-load-retry'))renderMatchLoadError(a.message,a.reloadPage,a.messageKey);});
 function renderMatchLoadError(message, reloadPage = false, messageKey = null) {window._sxfMatchErrorState={message,reloadPage,messageKey};
-    const retryLabel=reloadPage?_t('app.j.match_retry_page','Sayfayı yenile'):_t('app.v4.retry','Tekrar dene');
-    if(messageKey)message=_t(messageKey,message);const errorMarkup='<div role="alert" style="text-align:center;padding:20px;color:#b54747"><p>'+
+    const errorTranslate = function(key, fallback) {
+        const i18n = window && window.SXFI18n;
+        const translated = i18n && typeof i18n.t === 'function' ? i18n.t(key) : null;
+        return translated && translated !== key ? translated : fallback;
+    };
+    const retryLabel = reloadPage ? errorTranslate('app.j.match_retry_page','Sayfayı yenile') : errorTranslate('app.v4.retry','Tekrar dene');
+    if(messageKey)message=errorTranslate(messageKey,message);const errorMarkup='<div role="alert" style="text-align:center;padding:20px;color:#b54747"><p>'+
 message+'</p><button type="button" class="match-load-retry" style="padding:8px 14px;border:0;border-radius:6px;background:#315efb;color:#fff;cursor:pointer">'+
 retryLabel+'</button></div>';const tbody=document.getElementById('matchesTableBody');if(tbody){const colspan=currentMarket.includes('1x2')?8:7;tbody.innerHTML='<tr class="loading-row"><td colspan="'+colspan+'">'+errorMarkup+'</td></tr>';const button=tbody.querySelector('.match-load-retry');if(button)button.addEventListener('click',()=>reloadPage?window.location.reload():loadMatches(false,true));}
 const cardList=document.getElementById('matchCardList');if(cardList){cardList.innerHTML='<div class="match-card" style="justify-content:center;padding:24px 20px">'+errorMarkup+'</div>';const button=cardList.querySelector('.match-load-retry');if(button)button.addEventListener('click',()=>reloadPage?window.location.reload():loadMatches(false,true));}
