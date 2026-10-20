@@ -1,0 +1,36 @@
+name: Base Hetzner shadow status read-only 20261020
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-shadow-diagnostic-20261020.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Read-only production and Base shadow process diagnostics
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 4m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 609eea70ef409aad756074e198b839d82fa3e838
+            echo "BASE_STATUS_READONLY_BEGIN"
+            systemctl list-units 'sxf-base*' --all --no-pager --no-legend || true
+            for unit in sxf-base-durable-shadow-20261019.service sxf-base-presha-20261019.service sxf-base-priority-shadow-20261020.service; do
+              echo "UNIT=$unit"
+              systemctl show "$unit" -p ActiveState -p SubState -p MainPID -p ActiveEnterTimestamp -p RuntimeMaxUSec -p NRestarts -p MemoryCurrent -p ExecMainStatus -p ExecStart || true
+            done
+            echo "OLD_SHADOW_RECENT_CYCLES"
+            journalctl -u sxf-base-durable-shadow-20261019.service --no-pager -o cat -n 12 || true
+            echo "BASE_STATUS_READONLY_END"
