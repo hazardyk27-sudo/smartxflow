@@ -1,0 +1,35 @@
+name: Read-only Hetzner Base worker diagnostic 2026-10-21
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-worker-hetzner-diagnostic-20261021.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  base-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect permanent worker without restarting or changing state
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 4m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            echo "DIAGNOSTIC_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "PRODUCTION_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "BASE_WORKER_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "BASE_WORKER_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            systemctl show smartxflow-base-worker.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID -p ActiveEnterTimestamp -p InactiveEnterTimestamp --no-pager
+            echo "BASE_JOURNAL_LAST_45"
+            journalctl -u smartxflow-base-worker.service -n 45 --no-pager -o cat | tail -n 45
+            echo "BASE_DIAGNOSTIC_END"
