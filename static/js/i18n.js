@@ -81,6 +81,7 @@
   var authCatalogPromise = null;
   var adminCatalog = null;
   var adminCatalogPromise = null;
+  var adminRequested = false;
   var autoIndex = null;
   var autoObserver = null;
   var autoRefreshPending = false;
@@ -167,7 +168,7 @@
         if (sourceTurkish[key]) map[key] = sourceTurkish[key];
       });
     }
-    if (isAdminPage() && adminCatalog) {
+    if ((isAdminPage() || adminRequested) && adminCatalog) {
       var adminSource = Object.create(null);
       flattenCatalog(adminCatalog.tr, 'app.adminui', adminSource);
       Object.keys(adminSource).forEach(function (key) {
@@ -256,7 +257,7 @@
         .then(function (r) { if (!r.ok) throw new Error('base locale unavailable'); return r.json(); })
         .then(function (obj) { canonicalTurkish = obj; }).catch(function () {}));
     }
-    if (isAdminPage() && !adminCatalog) {
+    if ((isAdminPage() || adminRequested) && !adminCatalog) {
       if (!adminCatalogPromise) {
         adminCatalogPromise = fetch(BASE_PATH + 'admin.json?v=20261020', {cache:'no-cache'})
           .then(function (r) { if (!r.ok) throw new Error('admin catalog unavailable'); return r.json(); })
@@ -281,6 +282,21 @@
   }
 
 
+  function ensureAdminCatalog() {
+    adminRequested = true;
+    // The administration overlay is lazy-loaded inside /app, not just /admin.
+    // Reading locale JSON changes neither app data nor admin settings.
+    if (!adminCatalogPromise) {
+      adminCatalogPromise = fetch(BASE_PATH + 'admin.json?v=20261020', {cache:'no-cache'})
+        .then(function (r) { if (!r.ok) throw new Error('admin catalog unavailable'); return r.json(); })
+        .then(function (obj) { adminCatalog = obj; }).catch(function () {});
+    }
+    return adminCatalogPromise.then(function () {
+      rebuildAutoIndex();
+      applyAutoBody();
+      applyDOM();
+    });
+  }
   function installStandaloneLanguagePicker() {
     if (!document.body || !(isAuthPage() || isAdminPage()) || document.getElementById('sxfStandaloneLanguage')) return;
     var control = document.createElement('select');
@@ -388,7 +404,8 @@
     },
     t: function (key) { var v = get(key); return v === null ? key : v; },
     onChange: function (fn) { if (typeof fn === 'function') listeners.push(fn); },
-    apply: applyDOM
+    apply: applyDOM,
+    ensureAdminCatalog: ensureAdminCatalog
   };
 
   function addInteractionPreconnect(href) {

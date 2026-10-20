@@ -1,8 +1,15 @@
 (function() {
+function sxfAdminT(key, fallback) {
+  var i18n = window.SXFI18n;
+  var full = 'app.adminui.' + key;
+  var translated = i18n && typeof i18n.t === 'function' ? i18n.t(full) : null;
+  return translated && translated !== full ? translated : fallback;
+}
+
 function openAdminPanel() {
     const overlay = document.getElementById('adminPanelOverlay');
     if (overlay) {
-        overlay.classList.add('open');
+        if (window.SXFI18n && window.SXFI18n.ensureAdminCatalog) window.SXFI18n.ensureAdminCatalog();overlay.classList.add('open');
         loadAdminVolumeLeaderData();
     }
 }
@@ -156,12 +163,12 @@ async function saveVolumeLeaderConfig() {
         });
         
         if (res.ok) {
-            showToast('Ayarlar kaydedildi', 'success');
+            showToast(sxfAdminT('panel_046','Ayarlar kaydedildi'), 'success');
         } else {
-            showToast('Kaydetme hatası', 'error');
+            showToast(sxfAdminT('panel_047','Kaydetme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
@@ -172,7 +179,7 @@ async function calculateVolumeLeaderAlarms() {
     if (btn) btn.disabled = true;
     if (statusDiv) {
         statusDiv.style.display = 'block';
-        statusDiv.textContent = 'Hesaplama başlatılıyor...';
+        statusDiv.textContent = sxfAdminT('panel_049','Hesaplama başlatılıyor...');
     }
     
     try {
@@ -183,17 +190,17 @@ async function calculateVolumeLeaderAlarms() {
             showToast(`${data.count} yeni alarm bulundu!`, 'success');
             loadAdminVolumeLeaderData();
         } else {
-            showToast(data.error || 'Hesaplama hatası', 'error');
+            showToast(data.error || sxfAdminT('panel_050','Hesaplama hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     } finally {
         if (btn) btn.disabled = false;
     }
 }
 
 async function deleteVolumeLeaderAlarms() {
-    if (!confirm('Tüm Hacim Lideri alarmlarını silmek istediğinize emin misiniz?')) return;
+    if (!confirm(sxfAdminT('panel_051','Tüm Hacim Lideri alarmlarını silmek istediğinize emin misiniz?'))) return;
     
     try {
         const res = await fetch('/api/volumeleader/alarms', { method: 'DELETE' });
@@ -201,10 +208,10 @@ async function deleteVolumeLeaderAlarms() {
             showToast('Alarmlar silindi', 'success');
             loadAdminVolumeLeaderData();
         } else {
-            showToast('Silme hatası', 'error');
+            showToast(sxfAdminT('panel_052','Silme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
@@ -364,12 +371,12 @@ async function saveDroppingConfig() {
         });
         
         if (res.ok) {
-            showToast('Dropping ayarları kaydedildi', 'success');
+            showToast(sxfAdminT('panel_053','Dropping ayarları kaydedildi'), 'success');
         } else {
-            showToast('Kaydetme hatası', 'error');
+            showToast(sxfAdminT('panel_047','Kaydetme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
@@ -380,7 +387,7 @@ async function calculateDroppingAlarms() {
     if (btn) btn.disabled = true;
     if (statusDiv) {
         statusDiv.style.display = 'block';
-        statusDiv.textContent = 'Dropping alarmları hesaplanıyor...';
+        statusDiv.textContent = sxfAdminT('panel_054','Dropping alarmları hesaplanıyor...');
     }
     
     try {
@@ -391,28 +398,28 @@ async function calculateDroppingAlarms() {
             showToast(`${data.count} dropping alarm bulundu!`, 'success');
             loadAdminDroppingData();
         } else {
-            showToast(data.error || 'Hesaplama hatası', 'error');
+            showToast(data.error || sxfAdminT('panel_050','Hesaplama hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     } finally {
         if (btn) btn.disabled = false;
     }
 }
 
 async function deleteDroppingAlarms() {
-    if (!confirm('Tüm Dropping alarmlarını silmek istediğinize emin misiniz?')) return;
+    if (!confirm(sxfAdminT('panel_055','Tüm Dropping alarmlarını silmek istediğinize emin misiniz?'))) return;
     
     try {
         const res = await fetch('/api/dropping/alarms', { method: 'DELETE' });
         if (res.ok) {
-            showToast('Dropping alarmları silindi', 'success');
+            showToast(sxfAdminT('panel_056','Dropping alarmları silindi'), 'success');
             loadAdminDroppingData();
         } else {
-            showToast('Silme hatası', 'error');
+            showToast(sxfAdminT('panel_052','Silme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
@@ -532,29 +539,29 @@ async function saveMimConfig() {
         });
         
         if (res.ok) {
-            showToast('MIM ayarları kaydedildi', 'success');
+            showToast(sxfAdminT('panel_057','MIM ayarları kaydedildi'), 'success');
         } else {
-            showToast('Kaydetme hatası', 'error');
+            showToast(sxfAdminT('panel_047','Kaydetme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
 async function deleteMimAlarms() {
-    if (!confirm('Tüm MIM alarmlarını silmek istediğinize emin misiniz?')) return;
+    if (!confirm(sxfAdminT('panel_058','Tüm MIM alarmlarını silmek istediğinize emin misiniz?'))) return;
     
     try {
         const res = await fetch('/api/mim/alarms', { method: 'DELETE' });
         if (res.ok) {
-            showToast('MIM alarmları silindi', 'success');
+            showToast(sxfAdminT('panel_059','MIM alarmları silindi'), 'success');
             invalidateAlarmCache();
             loadAdminMimData();
         } else {
-            showToast('Silme hatası', 'error');
+            showToast(sxfAdminT('panel_052','Silme hatası'), 'error');
         }
     } catch (e) {
-        showToast('Bağlantı hatası', 'error');
+        showToast(sxfAdminT('panel_048','Bağlantı hatası'), 'error');
     }
 }
 
