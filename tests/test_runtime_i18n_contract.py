@@ -35,6 +35,7 @@ def test_runtime_translation_keys_complete():
       if key.startswith(("app.","ui.")):keys.add(key)
   # Short calendar labels in app.js concatenate app.j.ms + month number.
   keys.discard("app.j.ms")  # dynamic prefix, not itself a dictionary leaf
+  keys.discard("app.tutorial.")  # dynamic tutorial prefix; checked by test_tutorial_i18n.js
   keys.update(f"app.j.ms{x}" for x in range(12))
   assert len(keys)>170, "i18n scan unexpectedly bypassed"
   for code in CODES:
