@@ -16,6 +16,9 @@ on:
       - 'static/js/i18n.js'
       - 'static/js/app.js'
       - 'static/js/inline.js'
+      - 'static/js/admin-panel.js'
+      - 'static/js/admin-panel.js.src'
+      - 'tests/test_admin_panel_i18n.js'
       - 'static/js/live-tab.js'
       - 'static/js/alarm-sidebar.js'
       - 'static/js/modal-alarms.js'
@@ -57,4 +60,6 @@ jobs:
           node --check static/js/alarm-sidebar.js
           node --check static/js/modal-chart.js
           node --check static/js/modal-info.js
-          node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js tests/test_i18n_switch_race.js tests/test_live_alarm_i18n.js
+          node --check static/js/admin-panel.js
+          node --check static/js/admin-panel.js.src
+          node --test tests/test_deferred_analysis_entrypoints.js tests/test_analysis_v4_interactions.js tests/test_i18n_switch_race.js tests/test_live_alarm_i18n.js tests/test_admin_panel_i18n.js

@@ -15,6 +15,9 @@ on:
       - 'tests/test_full_site_i18n_browser.py'
       - 'tests/test_public_pages_i18n_browser.py'
       - 'tests/test_admin_i18n_browser.py'
+      - 'tests/test_admin_overlay_i18n_browser.py'
+      - 'static/js/admin-panel.js'
+      - 'static/js/admin-panel.js.src'
       - 'static/i18n/admin.json'
       - 'templates/admin.html'
       - 'templates/landing.html'
@@ -58,6 +61,7 @@ jobs:
           python tests/test_full_site_i18n_browser.py
           python tests/test_public_pages_i18n_browser.py
           python tests/test_admin_i18n_browser.py
+          python tests/test_admin_overlay_i18n_browser.py
           python -m unittest discover -s tests -p test_i18n_coverage.py
       - name: Upload visual evidence
         if: always()
