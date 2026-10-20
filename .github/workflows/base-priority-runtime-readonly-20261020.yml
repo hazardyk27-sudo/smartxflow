@@ -32,5 +32,9 @@ jobs:
               systemctl show "$u" -p ActiveState -p SubState -p MainPID -p ExecMainStatus -p ActiveEnterTimestamp -p RuntimeMaxUSec -p NRestarts -p Result
             done
             echo "RECENT_PRIORITY_CYCLES"
-            journalctl -u sxf-base-priority-shadow-20261020.service -o cat --no-pager -n 15 | head -c 15000 || true
+            journalctl -u sxf-base-priority-shadow-20261020.service --since '2026-10-20 17:19:00 UTC' --no-pager -o short-iso -n 25 | tail -c 9000 || true
+            echo "UNIT_EXIT_METADATA"
+            systemctl status sxf-base-priority-shadow-20261020.service --no-pager -l | tail -n 20 || true
+            echo "RECENT_BASE_UNITS"
+            systemctl list-units 'sxf-base*' --all --no-pager --no-legend | head -c 3500 || true
             echo "BASE_DIAGNOSTIC_END"
