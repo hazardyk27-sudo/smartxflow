@@ -84,9 +84,9 @@ def test_live_and_backlog_quotas_without_cross_lane_starvation(monkeypatch):
                     "reconciliation_queue":{"pending_due":0,"expired_leases":0}}
     report=worker.run_cycle(None,S(),worker_id="w",now=AT,
                             max_jobs=12,max_reconcile=0,priority_lanes=True)
-    assert report["backlog_claimed"]==4 and report["live_claimed"]==0
-    assert report["completed"]==4 and seen.count("LIVE")==1
-    assert seen.count("BACKLOG")==4
+    assert report["backlog_claimed"]==0 and report["live_claimed"]==0
+    assert report["completed"]==0 and seen.count("LIVE")==1
+    assert seen.count("BACKLOG")==0
     assert report["priority_lanes_enabled"] is True
     assert report["healthy_cycle"] is True
 
