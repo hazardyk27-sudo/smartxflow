@@ -1,0 +1,96 @@
+name: Inspect live Betwatch Match Odds runner labels (read-only)
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/moneyway-runner-label-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  ssh-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Query one Betwatch prematch batch from authorized Hetzner host
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            cd /opt/smartxflow
+            /opt/smartxflow/venv/bin/python - <<'PY'
+            import collections,json
+            import requests
+            path="/opt/smartxflow/.env"
+            key=None
+            with open(path,encoding="utf-8") as fh:
+                for line in fh:
+                    if line.startswith("Betwach_api_key="):
+                        key=line.split("=",1)[1].strip().strip("'\"")
+                        break
+            if not key:
+                print("BETWATCH_DIAG_STATUS=NO_API_CREDENTIAL")
+                raise SystemExit(2)
+            response=requests.get("https://api.betwatch.fr/api/v1/football/prematch",
+                headers={"Authorization":"Token "+key,"Accept":"application/json",
+                         "User-Agent":"SmartXFlow/2.0"},timeout=40)
+            print("BETWATCH_DIAG_HTTP="+str(response.status_code))
+            response.raise_for_status()
+            data=response.json()
+            if not isinstance(data,list):
+                raise SystemExit("SOURCE_PAYLOAD_NOT_LIST")
+            count=collections.Counter()
+            samples=[]
+            for match in data:
+                for mkt in match.get("markets",[]) or []:
+                    if mkt.get("name")!="Match Odds":
+                        continue
+                    runners=mkt.get("runners",[]) or []
+                    count["market_total"]+=1
+                    count["runner_count_"+str(len(runners))]+=1
+                    if len(samples)<9:
+                        samples.append({"teams":match.get("teams",{}),
+                            "runner_names":[str(r.get("name"))[:110] for r in runners],
+                            "runner_keys":[sorted(r.keys()) for r in runners]})
+            print("BETWATCH_DIAG_TOTAL="+str(len(data)))
+            print("BETWATCH_DIAG_1X2_MARKETS="+str(count["market_total"]))
+            print("BETWATCH_DIAG_RUNNER_COUNTS="+json.dumps(dict(count),sort_keys=True))
+            print("BETWATCH_DIAG_LABEL_SAMPLES="+json.dumps(samples,ensure_ascii=True))
+            print("BETWATCH_DIAG_END")
+            PY
+
+  publish:
+    needs: ssh-source
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preserve sampled runner labels without credentials or financial data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "ssh_result=${{ needs.ssh-source.result }}"
+          } > /tmp/betwatch-labels.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="ssh-source") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/betwatch-raw.txt || true
+            grep -E 'BETWATCH_DIAG_(HTTP|TOTAL|1X2_MARKETS|RUNNER_COUNTS|LABEL_SAMPLES|STATUS|END)' /tmp/betwatch-raw.txt | tail -n 18 >> /tmp/betwatch-labels.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/betwatch-labels.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/MONEYWAY_RUNNER_LABEL_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops(source): refresh Betwatch runner label observations" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops(source): publish Betwatch runner label observations" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
