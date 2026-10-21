@@ -75,32 +75,33 @@ def setup_function():
     LegacySource.fail=False
     LegacySource.calls=0
 
-def test_legacy_failure_returns_real_base_items_without_fake_zero_counts():
+
+def test_only_new_base_signals_returned_even_when_legacy_source_would_fail():
     LegacySource.fail=True
     payload=route()
     assert payload["status"]=="ok"
     assert payload["items"]==[{"id":2,"kickoff_utc":"2026-10-20T10:00:00Z"}]
-    assert payload["phase"]=="BASE_SHADOW_LEGACY_UNAVAILABLE"
-    assert payload["legacy_source_status"]=="unavailable"
-    assert payload["legacy_audit"]["source_rows"] is None
-    assert payload["legacy_audit"]["verified_items"] is None
-    assert payload["engines"]==["1X2_CONCENTRATION_V1","LEGACY_EARLY_MONEY_LOCK"]
-    assert BaseSource.calls==1 and LegacySource.calls==1
+    assert payload["phase"]=="SIGNAL_MOTOR"
+    assert payload["engines"]==["1X2_CONCENTRATION_V1"]
+    assert LegacySource.calls==0 and BaseSource.calls==1
 
-def test_base_failure_still_fails_closed_before_legacy_reads():
+
+def test_base_failure_fails_closed_without_reading_legacy():
     BaseSource.fail=True
     payload,status=route()
     assert status==503 and payload["error"]=="SIGNAL_DATA_UNAVAILABLE"
     assert LegacySource.calls==0
+
 
 def test_pro_gate_rejects_core_before_any_private_reads():
     payload,status=route(plan="core")
     assert status==403 and payload["error"]=="PRO_REQUIRED"
     assert BaseSource.calls==0 and LegacySource.calls==0
 
-def test_account_pro_gate_applies_to_merged_feed_too():
+
+def test_account_pro_gate_serves_only_new_signals():
     payload=route(account=True)
-    assert payload["legacy_source_status"]=="ok"
-    assert [x["id"] for x in payload["items"]]==[2,100000000001]
-    assert payload["legacy_audit"]["verified_items"]==1
-    assert BaseSource.calls==1 and LegacySource.calls==1
+    assert payload["phase"]=="SIGNAL_MOTOR"
+    assert [x["id"] for x in payload["items"]]==[2]
+    assert "legacy_audit" not in payload
+    assert BaseSource.calls==1 and LegacySource.calls==0
