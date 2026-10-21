@@ -207,13 +207,14 @@ def test_history_error_fails_closed_without_global_offset_fallback(monkeypatch):
     assert any("HTTP 503" in line for line in calls["logs"])
 
 
-def test_unscoped_call_preserves_legacy_loader():
+def test_unscoped_call_fails_closed_without_global_history_scan():
     legacy_result = {"legacy-key": [{"odds1": "1"}]}
     engine, calls = _engine(legacy_result=legacy_result)
     indexed.install_first_snapshot_fetch(engine)
 
-    assert engine.fetch_first_snapshots(None) == legacy_result
-    assert calls["legacy"] == 1
+    assert engine.fetch_first_snapshots(None) == {}
+    assert calls["legacy"] == 0
+    assert any("refusing full-table legacy scan" in line for line in calls["logs"])
 
 
 def test_current_table_error_fails_closed_without_global_offset_fallback(monkeypatch):
