@@ -1,4 +1,4 @@
-probe_sha=1dba47310d0533c3e868a8e002a5b1d2f55cdc23
+probe_sha=77dc4412f6cc1c9cd1b36e14c26c43ead456f8d1
 probe_job=success
 echo "REMOTE_HOST=$(hostname)"
 echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
@@ -14,35 +14,35 @@ echo "REMOTE_WORKER_SUBSTATE=$(systemctl show -p SubState --value smartxflow-bas
 echo "REMOTE_WORKER_CYCLE_COUNT_30M=$(sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep -c 'HETZNER_BASE_DURABLE' || true)"
 sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep 'HETZNER_BASE_DURABLE' | tail -n 4 | python3 -c 'import sys,json; k=("discovery","near_term_status","claimed","completed","skipped_data","waiting_data","reconcile_claimed","healthy_cycle","coverage_state","lease_uncertain","commit_uncertain"); [(lambda o: print("REMOTE_WORKER_CYCLE="+json.dumps({a:o.get(a) for a in k},sort_keys=True)))(json.loads(s[s.find("{"):])) for s in sys.stdin if "{" in s]' || true
 echo "REMOTE_PROBE_OK"
-2026-10-21T18:29:19.2936534Z echo "REMOTE_HOST=$(hostname)"
-2026-10-21T18:29:19.2937109Z echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
-2026-10-21T18:29:19.2937850Z echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2939050Z echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2940541Z echo "REMOTE_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
-2026-10-21T18:29:19.2941343Z echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
-2026-10-21T18:29:19.2942034Z echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
-2026-10-21T18:29:19.2942716Z echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2943456Z echo "REMOTE_WORKER_RESULT=$(systemctl show -p Result --value smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2944510Z echo "REMOTE_WORKER_RESTARTS=$(systemctl show -p NRestarts --value smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2945285Z echo "REMOTE_WORKER_SUBSTATE=$(systemctl show -p SubState --value smartxflow-base-worker.service || true)"
-2026-10-21T18:29:19.2946420Z echo "REMOTE_WORKER_CYCLE_COUNT_30M=$(sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep -c 'HETZNER_BASE_DURABLE' || true)"
-2026-10-21T18:29:19.2948865Z sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep 'HETZNER_BASE_DURABLE' | tail -n 4 | python3 -c 'import sys,json; k=("discovery","near_term_status","claimed","completed","skipped_data","waiting_data","reconcile_claimed","healthy_cycle","coverage_state","lease_uncertain","commit_uncertain"); [(lambda o: print("REMOTE_WORKER_CYCLE="+json.dumps({a:o.get(a) for a in k},sort_keys=True)))(json.loads(s[s.find("{"):])) for s in sys.stdin if "{" in s]' || true
-2026-10-21T18:29:19.2951182Z echo "REMOTE_PROBE_OK"
-2026-10-21T18:29:20.9475912Z out: REMOTE_HOST=smartxflow
-2026-10-21T18:29:20.9552775Z out: REMOTE_SHA=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
-2026-10-21T18:29:20.9678467Z out: REMOTE_BASE_ACTIVE=active
-2026-10-21T18:29:20.9824021Z out: REMOTE_BASE_ENABLED=enabled
-2026-10-21T18:29:20.9919600Z out: REMOTE_TIMER_ACTIVE=active
-2026-10-21T18:29:21.0021812Z out: REMOTE_TIMER_ENABLED=enabled
-2026-10-21T18:29:21.0104066Z out: REMOTE_ALARM_ACTIVE=active
-2026-10-21T18:29:21.0163496Z out: REMOTE_WORKER_PID=2726695
-2026-10-21T18:29:21.0244373Z out: REMOTE_WORKER_RESULT=success
-2026-10-21T18:29:21.0574604Z out: REMOTE_WORKER_RESTARTS=0
-2026-10-21T18:29:21.0575451Z out: REMOTE_WORKER_SUBSTATE=running
-2026-10-21T18:29:21.0999152Z out: REMOTE_WORKER_CYCLE_COUNT_30M=46
-2026-10-21T18:29:21.1422640Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
-2026-10-21T18:29:21.1426498Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
-2026-10-21T18:29:21.1429342Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
-2026-10-21T18:29:21.1432677Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
-2026-10-21T18:29:21.1434826Z out: REMOTE_PROBE_OK
+2026-10-21T18:42:27.2606738Z echo "REMOTE_HOST=$(hostname)"
+2026-10-21T18:42:27.2606981Z echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
+2026-10-21T18:42:27.2607337Z echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2607705Z echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2608075Z echo "REMOTE_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+2026-10-21T18:42:27.2608452Z echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+2026-10-21T18:42:27.2608806Z echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
+2026-10-21T18:42:27.2609170Z echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2609567Z echo "REMOTE_WORKER_RESULT=$(systemctl show -p Result --value smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2610216Z echo "REMOTE_WORKER_RESTARTS=$(systemctl show -p NRestarts --value smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2610626Z echo "REMOTE_WORKER_SUBSTATE=$(systemctl show -p SubState --value smartxflow-base-worker.service || true)"
+2026-10-21T18:42:27.2611195Z echo "REMOTE_WORKER_CYCLE_COUNT_30M=$(sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep -c 'HETZNER_BASE_DURABLE' || true)"
+2026-10-21T18:42:27.2612437Z sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep 'HETZNER_BASE_DURABLE' | tail -n 4 | python3 -c 'import sys,json; k=("discovery","near_term_status","claimed","completed","skipped_data","waiting_data","reconcile_claimed","healthy_cycle","coverage_state","lease_uncertain","commit_uncertain"); [(lambda o: print("REMOTE_WORKER_CYCLE="+json.dumps({a:o.get(a) for a in k},sort_keys=True)))(json.loads(s[s.find("{"):])) for s in sys.stdin if "{" in s]' || true
+2026-10-21T18:42:27.2613477Z echo "REMOTE_PROBE_OK"
+2026-10-21T18:42:28.9651670Z out: REMOTE_HOST=smartxflow
+2026-10-21T18:42:28.9734721Z out: REMOTE_SHA=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
+2026-10-21T18:42:28.9859182Z out: REMOTE_BASE_ACTIVE=active
+2026-10-21T18:42:29.0020169Z out: REMOTE_BASE_ENABLED=enabled
+2026-10-21T18:42:29.0136885Z out: REMOTE_TIMER_ACTIVE=active
+2026-10-21T18:42:29.0277051Z out: REMOTE_TIMER_ENABLED=enabled
+2026-10-21T18:42:29.0369425Z out: REMOTE_ALARM_ACTIVE=active
+2026-10-21T18:42:29.0457738Z out: REMOTE_WORKER_PID=2726695
+2026-10-21T18:42:29.0568976Z out: REMOTE_WORKER_RESULT=success
+2026-10-21T18:42:29.0821537Z out: REMOTE_WORKER_RESTARTS=0
+2026-10-21T18:42:29.0821921Z out: REMOTE_WORKER_SUBSTATE=running
+2026-10-21T18:42:29.1003423Z out: REMOTE_WORKER_CYCLE_COUNT_30M=47
+2026-10-21T18:42:29.1259387Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 6, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 18}
+2026-10-21T18:42:29.1260958Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 1, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 23}
+2026-10-21T18:42:29.1262019Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
+2026-10-21T18:42:29.1263004Z out: REMOTE_WORKER_CYCLE={"claimed": 24, "commit_uncertain": 0, "completed": 0, "coverage_state": "DEGRADED", "discovery": "OK", "healthy_cycle": true, "lease_uncertain": 0, "near_term_status": "IDEMPOTENT", "reconcile_claimed": 1, "skipped_data": null, "waiting_data": 24}
+2026-10-21T18:42:29.1287827Z out: REMOTE_PROBE_OK
 pause_run_id=39642731590
