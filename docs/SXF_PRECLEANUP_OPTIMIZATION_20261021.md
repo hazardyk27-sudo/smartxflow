@@ -37,3 +37,10 @@ The Python command runs `psql` with read-only `BEGIN`, short SQL/lock timeouts, 
 6. Commit/test in preview; release to main/Hetzner ONLY with the user-approved exact SHA and release gates. Never use Replit or the user's personal computer.
 
 No cron/timer is enabled by this change. No rows or indexes are removed.
+
+## Additional safety optimization / verified after initial report
+- Updated `core/retention_guard.py` on preview: `SMARTXFLOW_RETENTION_CLEANUP_APPROVED` must be explicitly truthy; otherwise BOTH the scheduled scraper guard and the web Supabase cleanup wrapper deny legacy cleanup by default. The older global emergency-disable and pending-hold checks remain in place.
+- This is **not** the authorization for a historical purge. Even when the operator eventually approves the legacy switch, independent backup, date-by-date source parity, active-position scope and safe batching are separate production gates. Keep the legacy switch unset until the old unbounded path is retired.
+- Live SQL validation of `scripts/maintenance/sxf_precleanup_evidence.sql` succeeded. It found earliest source 2026-10-06, missing archive_runs dates Oct 6-8, unverified cold backup for Oct 9-14, source_retention_cleanup_allowed=false, and both retention-hold/outbox pending counts zero. Combined result: **BLOCKED**.
+- Live catalog dependency check confirmed the two proposed redundant index candidates have zero `pg_constraint` index references and zero external `pg_depend` references. This supports *review*, not a production DROP. Only the exact duplicate index pairs listed above qualify for consideration.
+- GitHub Actions gate `39642548896` succeeded; expanded guard+preflight CI `39643141804` also succeeded.
