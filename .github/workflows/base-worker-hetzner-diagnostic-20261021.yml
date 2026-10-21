@@ -1,4 +1,4 @@
-name: Read-only Hetzner Base worker diagnostic 2026-10-21
+name: Read-only Hetzner Base worker diagnostic 2026-10-21 (watchdog rollout check)
 
 on:
   push:
