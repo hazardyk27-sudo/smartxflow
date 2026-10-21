@@ -156,3 +156,39 @@ def test_part3_migration_order_documented_and_first_migration_unmodified():
     assert "ALTER TABLE" not in hard.upper()
     assert "DROP " not in hard.upper()
     assert "CREATE OR REPLACE FUNCTION public.sxf_base_skip_missing_source" in hard
+
+
+def test_fixture_level_missing_source_skip_is_atomic_and_does_not_rewrite_evidence():
+    """One missing real checkpoint disqualifies sibling jobs, not completed events."""
+    sql=(ROOT/"migrations/2026_10_21_signal_motor_skip_future_only_guard.sql").read_text()
+    for required in (
+        "SELECT j.fixture_uid INTO v_fixture_uid",
+        "FOR UPDATE",
+        "sibling.state='LEASED'",
+        "sibling.lease_expires_at>now()",
+        "RETURN FALSE",
+        "j.fixture_uid=v_fixture_uid",
+        "state='SKIPPED_DATA'",
+        "THEN 'SOURCE_INCOMPLETE'",
+        "ELSE 'FIXTURE_SKIPPED_UPSTREAM_GAP'",
+        "j.state IN ('PENDING','RETRY','WAITING_DATA')",
+        "j.lease_expires_at<=now()",
+    ):
+        assert required in sql, required
+    # A future checkpoint skipped because the MATCH was disqualified must
+    # not be mislabeled as a snapshot that was already due and missing.
+    assert "FIXTURE_SKIPPED_UPSTREAM_GAP" in sql
+    assert "j.state='COMPLETED'" not in sql
+    assert "DELETE FROM" not in sql.upper()
+    assert "TRUNCATE " not in sql.upper()
+
+
+def test_claim_migration_excludes_terminally_skipped_fixtures():
+    sql=(ROOT/"migrations/2026_10_21_signal_motor_today_first.sql").read_text()
+    for required in (
+        "AND NOT EXISTS (", "stopped.fixture_uid=j.fixture_uid",
+        "stopped.kickoff_utc=j.kickoff_utc",
+        "stopped.state='SKIPPED_DATA'",
+        "stopped.last_error_code='SOURCE_INCOMPLETE'",
+    ):
+        assert required in sql, required
