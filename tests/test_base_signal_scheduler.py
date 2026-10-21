@@ -98,8 +98,8 @@ def test_journal_refuses_unterminated_crash_record(tmp_path):
 
 def test_independent_market_t6_authority_vs_t8_fallback():
     history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
-    # T-6 must use its own complete original markets, not T-8.
-    history += [mkt("OU25",8),mkt("BTTS",8),mkt("OU25",6),mkt("BTTS",6)]
+    # T-8 is historical only; the missing T-6 OU25/BTTS remains incomplete.
+    history += [mkt("OU25",8),mkt("BTTS",8)]
     reader=FakeReader(history)
     job=CheckpointJob(REF,6,"BASE")
     p=evaluate_job(job,reader)
@@ -207,10 +207,10 @@ def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
     first=scan_once(empty,journal,now=now,catalog=Catalog(),max_jobs=9)
     assert first["due"]==8 and first["waiting_data"]==8 and first["committed"]==0
     assert journal.logs=={}
-    # A later snapshot can be observed on next scan; immutable existing
-    # checkpoint timestamps remain the same and motor rules are unchanged.
+    # A later successful scan can evaluate if all original T-6 markets exist.
     history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
-    history += [mkt("OU25",8),mkt("BTTS",8)]
+    history += [mkt("OU25",8),mkt("BTTS",8),
+                mkt("OU25",6),mkt("BTTS",6)]
     full=FakeReader(history)
     # Restrict one T6 checkpoint via an explicitly scoped fake completion port.
     job=CheckpointJob(REF,6,"BASE")
