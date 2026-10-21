@@ -24,6 +24,7 @@ import standalone_scraper as ss_module
 from standalone_scraper import SupabaseWriter, cleanup_old_matches
 from betwatch_prematch import run_scrape_betwatch as run_scrape
 from core.retention_guard import retention_cleanup_disabled
+from core.prematch_stall_recovery import should_exit_stale_prematch_loop
 
 print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
@@ -580,6 +581,13 @@ def run_loop():
 
     last_successful_scrape = get_last_signal_time()
     watchdog_alert_sent = False
+    started_at = datetime.now(timezone.utc)
+    unconfirmed_cycles = 0
+    safe_auto_restart = (
+        os.environ.get("SMARTXFLOW_PREMATCH_GUARDED_RESTART") == "yes"
+        and os.environ.get("SMARTXFLOW_RUNTIME_ID") == "hetzner-prod"
+        and os.environ.get("SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE") == "true"
+    )
 
     startup_delay = _seconds_until_next_scrape(last_successful_scrape)
     if last_successful_scrape and startup_delay > 30:
@@ -613,6 +621,7 @@ def run_loop():
         ):
             last_successful_scrape = latest_signal
             received_new_signal = True
+            unconfirmed_cycles = 0
             if watchdog_alert_sent:
                 send_telegram(
                     "<b>SCRAPER TEKRAR ÇALIŞIYOR</b>\n"
@@ -640,6 +649,27 @@ def run_loop():
             )
             watchdog_alert_sent = True
             print(f"[Watchdog] Telegram uyarısı gönderildi ({elapsed_min:.0f} dk)")
+
+        # Do not abort during a source fetch, lease renewal, or unknown
+        # database write. The authoritative atomic-lease wrapper has already
+        # finished the complete main() call and released its local writer
+        # lock before this safe loop boundary.
+        if not received_new_signal:
+            unconfirmed_cycles += 1
+        if should_exit_stale_prematch_loop(
+            now=now,
+            started_at=started_at,
+            last_completed_at=last_successful_scrape,
+            consecutive_without_new_signal=unconfirmed_cycles,
+            enabled=safe_auto_restart,
+        ):
+            print(
+                "[Watchdog] PREMATCH_STALE_SAFE_BOUNDARY_EXIT "
+                "no verified scrape_complete for >=20m; "
+                "systemd restart only after completed main() cycle",
+                flush=True,
+            )
+            raise SystemExit(75)
 
         if received_new_signal:
             sleep_seconds = _seconds_until_next_scrape(last_successful_scrape)
