@@ -7824,6 +7824,11 @@ def admin_login():
         real_url = os.environ.get('SUPABASE_URL', '')
         real_key = os.environ.get('SUPABASE_ANON_KEY', '')
         if submitted_url == real_url and submitted_key == real_key and real_url and real_key:
+            # Never inherit a previous archive-unlock grant across admin logins.
+            session.pop('sxf_capitale_archive_unlocked', None)
+            session.pop('sxf_capitale_archive_unlocked_at', None)
+            session.pop('sxf_capitale_archive_recent', None)
+            session.pop('sxf_capitale_archive_csrf', None)
             session['admin_authenticated'] = True
             return redirect('/admin')
         else:
@@ -7834,6 +7839,10 @@ def admin_login():
 def admin_logout():
     """Admin Logout"""
     session.pop('admin_authenticated', None)
+    session.pop('sxf_capitale_archive_unlocked', None)
+    session.pop('sxf_capitale_archive_unlocked_at', None)
+    session.pop('sxf_capitale_archive_recent', None)
+    session.pop('sxf_capitale_archive_csrf', None)
     return redirect('/admin/login')
 
 
