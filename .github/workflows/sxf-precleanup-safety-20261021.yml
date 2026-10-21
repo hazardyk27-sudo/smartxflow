@@ -10,6 +10,8 @@ on:
       - scripts/maintenance/sxf_archive_fixture_parity_readonly.sql
       - scripts/maintenance/sxf_duplicate_index_audit_readonly.sql
       - scripts/maintenance/sxf_future_fixture_history_risk_readonly.sql
+      - scripts/maintenance/sxf_archive_backfill_readiness_readonly.sql
+      - scripts/maintenance/sxf_archive_snapshot_sample_readonly.sql
       - tests/test_sxf_precleanup_sql_contract_20261021.py
       - tests/test_sxf_precleanup_preflight.py
       - tests/test_sxf_retention_guard_approval.py
