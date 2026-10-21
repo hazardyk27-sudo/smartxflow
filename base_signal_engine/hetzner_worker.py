@@ -49,7 +49,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         raise ValueError("invalid progress hook")
     report={"mode":"HETZNER_BASE_DURABLE","discovery":"SKIPPED",
             "enqueued":0,"discovered_fixtures":0,"superseded":0,
-            "claimed":0,"completed":0,"waiting_data":0,"retried":0,
+            "claimed":0,"completed":0,"waiting_data":0,"skipped_data":0,"retried":0,
             "lease_uncertain":0,"commit_uncertain":0,
             "reconcile_claimed":0,"reconcile_completed":0,
             "reconcile_waiting_data":0,"reconcile_uncertain":0,
@@ -130,11 +130,10 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     elif near_term:
         report["near_term_status"] = "SKIPPED_DISCOVERY_UNHEALTHY"
 
-    # Independent quotas prevent stale WAITING_DATA debt from swallowing
-    # all capacity, while still guaranteeing a bounded backlog share.
-    # A lane's empty claim does not suppress the OTHER lane's remaining work.
-    slots = (["LIVE" if i % 3 != 2 else "BACKLOG" for i in range(max_jobs)]
-             if priority_lanes else ["ANY"] * max_jobs)
+    # User-requested daily scan: today's future matches, then tomorrow,
+    # then the next Istanbul match day. Historical backlog is NOT a quota.
+    # The DB LIVE lane performs stable date/kickoff ordering.
+    slots = (["LIVE"] * max_jobs if priority_lanes else ["ANY"] * max_jobs)
     exhausted = set()
     for lane in slots:
         if lane in exhausted:
@@ -149,6 +148,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         report["claimed"] += result["claimed"]
         report["completed"] += result["completed"]
         report["waiting_data"] += result["waiting_data"]
+        report["skipped_data"] += result.get("skipped_data",0)
         report["retried"] += result["retry"]
         report["lease_uncertain"] += result["lease_lost"]
         report["commit_uncertain"] += result["commit_uncertain"]
