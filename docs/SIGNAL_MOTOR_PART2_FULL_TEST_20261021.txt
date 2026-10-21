@@ -1,0 +1,157 @@
+SOURCE_SHA=27a164238daaac44523dd02db3c586d965ea4d95
+PYTEST_EXIT=2
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_scheduler.py:14: in <module>
+    from base_signal_engine.runtime import SupabaseFixtureCatalog, CatalogReadError, scan_once
+base_signal_engine/runtime.py:19: in <module>
+    from .reader import SnapshotReadError, SupabaseMoneywayReader, _parse_time, _iso
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+______________ ERROR collecting tests/test_base_signal_phase4b.py ______________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_phase4b.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_phase4b.py:10: in <module>
+    from base_signal_engine.storage import ClaimedCheckpoint, DurableStoreError, SupabaseCheckpointStore
+base_signal_engine/storage.py:15: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+__________ ERROR collecting tests/test_base_signal_priority_lanes.py ___________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_priority_lanes.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_priority_lanes.py:7: in <module>
+    from base_signal_engine import hetzner_worker as worker
+base_signal_engine/hetzner_worker.py:18: in <module>
+    from .discovery import bounded_cursor_discovery_once, near_term_discovery_once
+base_signal_engine/discovery.py:12: in <module>
+    from .reader import _parse_time
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+_______ ERROR collecting tests/test_base_backlog_throughput_20261021.py ________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_backlog_throughput_20261021.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_backlog_throughput_20261021.py:5: in <module>
+    from base_signal_engine import hetzner_worker
+base_signal_engine/hetzner_worker.py:18: in <module>
+    from .discovery import bounded_cursor_discovery_once, near_term_discovery_once
+base_signal_engine/discovery.py:12: in <module>
+    from .reader import _parse_time
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+_____ ERROR collecting tests/test_base_missing_source_backoff_20261021.py ______
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_missing_source_backoff_20261021.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_missing_source_backoff_20261021.py:8: in <module>
+    from base_signal_engine.durable_runtime import source_wait_delay_seconds, execute_claims
+base_signal_engine/durable_runtime.py:12: in <module>
+    from .reader import SupabaseMoneywayReader
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+_________ ERROR collecting tests/test_base_signal_real_source_smoke.py _________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_real_source_smoke.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_real_source_smoke.py:10: in <module>
+    from base_signal_engine.reader import SupabaseMoneywayReader
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+_______________ ERROR collecting tests/test_base_signals_feed.py _______________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signals_feed.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signals_feed.py:7: in <module>
+    from base_signal_engine.feed import (
+base_signal_engine/feed.py:13: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+______________ ERROR collecting tests/test_base_signal_storage.py ______________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_storage.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_storage.py:10: in <module>
+    from base_signal_engine.storage import (
+base_signal_engine/storage.py:15: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+__________ ERROR collecting tests/test_base_signal_hetzner_worker.py ___________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_hetzner_worker.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_hetzner_worker.py:7: in <module>
+    from base_signal_engine import hetzner_worker as app
+base_signal_engine/hetzner_worker.py:18: in <module>
+    from .discovery import bounded_cursor_discovery_once, near_term_discovery_once
+base_signal_engine/discovery.py:12: in <module>
+    from .reader import _parse_time
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+________ ERROR collecting tests/test_base_signal_near_term_discovery.py ________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signal_near_term_discovery.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signal_near_term_discovery.py:5: in <module>
+    from base_signal_engine.discovery import near_term_discovery_once
+base_signal_engine/discovery.py:12: in <module>
+    from .reader import _parse_time
+base_signal_engine/reader.py:18: in <module>
+    import requests
+E   ModuleNotFoundError: No module named 'requests'
+=========================== short test summary info ============================
+ERROR tests/test_signal_motor_daily_skip_20261021.py
+ERROR tests/test_base_signal_reader.py
+ERROR tests/test_base_signal_scheduler.py
+ERROR tests/test_base_signal_phase4b.py
+ERROR tests/test_base_signal_priority_lanes.py
+ERROR tests/test_base_backlog_throughput_20261021.py
+ERROR tests/test_base_missing_source_backoff_20261021.py
+ERROR tests/test_base_signal_real_source_smoke.py
+ERROR tests/test_base_signals_feed.py
+ERROR tests/test_base_signal_storage.py
+ERROR tests/test_base_signal_hetzner_worker.py
+ERROR tests/test_base_signal_near_term_discovery.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 12 errors during collection !!!!!!!!!!!!!!!!!!!
+12 errors in 1.02s
+BASH_PREFLIGHT_EXIT=0
+BASH_UNIT_SYNC_EXIT=0
+VISUDO_EXIT=0
+deploy/sudoers-smartxflow-deploy: parsed OK
+YAML_EXIT=0
