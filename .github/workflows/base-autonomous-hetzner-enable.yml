@@ -1,19 +1,7 @@
 name: Enable autonomous Base signal worker on Hetzner
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'deploy/systemd/smartxflow-base-worker.service'
-      - 'deploy/sync_runtime_units.sh'
-      - 'base_signal_engine/hetzner_worker.py'
-      - 'base_signal_engine/durable_runtime.py'
-      - 'base_signal_engine/storage.py'
-      - 'migrations/2026_10_21_sxf_base_waiting_data_age_retry.sql'
-      - 'scripts/base_worker_guarded_recovery.py'
-      - 'deploy/systemd/smartxflow-base-guarded-recovery.timer'
-      - 'deploy/systemd/smartxflow-base-guarded-recovery.service'
-      - '.github/workflows/base-autonomous-hetzner-enable.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
