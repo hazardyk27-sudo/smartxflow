@@ -177,3 +177,14 @@ def test_cli_is_gated_and_service_has_independent_restart_policy(monkeypatch):
     assert "RestartPreventExitStatus=3 4" in unit
     assert "Type=notify" in unit and "WatchdogSec=480" in unit
     assert "EnvironmentFile=/etc/smartxflow/base-fixture-discovery.env" in unit
+
+
+def test_reschedule_quarantine_sql_preserves_live_worker_leases():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    migration=(root/"migrations/2026_10_21_sxf_base_quarantine_preserve_live_leases.sql").read_text()
+    assert "AND (j.state <> 'LEASED' OR j.lease_expires_at <= now())" in migration
+    assert "INSERT INTO public.sxf_base_fixture_drift_events" in migration
+    assert "DELETE FROM " not in migration
+    assert "TRUNCATE " not in migration
+    assert "DROP " not in migration
