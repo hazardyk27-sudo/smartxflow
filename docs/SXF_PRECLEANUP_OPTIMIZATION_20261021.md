@@ -167,3 +167,42 @@ Scope remains development on `preview`, read-only production auditing, NO cleanu
 5. Index optimization (~269 MB candidate) is a **separate release**: compare catalog constraints and usage, take production baseline, obtain exact SHA approval, drop at low load one at a time with CONCURRENTLY outside transaction, verify read/write performance. Do not tie to any unsafe old DELETE routine.
 
 No bucket writes, Edge deployments, functions called, database DDL, index drops, source/archived row mutations or Hetzner deployments occurred in this continuation.
+
+## 22 October 2026 — implementation: guarded fixture backfill and fixture-only cold exporter
+
+**Implemented in preview only; not applied to the live database or Storage.** This complements, does not override, the earlier permanent legacy-delete block.
+
+### Legacy fixture backfill CLI
+
+`scripts/maintenance/sxf_archive_fixture_backfill.py` implements an executable, controlled **insert-only** path for the 502 old fixtures on Turkey-local dates 2026-10-05 through 2026-10-08:
+
+- Requires a strictly validated day in that four-day window, nonnegative `--after-id`, and `1 <= --limit <= 25`.
+- `python scripts/maintenance/sxf_archive_fixture_backfill.py --day 2026-10-05 --after-id 0 --limit 25` is **READ ONLY by default**. It reports the selected count, archive presence, conflict count, next physical-source-ID cursor and explicitly refuses to claim backup/full history/cleanup readiness.
+- The matching SQL uses `public.fixtures.internal_id` keyset pages and `fixture_uid` collision checks, and computes archive `local_date` from `kickoff_utc AT TIME ZONE 'Europe/Istanbul'`. It does not use the reused `match_id_hash` as a sole physical identity.
+- An **unexecuted** `--apply` branch exists, separately locked by the exact `SMARTXFLOW_ARCHIVE_FIXTURE_BACKFILL_APPROVED` authorization. It uses a single repeatable-read bounded transaction, tight timeout, an advisory lock, collision guard, explicit column mapping, `INSERT INTO research_archive.fixtures` and `ON CONFLICT (source_internal_id) DO NOTHING`. It never issues historical UPDATE/DELETE and never changes archive_runs status.
+- Requires properly scoped PostgreSQL `PGHOST/PGUSER/PGDATABASE/PGPASSWORD` credentials in the authorized environment. No credentials are accepted in CLI args or written to stdout. This workflow does not connect to the user's PC.
+- Actual 2026-10-05 first 25-row read-only live SQL probe: **25 selected, 0 existing, 0 NULL UID, 0 conflicting UID, 0 conflicting physical identity**; first keyset cursor 16881220. No inserts occurred.
+- After any future authorized fixture append operation, full raw-market data, captured observations, snapshot fingerprints and third-party independent backup would **still be missing/incomplete** until independently reconciled.
+
+### Fixture-only cold exporter CLI
+
+`scripts/maintenance/sxf_archive_fixture_cold_export.py` is a fully separate, **not-yet-run-in-write-mode** safe canary. It is not the deployed `sxf-research-archive-export` Edge Function:
+
+- Default `python scripts/maintenance/sxf_archive_fixture_cold_export.py`: read-only `psql` query against `research_archive.fixtures` in one `REPEATABLE READ READ ONLY` transaction; source rows sorted by immutable primary key, with no `ctid`, `OFFSET` or cross-snapshot keyset drift.
+- Checks monotonic source IDs, physical fixture UID, non-null aware timezone parsing and exact Turkey-local kickoff dates; fails closed if empty/invalid/over 10,000 rows.
+- Builds deterministic canonical NDJSON, divides into **500-row gzip parts** (fixed gzip timestamp), and calculates source/part SHA-256. Exact source data hash is the output path namespace, enabling idempotent retries.
+- The separately gated `--apply` mode requires the exact `SMARTXFLOW_FIXTURE_COLD_EXPORT_APPROVED` authorization and server-only `SUPABASE_SERVICE_ROLE_KEY` plus the official HTTPS `SUPABASE_URL`. Uploads part objects to the existing private `sxf-research-archive` bucket, checks the retrieved bytes after every write, rejects pre-existing checksum collisions, and writes `manifest.json` **last**, only after all chunks are verified. An interrupted run resumes by verifying/reusing identical already-present objects.
+- The private bucket is **inside the same Supabase project**, so a successful upload here would **NOT** constitute an independent offsite backup or a tested restore. The exporter explicitly marks `full_raw_history_parity_verified=false`, `independent_offsite_backup_verified=false`, `restored_from_cold_backup_verified=false` and `retention_cleanup_allowed=false`.
+- Tested with mocked Storage interruptions, checksum collisions, deterministic retries, unauthorized writes, timezone mismatches and bounded source reads. This canary covers **fixture rows only**, not the large 1X2/O-U/BTTS/dropping/snapshot/alarm histories.
+
+### Remaining mandatory work
+
+1. Obtain explicit production release/fixture backfill approval before **any write** to production or cold Storage; current `main` and Hetzner unchanged.
+2. Safely append 502 physical fixture rows using the reviewed 25-row canary in authorized deployment; independently validate each day and absence of conflicts.
+3. Design audited, physical fixture-keyed bulk archival for the large raw history datasets, reconciling NULL `fixture_uid`, 16 hash collisions and prematch T-72 history including future fixtures; do not reuse the current unsafe unbounded fallback.
+4. Perform an **independent** encrypted/cold offsite backup with checksum/restore verification outside the current Supabase project. The in-project fixture-only Storage canary is not sufficient.
+5. Obtain separate approval for low-load removal of the two 269MB redundant operational indexes. No indexes have been dropped.
+
+GitHub Actions `SmartXFlow precleanup readonly safety gate` tested the backfill/cold exporter alongside prior safety contracts. Unit tests are not a substitute for production backfill or restore certification.
+
+**Current effective retention policy: still BLOCKED.**
