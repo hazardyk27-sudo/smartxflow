@@ -129,7 +129,7 @@ def test_additive_skip_future_only_guard_requires_causal_due_time_and_live_lease
         "j.checkpoint_at<=now()",
         "j.run_after<=now()",
         "j.kickoff_utc>now()",
-        "p_reason NOT IN ('SOURCE_INCOMPLETE')",
+        "p_reason IS DISTINCT FROM 'SOURCE_INCOMPLETE'",
         "SET search_path TO 'public','pg_temp'",
         "REVOKE ALL ON FUNCTION",
         "FROM PUBLIC,anon,authenticated",
