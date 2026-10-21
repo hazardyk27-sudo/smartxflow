@@ -25,7 +25,7 @@ jobs:
             set -euo pipefail
             test "$(hostname)" = smartxflow
             test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
-            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 499428b91b83d48550c23a3e95ee30d701c503e3
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
             sudo -u smartxflow git -C /opt/smartxflow diff --quiet
             sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
             test "$(sudo /bin/systemctl is-active smartxflow-base-worker.service)" = active
@@ -41,8 +41,8 @@ jobs:
             test "$(sudo /bin/systemctl is-active smartxflow-base-guarded-recovery.timer || true)" != active
             test "$(sudo /bin/systemctl is-enabled smartxflow-base-worker.service || true)" = disabled
             test "$(sudo /bin/systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)" = disabled
-            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 499428b91b83d48550c23a3e95ee30d701c503e3
-            echo "PART3_PAUSE_OK base=inactive recovery=inactive both=disabled sha=499428b91b83d48550c23a3e95ee30d701c503e3"
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = 73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
+            echo "PART3_PAUSE_OK base=inactive recovery=inactive both=disabled sha=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc"
       - name: Publish exact pause outcome to preview
         if: always()
         env:
@@ -50,7 +50,7 @@ jobs:
           OUTCOME: ${{ steps.pause.outcome }}
         run: |
           set -euo pipefail
-          printf 'source_sha=%s\nexpected_production_sha=499428b91b83d48550c23a3e95ee30d701c503e3\npause_step=%s\n' "$GITHUB_SHA" "$OUTCOME" > /tmp/part3-pause.txt
+          printf 'source_sha=%s\nexpected_production_sha=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc\npause_step=%s\n' "$GITHUB_SHA" "$OUTCOME" > /tmp/part3-pause.txt
           DATA="$(base64 -w0 /tmp/part3-pause.txt)"
           DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART3_PAUSE_STATUS_20261021.txt"
           OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
