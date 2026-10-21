@@ -1,4 +1,4 @@
-name: Verify Moneyway source mapping and market completeness 2026-10-21
+name: Verify Moneyway parser identity and batch completeness 2026-10-21
 
 on:
   push:
