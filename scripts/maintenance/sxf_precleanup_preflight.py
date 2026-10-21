@@ -49,7 +49,7 @@ def assess(evidence: dict, today: date) -> dict:
 
     if evidence.get("source_date_axis") != "observation_timestamp":
         failures.append("SOURCE_DATE_AXIS_UNVERIFIED")
-    if evidence.get("archive_date_axis") != "fixture_day":
+    if evidence.get("archive_date_axis") != "kickoff_istanbul_day":
         failures.append("ARCHIVE_DATE_AXIS_UNVERIFIED")
     if evidence.get("source_archive_temporal_lineage_verified") is not True:
         failures.append("OBSERVATION_TO_FIXTURE_LINEAGE_UNVERIFIED")
