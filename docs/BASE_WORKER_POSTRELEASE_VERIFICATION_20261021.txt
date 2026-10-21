@@ -1,23 +1,24 @@
 verified_ref=main
-expected_sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
+expected_sha=e3dcff490a3d75075eaf6c7ae8a7337e31c3951d
 ssh_check_result=success
 WORKFLOW=deploy.yml
+39522855360 status=completed conclusion=success sha=e3dcff490a3d75075eaf6c7ae8a7337e31c3951d
 39519113831 status=completed conclusion=success sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
-39511808594 status=completed conclusion=success sha=b38fb01196fc72c961a1863ad416341b95a96ff1
 WORKFLOW=base-autonomous-hetzner-enable.yml
-39519113819 status=in_progress conclusion=null sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
-39511080882 status=completed conclusion=success sha=a6ca27e503fc31b684c9a217de940e73844e1d81
-2026-10-21T00:06:43.9258988Z out: POSTDEPLOY_CHECK_UTC=2026-10-21T00:06:43Z
-2026-10-21T00:06:43.9259802Z out: POSTDEPLOY_EXPECTED_SHA=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
-2026-10-21T00:06:43.9291879Z out: POSTDEPLOY_GIT_SHA=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
-2026-10-21T00:06:43.9385116Z out: POSTDEPLOY_BASE_ENABLED=enabled
-2026-10-21T00:06:43.9459813Z out: POSTDEPLOY_BASE_ACTIVE=active
-2026-10-21T00:06:43.9549711Z out: ActiveState=active
-2026-10-21T00:06:43.9550442Z out: SubState=running
-2026-10-21T00:06:43.9551789Z out: MainPID=2668303
-2026-10-21T00:06:43.9552322Z out: Result=success
-2026-10-21T00:06:43.9552831Z out: NRestarts=0
-2026-10-21T00:06:43.9553367Z out: ExecMainStatus=0
-2026-10-21T00:06:43.9553922Z out: POSTDEPLOY_LAST_CYCLES
-2026-10-21T00:06:43.9813856Z out: {"backlog_claimed": 4, "checkpoint_expired_leases": 0, "checkpoint_pending_due": 1567, "claimed": 12, "commit_uncertain": 0, "completed": 2, "coverage_state": "DEGRADED", "discovered_fixtures": 20, "discovery": "OK", "discovery_backpressure": true, "discovery_fresh": true, "discovery_paused": false, "discovery_pending_before": 1577, "enqueued": 0, "healthy_cycle": true, "lease_uncertain": 0, "live_claimed": 8, "mode": "HETZNER_BASE_DURABLE", "near_term_backpressure": false, "near_term_capacity_limited": false, "near_term_cursor_advanced": false, "near_term_enqueued": 0, "near_term_fixtures": 0, "near_term_hour_offset": 50, "near_term_pending_before": 1577, "near_term_rotation_coverage_verified": false, "near_term_rotation_cycle_minute_utc": "2026-10-21T00:05:00+00:00", "near_term_rotation_slot": 51, "near_term_status": "EMPTY", "near_term_window_end": "2026-10-23T03:00:00+00:00", "near_term_window_start": "2026-10-23T02:00:00+00:00", "priority_lanes_enabled": true, "production_release_verified": false, "queue_diagnostics": {"alerts": ["CHECKPOINT_BACKPRESSURE", "CHECKPOINT_OVERDUE", "RECONCILE_BACKLOG"], "checkpoint_oldest_due_seconds": 356757.240345, "checkpoint_pending_due": 1567, "discovery_coverage_verified": false, "discovery_scan_age_seconds": 19, "reconcile_pending_due": 85, "source_capture_verified": false}, "reconcile_claimed": 1, "reconcile_completed": 0, "reconcile_expired_leases": 0, "reconcile_pending_due": 85, "reconcile_uncertain": 0, "reconcile_waiting_data": 1, "retried": 0, "source_capture_enabled": false, "superseded": 0, "waiting_data": 10}
-2026-10-21T00:06:43.9824155Z out: POSTDEPLOY_AUDIT_END
+39522855359 status=in_progress conclusion=null sha=e3dcff490a3d75075eaf6c7ae8a7337e31c3951d
+39519113819 status=completed conclusion=success sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
+2026-10-21T00:44:04.7102401Z out: POSTDEPLOY_WATCHDOG_USEC=7min
+2026-10-21T00:44:04.7177602Z out: POSTDEPLOY_CHECK_UTC=2026-10-21T00:44:04Z
+2026-10-21T00:44:04.7178603Z out: POSTDEPLOY_EXPECTED_SHA=e3dcff490a3d75075eaf6c7ae8a7337e31c3951d
+2026-10-21T00:44:04.7231266Z out: POSTDEPLOY_GIT_SHA=e3dcff490a3d75075eaf6c7ae8a7337e31c3951d
+2026-10-21T00:44:04.7333972Z out: POSTDEPLOY_BASE_ENABLED=enabled
+2026-10-21T00:44:04.7413137Z out: POSTDEPLOY_BASE_ACTIVE=active
+2026-10-21T00:44:04.7504938Z out: ActiveState=active
+2026-10-21T00:44:04.7506595Z out: SubState=running
+2026-10-21T00:44:04.7508549Z out: MainPID=2672202
+2026-10-21T00:44:04.7509464Z out: Result=success
+2026-10-21T00:44:04.7510090Z out: NRestarts=1
+2026-10-21T00:44:04.7511685Z out: ExecMainStatus=0
+2026-10-21T00:44:04.7512145Z out: POSTDEPLOY_LAST_CYCLES
+2026-10-21T00:44:04.7704763Z out: {"backlog_claimed": 4, "checkpoint_expired_leases": 1, "checkpoint_pending_due": 1882, "claimed": 12, "commit_uncertain": 0, "completed": 1, "coverage_state": "DEGRADED", "discovered_fixtures": 2, "discovery": "OK", "discovery_backpressure": true, "discovery_fresh": true, "discovery_paused": false, "discovery_pending_before": 1894, "enqueued": 0, "healthy_cycle": false, "lease_uncertain": 0, "live_claimed": 8, "mode": "HETZNER_BASE_DURABLE", "near_term_backpressure": false, "near_term_capacity_limited": false, "near_term_cursor_advanced": false, "near_term_enqueued": 0, "near_term_fixtures": 28, "near_term_hour_offset": 9, "near_term_pending_before": 1894, "near_term_rotation_coverage_verified": false, "near_term_rotation_cycle_minute_utc": "2026-10-21T00:41:00+00:00", "near_term_rotation_slot": 5, "near_term_status": "IDEMPOTENT", "near_term_window_end": "2026-10-21T10:00:00+00:00", "near_term_window_start": "2026-10-21T09:00:00+00:00", "priority_lanes_enabled": true, "production_release_verified": false, "queue_diagnostics": {"alerts": ["CHECKPOINT_BACKPRESSURE", "CHECKPOINT_OVERDUE", "RECONCILE_BACKLOG"], "checkpoint_oldest_due_seconds": 366121.50771, "checkpoint_pending_due": 1882, "discovery_coverage_verified": false, "discovery_scan_age_seconds": 4, "reconcile_pending_due": 85, "source_capture_verified": false}, "reconcile_claimed": 1, "reconcile_completed": 0, "reconcile_expired_leases": 0, "reconcile_pending_due": 85, "reconcile_uncertain": 0, "reconcile_waiting_data": 1, "retried": 0, "source_capture_enabled": false, "superseded": 0, "waiting_data": 11}
+2026-10-21T00:44:04.7712597Z out: POSTDEPLOY_AUDIT_END
