@@ -1,4 +1,4 @@
-/* SmartXFlow Analizler V4: graphite motor directory -> day-scoped fixture detail.
+/* SmartXFlow Sinyal Motoru: today-first daily motor directory. 
    Displays only authenticated Base feed records. No synthetic results or picks. */
 (function () {
   'use strict';
@@ -16,12 +16,7 @@
     STABLE_OVER_2_5: { name: 'Stable Over 2.5', description: '2.5 üst istikrarı', market: 'ALT / ÜST', code: 'O2' },
     PREMIUM_OVER_2_5: { name: 'Premium Over 2.5', description: '2.5 üst premium hareketleri', market: 'ALT / ÜST', code: 'PO' },
     PREMIUM_OVER_MIN1_70: { name: 'Premium Over · Min 1.70', description: '1.70+ premium üst · güç etiketi', market: 'ALT / ÜST', code: 'P70' },
-    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' },
-    LEGACY_EARLY_MONEY_LOCK: {name:'Early Money Lock',description:'Eski erken para kilidi sinyalleri',market:'PARA AKIŞI',code:'EL'},
-    LEGACY_UNDERDOG: {name:'Underdog Pressure',description:'Eski underdog para baskısı sinyalleri',market:'MAÇ SONUCU',code:'UD'},
-    LEGACY_CONFIRMED_MONEY_V1: {name:'Confirmed Money V1',description:'Eski teyitli para sinyalleri',market:'MAÇ SONUCU',code:'CM'},
-    LEGACY_CONFIRMED_MONEY_V2: {name:'Confirmed Money V2',description:'Eski teyitli para V2 sinyalleri',market:'MAÇ SONUCU',code:'C2'},
-    LEGACY_FAKE_SHARP: {name:'Fake Sharp',description:'Eski ters oran hareketi sinyalleri',market:'MAÇ SONUCU',code:'FS'}
+    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' }
   };
   // All visible text is resolved from the active 7-language app dictionary.
   // Turkish is a temporary compatibility fallback if i18n has not loaded yet.
@@ -48,20 +43,14 @@
     '1X2_CONCENTRATION_V1':'engine_v1_desc', '1X2_CONCENTRATION_V2':'engine_v2_desc',
     HEAVY_1X2_CONCENTRATION:'engine_heavy_desc', SURPRISE_TEAM:'engine_surprise_desc',
     STABLE_OVER_2_5:'engine_stable_over_desc', PREMIUM_OVER_2_5:'engine_premium_over_desc',
-    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc',
-    LEGACY_EARLY_MONEY_LOCK:'legacy_early_desc', LEGACY_UNDERDOG:'legacy_underdog_desc',
-    LEGACY_CONFIRMED_MONEY_V1:'legacy_cm_v1_desc',
-    LEGACY_CONFIRMED_MONEY_V2:'legacy_cm_v2_desc', LEGACY_FAKE_SHARP:'legacy_fake_sharp_desc'
+    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc'
   };
   var CATS = {
     EARLY_MONEY_CORE:'cat_money', EARLY_MONEY_T12:'cat_money',
     '1X2_CONCENTRATION_V1':'cat_1x2', '1X2_CONCENTRATION_V2':'cat_1x2',
     HEAVY_1X2_CONCENTRATION:'cat_1x2', SURPRISE_TEAM:'cat_1x2',
     STABLE_OVER_2_5:'cat_over', PREMIUM_OVER_2_5:'cat_over',
-    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts',
-    LEGACY_EARLY_MONEY_LOCK:'cat_money', LEGACY_UNDERDOG:'cat_1x2',
-    LEGACY_CONFIRMED_MONEY_V1:'cat_1x2', LEGACY_CONFIRMED_MONEY_V2:'cat_1x2',
-    LEGACY_FAKE_SHARP:'cat_1x2'
+    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts'
   };
   function engineDescription(id, descriptor) {
     return t(DESC[id] || 'engine_unknown_desc', descriptor.description);
@@ -134,18 +123,14 @@
     searchWrap = document.getElementById('sxfSearchWrap');
     return !!(overlay && rail && content && summary && notice && searchWrap);
   }
-  function items() { return current.payload && Array.isArray(current.payload.items) ? current.payload.items : []; }
-  function engineIds() {
-    var known = Object.keys(ENGINES);
-    if (current.payload && Array.isArray(current.payload.engines)) {
-      current.payload.engines.forEach(function (id) { if (known.indexOf(id) === -1) known.push(id); });
-    }
-    items().forEach(function (x) { if (known.indexOf(x.engine) === -1) known.push(x.engine); });
-    return known;
+  function items() {
+    return current.payload && Array.isArray(current.payload.items)
+      ? current.payload.items.filter(function (x) { return Object.prototype.hasOwnProperty.call(ENGINES, x.engine); })
+      : [];
   }
-  function legacyUnavailable(engine) {
-    return !!(engine && engine.indexOf('LEGACY_') === 0 &&
-      current.payload && current.payload.legacy_source_status === 'unavailable');
+  function engineIds() {
+    // Only ten approved Base motor families: legacy signals were removed.
+    return Object.keys(ENGINES);
   }
   function dayItems() {
     return items().filter(function (x) {
@@ -201,7 +186,7 @@
     var today = all.filter(function (x) { return x.day === current.day; });
     var fixtures = fixturesCount(today);
     var last = today.length ? null : lastRecordedDay(name, current.day);
-    var unavailable = legacyUnavailable(name);
+    var unavailable = false;
     return '<button type="button" class="sxf-engine-tile" data-motor="' + esc(name) +
       '" aria-label="' + esc(fmt('motor_open','{name} motorunu aç, {count} maç',
         {name:descriptor.name,count:fixtures})) + '">' +
@@ -347,7 +332,7 @@
       // Do not fabricate a match or silently change the user's chosen date.
       // A separate explicit action reveals the last available recorded day.
       var last = source.length ? null : lastRecordedDay(current.engine, current.day);
-      var sourceIsDown = legacyUnavailable(current.engine);
+      var sourceIsDown = false;
       html += '<div class="sxf-zero"><span class="sxf-zero-icon">◇</span>' +
         '<h4>' + esc(sourceIsDown
           ? t('legacy_unavailable_title','Eski sinyaller şu anda alınamıyor')
