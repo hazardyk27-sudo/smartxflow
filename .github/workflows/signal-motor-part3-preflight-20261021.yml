@@ -1,0 +1,98 @@
+name: Signal Motor Part 3 - source skip release safety preflight
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/signal-motor-part3-preflight-20261021.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify migration, source reader, worker, feed and release policy
+        id: verify
+        shell: bash
+        run: |
+          set +e
+          python -m pip install -q pytest pyyaml requests beautifulsoup4 certifi
+          python -m pytest -q \
+            tests/test_signal_motor_daily_skip_20261021.py \
+            tests/test_base_signal_rules.py \
+            tests/test_base_signal_reader.py \
+            tests/test_base_signal_scheduler.py \
+            tests/test_base_signal_phase4b.py \
+            tests/test_base_signal_priority_lanes.py \
+            tests/test_base_backlog_throughput_20261021.py \
+            tests/test_base_missing_source_backoff_20261021.py \
+            tests/test_base_signal_real_source_smoke.py \
+            tests/test_analysis_merged_feed_api.py \
+            tests/test_base_signals_feed.py \
+            tests/test_base_signal_storage.py \
+            tests/test_base_signal_hetzner_worker.py \
+            tests/test_base_signal_near_term_discovery.py \
+            tests/test_hetzner_runtime_contract.py > /tmp/signal-part3-pytest.log 2>&1
+          PY_RC=$?
+          node --check static/js/base-signals.js
+          NODE_RC=$?
+          bash -n deploy/hetzner_preflight.sh && bash -n deploy/sync_runtime_units.sh
+          BASH_RC=$?
+          sudo /usr/sbin/visudo -cf deploy/sudoers-smartxflow-deploy > /tmp/part3-sudoers.log 2>&1
+          SUDO_RC=$?
+          python - <<'PY'
+          import pathlib
+          import yaml
+          root=pathlib.Path('.')
+          names=(
+              '.github/workflows/deploy.yml',
+              '.github/workflows/signal-motor-part3-preflight-20261021.yml',
+              '.github/workflows/signal-motor-part3-guarded-pause-20261021.yml',
+              '.github/workflows/signal-motor-part3-guarded-resume-20261021.yml',
+              '.github/workflows/base-autonomous-hetzner-enable.yml',
+          )
+          for name in names:
+              yaml.safe_load((root/name).read_text(encoding='utf-8'))
+          assert 'branches: [main]' not in (root/names[-1]).read_text()
+          for filename in (
+              'migrations/2026_10_21_signal_motor_skip_missing.sql',
+              'migrations/2026_10_21_signal_motor_skip_future_only_guard.sql',
+              'migrations/2026_10_21_signal_motor_today_first.sql',
+          ):
+              assert (root/filename).is_file(), filename
+          print('PART3_PREVIEW_MIGRATION_RELEASE_GUARDS_OK')
+          PY
+          POLICY_RC=$?
+          {
+            echo "SOURCE_SHA=$GITHUB_SHA"
+            echo "PYTEST_EXIT=$PY_RC"
+            tail -n 18 /tmp/signal-part3-pytest.log
+            echo "JS_SYNTAX_EXIT=$NODE_RC"
+            echo "BASH_SYNTAX_EXIT=$BASH_RC"
+            echo "SUDOERS_EXIT=$SUDO_RC"
+            echo "YAML_SQL_RELEASE_GUARDS_EXIT=$POLICY_RC"
+          } | tee /tmp/signal-part3-report.txt
+          test "$PY_RC" -eq 0 && test "$NODE_RC" -eq 0 && test "$BASH_RC" -eq 0 && test "$SUDO_RC" -eq 0 && test "$POLICY_RC" -eq 0
+      - name: Publish scoped preflight report for exact tested SHA
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFICATION: ${{ steps.verify.outcome }}
+        run: |
+          set -euo pipefail
+          REPORT="/tmp/signal-part3-report.txt"
+          if [ ! -f "$REPORT" ]; then printf 'SOURCE_SHA=%s\nPRECHECK=NO_REPORT\n' "$GITHUB_SHA" > "$REPORT"; fi
+          printf 'VERIFICATION_STEP=%s\n' "$VERIFICATION" >> "$REPORT"
+          DATA="$(base64 -w0 "$REPORT")"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART3_PREFLIGHT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f branch=preview -f message='test(signal): refresh Part 3 production preflight evidence' -f sha="$OLD" -f content="$DATA" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f branch=preview -f message='test(signal): publish Part 3 production preflight evidence' -f content="$DATA" --jq .commit.sha
+          fi
