@@ -25,7 +25,7 @@ from typing import Mapping, Sequence
 BASE_CHECKPOINTS = (8, 6)
 EARLY_CORE_CHECKPOINTS = (72, 60, 40, 24)
 EARLY_RETENTION_CHECKPOINTS = (6, 5, 4, 3)
-CHECKPOINT_FRESHNESS = timedelta(minutes=30)
+CHECKPOINT_FRESHNESS = timedelta(minutes=59)
 PRICE_FLOOR = Decimal("1.30")
 SHARE_TOLERANCE = Decimal("0.5")
 
@@ -127,7 +127,7 @@ def select_snapshot(
     hours: int,
     snapshots: Sequence[Snapshot],
 ) -> Snapshot | None:
-    """Latest complete market snapshot with observed_at in [T-h-30m,T-h]."""
+    """Nearest complete historical quote in [T-h-59m, T-h], never later than T-h."""
     when = checkpoint_time(fixture, hours)
     return next((s for s in sorted(snapshots, key=lambda x: x.observed_at, reverse=True)
                  if s.market == market and s.complete
@@ -161,6 +161,10 @@ def _v2_valid(
     anchors = [select_snapshot(fixture, "1X2", h, snapshots) for h in (hours+3, hours+2, hours+1, hours)]
     if any(s is None for s in anchors):
         return False, "MISSING_THREE_HOUR_COVERAGE"
+    # Every V2 hourly anchor must be distinct; a single stale observation
+    # cannot prove three hours of persistence.
+    if len({s.observed_at for s in anchors if s is not None}) != 4:
+        return False, "DUPLICATE_HOURLY_ANCHORS"
     first = anchors[0]
     assert first is not None
     latest = anchors[-1]
@@ -254,8 +258,8 @@ def choose_base_checkpoint(
         return 6, "AUTHORITATIVE_T6"
     if at < cp6 + grace:
         return None, "WAITING_FOR_T6_INGESTION"
-    if select_snapshot(fixture, market, 8, snapshots):
-        return 8, "FALLBACK_T8"
+    # A missing T-6 market is SKIPPED, not silently substituted with a
+    # T-8 price from another checkpoint. The earlier T-8 remains historical.
     return None, "INSUFFICIENT_DATA"
 
 
