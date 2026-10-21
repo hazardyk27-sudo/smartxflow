@@ -1,0 +1,108 @@
+name: Verify Base ten-engine historical and eligible signal labels on Hetzner
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-10-engine-hetzner-postrelease-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  verify-code:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Final rules/feed/UI checks
+        run: |
+          python -m pip install -q pytest requests beautifulsoup4 certifi
+          python -m pytest -q tests/test_base_signal_rules.py tests/test_base_signals_feed.py
+          node --check static/js/base-signals.js
+          python - <<'PY'
+          import json,pathlib
+          fields=("records_count","recorded_pick_heading",
+                  "price_rejected_warning","retrospective_warning",
+                  "unverified_status_warning")
+          for lang in ("en","tr","de","es","fr","it","nl"):
+              obj=json.loads((pathlib.Path("static/i18n")/(lang+".json")).read_text())
+              assert all(obj["app"]["v4"].get(name) for name in fields)
+          print("BASE_TEN_ENGINE_LOCALES_SEVEN_PASS")
+          PY
+
+  verify-hetzner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read-only final production SHA and systemd services
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 9m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            expected=499428b91b83d48550c23a3e95ee30d701c503e3
+            for i in $(seq 1 90); do
+              actual="$(git -C /opt/smartxflow rev-parse HEAD)"
+              if [ "$actual" = "$expected" ]; then break; fi
+              sleep 4
+            done
+            echo "TEN_ENGINE_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "TEN_ENGINE_EXPECTED_SHA=$expected"
+            echo "TEN_ENGINE_ACTUAL_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "TEN_ENGINE_WEB=$(systemctl is-active smartxflow-web.service || true)"
+            echo "TEN_ENGINE_BASE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "TEN_ENGINE_SCRAPER=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "TEN_ENGINE_RECOVERY_TIMER=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
+            test "$(systemctl is-active smartxflow-web.service)" = active
+            test "$(systemctl is-active smartxflow-base-worker.service)" = active
+            test "$(systemctl is-active smartxflow-scraper.service)" = active
+            test "$(systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            grep -q 'valid_on_time' /opt/smartxflow/base_signal_engine/feed.py
+            grep -q 'price_rejected_warning' /opt/smartxflow/static/js/base-signals.js
+            grep -q 'timedelta(minutes=20)' /opt/smartxflow/base_signal_engine/feed.py
+            echo "TEN_ENGINE_CODE_GUARDS=PASS"
+            echo "TEN_ENGINE_AUDIT_OK"
+
+  publish:
+    needs: [verify-code, verify-hetzner]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish exact production audit without secrets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_sha=499428b91b83d48550c23a3e95ee30d701c503e3"
+            echo "final_code_tests=${{ needs.verify-code.result }}"
+            echo "ssh_result=${{ needs.verify-hetzner.result }}"
+            for wf in deploy.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n2 || true
+            done
+          } > /tmp/ten-engine.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="verify-hetzner") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/ten-engine-raw.txt || true
+            grep -E 'out: TEN_ENGINE_' /tmp/ten-engine-raw.txt | tail -n 15 >> /tmp/ten-engine.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/ten-engine.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_10_ENGINE_LIVE_DEPLOY_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops(base): refresh ten-engine live deployment audit" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops(base): publish ten-engine live deployment audit" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
