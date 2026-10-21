@@ -20,6 +20,8 @@ required=(
   "$APP_DIR/deploy/systemd/smartxflow-poly.service"
   "$APP_DIR/deploy/systemd/smartxflow-predictor-orchestrator.service"
   "$APP_DIR/deploy/systemd/smartxflow-base-worker.service"
+  "$APP_DIR/deploy/systemd/smartxflow-base-guarded-recovery.service"
+  "$APP_DIR/deploy/systemd/smartxflow-base-guarded-recovery.timer"
   "$APP_DIR/deploy/systemd/smartxflow-base-fixture-discovery.service"
   "$APP_DIR/deploy/smartxflow-sinyal.service"
   "$APP_DIR/deploy/systemd/smartxflow-learning-archive-prematch.service"
@@ -46,6 +48,9 @@ as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-predictor-o
 # Copy only: the activation workflow verifies DB gates and removes the old
 # temporary Base unit before enabling/starting this unit independently.
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-base-worker.service" "$SYSTEMD_DIR/smartxflow-base-worker.service"
+# Recovery remains gated until exact SHA activation and a 30-minute cooling proof.
+as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-base-guarded-recovery.service" "$SYSTEMD_DIR/smartxflow-base-guarded-recovery.service"
+as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-base-guarded-recovery.timer" "$SYSTEMD_DIR/smartxflow-base-guarded-recovery.timer"
 # Installed but not auto-enabled until the explicit main-SHA activation gate.
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/systemd/smartxflow-base-fixture-discovery.service" "$SYSTEMD_DIR/smartxflow-base-fixture-discovery.service"
 as_root /usr/bin/install -m 0644 "$APP_DIR/deploy/smartxflow-sinyal.service" "$SYSTEMD_DIR/smartxflow-sinyal.service"
