@@ -1,11 +1,25 @@
-SOURCE_SHA=36e23732461534dac17e5760da7199b0c8c164cc
-PYTEST_EXIT=0
-........................................................................ [ 35%]
-........................................................................ [ 71%]
-..........................................................               [100%]
-202 passed in 1.00s
+SOURCE_SHA=e108233873dec8ac403222954c4357da2c9f5e1c
+PYTEST_EXIT=1
+                    raise ValueError("checkpoint key / identity mismatch")
+                if _parse_time(r["checkpoint_at"]) != job.timestamp:
+                    raise ValueError("checkpoint time mismatch")
+                claimed.append(ClaimedCheckpoint(
+                    str(UUID(str(r["job_id"]))), str(UUID(str(r["lease_token"]))),
+                    job, int(r["attempt_count"])))
+            except (ValueError, KeyError, TypeError) as error:
+>               raise DurableStoreError("invalid or mismatched claimed checkpoint") from error
+E               base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+
+base_signal_engine/storage.py:207: DurableStoreError
+=========================== short test summary info ============================
+FAILED tests/test_base_signal_phase4b.py::test_empty_base_sources_wait_and_never_complete - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+FAILED tests/test_base_signal_phase4b.py::test_partial_base_source_is_skipped_and_not_reported_as_complete - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+FAILED tests/test_base_signal_phase4b.py::test_early_t12_missing_source_waits_but_complete_no_hit_is_final - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+FAILED tests/test_base_signal_phase4b.py::test_wait_rpc_rejects_invalid_params_and_redacts_secrets - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+FAILED tests/test_base_signal_phase4b.py::test_complete_response_timeout_is_uncertain_not_a_fake_retry - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
+5 failed, 197 passed in 0.94s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
