@@ -1,4 +1,4 @@
-name: Verify Base worker and ten-engine live signal presentation safeguards
+name: Verify Sinyal Motoru daily scan and terminal source skipping
 
 on:
   push:
@@ -31,7 +31,13 @@ jobs:
             tests/test_moneyway_ingest_quality_20261021.py \
             tests/test_runtime_scraper_recovery.py \
             tests/test_betwatch_prematch_identity_runtime.py \
-            tests/test_base_signal_rules.py tests/test_base_signals_feed.py > /tmp/sxf-base-test.log 2>&1
+            tests/test_base_signal_rules.py tests/test_base_signals_feed.py \
+            tests/test_signal_motor_daily_skip_20261021.py \
+            tests/test_base_signal_reader.py \
+            tests/test_base_signal_scheduler.py \
+            tests/test_base_signal_real_source_smoke.py \
+            tests/test_analysis_merged_feed_api.py \
+            tests/test_base_signal_phase4b.py > /tmp/sxf-base-test.log 2>&1
           RC=$?
           {
             echo "commit=$GITHUB_SHA"
