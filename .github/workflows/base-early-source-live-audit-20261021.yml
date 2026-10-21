@@ -1,4 +1,4 @@
-name: Audit Early source-age WAITING_DATA runtime on Hetzner
+name: Audit installed Early source wait runtime from production workdir
 
 on:
   push:
@@ -44,6 +44,7 @@ jobs:
             test "$(systemctl is-active smartxflow-base-worker.service)" = active
             test "$(systemctl is-active smartxflow-base-fixture-discovery.service)" = active
             test "$(systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            cd /opt/smartxflow
             /opt/smartxflow/venv/bin/python - <<'PY'
             from datetime import datetime,timedelta,timezone
             from types import SimpleNamespace
