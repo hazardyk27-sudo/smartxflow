@@ -332,6 +332,14 @@ class BaseSignalsFeed:
             selection_status = details.get("selection_status")
             if selection_status not in ("ELIGIBLE", "PRICE_FILTER_REJECT"):
                 selection_status = "UNKNOWN"
+            # Never trust an inconsistent persisted eligibility label over
+            # the event's own verified recorded price.
+            if odds is not None and odds < 1.30:
+                selection_status = "PRICE_FILTER_REJECT"
+            elif odds is None or (
+                selection_status == "PRICE_FILTER_REJECT" and odds >= 1.30
+            ):
+                selection_status = "UNKNOWN"
             recorded_on_time = (
                 delivery_timing == "CHECKPOINT_WINDOW" and recorded < kickoff
             )
