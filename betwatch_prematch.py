@@ -22,6 +22,7 @@ from core.fixture_uid_snapshot_authoritative import attach_provider_fixture_uids
 from core.hash_utils import make_match_id_hash
 from core.moneyway_ingest_quality import summarize_ingest_quality
 from core.moneyway_quote_fidelity import observed_snapshot_quote
+from core.early_provider_coverage import summarize_early_provider_coverage
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
     fetch_prematch,
@@ -336,6 +337,24 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         return 0
 
     _log(f"[BW-Pre] {len(matches)} maç alındı")
+
+    # The provider may list the fixture 4+ days ahead but omit every
+    # runner's price/money. Persist a truthful KPI in this successful scrape
+    # context; never infer historic T-72 quotes from later timestamps.
+    early_source = summarize_early_provider_coverage(
+        matches, now=datetime.now(timezone.utc), map_market=map_market)
+    for cohort in ("T72_96","T60_72","T40_60","T24_40","T0_24","T96_PLUS"):
+        available = early_source[cohort]
+        _log(
+            f"[BW-Pre] EARLY_SOURCE {cohort}: "
+            f"fixtures={available['fixtures']} "
+            f"priced_1x2={available['fully_priced']} "
+            f"partial_1x2={available['partially_priced']} "
+            f"no_price_1x2={available['no_priced_sides']} "
+            f"missing_market={available['missing_market']}"
+        )
+    writer.last_scrape_stats["early_provider_coverage"] = early_source
+
 
     # Provider-authoritative mode writes physical fixture identity first. Any
     # identity/RPC failure aborts before market/current/history/snapshot writes so
@@ -660,6 +679,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         "fixture_identity_mode": identity_mode,
         "legacy_hash_collision_groups": legacy_hash_collision_groups,
         "snapshot_quality": snapshot_quality,
+        "early_provider_coverage": early_source,
     }
 
     _log(
