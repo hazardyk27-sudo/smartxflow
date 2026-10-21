@@ -28,7 +28,14 @@ def _admin():
 
 
 def _unlocked():
-    return _admin() and session.get("sxf_capitale_archive_unlocked") is True
+    unlocked_at = session.get("sxf_capitale_archive_unlocked_at", 0)
+    try:
+        fresh = 0 <= time.time() - float(unlocked_at) <= 1800
+    except (TypeError, ValueError):
+        fresh = False
+    return (_admin() and fresh
+            and bool(os.environ.get("SXF_ARCHIVE_ADMIN_PIN"))
+            and session.get("sxf_capitale_archive_unlocked") is True)
 
 
 def _same_origin():
@@ -100,6 +107,7 @@ def archive_unlock():
     if not hmac.compare_digest(pin, supplied):
         return jsonify(error="INVALID_ARCHIVE_AUTHORIZATION"), 403
     session["sxf_capitale_archive_unlocked"] = True
+    session["sxf_capitale_archive_unlocked_at"] = int(time.time())
     session["sxf_capitale_archive_csrf"] = secrets.token_urlsafe(32)
     return jsonify(status="AUTHORIZED", csrf_token=session["sxf_capitale_archive_csrf"])
 
