@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from base_signal_engine.rules import Fixture, Quote, Snapshot
-from base_signal_engine.scheduler import CheckpointJob, FixtureRef
+from base_signal_engine.scheduler import CheckpointJob, FixtureRef, RULESET_VERSION
 from base_signal_engine.storage import ClaimedCheckpoint, DurableStoreError, SupabaseCheckpointStore
 from base_signal_engine.source_quality import source_coverage
 from base_signal_engine.durable_runtime import execute_claims
@@ -53,7 +53,7 @@ class Rpc:
         self.calls = []
         self.results = {"sxf_base_claim_due_jobs": [dict(
             job_id=str(uuid4()), lease_token=str(uuid4()), job_key=job.key,
-            ruleset_version="SXF_BASE_V1_2026_10_18",
+            ruleset_version=RULESET_VERSION,
             fixture_uid=UID,kickoff_utc=KO.isoformat(),checkpoint_hours=job.hours,
             family=job.family,checkpoint_at=job.timestamp.isoformat(),attempt_count=1)],
             "sxf_base_wait_for_data": True, "sxf_base_skip_missing_source": True, "sxf_base_renew_lease": True,
