@@ -1,0 +1,93 @@
+name: Audit Early source-age WAITING_DATA runtime on Hetzner
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-early-source-live-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify exact deployed SHA, worker and guarded source waiting logic
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 9m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            expected=d81a534acddd474f8bef170c769867ebdebfb0e5
+            for i in $(seq 1 90); do
+              actual="$(git -C /opt/smartxflow rev-parse HEAD)"
+              active="$(systemctl is-active smartxflow-base-worker.service || true)"
+              if [ "$actual" = "$expected" ] && [ "$active" = active ]; then break; fi
+              sleep 3
+            done
+            echo "EARLY_AUDIT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "EARLY_AUDIT_EXPECTED=$expected"
+            echo "EARLY_AUDIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "EARLY_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "EARLY_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "EARLY_DISCOVERY_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            echo "EARLY_RECOVERY_TIMER=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            echo "EARLY_BASE_WATCHDOG=$(systemctl show smartxflow-base-worker.service -p WatchdogUSec --value)"
+            test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
+            test "$(systemctl is-active smartxflow-base-worker.service)" = active
+            test "$(systemctl is-active smartxflow-base-fixture-discovery.service)" = active
+            test "$(systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            /opt/smartxflow/venv/bin/python - <<'PY'
+            from datetime import datetime,timedelta,timezone
+            from types import SimpleNamespace
+            from base_signal_engine.durable_runtime import source_wait_delay_seconds
+            now=datetime.now(timezone.utc)
+            def job(age_seconds):
+                return SimpleNamespace(timestamp=now-timedelta(seconds=age_seconds))
+            values=[source_wait_delay_seconds(job(seconds),at=now)
+                    for seconds in (3600,7201,86401)]
+            print("EARLY_SOURCE_RETRY_SECONDS="+",".join(str(x) for x in values))
+            assert values==[180,3600,21600]
+            PY
+            echo "EARLY_WORKER_RECENT"
+            journalctl -u smartxflow-base-worker.service --since '-4 minutes' --no-pager -o cat | grep '"mode": "HETZNER_BASE_DURABLE"' | tail -n 4 | cut -c1-800 || true
+            echo "EARLY_AUDIT_OK"
+  publish:
+    needs: inspect
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save sanitized Hetzner source waiting audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_sha=d81a534acddd474f8bef170c769867ebdebfb0e5"
+            echo "ssh_result=${{ needs.inspect.result }}"
+            for wf in deploy.yml base-autonomous-hetzner-enable.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n 2 || true
+            done
+          } > /tmp/early-wait-audit.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="inspect") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/early-wait-raw.txt || true
+            grep -E '(out: EARLY_|status=.*sha=)' /tmp/early-wait-raw.txt | tail -n 25 >> /tmp/early-wait-audit.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/early-wait-audit.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_EARLY_SOURCE_LIVE_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops(base): refresh early missing-source live audit" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq '.commit.sha'
+          else
+            gh api -X PUT "$DEST" -f message="ops(base): publish early missing-source live audit" -f branch=preview -f content="$DATA" --jq '.commit.sha'
+          fi
