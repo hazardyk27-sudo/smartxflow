@@ -214,7 +214,11 @@ def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
     assert "systemctl restart smartxflow-web" in text
     assert "systemctl restart smartxflow-scraper" in text
     assert "systemctl restart smartxflow-alarm" in text
-    assert "systemctl restart smartxflow-sinyal" in text
+    assert "systemctl stop smartxflow-sinyal.service" in text
+    assert "systemctl disable smartxflow-sinyal.service" in text
+    assert "systemctl restart smartxflow-sinyal" not in text
+    assert 'is-enabled smartxflow-sinyal.service' in text
+    assert "sinyal_engine_runtime.py" not in text
     assert "systemctl restart smartxflow-live" in text
     assert "systemctl restart smartxflow-poly" in text
     assert "systemctl restart smartxflow-predictor-orchestrator" in text
@@ -223,7 +227,6 @@ def test_deploy_syncs_canonical_units_and_verifies_runtime_entrypoints():
     assert "SMARTXFLOW_MODE=server" in text
     assert "DISABLE_SCRAPER=true" in text
     assert "alarm_engine.py" in text
-    assert "sinyal_engine_runtime.py" in text
     assert "live_scraper.py" in text
     assert "polymarket_scraper.py" in text
     assert "predictor_orchestrator.wsgi:app" in text
