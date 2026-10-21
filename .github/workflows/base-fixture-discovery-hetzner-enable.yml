@@ -1,0 +1,86 @@
+name: Enable independent Base fixture discovery on Hetzner
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'base_signal_engine/fixture_discovery_worker.py'
+      - 'base_signal_engine/storage.py'
+      - 'deploy/systemd/smartxflow-base-fixture-discovery.service'
+      - 'deploy/sync_runtime_units.sh'
+      - '.github/workflows/base-fixture-discovery-hetzner-enable.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sxf-base-fixture-discovery-activation
+  cancel-in-progress: false
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Gate exact release SHA and activate separate discovery worker
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEPLOY_SHA
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test -s /opt/smartxflow/.env
+            test -s /etc/smartxflow/base-worker.env
+            test -x /opt/smartxflow/venv/bin/python
+            synced=0
+            for i in $(seq 1 110); do
+              sha="$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
+              if [ "$sha" = "$DEPLOY_SHA" ] &&
+                 cmp -s /opt/smartxflow/deploy/systemd/smartxflow-base-fixture-discovery.service /etc/systemd/system/smartxflow-base-fixture-discovery.service &&
+                 [ "$(systemctl is-active smartxflow-web || true)" = active ]; then
+                synced=1
+                break
+              fi
+              sleep 3
+            done
+            test "$synced" = 1 || { echo "DISCOVERY_STOP: exact_sha_or_unit_not_deployed"; exit 1; }
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            grep -qx 'SXF_BASE_DURABLE_WORKER_APPROVED=yes' /etc/smartxflow/base-worker.env
+            grep -qx 'SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes' /etc/smartxflow/base-worker.env
+            for unit in smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-web; do
+              test "$(systemctl is-active "$unit")" = active || { echo "DISCOVERY_STOP: dependency_down=$unit"; exit 1; }
+            done
+            /usr/bin/install -m 0640 -o root -g smartxflow /dev/null /etc/smartxflow/base-fixture-discovery.env
+            printf '%s\n' 'SXF_BASE_FIXTURE_DISCOVERY_APPROVED=yes' > /etc/smartxflow/base-fixture-discovery.env
+            systemctl daemon-reload
+            systemctl enable smartxflow-base-fixture-discovery.service
+            systemctl restart smartxflow-base-fixture-discovery.service
+            test "$(systemctl is-enabled smartxflow-base-fixture-discovery.service)" = enabled
+            test "$(systemctl show smartxflow-base-fixture-discovery.service -p Type --value)" = notify
+            test "$(systemctl show smartxflow-base-fixture-discovery.service -p WatchdogUSec --value)" != 0
+            echo "BASE_DISCOVERY_ACTIVATED_SHA=$DEPLOY_SHA"
+            success=0
+            for i in $(seq 1 72); do
+              if journalctl -u smartxflow-base-fixture-discovery.service --since '-7 minutes' --no-pager -o cat | grep -q '"mode": "BASE_FIXTURE_DISCOVERY", "new_jobs"'; then
+                success=1
+                break
+              fi
+              test "$(systemctl is-active smartxflow-base-fixture-discovery.service)" = active ||
+                { echo "DISCOVERY_STOP: worker_not_active"; journalctl -u smartxflow-base-fixture-discovery.service -n 15 --no-pager -o cat; exit 1; }
+              sleep 5
+            done
+            test "$success" = 1 || { echo "DISCOVERY_STOP: no_full_horizon_completion"; exit 1; }
+            echo "BASE_DISCOVERY_LAST_COMPLETED"
+            journalctl -u smartxflow-base-fixture-discovery.service --since '-7 minutes' --no-pager -o cat | grep '"mode": "BASE_FIXTURE_DISCOVERY", "new_jobs"' | tail -n 1
+            echo "BASE_DISCOVERY_FINAL_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service)"
+            echo "BASE_DISCOVERY_FINAL_ENABLED=$(systemctl is-enabled smartxflow-base-fixture-discovery.service)"
+            echo "BASE_DISCOVERY_FINAL_SHA=$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)"
+            echo "BASE_DISCOVERY_80H_OK"
