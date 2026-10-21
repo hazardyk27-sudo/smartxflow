@@ -76,9 +76,9 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
             details[market] = {
                 "selected_checkpoint": hours,
                 "source_observed_at": chosen.observed_at.isoformat() if chosen else None,
-                "authority": ("T6" if snap6 else
+                "authority": ("T6" if job.hours == 6 and snap6 else
                               "T8_PRELIMINARY" if job.hours == 8 and snap8 else
-                              "T8_FALLBACK" if snap8 else "MISSING"),
+                              "MISSING"),
             }
         return {
             "disposition": "WAITING_DATA" if missing else "EVALUATE",
