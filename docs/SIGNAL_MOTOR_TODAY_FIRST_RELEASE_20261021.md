@@ -50,15 +50,20 @@ service_role-only execution. Existing completed events remain untouched.
    Base worker service health. Preserve old historical data.
 3. Controlled migration 1: extend constrained job state vocabulary and
    install the token-fenced terminal source skip RPC.
-4. Controlled migration 2: prioritize current/future Istanbul-local
-   matchdays; keep original claim fencing intact.
-5. Release approved exact SHA from preview to main and deploy Hetzner.
+4. After **verified worker and recovery-timer stop** and zero active leases,
+   apply the additive migration `2026_10_21_signal_motor_skip_future_only_guard.sql`
+   to require `kickoff_utc > now()` at terminal skip time; migration 1 was
+   already installed in production and must **not** be replayed or edited.
+5. Controlled date-first claim migration
+   `2026_10_21_signal_motor_today_first.sql`: prioritize current/future
+   Istanbul-local matchdays while preserving token-fenced leases.
+6. Release approved exact SHA from preview to main and deploy Hetzner.
    Old legacy writer is disabled, Alarm Engine continues running.
-6. Verify `SKIPPED_DATA` increments only for genuinely incomplete
+7. Verify `SKIPPED_DATA` increments only for genuinely incomplete
    checkpoint windows, no new `WAITING_DATA` churn from Base worker,
    `sxf_base_signal_events` still includes real priced choices only, and
    today's fixtures are processed before later kickoff dates.
-7. Re-check 1X2/OU25/BTTS source timestamps and actual 24/7 worker health.
+8. Re-check 1X2/OU25/BTTS source timestamps and actual 24/7 worker health.
 
 **Important:** a release cannot recover real prices a provider never sent;
 `SKIPPED_DATA` documents that source gap. The 59-minute policy is a source
