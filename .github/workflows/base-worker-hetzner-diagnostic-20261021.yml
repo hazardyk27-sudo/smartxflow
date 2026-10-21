@@ -31,6 +31,12 @@ jobs:
             echo "BASE_WORKER_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
             echo "BASE_WORKER_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
             systemctl show smartxflow-base-worker.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID -p ActiveEnterTimestamp -p InactiveEnterTimestamp --no-pager
+            echo "BASE_PROCESS_DIAGNOSTIC"
+            systemctl show smartxflow-base-worker.service -p ExecMainStartTimestamp -p MemoryCurrent -p TasksCurrent -p CPUUsageNSec --no-pager
+            pid="$(systemctl show smartxflow-base-worker.service -p MainPID --value)"
+            if [ "$pid" -gt 0 ]; then ps -o pid,etime,stat,wchan:28,%cpu,%mem,comm -p "$pid" || true; fi
+            echo "SCRAPER_SERVICE_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "LEGACY_SIGNAL_ACTIVE=$(systemctl is-active smartxflow-sinyal.service || true)"
             echo "BASE_JOURNAL_LAST_45"
             journalctl -u smartxflow-base-worker.service -n 45 --no-pager -o cat | tail -n 45
             echo "BASE_DIAGNOSTIC_END"
@@ -50,7 +56,7 @@ jobs:
           id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name | contains("base-health")) | .id' | head -1)"
           test -n "$id"
           gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/base-worker-diagnostic-raw.txt
-          grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 70 > /tmp/base-worker-diagnostic-sanitized.txt || true
+          grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|ExecMainStartTimestamp=|MemoryCurrent=|TasksCurrent=|CPUUsageNSec=|SCRAPER_SERVICE_ACTIVE=|LEGACY_SIGNAL_ACTIVE=||HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 45 > /tmp/base-worker-diagnostic-sanitized.txt || true
           test -s /tmp/base-worker-diagnostic-sanitized.txt
           CONTENT="$(base64 -w0 /tmp/base-worker-diagnostic-sanitized.txt)"
           gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_READONLY_DIAGNOSTIC_20261021.txt" -f message="ops: publish sanitized Hetzner Base state (read-only diagnosis)" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
