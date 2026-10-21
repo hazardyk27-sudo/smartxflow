@@ -1,4 +1,4 @@
-name: Verify Base autonomous recovery 2026-10-21 (80h fixture scan)
+name: Verify Base autonomous recovery 2026-10-21 (post-enqueue proof)
 
 on:
   push:
