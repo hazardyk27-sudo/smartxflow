@@ -33,25 +33,14 @@ def _learning_archive_guard_enabled() -> bool:
 
 
 def retention_cleanup_disabled(env: Optional[Mapping[str, str]] = None) -> bool:
-    """Fail closed for the UNSAFE legacy unbounded cleanup.
+    """Permanently retire the unsafe legacy time-only cleanup path.
 
-    An explicit reviewed release switch is required to invoke the legacy
-    cleanup; the new independent archive/backup preflight must be reviewed
-    separately. This is a second, not a replacement, safety boundary.
+    No environment-only bypass can prove fixture-local archive parity,
+    restore-tested cold backup, and preservation of future fixture history.
+    Real cleanup must use a newly reviewed, source-row-scoped maintenance
+    procedure with independent evidence; never reactivate this old function.
     """
-    source = os.environ if env is None else env
-    if str(source.get("SMARTXFLOW_RETENTION_CLEANUP_APPROVED", "")).strip().lower() not in _TRUE_VALUES:
-        return True
-    if _explicit_cleanup_disable(source):
-        return True
-    if not _learning_archive_guard_enabled():
-        return False
-    try:
-        from learning_archive.retention import has_pending_retention_holds
-        return has_pending_retention_holds()
-    except Exception:
-        # Fail closed: never delete source history when hold state is unknown.
-        return True
+    return True
 
 
 def install_supabase_cleanup_guard() -> bool:
