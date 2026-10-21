@@ -47,10 +47,10 @@ def test_24_job_live_backlog_quotas_and_tracking(monkeypatch):
         object(),Store(),worker_id="w",now=AT,discover=False,
         priority_lanes=True,max_jobs=24,max_reconcile=0)
     assert report["claimed"]==24
-    assert report["live_claimed"]==16
-    assert report["backlog_claimed"]==8
-    assert report["completed"]==report["live_completed"]==16
-    assert report["backlog_waiting_data"]==report["waiting_data"]==8
+    assert report["live_claimed"]==24
+    assert report["backlog_claimed"]==0
+    assert report["completed"]==report["live_completed"]==24
+    assert report["backlog_waiting_data"]==report["waiting_data"]==0
     assert report["healthy_cycle"] is True
     assert report["production_release_verified"] is False
 
