@@ -127,6 +127,53 @@ class SupabaseCheckpointStore:
             added += value
         return added
 
+    def active_job_keys_between(self, start: datetime, end: datetime, *,
+                                page_size: int = 500, max_pages: int = 60) -> set[str]:
+        """Read a complete, bounded set of current job keys via GET.
+
+        An incomplete page traversal must NEVER masquerade as complete
+        coverage; on failure no new discovery writes are attempted.
+        """
+        if (start.tzinfo is None or end.tzinfo is None or start >= end or
+                type(page_size) is not int or not 1 <= page_size <= 1000 or
+                type(max_pages) is not int or not 1 <= max_pages <= 80):
+            raise ValueError("invalid active job key coverage bounds")
+        found: set[str] = set()
+        for page in range(max_pages):
+            try:
+                resp = self._session.get(
+                    self._base[:-4] + "sxf_base_checkpoint_jobs",
+                    params=[
+                        ("select", "job_key"),
+                        ("ruleset_version", "eq." + RULESET_VERSION),
+                        ("kickoff_utc", "gte." + start.isoformat()),
+                        ("kickoff_utc", "lte." + end.isoformat()),
+                        ("state", "neq.SUPERSEDED"),
+                        ("order", "job_id.asc"),
+                        ("limit", str(page_size)),
+                        ("offset", str(page * page_size)),
+                    ],
+                    headers=self._headers, timeout=self._timeout)
+                if resp.status_code not in (200, 206):
+                    raise ReadOnlyStoreError(
+                        f"active job coverage failed: HTTP {resp.status_code}")
+                rows = resp.json()
+            except ReadOnlyStoreError:
+                raise
+            except Exception as error:
+                raise ReadOnlyStoreError(
+                    f"active job coverage unavailable ({type(error).__name__})") from error
+            if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                raise ReadOnlyStoreError("active job coverage malformed")
+            for row in rows:
+                key = row.get("job_key")
+                if not isinstance(key, str) or not key or key in found:
+                    raise ReadOnlyStoreError("active job key missing or duplicate")
+                found.add(key)
+            if len(rows) < page_size:
+                return found
+        raise ReadOnlyStoreError("active job coverage pagination cap reached")
+
     def claim(self, worker_id: str, *, limit: int = 25,
               lease_seconds: int = 300, lane: str = "ANY") -> list[ClaimedCheckpoint]:
         if not worker_id or len(worker_id) > 100 or not 1 <= limit <= 100 or not 60 <= lease_seconds <= 1800:
