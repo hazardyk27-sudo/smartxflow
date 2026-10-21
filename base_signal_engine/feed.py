@@ -325,6 +325,34 @@ class BaseSignalsFeed:
                                    "CHECKPOINT_WINDOW")
             else:
                 delivery_timing = "UNKNOWN"
+            # An append-only event is not necessarily an eligible, timely
+            # prematch signal. Preserve every historic event for audit, but
+            # give the UI a trustworthy count/status independent of the raw
+            # ledger's kind or the time it was replayed.
+            selection_status = details.get("selection_status")
+            if selection_status not in ("ELIGIBLE", "PRICE_FILTER_REJECT"):
+                selection_status = "UNKNOWN"
+            recorded_on_time = (
+                delivery_timing == "CHECKPOINT_WINDOW" and recorded < kickoff
+            )
+            valid_on_time = (
+                row["kind"] in ("PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "EARLY_SIGNAL")
+                and selection_status == "ELIGIBLE"
+                and recorded_on_time
+                and not historical_t8
+            )
+            if selection_status == "PRICE_FILTER_REJECT":
+                review_state = "PRICE_REJECTED"
+            elif row["kind"] == "CORRECTED":
+                review_state = "RECONCILED_HISTORY"
+            elif historical_t8:
+                review_state = "T8_SUPERSEDED"
+            elif not recorded_on_time:
+                review_state = "LATE_HISTORY"
+            elif selection_status != "ELIGIBLE":
+                review_state = "UNVERIFIED_STATUS"
+            else:
+                review_state = "VALID_PREMATCH_RECORD"
             items.append({
                 "id": ident,
                 "uid": uid,
@@ -345,6 +373,9 @@ class BaseSignalsFeed:
                 "recorded_at": recorded.isoformat(),
                 "observed_at": observed,
                 "delivery_timing": delivery_timing,
+                "selection_status": selection_status,
+                "review_state": review_state,
+                "valid_on_time": valid_on_time,
                 "odds": odds,
                 "strength_tag": details.get("label") == "STRENGTH_TAG",
                 "shadow": True,
