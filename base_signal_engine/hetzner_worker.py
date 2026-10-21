@@ -317,11 +317,18 @@ def main(argv=None) -> int:
             print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"READ_RETRY",
                               "error_type":"READONLYSTOREERROR"}),file=sys.stderr,flush=True)
             return 2
-        except DurableStoreError:
-            # RPC timeouts can follow a committed lease or completion. Preserve
-            # ambiguous outcome semantics: systemd must NOT auto-restart.
+        except DurableStoreError as error:
+            # Only allowlisted RPC name/HTTP status. NEVER log credentials,
+            # response bodies, raw exception message, or user data.
+            import re
+            message = str(error)
+            match = re.match(r"^(sxf_base_[a-z_]+) (?:failed: HTTP ([0-9]{3})|unavailable)", message)
+            safe_rpc = match.group(1) if match else "UNKNOWN"
+            safe_http = match.group(2) if match and match.group(2) else None
             print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"UNCERTAIN",
-                              "error_type":"DURABLESTOREERROR"}),file=sys.stderr,flush=True)
+                              "error_type":"DURABLESTOREERROR",
+                              "rpc":safe_rpc,"http_status":safe_http}),
+                  file=sys.stderr,flush=True)
             return 3
         except Exception as exc:
             print(json.dumps({"mode":"HETZNER_BASE_DURABLE","status":"FAILED",
