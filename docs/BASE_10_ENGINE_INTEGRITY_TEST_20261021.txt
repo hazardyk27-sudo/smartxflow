@@ -1,0 +1,7 @@
+SOURCE_SHA=12f9e8a9e7a0c7bdd08d49ce4faa8eec89ce77a8
+..............................................................           [100%]
+62 passed in 0.26s
+PYTEST_EXIT=0
+JS_SYNTAX_EXIT=0
+SEVEN_LOCALES_OK=1
+I18N_EXIT=0
