@@ -27,8 +27,7 @@ BEGIN
        AND j.lease_token=p_lease_token
        AND j.state='LEASED'
        AND j.lease_expires_at>now()
-       AND j.run_after<=now()
-       AND j.kickoff_utc>now();
+       AND j.run_after<=now();
     RETURN FOUND;
 END;
 $function$;
