@@ -1,4 +1,4 @@
-name: Audit Betwatch scraper logging and source identity on Hetzner
+name: Verify Hetzner T72 single-source 180s capture and price availability
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
           script: |
             set -eu
             test "$(hostname)" = smartxflow
-            expected=1567e1d7ed4e6e2452d9a754c956ee54fa562570
+            expected=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
             for i in $(seq 1 60); do
               sha="$(git -C /opt/smartxflow rev-parse HEAD)"
               if [ "$sha" = "$expected" ]; then break; fi
@@ -39,6 +39,20 @@ jobs:
             echo "MONEYWAY_DISCOVERY_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
             test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
             test "$(systemctl is-active smartxflow-scraper.service)" = active
+            test "$(systemctl show -p Environment --value smartxflow-scraper.service | grep -o 'SMARTXFLOW_PREMATCH_INTERVAL_SECONDS=180' | head -n1)" = "SMARTXFLOW_PREMATCH_INTERVAL_SECONDS=180"
+            echo "MONEYWAY_SOURCE_INTERVAL_SECONDS=180"
+            echo "MONEYWAY_SOURCE_T72_WAIT"
+            for i in $(seq 1 90); do
+              if tail -n 4000 /opt/smartxflow/logs/scraper.log | grep -q 'EARLY_SOURCE T72_96:'; then
+                break
+              fi
+              sleep 4
+            done
+            count="$(tail -n 4000 /opt/smartxflow/logs/scraper.log | grep -c 'EARLY_SOURCE T72_96:' || true)"
+            echo "MONEYWAY_T72_SOURCE_LOG_COUNT=$count"
+            test "$count" -gt 0
+            echo "MONEYWAY_T72_SOURCE_OBSERVATION"
+            tail -n 4000 /opt/smartxflow/logs/scraper.log | grep 'EARLY_SOURCE T72_96:' | tail -n 1 | cut -c1-240
             echo "MONEYWAY_SCRAPER_PROCESS"
             systemctl show smartxflow-scraper.service -p MainPID -p ActiveEnterTimestamp -p Result -p StandardOutput --no-pager
             echo "MONEYWAY_LOG_FILE_SIZE=$(stat -c '%s' /opt/smartxflow/logs/scraper.log || true)"
@@ -63,7 +77,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "expected_production_sha=1567e1d7ed4e6e2452d9a754c956ee54fa562570"
+            echo "expected_production_sha=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc"
             echo "ssh_result=${{ needs.ssh-source-read.result }}"
             for wf in deploy.yml; do
               echo "WORKFLOW=$wf"
