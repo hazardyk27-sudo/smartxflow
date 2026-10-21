@@ -1,67 +1,9 @@
-SOURCE_SHA=c7d503569ba8ddfd0ddeec4d8737054a4f6c11c9
-PYTEST_EXIT=1
-......................................F.........F....................... [ 36%]
+SOURCE_SHA=3d27064c7bf3416e4b7799ccf918cf44d7cde873
+PYTEST_EXIT=0
+........................................................................ [ 36%]
 ........................................................................ [ 73%]
 ...................................................                      [100%]
-=================================== FAILURES ===================================
-_____________ test_independent_market_t6_authority_vs_t8_fallback ______________
-
-    def test_independent_market_t6_authority_vs_t8_fallback():
-        history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
-        # T-6 must use its own complete original markets, not T-8.
-        history += [mkt("OU25",8),mkt("BTTS",8),mkt("OU25",6),mkt("BTTS",6)]
-        reader=FakeReader(history)
-        job=CheckpointJob(REF,6,"BASE")
-        p=evaluate_job(job,reader)
-        assert p["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
->       assert p["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
-E       AssertionError: assert 'AUTHORITATIVE_T6' == 'INSUFFICIENT_DATA'
-E         
-E         - INSUFFICIENT_DATA
-E         + AUTHORITATIVE_T6
-
-tests/test_base_signal_scheduler.py:107: AssertionError
-________ test_actual_shadow_retries_missing_t6_instead_of_marking_done _________
-
-    def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
-        class Catalog:
-            def list_between(self,start,end): return [REF]
-        now=KO-timedelta(hours=5,minutes=49)
-        empty=FakeReader([])
-        journal=MemoryJournal()
-        first=scan_once(empty,journal,now=now,catalog=Catalog(),max_jobs=9)
-        assert first["due"]==8 and first["waiting_data"]==8 and first["committed"]==0
-        assert journal.logs=={}
-        # A later snapshot can be observed on next scan; immutable existing
-        # checkpoint timestamps remain the same and motor rules are unchanged.
-        history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
-        history += [mkt("OU25",8),mkt("BTTS",8)]
-        full=FakeReader(history)
-        # Restrict one T6 checkpoint via an explicitly scoped fake completion port.
-        job=CheckpointJob(REF,6,"BASE")
-        source=full.load_checkpoints(FX,hours=(8,6),
-                                     as_of_utc=KO-timedelta(hours=6)+timedelta(minutes=10))
-        assert source.snapshots
-        from base_signal_engine.source_quality import source_coverage
-        from base_signal_engine.scheduler import evaluate_job
-        payload=evaluate_job(job,full)
->       assert source_coverage(job,source,payload)["disposition"]=="EVALUATE"
-E       AssertionError: assert 'WAITING_DATA' == 'EVALUATE'
-E         
-E         - EVALUATE
-E         + WAITING_DATA
-
-tests/test_base_signal_scheduler.py:223: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_base_signal_scheduler.py::test_independent_market_t6_authority_vs_t8_fallback - AssertionError: assert 'AUTHORITATIVE_T6' == 'INSUFFICIENT_DATA'
-  
-  - INSUFFICIENT_DATA
-  + AUTHORITATIVE_T6
-FAILED tests/test_base_signal_scheduler.py::test_actual_shadow_retries_missing_t6_instead_of_marking_done - AssertionError: assert 'WAITING_DATA' == 'EVALUATE'
-  
-  - EVALUATE
-  + WAITING_DATA
-2 failed, 193 passed in 0.86s
+195 passed in 0.78s
 BASH_PREFLIGHT_EXIT=0
 BASH_UNIT_SYNC_EXIT=0
 VISUDO_EXIT=0
