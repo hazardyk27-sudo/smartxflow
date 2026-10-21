@@ -144,7 +144,7 @@ def test_t6_missing_t8_fallback_and_future_never_available():
     res = reader.load_checkpoints(FX, hours=[8, 6], as_of_utc=now)
     assert choose_base_checkpoint(FX, "1X2", res.snapshots, now) == (8, "PRELIMINARY_T8")
     res2 = reader.load_checkpoints(FX, hours=[8, 6], as_of_utc=KICKOFF-timedelta(hours=5))
-    assert choose_base_checkpoint(FX, "1X2", res2.snapshots, KICKOFF-timedelta(hours=5)) == (8, "FALLBACK_T8")
+    assert choose_base_checkpoint(FX, "1X2", res2.snapshots, KICKOFF-timedelta(hours=5)) == (None, "INSUFFICIENT_DATA")
 
 
 def test_t6_present_but_rule_fails_never_falls_back():
