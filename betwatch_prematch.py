@@ -418,7 +418,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             mkt_name = mkt.get("name", "")
             runners = mkt.get("runners", []) or []
 
-            market_key, sels = map_market(mkt_name, runners)
+            market_key, sels = map_market(mkt_name, runners, home=home, away=away)
             if market_key is None:
                 continue
 
