@@ -38,7 +38,7 @@ def _load_module():
     betwatch_client.fetch_prematch = lambda timeout=40: []
     betwatch_client.normalize_kickoff = lambda value: str(value or "")
 
-    def map_market(name, runners):
+    def map_market(name, runners, **kwargs):
         if name != "1X2":
             return None, []
         return "1X2", [(str(row["selection"]), row) for row in runners]
