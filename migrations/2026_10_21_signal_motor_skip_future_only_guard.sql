@@ -11,7 +11,7 @@ SET search_path TO 'public','pg_temp'
 AS $function$
 BEGIN
     IF p_job_id IS NULL OR p_lease_token IS NULL
-       OR p_reason NOT IN ('SOURCE_INCOMPLETE') THEN
+       OR p_reason IS DISTINCT FROM 'SOURCE_INCOMPLETE' THEN
         RAISE EXCEPTION 'invalid source skip parameters';
     END IF;
     UPDATE public.sxf_base_checkpoint_jobs j
