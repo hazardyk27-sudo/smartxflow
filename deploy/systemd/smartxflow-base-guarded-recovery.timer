@@ -1,0 +1,13 @@
+[Unit]
+Description=SmartXFlow guarded Base worker 7/24 recovery checks
+After=network-online.target
+Wants=network-online.target
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+AccuracySec=1min
+Unit=smartxflow-base-guarded-recovery.service
+
+[Install]
+WantedBy=timers.target
