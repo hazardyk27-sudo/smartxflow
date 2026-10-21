@@ -28,7 +28,7 @@ def test_age_based_missing_source_policy_only():
         assert source_wait_delay_seconds(job(hours,age),at=NOW)==delay
 
 
-def test_missing_snapshot_enters_nonterminal_fenced_wait_with_six_hours():
+def test_missing_snapshot_terminally_skipped_once_with_fenced_ack():
     old=job(72,72)
     class Reader:
         def load_fixture(self,fixture_uid):
@@ -37,20 +37,21 @@ def test_missing_snapshot_enters_nonterminal_fenced_wait_with_six_hours():
             return SimpleNamespace(snapshots=(),fetched_rows=0,discarded_groups=0,
                                    hash_drift_rows=0)
     class Store:
-        def __init__(self):self.waited=[]
+        def __init__(self):self.skipped=[]
         def claim(self,*a,**kw):
-            return [SimpleNamespace(job=old,job_id=str(uuid4()),lease_token=str(uuid4()),
-                                    attempt_count=1)]
-        def wait_for_data(self,item,*,reason,delay_seconds):
-            self.waited.append((reason,delay_seconds))
+            return [SimpleNamespace(job=old,job_id=str(uuid4()),
+                                    lease_token=str(uuid4()),attempt_count=1)]
+        def skip_missing_source(self,item,*,reason):
+            self.skipped.append(reason)
         def fail(self,*args,**kw):
             raise AssertionError("Missing source is not a computation error")
         def complete(self,*a,**kw):
-            raise AssertionError("Missing source must never complete or emit signal")
+            raise AssertionError("Missing source must never complete")
     store=Store()
     result=execute_claims(Reader(),store,worker_id="w")
-    assert result["waiting_data"]==1 and result["completed"]==0
-    assert store.waited==[("SOURCE_INCOMPLETE",21600)]
+    assert result["waiting_data"]==0 and result["skipped_data"]==1
+    assert result["completed"]==0
+    assert store.skipped==["SOURCE_INCOMPLETE"]
 
 
 def test_missing_source_writer_limit_only_increased_for_wait():
