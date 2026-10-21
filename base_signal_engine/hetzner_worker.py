@@ -21,6 +21,7 @@ from .reader import SupabaseMoneywayReader
 from .rotation import rotation_slot, queue_diagnostics
 from .reconcile_runtime import reconcile_once
 from .storage import DurableStoreError, ReadOnlyStoreError, SupabaseCheckpointStore
+from .systemd_watchdog import SystemdNotifier
 
 def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               max_jobs: int = 12, max_reconcile: int = 2,
@@ -28,7 +29,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               near_term_hour_offset: int = 0,
               near_term_rotation: bool = False,
               priority_lanes: bool = False,
-              now: datetime | None = None) -> dict:
+              now: datetime | None = None,
+              progress_hook=None) -> dict:
     """Work is bounded, independently retryable, and never invents successful ACKs."""
     if not worker_id or len(worker_id)>100 or not (1<=max_jobs<=30) or not (
             0<=max_reconcile<=5) or not (1<=lookback_days<=7):
@@ -43,6 +45,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         raise ValueError("priority lanes require 3 or more jobs per cycle")
     if type(near_term_hour_offset) is not int or not -1 <= near_term_hour_offset <= 80:
         raise ValueError("unsafe near-term hour offset")
+    if progress_hook is not None and not callable(progress_hook):
+        raise ValueError("invalid progress hook")
     report={"mode":"HETZNER_BASE_DURABLE","discovery":"SKIPPED",
             "enqueued":0,"discovered_fixtures":0,"superseded":0,
             "claimed":0,"completed":0,"waiting_data":0,"retried":0,
@@ -72,6 +76,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             report["discovery_paused"]=status["paused"]
             report["discovery_backpressure"]=status.get("backpressure",False)
             report["discovery_pending_before"]=status["pending_due"]
+            if status["status"] in ("OK", "IDLE") and progress_hook is not None:
+                progress_hook()
             if status["uncertain"]:
                 # Unknown advance/lease result: do not claim ANY additional work.
                 report["lease_uncertain"]=1
@@ -112,6 +118,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             report["near_term_pending_before"] = urgent["pending_due"]
             report["near_term_window_start"] = urgent["window_start"]
             report["near_term_window_end"] = urgent["window_end"]
+            if urgent["status"] in ("ENQUEUED", "IDEMPOTENT", "EMPTY") and progress_hook is not None:
+                progress_hook()
         except DurableStoreError:
             # A lost enqueue ACK is ambiguous; do not continue claiming jobs.
             raise
@@ -129,12 +137,13 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     for lane in slots:
         if lane in exhausted:
             continue
+        claim_options = {"progress_hook": progress_hook} if progress_hook is not None else {}
         if priority_lanes:
             result = execute_claims(reader, store, worker_id=worker_id,
-                                    limit=1, lane=lane)
+                                    limit=1, lane=lane, **claim_options)
         else:
             result = execute_claims(reader, store, worker_id=worker_id,
-                                    limit=1)
+                                    limit=1, **claim_options)
         report["claimed"] += result["claimed"]
         report["completed"] += result["completed"]
         report["waiting_data"] += result["waiting_data"]
@@ -156,6 +165,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             report["reconcile_waiting_data"]+=result["waiting_data"]
             report["reconcile_uncertain"]+=(
                 result["lease_uncertain"]+result["commit_uncertain"])
+            if (result["completed"] or result["retried"] or result["waiting_data"]) and progress_hook is not None:
+                progress_hook()
             if (result["claimed"]==0 or result["lease_uncertain"]
                     or result["commit_uncertain"]):
                 # Reconcile ACK uncertainty must not be followed by another
@@ -230,7 +241,7 @@ def main(argv=None) -> int:
     parser.add_argument("--near-term-discovery",action="store_true",
                         help="opt-in bounded single-hour scan; default disabled")
     parser.add_argument("--near-term-hour-offset",type=int,default=0,
-                        help="UTC hour bucket relative to current hour, -1..12")
+                        help="UTC hour bucket relative to current hour, -1..80")
     parser.add_argument("--near-term-rotation",action="store_true",
                         help="rotate one UTC hour bucket per wall-clock minute, no coverage claim")
     parser.add_argument("--priority-lanes",action="store_true",
@@ -266,6 +277,9 @@ def main(argv=None) -> int:
     reader=SupabaseMoneywayReader(url,key,page_size=300,
         max_pages_per_window=15,request_timeout_seconds=15)
     store=SupabaseCheckpointStore(url,key,request_timeout_seconds=15)
+    notifier = SystemdNotifier()
+    if notifier.enabled:
+        notifier.ready()
     iteration=0
     while True:
         try:
@@ -274,6 +288,8 @@ def main(argv=None) -> int:
                         if args.near_term_discovery else {})
             if args.priority_lanes:
                 optional["priority_lanes"] = True
+            if notifier.enabled:
+                optional["progress_hook"] = notifier.progressed
             report=run_cycle(reader,store,worker_id=worker_id,
                 max_jobs=args.max_jobs,max_reconcile=args.max_reconcile,
                 lookback_days=args.lookback_days,
@@ -287,6 +303,8 @@ def main(argv=None) -> int:
                 return 4
             if not report["healthy_cycle"]:
                 return 2  # Discovery/health failure cannot be silent success.
+            if notifier.enabled:
+                notifier.progressed()
         except ReadOnlyStoreError:
             # Health/observation RPC has no DB mutation, so a transient outage
             # can be safely retried by systemd without operator intervention.
