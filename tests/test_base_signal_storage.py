@@ -156,7 +156,7 @@ def test_retry_backoff_never_exceeds_one_hour():
 def test_execute_claims_missing_data_waits_without_false_completion():
     row = fake_claim()
     fake = FakeRpc(result_by_rpc={
-        'sxf_base_claim_due_jobs': [row], 'sxf_base_wait_for_data': True})
+        'sxf_base_claim_due_jobs': [row], 'sxf_base_skip_missing_source': True})
     s = store(fake)
 
     class Reader:
@@ -166,9 +166,9 @@ def test_execute_claims_missing_data_waits_without_false_completion():
             return SimpleNamespace(snapshots=(),fetched_rows=0,discarded_groups=0,hash_drift_rows=0)
 
     report = execute_claims(Reader(), s, worker_id='test-worker')
-    assert report == {'claimed':1, 'completed':0, 'waiting_data':1,
-                      'retry':0, 'lease_lost':0, 'commit_uncertain':0}
-    assert [x[0] for x in fake.calls] == ['sxf_base_claim_due_jobs','sxf_base_wait_for_data']
+    assert report == {'claimed':1, 'completed':0, 'waiting_data':0,
+                      'skipped_data':1, 'retry':0, 'lease_lost':0, 'commit_uncertain':0}
+    assert [x[0] for x in fake.calls] == ['sxf_base_claim_due_jobs','sxf_base_skip_missing_source']
     assert fake.calls[1][1]['p_reason'] == 'SOURCE_INCOMPLETE'
 
 
