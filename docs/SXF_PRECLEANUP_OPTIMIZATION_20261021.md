@@ -108,3 +108,34 @@ Reproducible non-destructive SQL checked successfully against production:
 Index audit still finds both functional duplicate pairs structurally equivalent, with zero constraint/dependency references and ~269 MB potential gain, but **no index was dropped**. As of this note, changes are only on `preview`; no production release, cleanup, index DROP, cron enablement or Hetzner deployment was performed.
 
 **Release blockade:** Separate source-row counts/checksums, future fixture T-72 observations, and tested independent cold backup are mandatory. A `COMPLETE` archive status or an equivalent index is not sufficient authorization.
+
+## Future-fixture history preservation — 21 Oct 2026 (final safety lock)
+
+Read-only indexed query over `public.fixtures` joined by `fixture_uid` to
+`public.moneyway_1x2_history` found **922** future fixtures and **106** of those
+with valid-source historical records already captured before the seven-day
+observation cutoff (`2026-10-15T00:00:00+03:00`). This is direct evidence that
+the legacy timestamp-only cleanup is capable of removing history for fixtures
+which have **not started**. The number 106 is limited to this one history
+table; it is NOT a full count of all endangered snapshot tables.
+
+In response, `core/retention_guard.py` now permanently returns disabled for
+the legacy cleanup; the old `SMARTXFLOW_RETENTION_CLEANUP_APPROVED` environment
+switch **no longer enables** time-only deletion. The earlier section describing
+this switch as an available approval path is superseded by this restriction.
+Standalone legacy cleanup was already retired and performs no network I/O.
+
+Use the newly added
+`scripts/maintenance/sxf_future_fixture_history_risk_readonly.sql`
+to reproduce the future-fixture risk report. This is a diagnostic only. No
+automated SQL DDL or DML is run by the report.
+
+**Before a new cleanup design is considered:** match every source row to its
+physical fixture and Turkey-local kickoff date, explicitly preserve every
+future fixture's T-72/early baseline and all signal input history, reconcile
+missing `fixture_uid` values through verified identity (never a reused hash
+alone), and verify independently restorable archive storage. After this,
+review microbatch cleanup and production release independently.
+
+As of these changes: no live index removal, no data deletion, no
+`research_archive` mutation, and no Hetzner/main deployment.
