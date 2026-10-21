@@ -1,0 +1,59 @@
+name: Verify all ten Base engine rules and truthful user-visible signal counts
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-10-engine-integrity-check-20261021.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install -q pytest requests beautifulsoup4 certifi
+      - name: Test frozen engine thresholds, feed statuses and all localized UI strings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          {
+            echo "SOURCE_SHA=$GITHUB_SHA"
+            python -m pytest -q tests/test_base_signal_rules.py tests/test_base_signals_feed.py
+            P=$?
+            echo "PYTEST_EXIT=$P"
+            node --check static/js/base-signals.js
+            N=$?
+            echo "JS_SYNTAX_EXIT=$N"
+            python - <<'PY'
+          import json, pathlib
+          required=("records_count","recorded_pick_heading","price_rejected_warning","retrospective_warning","unverified_status_warning")
+          for lang in ("tr","en","fr","it","de","es","nl"):
+              payload=json.loads((pathlib.Path("static/i18n")/(lang+".json")).read_text())
+              group=payload["app"]["v4"]
+              assert all(isinstance(group.get(key),str) and group[key].strip() for key in required),lang
+          print("SEVEN_LOCALES_OK=1")
+          PY
+            L=$?
+            echo "I18N_EXIT=$L"
+            test "$P" -eq 0 && test "$N" -eq 0 && test "$L" -eq 0
+          } > /tmp/engine-report.txt 2>&1
+          RC=$?
+          cat /tmp/engine-report.txt
+          DATA="$(base64 -w0 /tmp/engine-report.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_10_ENGINE_INTEGRITY_TEST_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="test(base): publish ten-engine feed integrity checks" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha || true
+          else
+            gh api -X PUT "$DEST" -f message="test(base): publish ten-engine feed integrity checks" -f branch=preview -f content="$DATA" --jq .commit.sha || true
+          fi
+          exit "$RC"
