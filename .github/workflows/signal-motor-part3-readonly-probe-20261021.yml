@@ -1,0 +1,70 @@
+name: Signal Motor Part3 - read-only pause failure diagnostics
+on:
+  push:
+    branches: [preview]
+    paths: ['docs/SIGNAL_MOTOR_PART3_PROBE_TRIGGER_20261021.txt']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Read-only SSH service and release state
+        id: probe
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -u
+            echo "REMOTE_HOST=$(hostname)"
+            echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
+            echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "REMOTE_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+            echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
+            echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
+            echo "REMOTE_PROBE_OK"
+  publish:
+    if: always()
+    needs: [probe]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report read-only evidence with no secrets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.probe.result }}
+        run: |
+          set -euo pipefail
+          {
+            printf 'probe_sha=%s\nprobe_job=%s\n' "$GITHUB_SHA" "$RESULT"
+            id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name == "probe") | .id' | head -n1)"
+            if [ -n "$id" ]; then
+              gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2>/dev/null |
+                grep -E 'REMOTE_(HOST|SHA|BASE|TIMER|ALARM|WORKER|PROBE)|Error:|error:|Process exited' | tail -n 25 || true
+            fi
+            recent="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/signal-motor-part3-guarded-pause-20261021.yml/runs?branch=preview&per_page=3" --jq '.workflow_runs[0].id' 2>/dev/null || true)"
+            echo "pause_run_id=$recent"
+            if [ -n "$recent" ]; then
+              job="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$recent/jobs" --jq '.jobs[] | select(.name=="pause") | .id' | head -n1)"
+              if [ -n "$job" ]; then
+                gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" 2>/dev/null |
+                  grep -E 'PART3_PAUSE_OK|Error:|error:|exit status|Process exited|command not found|Permission denied|is not active|failed with' | tail -n 20 || true
+              fi
+            fi
+          } > /tmp/probe.txt
+          cat /tmp/probe.txt
+          DATA="$(base64 -w0 /tmp/probe.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART3_PROBE_STATUS_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f branch=preview -f message='ops(signal): record read-only release probe' -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f branch=preview -f message='ops(signal): record read-only release probe' -f content="$DATA" --jq .commit.sha
+          fi
