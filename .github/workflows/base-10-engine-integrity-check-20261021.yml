@@ -1,4 +1,4 @@
-name: Verify all ten Base engine rules and truthful user-visible signal counts
+name: Verify final 20m delivery budget and ten-engine source integrity
 
 on:
   push:
