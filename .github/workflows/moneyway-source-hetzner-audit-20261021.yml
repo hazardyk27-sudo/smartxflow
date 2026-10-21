@@ -1,4 +1,4 @@
-name: Audit Moneyway 1X2 source hardening on Hetzner
+name: Audit corrected Betwatch The Draw source on Hetzner
 
 on:
   push:
@@ -25,7 +25,7 @@ jobs:
           script: |
             set -eu
             test "$(hostname)" = smartxflow
-            expected=bec631ea71007f94fcb97318c9ca2ca828208606
+            expected=1567e1d7ed4e6e2452d9a754c956ee54fa562570
             for i in $(seq 1 60); do
               sha="$(git -C /opt/smartxflow rev-parse HEAD)"
               if [ "$sha" = "$expected" ]; then break; fi
@@ -39,6 +39,12 @@ jobs:
             echo "MONEYWAY_DISCOVERY_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
             test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
             test "$(systemctl is-active smartxflow-scraper.service)" = active
+            for i in $(seq 1 48); do
+              count="$(grep -c 'Snapshot source coverage 1X2:' /opt/smartxflow/logs/scraper.log || true)"
+              if [ "$count" -gt 0 ]; then break; fi
+              sleep 5
+            done
+            echo "MONEYWAY_QUALITY_1X2_LOG_COUNT=$(grep -c 'Snapshot source coverage 1X2:' /opt/smartxflow/logs/scraper.log || true)"
             echo "MONEYWAY_QUALITY_LOG_COUNT=$(grep -c 'Snapshot source coverage' /opt/smartxflow/logs/scraper.log || true)"
             echo "MONEYWAY_LAST_QUALITY_RECORDS"
             grep -E '\[BW-Pre\].*Snapshot source coverage (1X2|OU25|BTTS):' /opt/smartxflow/logs/scraper.log | tail -n 6 || true
@@ -56,7 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "expected_production_sha=bec631ea71007f94fcb97318c9ca2ca828208606"
+            echo "expected_production_sha=1567e1d7ed4e6e2452d9a754c956ee54fa562570"
             echo "ssh_result=${{ needs.ssh-source-read.result }}"
             for wf in deploy.yml; do
               echo "WORKFLOW=$wf"
