@@ -60,6 +60,7 @@ def test_missing_source_writer_limit_only_increased_for_wait():
     sql=(Path(__file__).resolve().parents[1]/
          "migrations/2026_10_21_sxf_base_waiting_data_age_retry.sql").read_text()
     assert "p_retry_seconds NOT BETWEEN 60 AND 21600" in sql
+    assert "END $function$;\nREVOKE" in sql
     assert "j.lease_token=p_lease_token" in sql
     assert "j.lease_expires_at>now()" in sql
     assert "DELETE FROM" not in sql
