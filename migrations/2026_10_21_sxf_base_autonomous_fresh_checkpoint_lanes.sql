@@ -75,7 +75,8 @@ BEGIN
     SELECT u.job_id,u.job_key,u.ruleset_version,u.fixture_uid,u.kickoff_utc,
            u.checkpoint_hours,u.family,u.checkpoint_at,u.lease_token,u.attempt_count
     FROM updated u ORDER BY u.checkpoint_at,u.job_id;
-END $function$
+END;
+$function$;
 
 REVOKE ALL ON FUNCTION public.sxf_base_claim_due_jobs_lane(text,text,integer,integer)
   FROM PUBLIC,anon,authenticated;
