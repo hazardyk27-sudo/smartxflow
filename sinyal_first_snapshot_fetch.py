@@ -19,6 +19,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from typing import Any, Callable
+from uuid import UUID
 
 import requests
 
@@ -75,7 +76,7 @@ def _fetch_current_candidates(engine: Any, unresolved: set[str]) -> dict[str, di
     try:
         url = f"{engine.SUPABASE_URL.rstrip('/')}/rest/v1/moneyway_1x2"
         params = [
-            ("select", "home,away,date,odds1,oddsx,odds2"),
+            ("select", "home,away,date,fixture_uid,odds1,oddsx,odds2"),
             ("limit", str(_CURRENT_TABLE_LIMIT)),
         ]
         response = requests.get(
@@ -117,62 +118,101 @@ def _fetch_current_candidates(engine: Any, unresolved: set[str]) -> dict[str, di
     return candidates
 
 
+
 def _fetch_one_history_row(engine: Any, key: str, current_row: dict[str, Any]):
-    """Fetch the exact earliest valid history row for one physical match key."""
+    """Use the existing physical-fixture index; verify original composite identity.
+
+    PostgreSQL's generic PostgREST plan cannot always use the partial index
+    on (home, away, date, scraped_at) when the nonempty odds comparisons are
+    parameters. The nonpartial (fixture_uid, scraped_at) index avoids that
+    expensive generic-plan sort. We deliberately filter ONLY by fixture_uid
+    on the primary request so the generic planner selects that index.
+
+    The response is still checked against the exact home|away|date key.
+    Missing or legacy identity falls back to the previous composite query.
+    """
     url = f"{engine.SUPABASE_URL.rstrip('/')}/rest/v1/moneyway_1x2_history"
-    params = [
-        (
-            "select",
-            "home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at,match_id_hash",
-        ),
-        ("home", f"eq.{current_row.get('home', '')}"),
-        ("away", f"eq.{current_row.get('away', '')}"),
-        ("date", f"eq.{current_row.get('date', '')}"),
-        # Production history stores missing odds as empty strings.  Filtering
-        # them server-side is equivalent to the legacy _row_has_valid_odds gate
-        # for the observed dataset, while avoiding transfer of hundreds of blank
-        # rows before the market opens.
+    fields = "home,away,date,odds1,oddsx,odds2,pct1,pctx,pct2,scraped_at,match_id_hash,fixture_uid"
+
+    def fetch_rows(params):
+        try:
+            response = requests.get(
+                url,
+                params=params,
+                headers=engine._headers_read(),
+                timeout=12,
+            )
+        except Exception as exc:
+            return None, f"request failed: {exc}"
+        if response.status_code != 200:
+            return None, f"HTTP {response.status_code}: {(getattr(response, 'text', '') or '')[:120]}"
+        try:
+            rows = response.json()
+        except Exception as exc:
+            return None, f"JSON error: {exc}"
+        if not isinstance(rows, list):
+            return None, "response is not a list"
+        return rows, None
+
+    base_params = [
+        ("select", fields),
         ("odds1", "neq."),
         ("oddsx", "neq."),
         ("odds2", "neq."),
         ("order", "scraped_at.asc"),
         ("limit", "1"),
     ]
-    try:
-        response = requests.get(
-            url,
-            params=params,
-            headers=engine._headers_read(),
-            timeout=12,
-        )
-    except Exception as exc:
-        return key, None, f"request failed: {exc}"
+    raw_uid = str(current_row.get("fixture_uid") or "").strip()
+    uid = None
+    if raw_uid:
+        try:
+            uid = str(UUID(raw_uid))
+        except (ValueError, AttributeError):
+            # A corrupted UID is not allowed into a PostgREST filter.
+            engine.log(f"[FirstSnapIndexed] invalid fixture_uid for {key}; composite fallback")
 
-    if response.status_code != 200:
-        return key, None, f"HTTP {response.status_code}: {(getattr(response, 'text', '') or '')[:120]}"
+    if uid:
+        # NO home/away/date query predicates here: otherwise the generic
+        # prepared plan tends to choose the (home,away) index instead.
+        rows, error = fetch_rows(base_params + [("fixture_uid", f"eq.{uid}")])
+        if error:
+            return key, None, error
+        if rows:
+            row = rows[0]
+            if not isinstance(row, dict) or not engine._row_has_valid_odds(row):
+                return key, None, "physical-fixture lookup returned invalid odds"
+            if _composite(row) != key or str(row.get("fixture_uid") or "").lower() != uid:
+                return key, None, "physical fixture identity mismatch"
+            return key, row, None
 
-    try:
-        rows = response.json()
-    except Exception as exc:
-        return key, None, f"JSON error: {exc}"
-    if not isinstance(rows, list):
-        return key, None, "response is not a list"
+    # Compatibility for legacy history before fixture_uid coverage or a
+    # current row without UID. An empty physical lookup alone is not evidence
+    # that the fixture has no history.
+    fallback_params = base_params + [
+        ("home", f"eq.{current_row.get('home', '')}"),
+        ("away", f"eq.{current_row.get('away', '')}"),
+        ("date", f"eq.{current_row.get('date', '')}"),
+    ]
+    rows, error = fetch_rows(fallback_params)
+    if error:
+        return key, None, error
     if not rows:
-        # A valid current row can race the history append by one scrape.  Do not
-        # cache the miss; the next signal cycle will retry it.
         return key, None, None
-
     row = rows[0]
     if not isinstance(row, dict) or not engine._row_has_valid_odds(row):
-        return key, None, "server filter returned an invalid odds row"
+        return key, None, "composite lookup returned invalid odds"
     if _composite(row) != key:
         return key, None, "history identity mismatch"
+    if uid and row.get("fixture_uid") and str(row["fixture_uid"]).lower() != uid:
+        # Same team names and date cannot override physical identity.
+        return key, None, "legacy fallback fixture_uid mismatch"
     return key, row, None
 
 
 def _indexed_fetch(engine: Any, legacy: Callable, active_keys=None):
     if active_keys is None:
-        return legacy(active_keys)
+        engine.log("[FirstSnapIndexed] active_keys missing; refusing full-table legacy scan")
+        return {}
 
     active = {str(key) for key in active_keys if key}
     if not active:
