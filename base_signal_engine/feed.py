@@ -200,6 +200,7 @@ class BaseSignalsFeed:
                 ("select", FIELDS),
                 ("kickoff_utc", "gte." + start_utc.isoformat()),
                 ("kickoff_utc", "lt." + end_utc.isoformat()),
+                ("ruleset_version", "eq.SXF_SIGNAL_MOTOR_V2_2026_10_22"),
                 ("kind", "in.(" + ",".join(sorted(VISIBLE_KINDS)) + ")"),
                 ("order", "event_id.asc"),
                 ("limit", str(PAGE_SIZE)),
