@@ -27,6 +27,7 @@ BEGIN
      WHERE j.job_id=p_job_id
        AND j.lease_token=p_lease_token
        AND j.state='LEASED'
+       AND j.ruleset_version='SXF_SIGNAL_MOTOR_V2_2026_10_22'
        AND j.lease_expires_at>now()
        AND j.checkpoint_at<=now()
        AND j.run_after<=now()
