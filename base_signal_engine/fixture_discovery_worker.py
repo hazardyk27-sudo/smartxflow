@@ -87,6 +87,15 @@ def scan_horizon_once(reader: Any, store: Any, *,
     # Rescheduled fixtures have changed physical kickoff identities.
     # Existing SQL fences and records every superseded job; no deletion.
     drift = store.quarantine_fixture_drift(limit=250)
+    # A previously SUPERSEDED kickoff could later become current again.
+    # The enqueue RPC correctly keeps historical rows immutable, so a zero
+    # ACK cannot prove coverage. Re-read active keys after the fenced writes:
+    # never report green if any of the eleven currently required jobs is absent.
+    verified_keys = store.active_job_keys_between(start, end)
+    for fixture in fixtures:
+        required = {CheckpointJob(fixture, h, family).key for h, family in CHECKPOINT_TASKS}
+        if not required.issubset(verified_keys):
+            raise FixtureHorizonUnverified("post-enqueue checkpoint coverage incomplete")
     if progress_hook is not None:
         progress_hook()
     return {"mode": "BASE_FIXTURE_DISCOVERY",
