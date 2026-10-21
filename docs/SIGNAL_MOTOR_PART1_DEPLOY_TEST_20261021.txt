@@ -1,0 +1,9 @@
+SOURCE_SHA=fd4173cb4678e0fb1ac1234262322eb6a2e48819
+PYTEST_EXIT=0
+..............                                                           [100%]
+14 passed in 0.04s
+BASH_PREFLIGHT_EXIT=0
+BASH_UNIT_SYNC_EXIT=0
+VISUDO_EXIT=0
+deploy/sudoers-smartxflow-deploy: parsed OK
+YAML_EXIT=0
