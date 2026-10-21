@@ -1,0 +1,58 @@
+name: Test today's Sinyal Motoru day-first, nearest snapshot and source skipping
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/signal-motor-daily-rebuild-verify-20261021.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Dependencies
+        run: python -m pip install -q pytest requests beautifulsoup4 certifi
+      - name: Full affected motor tests and JS syntax
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          python -m pytest -q \
+            tests/test_signal_motor_daily_skip_20261021.py \
+            tests/test_base_signal_rules.py \
+            tests/test_base_signal_reader.py \
+            tests/test_base_signal_scheduler.py \
+            tests/test_base_signal_phase4b.py \
+            tests/test_base_signal_priority_lanes.py \
+            tests/test_base_backlog_throughput_20261021.py \
+            tests/test_base_missing_source_backoff_20261021.py \
+            tests/test_base_signal_real_source_smoke.py \
+            tests/test_analysis_merged_feed_api.py \
+            tests/test_base_signals_feed.py > /tmp/signal-motor-ci.txt 2>&1
+          RC=$?
+          node --check static/js/base-signals.js > /tmp/signal-motor-js.txt 2>&1
+          JS=$?
+          {
+            echo "SOURCE_SHA=$GITHUB_SHA"
+            echo "PYTEST_EXIT=$RC"
+            tail -n 100 /tmp/signal-motor-ci.txt
+            echo "NODE_EXIT=$JS"
+            tail -n 12 /tmp/signal-motor-js.txt
+          } | tee /tmp/signal-motor-report.txt
+          DATA="$(base64 -w0 /tmp/signal-motor-report.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_TODAY_FIRST_TEST_REPORT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="test(signal): refresh day-first motor report" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="test(signal): publish day-first motor report" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
+          test "$RC" -eq 0 && test "$JS" -eq 0
