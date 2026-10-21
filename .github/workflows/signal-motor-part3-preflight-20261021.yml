@@ -15,6 +15,7 @@ on:
       - 'base_signal_engine/scheduler.py'
       - 'deploy/signal_motor_fresh_start_cutover_20261022.sql'
       - 'tests/test_signal_motor_fresh_start_20261022.py'
+      - 'tests/test_base_signal_phase4b.py'
   workflow_dispatch:
 permissions:
   contents: write
