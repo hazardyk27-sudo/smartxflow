@@ -62,4 +62,10 @@ jobs:
           grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|ExecMainStartTimestamp=|MemoryCurrent=|TasksCurrent=|CPUUsageNSec=|SCRAPER_SERVICE_ACTIVE=|LEGACY_SIGNAL_ACTIVE=||HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 45 > /tmp/base-worker-diagnostic-sanitized.txt || true
           test -s /tmp/base-worker-diagnostic-sanitized.txt
           CONTENT="$(base64 -w0 /tmp/base-worker-diagnostic-sanitized.txt)"
-          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_READONLY_DIAGNOSTIC_20261021.txt" -f message="ops: publish sanitized Hetzner Base state (read-only diagnosis)" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_READONLY_DIAGNOSTIC_20261021.txt"
+          EXISTING_SHA="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$EXISTING_SHA" ]; then
+            gh api -X PUT "$DEST" -f message="ops: refresh sanitized Hetzner Base state (read-only diagnosis)" -f branch=preview -f content="$CONTENT" -f sha="$EXISTING_SHA" --jq '.commit.sha'
+          else
+            gh api -X PUT "$DEST" -f message="ops: refresh sanitized Hetzner Base state (read-only diagnosis)" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
+          fi
