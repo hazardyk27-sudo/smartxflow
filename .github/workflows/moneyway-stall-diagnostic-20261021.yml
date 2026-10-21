@@ -1,0 +1,64 @@
+name: Inspect stalled Hetzner Betwatch single-master source (read-only)
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/moneyway-stall-diagnostic-20261021.yml'
+permissions:
+  actions: read
+  contents: write
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check scraper systemd and finite log markers without secrets
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 4m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            echo "STALL_DIAG_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "STALL_DIAG_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "STALL_DIAG_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "STALL_DIAG_ENABLED=$(systemctl is-enabled smartxflow-scraper.service || true)"
+            systemctl show smartxflow-scraper.service -p MainPID -p ActiveEnterTimestamp -p Result -p NRestarts -p ExecMainStatus -p SubState --no-pager
+            p="$(systemctl show smartxflow-scraper.service -p MainPID --value)"
+            if [ "$p" -gt 0 ]; then
+              echo "STALL_DIAG_PROCESS"
+              ps -o pid,etime,%cpu,%mem,stat,comm -p "$p" | tail -n1
+              echo "STALL_DIAG_WAIT_CHANNEL=$(cat "/proc/$p/wchan" 2>/dev/null || true)"
+            fi
+            echo "STALL_DIAG_LOG_MTIME=$(stat -c '%y' /opt/smartxflow/logs/scraper.log || true)"
+            echo "STALL_DIAG_SOURCE_SECTIONS"
+            tail -n 500 /opt/smartxflow/logs/scraper.log | grep -E '^\[(Loop|Master|AtomicLease|Cleanup|Scrape|Watchdog|Retention Guard)\]|EARLY_SOURCE T72_96' | tail -n 35 | cut -c1-190 || true
+            echo "STALL_DIAG_END"
+  publish:
+    needs: read
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save bounded process status in preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "ssh_result=${{ needs.read.result }}" > /tmp/sxf-stall.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="read") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/sxf-stall-raw.txt || true
+            grep -E '(out: STALL_DIAG_|out: (MainPID|ActiveEnterTimestamp|Result|NRestarts|ExecMainStatus|SubState)=|out: \[(Loop|Master|AtomicLease|Cleanup|Scrape|Watchdog|Retention Guard)\])' /tmp/sxf-stall-raw.txt | tail -n60 >> /tmp/sxf-stall.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/sxf-stall.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/MONEYWAY_STALL_DIAGNOSTIC_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops: refresh read-only Moneyway stall diagnosis" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops: publish read-only Moneyway stall diagnosis" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
