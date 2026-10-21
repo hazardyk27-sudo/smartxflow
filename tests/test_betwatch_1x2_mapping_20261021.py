@@ -63,3 +63,18 @@ def test_ou25_and_btts_mapping_not_modified():
            [_r("Over 2.5",800),_r("Under 2.5",200)])[1]]==["O","U"]
     assert [s for s,r in mapping("Both teams to Score?",
            [_r("Yes",800),_r("No",200)])[1]]==["Y","N"]
+
+
+def test_actual_2026_10_21_betwatch_runner_label_the_draw_all_orders():
+    # Verified from one authorized production-host GET /football/prematch:
+    # runners = Abha, The Draw, Al-Kholood Club.
+    for idx,path in enumerate((ROOT/"betwatch_client.py",
+                               ROOT/"desktop/scraper_standalone/betwatch_client.py")):
+        mapping=_mapper(path,"real_payload_"+str(idx))
+        a=[_r("Abha",1200),_r("The Draw",300),_r("Al-Kholood Club",800)]
+        for order in ((0,1,2),(0,2,1),(1,0,2),(1,2,0),(2,0,1),(2,1,0)):
+            market,mapped=mapping("Match Odds",[a[i] for i in order],
+                                 home="Abha",away="Al-Kholood Club")
+            assert market=="1X2"
+            assert [sel for sel,_ in mapped]==["1","X","2"]
+            assert [r["volume"] for _,r in mapped]==[1200,300,800]
