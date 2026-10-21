@@ -1,0 +1,78 @@
+name: Audit Moneyway 1X2 source hardening on Hetzner
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/moneyway-source-hetzner-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  ssh-source-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - name: Read-only source liveness and real completeness logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            expected=bec631ea71007f94fcb97318c9ca2ca828208606
+            for i in $(seq 1 60); do
+              sha="$(git -C /opt/smartxflow rev-parse HEAD)"
+              if [ "$sha" = "$expected" ]; then break; fi
+              sleep 4
+            done
+            echo "MONEYWAY_AUDIT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "MONEYWAY_AUDIT_EXPECTED=$expected"
+            echo "MONEYWAY_AUDIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "MONEYWAY_SCRAPER_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "MONEYWAY_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "MONEYWAY_DISCOVERY_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
+            test "$(systemctl is-active smartxflow-scraper.service)" = active
+            echo "MONEYWAY_QUALITY_LOG_COUNT=$(grep -c 'Snapshot source coverage' /opt/smartxflow/logs/scraper.log || true)"
+            echo "MONEYWAY_LAST_QUALITY_RECORDS"
+            grep -E '\[BW-Pre\].*Snapshot source coverage (1X2|OU25|BTTS):' /opt/smartxflow/logs/scraper.log | tail -n 6 || true
+            echo "MONEYWAY_AUDIT_END"
+
+  publish:
+    needs: ssh-source-read
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save sanitized Hetzner Moneyway source report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_production_sha=bec631ea71007f94fcb97318c9ca2ca828208606"
+            echo "ssh_result=${{ needs.ssh-source-read.result }}"
+            for wf in deploy.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n2 || true
+            done
+          } > /tmp/moneyway-audit.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="ssh-source-read") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/moneyway-raw.txt || true
+            grep -E '(out: MONEYWAY_|\[BW-Pre\].*Snapshot source coverage)' /tmp/moneyway-raw.txt | tail -n 20 >> /tmp/moneyway-audit.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/moneyway-audit.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/MONEYWAY_SOURCE_LIVE_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops: refresh Moneyway source deployment verification" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops: publish Moneyway source deployment verification" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
