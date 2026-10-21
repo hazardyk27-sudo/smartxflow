@@ -48,7 +48,7 @@ class SupabaseCheckpointStore:
         "sxf_base_enqueue_jobs", "sxf_base_claim_due_jobs",
         "sxf_base_claim_due_jobs_lane",
         "sxf_base_renew_lease", "sxf_base_fail_job", "sxf_base_complete_job",
-        "sxf_base_wait_for_data", "sxf_base_append_reconciliation",
+        "sxf_base_wait_for_data", "sxf_base_skip_missing_source", "sxf_base_append_reconciliation",
         "sxf_base_backfill_reconcile", "sxf_base_claim_reconcile",
         "sxf_base_renew_reconcile", "sxf_base_retry_reconcile",
         "sxf_base_complete_reconcile",
@@ -249,6 +249,21 @@ class SupabaseCheckpointStore:
             "p_reason": reason, "p_retry_seconds": delay_seconds,
         }) is not True:
             raise DurableStoreError("missing-source transition not acknowledged")
+
+    def skip_missing_source(self, item: ClaimedCheckpoint, *,
+                            reason: str = "SOURCE_INCOMPLETE") -> None:
+        """Terminal audited skip for incomplete original checkpoint data.
+
+        Only the current valid lease token can move a still-future fixture
+        checkpoint to SKIPPED_DATA. Never create a fake NO_SIGNAL event.
+        """
+        if reason != "SOURCE_INCOMPLETE":
+            raise ValueError("only source gaps may be skipped")
+        if self._rpc("sxf_base_skip_missing_source", {
+            "p_job_id": item.job_id, "p_lease_token": item.lease_token,
+            "p_reason": reason,
+        }) is not True:
+            raise DurableStoreError("source skip not acknowledged")
 
     def append_reconciliation(
         self, *, origin_event_key: str, kind: str,
