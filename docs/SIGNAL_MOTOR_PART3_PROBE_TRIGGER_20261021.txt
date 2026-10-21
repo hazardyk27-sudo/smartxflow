@@ -1,3 +1,3 @@
-READ_ONLY_PROBE=20261022_0234_istanbul_final_fresh_review
+READ_ONLY_PROBE=20261022_publication_preflight_active_services
 NO_HOST_MUTATION=true
-CHECK_WORKER_TIMER_ALARM_AND_PID=true
+VERIFY_BASE_TIMER_ALARM_SHA=true
