@@ -50,6 +50,16 @@ jobs:
               yaml.safe_load(f)
           with open(".github/workflows/hetzner-runtime-contract-tests.yml",encoding="utf-8") as f:
               yaml.safe_load(f)
+          for name in (
+              ".github/workflows/signal-motor-part3-guarded-pause-20261021.yml",
+              ".github/workflows/signal-motor-part3-guarded-resume-20261021.yml",
+              ".github/workflows/base-autonomous-hetzner-enable.yml",
+          ):
+              with open(name,encoding="utf-8") as f:
+                  yaml.safe_load(f)
+          from pathlib import Path
+          activation = Path(".github/workflows/base-autonomous-hetzner-enable.yml").read_text()
+          assert "branches: [main]" not in activation, "old automatic enable would race cutover"
           print("YAML_OK")
           PY
           YAML_RC=$?
