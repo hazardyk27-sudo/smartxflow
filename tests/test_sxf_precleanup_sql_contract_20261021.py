@@ -8,6 +8,8 @@ AUDIT_FILES = (
     "sxf_archive_fixture_parity_readonly.sql",
     "sxf_duplicate_index_audit_readonly.sql",
     "sxf_future_fixture_history_risk_readonly.sql",
+    "sxf_archive_backfill_readiness_readonly.sql",
+    "sxf_archive_snapshot_sample_readonly.sql",
 )
 DDL_OR_DML = re.compile(
     r"^\s*(?:DELETE|UPDATE|INSERT|ALTER|CREATE|DROP|TRUNCATE|REINDEX|"
@@ -57,3 +59,23 @@ def test_future_fixture_timestamp_only_purge_prohibited():
     assert "kickoff_utc > now()" in src
     assert "has_older_prematch_history" in src
     assert "FALSE AS time_only_delete_safe" in src
+
+
+def test_archive_backfill_blocks_without_independent_cold_backup():
+    src = (ROOT / "sxf_archive_backfill_readiness_readonly.sql").read_text(encoding="utf-8")
+    assert "storage.objects" in src
+    assert "sxf-research-archive" in src
+    assert "source_fixtures" in src
+    assert "unarchived_source_fixtures" in src
+    assert "fixture_uid=s.fixture_uid" in src
+    assert "'backup_restored_and_verified',false" in src
+    assert "'archive_data_parity_verified',false" in src
+    assert "'time_only_cleanup_safe',false" in src
+
+
+def test_archive_snapshot_sample_stays_bounded_and_does_not_certify_parity():
+    src = (ROOT / "sxf_archive_snapshot_sample_readonly.sql").read_text(encoding="utf-8")
+    assert "ORDER BY f.fixture_uid LIMIT 8" in src
+    assert "ORDER BY scraped_at_utc ASC LIMIT 3" in src
+    assert "a.local_date=d.d AND a.source_id=s.id" in src
+    assert "'complete_row_parity_verified',false" in src
