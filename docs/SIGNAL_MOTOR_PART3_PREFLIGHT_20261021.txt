@@ -1,25 +1,11 @@
-SOURCE_SHA=e925cab37d2ee599dc1aef94d8697c6e9dd4990f
-PYTEST_EXIT=1
-            "sibling.lease_expires_at>now()",
-            "RETURN FALSE",
-            "j.fixture_uid=v_fixture_uid",
-            "state='SKIPPED_DATA'",
-            "THEN 'SOURCE_INCOMPLETE'",
-            "ELSE 'FIXTURE_SKIPPED_UPSTREAM_GAP'",
-            "j.state IN ('PENDING','RETRY','WAITING_DATA')",
-            "j.lease_expires_at<=now()",
-        ):
->           assert required in sql, required
-E           AssertionError: SELECT j.fixture_uid INTO v_fixture_uid
-E           assert 'SELECT j.fixture_uid INTO v_fixture_uid' in '-- Part 3 additive fixture-level source gap hardening.\n-- Migration 1 has ALREADY been applied. This migration is PR...cated;\nGRANT EXECUTE ON FUNCTION public.sxf_base_skip_missing_source(uuid,uuid,text)\n    TO service_role;\nCOMMIT;\n'
-
-tests/test_signal_motor_daily_skip_20261021.py:177: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_daily_skip_20261021.py::test_fixture_level_missing_source_skip_is_atomic_and_does_not_rewrite_evidence - AssertionError: SELECT j.fixture_uid INTO v_fixture_uid
-assert 'SELECT j.fixture_uid INTO v_fixture_uid' in '-- Part 3 additive fixture-level source gap hardening.\n-- Migration 1 has ALREADY been applied. This migration is PR...cated;\nGRANT EXECUTE ON FUNCTION public.sxf_base_skip_missing_source(uuid,uuid,text)\n    TO service_role;\nCOMMIT;\n'
-1 failed, 201 passed in 1.11s
+SOURCE_SHA=36e23732461534dac17e5760da7199b0c8c164cc
+PYTEST_EXIT=0
+........................................................................ [ 35%]
+........................................................................ [ 71%]
+..........................................................               [100%]
+202 passed in 1.00s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
