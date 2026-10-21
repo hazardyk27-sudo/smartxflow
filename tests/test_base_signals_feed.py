@@ -40,11 +40,12 @@ class Reply:
 
 
 class Source:
-    def __init__(self, start, events=None, state="COMPLETED", results=None):
+    def __init__(self, start, events=None, state="COMPLETED", results=None, skip_fixture=False):
         self.results=results or []
         self.start=start
         self.events=events if events is not None else [_event(start)]
         self.state=state
+        self.skip_fixture=skip_fixture
         self.calls=[]
     def get(self, url, *, params, headers, timeout):
         self.calls.append((url,params,headers))
@@ -54,6 +55,12 @@ class Source:
         if url.endswith("sxf_base_signal_events"):
             return Reply(self.events)
         if url.endswith("sxf_base_checkpoint_jobs"):
+            if dict(params).get("state") == "eq.SKIPPED_DATA":
+                if not self.skip_fixture:
+                    return Reply([])
+                return Reply([{"job_id":str(uuid4()),"fixture_uid":UID,
+                              "kickoff_utc":_stamp(self.start),
+                              "last_error_code":"SOURCE_INCOMPLETE"}])
             return Reply([{"job_id":JOB,"fixture_uid":UID,
                            "kickoff_utc":_stamp(self.start),"state":self.state}])
         if url.endswith("live_fixtures"):
@@ -68,6 +75,34 @@ class Source:
 
 def _feed(source):
     return BaseSignalsFeed("https://example.supabase.co", "service-token",session=source)
+
+
+
+def test_fixture_skip_hides_any_earlier_completed_signal_without_deleting_events():
+    start=_day()
+    source=Source(start,skip_fixture=True)
+    result=_feed(source).read(start)
+    assert result["items"]==[]
+    # The underlying append-only event is unchanged, only the live feed is
+    # scoped to fixtures with no audited source-gap disqualification.
+    assert len(source.events)==1 and source.events[0]["event_id"]==12
+    assert any(dict(call[1]).get("last_error_code")=="eq.SOURCE_INCOMPLETE"
+               for call in source.calls if call[0].endswith("sxf_base_checkpoint_jobs"))
+
+
+def test_fixture_skip_probe_unavailable_fails_closed_not_as_no_skips():
+    start=_day()
+    source=Source(start)
+    original=source.get
+    def failed_skip_probe(url,*,params,headers,timeout):
+        if url.endswith("sxf_base_checkpoint_jobs") and dict(params).get("state")=="eq.SKIPPED_DATA":
+            response=Reply([])
+            response.status_code=503
+            return response
+        return original(url,params=params,headers=headers,timeout=timeout)
+    source.get=failed_skip_probe
+    with pytest.raises(BaseFeedUnavailable,match="private signal source"):
+        _feed(source).read(start)
 
 
 def test_real_signal_preserves_selection_kickoff_and_turkey_day():
@@ -113,7 +148,7 @@ def test_midnight_local_date_uses_europe_istanbul_not_utc():
     # The job and fixture must refer to exactly the same physical kickoff.
     def same_kickoff_get(url, *, params, headers, timeout):
         result=Source.get(source,url,params=params,headers=headers,timeout=timeout)
-        if url.endswith(("/fixtures","sxf_base_checkpoint_jobs")):
+        if result.data and url.endswith(("/fixtures","sxf_base_checkpoint_jobs")):
             result.data[0]["kickoff_utc"]=ts
         return result
     source.get=same_kickoff_get
