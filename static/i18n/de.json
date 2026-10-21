@@ -595,7 +595,7 @@
     "v4": {
       "title": "Signalmotor",
       "intro": "Wähle einen Signalmotor, um Spiele nach Tag anzuzeigen.",
-      "kicker": "SMARTXFLOW / ANALYSEN",
+      "kicker": "SMARTXFLOW / SIGNALMOTOR",
       "test_notice": "SHADOW / TEST · Keine freigegebene Wettempfehlung",
       "test_initial": "SHADOW · Nur Testsignale",
       "test_label": "SHADOW / TEST",
