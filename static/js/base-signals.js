@@ -107,7 +107,6 @@
     return s;
   }
   function stage(item) {
-    if (item.kind === 'LEGACY_SIGNAL') return t('legacy_recorded','Eski motor kaydı');
     if (item.stage_status === 'T8_HISTORICAL') return t('historical_t8','Geçmiş T-8');
     if (item.kind === 'CORRECTED') return t('reconciled','Uzlaştırma');
     if (item.kind === 'FINAL_SIGNAL') return 'T-6';
@@ -216,12 +215,11 @@
   }
   function signalRow(item) {
     var isHistory = item.stage_status === 'T8_HISTORICAL';
-    var isLegacy = item.kind === 'LEGACY_SIGNAL';
     var isRejected = item.review_state === 'PRICE_REJECTED';
     var isRetrospective = item.review_state === 'LATE_HISTORY' ||
       item.review_state === 'RECONCILED_HISTORY';
     var isUnverified = item.review_state === 'UNVERIFIED_STATUS';
-    var isArchived = isHistory || isLegacy || (item.valid_on_time === false);
+    var isArchived = isHistory || (item.valid_on_time === false);
     var odds = typeof item.odds === 'number' && isFinite(item.odds)
       ? '<span class="sxf-row-odds">' + esc(t('odds','Oran')) +
         ' <b>' + item.odds.toFixed(2) + '</b></span>'
@@ -246,8 +244,6 @@
       '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span></div>' +
       (isHistory ? '<div class="sxf-row-warning">' +
         esc(t('history_warning','T-6 kararı sonrası geçmiş ön sinyal')) + '</div>' : '') +
-      (isLegacy ? '<div class="sxf-row-warning">' +
-        esc(t('legacy_warning','Doğrulanmış eski motor kaydı; Base T-6 sinyali değildir')) + '</div>' : '') +
       (isRejected ? '<div class="sxf-row-warning">' +
         esc(t('price_rejected_warning','Oran 1.30 altında; sinyal olarak uygun değil')) + '</div>' : '') +
       (isRetrospective && !isRejected ? '<div class="sxf-row-warning">' +
@@ -285,10 +281,6 @@
       esc(t('choose_engine_desc','Seçtiğin günün maçlarını motor bazında görüntüle.')) +
       '</p></div><span class="sxf-directory-total">' +
       esc(fmt('engines_count','{count} motor',{count:entries.length})) + '</span></div>' +
-      (current.payload && current.payload.legacy_source_status === 'unavailable'
-        ? '<p class="sxf-legacy-source-alert">' +
-          esc(t('legacy_unavailable_desc','Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.')) +
-          '</p>' : '') +
       '<div class="sxf-engine-grid">' + cards + '</div>';
     content.querySelectorAll('[data-motor]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -332,14 +324,9 @@
       // Do not fabricate a match or silently change the user's chosen date.
       // A separate explicit action reveals the last available recorded day.
       var last = source.length ? null : lastRecordedDay(current.engine, current.day);
-      var sourceIsDown = false;
       html += '<div class="sxf-zero"><span class="sxf-zero-icon">◇</span>' +
-        '<h4>' + esc(sourceIsDown
-          ? t('legacy_unavailable_title','Eski sinyaller şu anda alınamıyor')
-          : t('empty_title','Bu gün için maç bulunmuyor')) +
-        '</h4><p>' + esc(sourceIsDown
-          ? t('legacy_unavailable_desc','Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.')
-          : t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
+        '<h4>' + esc(t('empty_title','Bu gün için maç bulunmuyor')) +
+        '</h4><p>' + esc(t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
         '</p>' + (last ? '<button id="sxfSignalShowLast" type="button" class="sxf-retry">' +
           esc(fmt('show_last','{date} sinyallerini göster', {date:dateTitle(last)})) +
           '</button>' : '') + '</div>';
@@ -403,13 +390,9 @@
     if (search) current.search = String(search.value || '').toLocaleLowerCase(locale()).trim();
     if (current.payload) {
       render();
-      message(current.payload.legacy_source_status === 'unavailable'
-        ? t('legacy_unavailable_notice','BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor')
-        : current.payload.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
-        ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
-        : (current.payload.results_source_state === 'unavailable'
-          ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
-          : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir')), 'shadow');
+      message(current.payload.results_source_state === 'unavailable'
+        ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
+        : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir'), 'shadow');
     } else if (current.errorCode) {
       renderError(current.errorCode);
     } else {
@@ -443,13 +426,9 @@
     }).then(function (data) {
       if (seq !== current.seq || overlay.hidden) return;
       current.payload = data;
-      message(data.legacy_source_status === 'unavailable'
-        ? t('legacy_unavailable_notice','BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor')
-        : data.phase === 'BASE_SHADOW_AND_LEGACY_HISTORY'
-        ? t('mixed_notice','BASE SHADOW + ESKİ MOTOR KAYITLARI · Bahis önerisi değildir')
-        : (data.results_source_state === 'unavailable'
-          ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
-          : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir')), 'shadow');
+      message(data.results_source_state === 'unavailable'
+        ? t('score_source_error','SHADOW / TEST · Skor kaynağına erişilemiyor')
+        : t('test_notice','SHADOW / TEST · Onaylanmış bahis önerisi değildir'), 'shadow');
       render();
     }).catch(function (err) {
       if (seq !== current.seq || overlay.hidden) return;
