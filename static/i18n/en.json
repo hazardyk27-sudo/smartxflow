@@ -595,7 +595,7 @@
     "v4": {
       "title": "Signal Engine",
       "intro": "Select a signal engine to view its matches by day.",
-      "kicker": "SMARTXFLOW / ANALYSES",
+      "kicker": "SMARTXFLOW / SIGNAL ENGINE",
       "test_notice": "SHADOW / TEST · Not an approved betting recommendation",
       "test_initial": "SHADOW · Test signals only",
       "test_label": "SHADOW / TEST",
