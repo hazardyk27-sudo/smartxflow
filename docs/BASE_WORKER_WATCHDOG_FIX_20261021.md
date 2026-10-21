@@ -26,11 +26,11 @@ next fixture hour.
   `NotifyAccess=main`, `WatchdogSec=420`; hang recovery uses existing
   `Restart=on-failure`. Operator gates and
   `RestartPreventExitStatus=3 4` remain unchanged.
-- No database schema migration is necessary for step 1.
+- Expired, atomically reclaimable checkpoint/reconciliation leases remain a\n  `DEGRADED` recovery alert but do not force a healthy worker into endless\n  `exit 2`/systemd restart loops. Unknown *current* lease/commit ACKs still\n  stop with fenced exit 3.\n- No database schema migration is necessary for step 1.
 
 ## Evidence
 
-GitHub Actions focused suite: **77 passed** (2026-10-21).
+GitHub Actions focused suite: **78 passed** (2026-10-21).
 Includes real local UNIX datagram notification, read-budget exception,
 unknown renewal-ack fencing, safe watchdog success path, unsafe exit3,
 and existing checkpoint storage/reconciliation tests.
