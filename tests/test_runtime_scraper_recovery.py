@@ -227,7 +227,7 @@ def _load_prematch_with_stubs(monkeypatch):
     client.fetch_prematch = lambda timeout=40: []
     client.normalize_kickoff = lambda value: value.replace("Z", "+00:00")
 
-    def map_market(name, runners):
+    def map_market(name, runners, **kwargs):
         if name != "Match Odds":
             return None, []
         return "1X2", [("1", runners[0]), ("X", runners[1]), ("2", runners[2])]
