@@ -1,0 +1,102 @@
+name: Verify expanded Base checkpoint processing on Hetzner
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-throughput-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Audit deployed worker configuration and actual completion cycles
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 9m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            expected=bb6c9aea9ce3501def7759c7a66b5d52585d8385
+            for i in $(seq 1 90); do
+              sha="$(git -C /opt/smartxflow rev-parse HEAD)"
+              state="$(systemctl is-active smartxflow-base-worker.service || true)"
+              if [ "$sha" = "$expected" ] && [ "$state" = active ]; then break; fi
+              sleep 3
+            done
+            echo "THROUGHPUT_AUDIT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "THROUGHPUT_EXPECTED_SHA=$expected"
+            echo "THROUGHPUT_ACTUAL_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "THROUGHPUT_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "THROUGHPUT_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "THROUGHPUT_RECOVERY_TIMER=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            echo "THROUGHPUT_DISCOVERY=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            echo "THROUGHPUT_WATCHDOG=$(systemctl show smartxflow-base-worker.service -p WatchdogUSec --value)"
+            test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
+            test "$(systemctl is-active smartxflow-base-worker.service)" = active
+            test "$(systemctl is-enabled smartxflow-base-worker.service)" = enabled
+            test "$(systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            grep -q -- '--max-jobs 24 --max-reconcile 1 --interval-seconds 30' /etc/systemd/system/smartxflow-base-worker.service
+            echo "THROUGHPUT_UNIT_SETTINGS_OK"
+            /opt/smartxflow/venv/bin/python - <<'PY'
+            import json, subprocess
+            lines=subprocess.check_output(["journalctl","-u","smartxflow-base-worker.service",
+                  "--since","-6 minutes","--no-pager","-o","cat"],text=True,timeout=20)
+            cycles=[]
+            for line in lines.splitlines():
+                if not line.startswith("{"):continue
+                try: payload=json.loads(line)
+                except (ValueError,TypeError):continue
+                if payload.get("mode")=="HETZNER_BASE_DURABLE" and "healthy_cycle" in payload:
+                    cycles.append(payload)
+            print("THROUGHPUT_CYCLES_6M="+str(len(cycles)))
+            print("THROUGHPUT_COMPLETED_6M="+str(sum(x.get("completed",0) for x in cycles)))
+            print("THROUGHPUT_LIVE_COMPLETED_6M="+str(sum(x.get("live_completed",0) for x in cycles)))
+            print("THROUGHPUT_BACKLOG_COMPLETED_6M="+str(sum(x.get("backlog_completed",0) for x in cycles)))
+            print("THROUGHPUT_WAITING_6M="+str(sum(x.get("waiting_data",0) for x in cycles)))
+            print("THROUGHPUT_UNCERTAIN_6M="+str(sum(x.get("lease_uncertain",0)+x.get("commit_uncertain",0) for x in cycles)))
+            print("THROUGHPUT_HEALTHY_6M="+str(sum(x.get("healthy_cycle",False) is True for x in cycles)))
+            assert cycles, "no completed structured worker cycle"
+            PY
+            echo "THROUGHPUT_AUDIT_END"
+
+  publish:
+    needs: inspect
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish sanitized audit to preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_sha=bb6c9aea9ce3501def7759c7a66b5d52585d8385"
+            echo "ssh_result=${{ needs.inspect.result }}"
+            for wf in deploy.yml base-autonomous-hetzner-enable.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n2 || true
+            done
+          } > /tmp/sxf-base-24-audit.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="inspect") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/sxf-base-24-raw.txt || true
+            grep -E 'out: THROUGHPUT_' /tmp/sxf-base-24-raw.txt | tail -n 24 >> /tmp/sxf-base-24-audit.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/sxf-base-24-audit.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_CHECKPOINT_THROUGHPUT_LIVE_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops: refresh Base throughput runtime proof" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq '.commit.sha'
+          else
+            gh api -X PUT "$DEST" -f message="ops: publish Base throughput runtime proof" -f branch=preview -f content="$DATA" --jq '.commit.sha'
+          fi
