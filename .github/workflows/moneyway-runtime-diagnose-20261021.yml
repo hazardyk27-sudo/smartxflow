@@ -1,0 +1,66 @@
+name: Inspect active Hetzner Moneyway writer and output path
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/moneyway-runtime-diagnose-20261021.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Read-only scraper identity and recent sanitized process output
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            echo "WRITER_DIAG_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "WRITER_DIAG_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            systemctl show smartxflow-scraper.service -p MainPID -p ExecMainStartTimestamp -p ActiveEnterTimestamp -p StandardOutput -p ExecStart -p Result -p NRestarts --no-pager
+            pid="$(systemctl show smartxflow-scraper.service -p MainPID --value)"
+            if [ "$pid" -gt 0 ]; then
+              echo "WRITER_DIAG_STDOUT_PATH=$(readlink "/proc/$pid/fd/1" || true)"
+              ps -o pid,etime,stat,comm -p "$pid"
+            fi
+            echo "WRITER_DIAG_CODE_QUALITY_MARKERS=$(grep -c 'Snapshot source coverage' /opt/smartxflow/betwatch_prematch.py || true)"
+            echo "WRITER_DIAG_FILE_QUALITY_COUNT=$(grep -c 'Snapshot source coverage' /opt/smartxflow/logs/scraper.log || true)"
+            echo "WRITER_DIAG_RECENT_SANITIZED_LINES"
+            tail -n 90 /opt/smartxflow/logs/scraper.log | grep -E 'Snapshot source coverage|BW-Pre|Scrape|AtomicLease|Heartbeat|Master|Loop' | sed -E 's/(Bearer|Token|api_key|SUPABASE_SERVICE_ROLE_KEY)=[^ ]+/REDACTED/g' | tail -n 12 | cut -c1-240 || true
+            echo "WRITER_DIAG_END"
+
+  publish:
+    needs: inspect
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish bounded scrubbed diagnostic to GitHub preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "ssh_result=${{ needs.inspect.result }}" > /tmp/writer-diag.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="inspect") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/writer-raw.txt || true
+            grep -E '(out: WRITER_DIAG_|out: (MainPID|ExecMainStartTimestamp|ActiveEnterTimestamp|StandardOutput|ExecStart|Result|NRestarts)=|out: \[[A-Za-z-]+)' /tmp/writer-raw.txt | tail -n 35 >> /tmp/writer-diag.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/writer-diag.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/MONEYWAY_WRITER_DIAGNOSTIC_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops(source): update sanitized prematch writer process evidence" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops(source): publish sanitized prematch writer process evidence" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
