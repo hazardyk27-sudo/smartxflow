@@ -593,7 +593,7 @@
       "alt": "Under"
     },
     "v4": {
-      "title": "Analyses",
+      "title": "Signal Engine",
       "intro": "Select a signal engine to view its matches by day.",
       "kicker": "SMARTXFLOW / ANALYSES",
       "test_notice": "SHADOW / TEST · Not an approved betting recommendation",
