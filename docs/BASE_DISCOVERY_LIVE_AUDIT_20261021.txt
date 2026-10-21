@@ -1,0 +1,22 @@
+expected_production_sha=653245ba1cf9f0bdbbdd7a50f46e129d2a097168
+ssh_result=success
+WORKFLOW=deploy.yml
+39526083181 status=completed conclusion=success sha=653245ba1cf9f0bdbbdd7a50f46e129d2a097168
+39523468542 status=completed conclusion=success sha=ffe1591c91312136b99c37ec4bab3a14b2289167
+WORKFLOW=base-fixture-discovery-hetzner-enable.yml
+39526083248 status=completed conclusion=success sha=653245ba1cf9f0bdbbdd7a50f46e129d2a097168
+2026-10-21T01:15:08.1002443Z out: SCAN_AUDIT_UTC=2026-10-21T01:15:08Z
+2026-10-21T01:15:08.1059150Z out: SCAN_AUDIT_SHA=653245ba1cf9f0bdbbdd7a50f46e129d2a097168
+2026-10-21T01:15:08.1250493Z out: SCAN_AUDIT_ENABLED=enabled
+2026-10-21T01:15:08.1386904Z out: SCAN_AUDIT_ACTIVE=active
+2026-10-21T01:15:08.1549126Z out: SCAN_AUDIT_TYPE=notify
+2026-10-21T01:15:08.1698219Z out: SCAN_AUDIT_WATCHDOG=8min
+2026-10-21T01:15:08.1835953Z out: ActiveState=active
+2026-10-21T01:15:08.1836299Z out: SubState=running
+2026-10-21T01:15:08.1836680Z out: MainPID=2675354
+2026-10-21T01:15:08.1836885Z out: Result=success
+2026-10-21T01:15:08.1837137Z out: NRestarts=0
+2026-10-21T01:15:08.1837449Z out: ExecMainStatus=0
+2026-10-21T01:15:08.1848020Z out: SCAN_AUDIT_LAST
+2026-10-21T01:15:08.2071343Z out: {"checked_at": "2026-10-21T01:14:06.688326+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 320, "fixtures_needing_enqueue": 233, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 87, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 2563, "range_end": "2026-10-24T09:14:06.688326+00:00", "range_start": "2026-10-20T23:14:06.688326+00:00", "status": "SCANNED", "superseded_drift_jobs": 22}
+2026-10-21T01:15:08.2074795Z out: SCAN_AUDIT_END
