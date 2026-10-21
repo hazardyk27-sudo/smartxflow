@@ -1,4 +1,4 @@
-name: Verify Base Early source-age retry integrity 2026-10-21
+name: Verify final Base Early bounded-source retry and SQL fence 2026-10-21
 
 on:
   push:
