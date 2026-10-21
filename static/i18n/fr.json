@@ -211,7 +211,7 @@
     },
     "flt": {
       "all": "Tous",
-      "analysts": "Analyses",
+      "analysts": "Moteur de signaux",
       "apply": "Appliquer",
       "by_date": "Par date",
       "by_volume": "Par volume",
@@ -833,7 +833,7 @@
     "alarm_listesi": "Liste des alarmes",
     "alarm_search_placeholder": "Rechercher une équipe ex. Chelsea, Galatasaray",
     "alarmlar": "Alarmes",
-    "analizler": "Analyses",
+    "analizler": "Moteur de signaux",
     "bu_mac_icin_alarm_hareketi_yok": "Aucune activité d'alarme pour ce match.",
     "canli": "En direct",
     "canli_periyot_verileri": "Données de période en direct",
