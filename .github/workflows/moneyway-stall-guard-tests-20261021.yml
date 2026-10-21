@@ -1,0 +1,50 @@
+name: Verify safe independent Moneyway outage recovery
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/moneyway-stall-guard-tests-20261021.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated test dependencies
+        run: python -m pip install -q pytest requests beautifulsoup4 certifi
+      - name: Verify source writer/atomic lease regression and guarded restart
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+          python -m pytest -q \
+            tests/test_prematch_stall_recovery_20261021.py \
+            tests/test_runtime_scraper_recovery.py \
+            tests/test_prematch_t72_capture_cadence_20261021.py \
+            tests/test_moneyway_zero_volume_provenance_20261021.py \
+            tests/test_early_provider_coverage_20261021.py \
+            tests/test_betwatch_prematch_identity_runtime.py \
+            tests/test_prematch_atomic_lease.py > /tmp/stall-tests.txt 2>&1
+          RC=$?
+          {
+            echo "SOURCE_SHA=$GITHUB_SHA"
+            echo "PYTEST_EXIT=$RC"
+            tail -n 50 /tmp/stall-tests.txt
+          } | tee /tmp/stall-report.txt
+          DATA="$(base64 -w0 /tmp/stall-report.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/MONEYWAY_STALL_GUARD_TEST_REPORT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="test(source): publish guarded source loop recovery test report" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="test(source): publish guarded source loop recovery test report" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
+          exit "$RC"
