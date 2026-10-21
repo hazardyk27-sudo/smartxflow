@@ -44,3 +44,36 @@ No cron/timer is enabled by this change. No rows or indexes are removed.
 - Live SQL validation of `scripts/maintenance/sxf_precleanup_evidence.sql` succeeded. It found earliest source 2026-10-06, missing archive_runs dates Oct 6-8, unverified cold backup for Oct 9-14, source_retention_cleanup_allowed=false, and both retention-hold/outbox pending counts zero. Combined result: **BLOCKED**.
 - Live catalog dependency check confirmed the two proposed redundant index candidates have zero `pg_constraint` index references and zero external `pg_depend` references. This supports *review*, not a production DROP. Only the exact duplicate index pairs listed above qualify for consideration.
 - GitHub Actions gate `39642548896` succeeded; expanded guard+preflight CI `39643141804` also succeeded.
+
+## Query-load root cause and safe fix (follow-up, 2026-10-21)
+
+**Before (live read-only evidence):**
+- `extensions.pg_stat_statements` captured ~85,968 executions of the 1X2 first-valid-history lookup at ~464 ms mean / ~39,900 seconds cumulative (counters are historical, **not** current per-minute rates).
+- This request had `home,away,date,odds1/oddsx/odds2 != ''` conditions and `ORDER BY scraped_at ASC LIMIT 1`.
+- Literal-predicate `EXPLAIN` used `moneyway_1x2_history_match_earliest_valid_idx`, but `plan_cache_mode=force_generic_plan` with parameterized odds predicates used `idx_moneyway_1x2_history_home_away` plus `Sort`. Generic parameters cannot prove the partial-index filter matches.
+- `public.moneyway_1x2.fixture_uid` and `public.moneyway_1x2_history.fixture_uid` both exist, are UUIDs, and history source had **0 NULL UID rows** at live check.
+- The generic prepared query filtering **only** `fixture_uid=$1`, odds and timestamp uses existing `moneyway_1x2_history_fixture_uid_scraped_at_idx` with no new DDL. Including `home/away/date` in SQL gave the planner the opportunity to choose the slower home/away index, hence query filters by UID first and validates the strict `home|away|date` composite in Python after receiving the single row.
+
+**Preview changes:**
+- `sinyal_first_snapshot_fetch.py` now requests the current `fixture_uid` and uses it as the primary indexed lookup. Exact composite/UUID mismatches fail closed; no UID or an empty UID lookup falls back to composite identity query for backward compatibility. No signal threshold, betting rule, or source timestamps have been altered.
+- An unscoped `active_keys=None` call now **fails closed** instead of reviving an expensive full-table history loader.
+- Standalone `cleanup_old_matches()` is retired, network-free, and returns zero. Its obsolete orphan scan repeatedly queried `SELECT match_id_hash LIMIT/OFFSET` over entire history and could delete unrelated physical fixtures sharing hashes. This does NOT alter the scrape and alarm flow.
+- Both new tests and the repository's original `tests/test_signal_first_snapshot_fetch.py` are included in the preview-only safety CI. Individual old tests expecting unscoped full-table scans were intentionally updated to the safety contract.
+
+**Not yet done:**
+- Production rollout and actual before/after latency measurement remain pending exact SHA release approval.
+- Redundant index drops have not been executed. At the previous live check, `idx_mw_snap_scraped` and `idx_live_snapshots_hash` were duplicate-function index candidates, both without constraint or external dependency references; always revalidate indexes, stats and real execution plans before any change.
+- Cleanup of any old source data remains blocked by missing independently restored backup and archive-per-day parity/allow states.
+
+**Suggested safe index operation after independent approval, one at a time** (illustrative only, **DO NOT run automatically**):
+
+```sql
+-- Outside any BEGIN/COMMIT block, on a quiet database.
+-- Confirm equivalent survivor, no dependent objects, and direct index scan usage FIRST.
+DROP INDEX CONCURRENTLY IF EXISTS public.idx_mw_snap_scraped;
+-- Rerun EXPLAIN for live time-range reads, compare write latency, inspect index usage.
+DROP INDEX CONCURRENTLY IF EXISTS public.idx_live_snapshots_hash;
+-- Recheck pg_indexes, pg_stat_user_indexes and critical queries.
+```
+
+Never do `DROP ... CASCADE`, `VACUUM FULL`, `TRUNCATE`, or historical DELETE as part of these index optimizations. Postgres CREATE/DROP INDEX CONCURRENTLY cannot execute inside a transaction block.
