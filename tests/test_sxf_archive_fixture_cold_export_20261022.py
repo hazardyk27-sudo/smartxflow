@@ -56,7 +56,7 @@ def test_pg_snapshot_query_never_offsets_or_uses_ctid():
 
 def test_physical_identity_and_local_date_checked_before_export():
     sample=[row(2),row(1)]
-    fake=lambda argv,**kw:SimpleNamespace(stdout="\\n".join(json.dumps(x) for x in sample))
+    fake=lambda argv,**kw:SimpleNamespace(stdout=chr(10).join(json.dumps(x) for x in sample))
     with pytest.raises(ValueError,match="sort order"):
         m.read_fixtures(run=fake)
     fake=lambda argv,**kw:SimpleNamespace(stdout=json.dumps(row(1,local="2026-10-10")))
