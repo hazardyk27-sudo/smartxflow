@@ -98,7 +98,8 @@ def test_journal_refuses_unterminated_crash_record(tmp_path):
 
 def test_independent_market_t6_authority_vs_t8_fallback():
     history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
-    history += [mkt("OU25",8),mkt("BTTS",8)]
+    # T-6 must use its own complete original markets, not T-8.
+    history += [mkt("OU25",8),mkt("BTTS",8),mkt("OU25",6),mkt("BTTS",6)]
     reader=FakeReader(history)
     job=CheckpointJob(REF,6,"BASE")
     p=evaluate_job(job,reader)
