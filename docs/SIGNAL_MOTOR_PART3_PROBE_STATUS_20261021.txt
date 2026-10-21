@@ -1,4 +1,4 @@
-probe_sha=884a2d500fa592b8e1c31b93571cbbbc3ef79c83
+probe_sha=b6ab49130557e84cb7458637050ad9dff08b0713
 probe_job=success
 echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
 echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
@@ -7,22 +7,22 @@ echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recove
 echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
 echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
 echo "REMOTE_PROBE_OK"
-2026-10-21T17:21:22.2695073Z echo "REMOTE_HOST=$(hostname)"
-2026-10-21T17:21:22.2695990Z echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
-2026-10-21T17:21:22.2696704Z echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
-2026-10-21T17:21:22.2697572Z echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
-2026-10-21T17:21:22.2698131Z echo "REMOTE_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
-2026-10-21T17:21:22.2698885Z echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
-2026-10-21T17:21:22.2699460Z echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
-2026-10-21T17:21:22.2699987Z echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
-2026-10-21T17:21:22.2700416Z echo "REMOTE_PROBE_OK"
-2026-10-21T17:21:24.1537200Z out: REMOTE_HOST=smartxflow
-2026-10-21T17:21:24.1592730Z out: REMOTE_SHA=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
-2026-10-21T17:21:24.1711125Z out: REMOTE_BASE_ACTIVE=active
-2026-10-21T17:21:24.1855850Z out: REMOTE_BASE_ENABLED=enabled
-2026-10-21T17:21:24.1950166Z out: REMOTE_TIMER_ACTIVE=active
-2026-10-21T17:21:24.2025679Z out: REMOTE_TIMER_ENABLED=enabled
-2026-10-21T17:21:24.2076209Z out: REMOTE_ALARM_ACTIVE=active
-2026-10-21T17:21:24.2158126Z out: REMOTE_WORKER_PID=2726695
-2026-10-21T17:21:24.2158528Z out: REMOTE_PROBE_OK
+2026-10-21T18:27:33.3310568Z echo "REMOTE_HOST=$(hostname)"
+2026-10-21T18:27:33.3311047Z echo "REMOTE_SHA=$(git -C /opt/smartxflow rev-parse HEAD || true)"
+2026-10-21T18:27:33.3311703Z echo "REMOTE_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+2026-10-21T18:27:33.3312756Z echo "REMOTE_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+2026-10-21T18:27:33.3313603Z echo "REMOTE_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+2026-10-21T18:27:33.3315057Z echo "REMOTE_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+2026-10-21T18:27:33.3315792Z echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
+2026-10-21T18:27:33.3316512Z echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
+2026-10-21T18:27:33.3317079Z echo "REMOTE_PROBE_OK"
+2026-10-21T18:27:35.3131208Z out: REMOTE_HOST=smartxflow
+2026-10-21T18:27:35.3210104Z out: REMOTE_SHA=73dd9ffcd6869014a39d2215bdcabbf29cd4cbbc
+2026-10-21T18:27:35.3300712Z out: REMOTE_BASE_ACTIVE=active
+2026-10-21T18:27:35.3405904Z out: REMOTE_BASE_ENABLED=enabled
+2026-10-21T18:27:35.3489600Z out: REMOTE_TIMER_ACTIVE=active
+2026-10-21T18:27:35.3617223Z out: REMOTE_TIMER_ENABLED=enabled
+2026-10-21T18:27:35.3729819Z out: REMOTE_ALARM_ACTIVE=active
+2026-10-21T18:27:35.3792835Z out: REMOTE_WORKER_PID=2726695
+2026-10-21T18:27:35.3793552Z out: REMOTE_PROBE_OK
 pause_run_id=39642731590
