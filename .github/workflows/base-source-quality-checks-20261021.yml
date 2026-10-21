@@ -1,4 +1,4 @@
-name: Verify Betwatch The Draw mapping and Moneyway completeness 2026-10-21
+name: Verify Early T72 genuine zero-volume source recovery
 
 on:
   push:
@@ -28,6 +28,7 @@ jobs:
           python -m pytest -q \
             tests/test_betwatch_1x2_mapping_20261021.py \
             tests/test_moneyway_ingest_quality_20261021.py \
+            tests/test_moneyway_zero_volume_provenance_20261021.py \
             tests/test_runtime_scraper_recovery.py \
             tests/test_betwatch_prematch_identity_runtime.py > /tmp/source-tests.log 2>&1
           RC=$?
