@@ -188,3 +188,21 @@ def test_reschedule_quarantine_sql_preserves_live_worker_leases():
     assert "DELETE FROM " not in migration
     assert "TRUNCATE " not in migration
     assert "DROP " not in migration
+
+
+def test_superceded_job_keys_cannot_produce_false_complete_coverage():
+    class CannotRestoreHistoricalJob(Store):
+        def enqueue(self, fixtures, *, batch_size=200):
+            self.calls.append(("enqueue",len(fixtures),batch_size))
+            return 0  # old SUPERSEDED identity conflicts with immutable key
+    store=CannotRestoreHistoricalJob()
+    with pytest.raises(app.FixtureHorizonUnverified,
+                       match="post-enqueue checkpoint coverage incomplete"):
+        app.scan_horizon_once(None,store,now=NOW,catalog=Catalog([fixture(7)]))
+    assert ("drift",250) in store.calls
+
+
+def test_complete_snapshot_has_post_enqueue_verification():
+    store=Store()
+    app.scan_horizon_once(None,store,now=NOW,catalog=Catalog([fixture(8)]))
+    assert len([c for c in store.calls if c[0]=="read"])==2
