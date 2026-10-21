@@ -1,25 +1,11 @@
-SOURCE_SHA=5b21be11450221cd5f52c668929e7a1a5f39368f
-PYTEST_EXIT=1
-                    raise ValueError("checkpoint key / identity mismatch")
-                if _parse_time(r["checkpoint_at"]) != job.timestamp:
-                    raise ValueError("checkpoint time mismatch")
-                claimed.append(ClaimedCheckpoint(
-                    str(UUID(str(r["job_id"]))), str(UUID(str(r["lease_token"]))),
-                    job, int(r["attempt_count"])))
-            except (ValueError, KeyError, TypeError) as error:
->               raise DurableStoreError("invalid or mismatched claimed checkpoint") from error
-E               base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-
-base_signal_engine/storage.py:207: DurableStoreError
-=========================== short test summary info ============================
-FAILED tests/test_base_signal_phase4b.py::test_empty_base_sources_wait_and_never_complete - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-FAILED tests/test_base_signal_phase4b.py::test_partial_base_source_is_skipped_and_not_reported_as_complete - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-FAILED tests/test_base_signal_phase4b.py::test_early_t12_missing_source_waits_but_complete_no_hit_is_final - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-FAILED tests/test_base_signal_phase4b.py::test_wait_rpc_rejects_invalid_params_and_redacts_secrets - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-FAILED tests/test_base_signal_phase4b.py::test_complete_response_timeout_is_uncertain_not_a_fake_retry - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-5 failed, 204 passed in 0.76s
+SOURCE_SHA=e27c5000090a92342b0ed00e74be14430a9e81f2
+PYTEST_EXIT=0
+........................................................................ [ 34%]
+........................................................................ [ 68%]
+.................................................................        [100%]
+209 passed in 1.12s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
