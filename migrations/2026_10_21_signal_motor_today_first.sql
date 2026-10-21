@@ -22,6 +22,7 @@ BEGIN
             OR (j.state='LEASED' AND j.lease_expires_at<now())
         )
         AND j.run_after<=now()
+        AND j.ruleset_version='SXF_SIGNAL_MOTOR_V2_2026_10_22'
         -- A real source gap at one T checkpoint disqualifies that fixture.
         -- Future discovery/enqueue must never resurrect sibling jobs after
         -- an audited terminal fixture skip; original completed rows survive.
