@@ -92,7 +92,7 @@ def test_t6_authority_even_if_engine_rule_fails():
     assert choose_base_checkpoint(FX, "1X2", [t8, t6], KICKOFF-timedelta(hours=5)) == (6, "AUTHORITATIVE_T6")
     assert "1X2_CONCENTRATION_V1" not in names(evaluate_base(FX, 6, [t8, t6]))
     assert choose_base_checkpoint(FX, "1X2", [t8], KICKOFF-timedelta(hours=7)) == (8, "PRELIMINARY_T8")
-    assert choose_base_checkpoint(FX, "1X2", [t8], KICKOFF-timedelta(hours=5)) == (8, "FALLBACK_T8")
+    assert choose_base_checkpoint(FX, "1X2", [t8], KICKOFF-timedelta(hours=5)) == (None, "INSUFFICIENT_DATA")
 
 
 def test_no_late_checkpoint_except_early_retention():
