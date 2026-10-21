@@ -1,4 +1,4 @@
-SOURCE_SHA=f91c3812c272211439403cefac76e51cbd01031d
+SOURCE_SHA=5b21be11450221cd5f52c668929e7a1a5f39368f
 PYTEST_EXIT=1
                     raise ValueError("checkpoint key / identity mismatch")
                 if _parse_time(r["checkpoint_at"]) != job.timestamp:
@@ -17,7 +17,7 @@ FAILED tests/test_base_signal_phase4b.py::test_partial_base_source_is_skipped_an
 FAILED tests/test_base_signal_phase4b.py::test_early_t12_missing_source_waits_but_complete_no_hit_is_final - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
 FAILED tests/test_base_signal_phase4b.py::test_wait_rpc_rejects_invalid_params_and_redacts_secrets - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
 FAILED tests/test_base_signal_phase4b.py::test_complete_response_timeout_is_uncertain_not_a_fake_retry - base_signal_engine.storage.DurableStoreError: invalid or mismatched claimed checkpoint
-5 failed, 197 passed in 1.25s
+5 failed, 204 passed in 0.76s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
