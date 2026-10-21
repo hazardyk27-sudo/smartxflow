@@ -1,2 +1,2 @@
-READ_ONLY_PROBE=20261021_recheck_2126_istanbul
+READ_ONLY_PROBE=20261021_sanitized_worker_cycle_status
 NO_HOST_MUTATION=true
