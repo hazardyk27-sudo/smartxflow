@@ -21,6 +21,7 @@ from core.fixture_uid_dual_write import attach_fixture_uids_to_snapshots
 from core.fixture_uid_snapshot_authoritative import attach_provider_fixture_uids_to_snapshots
 from core.hash_utils import make_match_id_hash
 from core.moneyway_ingest_quality import summarize_ingest_quality
+from core.moneyway_quote_fidelity import observed_snapshot_quote
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
     fetch_prematch,
@@ -293,24 +294,6 @@ def _build_do_btts(home, away, league, date, runners_by_sel, prev: dict) -> dict
     }
 
 
-def _observed_snapshot_quote(runner: dict, value: float, total: float) -> tuple:
-    """Preserve source-confirmed zero money; never infer missing source fields.
-
-    The provider may legitimately expose a priced runner with explicit
-    zero volume. The historical snapshot has a real 0/0% observation,
-    not an absent side. A missing volume key/None is still UNKNOWN.
-    Missing prices, missing runners, or zero total market money cannot
-    produce a complete signal-eligible snapshot.
-    """
-    raw_odd = runner.get("odd")
-    odd = float(raw_odd) if raw_odd not in (None, "") else None
-    raw_volume = runner.get("volume")
-    observed = raw_volume is not None and raw_volume != "" and value >= 0
-    volume = value if observed else None
-    share = round(value / total * 100, 1) if observed and total > 0 else None
-    return odd, volume, share
-
-
 # ── Main scrape function ──────────────────────────────────────────────────────
 
 def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
@@ -458,7 +441,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 v2 = float(r2.get("volume") or 0)
                 total = v1 + vx + v2
                 for sel, r, v in [("1", r1, v1), ("X", rx, vx), ("2", r2, v2)]:
-                    odd_f, vol_f, shr_f = _observed_snapshot_quote(r, v, total)
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
                     if odd_f or (vol_f is not None and vol_f > 0):
                         all_snapshots.append({
                             "match_id_hash": mhash,
@@ -484,7 +467,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 vu = float(ru.get("volume") or 0)
                 total = vo + vu
                 for sel, r, v in [("O", ro, vo), ("U", ru, vu)]:
-                    odd_f, vol_f, shr_f = _observed_snapshot_quote(r, v, total)
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
                     if odd_f or (vol_f is not None and vol_f > 0):
                         all_snapshots.append({
                             "match_id_hash": mhash,
@@ -510,7 +493,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 vn = float(rn.get("volume") or 0)
                 total = vy + vn
                 for sel, r, v in [("Y", ry, vy), ("N", rn, vn)]:
-                    odd_f, vol_f, shr_f = _observed_snapshot_quote(r, v, total)
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
                     if odd_f or (vol_f is not None and vol_f > 0):
                         all_snapshots.append({
                             "match_id_hash": mhash,
