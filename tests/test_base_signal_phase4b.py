@@ -158,7 +158,7 @@ def test_wait_rpc_rejects_invalid_params_and_redacts_secrets():
 
 def test_complete_response_timeout_is_uncertain_not_a_fake_retry():
     rpc=Rpc(statuses={"sxf_base_complete_job":503})
-    report=execute_claims(Reader([snap("1X2",6)]),store(rpc),worker_id="w")
+    report=execute_claims(Reader([snap("1X2",6),snap("OU25",6),snap("BTTS",6)]),store(rpc),worker_id="w")
     assert report["commit_uncertain"]==1 and report["completed"]==0
     assert report["retry"]==0 and report["lease_lost"]==0
     assert not any(n=="sxf_base_fail_job" for n,_ in rpc.calls)
