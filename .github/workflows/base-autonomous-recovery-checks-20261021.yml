@@ -1,4 +1,4 @@
-name: Verify guarded Base restart and all existing checkpoint protections
+name: Verify Base live checkpoint throughput and guarded recovery
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          python -m pytest -q             tests/test_base_signal_priority_lanes.py             tests/test_base_signal_near_term_discovery.py             tests/test_base_signal_phase4c_discovery.py             tests/test_base_signal_hetzner_worker.py             tests/test_base_signal_storage.py             tests/test_base_autonomous_recovery_20261021.py tests/test_base_worker_systemd_watchdog.py tests/test_base_fixture_discovery_worker.py tests/test_base_worker_guarded_recovery.py \
+          python -m pytest -q             tests/test_base_signal_priority_lanes.py             tests/test_base_signal_near_term_discovery.py             tests/test_base_signal_phase4c_discovery.py             tests/test_base_signal_hetzner_worker.py             tests/test_base_signal_storage.py             tests/test_base_autonomous_recovery_20261021.py tests/test_base_worker_systemd_watchdog.py tests/test_base_fixture_discovery_worker.py tests/test_base_worker_guarded_recovery.py tests/test_base_backlog_throughput_20261021.py \
             tests/test_betwatch_1x2_mapping_20261021.py \
             tests/test_moneyway_ingest_quality_20261021.py \
             tests/test_runtime_scraper_recovery.py \
