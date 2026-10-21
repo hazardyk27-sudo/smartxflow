@@ -16,7 +16,7 @@ Cmnd_Alias SXF_UNIT_INSTALL = \
 
 Cmnd_Alias SXF_SYSTEMD_MUTATE = \
     /bin/systemctl daemon-reload, \
-    /bin/systemctl enable smartxflow-web.service smartxflow-scraper.service smartxflow-alarm.service smartxflow-sinyal.service smartxflow-live.service smartxflow-poly.service smartxflow-learning-archive-prematch.timer smartxflow-learning-archive-postmatch.timer, \
+    /bin/systemctl enable smartxflow-web.service smartxflow-scraper.service smartxflow-alarm.service smartxflow-live.service smartxflow-poly.service smartxflow-learning-archive-prematch.timer smartxflow-learning-archive-postmatch.timer, \
     /bin/systemctl enable --now smartxflow-learning-archive-prematch.timer, \
     /bin/systemctl enable --now smartxflow-learning-archive-postmatch.timer, \
     /bin/systemctl start smartxflow-learning-archive-prematch.service, \
@@ -24,7 +24,8 @@ Cmnd_Alias SXF_SYSTEMD_MUTATE = \
     /bin/systemctl restart smartxflow-web, \
     /bin/systemctl restart smartxflow-scraper, \
     /bin/systemctl restart smartxflow-alarm, \
-    /bin/systemctl restart smartxflow-sinyal, \
+    /bin/systemctl stop smartxflow-sinyal.service, \
+    /bin/systemctl disable smartxflow-sinyal.service, \
     /bin/systemctl restart smartxflow-live, \
     /bin/systemctl restart smartxflow-poly
 
