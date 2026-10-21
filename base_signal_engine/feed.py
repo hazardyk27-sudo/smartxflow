@@ -320,7 +320,10 @@ class BaseSignalsFeed:
             if row["kind"] == "CORRECTED":
                 delivery_timing = "RECONCILED_LATER"
             elif type(checkpoint_hours) is int and 1 <= checkpoint_hours <= 72:
-                grace_end = kickoff - timedelta(hours=checkpoint_hours) + timedelta(minutes=10)
+                # Scheduler waits 10m for source ingestion before the job
+                # can even be claimed. Allow another bounded 10m for durable
+                # DB claim/evaluation/commit; >20m is historical replay.
+                grace_end = kickoff - timedelta(hours=checkpoint_hours) + timedelta(minutes=20)
                 delivery_timing = ("LATE_EVALUATION" if recorded > grace_end else
                                    "CHECKPOINT_WINDOW")
             else:
