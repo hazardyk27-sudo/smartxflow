@@ -162,7 +162,9 @@ def test_fixture_level_missing_source_skip_is_atomic_and_does_not_rewrite_eviden
     """One missing real checkpoint disqualifies sibling jobs, not completed events."""
     sql=(ROOT/"migrations/2026_10_21_signal_motor_skip_future_only_guard.sql").read_text()
     for required in (
-        "SELECT j.fixture_uid INTO v_fixture_uid",
+        "SELECT j.fixture_uid,j.kickoff_utc INTO v_fixture_uid,v_kickoff_utc",
+        "sibling.kickoff_utc=v_kickoff_utc",
+        "j.kickoff_utc=v_kickoff_utc",
         "FOR UPDATE",
         "sibling.state='LEASED'",
         "sibling.lease_expires_at>now()",
