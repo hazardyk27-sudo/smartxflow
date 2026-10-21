@@ -211,7 +211,7 @@
     },
     "flt": {
       "all": "Todos",
-      "analysts": "Análisis",
+      "analysts": "Motor de señales",
       "apply": "Aplicar",
       "by_date": "Por fecha",
       "by_volume": "Por volumen",
@@ -833,7 +833,7 @@
     "alarm_listesi": "Lista de alarmas",
     "alarm_search_placeholder": "Buscar equipo ej. Chelsea, Galatasaray",
     "alarmlar": "Alarmas",
-    "analizler": "Análisis",
+    "analizler": "Motor de señales",
     "bu_mac_icin_alarm_hareketi_yok": "Sin actividad de alarma para este partido.",
     "canli": "En vivo",
     "canli_periyot_verileri": "Datos del período en vivo",
