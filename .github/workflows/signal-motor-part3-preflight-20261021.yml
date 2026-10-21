@@ -4,6 +4,8 @@ on:
     branches: [preview]
     paths:
       - '.github/workflows/signal-motor-part3-preflight-20261021.yml'
+      - 'migrations/2026_10_21_signal_motor_skip_future_only_guard.sql'
+      - 'tests/test_signal_motor_daily_skip_20261021.py'
   workflow_dispatch:
 permissions:
   contents: write
