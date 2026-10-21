@@ -148,3 +148,24 @@ def test_permanent_service_uses_native_watchdog_without_resurrecting_unsafe_exit
     assert "Restart=on-failure" in config
     assert "RestartPreventExitStatus=3 4" in config
     assert "RuntimeMaxSec=" not in config
+
+
+def test_stale_expired_lease_is_reclaimable_not_a_worker_crash(monkeypatch):
+    calls=[]
+    def claim(reader,store,**kwargs):
+        calls.append("claim")
+        return {"claimed":0,"completed":0,"waiting_data":0,"retry":0,
+                "lease_lost":0,"commit_uncertain":0}
+    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
+    class Store:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":1,"expired_leases":1},
+                    "reconciliation_queue":{"pending_due":0,"expired_leases":0}}
+    report=hetzner_worker.run_cycle(
+        object(),Store(),worker_id="autonomous",discover=False,
+        max_jobs=1,max_reconcile=0)
+    assert calls==["claim"]
+    assert report["healthy_cycle"] is True
+    assert report["expired_leases_awaiting_reclaim"]==1
+    assert report["coverage_state"]=="DEGRADED"
+    assert report["production_release_verified"] is False
