@@ -16,9 +16,15 @@ claim policy before the new worker has the new safe skip RPC.
 - The closest **real complete observed snapshot at or before T** within
   **59 minutes** is selected for that T. This window does not overlap the
   neighboring hourly anchor; V2 requires distinct 1X2 hour anchors.
-- Missing 1X2/OU25/BTTS selections at Base T mean the **checkpoint is skipped
-  and logged**, rather than synthesizing missing values, marking NO_SIGNAL
-  or retrying the same immutable empty source window indefinitely.
+- Missing original source data at any due T checkpoint means the **whole
+  fixture is skipped**, not just the failing checkpoint. The triggering job
+  receives `SOURCE_INCOMPLETE`; its unfinished sibling jobs receive
+  `FIXTURE_SKIPPED_UPSTREAM_GAP` (they are not falsely labeled as missing
+  observations at checkpoints that have not happened). The claim RPC
+  excludes already-skipped fixtures, including after a discovery replay.
+  Previously COMPLETED jobs and immutable source/signal events are preserved;
+  finished signal records belonging to skipped fixtures are hidden only
+  from the live signal feed. No missing odds are fabricated or re-tried forever.
 - A missing Base T-6 observation **never uses T-8 as a substitute**.
   Authentic prior T-8 events remain historical, not new T-6 picks.
 - Backlog of **already kicked-off** matches is no longer granted a worker
@@ -35,9 +41,10 @@ claim policy before the new worker has the new safe skip RPC.
 
 `SKIPPED_DATA` is a distinct terminal state; it is NOT `COMPLETED` or
 `NO_SIGNAL`. The new `sxf_base_skip_missing_source` PostgreSQL function
-requires a live valid row lease token and a due checkpoint. It only updates
-the existing checkpoint job, with a fixed source-only reason; it never
-inserts signal events or edits original moneyway rows.
+requires a live valid row lease token, a due checkpoint, and a kickoff in
+the future. One terminal operation also marks that fixture's other unfinished
+jobs as skipped; it refuses to invalidate another active leased job. It never
+inserts signal events, modifies COMPLETED jobs or edits original moneyway rows.
 The `sxf_base_claim_due_jobs_lane` migration preserves PostgreSQL
 `FOR UPDATE SKIP LOCKED`, per-job lease tokens, 1-job claims, and
 service_role-only execution. Existing completed events remain untouched.
