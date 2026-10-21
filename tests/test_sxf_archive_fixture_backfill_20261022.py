@@ -70,7 +70,7 @@ def test_default_cli_only_submits_read_only_query(monkeypatch,capsys):
         run.append((argv,kw))
         assert kw["input"].startswith("BEGIN TRANSACTION READ ONLY")
         assert "INSERT INTO" not in kw["input"]
-        return SimpleNamespace(stdout=json.dumps({"mode":"READ_ONLY","conflicts":0,"next_after_id":25})+"\\n")
+        return SimpleNamespace(stdout=json.dumps({"mode":"READ_ONLY","conflicts":0,"next_after_id":25}))
     monkeypatch.setattr(m.subprocess,"run",fake_psql)
     assert m.main(["--day","2026-10-05"])==0
     assert len(run)==1
