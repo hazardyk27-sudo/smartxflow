@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
-          python -m pytest -q             tests/test_base_signal_priority_lanes.py             tests/test_base_signal_near_term_discovery.py             tests/test_base_signal_phase4c_discovery.py             tests/test_base_signal_hetzner_worker.py             tests/test_base_signal_storage.py             tests/test_base_autonomous_recovery_20261021.py > /tmp/sxf-base-test.log 2>&1
+          python -m pytest -q             tests/test_base_signal_priority_lanes.py             tests/test_base_signal_near_term_discovery.py             tests/test_base_signal_phase4c_discovery.py             tests/test_base_signal_hetzner_worker.py             tests/test_base_signal_storage.py             tests/test_base_autonomous_recovery_20261021.py tests/test_base_worker_systemd_watchdog.py > /tmp/sxf-base-test.log 2>&1
           RC=$?
           {
             echo "commit=$GITHUB_SHA"
