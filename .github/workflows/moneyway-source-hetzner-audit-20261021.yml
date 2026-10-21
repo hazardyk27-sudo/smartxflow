@@ -1,4 +1,4 @@
-name: Audit corrected Betwatch The Draw source on Hetzner
+name: Audit Betwatch scraper logging and source identity on Hetzner
 
 on:
   push:
@@ -39,11 +39,12 @@ jobs:
             echo "MONEYWAY_DISCOVERY_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
             test "$(git -C /opt/smartxflow rev-parse HEAD)" = "$expected"
             test "$(systemctl is-active smartxflow-scraper.service)" = active
-            for i in $(seq 1 48); do
-              count="$(grep -c 'Snapshot source coverage 1X2:' /opt/smartxflow/logs/scraper.log || true)"
-              if [ "$count" -gt 0 ]; then break; fi
-              sleep 5
-            done
+            echo "MONEYWAY_SCRAPER_PROCESS"
+            systemctl show smartxflow-scraper.service -p MainPID -p ActiveEnterTimestamp -p Result -p StandardOutput --no-pager
+            echo "MONEYWAY_LOG_FILE_SIZE=$(stat -c '%s' /opt/smartxflow/logs/scraper.log || true)"
+            echo "MONEYWAY_LOG_FILE_MTIME=$(stat -c '%y' /opt/smartxflow/logs/scraper.log || true)"
+            echo "MONEYWAY_SELECTED_LOG_LINES"
+            grep -E 'Snapshot source coverage|UID-authoritative|Snapshot.*moneyway_snapshots|Scrape.*Başarılı|Master|AtomicLease|Betwatch.*Tamamlandı' /opt/smartxflow/logs/scraper.log | tail -n 16 || true
             echo "MONEYWAY_QUALITY_1X2_LOG_COUNT=$(grep -c 'Snapshot source coverage 1X2:' /opt/smartxflow/logs/scraper.log || true)"
             echo "MONEYWAY_QUALITY_LOG_COUNT=$(grep -c 'Snapshot source coverage' /opt/smartxflow/logs/scraper.log || true)"
             echo "MONEYWAY_LAST_QUALITY_RECORDS"
