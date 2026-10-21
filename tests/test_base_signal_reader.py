@@ -120,6 +120,24 @@ def test_malformed_incomplete_group_is_not_salvaged_from_other_timestamps():
     assert ev.market_states["1X2"] == "INSUFFICIENT_DATA"
 
 
+
+def test_nearby_raw_timestamps_are_not_stitched_into_a_fake_full_quote():
+    # An incomplete market at T-6 must not be manufactured from two
+    # independent scrape observations, even if only three seconds apart.
+    first = at(6)
+    second = first + timedelta(seconds=3)
+    partial = market_rows("1X2", first)[:2]
+    third_other_time = market_rows("1X2", second)[2:]
+    reader, _ = repo(partial + third_other_time)
+    source = reader.load_checkpoints(FX, hours=[6], as_of_utc=KICKOFF)
+    assert source.fetched_rows == 3
+    assert source.discarded_groups == 2
+    assert not source.snapshots
+    assert choose_base_checkpoint(FX, "1X2", source.snapshots, KICKOFF) == (
+        None, "INSUFFICIENT_DATA"
+    )
+
+
 def test_market_duplicate_side_rejected():
     rows = market_rows("OU25", at(6))
     rows.append(dict(rows[0], id=999000))
