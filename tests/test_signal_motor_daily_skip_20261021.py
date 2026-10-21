@@ -114,3 +114,45 @@ def test_title_is_signal_motor_in_seven_languages():
         assert obj["app"]["v4"]["title"]==title
         assert obj["app"]["flt"]["analysts"]==title
         assert obj["idx"]["analizler"]==title
+
+
+def test_additive_skip_future_only_guard_requires_causal_due_time_and_live_lease():
+    # The initial migration has already been deployed. Keep it immutable;
+    # use a separate additive migration to narrow the terminal transition.
+    sql=(ROOT/"migrations/2026_10_21_signal_motor_skip_future_only_guard.sql").read_text()
+    for required in (
+        "CREATE OR REPLACE FUNCTION public.sxf_base_skip_missing_source",
+        "j.job_id=p_job_id",
+        "j.lease_token=p_lease_token",
+        "j.state='LEASED'",
+        "j.lease_expires_at>now()",
+        "j.checkpoint_at<=now()",
+        "j.run_after<=now()",
+        "j.kickoff_utc>now()",
+        "p_reason NOT IN ('SOURCE_INCOMPLETE')",
+        "SET search_path TO 'public','pg_temp'",
+        "REVOKE ALL ON FUNCTION",
+        "FROM PUBLIC,anon,authenticated",
+        "GRANT EXECUTE ON FUNCTION",
+        "TO service_role",
+    ):
+        assert required in sql, required
+    assert "SECURITY DEFINER" not in sql.upper()
+    for forbidden in ("TRUNCATE ", "DELETE FROM ", "INSERT INTO public.sxf_base_signal_events"):
+        assert forbidden not in sql.upper() if forbidden != "INSERT INTO public.sxf_base_signal_events" else forbidden not in sql
+    assert sql.strip().startswith("-- Part 3 additive")
+    assert sql.rstrip().endswith("COMMIT;")
+
+
+def test_part3_migration_order_documented_and_first_migration_unmodified():
+    first=(ROOT/"migrations/2026_10_21_signal_motor_skip_missing.sql").read_text()
+    hard=(ROOT/"migrations/2026_10_21_signal_motor_skip_future_only_guard.sql").read_text()
+    claim=(ROOT/"migrations/2026_10_21_signal_motor_today_first.sql").read_text()
+    assert "SKIPPED_DATA" in first
+    assert "j.kickoff_utc>now()" in hard
+    assert "AT TIME ZONE 'Europe/Istanbul'" in claim
+    # This is an additive override of one existing RPC, not a destructive
+    # replay of the applied state-constraint migration.
+    assert "ALTER TABLE" not in hard.upper()
+    assert "DROP " not in hard.upper()
+    assert "CREATE OR REPLACE FUNCTION public.sxf_base_skip_missing_source" in hard
