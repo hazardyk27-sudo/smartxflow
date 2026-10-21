@@ -211,7 +211,7 @@
     },
     "flt": {
       "all": "All",
-      "analysts": "Analyses",
+      "analysts": "Signal Engine",
       "apply": "Apply",
       "by_date": "By date",
       "by_volume": "By volume",
@@ -833,7 +833,7 @@
     "alarm_listesi": "Alarm List",
     "alarm_search_placeholder": "Search team e.g. Chelsea, Galatasaray",
     "alarmlar": "Alarms",
-    "analizler": "Analyses",
+    "analizler": "Signal Engine",
     "bu_mac_icin_alarm_hareketi_yok": "No alarm activity for this match.",
     "canli": "Live",
     "canli_periyot_verileri": "Live Period Data",
