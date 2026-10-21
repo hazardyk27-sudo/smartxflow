@@ -19,7 +19,7 @@ def fixture():
         # a required archive partition date.
         "earliest_source": "2026-10-05",
         "source_date_axis": "observation_timestamp",
-        "archive_date_axis": "fixture_day",
+        "archive_date_axis": "kickoff_istanbul_day",
         "source_fixture_dates": ["2026-10-13", "2026-10-14"],
         "archives": [
             {"date": "2026-10-13", "status": "COMPLETE", "full": True, "cold": "VERIFIED", "allow": True},
