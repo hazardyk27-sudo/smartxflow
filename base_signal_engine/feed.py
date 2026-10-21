@@ -241,6 +241,32 @@ class BaseSignalsFeed:
                     raise BaseFeedUnavailable("duplicate checkpoint identity")
                 jobs[key] = item
 
+        # A missing authentic checkpoint disqualifies the entire fixture.
+        # Past completed signals remain immutable in the private audit ledger,
+        # but must not appear as a fresh pick for a skipped match.
+        # This is a separate bounded, service-role-only probe because the
+        # event's own job can be COMPLETED before a sibling is SKIPPED_DATA.
+        terminally_skipped = set()
+        for chunk in _chunks(ids):
+            skipped = self._get("sxf_base_checkpoint_jobs", [
+                ("select", "job_id,fixture_uid,kickoff_utc,last_error_code"),
+                ("fixture_uid", "in.(" + ",".join(chunk) + ")"),
+                ("state", "eq.SKIPPED_DATA"),
+                ("last_error_code", "eq.SOURCE_INCOMPLETE"),
+                ("limit", str(len(chunk) + 1)),
+            ])
+            if len(skipped) > len(chunk):
+                raise BaseFeedUnavailable("ambiguous terminal fixture skips")
+            for marker in skipped:
+                uid = _uid(marker.get("fixture_uid"))
+                if uid not in chunk or uid not in fixtures:
+                    raise BaseFeedUnavailable("foreign terminal fixture skip")
+                if _utc(marker.get("kickoff_utc")) != _utc(fixtures[uid].get("kickoff_utc")):
+                    raise BaseFeedUnavailable("fixture skip kickoff mismatch")
+                if marker.get("last_error_code") != "SOURCE_INCOMPLETE":
+                    raise BaseFeedUnavailable("untrusted terminal fixture skip")
+                terminally_skipped.add(uid)
+
         # T-8 signals remain in the append-only ledger after an authentic
         # T-6 market decision. Label them historical, never silently present
         # them as a fresh final recommendation.
@@ -278,6 +304,8 @@ class BaseSignalsFeed:
                 # A signal must never be rendered without a concrete pick.
                 continue
             uid = _uid(row["fixture_uid"])
+            if uid in terminally_skipped:
+                continue
             job_id = _uid(row["job_id"])
             fixture, job = fixtures.get(uid), jobs.get(job_id)
             if not fixture or not job or job.get("state") != "COMPLETED":
