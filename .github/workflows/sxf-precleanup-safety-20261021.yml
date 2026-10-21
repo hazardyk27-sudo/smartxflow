@@ -12,7 +12,7 @@ on:
       - scripts/maintenance/sxf_future_fixture_history_risk_readonly.sql
       - scripts/maintenance/sxf_archive_backfill_readiness_readonly.sql
       - scripts/maintenance/sxf_archive_snapshot_sample_readonly.sql
-      - scripts/maintenance/sxf_archive_fixture_backfill.py scripts/maintenance/sxf_archive_fixture_cold_export.py
+      - scripts/maintenance/sxf_archive_fixture_backfill.py
       - tests/test_sxf_archive_fixture_backfill_20261022.py
       - scripts/maintenance/sxf_archive_fixture_cold_export.py
       - tests/test_sxf_archive_fixture_cold_export_20261022.py
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Compile readonly audit module
-        run: python -m py_compile scripts/maintenance/sxf_precleanup_preflight.py scripts/maintenance/sxf_archive_fixture_backfill.py
+        run: python -m py_compile scripts/maintenance/sxf_precleanup_preflight.py scripts/maintenance/sxf_archive_fixture_backfill.py scripts/maintenance/sxf_archive_fixture_cold_export.py
       - name: Install test dependency only
         run: python -m pip install --disable-pip-version-check pytest==8.3.5 requests==2.31.0
       - name: Enforce fail-closed gates
