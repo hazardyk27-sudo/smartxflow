@@ -211,7 +211,7 @@
     },
     "flt": {
       "all": "Tümü",
-      "analysts": "Analizler",
+      "analysts": "Sinyal Motoru",
       "apply": "Uygula",
       "by_date": "Tarihe göre",
       "by_volume": "Hacmine göre",
@@ -833,7 +833,7 @@
     "alarm_listesi": "Alarm Listesi",
     "alarm_search_placeholder": "Takım ara Örn: Chelsea, Galatasaray",
     "alarmlar": "Alarmlar",
-    "analizler": "Analizler",
+    "analizler": "Sinyal Motoru",
     "bu_mac_icin_alarm_hareketi_yok": "Bu maç için alarm hareketi yok.",
     "canli": "Canlı",
     "canli_periyot_verileri": "Canlı Periyot Verileri",
