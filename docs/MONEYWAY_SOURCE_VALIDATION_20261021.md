@@ -78,3 +78,25 @@ were included.
 Release does not retroactively alter historical source observations.
 After Hetzner deploy, compare the next successful moneyway snapshot batch
 rather than inferring success from service state alone.
+
+## Live correction: verified Betwatch 'The Draw' label
+
+After the first strict mapping release, the 2026-10-21T01:47:06Z scrape
+produced 466 OU25/BTTS snapshot rows and zero 1X2 rows. This was a
+regression, not evidence of no Match Odds market. A **read-only** single
+`GET /football/prematch` from authorized Hetzner returned 728 fixtures,
+717 with Match Odds and **three runners each**. The actual draw runner was
+consistently sampled as `The Draw` (examples:
+`Abha, The Draw, Al-Kholood Club` and `Sweden, The Draw, Bosnia`),
+which the new strict mapping did not recognize.
+
+The compatibility hotfix recognizes the provider's explicit label
+`the draw` (casefolded) without positional guessing. All six permutations
+of actual three-runner source labels were added as regression tests.
+
+GitHub Actions source test suite after the correction: **26 passed**,
+`pytest_exit_code=0`, commit
+`ddb7937d066aabe182a792b6b98875ca278f58c9`.
+A production release is successful only when fresh source
+`moneyway_snapshots` again contains 1X2 rows and the mapper no longer
+silently discards Match Odds.
