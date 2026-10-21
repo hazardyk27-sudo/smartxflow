@@ -305,3 +305,65 @@ def test_checkpoint_window_and_corrections_have_distinct_delivery_labels():
     corrected["details"]["decision"]="HIT"
     signal=_feed(Source(start,events=[corrected])).read(start)["items"][0]
     assert signal["delivery_timing"]=="RECONCILED_LATER"
+
+
+def test_price_rejected_signal_kept_in_archive_but_not_counted_as_valid():
+    start=_day()
+    event=_event(start,ident=201,engine="HEAVY_1X2_CONCENTRATION")
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
+    event["details"].update({"odds":"1.18","selection_status":"PRICE_FILTER_REJECT"})
+    result=_feed(Source(start,events=[event])).read(start)
+    assert len(result["items"])==1
+    item=result["items"][0]
+    assert item["selection_status"]=="PRICE_FILTER_REJECT"
+    assert item["review_state"]=="PRICE_REJECTED"
+    assert item["valid_on_time"] is False
+    assert item["delivery_timing"]=="CHECKPOINT_WINDOW"
+
+
+def test_retroactive_signal_remains_audit_record_not_timely_pick():
+    start=_day()
+    event=_event(start,ident=202,engine="EARLY_MONEY_T12",kind="EARLY_SIGNAL")
+    event["job_checkpoint_hours"]=12
+    event["source_checkpoint_hours"]=12
+    event["recorded_at"]=(datetime.fromisoformat(_stamp(start))+
+                          timedelta(minutes=1)).isoformat()
+    event["details"]["selection_status"]="ELIGIBLE"
+    result=_feed(Source(start,events=[event])).read(start)
+    item=result["items"][0]
+    assert item["review_state"]=="LATE_HISTORY"
+    assert item["valid_on_time"] is False
+    assert item["delivery_timing"]=="LATE_EVALUATION"
+
+
+def test_timely_eligible_signal_is_countable():
+    start=_day()
+    event=_event(start,ident=203,engine="SURPRISE_TEAM")
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
+    event["details"]["selection_status"]="ELIGIBLE"
+    result=_feed(Source(start,events=[event])).read(start)
+    item=result["items"][0]
+    assert item["review_state"]=="VALID_PREMATCH_RECORD"
+    assert item["valid_on_time"] is True
+
+
+def test_unknown_legacy_eligibility_fails_closed_without_dropping_record():
+    start=_day()
+    event=_event(start,ident=204)
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
+    result=_feed(Source(start,events=[event])).read(start)
+    item=result["items"][0]
+    assert item["review_state"]=="UNVERIFIED_STATUS"
+    assert item["valid_on_time"] is False
+
+
+def test_corrected_reconciliation_is_not_fresh_signal_even_with_eligible_state():
+    start=_day()
+    event=_event(start,ident=205,kind="CORRECTED")
+    event["details"].update({"decision":"HIT","selection_status":"ELIGIBLE"})
+    item=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert item["review_state"]=="RECONCILED_HISTORY"
+    assert item["valid_on_time"] is False
