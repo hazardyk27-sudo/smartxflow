@@ -20,6 +20,7 @@ from core.fixture_uid_authoritative_writer import write_provider_authoritative_f
 from core.fixture_uid_dual_write import attach_fixture_uids_to_snapshots
 from core.fixture_uid_snapshot_authoritative import attach_provider_fixture_uids_to_snapshots
 from core.hash_utils import make_match_id_hash
+from core.moneyway_ingest_quality import summarize_ingest_quality
 from standalone_scraper import SupabaseWriter, get_turkey_now
 from betwatch_client import (
     fetch_prematch,
@@ -642,6 +643,15 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             _log(f"[BW-Pre]   [HATA] {tbl}: (main={ok_main}, hist={ok_hist})")
             write_errors += 1
 
+    snapshot_quality = summarize_ingest_quality(all_snapshots)
+    for market, quality in snapshot_quality.items():
+        _log(
+            f"[BW-Pre] Snapshot source coverage {market}: "
+            f"complete={quality['complete']}/{quality['groups']} "
+            f"missing_sides={quality['missing_sides']} "
+            f"invalid_fields={quality['invalid_fields']} "
+            f"duplicate_sides={quality['duplicate_sides']}"
+        )
     if all_snapshots:
         ok = writer.insert_snapshots("moneyway_snapshots", all_snapshots)
         tag = "OK" if ok else "HATA"
@@ -657,6 +667,7 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
         "write_errors": write_errors,
         "fixture_identity_mode": identity_mode,
         "legacy_hash_collision_groups": legacy_hash_collision_groups,
+        "snapshot_quality": snapshot_quality,
     }
 
     _log(
