@@ -1,4 +1,4 @@
-name: Verify Base autonomous recovery 2026-10-21
+name: Verify Base autonomous recovery 2026-10-21 (expired lease recovery)
 
 on:
   push:
