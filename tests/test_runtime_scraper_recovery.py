@@ -59,6 +59,10 @@ def _load_scheduled_scraper_with_stubs(monkeypatch):
     retention.retention_cleanup_disabled = lambda: True
     monkeypatch.setitem(sys.modules, "core", core_pkg)
     monkeypatch.setitem(sys.modules, "core.retention_guard", retention)
+    recovery = _load_module(
+        "core.prematch_stall_recovery", ROOT / "core" / "prematch_stall_recovery.py"
+    )
+    monkeypatch.setitem(sys.modules, "core.prematch_stall_recovery", recovery)
 
     return _load_module("scheduled_scraper_runtime_test", ROOT / "scheduled_scraper_legacy.py")
 
