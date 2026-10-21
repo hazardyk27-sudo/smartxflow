@@ -139,3 +139,31 @@ review microbatch cleanup and production release independently.
 
 As of these changes: no live index removal, no data deletion, no
 `research_archive` mutation, and no Hetzner/main deployment.
+
+## 21 October continuation — cold backup blocker and actionable backfill order
+
+Scope remains development on `preview`, read-only production auditing, NO cleanup or release.
+
+### Confirmed live state
+- Private Storage bucket `sxf-research-archive` **exists** but `storage.objects` reports **0 objects / 0 bytes / 0 manifests**. The running Supabase edge function `sxf-research-archive-export` is **ACTIVE v3**, but an active function is not proof that it exported anything. A separate, recoverable cold backup has **not** been demonstrated by this bucket.
+- `research_archive.raw_backfill_receipts` contains only recent (Oct 18–20) dated entries; this does not establish backfill of Oct 5–8.
+- Source fixtures for **Oct 5–8 by Turkey-local kickoff date: 73 + 156 + 118 + 155 = 502**. Matching `research_archive.fixtures` rows: **zero**. Oct 9–14: 1,570/1,570 fixture UIDs matched.
+- `public.fixtures` has **16** hashes reused across **32** physical fixture UIDs. Hash-only selection is not safe.
+- PostgreSQL `pg_stats` (ESTIMATES, not full counts) show NULL `fixture_uid` fraction in `public.live_snapshots` around 1.0 and `public.moneyway_snapshots` around 0.045; exact linkage for non-UID rows still needs a verified physical fixture resolver. No unsafe cross-fixture fallback.
+- `research_archive.archive_supplemental_raw_day(date)` is an existing privileged database function. Source review confirms it: writes only supplemental dropping history, moneyway/live snapshots (not missing archive fixture entries or all primary 1X2 histories); disables statement timeout inside the function; uses hash fallback on source rows with no UID; and updates archive_runs counters. **Do not invoke against the missing days** until separately reviewed/reworked. Note: `research_archive` tables reject UPDATE/DELETE under append-only triggers; this function's archive_runs metadata updates do not prove safe history parity.
+- Edge function source review of `sxf-research-archive-export` v3 shows **5,000-row LIMIT/OFFSET pages with ctid-based ordering** for some datasets, and `match_id_hash OR fixture_uid` target selection. Live source mutation while paging, reused hashes, partial upload failures and response timeouts make blind bulk export inappropriate. Existing Storage contains zero files.
+- A small positive spot check for 2026-10-14 (8 fixtures, earliest 3 moneyway snapshots each) found **24/24** source IDs in archived `moneyway_snapshots`. This is intentionally not called full raw parity.
+
+### Reproducible audits — executed successfully against live Supabase
+1. `scripts/maintenance/sxf_archive_backfill_readiness_readonly.sql`: reports Turkey-local day-specific missing archive fixtures, private bucket file/manifests count, hash collision count and hardcoded **false** for backup restore and full parity.
+2. `scripts/maintenance/sxf_archive_snapshot_sample_readonly.sql`: bounded 8-fixture / 3-snapshot-per-fixture source-ID sample with indexed archive lookup; always marks `complete_row_parity_verified=false`.
+3. Existing `sxf_precleanup_evidence.sql`, `sxf_archive_fixture_parity_readonly.sql`, `sxf_duplicate_index_audit_readonly.sql` and `sxf_future_fixture_history_risk_readonly.sql` remain mandatory. All are READ ONLY and have CI static contract coverage.
+
+### Safe staged recovery sequence (not executed)
+1. Build a **separate append-only historic fixture backfill** for Oct 5–8, keyed by source `internal_id` and `fixture_uid`, computing local date from timezone-converted `kickoff_utc`. Never use only `match_id_hash`. Batch small and record independent insert verification. Protect `research_archive` immutability; no rewrites.
+2. Reconcile 1X2, O/U2.5, BTTS, dropping, Moneyway and Live raw datasets **source row by source row** via verifiable source IDs/fingerprints and exact fixture UID. For legacy NULL fixture UIDs, require additional credible team/league/kickoff identity data, chronology and ambiguity checks. Mark an ambiguous row **unmatched/protected**, never guess.
+3. Replace the Edge export pager with a **bounded, resumable, snapshot-consistent, physically scoped** implementation; restrict hash fallback to independently unambiguous IDs, add checksums, idempotent parts and final manifests. Export to private Storage; verify Storage object totals and restore a representative dataset into a separate isolated environment.
+4. Require independent cold-backup proof, fixture and source-row parity on all eligible dates, future-fixture T-72 preservation, archive status and case hold checks before any source retention deletion.
+5. Index optimization (~269 MB candidate) is a **separate release**: compare catalog constraints and usage, take production baseline, obtain exact SHA approval, drop at low load one at a time with CONCURRENTLY outside transaction, verify read/write performance. Do not tie to any unsafe old DELETE routine.
+
+No bucket writes, Edge deployments, functions called, database DDL, index drops, source/archived row mutations or Hetzner deployments occurred in this continuation.
