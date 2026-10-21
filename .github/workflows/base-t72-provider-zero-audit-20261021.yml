@@ -1,0 +1,118 @@
+name: Read-only Betwatch T72 source zero-volume audit
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-t72-provider-zero-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Inspect provider fields from authorized Hetzner (no writes)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 6m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            cd /opt/smartxflow
+            /opt/smartxflow/venv/bin/python - <<'PY'
+            import collections,datetime,json,math,requests
+            secret=""
+            with open("/opt/smartxflow/.env",encoding="utf-8") as stream:
+                for item in stream:
+                    if item.startswith("Betwach_api_key="):
+                        secret=item.split("=",1)[1].strip().strip("'\"")
+                        break
+            if not secret:
+                raise SystemExit("PROVIDER_T72_KEY_UNAVAILABLE")
+            response=requests.get("https://api.betwatch.fr/api/v1/football/prematch",
+                    headers={"Authorization":"Token "+secret,"Accept":"application/json",
+                             "User-Agent":"SmartXFlow/2.0"},timeout=40)
+            print("T72_PROVIDER_HTTP="+str(response.status_code))
+            response.raise_for_status()
+            rows=response.json()
+            if not isinstance(rows,list):
+                raise SystemExit("PROVIDER_T72_INVALID_UNIVERSE")
+            now=datetime.datetime.now(datetime.timezone.utc)
+            sums=collections.Counter()
+            for fixture in rows:
+                kickoff=fixture.get("kickoff") or ""
+                try:
+                    ko=datetime.datetime.fromisoformat(kickoff.replace("Z","+00:00")).astimezone(datetime.timezone.utc)
+                except (ValueError,TypeError,AttributeError): continue
+                h=(ko-now).total_seconds()/3600
+                bucket="72-96" if 72<=h<96 else "60-72" if 60<=h<72 else "0-60" if 0<=h<60 else "96+" if h>=96 else "past"
+                sums[bucket+":fixtures"]+=1
+                for market in fixture.get("markets",[]) or []:
+                    name=market.get("name") or ""
+                    if name=="Match Odds":mk="1X2"
+                    elif name.startswith("Over/Under 2.5"):mk="OU25"
+                    elif name=="Both teams to Score?":mk="BTTS"
+                    else:continue
+                    runners=market.get("runners",[]) or []
+                    sums[bucket+":"+mk+":markets"]+=1
+                    for r in runners:
+                        sums[bucket+":"+mk+":runners"]+=1
+                        vol=r.get("volume")
+                        odd=r.get("odd")
+                        if vol is None:sums[bucket+":"+mk+":volume_missing"]+=1
+                        else:
+                            try:
+                                v=float(vol)
+                                if math.isfinite(v) and v==0:sums[bucket+":"+mk+":volume_zero_explicit"]+=1
+                                elif math.isfinite(v) and v>0:sums[bucket+":"+mk+":volume_positive"]+=1
+                                else:sums[bucket+":"+mk+":volume_invalid"]+=1
+                            except (ValueError,TypeError):sums[bucket+":"+mk+":volume_invalid"]+=1
+                        if odd is None:sums[bucket+":"+mk+":odd_missing"]+=1
+                        else:
+                            try:
+                                o=float(odd)
+                                if math.isfinite(o) and o>=1:sums[bucket+":"+mk+":odd_valid"]+=1
+                                else:sums[bucket+":"+mk+":odd_invalid"]+=1
+                            except (ValueError,TypeError):sums[bucket+":"+mk+":odd_invalid"]+=1
+                        if vol is not None and odd is not None:
+                            try:
+                                if float(vol)==0 and float(odd)>=1:sums[bucket+":"+mk+":zero_with_valid_odd"]+=1
+                            except (ValueError,TypeError):pass
+            print("T72_PROVIDER_AUDIT_UTC="+now.isoformat())
+            print("T72_PROVIDER_FIXTURE_TOTAL="+str(len(rows)))
+            for k,v in sorted(sums.items()):
+                print("T72_STAT_"+k.replace(":","_")+"="+str(v))
+            print("T72_PROVIDER_AUDIT_OK")
+            PY
+  publish:
+    needs: source-audit
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save bounded source field counters
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "ssh_result=${{ needs.source-audit.result }}" > /tmp/provider-audit.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="source-audit") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/provider-raw.txt || true
+            grep -E 'out: T72_(STAT_|PROVIDER_)' /tmp/provider-raw.txt | tail -n 140 >> /tmp/provider-audit.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/provider-audit.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_T72_PROVIDER_FIELD_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops: update sanitized T72 provider-field evidence" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops: publish sanitized T72 provider-field evidence" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
