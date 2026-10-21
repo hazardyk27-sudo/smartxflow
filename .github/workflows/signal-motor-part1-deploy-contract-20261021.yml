@@ -1,4 +1,4 @@
-name: Signal Motor Part 1 - Retired service deploy contract
+name: Signal Motor Part 2 - Regression daily order, causal snapshot and data skip
 on:
   push:
     branches: [preview]
@@ -21,7 +21,22 @@ jobs:
         run: |
           set +e
           python -m pip install -q pytest pyyaml
-          python -m pytest -q tests/test_hetzner_runtime_contract.py > /tmp/part1-pytest.log 2>&1
+          python -m pytest -q \
+            tests/test_signal_motor_daily_skip_20261021.py \
+            tests/test_base_signal_rules.py \
+            tests/test_base_signal_reader.py \
+            tests/test_base_signal_scheduler.py \
+            tests/test_base_signal_phase4b.py \
+            tests/test_base_signal_priority_lanes.py \
+            tests/test_base_backlog_throughput_20261021.py \
+            tests/test_base_missing_source_backoff_20261021.py \
+            tests/test_base_signal_real_source_smoke.py \
+            tests/test_analysis_merged_feed_api.py \
+            tests/test_base_signals_feed.py \
+            tests/test_base_signal_storage.py \
+            tests/test_base_signal_hetzner_worker.py \
+            tests/test_base_signal_near_term_discovery.py \
+            tests/test_hetzner_runtime_contract.py > /tmp/part1-pytest.log 2>&1
           PY_RC=$?
           bash -n deploy/hetzner_preflight.sh
           PREFLIGHT_RC=$?
@@ -41,7 +56,7 @@ jobs:
           {
             echo "SOURCE_SHA=$GITHUB_SHA"
             echo "PYTEST_EXIT=$PY_RC"
-            tail -n 22 /tmp/part1-pytest.log
+            tail -n 150 /tmp/part1-pytest.log
             echo "BASH_PREFLIGHT_EXIT=$PREFLIGHT_RC"
             echo "BASH_UNIT_SYNC_EXIT=$SYNC_RC"
             echo "VISUDO_EXIT=$SUDO_RC"
@@ -50,11 +65,11 @@ jobs:
           } > /tmp/part1-release-report.txt
           cat /tmp/part1-release-report.txt
           DATA="$(base64 -w0 /tmp/part1-release-report.txt)"
-          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART1_DEPLOY_TEST_20261021.txt"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART2_FULL_TEST_20261021.txt"
           OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
           if [ -n "$OLD" ]; then
-            gh api -X PUT "$DEST" -f message="test(signal): publish Part 1 Hetzner deployment contract" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+            gh api -X PUT "$DEST" -f message="test(signal): publish Part 2 full signal motor regression" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
           else
-            gh api -X PUT "$DEST" -f message="test(signal): publish Part 1 Hetzner deployment contract" -f branch=preview -f content="$DATA" --jq .commit.sha
+            gh api -X PUT "$DEST" -f message="test(signal): publish Part 2 full signal motor regression" -f branch=preview -f content="$DATA" --jq .commit.sha
           fi
           test "$PY_RC" -eq 0 && test "$PREFLIGHT_RC" -eq 0 && test "$SYNC_RC" -eq 0 && test "$SUDO_RC" -eq 0 && test "$YAML_RC" -eq 0
