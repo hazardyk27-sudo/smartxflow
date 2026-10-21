@@ -56,7 +56,7 @@ class Rpc:
             ruleset_version="SXF_BASE_V1_2026_10_18",
             fixture_uid=UID,kickoff_utc=KO.isoformat(),checkpoint_hours=job.hours,
             family=job.family,checkpoint_at=job.timestamp.isoformat(),attempt_count=1)],
-            "sxf_base_wait_for_data": True, "sxf_base_renew_lease": True,
+            "sxf_base_wait_for_data": True, "sxf_base_skip_missing_source": True, "sxf_base_renew_lease": True,
             "sxf_base_complete_job": True, "sxf_base_fail_job": True}
         self.results.update(results or {})
         self.statuses = statuses or {}
@@ -78,10 +78,10 @@ def test_t6_source_coverage_is_market_independent_and_no_fallback_when_t6_valid(
     captured=CapturingReader(reader)
     payload=evaluate_job(JOB6,captured)
     state=source_coverage(JOB6,captured.source,payload)
-    assert state["disposition"]=="EVALUATE"
+    assert state["disposition"]=="WAITING_DATA"
     assert state["state"]=="PARTIAL"
     assert state["markets"]["1X2"]["authority"]=="T6"
-    assert state["markets"]["OU25"]["authority"]=="T8_FALLBACK"
+    assert state["markets"]["OU25"]["authority"]=="MISSING"
     assert state["markets"]["BTTS"]["authority"]=="MISSING"
     assert state["missing_t6_markets"]==["OU25","BTTS"]
     assert not any(s["engine"]=="1X2_CONCENTRATION_V1" for s in payload["signals"])
@@ -96,34 +96,31 @@ def test_t8_has_no_future_t6_inspection():
     state=source_coverage(job,captured.source,payload)
     assert state["markets"]["1X2"]["authority"]=="T8_PRELIMINARY"
     assert state["markets"]["OU25"]["authority"]=="MISSING"
-    assert state["disposition"]=="EVALUATE"
+    assert state["disposition"]=="WAITING_DATA"
 
 
 def test_empty_base_sources_wait_and_never_complete():
     rpc=Rpc()
     metrics=execute_claims(Reader([]),store(rpc),worker_id="worker")
-    assert metrics["waiting_data"]==1 and metrics["completed"]==0
+    assert metrics["skipped_data"]==1 and metrics["completed"]==0
     assert [name for name,_ in rpc.calls]==[
-        "sxf_base_claim_due_jobs","sxf_base_wait_for_data"]
+        "sxf_base_claim_due_jobs","sxf_base_skip_missing_source"]
     assert rpc.calls[1][1]["p_reason"]=="SOURCE_INCOMPLETE"
 
 
-def test_partial_base_source_commits_evidence_and_reports_reconciliation_need():
+def test_partial_base_source_is_skipped_and_not_reported_as_complete():
     rpc=Rpc()
     metrics=execute_claims(Reader([snap("1X2",6),snap("OU25",8)]),store(rpc),worker_id="worker")
-    assert metrics["completed"]==1 and metrics["waiting_data"]==0
+    assert metrics["completed"]==0 and metrics["skipped_data"]==1
     assert [name for name,_ in rpc.calls]==[
-        "sxf_base_claim_due_jobs","sxf_base_renew_lease","sxf_base_complete_job"]
-    p=rpc.calls[-1][1]["p_payload"]
-    assert p["source_coverage"]["requires_reconciliation"]
-    assert p["source_coverage"]["missing_markets"]==["BTTS"]
-    assert p["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
+        "sxf_base_claim_due_jobs","sxf_base_skip_missing_source"]
+    assert rpc.calls[-1][1]["p_reason"]=="SOURCE_INCOMPLETE"
 
 
 def test_early_t12_missing_source_waits_but_complete_no_hit_is_final():
     job=CheckpointJob(REF,12,"EARLY_T12")
     rpc=Rpc(job=job)
-    assert execute_claims(Reader([]),store(rpc),worker_id="w")["waiting_data"]==1
+    assert execute_claims(Reader([]),store(rpc),worker_id="w")["skipped_data"]==1
     rpc=Rpc(job=job)
     answer=execute_claims(Reader([snap("1X2",12,strong=False)]),store(rpc),worker_id="w")
     assert answer["completed"]==1
