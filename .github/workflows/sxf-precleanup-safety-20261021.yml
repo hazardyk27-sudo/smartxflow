@@ -8,6 +8,8 @@ on:
       - scripts/maintenance/sxf_precleanup_preflight.py
       - scripts/maintenance/sxf_precleanup_evidence.sql
       - tests/test_sxf_precleanup_preflight.py
+      - tests/test_sxf_retention_guard_approval.py
+      - core/retention_guard.py
 permissions:
   contents: read
 jobs:
@@ -24,7 +26,7 @@ jobs:
       - name: Install test dependency only
         run: python -m pip install --disable-pip-version-check pytest==8.3.5
       - name: Enforce fail-closed gates
-        run: python -m pytest -q tests/test_sxf_precleanup_preflight.py
+        run: python -m pytest -q tests/test_sxf_precleanup_preflight.py tests/test_sxf_retention_guard_approval.py
       - name: Reject destructive audit SQL accidentally added
         run: |
           python - <<'PY'
