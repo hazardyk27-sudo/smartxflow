@@ -183,7 +183,6 @@ for unit in \
   smartxflow-web.service \
   smartxflow-scraper.service \
   smartxflow-alarm.service \
-  smartxflow-sinyal.service \
   smartxflow-live.service \
   smartxflow-poly.service \
   smartxflow-predictor-orchestrator.service \
@@ -191,6 +190,14 @@ for unit in \
   smartxflow-learning-archive-postmatch.timer; do
   check_enabled_active "$unit"
 done
+
+legacy_enabled="$(systemctl is-enabled smartxflow-sinyal.service 2>/dev/null || true)"
+legacy_active="$(systemctl is-active smartxflow-sinyal.service 2>/dev/null || true)"
+if [ "$legacy_enabled" = disabled ] && [ "$legacy_active" != active ]; then
+  pass "retired legacy signals disabled and stopped"
+else
+  fail "retired legacy signals not fully disabled/stopped (enabled=$legacy_enabled active=$legacy_active)"
+fi
 
 section "ENTRYPOINT READBACK"
 check_exec_contains smartxflow-web.service "gunicorn"
@@ -225,7 +232,7 @@ section "LOCAL PROCESS DUPLICATION"
 for spec in \
   'prematch_authoritative_runtime.py:1' \
   'alarm_engine.py:1' \
-  'sinyal_engine_runtime.py:1' \
+  'sinyal_engine_runtime.py:0' \
   'live_scraper.py:1' \
   'polymarket_scraper.py:1'; do
   pattern="${spec%:*}"
