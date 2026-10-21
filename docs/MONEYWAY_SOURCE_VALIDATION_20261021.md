@@ -65,3 +65,16 @@ Tests must verify permutation symmetry, reject ambiguity, preserve OU25/BTTS,
 report missing sides despite sum(share)==100, and respect existing scraper
 identity integration. After deploy, compare new per-batch quality logs and
 Supabase complete-group percentages with the pre-release baseline.
+
+## Focused pre-release test result
+
+GitHub Actions isolated source suite on `preview`:
+`pytest_exit_code=0`, **25 passed** at commit
+`28131ce108ec8e28f906c611ae93cf33e5baf164`.
+Both source client implementations, the prematch writer integration, six
+runner-order permutations, missing-price refusal, and completeness telemetry
+were included.
+
+Release does not retroactively alter historical source observations.
+After Hetzner deploy, compare the next successful moneyway snapshot batch
+rather than inferring success from service state alone.
