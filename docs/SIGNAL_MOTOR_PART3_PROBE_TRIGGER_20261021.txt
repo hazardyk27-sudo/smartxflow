@@ -1,1 +1,2 @@
-READ_ONLY_PROBE=post_pause_failure
+READ_ONLY_PROBE=20261021_recheck_2126_istanbul
+NO_HOST_MUTATION=true
