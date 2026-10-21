@@ -13,6 +13,7 @@ SET search_path TO 'public','pg_temp'
 AS $function$
 DECLARE
     v_fixture_uid uuid;
+    v_kickoff_utc timestamptz;
 BEGIN
     IF p_job_id IS NULL OR p_lease_token IS NULL
        OR p_reason IS DISTINCT FROM 'SOURCE_INCOMPLETE' THEN
@@ -21,7 +22,7 @@ BEGIN
 
     -- Only a LIVE, due and correctly fenced source job can initiate a fixture
     -- skip. No retroactive cleanup after kickoff; no invented observations.
-    SELECT j.fixture_uid INTO v_fixture_uid
+    SELECT j.fixture_uid,j.kickoff_utc INTO v_fixture_uid,v_kickoff_utc
       FROM public.sxf_base_checkpoint_jobs j
      WHERE j.job_id=p_job_id
        AND j.lease_token=p_lease_token
@@ -41,6 +42,7 @@ BEGIN
     IF EXISTS(
         SELECT 1 FROM public.sxf_base_checkpoint_jobs sibling
          WHERE sibling.fixture_uid=v_fixture_uid
+           AND sibling.kickoff_utc=v_kickoff_utc
            AND sibling.job_id<>p_job_id
            AND sibling.state='LEASED'
            AND sibling.lease_expires_at>now()
@@ -59,6 +61,7 @@ BEGIN
            waiting_since=COALESCE(j.waiting_since,now()),
            lease_owner=NULL,lease_token=NULL,lease_expires_at=NULL
      WHERE j.fixture_uid=v_fixture_uid
+       AND j.kickoff_utc=v_kickoff_utc
        AND j.kickoff_utc>now()
        AND (j.job_id=p_job_id
             OR j.state IN ('PENDING','RETRY','WAITING_DATA')
