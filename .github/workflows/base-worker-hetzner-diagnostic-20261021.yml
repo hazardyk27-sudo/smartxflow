@@ -1,4 +1,4 @@
-name: Read-only Hetzner Base worker diagnostic 2026-10-21 (watchdog rollout check)
+name: Read-only Hetzner Base worker diagnostic 2026-10-21 (Moneyway source handoff)
 
 on:
   push:
