@@ -2,9 +2,10 @@ name: Verify Hetzner Base release 2026-10-21
 
 on:
   push:
-    branches: [preview]
+    branches: [main]
     paths:
-      - '.github/workflows/base-hetzner-postrelease-audit-20261021.yml'
+      - 'deploy/systemd/smartxflow-base-worker.service'
+      - 'base_signal_engine/systemd_watchdog.py'
 
 permissions:
   contents: write
@@ -25,7 +26,7 @@ jobs:
           script: |
             set -eu
             test "$(hostname)" = smartxflow
-            expected=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
+            expected=${{ github.sha }}
             i=0
             while [ "$i" -lt 36 ]; do
               deployed="$(git -C /opt/smartxflow rev-parse HEAD)"
@@ -34,6 +35,12 @@ jobs:
               i=$((i + 1))
               sleep 10
             done
+            test "$deployed" = "$expected"
+            test "$base" = active
+            test "$(systemctl show smartxflow-base-worker.service -p Type --value)" = notify
+            watchdog="$(systemctl show smartxflow-base-worker.service -p WatchdogUSec --value)"
+            test "$watchdog" != "0"
+            echo "POSTDEPLOY_WATCHDOG_USEC=$watchdog"
             echo "POSTDEPLOY_CHECK_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             echo "POSTDEPLOY_EXPECTED_SHA=$expected"
             echo "POSTDEPLOY_GIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
@@ -58,7 +65,7 @@ jobs:
           set -euo pipefail
           {
             echo "verified_ref=main"
-            echo "expected_sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e"
+            echo "expected_sha=${{ github.sha }}"
             echo "ssh_check_result=${{ needs.inspect-hetzner.result }}"
             for wf in deploy.yml base-autonomous-hetzner-enable.yml; do
               echo "WORKFLOW=$wf"
@@ -72,4 +79,10 @@ jobs:
           fi
           cat /tmp/verify.txt
           CONTENT="$(base64 -w0 /tmp/verify.txt)"
-          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_POSTRELEASE_VERIFICATION_20261021.txt"             -f message="ops: preserve Hetzner post-release audit with runtime evidence"             -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_POSTRELEASE_VERIFICATION_20261021.txt"
+          EXISTING_SHA="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$EXISTING_SHA" ]; then
+            gh api -X PUT "$DEST" -f message="ops: verify new Hetzner Base watchdog release" -f branch=preview -f content="$CONTENT" -f sha="$EXISTING_SHA" --jq '.commit.sha'
+          else
+            gh api -X PUT "$DEST" -f message="ops: verify new Hetzner Base watchdog release" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
+          fi
