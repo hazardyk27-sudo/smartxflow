@@ -9,7 +9,7 @@ def test_default_blocks_even_when_learning_holds_disabled(monkeypatch):
     monkeypatch.setattr(retention_guard, "_learning_archive_guard_enabled", lambda: False)
     assert retention_guard.retention_cleanup_disabled() is True
 
-def test_explicit_approval_still_respects_emergency_disable(monkeypatch):
+def test_even_explicit_legacy_approval_cannot_bypass_retired_purge(monkeypatch):
     monkeypatch.setattr(retention_guard, "_learning_archive_guard_enabled", lambda: False)
     assert retention_guard.retention_cleanup_disabled({
         "SMARTXFLOW_RETENTION_CLEANUP_APPROVED": "true",
@@ -17,7 +17,7 @@ def test_explicit_approval_still_respects_emergency_disable(monkeypatch):
     }) is True
     assert retention_guard.retention_cleanup_disabled({
         "SMARTXFLOW_RETENTION_CLEANUP_APPROVED": "true",
-    }) is False
+    }) is True
 
 def test_default_denies_web_supabase_cleanup_without_calling_legacy(monkeypatch):
     monkeypatch.delenv("SMARTXFLOW_RETENTION_CLEANUP_APPROVED", raising=False)
