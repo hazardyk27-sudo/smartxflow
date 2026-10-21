@@ -1,4 +1,4 @@
-name: Signal Motor Part 2 - Regression suite with source dependencies
+name: Signal Motor Part 2 - Final full suite with T6 source and all LIVE capacity
 on:
   push:
     branches: [preview]
