@@ -1,0 +1,75 @@
+name: Verify Hetzner Base release 2026-10-21
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-hetzner-postrelease-audit-20261021.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  inspect-hetzner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read actual production SHA and autonomous worker health via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 9m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            expected=c0ec8d287be9e9826cae76f761bb4c9aab77a54e
+            i=0
+            while [ "$i" -lt 36 ]; do
+              deployed="$(git -C /opt/smartxflow rev-parse HEAD)"
+              base="$(systemctl is-active smartxflow-base-worker.service || true)"
+              if [ "$deployed" = "$expected" ] && [ "$base" = active ]; then break; fi
+              i=$((i + 1))
+              sleep 10
+            done
+            echo "POSTDEPLOY_CHECK_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "POSTDEPLOY_EXPECTED_SHA=$expected"
+            echo "POSTDEPLOY_GIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "POSTDEPLOY_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "POSTDEPLOY_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            systemctl show smartxflow-base-worker.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID -p ActiveEnterTimestamp --no-pager
+            echo "POSTDEPLOY_LAST_CYCLES"
+            journalctl -u smartxflow-base-worker.service --since '-8 minutes' --no-pager -o cat | tail -n 16
+            echo "POSTDEPLOY_AUDIT_END"
+
+  publish:
+    name: Publish sanitized release verification
+    needs: inspect-hetzner
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Write status summary to preview audit document
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "verified_ref=main"
+            echo "expected_sha=c0ec8d287be9e9826cae76f761bb4c9aab77a54e"
+            echo "ssh_check_result=${{ needs.inspect-hetzner.result }}"
+            for wf in deploy.yml base-autonomous-hetzner-enable.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n 2 || true
+            done
+          } > /tmp/verify.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="inspect-hetzner") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/raw.txt || true
+            grep -E '(out: POSTDEPLOY_|out: ActiveState=|out: SubState=|out: Result=|out: ExecMainStatus=|out: MainPID=|out: NRestarts=|HETZNER_BASE_DURABLE|READ_RETRY|UNCERTAIN)' /tmp/raw.txt | tail -n 24 >> /tmp/verify.txt || true
+          fi
+          cat /tmp/verify.txt
+          CONTENT="$(base64 -w0 /tmp/verify.txt)"
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_POSTRELEASE_VERIFICATION_20261021.txt"             -f message="ops: preserve Hetzner post-release audit with runtime evidence"             -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
