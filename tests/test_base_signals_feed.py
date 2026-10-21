@@ -367,3 +367,25 @@ def test_corrected_reconciliation_is_not_fresh_signal_even_with_eligible_state()
     item=_feed(Source(start,events=[event])).read(start)["items"][0]
     assert item["review_state"]=="RECONCILED_HISTORY"
     assert item["valid_on_time"] is False
+
+
+def test_feed_rechecks_price_floor_when_persisted_label_conflicts():
+    start=_day()
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event=_event(start,ident=206,engine="HEAVY_1X2_CONCENTRATION")
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
+    event["details"].update({"selection_status":"ELIGIBLE","odds":"1.21"})
+    item=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert item["selection_status"]=="PRICE_FILTER_REJECT"
+    assert item["valid_on_time"] is False
+
+
+def test_mismatched_rejection_of_valid_price_does_not_become_eligible():
+    start=_day()
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event=_event(start,ident=207)
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
+    event["details"].update({"selection_status":"PRICE_FILTER_REJECT","odds":"3.65"})
+    item=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert item["selection_status"]=="UNKNOWN"
+    assert item["valid_on_time"] is False
