@@ -1,4 +1,4 @@
-name: Inspect active Hetzner Moneyway writer and output path
+name: Diagnose stalled Hetzner Moneyway source 2026-10-21
 
 on:
   push:
@@ -25,6 +25,12 @@ jobs:
           script: |
             set -eu
             test "$(hostname)" = smartxflow
+            echo "WRITER_DIAG_UNIT_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "WRITER_DIAG_UNIT_ENABLED=$(systemctl is-enabled smartxflow-scraper.service || true)"
+            echo "WRITER_DIAG_FAILURE_DETAILS"
+            systemctl show smartxflow-scraper.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID --no-pager
+            echo "WRITER_DIAG_LAST_ERRORS"
+            journalctl -u smartxflow-scraper.service --since '-45 minutes' --no-pager -o cat | grep -E '(Failed|failed|error|Main process exited|OOM|Killing|Start request)' | tail -n 14 | cut -c1-180 || true
             echo "WRITER_DIAG_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             echo "WRITER_DIAG_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
             systemctl show smartxflow-scraper.service -p MainPID -p ExecMainStartTimestamp -p ActiveEnterTimestamp -p StandardOutput -p ExecStart -p Result -p NRestarts --no-pager
