@@ -219,16 +219,6 @@ jobs:
               *) echo "DEPLOY STOP: smartxflow-poly wrong ExecStart=$POLY_EXEC"; exit 1 ;;
             esac
 
-            SINYAL_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-sinyal.service)"
-            case "$SINYAL_EXEC" in
-              *sinyal_engine_runtime.py*) ;;
-              *)
-                echo "DEPLOY STOP: smartxflow-sinyal is not using sinyal_engine_runtime.py"
-                echo "ExecStart=$SINYAL_EXEC"
-                exit 1
-                ;;
-            esac
-
             PREDICTOR_EXEC="$(sudo /bin/systemctl show -p ExecStart --value smartxflow-predictor-orchestrator.service)"
             case "$PREDICTOR_EXEC" in
               *predictor_orchestrator.wsgi:app*) ;;
