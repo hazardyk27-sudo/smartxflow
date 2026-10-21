@@ -1,0 +1,41 @@
+# Explicitly approved second autonomous component: fixture discovery only.
+# No checkpoint claiming, evaluation, betting, or legacy source writes.
+[Unit]
+Description=SmartXFlow independent 80-hour fixture discovery scanner
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/smartxflow/base_signal_engine/fixture_discovery_worker.py
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+WatchdogSec=480
+User=smartxflow
+Group=smartxflow
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+EnvironmentFile=/etc/smartxflow/base-worker.env
+EnvironmentFile=/etc/smartxflow/base-fixture-discovery.env
+ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.fixture_discovery_worker --interval-seconds 180
+Restart=on-failure
+RestartPreventExitStatus=3 4
+RestartSec=90
+TimeoutStopSec=45
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=320M
+TasksMax=48
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
