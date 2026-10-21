@@ -128,7 +128,7 @@ def bucket_object_url(api_url: str, path: str) -> str:
     parsed=urlparse(api_url.strip())
     if parsed.scheme!="https" or not parsed.hostname or not parsed.hostname.endswith(".supabase.co"):
         raise ValueError("Require an official HTTPS Supabase project URL")
-    return api_url.rstrip()+"/storage/v1/object/"+quote(BUCKET+"/"+path,safe="/")
+    return api_url.rstrip("/")+"/storage/v1/object/"+quote(BUCKET+"/"+path,safe="/")
 
 
 def verify_object(session, url: str,headers:dict, content:bytes) -> bool:
