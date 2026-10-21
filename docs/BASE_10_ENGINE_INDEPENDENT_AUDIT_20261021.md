@@ -49,9 +49,12 @@ events as 'signals', and did not mark the price rejected rows clearly.
   with the 1.30 floor **rechecked** against the event's recorded real odds;
 - `review_state`: VALID_PREMATCH_RECORD, PRICE_REJECTED,
   LATE_HISTORY, RECONCILED_HISTORY, T8_SUPERSEDED, or UNVERIFIED_STATUS;
-- `valid_on_time` boolean: eligible signal event recorded within the
-  historical checkpoint's 10-minute delivery grace, before kickoff, and
-  not superseded by T-6.
+- `valid_on_time` boolean: eligible signal event recorded no later
+  than 20 minutes after its checkpoint (10-minute ingestion grace before
+  claiming plus a bounded 10-minute processing allowance), before kickoff,
+  and not superseded by T-6. This threshold classifies actual delivery
+  time; it does not change the snapshot's 30-minute historical freshness,
+  frozen engine criteria, or original job checkpoint schedule.
 
 `static/js/base-signals.js` continues showing the immutable archived
 events with explicit warnings, but **counts only valid_on_time events**
@@ -75,3 +78,15 @@ betting opportunities is allowed.
 - This report does not declare automatic full 10/10 timely fixture coverage.
 
 No Replit or user-PC access.
+
+## Independent delivery-lag distribution
+
+A subsequent production SQL aggregate found that some valid rule matches were
+recorded only after a lengthy backlog recovery. For example, V1 and V2
+both had median checkpoint-to-event lag about 429.7 minutes (7h 10m), whereas
+the fastest actual records arrived around 10 minutes after checkpoint due.
+A strict *10-minute* publication cutoff would therefore incorrectly mark even
+a healthy worker's just-completed 10-minute-ingestion-grace cycle as late.
+The revised **20-minute delivery threshold** counts genuine timely production
+while retaining multi-hour replays strictly historical. This remains an
+operational classification and should be reviewed against future uptime data.
