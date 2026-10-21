@@ -112,11 +112,12 @@ def test_one_missing_t6_market_side_is_not_fabricated_from_another_timestamp():
     rows=[r for r in _data() if r["id"]!=55956648]
     payload,coverage,source,_=_evaluate(rows)
     assert source.discarded_groups==1
-    assert payload["markets"]["OU25"]["state"]=="FALLBACK_T8"
-    assert payload["markets"]["OU25"]["checkpoint"]==8
+    assert payload["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
+    assert payload["markets"]["OU25"]["checkpoint"] is None
     assert payload["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
     assert payload["markets"]["BTTS"]["state"]=="AUTHORITATIVE_T6"
     assert coverage["missing_t6_markets"]==["OU25"]
+    assert coverage["disposition"]=="WAITING_DATA"
     assert coverage["requires_reconciliation"]
 
 
@@ -124,6 +125,7 @@ def test_t8_history_cannot_be_mistaken_for_missing_t6_current_authority():
     rows=[r for r in _data() if r["scraped_at_utc"].endswith("08:54:54+00:00")]
     payload,coverage,source,_=_evaluate(rows)
     assert source.fetched_rows==7
-    assert all(record["state"]=="FALLBACK_T8" for record in payload["markets"].values())
+    assert all(record["state"]=="INSUFFICIENT_DATA" for record in payload["markets"].values())
     assert sorted(coverage["missing_t6_markets"])==["1X2","BTTS","OU25"]
+    assert coverage["disposition"]=="WAITING_DATA"
     assert coverage["requires_reconciliation"]
