@@ -41,10 +41,9 @@ class CapturingReader:
 def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
     """Return deterministic coverage with an explicit WAITING_DATA disposition.
 
-    BASE evaluates available markets independently. A completely empty Base
-    checkpoint waits. A partial Base checkpoint may commit its proven markets,
-    but missing markets / absent T-6 authority are expressly marked provisional
-    and require a future append-only reconciliation (not yet implemented).
+    BASE must have all three *complete* market snapshots at this exact
+    checkpoint. Any absent side/market makes the checkpoint unqualified;
+    it will be durably SKIPPED_DATA, never retried forever or called NO_SIGNAL.
 
     Early first-hit/retention chronology is stricter: missing earlier eligible
     checkpoints mean a later "first" or retained judgment is unprovable.
@@ -61,8 +60,10 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
         for market in _MARKETS:
             snap6 = select_snapshot(fixture, market, 6, snapshots) if job.hours == 6 else None
             snap8 = select_snapshot(fixture, market, 8, snapshots)
-            chosen = snap6 if snap6 is not None else snap8
-            hours = 6 if snap6 is not None else (8 if snap8 is not None else None)
+            # Each checkpoint must use its own nearest causal observation.
+            # T-8 may never satisfy an absent T-6 snapshot.
+            chosen = snap6 if job.hours == 6 else snap8
+            hours = job.hours if chosen is not None else None
             reported = payload.get("markets", {}).get(market, {}).get("checkpoint")
             if reported != hours:
                 raise ValueError("market/source checkpoint conflict")
@@ -80,9 +81,9 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
                               "T8_FALLBACK" if snap8 else "MISSING"),
             }
         return {
-            "disposition": "WAITING_DATA" if usable == 0 else "EVALUATE",
+            "disposition": "WAITING_DATA" if missing else "EVALUATE",
             "state": "MISSING_ALL" if usable == 0 else
-                     ("PARTIAL" if missing or t6_missing else "COMPLETE"),
+                     ("PARTIAL" if missing else "COMPLETE"),
             "markets": details,
             "missing_markets": missing,
             "missing_t6_markets": t6_missing,
