@@ -37,6 +37,9 @@ jobs:
             if [ "$pid" -gt 0 ]; then ps -o pid,etime,stat,wchan:28,%cpu,%mem,comm -p "$pid" || true; fi
             echo "SCRAPER_SERVICE_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
             echo "LEGACY_SIGNAL_ACTIVE=$(systemctl is-active smartxflow-sinyal.service || true)"
+            echo "BASE_PROCESS_THREADS"
+            pid="$(systemctl show smartxflow-base-worker.service -p MainPID --value)"
+            if [ "$pid" -gt 0 ]; then ps -L -o pid,tid,etime,stat,wchan:32,comm -p "$pid" | head -n 12 || true; fi
             echo "BASE_JOURNAL_LAST_45"
             journalctl -u smartxflow-base-worker.service -n 45 --no-pager -o cat | tail -n 45
             echo "BASE_DIAGNOSTIC_END"
