@@ -389,3 +389,26 @@ def test_mismatched_rejection_of_valid_price_does_not_become_eligible():
     item=_feed(Source(start,events=[event])).read(start)["items"][0]
     assert item["selection_status"]=="UNKNOWN"
     assert item["valid_on_time"] is False
+
+
+def test_scheduler_source_grace_plus_worker_budget_allows_twelve_minutes():
+    start=_day()
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event=_event(start,ident=208)
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=12)).isoformat()
+    event["details"]["selection_status"]="ELIGIBLE"
+    item=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert item["delivery_timing"]=="CHECKPOINT_WINDOW"
+    assert item["valid_on_time"] is True
+
+
+def test_three_hour_backlog_delay_stays_archived_even_before_kickoff():
+    start=_day()
+    kickoff=datetime.fromisoformat(_stamp(start))
+    event=_event(start,ident=209)
+    event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(hours=3)).isoformat()
+    event["details"]["selection_status"]="ELIGIBLE"
+    item=_feed(Source(start,events=[event])).read(start)["items"][0]
+    assert item["delivery_timing"]=="LATE_EVALUATION"
+    assert item["review_state"]=="LATE_HISTORY"
+    assert item["valid_on_time"] is False
