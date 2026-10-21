@@ -29,7 +29,10 @@ def test_age_based_missing_source_policy_only():
 
 
 def test_missing_snapshot_terminally_skipped_once_with_fenced_ack():
-    old=job(72,72)
+    # The database skip RPC rejects matches at or after kickoff. A mocked
+    # store must exercise only the still-future LIVE-lane fixture contract.
+    old=job(72,71)
+    assert old.timestamp < NOW < old.fixture.kickoff_utc
     class Reader:
         def load_fixture(self,fixture_uid):
             return Fixture(old.fixture.fixture_uid,old.fixture.kickoff_utc),"original-hash"
