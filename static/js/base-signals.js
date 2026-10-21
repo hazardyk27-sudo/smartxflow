@@ -216,15 +216,27 @@
         '<b>' + fixtures + '</b> ' +
         esc(t('match_count','{count} maç').replace('{count}','').trim())) +
       (unavailable ? '' : ' <span class="sxf-secondary-count">· ' +
-        esc(fmt('signals_count','{count} sinyal',{count:today.length})) +
+        esc(recordsSummary(today)) +
         '</span>') + (last ? '<span class="sxf-last-day">' +
         esc(fmt('last_seen','Son sinyal: {date}', {date:shortDay(last)})) +
         '</span>' : '') + '</span><span class="sxf-tile-open" aria-hidden="true">↗</span></span>' +
       '</button>';
   }
+  function timelySignalCount(rows) {
+    return rows.filter(function (item) { return item.valid_on_time === true; }).length;
+  }
+  function recordsSummary(rows) {
+    return fmt('signals_count','{count} sinyal',{count:timelySignalCount(rows)}) +
+      ' · ' + fmt('records_count','{count} kayıt',{count:rows.length});
+  }
   function signalRow(item) {
     var isHistory = item.stage_status === 'T8_HISTORICAL';
     var isLegacy = item.kind === 'LEGACY_SIGNAL';
+    var isRejected = item.review_state === 'PRICE_REJECTED';
+    var isRetrospective = item.review_state === 'LATE_HISTORY' ||
+      item.review_state === 'RECONCILED_HISTORY';
+    var isUnverified = item.review_state === 'UNVERIFIED_STATUS';
+    var isArchived = isHistory || isLegacy || (item.valid_on_time === false);
     var odds = typeof item.odds === 'number' && isFinite(item.odds)
       ? '<span class="sxf-row-odds">' + esc(t('odds','Oran')) +
         ' <b>' + item.odds.toFixed(2) + '</b></span>'
@@ -232,9 +244,10 @@
     var settled = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
     var result = settled ? '<span class="sxf-result-pill ' + (item.outcome === 'WIN' ? 'is-win' : 'is-loss') +
       '">' + esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
-    return '<div class="sxf-signal-row' + (isHistory || isLegacy ? ' is-archived' : '') + '">' +
+    return '<div class="sxf-signal-row' + (isArchived ? ' is-archived' : '') + '">' +
       '<div class="sxf-signal-pick"><span class="sxf-signal-market">' +
-      esc(t('pick_heading','SİNYAL TERCİHİ')) + ' · ' +
+      esc(isArchived ? t('recorded_pick_heading','ARŞİV KAYDI') :
+        t('pick_heading','SİNYAL TERCİHİ')) + ' · ' +
       esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
       '</strong></div>' + odds + result +
       '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
@@ -250,6 +263,12 @@
         esc(t('history_warning','T-6 kararı sonrası geçmiş ön sinyal')) + '</div>' : '') +
       (isLegacy ? '<div class="sxf-row-warning">' +
         esc(t('legacy_warning','Doğrulanmış eski motor kaydı; Base T-6 sinyali değildir')) + '</div>' : '') +
+      (isRejected ? '<div class="sxf-row-warning">' +
+        esc(t('price_rejected_warning','Oran 1.30 altında; sinyal olarak uygun değil')) + '</div>' : '') +
+      (isRetrospective && !isRejected ? '<div class="sxf-row-warning">' +
+        esc(t('retrospective_warning','Zamanında yayınlanmadı; yalnız geçmiş analiz kaydı')) + '</div>' : '') +
+      (isUnverified ? '<div class="sxf-row-warning">' +
+        esc(t('unverified_status_warning','Sinyal uygunluğu doğrulanamadı')) + '</div>' : '') +
       '</div>';
   }
   function fixtureCard(rows) {
@@ -273,7 +292,7 @@
     var rows = dayItems();
     summary.textContent = dateTitle(current.day) + '  ·  ' +
       fmt('match_count','{count} maç',{count:fixturesCount(rows)}) + ' / ' +
-      fmt('signals_count','{count} sinyal',{count:rows.length});
+      recordsSummary(rows);
     searchWrap.hidden = true;
     content.innerHTML = '<div class="sxf-directory-header"><div><span class="sxf-eyebrow">' +
       esc(t('directory_eyebrow','SİNYAL MOTORLARI')) + '</span><h3>' +
@@ -315,7 +334,7 @@
     });
     summary.textContent = labelEngine(current.engine) + ' · ' +
       fmt('match_count','{count} maç',{count:fixturesCount(source)}) + ' / ' +
-      fmt('signals_count','{count} sinyal',{count:source.length});
+      recordsSummary(source);
     searchWrap.hidden = false;
     var html = '<div class="sxf-detail-head"><button class="sxf-back" type="button" ' +
       'id="sxfSignalBack">' + esc(t('back_engines','← Tüm motorlar')) +
