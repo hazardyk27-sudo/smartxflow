@@ -1,6 +1,7 @@
 -- STRICTLY READ ONLY. The raw source observation date differs from
--- the archive's fixture-day partition key. Never infer that an old captured
--- snapshot requires an archive_runs row for the observation date.
+-- the archive's Turkey-local kickoff-day partition key. Never infer that an old captured
+-- snapshot requires an archive_runs row for the observation date, nor equate
+-- public.fixtures.fixture_date (UTC) with the Turkey-local kickoff date.
 --
 -- This returns a small metadata/probe JSON object; it intentionally supplies
 -- FALSE for independent backup, full source parity, timestamp->fixture lineage
@@ -31,15 +32,16 @@ WITH clock AS (
         FROM public.dropping_btts_history WHERE scraped_at IS NOT NULL ORDER BY scraped_at LIMIT 1))
   ) AS first_observation(day)
 ), fixture_dates AS MATERIALIZED (
-  SELECT DISTINCT fixture_date AS d
-  FROM public.fixtures, clock
-  WHERE fixture_date IS NOT NULL AND fixture_date < clock.local_today - 6
+  SELECT DISTINCT (f.kickoff_utc AT TIME ZONE 'Europe/Istanbul')::date AS d
+  FROM public.fixtures f, clock
+  WHERE f.kickoff_utc IS NOT NULL
+    AND (f.kickoff_utc AT TIME ZONE 'Europe/Istanbul')::date < clock.local_today - 6
 ), probe_day AS (
   SELECT local_today - 7 AS d FROM clock
 ), source_probe AS MATERIALIZED (
   SELECT internal_id,fixture_uid,kickoff_utc
   FROM public.fixtures,probe_day
-  WHERE fixture_date=probe_day.d
+  WHERE (kickoff_utc AT TIME ZONE 'Europe/Istanbul')::date=probe_day.d
 ), archive_probe AS MATERIALIZED (
   SELECT source_internal_id,fixture_uid,kickoff_utc
   FROM research_archive.fixtures,probe_day
@@ -65,7 +67,7 @@ SELECT jsonb_build_object(
   'cutoff', clock.local_today - 6,
   'earliest_source', oldest.earliest_day,
   'source_date_axis', 'observation_timestamp',
-  'archive_date_axis', 'fixture_day',
+  'archive_date_axis', 'kickoff_istanbul_day',
   'source_fixture_dates', COALESCE((
     SELECT jsonb_agg(d ORDER BY d) FROM fixture_dates
   ),'[]'::jsonb),
