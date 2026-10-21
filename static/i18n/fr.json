@@ -595,7 +595,7 @@
     "v4": {
       "title": "Moteur de signaux",
       "intro": "Choisissez un moteur de signal pour voir ses matchs par jour.",
-      "kicker": "SMARTXFLOW / ANALYSES",
+      "kicker": "SMARTXFLOW / MOTEUR DE SIGNAUX",
       "test_notice": "SHADOW / TEST · Pas un conseil de pari approuvé",
       "test_initial": "SHADOW · Signaux de test",
       "test_label": "SHADOW / TEST",
