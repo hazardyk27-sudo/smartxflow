@@ -1,0 +1,116 @@
+"""New Sinyal Motoru contracts: today-first, nearest real T-hour, skip gaps."""
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from uuid import uuid4
+import json
+
+import pytest
+
+from base_signal_engine.rules import (
+    Fixture, Quote, Snapshot, select_snapshot, choose_base_checkpoint,
+)
+from base_signal_engine import hetzner_worker as worker
+
+ROOT=Path(__file__).resolve().parents[1]
+KO=datetime(2026,10,24,18,0,tzinfo=timezone.utc)
+FX=Fixture(str(uuid4()),KO)
+
+
+def snapshot(hours, minutes=0, shares=("60","20","20")):
+    at=KO-timedelta(hours=hours,minutes=minutes)
+    return Snapshot("1X2",at,{
+        "1":Quote("1.8","6000",shares[0]),
+        "X":Quote("3.1","2000",shares[1]),
+        "2":Quote("4.2","2000",shares[2]),
+    })
+
+
+def test_nearest_real_prior_snapshot_within_hour_not_after_checkpoint():
+    future=snapshot(72,-3)       # 3 minutes AFTER checkpoint: forbidden
+    older=snapshot(72,56)
+    closest=snapshot(72,18)
+    assert select_snapshot(FX,"1X2",72,[future,older,closest]) is closest
+    assert select_snapshot(FX,"1X2",72,[older]) is older
+    assert select_snapshot(FX,"1X2",72,[snapshot(72,60)]) is None
+    assert select_snapshot(FX,"1X2",72,[future]) is None
+
+
+def test_a_missing_t6_market_is_not_replaced_with_t8_snapshot():
+    assert choose_base_checkpoint(
+        FX,"1X2",[snapshot(8)],KO-timedelta(hours=5)
+    )==(None,"INSUFFICIENT_DATA")
+
+
+def test_day_first_priority_is_enforced_by_fenced_database_claim():
+    sql=(ROOT/"migrations/2026_10_21_signal_motor_today_first.sql").read_text()
+    for required in (
+        "j.kickoff_utc>now()", "j.run_after<=now()",
+        "AT TIME ZONE 'Europe/Istanbul'", "j.kickoff_utc ASC",
+        "FOR UPDATE SKIP LOCKED", "lease_token=gen_random_uuid()",
+        "p_lane='LIVE'",
+    ):
+        assert required in sql,required
+    assert "TRUNCATE" not in sql.upper()
+    assert "DELETE FROM" not in sql.upper()
+
+
+def test_terminal_source_skip_is_fenced_and_does_not_emit_fake_signals():
+    sql=(ROOT/"migrations/2026_10_21_signal_motor_skip_missing.sql").read_text()
+    for required in (
+        "SKIPPED_DATA", "j.lease_token=p_lease_token",
+        "j.state='LEASED'", "j.lease_expires_at>now()",
+        "GRANT EXECUTE", "service_role",
+    ):
+        assert required in sql,required
+    assert "INSERT INTO public.sxf_base_signal_events" not in sql
+    assert "DELETE FROM" not in sql.upper()
+
+
+def test_all_checkpoint_capacity_uses_live_today_then_tomorrow(monkeypatch):
+    calls=[]
+    def claim(_reader,_store,**kwargs):
+        calls.append(kwargs.get("lane"))
+        return {"claimed":1,"completed":0,"skipped_data":1,
+                "waiting_data":0,"retry":0,"lease_lost":0,"commit_uncertain":0}
+    monkeypatch.setattr(worker,"execute_claims",claim)
+    class Store:
+        def health_snapshot(self):
+            return {"checkpoint_queue":{"pending_due":33,"expired_leases":0,
+                                        "oldest_due_seconds":11},
+                    "reconciliation_queue":{"pending_due":0,"expired_leases":0},
+                    "discovery_cursor":{"initialized":True,
+                                        "last_scanned_at":KO.isoformat()}}
+    report=worker.run_cycle(None,Store(),worker_id="test",discover=False,
+                            priority_lanes=True,max_jobs=24,max_reconcile=0,now=KO)
+    assert calls==["LIVE"]*24
+    assert report["backlog_claimed"]==0
+    assert report["skipped_data"]==24
+    assert report["completed"]==0
+
+
+def test_legacy_five_removed_from_api_and_ui_and_old_writer_disabled():
+    app=(ROOT/"app.py").read_text()
+    fn=app.split("def base_signal_feed_api():",1)[1].split("_analyses_cache",1)[0]
+    assert "LegacySignalsFeed" not in fn
+    assert "source.read(first, days=21)" in fn
+    js=(ROOT/"static/js/base-signals.js").read_text()
+    assert "LEGACY_UNDERDOG:" not in js
+    assert "LEGACY_FAKE_SHARP:" not in js
+    assert "LEGACY_EARLY_MONEY_LOCK:" not in js
+    assert "LEGACY_CONFIRMED_MONEY_V1:" not in js
+    assert "LEGACY_CONFIRMED_MONEY_V2:" not in js
+    deploy=(ROOT/".github/workflows/deploy.yml").read_text()
+    assert "systemctl stop smartxflow-sinyal.service" in deploy
+    assert "systemctl disable smartxflow-sinyal.service" in deploy
+    assert "systemctl restart smartxflow-alarm" in deploy
+
+
+def test_title_is_signal_motor_in_seven_languages():
+    expected={"tr":"Sinyal Motoru","en":"Signal Engine","de":"Signalmotor",
+              "fr":"Moteur de signaux","it":"Motore dei segnali",
+              "es":"Motor de señales","nl":"Signaalmotor"}
+    for lang,title in expected.items():
+        obj=json.loads((ROOT/"static/i18n"/(lang+".json")).read_text())
+        assert obj["app"]["v4"]["title"]==title
+        assert obj["app"]["flt"]["analysts"]==title
+        assert obj["idx"]["analizler"]==title
