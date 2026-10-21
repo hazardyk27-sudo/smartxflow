@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SXF Arşiv Yönetimi — SmartXFlow</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0d1117;--panel:#161b22;--line:#30363d;--text:#e6edf3;--muted:#919ca9;--blue:#58a6ff}
+    *{box-sizing:border-box}body{margin:0;padding:28px 18px;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:920px;margin:auto}header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
+    a{color:var(--blue)}h1{font-size:27px;line-height:1.2;margin:4px 0 7px}h2{font-size:18px;margin:0 0 13px}
+    p{color:var(--muted);margin:8px 0 18px}small,.muted{color:var(--muted)}
+    .panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:14px;margin:14px 0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .kind{display:block;padding:20px;cursor:pointer;border:1px solid #3b4758;border-radius:12px;background:#111923}
+    .kind:has(input:checked){border-color:var(--blue);background:#182a3f}
+    .kind input{width:18px;height:18px;accent-color:var(--blue);vertical-align:middle;margin-right:9px}
+    .kind strong{font-size:16px}.kind span{display:block;padding-left:31px;margin-top:8px;color:var(--muted);font-size:13px}
+    label.caption{display:block;color:var(--muted);margin-bottom:8px}
+    input[type=date],input[type=password]{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
+    button{border:0;border-radius:9px;background:#238636;color:white;padding:12px 20px;font:600 15px system-ui;cursor:pointer}
+    button.secondary{background:#303b4b}button:disabled{cursor:not-allowed;opacity:.55}
+    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.row>*{flex-shrink:0}
+    .message{white-space:pre-line;font-size:14px;line-height:1.6;margin-top:13px;color:#d0d7de}
+    .message.error{color:#ff9292}.message.success{color:#7ee6a2}
+    table{width:100%;border-collapse:collapse;font-size:13px}td,th{border-bottom:1px solid var(--line);text-align:left;padding:10px 6px;vertical-align:top}
+    .hidden{display:none!important}
+    @media(max-width:600px){body{padding:16px 10px}.panel{padding:17px}h1{font-size:22px}table{display:block;overflow-x:auto}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <small>SMARTXFLOW · YÖNETİCİ İŞLEMLERİ</small>
+      <h1>GitHub Arşiv Yönetimi</h1>
+      <p>Tarih seç, arşiv türünü belirle ve GitHub'a aktarım isteği gönder.</p>
+    </div>
+    <a href="/admin">← Admin panele dön</a>
+  </header>
+
+  {% if not authorization_configured %}
+  <div class="panel"><h2>Yetkilendirme kurulmamış</h2>
+    <p>Sunucuda <code>SXF_ARCHIVE_ADMIN_PIN</code> adında güçlü bir yönetici sırrı bulunmalı. Bu bilgi eklenmeden arşiv başlatılamaz.</p>
+  </div>
+  {% endif %}
+  {% if not github_configured %}
+  <div class="panel"><h2>GitHub bağlantısı eksik</h2>
+    <p>Sunucuda yetkisi yalnız CAPİTALE Actions tetiklemeye sınırlandırılmış <code>CAPITALE_GITHUB_ACTIONS_TOKEN</code> yapılandırılmalı. Bu token tarayıcıya gönderilmez.</p>
+  </div>
+  {% endif %}
+
+  <section class="panel {% if is_unlocked %}hidden{% endif %}" id="unlock-panel">
+    <h2>Arşivleme yetkisini aç</h2>
+    <p>Mevcut admin oturumuna ek olarak, aktarım komutları ayrı bir yönetici anahtarıyla korunur.</p>
+    <form id="unlock-form" class="row">
+      <input type="password" id="archive-pin" placeholder="Arşiv yönetici anahtarı" autocomplete="off" required>
+      <button id="unlock-button" type="submit">Kilidi aç</button>
+    </form>
+    <div id="unlock-message" class="message" role="status"></div>
+  </section>
+
+  <section id="archive-panel" class="panel {% if not is_unlocked %}hidden{% endif %}">
+    <h2>Arşiv oluştur</h2>
+    <label for="archive-day" class="caption">Maçların Türkiye saatiyle başlangıç tarihi</label>
+    <input id="archive-day" type="date" min="2026-10-09" max="{{max_date}}" value="{{initial_date}}" required>
+    <p>Birini veya ikisini seçebilirsin. İki tür farklı GitHub Release varlığı olarak saklanır.</p>
+    <div class="grid">
+      <label class="kind"><input id="kind-full" type="checkbox" checked>
+        <strong>01 · Tüm Snapshotlar</strong>
+        <span>O güne ait mevcut tüm ham 1X2, OU2.5, BTTS, Dropping, Moneyway ve Live kayıtları. Sinyalsiz maçlar da dahil.</span>
+      </label>
+      <label class="kind"><input id="kind-concentrated" type="checkbox">
+        <strong>02 · Konsantre Arşiv</strong>
+        <span>Her maç ve üç piyasa için T-72, T-60, T-40, T-24, T-12, T-8, T-6, T-3, T-1 kontrol noktaları; eksikler MISSING.</span>
+      </label>
+    </div>
+    <div class="row" style="margin-top:20px">
+      <button id="archive-button" type="button">Seçili arşivleri başlat</button>
+      <small>Yalnızca kaynak okuma · Kalıcı hedef GitHub</small>
+    </div>
+    <div id="archive-message" class="message" role="status"></div>
+  </section>
+
+  <section class="panel">
+    <h2>GitHub Actions işlem geçmişi</h2>
+    <p>“İstek gönderildi” arşivin tamamlandığı anlamına gelmez. Tamamlanma için GitHub dosya indirme, SHA-256 ve JSONL geri açma denetimleri geçmelidir.</p>
+    <button class="secondary" id="refresh-button" type="button" {% if not is_unlocked %}disabled{% endif %}>Durumu yenile</button>
+    <div id="runs-message" class="message"></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>İş</th><th>Başlama</th><th>Durum</th><th>GitHub</th></tr></thead><tbody id="runs-body"></tbody></table>
+    </div>
+  </section>
+  <p>Orijinal kaynak Supabase <code>research_archive</code> korunur. Başarısız veya kısmi aktarım “tamamlandı” olarak işaretlenmez.</p>
+</main>
+<script>
+  let csrfToken = {{ csrf_token|tojson }};
+  const configured = {{ (authorization_configured and github_configured)|tojson }};
+  const unlockForm = document.getElementById('unlock-form');
+  const runButton = document.getElementById('archive-button');
+  const runsBody = document.getElementById('runs-body');
+  const refreshButton = document.getElementById('refresh-button');
+  const msg = (id,text,isError=false) => { const n=document.getElementById(id);n.textContent=text;n.className='message'+(isError?' error':''); };
+  async function post(path, data){
+    const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify(data)});
+    const obj=await response.json();
+    if(!response.ok)throw new Error(obj.error+' ('+response.status+')');
+    return obj;
+  }
+  unlockForm.addEventListener('submit', async e=>{
+    e.preventDefault();const btn=document.getElementById('unlock-button');btn.disabled=true;
+    try{
+      const data=await post('/api/admin/sxf-archive/unlock',{pin:document.getElementById('archive-pin').value});
+      csrfToken=data.csrf_token;document.getElementById('archive-pin').value='';
+      document.getElementById('unlock-panel').classList.add('hidden');
+      document.getElementById('archive-panel').classList.remove('hidden');
+      refreshButton.disabled=false;await refreshRuns();
+    }catch(err){msg('unlock-message','Yetkilendirme başarısız: '+err.message,true)}
+    finally{btn.disabled=false}
+  });
+  runButton.addEventListener('click', async()=>{
+    if(!configured){msg('archive-message','Önce sunucudaki güvenli bağlantı ayarları tamamlanmalı.',true);return}
+    const day=document.getElementById('archive-day').value;
+    const types=[];
+    if(document.getElementById('kind-full').checked) types.push('full_snapshots');
+    if(document.getElementById('kind-concentrated').checked) types.push('concentrated');
+    if(!day||types.length===0){msg('archive-message','Tarih ve en az bir arşiv türü seç.',true);return}
+    if(!confirm(day+' tarihi için '+types.length+' arşiv aktarımı isteği gönderilsin mi?'))return;
+    runButton.disabled=true;const lines=[];
+    for(const kind of types){
+      try{
+        const r=await post('/api/admin/sxf-archive/dispatch',{day,kind});
+        lines.push(kind+': GitHub iş kuyruğuna alındı; henüz arşiv tamamlanmadı.');
+      }catch(err){lines.push(kind+': BAŞLATILAMADI — '+err.message)}
+    }
+    msg('archive-message',lines.join('\n'));
+    runButton.disabled=false;await refreshRuns();
+  });
+  async function refreshRuns(){
+    try{
+      const response=await fetch('/api/admin/sxf-archive/runs',{credentials:'same-origin'});
+      const data=await response.json();if(!response.ok)throw new Error(data.error||'Durum okunamadı');
+      runsBody.replaceChildren();
+      for(const r of data.runs){
+        const tr=document.createElement('tr');
+        for(const str of [r.title,r.created_at,r.conclusion||r.status]){
+          const td=document.createElement('td');td.textContent=str||'—';tr.appendChild(td);
+        }
+        const td=document.createElement('td');
+        if(typeof r.url==='string'&&r.url.startsWith('https://github.com/hazardyk27-sudo/capitale/actions/runs/')){
+          const a=document.createElement('a');a.href=r.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Çalışmayı aç';td.appendChild(a);
+        }
+        tr.appendChild(td);runsBody.appendChild(tr);
+      }
+      msg('runs-message',data.runs.length?'':'Henüz işlem kaydı yok.');
+    }catch(err){msg('runs-message','İşlem geçmişi alınamadı: '+err.message,true)}
+  }
+  refreshButton.addEventListener('click',refreshRuns);
+  {% if is_unlocked %}refreshRuns();{% endif %}
+</script>
+</body></html>
