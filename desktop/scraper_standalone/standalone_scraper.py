@@ -1495,7 +1495,7 @@ def run_scrape_betwatch_v1(writer, logger_callback=None) -> int:
         for mkt in (match.get("markets") or []):
             mkt_name = mkt.get("name", "")
             runners  = mkt.get("runners") or []
-            market_key, sels = map_market(mkt_name, runners)
+            market_key, sels = map_market(mkt_name, runners, home=home, away=away)
             if market_key is None:
                 continue
 
