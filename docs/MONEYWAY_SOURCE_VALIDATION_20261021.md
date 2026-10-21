@@ -100,3 +100,28 @@ GitHub Actions source test suite after the correction: **26 passed**,
 A production release is successful only when fresh source
 `moneyway_snapshots` again contains 1X2 rows and the mapper no longer
 silently discards Match Odds.
+
+## Verified source recovery at 2026-10-21T01:52:45Z
+
+After fast-forwarding provider-label hotfix commit
+`1567e1d7ed4e6e2452d9a754c956ee54fa562570` to `main`,
+the production database resumed normal 1X2 ingestion:
+`scraper_signal.scrape_complete` at 01:54:03Z reported **1,337**
+Moneyway snapshot rows (versus 466 with zero 1X2 at 01:47:06Z).
+
+The new snapshot batch groups were:
+- 1X2: 211 complete / 380 groups; 169 incomplete;
+- OU25: 88 complete / 178 groups; 90 incomplete;
+- BTTS: 70 complete / 130 groups; 60 incomplete.
+
+This restores the old magnitude of 1X2 feed coverage without inventing
+missing sides. The live atomic prematch lease was held by
+`hetzner-prod` at 01:56Z, confirming Hetzner owns the source writer
+despite the legacy `scraper_signal.source='replit'` label.
+
+**Separate downstream blocker:** read-only Hetzner diagnostic around
+01:54Z found `smartxflow-base-worker.service` again `failed`
+after `DURABLESTOREERROR` and a protected `UNCERTAIN` exit.
+Source ingestion has recovered; autonomous checkpoint completion has not.
+Do not mark all 10 signals as currently operational until worker recovery,
+backlog processing and signal-event verification are shown live.
