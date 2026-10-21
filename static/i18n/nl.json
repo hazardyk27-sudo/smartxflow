@@ -211,7 +211,7 @@
     },
     "flt": {
       "all": "Alle",
-      "analysts": "Analyses",
+      "analysts": "Signaalmotor",
       "apply": "Toepassen",
       "by_date": "Op datum",
       "by_volume": "Op volume",
@@ -833,7 +833,7 @@
     "alarm_listesi": "Alarmlijst",
     "alarm_search_placeholder": "Zoek team bv. Chelsea, Galatasaray",
     "alarmlar": "Alarmen",
-    "analizler": "Analyses",
+    "analizler": "Signaalmotor",
     "bu_mac_icin_alarm_hareketi_yok": "Geen alarmactiviteit voor deze wedstrijd.",
     "canli": "Live",
     "canli_periyot_verileri": "Live periodegegevens",
