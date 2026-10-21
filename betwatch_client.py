@@ -99,7 +99,7 @@ def map_market(mkt_name: str, runners: list, *, home=None, away=None, **_legacy_
             label = normalize(runner.get("name"))
             if not label:
                 return None, []
-            if label in ("x", "draw", "tie", "match draw", "beraberlik"):
+            if label in ("x", "draw", "the draw", "tie", "match draw", "beraberlik"):
                 side = "X"
             elif label in ("1", "home", "home win", "v1") or (home_name and label == home_name and home_name != away_name):
                 side = "1"
