@@ -15,6 +15,11 @@ Environment=SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true
 Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod
 # Short Early T-72 source windows: one authoritative poll every 180s, >=40s API limit.
 Environment=SMARTXFLOW_PREMATCH_INTERVAL_SECONDS=180
+# Only the production single-master may exit at a completed cycle boundary
+# after a 20m source outage / 15m uptime, letting systemd recover it.
+# Never forcibly kill in-flight uncertain database writes.
+Environment=SMARTXFLOW_PREMATCH_GUARDED_RESTART=yes
+Environment=PYTHONUNBUFFERED=1
 ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/prematch_authoritative_runtime.py
 Restart=always
 RestartSec=30
