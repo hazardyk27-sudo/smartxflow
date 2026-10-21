@@ -1,4 +1,4 @@
-name: Verify final Base Early bounded-source retry and SQL fence 2026-10-21
+name: Verify Base worker and ten-engine live signal presentation safeguards
 
 on:
   push:
@@ -30,7 +30,8 @@ jobs:
             tests/test_betwatch_1x2_mapping_20261021.py \
             tests/test_moneyway_ingest_quality_20261021.py \
             tests/test_runtime_scraper_recovery.py \
-            tests/test_betwatch_prematch_identity_runtime.py > /tmp/sxf-base-test.log 2>&1
+            tests/test_betwatch_prematch_identity_runtime.py \
+            tests/test_base_signal_rules.py tests/test_base_signals_feed.py > /tmp/sxf-base-test.log 2>&1
           RC=$?
           {
             echo "commit=$GITHUB_SHA"
