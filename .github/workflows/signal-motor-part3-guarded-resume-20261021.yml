@@ -1,0 +1,94 @@
+name: Signal Motor Part3 - verify deployed SHA then resume Base
+on:
+  push:
+    branches: [preview]
+    paths: ['docs/SIGNAL_MOTOR_PART3_RESUME_TRIGGER_20261021.txt']
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: sxf-signal-motor-part3-cutover
+  cancel-in-progress: false
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm exact main SHA and completed deploy
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="$(cat docs/SIGNAL_MOTOR_PART3_RESUME_TRIGGER_20261021.txt | tr -d '\r\n')"
+          [[ "$EXPECTED" =~ ^[0-9a-f]{40}$ ]]
+          ACTUAL="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test "$ACTUAL" = "$EXPECTED"
+          success=0
+          for i in $(seq 1 75); do
+            if gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?branch=main&per_page=30" |
+              jq -e --arg sha "$EXPECTED" '.workflow_runs | any(.[]; .head_sha == $sha and .status == "completed" and .conclusion == "success")' >/dev/null; then
+              success=1
+              break
+            fi
+            sleep 5
+          done
+          test "$success" = 1
+          echo "sha=$EXPECTED" >> "$GITHUB_OUTPUT"
+      - name: Guarded production worker restart after complete deploy
+        id: resume
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DEPLOY_SHA: ${{ steps.gate.outputs.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: DEPLOY_SHA
+          command_timeout: 8m
+          script: |
+            set -euo pipefail
+            test "$(hostname)" = smartxflow
+            test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA"
+            sudo -u smartxflow git -C /opt/smartxflow diff --quiet
+            sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
+            for svc in smartxflow-web smartxflow-scraper smartxflow-alarm; do
+              test "$(sudo /bin/systemctl is-active "$svc")" = active
+            done
+            test "$(sudo /bin/systemctl is-enabled smartxflow-sinyal.service || true)" = disabled
+            test "$(sudo /bin/systemctl is-active smartxflow-sinyal.service || true)" != active
+            test "$(sudo /bin/systemctl is-active smartxflow-base-worker.service || true)" != active
+            test "$(sudo /bin/systemctl is-enabled smartxflow-base-worker.service || true)" = disabled
+            test "$(sudo /bin/systemctl is-active smartxflow-base-guarded-recovery.timer || true)" != active
+            grep -q 'skipped_data' /opt/smartxflow/base_signal_engine/hetzner_worker.py
+            grep -q 'sxf_base_skip_missing_source' /opt/smartxflow/base_signal_engine/storage.py
+            sudo /bin/systemctl enable smartxflow-base-worker.service
+            sudo /bin/systemctl start smartxflow-base-worker.service
+            test "$(sudo /bin/systemctl is-active smartxflow-base-worker.service)" = active
+            sudo /bin/systemctl enable --now smartxflow-base-guarded-recovery.timer
+            test "$(sudo /bin/systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            sleep 85
+            test "$(sudo /bin/systemctl is-active smartxflow-base-worker.service)" = active
+            test "$(sudo /bin/systemctl is-active smartxflow-alarm)" = active
+            test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA"
+            echo "PART3_RESUME_OK sha=$DEPLOY_SHA worker=active recovery=active alarm=active"
+      - name: Record resume outcome
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GATE: ${{ steps.gate.outcome }}
+          RESUME: ${{ steps.resume.outcome }}
+        run: |
+          set -euo pipefail
+          printf 'trigger_sha=%s\nmain_gate=%s\nresume_step=%s\n' "$GITHUB_SHA" "$GATE" "$RESUME" > /tmp/part3-resume.txt
+          DATA="$(base64 -w0 /tmp/part3-resume.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART3_RESUME_STATUS_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f branch=preview -f message='ops(signal): save Part3 guarded resume outcome' -f sha="$OLD" -f content="$DATA" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f branch=preview -f message='ops(signal): save Part3 guarded resume outcome' -f content="$DATA" --jq .commit.sha
+          fi
