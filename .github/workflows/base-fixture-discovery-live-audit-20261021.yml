@@ -1,4 +1,4 @@
-name: Audit independent Base fixture discovery on Hetzner
+name: Audit final independent Base fixture discovery hardening on Hetzner
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
             set -eu
             test "$(hostname)" = smartxflow
             for i in $(seq 1 45); do
-              if [ "$(git -C /opt/smartxflow rev-parse HEAD)" = "653245ba1cf9f0bdbbdd7a50f46e129d2a097168" ] &&
+              if [ "$(git -C /opt/smartxflow rev-parse HEAD)" = "7fd323f5f7fb0d65ff1a244a67257764a7a4db92" ] &&
                  [ "$(systemctl is-enabled smartxflow-base-fixture-discovery.service 2>/dev/null || true)" = enabled ]; then break; fi
               sleep 6
             done
@@ -53,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo "expected_production_sha=653245ba1cf9f0bdbbdd7a50f46e129d2a097168"
+            echo "expected_production_sha=7fd323f5f7fb0d65ff1a244a67257764a7a4db92"
             echo "ssh_result=${{ needs.ssh-read.result }}"
             for wf in deploy.yml base-fixture-discovery-hetzner-enable.yml; do
               echo "WORKFLOW=$wf"
