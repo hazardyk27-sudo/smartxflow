@@ -19,7 +19,7 @@ BEGIN
     WHERE j.job_id=p_job_id AND j.lease_token=p_lease_token
       AND j.state='LEASED' AND j.lease_expires_at>now();
     RETURN FOUND;
-END $function$
+END $function$;
 REVOKE ALL ON FUNCTION public.sxf_base_wait_for_data(uuid,uuid,text,integer)
 FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.sxf_base_wait_for_data(uuid,uuid,text,integer)
