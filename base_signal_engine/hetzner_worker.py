@@ -222,8 +222,14 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
        and (not near_term or
             report["near_term_status"] in ("ENQUEUED", "IDEMPOTENT", "EMPTY")
             + capacity_pauses)
-       and report["checkpoint_expired_leases"]==0
-       and report["reconcile_expired_leases"]==0)
+       )
+    # Expired leases are recoverable backlog, not proof of an unsafe current
+    # write. Claim RPC uses atomic FOR UPDATE SKIP LOCKED and new fence tokens.
+    # Killing a healthy worker on expired leases would prevent recovery forever.
+    report["expired_leases_awaiting_reclaim"] = (
+        report["checkpoint_expired_leases"] + report["reconcile_expired_leases"])
+    if report["expired_leases_awaiting_reclaim"]:
+        report["coverage_state"] = "DEGRADED"
     report["production_release_verified"]=False
     return report
 
