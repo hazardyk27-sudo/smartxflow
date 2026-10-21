@@ -1,0 +1,3 @@
+source_sha=d01fb01fca50684104062b4ccf2f95d37cc1075e
+expected_production_sha=499428b91b83d48550c23a3e95ee30d701c503e3
+pause_step=failure
