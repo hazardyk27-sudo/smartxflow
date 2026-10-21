@@ -1,0 +1,75 @@
+name: Audit independent Base fixture discovery on Hetzner
+
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-fixture-discovery-live-audit-20261021.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  ssh-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Read only - inspect actual independent discovery service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 8m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            for i in $(seq 1 45); do
+              if [ "$(git -C /opt/smartxflow rev-parse HEAD)" = "653245ba1cf9f0bdbbdd7a50f46e129d2a097168" ] &&
+                 [ "$(systemctl is-enabled smartxflow-base-fixture-discovery.service 2>/dev/null || true)" = enabled ]; then break; fi
+              sleep 6
+            done
+            echo "SCAN_AUDIT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "SCAN_AUDIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "SCAN_AUDIT_ENABLED=$(systemctl is-enabled smartxflow-base-fixture-discovery.service || true)"
+            echo "SCAN_AUDIT_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            echo "SCAN_AUDIT_TYPE=$(systemctl show smartxflow-base-fixture-discovery.service -p Type --value)"
+            echo "SCAN_AUDIT_WATCHDOG=$(systemctl show smartxflow-base-fixture-discovery.service -p WatchdogUSec --value)"
+            systemctl show smartxflow-base-fixture-discovery.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID --no-pager
+            echo "SCAN_AUDIT_LAST"
+            journalctl -u smartxflow-base-fixture-discovery.service --since '-9 minutes' --no-pager -o cat | grep -E 'BASE_FIXTURE_DISCOVERY|base-fixture-discovery.service:' | tail -n 12 || true
+            echo "SCAN_AUDIT_END"
+
+  publish:
+    needs: ssh-read
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save bounded redacted service evidence in preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_production_sha=653245ba1cf9f0bdbbdd7a50f46e129d2a097168"
+            echo "ssh_result=${{ needs.ssh-read.result }}"
+            for wf in deploy.yml base-fixture-discovery-hetzner-enable.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n 2 || true
+            done
+          } > /tmp/sxf-scan-status.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="ssh-read") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/sxf-scan-raw.txt || true
+            grep -E '(out: SCAN_AUDIT_|out: ActiveState=|out: SubState=|out: Result=|out: ExecMainStatus=|out: NRestarts=|out: MainPID=|out: .*BASE_FIXTURE_DISCOVERY)' /tmp/sxf-scan-raw.txt | tail -n 22 >> /tmp/sxf-scan-status.txt || true
+          fi
+          CONTENT="$(base64 -w0 /tmp/sxf-scan-status.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_DISCOVERY_LIVE_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops: refresh read-only 80h scanner audit" -f branch=preview -f content="$CONTENT" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops: first read-only 80h scanner audit" -f branch=preview -f content="$CONTENT" --jq .commit.sha
+          fi
