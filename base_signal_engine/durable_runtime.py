@@ -30,6 +30,25 @@ def retry_delay_seconds(attempt: int) -> int:
     return min(3600, 30 * 2 ** min(max(0, attempt - 1), 7))
 
 
+def source_wait_delay_seconds(job: Any, *, at: datetime | None = None) -> int:
+    """Retry missing *observations*, not transaction errors, by checkpoint age.
+
+    Near checkpoint: check again soon in case the authoritative Betwatch batch
+    is still arriving. After the source window has aged out, keep the job
+    recoverable for a genuine delayed historic import, but do not reread the
+    same immutable missing window once every few minutes indefinitely.
+    """
+    now = at or datetime.now(timezone.utc)
+    if now.tzinfo is None or job.timestamp.tzinfo is None:
+        raise ValueError("source wait requires timezone-aware times")
+    age = (now - job.timestamp).total_seconds()
+    if age <= 2 * 3600:
+        return 180
+    if age <= 24 * 3600:
+        return 3600
+    return 21600
+
+
 def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStore,
                    *, worker_id: str, limit: int = 1, lease_seconds: int = 900,
                    lane: str = "ANY", max_read_seconds: int = 150,
@@ -102,7 +121,7 @@ def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStor
             try:
                 store.wait_for_data(
                     item, reason="SOURCE_INCOMPLETE",
-                    delay_seconds=max(180, retry_delay_seconds(item.attempt_count)))
+                    delay_seconds=source_wait_delay_seconds(item.job))
                 stats["waiting_data"] += 1
                 if progress_hook is not None:
                     progress_hook()
