@@ -8,6 +8,10 @@ on:
       - 'tests/test_signal_motor_daily_skip_20261021.py'
       - 'tests/test_base_missing_source_backoff_20261021.py'
       - 'tests/test_base_signal_reader.py'
+      - 'migrations/2026_10_21_signal_motor_today_first.sql'
+      - 'base_signal_engine/feed.py'
+      - 'tests/test_base_signals_feed.py'
+      - 'docs/SIGNAL_MOTOR_TODAY_FIRST_RELEASE_20261021.md'
   workflow_dispatch:
 permissions:
   contents: write
