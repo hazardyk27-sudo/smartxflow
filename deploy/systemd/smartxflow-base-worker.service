@@ -10,7 +10,9 @@ ConditionPathExists=/opt/smartxflow/base_signal_engine/hetzner_worker.py
 StartLimitIntervalSec=0
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
+WatchdogSec=420
 User=smartxflow
 Group=smartxflow
 WorkingDirectory=/opt/smartxflow
@@ -18,6 +20,7 @@ EnvironmentFile=/opt/smartxflow/.env
 EnvironmentFile=/etc/smartxflow/base-worker.env
 Environment=SXF_BASE_WORKER_ID=prod-autonomous-1
 ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --near-term-discovery --near-term-rotation --priority-lanes --max-jobs 12 --max-reconcile 1 --interval-seconds 60
+# Restart on genuine process stalls, *not* on explicitly fenced exit 3/4.
 Restart=on-failure
 # STOP indefinitely on uncertain database lease/commit or missing explicit
 # discovery initialization; never replay such errors without operator review.
