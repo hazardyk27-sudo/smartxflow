@@ -1,0 +1,60 @@
+name: Signal Motor Part 1 - Retired service deploy contract
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/signal-motor-part1-deploy-contract-20261021.yml'
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Deploy-contract assertions, shell syntax, YAML and least-privilege sudoers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          python -m pip install -q pytest pyyaml
+          python -m pytest -q tests/test_hetzner_runtime_contract.py > /tmp/part1-pytest.log 2>&1
+          PY_RC=$?
+          bash -n deploy/hetzner_preflight.sh
+          PREFLIGHT_RC=$?
+          bash -n deploy/sync_runtime_units.sh
+          SYNC_RC=$?
+          sudo /usr/sbin/visudo -cf deploy/sudoers-smartxflow-deploy > /tmp/part1-sudoers.log 2>&1
+          SUDO_RC=$?
+          python - <<'PY'
+          import yaml
+          with open(".github/workflows/deploy.yml",encoding="utf-8") as f:
+              yaml.safe_load(f)
+          with open(".github/workflows/hetzner-runtime-contract-tests.yml",encoding="utf-8") as f:
+              yaml.safe_load(f)
+          print("YAML_OK")
+          PY
+          YAML_RC=$?
+          {
+            echo "SOURCE_SHA=$GITHUB_SHA"
+            echo "PYTEST_EXIT=$PY_RC"
+            tail -n 22 /tmp/part1-pytest.log
+            echo "BASH_PREFLIGHT_EXIT=$PREFLIGHT_RC"
+            echo "BASH_UNIT_SYNC_EXIT=$SYNC_RC"
+            echo "VISUDO_EXIT=$SUDO_RC"
+            tail -n 8 /tmp/part1-sudoers.log
+            echo "YAML_EXIT=$YAML_RC"
+          } > /tmp/part1-release-report.txt
+          cat /tmp/part1-release-report.txt
+          DATA="$(base64 -w0 /tmp/part1-release-report.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/SIGNAL_MOTOR_PART1_DEPLOY_TEST_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="test(signal): publish Part 1 Hetzner deployment contract" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="test(signal): publish Part 1 Hetzner deployment contract" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
+          test "$PY_RC" -eq 0 && test "$PREFLIGHT_RC" -eq 0 && test "$SYNC_RC" -eq 0 && test "$SUDO_RC" -eq 0 && test "$YAML_RC" -eq 0
