@@ -1,0 +1,25 @@
+[Unit]
+Description=SmartXFlow guarded recovery for uncertain Base worker RPC ACK
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/smartxflow/scripts/base_worker_guarded_recovery.py
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/smartxflow
+EnvironmentFile=/opt/smartxflow/.env
+EnvironmentFile=/etc/smartxflow/base-worker.env
+Environment=SXF_BASE_WORKER_ID=prod-autonomous-1
+ExecStart=/opt/smartxflow/venv/bin/python /opt/smartxflow/scripts/base_worker_guarded_recovery.py
+TimeoutStartSec=75
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StandardOutput=journal
+StandardError=journal
