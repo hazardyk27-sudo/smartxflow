@@ -7837,6 +7837,11 @@ def admin_logout():
     return redirect('/admin/login')
 
 
+
+# CAPITALE research archive UI: separate admin authorization, GitHub Actions dispatch only.
+from sxf_capitale_archive_admin import blueprint as sxf_capitale_archive_blueprint
+app.register_blueprint(sxf_capitale_archive_blueprint)
+
 # SmartXFlow Analizler V3: private, read-only Base signal feed.
 # The legacy analyst/guide APIs remain for their independent consumers,
 # but the /app Analizler button never calls them after the V3 UI switch.
