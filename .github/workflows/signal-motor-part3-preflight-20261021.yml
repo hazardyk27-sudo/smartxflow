@@ -7,6 +7,7 @@ on:
       - 'migrations/2026_10_21_signal_motor_skip_future_only_guard.sql'
       - 'tests/test_signal_motor_daily_skip_20261021.py'
       - 'tests/test_base_missing_source_backoff_20261021.py'
+      - 'tests/test_base_signal_reader.py'
   workflow_dispatch:
 permissions:
   contents: write
