@@ -7,6 +7,7 @@ AUDIT_FILES = (
     "sxf_precleanup_evidence.sql",
     "sxf_archive_fixture_parity_readonly.sql",
     "sxf_duplicate_index_audit_readonly.sql",
+    "sxf_future_fixture_history_risk_readonly.sql",
 )
 DDL_OR_DML = re.compile(
     r"^\s*(?:DELETE|UPDATE|INSERT|ALTER|CREATE|DROP|TRUNCATE|REINDEX|"
@@ -48,3 +49,11 @@ def test_readonly_index_audit_never_authorizes_pruning():
     assert "constraint_refs" in audit
     assert "external_refs" in audit
     assert "structurally_equivalent" in audit
+
+
+def test_future_fixture_timestamp_only_purge_prohibited():
+    src = (ROOT / "sxf_future_fixture_history_risk_readonly.sql").read_text(encoding="utf-8")
+    assert "fixture_uid=f.fixture_uid" in src
+    assert "kickoff_utc > now()" in src
+    assert "has_older_prematch_history" in src
+    assert "FALSE AS time_only_delete_safe" in src
