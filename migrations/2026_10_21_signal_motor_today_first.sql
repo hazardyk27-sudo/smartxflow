@@ -22,6 +22,16 @@ BEGIN
             OR (j.state='LEASED' AND j.lease_expires_at<now())
         )
         AND j.run_after<=now()
+        -- A real source gap at one T checkpoint disqualifies that fixture.
+        -- Future discovery/enqueue must never resurrect sibling jobs after
+        -- an audited terminal fixture skip; original completed rows survive.
+        AND NOT EXISTS (
+            SELECT 1 FROM public.sxf_base_checkpoint_jobs stopped
+             WHERE stopped.fixture_uid=j.fixture_uid
+               AND stopped.kickoff_utc=j.kickoff_utc
+               AND stopped.state='SKIPPED_DATA'
+               AND stopped.last_error_code='SOURCE_INCOMPLETE'
+        )
         AND (
             CASE WHEN p_lane='LIVE'
                 THEN j.kickoff_utc>now()
