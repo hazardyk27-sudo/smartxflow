@@ -58,7 +58,9 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             "near_term_fixtures":0,"near_term_cursor_advanced":False,
             "near_term_rotation_coverage_verified":False,
             "priority_lanes_enabled":priority_lanes,
-            "live_claimed":0,"backlog_claimed":0}
+            "live_claimed":0,"backlog_claimed":0,
+            "live_completed":0,"backlog_completed":0,
+            "live_waiting_data":0,"backlog_waiting_data":0}
     if discover:
         try:
             # Autonomous recovery keeps new fixture discovery alive even when
@@ -151,7 +153,10 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         report["lease_uncertain"] += result["lease_lost"]
         report["commit_uncertain"] += result["commit_uncertain"]
         if priority_lanes:
-            report["live_claimed" if lane=="LIVE" else "backlog_claimed"] += result["claimed"]
+            prefix = "live" if lane=="LIVE" else "backlog"
+            report[prefix+"_claimed"] += result["claimed"]
+            report[prefix+"_completed"] += result["completed"]
+            report[prefix+"_waiting_data"] += result["waiting_data"]
         if result["lease_lost"] or result["commit_uncertain"]:
             # Unknown outcome must stop both lanes before any further claim.
             break
