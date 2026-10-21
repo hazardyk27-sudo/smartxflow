@@ -73,7 +73,7 @@ def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStor
         claimed = store.claim(worker_id, limit=1, lease_seconds=lease_seconds,
                               lane=lane)
     stats = {"claimed": len(claimed), "completed": 0, "waiting_data": 0,
-             "retry": 0, "lease_lost": 0, "commit_uncertain": 0}
+             "skipped_data": 0, "retry": 0, "lease_lost": 0, "commit_uncertain": 0}
 
     for item in claimed:
         deadline = clock() + max_read_seconds
@@ -119,10 +119,12 @@ def execute_claims(reader: SupabaseMoneywayReader, store: SupabaseCheckpointStor
 
         if coverage["disposition"] == "WAITING_DATA":
             try:
-                store.wait_for_data(
-                    item, reason="SOURCE_INCOMPLETE",
-                    delay_seconds=source_wait_delay_seconds(item.job))
-                stats["waiting_data"] += 1
+                # User-defined daily scan: a missing choice means SKIP MATCH,
+                # not an indefinite cycle of re-reading that same stale T-hour.
+                # Never turn the missing market into a successful NO_SIGNAL.
+                # The fenced DB RPC rejects after-kickoff retroactive skips.
+                store.skip_missing_source(item, reason="SOURCE_INCOMPLETE")
+                stats["skipped_data"] += 1
                 if progress_hook is not None:
                     progress_hook()
             except DurableStoreError:
