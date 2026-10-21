@@ -29,8 +29,15 @@ print("[Source] Veri kaynağı: Betwatch API v1 (/football/prematch)")
 
 MAX_RETRIES = 3
 RETRY_DELAYS = [30, 60, 90]
-PREMATCH_INTERVAL_MINUTES = 5
-PREMATCH_INTERVAL_SECONDS = PREMATCH_INTERVAL_MINUTES * 60
+# Production may opt into 3-minute captures for the short T-72/T-60
+# 30-minute evidence windows. The canonical single master lease remains
+# unchanged and 180s is safely above Betwatch's 40s prematch rate limit.
+# Never accept an arbitrary interval or a sub-limit retry storm.
+PREMATCH_INTERVAL_SECONDS = (
+    180 if os.environ.get("SMARTXFLOW_PREMATCH_INTERVAL_SECONDS") == "180"
+    else 300
+)
+PREMATCH_INTERVAL_MINUTES = PREMATCH_INTERVAL_SECONDS // 60
 PREMATCH_WATCHDOG_MINUTES = 12
 PREMATCH_WATCHDOG_SECONDS = PREMATCH_WATCHDOG_MINUTES * 60
 PREMATCH_FAILURE_RETRY_SECONDS = 60
@@ -555,7 +562,7 @@ def _try_run_cleanup(supabase_url: str, supabase_key: str, last_cleanup_date_hol
 
 
 def run_loop():
-    """5 dakikalık prematch cadence + 12 dk watchdog + guarded günlük cleanup."""
+    """Gated 3/5-minute prematch capture + 12-minute watchdog + guarded cleanup."""
     cleanup_disabled = retention_cleanup_disabled()
     print(f"[Loop] Scraper {PREMATCH_INTERVAL_MINUTES} dakikada bir çalışacak")
     print(
