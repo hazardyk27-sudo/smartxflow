@@ -1,0 +1,37 @@
+name: SmartXFlow precleanup readonly safety gate
+on:
+  workflow_dispatch:
+  push:
+    branches: [preview]
+    paths:
+      - .github/workflows/sxf-precleanup-safety-20261021.yml
+      - scripts/maintenance/sxf_precleanup_preflight.py
+      - scripts/maintenance/sxf_precleanup_evidence.sql
+      - tests/test_sxf_precleanup_preflight.py
+permissions:
+  contents: read
+jobs:
+  safety-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile readonly audit module
+        run: python -m py_compile scripts/maintenance/sxf_precleanup_preflight.py
+      - name: Install test dependency only
+        run: python -m pip install --disable-pip-version-check pytest==8.3.5
+      - name: Enforce fail-closed gates
+        run: python -m pytest -q tests/test_sxf_precleanup_preflight.py
+      - name: Reject destructive audit SQL accidentally added
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          source = Path('scripts/maintenance/sxf_precleanup_evidence.sql').read_text()
+          assert re.search(r'BEGIN\s+TRANSACTION\s+READ\s+ONLY', source, re.I)
+          assert not re.search(r'\b(DELETE|TRUNCATE|DROP|ALTER|UPDATE|INSERT|CREATE|REINDEX)\s+(?:FROM\s+)?(?:TABLE|INDEX|INTO|public\.|research_archive\.)', source, re.I)
+          print('READONLY_SQL_GUARD_OK')
+          PY
