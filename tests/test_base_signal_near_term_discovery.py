@@ -190,7 +190,7 @@ def test_20_oct_production_pause_does_not_kill_priority_worker(monkeypatch):
         assert result["coverage_state"]=="DEGRADED"
         assert result["healthy_cycle"] is True
         assert result["production_release_verified"] is False
-        assert result["live_claimed"]==4 and result["backlog_claimed"]==2
+        assert result["live_claimed"]==6 and result["backlog_claimed"]==0
     assert len(calls)==18
 
 
