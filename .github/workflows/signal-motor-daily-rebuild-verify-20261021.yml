@@ -1,4 +1,4 @@
-name: Test today's Sinyal Motoru day-first, nearest snapshot and source skipping
+name: Part 2 Full regression - Sinyal Motoru day priority and skip missing
 
 on:
   push:
@@ -36,7 +36,10 @@ jobs:
             tests/test_base_missing_source_backoff_20261021.py \
             tests/test_base_signal_real_source_smoke.py \
             tests/test_analysis_merged_feed_api.py \
-            tests/test_base_signals_feed.py > /tmp/signal-motor-ci.txt 2>&1
+            tests/test_base_signals_feed.py \
+            tests/test_base_signal_storage.py \
+            tests/test_base_signal_hetzner_worker.py \
+            tests/test_base_signal_near_term_discovery.py > /tmp/signal-motor-ci.txt 2>&1
           RC=$?
           node --check static/js/base-signals.js > /tmp/signal-motor-js.txt 2>&1
           JS=$?
