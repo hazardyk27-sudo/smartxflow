@@ -1,0 +1,19 @@
+ssh_result=success
+print("BETWATCH_DIAG_TOTAL="+str(len(data)))
+print("BETWATCH_DIAG_1X2_MARKETS="+str(count["market_total"]))
+print("BETWATCH_DIAG_RUNNER_COUNTS="+json.dumps(dict(count),sort_keys=True))
+print("BETWATCH_DIAG_LABEL_SAMPLES="+json.dumps(samples,ensure_ascii=True))
+print("BETWATCH_DIAG_END")
+2026-10-21T01:49:40.3073656Z     print("BETWATCH_DIAG_STATUS=NO_API_CREDENTIAL")
+2026-10-21T01:49:40.3076644Z print("BETWATCH_DIAG_HTTP="+str(response.status_code))
+2026-10-21T01:49:40.3084147Z print("BETWATCH_DIAG_TOTAL="+str(len(data)))
+2026-10-21T01:49:40.3084594Z print("BETWATCH_DIAG_1X2_MARKETS="+str(count["market_total"]))
+2026-10-21T01:49:40.3085156Z print("BETWATCH_DIAG_RUNNER_COUNTS="+json.dumps(dict(count),sort_keys=True))
+2026-10-21T01:49:40.3085778Z print("BETWATCH_DIAG_LABEL_SAMPLES="+json.dumps(samples,ensure_ascii=True))
+2026-10-21T01:49:40.3086261Z print("BETWATCH_DIAG_END")
+2026-10-21T01:49:43.6871732Z out: BETWATCH_DIAG_HTTP=200
+2026-10-21T01:49:43.6872497Z out: BETWATCH_DIAG_TOTAL=728
+2026-10-21T01:49:43.6873034Z out: BETWATCH_DIAG_1X2_MARKETS=717
+2026-10-21T01:49:43.6873835Z out: BETWATCH_DIAG_RUNNER_COUNTS={"market_total": 717, "runner_count_3": 717}
+2026-10-21T01:49:43.6884614Z out: BETWATCH_DIAG_LABEL_SAMPLES=[{"teams": {"v1": "Abha", "v2": "Al-Kholood Club"}, "runner_names": ["Abha", "The Draw", "Al-Kholood Club"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Sweden", "v2": "Bosnia"}, "runner_names": ["Sweden", "The Draw", "Bosnia"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Austria", "v2": "Republic of Ireland"}, "runner_names": ["Austria", "The Draw", "Republic of Ireland"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Romania", "v2": "Poland"}, "runner_names": ["Romania", "The Draw", "Poland"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Kosovo", "v2": "Israel"}, "runner_names": ["Kosovo", "The Draw", "Israel"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Bulgaria", "v2": "Iceland"}, "runner_names": ["Bulgaria", "The Draw", "Iceland"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Slovakia", "v2": "Faroe Islands"}, "runner_names": ["Slovakia", "The Draw", "Faroe Islands"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "Serbia", "v2": "Germany"}, "runner_names": ["Serbia", "The Draw", "Germany"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}, {"teams": {"v1": "England", "v2": "Croatia"}, "runner_names": ["England", "The Draw", "Croatia"], "runner_keys": [["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"], ["name", "odd", "runner_id", "volume"]]}]
+2026-10-21T01:49:43.6891830Z out: BETWATCH_DIAG_END
