@@ -133,7 +133,11 @@ jobs:
             sudo /bin/systemctl restart smartxflow-web
             sudo /bin/systemctl restart smartxflow-scraper
             sudo /bin/systemctl restart smartxflow-alarm
-            sudo /bin/systemctl restart smartxflow-sinyal
+            # The five retired legacy engines produce Underdog/Confirmed/
+            # FakeSharp/EarlyMoneyLock. Stop and disable only their dedicated
+            # service; Alarm and new Sinyal Motoru remain independent.
+            sudo /bin/systemctl stop smartxflow-sinyal.service
+            sudo /bin/systemctl disable smartxflow-sinyal.service
             sudo /bin/systemctl restart smartxflow-live
             sudo /bin/systemctl restart smartxflow-poly
             sudo /bin/systemctl restart smartxflow-predictor-orchestrator
@@ -158,7 +162,7 @@ jobs:
             sudo /bin/systemctl is-active smartxflow-web     || { echo "web baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-scraper || { echo "scraper baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-alarm   || { echo "alarm baslamadi!"; exit 1; }
-            sudo /bin/systemctl is-active smartxflow-sinyal  || { echo "sinyal baslamadi!"; exit 1; }
+            test "$(sudo /bin/systemctl is-enabled smartxflow-sinyal.service || true)" = disabled || { echo "retired engines still enabled!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-live    || { echo "live baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-poly    || { echo "poly baslamadi!"; exit 1; }
             sudo /bin/systemctl is-active smartxflow-predictor-orchestrator || { echo "predictor orchestrator baslamadi!"; exit 1; }
@@ -167,7 +171,6 @@ jobs:
               smartxflow-web.service \
               smartxflow-scraper.service \
               smartxflow-alarm.service \
-              smartxflow-sinyal.service \
               smartxflow-live.service \
               smartxflow-poly.service \
               smartxflow-predictor-orchestrator.service; do
