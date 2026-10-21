@@ -1,9 +1,26 @@
-SOURCE_SHA=0163cb244cc98f1040892901ac8b2de0671fda6b
+SOURCE_SHA=c7d503569ba8ddfd0ddeec4d8737054a4f6c11c9
 PYTEST_EXIT=1
-................................................F....................... [ 36%]
+......................................F.........F....................... [ 36%]
 ........................................................................ [ 73%]
-..................................F................                      [100%]
+...................................................                      [100%]
 =================================== FAILURES ===================================
+_____________ test_independent_market_t6_authority_vs_t8_fallback ______________
+
+    def test_independent_market_t6_authority_vs_t8_fallback():
+        history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
+        # T-6 must use its own complete original markets, not T-8.
+        history += [mkt("OU25",8),mkt("BTTS",8),mkt("OU25",6),mkt("BTTS",6)]
+        reader=FakeReader(history)
+        job=CheckpointJob(REF,6,"BASE")
+        p=evaluate_job(job,reader)
+        assert p["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
+>       assert p["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
+E       AssertionError: assert 'AUTHORITATIVE_T6' == 'INSUFFICIENT_DATA'
+E         
+E         - INSUFFICIENT_DATA
+E         + AUTHORITATIVE_T6
+
+tests/test_base_signal_scheduler.py:107: AssertionError
 ________ test_actual_shadow_retries_missing_t6_instead_of_marking_done _________
 
     def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
@@ -34,60 +51,17 @@ E
 E         - EVALUATE
 E         + WAITING_DATA
 
-tests/test_base_signal_scheduler.py:222: AssertionError
-__________ test_20_oct_production_pause_does_not_kill_priority_worker __________
-
-monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7f2fe476c410>
-
-    def test_20_oct_production_pause_does_not_kill_priority_worker(monkeypatch):
-        """Real outage: 47 fixtures *11 plus 772 due => controlled PAUSED_CAPACITY.
-    
-        No physical fixture is discarded or silently truncated. The next
-        rotation minute can still run, while operators see DEGRADED coverage.
-        """
-        monkeypatch.setattr(worker, "bounded_cursor_discovery_once",
-            lambda *a,**k: {"status":"PAUSED_BACKLOG","enqueued":0,
-                "fixtures":0,"paused":True,"pending_due":772,"uncertain":False})
-        calls=[]
-        monkeypatch.setattr(worker,"near_term_discovery_once",lambda *a,**k:
-            {"status":"PAUSED_CAPACITY","enqueued":0,"fixtures":47,
-             "pending_due":772,"window_start":NOW.isoformat(),
-             "window_end":(NOW+timedelta(hours=1)).isoformat()})
-        monkeypatch.setattr(worker,"execute_claims",lambda *a,**k:
-            (calls.append(k.get("lane","ANY")) or
-             {"claimed":1,"completed":0,"waiting_data":1,"retry":0,
-              "lease_lost":0,"commit_uncertain":0}))
-        class S:
-            def health_snapshot(self):
-                return {"checkpoint_queue":{"pending_due":772,
-                        "oldest_due_seconds":253346.042219,
-                        "expired_leases":0},
-                        "discovery_cursor":{"initialized":True,
-                        "last_scanned_at":NOW.isoformat()},
-                        "reconciliation_queue":{"pending_due":54,
-                        "expired_leases":0}}
-        for minute in (0,1,2):
-            result=worker.run_cycle(None,S(),worker_id="simulated",
-                max_jobs=6,max_reconcile=0,priority_lanes=True,
-                near_term=True,near_term_rotation=True,
-                now=NOW+timedelta(minutes=minute))
-            assert result["near_term_status"]=="PAUSED_CAPACITY"
-            assert result["near_term_capacity_limited"] is True
-            assert result["near_term_rotation_coverage_verified"] is False
-            assert result["coverage_state"]=="DEGRADED"
-            assert result["healthy_cycle"] is True
-            assert result["production_release_verified"] is False
->           assert result["live_claimed"]==4 and result["backlog_claimed"]==2
-E           assert (6 == 4)
-
-tests/test_base_signal_near_term_discovery.py:193: AssertionError
+tests/test_base_signal_scheduler.py:223: AssertionError
 =========================== short test summary info ============================
+FAILED tests/test_base_signal_scheduler.py::test_independent_market_t6_authority_vs_t8_fallback - AssertionError: assert 'AUTHORITATIVE_T6' == 'INSUFFICIENT_DATA'
+  
+  - INSUFFICIENT_DATA
+  + AUTHORITATIVE_T6
 FAILED tests/test_base_signal_scheduler.py::test_actual_shadow_retries_missing_t6_instead_of_marking_done - AssertionError: assert 'WAITING_DATA' == 'EVALUATE'
   
   - EVALUATE
   + WAITING_DATA
-FAILED tests/test_base_signal_near_term_discovery.py::test_20_oct_production_pause_does_not_kill_priority_worker - assert (6 == 4)
-2 failed, 193 passed in 0.85s
+2 failed, 193 passed in 0.86s
 BASH_PREFLIGHT_EXIT=0
 BASH_UNIT_SYNC_EXIT=0
 VISUDO_EXIT=0
