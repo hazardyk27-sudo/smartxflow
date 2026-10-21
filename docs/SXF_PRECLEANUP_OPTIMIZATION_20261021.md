@@ -77,3 +77,34 @@ DROP INDEX CONCURRENTLY IF EXISTS public.idx_live_snapshots_hash;
 ```
 
 Never do `DROP ... CASCADE`, `VACUUM FULL`, `TRUNCATE`, or historical DELETE as part of these index optimizations. Postgres CREATE/DROP INDEX CONCURRENTLY cannot execute inside a transaction block.
+
+## 21 October — fixture-day/observation-day reconciliation (supersedes earlier date interpretation)
+
+**Critical correction:** `research_archive.*.local_date` is the **Europe/Istanbul kickoff day**, whereas `public.fixtures.fixture_date` is UTC-based and history `scraped_at`/`scraped_at_utc` is the **observation timestamp**. For example, one `research_archive.moneyway_snapshots` row archived against a 2026-10-09 fixture has `scraped_at_utc=2026-10-05 23:08:18+00`. Thus a lack of `archive_runs` for Oct 5-8 is not *by itself* evidence that snapshots observed on Oct 5-8 are lost.
+
+When raw `public.fixtures.fixture_date` was naively grouped against archived `local_date`, the 2026-10-14 comparison reported 164 versus 152 with 18/6 unmatched. **That is an invalid axis comparison**, not verified loss: the 12-row difference comes from UTC-to-Istanbul day boundary movement. Join by `fixture_uid` across all days and compare the archive date to `(kickoff_utc AT TIME ZONE 'Europe/Istanbul')::date` instead.
+
+**Verified live read-only fixture-day totals (Oct 21):**
+| TR fixture day | Source fixtures | Archive matches | Unmatched fixtures |
+|---|---:|---:|---:|
+| Oct 5 | 73 | 0 | 73 |
+| Oct 6 | 156 | 0 | 156 |
+| Oct 7 | 118 | 0 | 118 |
+| Oct 8 | 155 | 0 | 155 |
+| Oct 9 | 260 | 260 | 0 |
+| Oct 10 | 455 | 455 | 0 |
+| Oct 11 | 334 | 334 | 0 |
+| Oct 12 | 177 | 177 | 0 |
+| Oct 13 | 192 | 192 | 0 |
+| Oct 14 | 152 | 152 | 0 |
+
+Only fixture IDs are verified for Oct 9–14. **Snapshot/history full parity is NOT verified.** Oct 5–8 have 502 source fixtures without archive fixture counterparts, and must never be erased. Some raw `moneyway_snapshots.fixture_uid` are NULL, so an independent row/fingerprint and exact-fixture reconstruction procedure will be necessary before any source-row deletion.
+
+Reproducible non-destructive SQL checked successfully against production:
+- `scripts/maintenance/sxf_archive_fixture_parity_readonly.sql` — 10-day comparison with Istanbul kickoff date
+- `scripts/maintenance/sxf_duplicate_index_audit_readonly.sql` — four index definitions, usage and dependencies; returns `production_drop_authorized=false` for both proposed removals
+- `scripts/maintenance/sxf_precleanup_evidence.sql` — current 7-day cutoff metadata, correct Istanbul fixture-day probe; **always false** for independent restore/backup, complete row parity, future fixture preservation, and source-observation lineage without separate independent evidence
+
+Index audit still finds both functional duplicate pairs structurally equivalent, with zero constraint/dependency references and ~269 MB potential gain, but **no index was dropped**. As of this note, changes are only on `preview`; no production release, cleanup, index DROP, cron enablement or Hetzner deployment was performed.
+
+**Release blockade:** Separate source-row counts/checksums, future fixture T-72 observations, and tested independent cold backup are mandatory. A `COMPLETE` archive status or an equivalent index is not sufficient authorization.
