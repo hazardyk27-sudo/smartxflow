@@ -1,4 +1,4 @@
-name: Verify T72 snapshot source fidelity and 180-second capture
+name: Verify final T72 source ingestion and Betwatch provider coverage
 
 on:
   push:
@@ -30,6 +30,7 @@ jobs:
             tests/test_moneyway_ingest_quality_20261021.py \
             tests/test_moneyway_zero_volume_provenance_20261021.py \
             tests/test_prematch_t72_capture_cadence_20261021.py \
+            tests/test_early_provider_coverage_20261021.py \
             tests/test_runtime_scraper_recovery.py \
             tests/test_betwatch_prematch_identity_runtime.py > /tmp/source-tests.log 2>&1
           RC=$?
