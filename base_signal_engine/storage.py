@@ -242,7 +242,7 @@ class SupabaseCheckpointStore:
         """Mark a missing-source attempt nonterminal with a fenced lease token."""
         if reason not in ("INSUFFICIENT_DATA", "SOURCE_LAG", "SOURCE_INCOMPLETE"):
             raise ValueError("unsupported missing-source reason")
-        if not 60 <= delay_seconds <= 3600:
+        if not 60 <= delay_seconds <= 21600:
             raise ValueError("missing-source retry delay outside bounds")
         if self._rpc("sxf_base_wait_for_data", {
             "p_job_id": item.job_id, "p_lease_token": item.lease_token,
