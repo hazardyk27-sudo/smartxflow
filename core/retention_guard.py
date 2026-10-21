@@ -33,12 +33,16 @@ def _learning_archive_guard_enabled() -> bool:
 
 
 def retention_cleanup_disabled(env: Optional[Mapping[str, str]] = None) -> bool:
-    """Return whether cleanup must be blocked right now.
+    """Fail closed for the UNSAFE legacy unbounded cleanup.
 
-    This function is also used by the scheduled scraper, so pending archive
-    holds are checked here instead of only in the web-client monkey patch.
+    An explicit reviewed release switch is required to invoke the legacy
+    cleanup; the new independent archive/backup preflight must be reviewed
+    separately. This is a second, not a replacement, safety boundary.
     """
-    if _explicit_cleanup_disable(env):
+    source = os.environ if env is None else env
+    if str(source.get("SMARTXFLOW_RETENTION_CLEANUP_APPROVED", "")).strip().lower() not in _TRUE_VALUES:
+        return True
+    if _explicit_cleanup_disable(source):
         return True
     if not _learning_archive_guard_enabled():
         return False
@@ -52,9 +56,6 @@ def retention_cleanup_disabled(env: Optional[Mapping[str, str]] = None) -> bool:
 
 def install_supabase_cleanup_guard() -> bool:
     """Guard the web Supabase retention delete path before app startup."""
-    if not _explicit_cleanup_disable() and not _learning_archive_guard_enabled():
-        return False
-
     try:
         from services.supabase_client import SupabaseClient
     except Exception as exc:
@@ -71,8 +72,8 @@ def install_supabase_cleanup_guard() -> bool:
     original = current
 
     def guarded_cleanup(self, *args, **kwargs):
-        if _explicit_cleanup_disable():
-            print("[Retention Guard] Cleanup blocked by SMARTXFLOW_DISABLE_RETENTION_CLEANUP")
+        if retention_cleanup_disabled():
+            print("[Retention Guard] Legacy cleanup blocked (approval/hold/readiness gate)")
             return {}
 
         if _learning_archive_guard_enabled():
