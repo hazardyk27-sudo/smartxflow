@@ -34,5 +34,11 @@ jobs:
             tail -n 80 /tmp/sxf-base-test.log
           } | tee /tmp/sxf-base-test-report.txt
           CONTENT="$(base64 -w0 /tmp/sxf-base-test-report.txt)"
-          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/docs/BASE_AUTONOMOUS_RECOVERY_TEST_20261021.txt"             -f message="test(base): publish verified focused recovery test report"             -f branch=preview -f content="$CONTENT" --jq '.commit.sha' || true
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_AUTONOMOUS_RECOVERY_TEST_20261021.txt"
+          EXISTING_SHA="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$EXISTING_SHA" ]; then
+            gh api -X PUT "$DEST" -f message="test(base): publish verified recovery test report" -f branch=preview -f content="$CONTENT" -f sha="$EXISTING_SHA" --jq '.commit.sha'
+          else
+            gh api -X PUT "$DEST" -f message="test(base): publish verified recovery test report" -f branch=preview -f content="$CONTENT" --jq '.commit.sha'
+          fi
           exit "$RC"
