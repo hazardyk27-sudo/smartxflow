@@ -7,6 +7,9 @@ on:
       - 'deploy/systemd/smartxflow-base-worker.service'
       - 'deploy/sync_runtime_units.sh'
       - 'base_signal_engine/hetzner_worker.py'
+      - 'scripts/base_worker_guarded_recovery.py'
+      - 'deploy/systemd/smartxflow-base-guarded-recovery.timer'
+      - 'deploy/systemd/smartxflow-base-guarded-recovery.service'
       - '.github/workflows/base-autonomous-hetzner-enable.yml'
 
 permissions:
@@ -78,8 +81,16 @@ jobs:
               'SXF_BASE_PRIORITY_LANES_APPROVED=yes' \
               > /etc/smartxflow/base-worker.env
             systemctl daemon-reload
-            systemctl enable --now smartxflow-base-worker.service
+            # NEVER bypass a fenced unknown ACK with 'enable --now'.
+            # Guard checks all three durable lease tables before restarting.
+            systemctl enable smartxflow-base-worker.service
+            systemctl enable --now smartxflow-base-guarded-recovery.timer
             test "$(systemctl is-enabled smartxflow-base-worker.service)" = enabled
+            test "$(systemctl is-enabled smartxflow-base-guarded-recovery.timer)" = enabled
+            test "$(systemctl is-active smartxflow-base-guarded-recovery.timer)" = active
+            if [ "$(systemctl is-active smartxflow-base-worker.service || true)" != active ]; then
+              systemctl start smartxflow-base-guarded-recovery.service
+            fi
             test "$(systemctl is-active smartxflow-base-worker.service)" = active
             echo "AUTONOMOUS_BASE_UNIT_ENABLED_AT_BOOT"
             systemctl show smartxflow-base-worker.service \
