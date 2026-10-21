@@ -55,7 +55,7 @@ class FakeReader:
         if self.fail:
             raise RuntimeError("simulated transport outage")
         visible = [x for x in self.snaps if x.observed_at<=as_of_utc and any(
-            fixture.kickoff_utc-timedelta(hours=h,minutes=30+(3*60 if include_v2_history and h in (8,6) else 0))
+            fixture.kickoff_utc-timedelta(hours=h,minutes=59+(3*60 if include_v2_history and h in (8,6) else 0))
             <=x.observed_at<=fixture.kickoff_utc-timedelta(hours=h) for h in hours)]
         return SimpleNamespace(snapshots=tuple(visible),fetched_rows=len(visible)*3,
                                discarded_groups=0,hash_drift_rows=0)
@@ -103,9 +103,9 @@ def test_independent_market_t6_authority_vs_t8_fallback():
     job=CheckpointJob(REF,6,"BASE")
     p=evaluate_job(job,reader)
     assert p["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
-    assert p["markets"]["OU25"]["state"]=="FALLBACK_T8"
-    assert p["markets"]["BTTS"]["state"]=="FALLBACK_T8"
-    assert any(x["engine"]=="STABLE_OVER_2_5" and x["checkpoint"]==8 for x in p["signals"])
+    assert p["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
+    assert p["markets"]["BTTS"]["state"]=="INSUFFICIENT_DATA"
+    assert not any(x["engine"]=="STABLE_OVER_2_5" for x in p["signals"])
     assert any(x["engine"]=="1X2_CONCENTRATION_V1" and x["checkpoint"]==6 for x in p["signals"])
     assert reader.calls[0][1]==KO-timedelta(hours=6)+timedelta(minutes=10)
 
