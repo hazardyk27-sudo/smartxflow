@@ -64,7 +64,6 @@ as_root /bin/systemctl enable \
   smartxflow-web.service \
   smartxflow-scraper.service \
   smartxflow-alarm.service \
-  smartxflow-sinyal.service \
   smartxflow-live.service \
   smartxflow-poly.service \
   smartxflow-predictor-orchestrator.service \
