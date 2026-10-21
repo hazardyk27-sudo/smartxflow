@@ -77,26 +77,52 @@ def map_market(mkt_name: str, runners: list, *, home=None, away=None, **_legacy_
     Desteklenen marketler: Match Odds (1X2), Over/Under 2.5 Goals (OU25), Both teams to Score? (BTTS)
     Diğerleri için (None, []) döner.
 
-    ``home``/``away`` ve bilinmeyen keyword argümanları eski scraper snapshot'larıyla
-    geriye uyumluluk için kabul edilir; market eşlemesini etkilemez.
+    ``home``/``away`` takım adlarıyla doğrulanabilir 1X2 eşlemesi yapar;
+    belirsiz/çift koşucular sinyale dönüştürülmez.
     """
     name = (mkt_name or "").strip()
 
     if name == "Match Odds":
-        if len(runners) < 2:
+        # A provider may supply [home,draw,away], [home,away,draw] or
+        # [draw,home,away]. Never turn a team runner into "X" based on
+        # its *position*; that corrupted money/side assignment.
+        if not isinstance(runners, list) or not 2 <= len(runners) <= 3:
             return None, []
-        sels = []
-        for i, r in enumerate(runners):
-            r_name = (r.get("name") or "").lower()
-            if "draw" in r_name:
-                sels.append(("X", r))
-            elif not sels or (sels and "X" not in [s[0] for s in sels] and i == 0):
-                sels.append(("1", r))
+        normalize = lambda s: " ".join(str(s or "").casefold().split())
+        home_name, away_name = normalize(home), normalize(away)
+        recognized = {}
+        unknown = []
+        for runner in runners:
+            if not isinstance(runner, dict):
+                return None, []
+            label = normalize(runner.get("name"))
+            if not label:
+                return None, []
+            if label in ("x", "draw", "tie", "match draw", "beraberlik"):
+                side = "X"
+            elif label in ("1", "home", "home win", "v1") or (home_name and label == home_name and home_name != away_name):
+                side = "1"
+            elif label in ("2", "away", "away win", "v2") or (away_name and label == away_name and home_name != away_name):
+                side = "2"
             else:
-                sels.append(("2", r))
-        if len(sels) == 3 and sels[1][0] != "X":
-            sels[1] = ("X", sels[1][1])
-        return "1X2", sels
+                unknown.append(runner)
+                continue
+            if side in recognized:
+                return None, []  # Duplicate side: never overwrite its volume.
+            recognized[side] = runner
+
+        # If one team was explicitly resolved, a single unidentified runner
+        # can be assigned to the *other* team. Otherwise the source is
+        # ambiguous; missing outcomes must remain missing, not invented.
+        if unknown:
+            unclaimed_team_sides = {"1", "2"} - recognized.keys()
+            if len(unknown) != 1 or len(unclaimed_team_sides) != 1:
+                return None, []
+            recognized[unclaimed_team_sides.pop()] = unknown[0]
+        if len(recognized) < 2:
+            return None, []
+        return "1X2", [(side, recognized[side]) for side in ("1", "X", "2")
+                       if side in recognized]
 
     elif name.startswith("Over/Under 2.5"):
         sels = []
