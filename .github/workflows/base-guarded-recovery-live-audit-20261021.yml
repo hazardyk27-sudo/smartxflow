@@ -1,0 +1,75 @@
+name: Verify guarded Base recovery on Hetzner 2026-10-21
+on:
+  push:
+    branches: [preview]
+    paths:
+      - '.github/workflows/base-guarded-recovery-live-audit-20261021.yml'
+permissions:
+  contents: write
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read-only Hetzner guarded-recovery health
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          command_timeout: 9m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            for i in $(seq 1 75); do
+              got="$(git -C /opt/smartxflow rev-parse HEAD)"
+              active="$(systemctl is-active smartxflow-base-worker.service || true)"
+              tm="$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+              if [ "$got" = "a4f5c83cd80a8790c73715fcef34d0d4d9196388" ] && [ "$tm" = enabled ] && [ "$active" = active ]; then break; fi
+              sleep 4
+            done
+            echo "RECOVERY_AUDIT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "RECOVERY_AUDIT_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+            echo "RECOVERY_BASE_ACTIVE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "RECOVERY_BASE_ENABLED=$(systemctl is-enabled smartxflow-base-worker.service || true)"
+            echo "RECOVERY_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            echo "RECOVERY_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+            systemctl show smartxflow-base-worker.service -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts -p MainPID --no-pager
+            echo "RECOVERY_TIMER_JOURNAL"
+            journalctl -u smartxflow-base-guarded-recovery.service --since '-30 minutes' --no-pager -o cat | grep 'BASE_GUARDED_RECOVERY' | tail -n 8 || true
+            echo "RECOVERY_WORKER_CYCLES"
+            journalctl -u smartxflow-base-worker.service --since '-15 minutes' --no-pager -o cat | grep -E '"mode": "HETZNER_BASE_DURABLE"|"status": "UNCERTAIN"' | tail -n 10 | cut -c1-1200 || true
+            echo "RECOVERY_AUDIT_END"
+  publish:
+    needs: audit
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Save sanitized verification in preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          {
+            echo "expected_sha=a4f5c83cd80a8790c73715fcef34d0d4d9196388"
+            echo "audit_job_result=${{ needs.audit.result }}"
+            for wf in deploy.yml base-autonomous-hetzner-enable.yml; do
+              echo "WORKFLOW=$wf"
+              gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?branch=main&per_page=2" --jq '.workflow_runs[] | "\(.id) status=\(.status) conclusion=\(.conclusion) sha=\(.head_sha)"' | head -n2 || true
+            done
+          } > /tmp/guarded-audit.txt
+          id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name=="audit") | .id' | head -n1)"
+          if [ -n "$id" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/raw.txt || true
+            grep -E '(out: RECOVERY_|out: (ActiveState|SubState|Result|ExecMainStatus|NRestarts|MainPID)=|BASE_GUARDED_RECOVERY|HETZNER_BASE_DURABLE)' /tmp/raw.txt | tail -n25 >> /tmp/guarded-audit.txt || true
+          fi
+          DATA="$(base64 -w0 /tmp/guarded-audit.txt)"
+          DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_GUARDED_RECOVERY_LIVE_AUDIT_20261021.txt"
+          OLD="$(gh api "$DEST?ref=preview" --jq .sha 2>/dev/null || true)"
+          if [ -n "$OLD" ]; then
+            gh api -X PUT "$DEST" -f message="ops(base): refresh guarded recovery live verification" -f branch=preview -f content="$DATA" -f sha="$OLD" --jq .commit.sha
+          else
+            gh api -X PUT "$DEST" -f message="ops(base): publish guarded recovery live verification" -f branch=preview -f content="$DATA" --jq .commit.sha
+          fi
