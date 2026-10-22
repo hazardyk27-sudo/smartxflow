@@ -2,7 +2,7 @@ name: SXF CAPITALE archive admin security checks
 
 on:
   push:
-    branches: [main, preview, 'fix/sxf-archive-token-only-replace-20261022']
+    branches: [main, preview]
     paths:
       - sxf_capitale_archive_admin.py
       - sxf_admin_password_auth.py
