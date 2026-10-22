@@ -124,7 +124,15 @@
   }
   function items() {
     return current.payload && Array.isArray(current.payload.items)
-      ? current.payload.items.filter(function (x) { return Object.prototype.hasOwnProperty.call(ENGINES, x.engine); })
+      ? current.payload.items.filter(function (x) {
+          // Defense in depth for cached/stale API responses: only verified
+          // eligible picks can create cards, counts or same-side badges.
+          // Historical ELIGIBLE picks remain visible as archives.
+          return Object.prototype.hasOwnProperty.call(ENGINES, x.engine) &&
+            x.selection_status === 'ELIGIBLE' &&
+            x.review_state !== 'PRICE_REJECTED' &&
+            typeof x.odds === 'number' && isFinite(x.odds) && x.odds >= 1.30;
+        })
       : [];
   }
   function engineIds() {
