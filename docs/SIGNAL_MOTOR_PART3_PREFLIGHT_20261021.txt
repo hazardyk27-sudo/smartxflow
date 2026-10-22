@@ -1,23 +1,23 @@
-SOURCE_SHA=34620150dd5040c971411a2edf4cc622dd31f467
+SOURCE_SHA=a99530ee5a2e1c083c511e83ed1996646c48d58b
 PYTEST_EXIT=1
-  +         'checkpoint': 8,
-  +         'source_checkpoint': 8,
-  +         'recorded_at': '2026-10-22T17:30:00+00:00',
-  +         'observed_at': '2026-10-22T17:30:00+00:00',
-  +         'delivery_timing': 'LATE_EVALUATION',
-  +         'selection_status': 'UNKNOWN',
-  +         'review_state': 'LATE_HISTORY',
-  +         'valid_on_time': False,
-  +         'odds': 3.65,
-  +         'strength_tag': False,
-  +         'shadow': True,
-  +         'result_state': 'PENDING',
-  +         'final_score': None,
-  +         'outcome': None,
-  +     },
-  + ]
-FAILED tests/test_base_signals_feed.py::test_fixture_skip_probe_unavailable_fails_closed_not_as_no_skips - Failed: DID NOT RAISE BaseFeedUnavailable
-3 failed, 207 passed in 1.08s
+        assert payload["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
+        assert payload["markets"]["OU25"]["checkpoint"] is None
+        assert payload["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
+        assert payload["markets"]["BTTS"]["state"]=="AUTHORITATIVE_T6"
+        assert coverage["missing_t6_markets"]==["OU25"]
+>       assert coverage["disposition"]=="WAITING_DATA"
+E       AssertionError: assert 'EVALUATE' == 'WAITING_DATA'
+E         
+E         - WAITING_DATA
+E         + EVALUATE
+
+tests/test_base_signal_real_source_smoke.py:120: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_base_signal_real_source_smoke.py::test_one_missing_t6_market_side_is_not_fabricated_from_another_timestamp - AssertionError: assert 'EVALUATE' == 'WAITING_DATA'
+  
+  - WAITING_DATA
+  + EVALUATE
+1 failed, 209 passed in 0.98s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
