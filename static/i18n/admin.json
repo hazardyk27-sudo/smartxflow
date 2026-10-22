@@ -1,6 +1,7 @@
 {
   "tr": {
     "system": "Sistem",
+    "sxf_capitale_github_archive": "GitHub Arşiv",
     "dashboard": "Dashboard",
     "market_status": "Market Durumu",
     "system_info": "Sistem Bilgisi",
@@ -537,6 +538,7 @@
   },
   "en": {
     "system": "System",
+    "sxf_capitale_github_archive": "GitHub Archive",
     "dashboard": "Dashboard",
     "market_status": "Market Status",
     "system_info": "System Information",
@@ -1073,6 +1075,7 @@
   },
   "de": {
     "system": "System",
+    "sxf_capitale_github_archive": "GitHub-Archiv",
     "dashboard": "Dashboard",
     "market_status": "Marktstatus",
     "system_info": "Systeminformationen",
@@ -1609,6 +1612,7 @@
   },
   "fr": {
     "system": "Système",
+    "sxf_capitale_github_archive": "Archive GitHub",
     "dashboard": "Tableau de bord",
     "market_status": "État du marché",
     "system_info": "Informations système",
@@ -2145,6 +2149,7 @@
   },
   "nl": {
     "system": "Systeem",
+    "sxf_capitale_github_archive": "GitHub-archief",
     "dashboard": "Dashboard",
     "market_status": "Marktstatus",
     "system_info": "Systeeminformatie",
@@ -2681,6 +2686,7 @@
   },
   "it": {
     "system": "Sistema",
+    "sxf_capitale_github_archive": "Archivio GitHub",
     "dashboard": "Dashboard",
     "market_status": "Stato del mercato",
     "system_info": "Informazioni di sistema",
@@ -3217,6 +3223,7 @@
   },
   "es": {
     "system": "Sistema",
+    "sxf_capitale_github_archive": "Archivo de GitHub",
     "dashboard": "Panel",
     "market_status": "Estado del mercado",
     "system_info": "Información del sistema",
