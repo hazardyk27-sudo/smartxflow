@@ -576,6 +576,8 @@ body.sxf-signals-open{overflow:hidden!important}
   font:700 16px/1.2 'JetBrains Mono',monospace;text-align:right;
   color:var(--sxf-text);font-variant-numeric:tabular-nums
 }
+#sxfBaseSignalOverlay .sxf-price-key{display:none}
+
 #sxfBaseSignalOverlay .sxf-line-engines{
   display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0
 }
@@ -657,7 +659,9 @@ body.sxf-signals-open{overflow:hidden!important}
   #sxfBaseSignalOverlay .sxf-line-fixture{grid-area:fixture}
   #sxfBaseSignalOverlay .sxf-line-time{grid-area:time;justify-self:end}
   #sxfBaseSignalOverlay .sxf-line-selection{grid-area:selection}
-  #sxfBaseSignalOverlay .sxf-line-odds{grid-area:odds;justify-self:end;font-size:16px}
+  #sxfBaseSignalOverlay .sxf-line-odds{grid-area:odds;justify-self:end;font-size:16px;
+    display:flex;align-items:baseline;gap:5px;white-space:nowrap}
+  #sxfBaseSignalOverlay .sxf-price-key{display:inline;font:500 9px/1.2 Inter,sans-serif;color:var(--sxf-secondary)}
   #sxfBaseSignalOverlay .sxf-line-engines{grid-area:engines}
   #sxfBaseSignalOverlay .sxf-line-state{grid-area:status;justify-self:end}
   #sxfBaseSignalOverlay .sxf-line-open{grid-area:open}
