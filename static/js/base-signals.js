@@ -213,108 +213,59 @@
     return fmt('signals_count','{count} sinyal',{count:timelySignalCount(rows)}) +
       ' · ' + fmt('records_count','{count} kayıt',{count:rows.length});
   }
-  // A fixture may appear in several engines. Show each recorded selection
-  // once, with unique engine badges and full immutable checkpoint history.
-  // Heavy is a strength tag, not an extra independent confidence vote.
-  var SIGNAL_BADGES = {
-    EARLY_MONEY_CORE: 'EARLY CORE', EARLY_MONEY_T12: 'EARLY T12',
-    '1X2_CONCENTRATION_V1': 'V1', '1X2_CONCENTRATION_V2': 'V2',
-    HEAVY_1X2_CONCENTRATION: 'HEAVY', SURPRISE_TEAM: 'SURPRISE',
-    STABLE_OVER_2_5: 'STABLE O2.5', PREMIUM_OVER_2_5: 'PREMIUM O2.5',
-    PREMIUM_OVER_MIN1_70: 'PREMIUM 1.70+', BTTS_YES: 'BTTS'
-  };
-  function recordOrder(item) {
-    var parsed = Date.parse(item.observed_at || item.recorded_at || '');
-    return isFinite(parsed) ? parsed : 0;
-  }
-  function priceRow(rows) {
-    return rows.filter(function (row) {
-      return typeof row.odds === 'number' && isFinite(row.odds);
-    }).sort(function (a, b) {
-      return recordOrder(b) - recordOrder(a) || (Number(b.id) || 0) - (Number(a.id) || 0);
-    })[0] || null;
-  }
   function signalRow(item) {
-    var rejected = item.review_state === 'PRICE_REJECTED';
-    var historical = item.stage_status === 'T8_HISTORICAL' || item.valid_on_time === false;
-    var status = rejected ? t('status_rejected', 'Uygun değil') :
-      historical ? t('status_archive', 'Arşiv') :
-      item.valid_on_time === true ? t('status_timely', 'Zamanında') :
-      t('status_unverified', 'Doğrulanmadı');
+    var isHistory = item.stage_status === 'T8_HISTORICAL';
+    var isRejected = item.review_state === 'PRICE_REJECTED';
+    var isRetrospective = item.review_state === 'LATE_HISTORY' ||
+      item.review_state === 'RECONCILED_HISTORY';
+    var isUnverified = item.review_state === 'UNVERIFIED_STATUS';
+    var isArchived = isHistory || (item.valid_on_time === false);
     var odds = typeof item.odds === 'number' && isFinite(item.odds)
-      ? item.odds.toFixed(2) : '—';
-    return '<div class="sxf-signal-row' + (historical ? ' is-archived' : '') + '">' +
-      '<span class="sxf-history-engine">' + esc(SIGNAL_BADGES[item.engine] || labelEngine(item.engine)) + '</span>' +
-      '<span class="sxf-history-stage">' + esc(stage(item)) +
-        (typeof item.checkpoint === 'number' ? ' · T-' + item.checkpoint : '') + '</span>' +
-      '<span class="sxf-history-observed">' + esc(t('data_at', 'Veri')) + ' ' +
-        esc(timeTR(item.observed_at)) + '</span>' +
-      '<span class="sxf-history-odds">' + esc(t('odds', 'Oran')) + ' <b>' + esc(odds) + '</b></span>' +
-      '<span class="sxf-history-status">' + esc(status) + '</span>' +
-      (rejected ? '<span class="sxf-history-note">' +
-        esc(t('price_rejected_warning', 'Oran 1.30 altında; uygun sinyal değil')) + '</span>' : '') +
-      (item.review_state === 'HISTORY_INCOMPLETE' ? '<span class="sxf-history-note">' +
-        esc(t('history_unverified', 'İlk Early oluşumu doğrulanamadı')) + '</span>' : '') +
+      ? '<span class="sxf-row-odds">' + esc(t('odds','Oran')) +
+        ' <b>' + item.odds.toFixed(2) + '</b></span>'
+      : '<span class="sxf-row-no-odds">' + esc(t('odds_missing','Oran kayıtlı değil')) + '</span>';
+    var settled = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
+    var result = settled ? '<span class="sxf-result-pill ' + (item.outcome === 'WIN' ? 'is-win' : 'is-loss') +
+      '">' + esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
+    return '<div class="sxf-signal-row' + (isArchived ? ' is-archived' : '') + '">' +
+      '<div class="sxf-signal-pick"><span class="sxf-signal-market">' +
+      esc(isArchived ? t('recorded_pick_heading','ARŞİV KAYDI') :
+        t('pick_heading','SİNYAL TERCİHİ')) + ' · ' +
+      esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
+      '</strong></div>' + odds + result +
+      '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
+      '</span>' + ((item.delivery_timing === 'LATE_EVALUATION' ||
+                    item.delivery_timing === 'RECONCILED_LATER') ?
+        '<span class="sxf-late-evaluation">' + esc(t('late_evaluation','Geçmişten hesaplandı')) +
+        '</span>' : '') +
+      (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
+      (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint
+        ? '<span>' + esc(t('source_t','Kaynak')) + ' T-' + item.source_checkpoint + '</span>' : '') +
+      '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span></div>' +
+      (isHistory ? '<div class="sxf-row-warning">' +
+        esc(t('history_warning','T-6 kararı sonrası geçmiş ön sinyal')) + '</div>' : '') +
+      (isRejected ? '<div class="sxf-row-warning">' +
+        esc(t('price_rejected_warning','Oran 1.30 altında; sinyal olarak uygun değil')) + '</div>' : '') +
+      (isRetrospective && !isRejected ? '<div class="sxf-row-warning">' +
+        esc(t('retrospective_warning','Zamanında yayınlanmadı; yalnız geçmiş analiz kaydı')) + '</div>' : '') +
+      (isUnverified ? '<div class="sxf-row-warning">' +
+        esc(t('unverified_status_warning','Sinyal uygunluğu doğrulanamadı')) + '</div>' : '') +
       '</div>';
   }
-  function choiceGroup(rows) {
-    var item = rows[0], last = priceRow(rows);
-    var badgeIds = Array.from(new Set(rows.map(function (row) { return row.engine; })));
-    var allArchive = rows.every(function (row) { return row.valid_on_time === false; });
-    var anyTimely = rows.some(function (row) { return row.valid_on_time === true &&
-      row.review_state !== 'PRICE_REJECTED'; });
-    var allRejected = rows.every(function (row) { return row.review_state === 'PRICE_REJECTED'; });
-    var state = allRejected ? 'rejected' : anyTimely ? 'timely' :
-      allArchive ? 'archive' : 'unverified';
-    var label = state === 'timely' ? t('status_timely','Zamanında') :
-      state === 'archive' ? t('status_archive','Arşiv') :
-      state === 'rejected' ? t('status_rejected','Uygun değil') :
-      t('status_unverified','Doğrulanmadı');
-    var badges = badgeIds.map(function (id) {
-      return '<span class="sxf-direction-badge" title="' + esc(labelEngine(id)) + '">' +
-        esc(SIGNAL_BADGES[id] || labelEngine(id)) + '</span>';
-    }).join('');
-    var entries = rows.slice().sort(function (a, b) {
-      return recordOrder(b) - recordOrder(a) || (Number(b.id) || 0) - (Number(a.id) || 0);
-    });
-    return '<section class="sxf-direction-group"><div class="sxf-direction-line">' +
-      '<div class="sxf-direction-copy"><span class="sxf-direction-market">' +
-        esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) + '</strong></div>' +
-      '<div class="sxf-direction-price"><small>' + esc(t('recorded_odds','Kayıtlı oran')) +
-        '</small><b>' + (last ? last.odds.toFixed(2) : '—') + '</b></div></div>' +
-      '<div class="sxf-direction-badges">' + badges +
-        '<span class="sxf-direction-status is-' + state + '">' + esc(label) + '</span></div>' +
-      '<details class="sxf-history"><summary>' +
-        esc(fmt('history_count','{count} checkpoint kaydı',{count:entries.length})) +
-        '<span aria-hidden="true" class="sxf-history-chevron">⌄</span></summary>' +
-        '<div class="sxf-history-list">' + entries.map(signalRow).join('') + '</div>' +
-      '</details></section>';
-  }
   function fixtureCard(rows) {
-    var item = rows[0], groups = new Map();
-    rows.forEach(function (row) {
-      // Selection+market identity is essential: HOME, AWAY, draw, O/U and
-      // BTTS must never be presented as consensus on a different outcome.
-      var key = String(row.market) + '/' + String(row.selection);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(row);
-    });
-    var directions = Array.from(groups.values()).sort(function (a, b) {
-      var aSelected = a.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
-      var bSelected = b.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
-      return bSelected - aSelected || b.length - a.length;
-    });
-    var finalScore = item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
-    var result = finalScore ? '<span class="sxf-match-result is-final">' +
-      esc(t('final_score_label','MAÇ SONUCU')) + ' <strong>MS ' +
-      esc(item.final_score) + '</strong></span>' : '';
+    var item = rows[0];
+    var result = item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '')
+      ? '<span class="sxf-match-result is-final">' + esc(t('final_score_label','MAÇ SONUCU')) +
+        ' <strong>MS ' + esc(item.final_score) + '</strong></span>'
+      : '<span class="sxf-match-result is-pending">' + esc(t('final_score_label','MAÇ SONUCU')) +
+        ' <strong>' + esc(t('score_unverified','Henüz doğrulanmadı')) + '</strong></span>';
     return '<article class="sxf-signal-card"><header class="sxf-match-top">' +
       '<span class="sxf-match-league">' + esc(item.league || t('unknown_league','Lig belirtilmemiş')) + '</span>' +
       '<time class="sxf-match-time">' + esc(timeTR(item.kickoff_utc)) + ' TR</time></header>' +
       '<h3 class="sxf-match-name">' + esc(item.home || t('home_team','Ev sahibi')) +
       '<span>–</span>' + esc(item.away || t('away_team','Deplasman')) + '</h3>' +
-      (result ? '<div class="sxf-match-result-bar">' + result + '</div>' : '') +
-      '<div class="sxf-match-signals">' + directions.map(choiceGroup).join('') + '</div></article>';
+      '<div class="sxf-match-result-bar">' + result + '</div>' +
+      '<div class="sxf-match-signals">' + rows.map(signalRow).join('') + '</div></article>';
   }
   function renderHome() {
     var entries = engineIds();
@@ -350,15 +301,8 @@
       return !needle || [x.home, x.away, x.league, choice(x)].join(' ')
         .toLocaleLowerCase(locale()).includes(needle);
     });
-    // Motor tiles select the fixtures, not which supporting engines are
-    // allowed in those fixtures. Use only the authenticated cached response.
-    var selectedKeys = new Set(filtered.map(function (x) {
-      return x.uid + '/' + x.kickoff_utc;
-    }));
     var groups = new Map();
-    items().filter(function (x) {
-      return x.day === current.day && selectedKeys.has(x.uid + '/' + x.kickoff_utc);
-    }).sort(function (a, b) {
+    filtered.slice().sort(function (a, b) {
       return a.kickoff_utc.localeCompare(b.kickoff_utc) || a.id - b.id;
     }).forEach(function (x) {
       var key = x.uid + '/' + x.kickoff_utc;
