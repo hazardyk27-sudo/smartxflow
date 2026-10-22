@@ -1,25 +1,12 @@
-SOURCE_SHA=26a4e4531cb848e286457eafbf848ee64f4aff8a
-PYTEST_EXIT=1
+SOURCE_SHA=97bbc9e5338426c48af9728d8df8817de1ba7d6e
+PYTEST_EXIT=0
+........................................................................ [ 32%]
+........................................................................ [ 64%]
 ........................................................................ [ 96%]
 .........                                                                [100%]
-=================================== FAILURES ===================================
-________ test_main_admin_security_files_survive_preview_reconciliation _________
-
-    def test_main_admin_security_files_survive_preview_reconciliation():
-        # Release branch integration must not accidentally revert main-only
-        # archive admin authentication and secret-safe setup.
-        root=ROOT
-        admin=(root/"sxf_capitale_archive_admin.py").read_text()
-        auth=(root/"sxf_admin_password_auth.py").read_text()
->       assert "is_secure_admin_session" in admin
-E       assert 'is_secure_admin_session' in '"""Admin-only CAPITALE SXF archive dispatch. No Supabase writes or GitHub tokens in HTML."""\nfrom __future__ import ...tml_url", ""),\n        }\n        for r in data.get("workflow_runs", [])[:15]\n    ]\n    return jsonify(runs=runs)\n'
-
-tests/test_signal_motor_independence_20261022.py:101: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_independence_20261022.py::test_main_admin_security_files_survive_preview_reconciliation - assert 'is_secure_admin_session' in '"""Admin-only CAPITALE SXF archive dispatch. No Supabase writes or GitHub tokens in HTML."""\nfrom __future__ import ...tml_url", ""),\n        }\n        for r in data.get("workflow_runs", [])[:15]\n    ]\n    return jsonify(runs=runs)\n'
-1 failed, 224 passed in 1.32s
+225 passed in 1.16s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
