@@ -28,7 +28,8 @@ def _event(start, *, ident=12, kind="PRELIMINARY_SIGNAL",
             "kickoff_utc":ts,"kind":kind,"market":"1X2","selection":selection,
             "engine":engine,"family":"BASE","job_checkpoint_hours":8,
             "source_checkpoint_hours":8,"recorded_at":ts,
-            "details":{"odds":"3.65","observed_at":ts,"label":"SIGNAL"}}
+            "details":{"odds":"3.65","observed_at":ts,"label":"SIGNAL",
+                       "selection_status":"ELIGIBLE"}}
 
 
 class Reply:
@@ -339,19 +340,45 @@ def test_checkpoint_window_and_corrections_have_distinct_delivery_labels():
     assert signal["delivery_timing"]=="RECONCILED_LATER"
 
 
-def test_price_rejected_signal_kept_in_archive_but_not_counted_as_valid():
+def test_price_rejected_detection_never_enters_signal_feed():
     start=_day()
     event=_event(start,ident=201,engine="HEAVY_1X2_CONCENTRATION")
     kickoff=datetime.fromisoformat(_stamp(start))
     event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
     event["details"].update({"odds":"1.18","selection_status":"PRICE_FILTER_REJECT"})
     result=_feed(Source(start,events=[event])).read(start)
-    assert len(result["items"])==1
-    item=result["items"][0]
-    assert item["selection_status"]=="PRICE_FILTER_REJECT"
-    assert item["review_state"]=="PRICE_REJECTED"
-    assert item["valid_on_time"] is False
-    assert item["delivery_timing"]=="CHECKPOINT_WINDOW"
+    assert result["items"]==[]
+    # Feed filtering must not mutate the immutable stored audit event.
+    assert event["details"]["selection_status"]=="PRICE_FILTER_REJECT"
+
+
+def test_all_rejected_lincoln_twente_checkpoints_do_not_create_signal_cards():
+    start=_day()
+    events=[]
+    for ident,engine,price,hours in [
+        (210,"EARLY_MONEY_CORE","1.27",72),
+        (211,"EARLY_MONEY_T12","1.24",12),
+        (212,"HEAVY_1X2_CONCENTRATION","1.25",8),
+        (213,"HEAVY_1X2_CONCENTRATION","1.24",6),
+    ]:
+        row=_event(start,ident=ident,engine=engine)
+        row["job_checkpoint_hours"]=hours
+        row["source_checkpoint_hours"]=hours
+        row["details"].update({"odds":price,"selection_status":"PRICE_FILTER_REJECT"})
+        row["kind"]="EARLY_SIGNAL" if hours>8 else ("PRELIMINARY_SIGNAL" if hours==8 else "FINAL_SIGNAL")
+        events.append(row)
+    source=Source(start,events=events)
+    assert _feed(source).read(start)["items"]==[]
+    assert len(source.events)==4
+
+
+def test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges():
+    start=_day()
+    allowed=_event(start,ident=230,engine="1X2_CONCENTRATION_V1")
+    blocked=_event(start,ident=231,engine="HEAVY_1X2_CONCENTRATION")
+    blocked["details"].update({"odds":"1.24","selection_status":"PRICE_FILTER_REJECT"})
+    valid=_feed(Source(start,events=[allowed,blocked])).read(start)["items"]
+    assert [x["engine"] for x in valid]==["1X2_CONCENTRATION_V1"]
 
 
 def test_retroactive_signal_remains_audit_record_not_timely_pick():
@@ -381,15 +408,21 @@ def test_timely_eligible_signal_is_countable():
     assert item["valid_on_time"] is True
 
 
-def test_unknown_legacy_eligibility_fails_closed_without_dropping_record():
+def test_unknown_legacy_eligibility_fails_closed_and_is_not_a_signal():
     start=_day()
     event=_event(start,ident=204)
+    event["details"].pop("selection_status")
     kickoff=datetime.fromisoformat(_stamp(start))
     event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
-    result=_feed(Source(start,events=[event])).read(start)
-    item=result["items"][0]
-    assert item["review_state"]=="UNVERIFIED_STATUS"
-    assert item["valid_on_time"] is False
+    assert _feed(Source(start,events=[event])).read(start)["items"]==[]
+    assert "selection_status" not in event["details"]
+
+
+def test_incomplete_early_first_history_is_not_an_eligible_signal():
+    start=_day()
+    event=_event(start,ident=214,engine="EARLY_MONEY_CORE",kind="EARLY_SIGNAL")
+    event["details"]["selection_status"]="HISTORY_INCOMPLETE"
+    assert _feed(Source(start,events=[event])).read(start)["items"]==[]
 
 
 def test_corrected_reconciliation_is_not_fresh_signal_even_with_eligible_state():
@@ -407,9 +440,7 @@ def test_feed_rechecks_price_floor_when_persisted_label_conflicts():
     event=_event(start,ident=206,engine="HEAVY_1X2_CONCENTRATION")
     event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
     event["details"].update({"selection_status":"ELIGIBLE","odds":"1.21"})
-    item=_feed(Source(start,events=[event])).read(start)["items"][0]
-    assert item["selection_status"]=="PRICE_FILTER_REJECT"
-    assert item["valid_on_time"] is False
+    assert _feed(Source(start,events=[event])).read(start)["items"]==[]
 
 
 def test_mismatched_rejection_of_valid_price_does_not_become_eligible():
@@ -418,9 +449,7 @@ def test_mismatched_rejection_of_valid_price_does_not_become_eligible():
     event=_event(start,ident=207)
     event["recorded_at"]=(kickoff-timedelta(hours=8)+timedelta(minutes=5)).isoformat()
     event["details"].update({"selection_status":"PRICE_FILTER_REJECT","odds":"3.65"})
-    item=_feed(Source(start,events=[event])).read(start)["items"][0]
-    assert item["selection_status"]=="UNKNOWN"
-    assert item["valid_on_time"] is False
+    assert _feed(Source(start,events=[event])).read(start)["items"]==[]
 
 
 def test_scheduler_source_grace_plus_worker_budget_allows_twelve_minutes():
