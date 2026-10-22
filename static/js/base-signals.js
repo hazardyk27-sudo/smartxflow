@@ -268,60 +268,77 @@
       '<span class="sxf-history-status">' + esc(rowState(item)) + '</span>' + outcome +
       '</div>';
   }
-  function choiceGroup(rows) {
-    var item=rows[0], latest=recordPrice(rows);
-    var engines=Array.from(new Set(rows.map(function (r) { return r.engine; })));
-    var timely=rows.some(function (r) { return r.valid_on_time === true &&
-      !isHistorical(r) && r.review_state !== 'PRICE_REJECTED'; });
-    var history=rows.some(isHistorical);
-    var rejected=rows.every(function (r) { return r.review_state === 'PRICE_REJECTED'; });
-    var state=rejected?'rejected':timely&&history?'mixed':timely?'timely':history?'archive':'unverified';
-    var label=state==='rejected'?t('status_rejected','Uygun değil'):
-      state==='mixed'?t('status_mixed','Zamanında + arşiv'):
-      state==='timely'?t('status_timely','Zamanında'):
-      state==='archive'?t('status_archive','Arşiv'):t('status_unverified','Doğrulanmadı');
-    var badges=engines.map(function (engine) {
+  function signalGroupInfo(rows) {
+    var item = rows[0], price = recordPrice(rows);
+    var engines = Array.from(new Set(rows.map(function (r) { return r.engine; })));
+    var timely = rows.some(function (r) {
+      return r.valid_on_time === true && !isHistorical(r);
+    });
+    var archived = rows.some(isHistorical);
+    var state = timely && archived ? 'mixed' : timely ? 'timely' :
+      archived ? 'archive' : 'unverified';
+    var status = state === 'mixed' ? t('status_mixed','Zamanında + arşiv') :
+      state === 'timely' ? t('status_timely','Zamanında') :
+      state === 'archive' ? t('status_archive','Arşiv') :
+      t('status_unverified','Doğrulanmadı');
+    var badges = engines.map(function (engine) {
       return '<span class="sxf-direction-badge" title="' + esc(labelEngine(engine)) + '">' +
         esc(SHORT_ENGINE[engine] || labelEngine(engine)) + '</span>';
     }).join('');
-    var historyRows=rows.slice().sort(function (a,b) {
+    return { item:item, price:price, status:status, state:state, badges:badges };
+  }
+  function signalHistoryGroup(rows) {
+    var info = signalGroupInfo(rows), ordered = rows.slice().sort(function (a,b) {
       return recordTime(b)-recordTime(a) || Number(b.id||0)-Number(a.id||0);
     });
-    return '<section class="sxf-direction-group">' +
-      '<div class="sxf-direction-line"><div class="sxf-direction-copy">' +
-      '<small>' + esc(marketLabel(item.market)) + '</small><strong>' + esc(choice(item)) +
-      '</strong></div><div class="sxf-direction-price"><small>' +
-      esc(t('recorded_odds','Kayıtlı oran')) + '</small><b>' +
-      (latest ? esc(latest.odds.toFixed(2)) : '—') + '</b></div></div>' +
-      '<div class="sxf-direction-badges">' + badges +
-      '<span class="sxf-direction-status is-' + state + '">' + esc(label) + '</span></div>' +
-      '<details class="sxf-history"><summary>' +
-      esc(fmt('history_count','{count} checkpoint kaydı',{count:historyRows.length})) +
-      '<span aria-hidden="true">⌄</span></summary><div class="sxf-history-list">' +
-      historyRows.map(signalRow).join('') + '</div></details></section>';
+    return '<section class="sxf-list-history-group">' +
+      '<div class="sxf-list-history-heading"><div class="sxf-list-history-pick">' +
+      '<strong>' + esc(choice(info.item)) + '</strong><span>' +
+      esc(marketLabel(info.item.market)) + '</span></div>' +
+      '<div class="sxf-list-history-badges">' + info.badges + '</div></div>' +
+      '<div class="sxf-history-list">' + ordered.map(signalRow).join('') + '</div>' +
+      '</section>';
   }
-  function fixtureCard(rows) {
-    var item=rows[0], byChoice=new Map();
+  // One physical fixture = one full-width list row. The selected engine's
+  // pick is prominent, while other markets and all T evidence expand inline.
+  function fixtureRow(rows) {
+    var item = rows[0], bySelection = new Map();
     rows.forEach(function (r) {
-      var key=String(r.market)+'/'+String(r.selection);
-      if (!byChoice.has(key)) byChoice.set(key,[]);
-      byChoice.get(key).push(r);
+      var key = String(r.market) + '/' + String(r.selection);
+      if (!bySelection.has(key)) bySelection.set(key, []);
+      bySelection.get(key).push(r);
     });
-    var choices=Array.from(byChoice.values()).sort(function (a,b) {
-      var selectedA=a.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
-      var selectedB=b.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
-      return selectedB-selectedA || b.length-a.length;
+    var directions = Array.from(bySelection.values()).sort(function (a,b) {
+      var aPicked = a.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
+      var bPicked = b.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
+      return bPicked-aPicked || b.length-a.length;
     });
-    var actual=item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
-    var score=actual ? '<div class="sxf-match-result-bar"><span class="sxf-match-result is-final">' +
-      esc(t('final_score_label','MAÇ SONUCU')) + ' <strong>MS '+esc(item.final_score)+
-      '</strong></span></div>' : '';
-    return '<article class="sxf-signal-card"><header class="sxf-match-top"><span class="sxf-match-league">' +
-      esc(item.league || t('unknown_league','Lig belirtilmemiş')) + '</span><time class="sxf-match-time">' +
-      esc(timeTR(item.kickoff_utc)) + ' TR</time></header>' +
-      '<h3 class="sxf-match-name">' + esc(item.home || t('home_team','Ev sahibi')) +
-      '<span>–</span>'+esc(item.away || t('away_team','Deplasman'))+'</h3>'+score+
-      '<div class="sxf-match-signals">'+choices.map(choiceGroup).join('')+'</div></article>';
+    var primary = signalGroupInfo(directions[0]);
+    var actual = item.result_state === 'FT' &&
+      /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
+    var score = actual ? '<span class="sxf-list-result">MS ' +
+      esc(item.final_score) + '</span>' : '';
+    var extra = directions.length > 1 ? ' · ' +
+      esc(fmt('other_picks_count','+{count} diğer tercih',{count:directions.length-1})) : '';
+    var events = rows.length;
+    return '<details class="sxf-fixture-line"><summary class="sxf-fixture-summary">' +
+      '<span class="sxf-line-time">' + esc(timeTR(item.kickoff_utc)) + '<small>TR</small></span>' +
+      '<span class="sxf-line-fixture"><strong>' +
+      esc(item.home || t('home_team','Ev sahibi')) + ' – ' +
+      esc(item.away || t('away_team','Deplasman')) + '</strong>' +
+      '<small>' + esc(item.league || t('unknown_league','Lig belirtilmemiş')) +
+      score + '</small></span>' +
+      '<span class="sxf-line-selection"><strong>' + esc(choice(primary.item)) +
+      '</strong><small>' + esc(marketLabel(primary.item.market)) + extra +
+      '</small></span>' +
+      '<span class="sxf-line-odds">' +
+      (primary.price ? esc(primary.price.odds.toFixed(2)) : '—') + '</span>' +
+      '<span class="sxf-line-engines">' + primary.badges + '</span>' +
+      '<span class="sxf-line-state is-' + primary.state + '">' + esc(primary.status) + '</span>' +
+      '<span class="sxf-line-open" aria-hidden="true">⌄</span></summary>' +
+      '<div class="sxf-fixture-expanded"><div class="sxf-list-expanded-title">' +
+      esc(fmt('history_count','{count} checkpoint kaydı',{count:events})) + '</div>' +
+      directions.map(signalHistoryGroup).join('') + '</div></details>';
   }
   function renderHome() {
     var entries = engineIds();
@@ -394,8 +411,17 @@
           esc(fmt('show_last','{date} sinyallerini göster', {date:dateTitle(last)})) +
           '</button>' : '') + '</div>';
     } else {
-      html += '<div class="sxf-signal-grid">' +
-        Array.from(groups.values()).map(fixtureCard).join('') + '</div>';
+      html += '<div class="sxf-fixture-list" role="list" aria-label="' +
+        esc(labelEngine(current.engine)) + '">' +
+        '<div class="sxf-fixture-list-head" aria-hidden="true">' +
+        '<span>' + esc(t('list_col_time','Saat')) + '</span>' +
+        '<span>' + esc(t('list_col_match','Maç')) + '</span>' +
+        '<span>' + esc(t('list_col_pick','Tercih')) + '</span>' +
+        '<span>' + esc(t('odds','Oran')) + '</span>' +
+        '<span>' + esc(t('list_col_engines','Sinyaller')) + '</span>' +
+        '<span>' + esc(t('list_col_status','Durum')) + '</span>' +
+        '<span></span></div>' +
+        Array.from(groups.values()).map(fixtureRow).join('') + '</div>';
     }
     content.innerHTML = html;
     var showLast = document.getElementById('sxfSignalShowLast');
