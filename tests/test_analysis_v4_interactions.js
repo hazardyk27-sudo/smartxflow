@@ -247,7 +247,7 @@ test('a selected V1 match also shows other engines on the exact same selection',
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
   assert.equal((html.match(/class="sxf-list-history-group"/g)||[]).length,3);
-  const grouped=html.match(/<span class="sxf-line-engines">([^]*?)<\/span>/);
+  const grouped=html.match(/<span class="sxf-line-engines">([^]*?)<\/span><span class="sxf-line-state/);
   assert.ok(grouped);
   for(const name of ['V1','V2','HEAVY','EARLY CORE']) {
     assert.ok(grouped[1].includes('>'+name+'</span>'));
@@ -325,7 +325,7 @@ test('reject only the unsuitable engine of a match, not the valid supporting eng
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  const first=html.match(/<span class="sxf-line-engines">([^]*?)<\/span>/);
+  const first=html.match(/<span class="sxf-line-engines">([^]*?)<\/span><span class="sxf-line-state/);
   assert.ok(first);
   const badges=[...first[1].matchAll(/class="sxf-direction-badge"[^>]*>(.*?)<\/span>/g)].map(x=>x[1]);
   assert.deepEqual(badges,['V1','V2']);
