@@ -41,9 +41,10 @@ class CapturingReader:
 def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
     """Return deterministic coverage with an explicit WAITING_DATA disposition.
 
-    BASE must have all three *complete* market snapshots at this exact
-    checkpoint. Any absent side/market makes the checkpoint unqualified;
-    it will be durably SKIPPED_DATA, never retried forever or called NO_SIGNAL.
+    BASE checks each market independently at its valid T-8 or T-6.
+    Missing markets are INSUFFICIENT_DATA, but cannot hide a valid signal
+    from another market. Only zero usable markets disqualifies this job;
+    never disqualify the entire match because of another signal's gap.
 
     Early first-hit/retention chronology is stricter: missing earlier eligible
     checkpoints mean a later "first" or retained judgment is unprovable.
@@ -81,7 +82,7 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
                               "MISSING"),
             }
         return {
-            "disposition": "WAITING_DATA" if missing else "EVALUATE",
+            "disposition": "EVALUATE" if usable else "WAITING_DATA",
             "state": "MISSING_ALL" if usable == 0 else
                      ("PARTIAL" if missing else "COMPLETE"),
             "markets": details,
