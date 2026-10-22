@@ -59,6 +59,9 @@ def main():
         "items": [
             fixture(day, kickoff, "1X2_CONCENTRATION_V1", "Takım V1", "uid-v1"),
             fixture(day, kickoff, "1X2_CONCENTRATION_V2", "Takım V2", "uid-v2"),
+            fixture(day, kickoff, "1X2_CONCENTRATION_V2", "Takım V1", "uid-v1"),
+            fixture(day, kickoff, "HEAVY_1X2_CONCENTRATION", "Takım V1", "uid-v1"),
+            fixture(day, kickoff, "EARLY_MONEY_CORE", "Takım V1", "uid-v1"),
         ],
     }
     with sync_playwright() as p:
@@ -73,7 +76,7 @@ def main():
             page.add_script_tag(content=js)
             page.evaluate("window.openBaseSignalsPanel()")
             page.locator(".sxf-engine-tile").first.wait_for()
-            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 15")
+            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 10")
             metrics = page.evaluate("""() => {
               const overlay=document.getElementById('sxfBaseSignalOverlay');
               const modal=overlay.querySelector('.sxf-panel');
@@ -98,13 +101,21 @@ def main():
             assert metrics["scrollArea"] == "auto", (name, metrics)
             assert page.locator('.sxf-signal-date-rail').count() == 1
             assert page.locator('[data-motor="PREMIUM_OVER_MIN1_70"]').count() == 1
-            assert page.locator('[data-motor="LEGACY_UNDERDOG"]').count() == 1
+            assert page.locator('[data-motor="HEAVY_1X2_CONCENTRATION"]').count() == 1
             out = Path("artifacts")
             out.mkdir(exist_ok=True)
             page.screenshot(path=str(out / f"analizler-v4-{name}.png"), full_page=True)
             page.locator('[data-motor="1X2_CONCENTRATION_V1"]').click()
             details = page.locator("#sxfSignalContent").inner_text()
             assert "Takım V1" in details and "Takım V2" not in details, (name, details)
+            assert page.locator("#sxfSignalContent .sxf-signal-card").count() == 1
+            assert page.locator("#sxfSignalContent .sxf-direction-group").count() == 1
+            badges = page.locator("#sxfSignalContent .sxf-direction-badge").all_inner_texts()
+            assert badges == ["V1", "V2", "HEAVY", "EARLY CORE"], (name,badges)
+            assert page.locator(".sxf-history").first.get_attribute("open") is None
+            assert page.evaluate("document.documentElement.scrollWidth - window.innerWidth") <= 1
+            page.locator(".sxf-history summary").first.click()
+            assert page.locator(".sxf-history-entry").count() == 4
             assert page.locator("#sxfSearchWrap").is_visible()
             page.locator("#sxfSignalBack").click()
             assert page.locator("#sxfSearchWrap").is_hidden()
