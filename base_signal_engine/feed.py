@@ -346,6 +346,13 @@ class BaseSignalsFeed:
                 selection_status == "PRICE_FILTER_REJECT" and odds >= 1.30
             ):
                 selection_status = "UNKNOWN"
+            # A persisted detection is not automatically an eligible signal.
+            # Rejected, unverified and incomplete-history detections remain
+            # in the append-only audit ledger, NEVER in the public signal feed.
+            # This also excludes low-price T-8/T-6/Early events before motor
+            # cards, same-side badges, totals or historical details are built.
+            if selection_status != "ELIGIBLE":
+                continue
             recorded_on_time = (
                 delivery_timing == "CHECKPOINT_WINDOW" and recorded < kickoff
             )
