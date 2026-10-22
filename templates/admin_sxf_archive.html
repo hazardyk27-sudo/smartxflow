@@ -17,7 +17,7 @@
     .kind input{width:18px;height:18px;accent-color:var(--blue);vertical-align:middle;margin-right:9px}
     .kind strong{font-size:16px}.kind span{display:block;padding-left:31px;margin-top:8px;color:var(--muted);font-size:13px}
     label.caption{display:block;color:var(--muted);margin-bottom:8px}
-    input[type=date],input[type=password]{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
+    input[type=date]{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
     button{border:0;border-radius:9px;background:#238636;color:white;padding:12px 20px;font:600 15px system-ui;cursor:pointer}
     button.secondary{background:#303b4b}button:disabled{cursor:not-allowed;opacity:.55}
     .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.row>*{flex-shrink:0}
@@ -39,28 +39,13 @@
     <a href="/admin">← Admin panele dön</a>
   </header>
 
-  {% if not authorization_configured %}
-  <div class="panel"><h2>Yetkilendirme kurulmamış</h2>
-    <p>Sunucuda <code>SXF_ARCHIVE_ADMIN_PIN</code> adında güçlü bir yönetici sırrı bulunmalı. Bu bilgi eklenmeden arşiv başlatılamaz.</p>
-  </div>
-  {% endif %}
   {% if not github_configured %}
   <div class="panel"><h2>GitHub bağlantısı eksik</h2>
     <p>Sunucuda yetkisi yalnız CAPİTALE Actions tetiklemeye sınırlandırılmış <code>CAPITALE_GITHUB_ACTIONS_TOKEN</code> yapılandırılmalı. Bu token tarayıcıya gönderilmez.</p>
   </div>
   {% endif %}
 
-  <section class="panel {% if is_unlocked %}hidden{% endif %}" id="unlock-panel">
-    <h2>Arşivleme yetkisini aç</h2>
-    <p>Mevcut admin oturumuna ek olarak, aktarım komutları ayrı bir yönetici anahtarıyla korunur.</p>
-    <form id="unlock-form" class="row">
-      <input type="password" id="archive-pin" placeholder="Arşiv yönetici anahtarı" autocomplete="off" required>
-      <button id="unlock-button" type="submit">Kilidi aç</button>
-    </form>
-    <div id="unlock-message" class="message" role="status"></div>
-  </section>
-
-  <section id="archive-panel" class="panel {% if not is_unlocked %}hidden{% endif %}">
+  <section id="archive-panel" class="panel">
     <h2>Arşiv oluştur</h2>
     <label for="archive-day" class="caption">Maçların Türkiye saatiyle başlangıç tarihi</label>
     <input id="archive-day" type="date" min="2026-10-09" max="{{max_date}}" value="{{initial_date}}" required>
@@ -85,7 +70,7 @@
   <section class="panel">
     <h2>GitHub Actions işlem geçmişi</h2>
     <p>“İstek gönderildi” arşivin tamamlandığı anlamına gelmez. Tamamlanma için GitHub dosya indirme, SHA-256 ve JSONL geri açma denetimleri geçmelidir.</p>
-    <button class="secondary" id="refresh-button" type="button" {% if not is_unlocked %}disabled{% endif %}>Durumu yenile</button>
+    <button class="secondary" id="refresh-button" type="button">Durumu yenile</button>
     <div id="runs-message" class="message"></div>
     <div style="overflow-x:auto">
       <table><thead><tr><th>İş</th><th>Başlama</th><th>Durum</th><th>GitHub</th></tr></thead><tbody id="runs-body"></tbody></table>
@@ -95,8 +80,7 @@
 </main>
 <script>
   let csrfToken = {{ csrf_token|tojson }};
-  const configured = {{ (authorization_configured and github_configured)|tojson }};
-  const unlockForm = document.getElementById('unlock-form');
+  const configured = {{ github_configured|tojson }};
   const runButton = document.getElementById('archive-button');
   const runsBody = document.getElementById('runs-body');
   const refreshButton = document.getElementById('refresh-button');
@@ -107,17 +91,6 @@
     if(!response.ok)throw new Error(obj.error+' ('+response.status+')');
     return obj;
   }
-  unlockForm.addEventListener('submit', async e=>{
-    e.preventDefault();const btn=document.getElementById('unlock-button');btn.disabled=true;
-    try{
-      const data=await post('/api/admin/sxf-archive/unlock',{pin:document.getElementById('archive-pin').value});
-      csrfToken=data.csrf_token;document.getElementById('archive-pin').value='';
-      document.getElementById('unlock-panel').classList.add('hidden');
-      document.getElementById('archive-panel').classList.remove('hidden');
-      refreshButton.disabled=false;await refreshRuns();
-    }catch(err){msg('unlock-message','Yetkilendirme başarısız: '+err.message,true)}
-    finally{btn.disabled=false}
-  });
   runButton.addEventListener('click', async()=>{
     if(!configured){msg('archive-message','Önce sunucudaki güvenli bağlantı ayarları tamamlanmalı.',true);return}
     const day=document.getElementById('archive-day').value;
@@ -156,7 +129,7 @@
     }catch(err){msg('runs-message','İşlem geçmişi alınamadı: '+err.message,true)}
   }
   refreshButton.addEventListener('click',refreshRuns);
-  {% if is_unlocked %}refreshRuns();{% endif %}
+  refreshRuns();
 </script>
 <script src="/static/js/i18n.js?v=20261022-sxf-archive"></script>
 </body></html>
