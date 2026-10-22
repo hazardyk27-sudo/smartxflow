@@ -79,7 +79,7 @@ def main():
                 page.locator(".sxf-fixture-line summary").first.click()
                 assert lex["history_count"].replace("{count}","4") in page.locator(".sxf-fixture-expanded").first.inner_text(),(viewport,lang)
                 assert lex["lost"] in page.locator(".sxf-history-list").inner_text(),(viewport,lang)
-                page.locator(".sxf-history summary").first.click()
+                page.locator(".sxf-fixture-line summary").first.click()
                 assert page.locator("#sxfSignalSearch").get_attribute("placeholder")==lex["search_placeholder"]
                 assert page.locator("#sxfSignalRefresh").get_attribute("aria-label")==lex["refresh"]
                 assert page.locator(".sxf-day.is-active").get_attribute("aria-label").endswith(
