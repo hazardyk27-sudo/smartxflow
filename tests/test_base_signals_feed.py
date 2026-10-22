@@ -78,31 +78,28 @@ def _feed(source):
 
 
 
-def test_fixture_skip_hides_any_earlier_completed_signal_without_deleting_events():
+def test_unrelated_early_gap_does_not_hide_a_completed_base_signal():
     start=_day()
     source=Source(start,skip_fixture=True)
     result=_feed(source).read(start)
-    assert result["items"]==[]
-    # The underlying append-only event is unchanged, only the live feed is
-    # scoped to fixtures with no audited source-gap disqualification.
+    assert len(result["items"])==1
+    assert result["items"][0]["engine"]=="SURPRISE_TEAM"
+    # The immutable event survives; never probe for fixture-wide suppression.
     assert len(source.events)==1 and source.events[0]["event_id"]==12
-    assert any(dict(call[1]).get("last_error_code")=="eq.SOURCE_INCOMPLETE"
-               for call in source.calls if call[0].endswith("sxf_base_checkpoint_jobs"))
+    assert not any(dict(call[1]).get("state")=="eq.SKIPPED_DATA"
+                   for call in source.calls if call[0].endswith("sxf_base_checkpoint_jobs"))
 
 
-def test_fixture_skip_probe_unavailable_fails_closed_not_as_no_skips():
+def test_feed_does_not_depend_on_unrelated_family_skip_probe():
     start=_day()
     source=Source(start)
     original=source.get
-    def failed_skip_probe(url,*,params,headers,timeout):
+    def fail_legacy_probe(url,*,params,headers,timeout):
         if url.endswith("sxf_base_checkpoint_jobs") and dict(params).get("state")=="eq.SKIPPED_DATA":
-            response=Reply([])
-            response.status_code=503
-            return response
+            raise AssertionError("legacy cross-family probe must not run")
         return original(url,params=params,headers=headers,timeout=timeout)
-    source.get=failed_skip_probe
-    with pytest.raises(BaseFeedUnavailable,match="private signal source"):
-        _feed(source).read(start)
+    source.get=fail_legacy_probe
+    assert len(_feed(source).read(start)["items"])==1
 
 
 def test_real_signal_preserves_selection_kickoff_and_turkey_day():
