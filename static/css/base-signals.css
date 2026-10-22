@@ -416,3 +416,54 @@ body.sxf-signals-open{overflow:hidden!important}
 /* Never present unavailable legacy data as zero actual signals. */
 #sxfBaseSignalOverlay .sxf-legacy-source-alert{padding:10px 14px;margin:0 0 14px;color:var(--sxf-secondary);border:1px solid var(--sxf-border);border-radius:10px;font-size:13px;line-height:1.5}
 #sxfBaseSignalOverlay .sxf-unknown-count{font-variant-numeric:tabular-nums}
+
+
+/* V5 compact match direction cards; original SmartXFlow palette */
+#sxfBaseSignalOverlay .sxf-signal-card{padding:14px}
+#sxfBaseSignalOverlay .sxf-match-name{margin:8px 0 12px}
+#sxfBaseSignalOverlay .sxf-match-signals{gap:8px}
+#sxfBaseSignalOverlay .sxf-direction-group{
+  min-width:0;padding:11px 12px 9px;
+  border:1px solid var(--sxf-border);border-radius:9px;background:var(--sxf-soft)
+}
+#sxfBaseSignalOverlay .sxf-direction-line{
+  display:flex;align-items:center;justify-content:space-between;min-width:0;gap:12px
+}
+#sxfBaseSignalOverlay .sxf-direction-copy{min-width:0;flex:1}
+#sxfBaseSignalOverlay .sxf-direction-copy small{
+  display:block;color:var(--sxf-secondary);font-size:10px;margin-bottom:4px
+}
+#sxfBaseSignalOverlay .sxf-direction-copy strong{
+  display:block;color:var(--sxf-text);font-size:14px;
+  font-weight:650;line-height:1.4;overflow-wrap:anywhere
+}
+#sxfBaseSignalOverlay .sxf-direction-price{
+  flex:0 0 auto;text-align:right;display:flex;flex-direction:column;gap:3px
+}
+#sxfBaseSignalOverlay .sxf-direction-price small{
+  color:var(--sxf-secondary);font-size:10px
+}
+#sxfBaseSignalOverlay .sxf-direction-price b{
+  color:var(--sxf-text);font:700 19px/1 'JetBrains Mono',monospace;
+  font-variant-numeric:tabular-nums
+}
+#sxfBaseSignalOverlay .sxf-direction-badges{
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:9px
+}
+#sxfBaseSignalOverlay .sxf-direction-badge{
+  display:inline-flex;align-items:center;padding:4px 7px;border-radius:5px;
+  border:1px solid var(--sxf-border);background:var(--sxf-card);
+  color:var(--sxf-text);font-size:10px;font-weight:650;line-height:1.1
+}
+#sxfBaseSignalOverlay .sxf-direction-status{
+  margin-left:auto;padding:3px 6px;border-radius:5px;
+  color:var(--sxf-secondary);border:1px solid var(--sxf-border);
+  font-size:10px;font-weight:600
+}
+#sxfBaseSignalOverlay .sxf-direction-status.is-timely{
+  color:var(--sxf-green);border-color:rgba(34,197,94,.28)
+}
+#sxfBaseSignalOverlay .sxf-direction-status.is-archive,
+#sxfBaseSignalOverlay .sxf-direction-status.is-mixed{
+  color:var(--sxf-yellow);border-color:rgba(234,179,8,.26)
+}
