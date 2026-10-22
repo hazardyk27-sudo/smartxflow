@@ -7817,32 +7817,22 @@ def admin_panel():
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    """One admin login screen. Strong password takes precedence when configured."""
-    from sxf_admin_password_auth import (
-        AUTH_MODE, password_login_enabled, verify_admin_password
-    )
-    strong_mode = password_login_enabled()
+    """Admin Login Page — original Supabase URL + Anon Key authentication."""
     if request.method == 'POST':
-        if strong_mode:
-            authenticated = verify_admin_password(request.form.get('admin_password', ''))
-        else:
-            # Legacy non-archive admin access until owner provisions a real password.
-            submitted_url = request.form.get('supabase_url', '').strip()
-            submitted_key = request.form.get('supabase_key', '').strip()
-            real_url = os.environ.get('SUPABASE_URL', '')
-            real_key = os.environ.get('SUPABASE_ANON_KEY', '')
-            authenticated = bool(real_url and real_key and
-                                 submitted_url == real_url and submitted_key == real_key)
-        if authenticated:
+        submitted_url = request.form.get('supabase_url', '').strip()
+        submitted_key = request.form.get('supabase_key', '').strip()
+        real_url = os.environ.get('SUPABASE_URL', '')
+        real_key = os.environ.get('SUPABASE_ANON_KEY', '')
+        if submitted_url == real_url and submitted_key == real_key and real_url and real_key:
             session.pop('sxf_capitale_archive_recent', None)
             session.pop('sxf_capitale_archive_csrf', None)
+            session.pop('sxf_admin_auth_mode', None)
+            session.pop('sxf_admin_login_at', None)
             session['admin_authenticated'] = True
-            session['sxf_admin_auth_mode'] = AUTH_MODE if strong_mode else 'LEGACY_ANON'
-            session['sxf_admin_login_at'] = int(time.time()) if strong_mode else None
             return redirect('/admin')
-        return render_template('admin_login.html', error='Geçersiz bilgiler. Lütfen tekrar deneyin.',
-                               strong_login=strong_mode)
-    return render_template('admin_login.html', error=None, strong_login=strong_mode)
+        else:
+            return render_template('admin_login.html', error='Geçersiz bilgiler. Lütfen tekrar deneyin.')
+    return render_template('admin_login.html', error=None)
 
 @app.route('/admin/logout')
 def admin_logout():
