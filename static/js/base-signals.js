@@ -316,7 +316,8 @@
     var primary = signalGroupInfo(directions[0]);
     var actual = item.result_state === 'FT' &&
       /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
-    var score = actual ? '<span class="sxf-list-result">MS ' +
+    var score = actual ? '<span class="sxf-list-result" title="' +
+      esc(t('final_score_label','MAÇ SONUCU')) + '">MS ' +
       esc(item.final_score) + '</span>' : '';
     var extra = directions.length > 1 ? ' · ' +
       esc(fmt('other_picks_count','+{count} diğer tercih',{count:directions.length-1})) : '';
