@@ -20,6 +20,8 @@ on:
       - 'migrations/2026_10_22_signal_motor_independent_checkpoints.sql'
       - 'deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql'
       - 'tests/test_signal_motor_independence_20261022.py'
+      - 'tests/test_signal_motor_dense_discovery_20261022.py'
+      - 'base_signal_engine/discovery.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -42,6 +44,7 @@ jobs:
             tests/test_signal_motor_daily_skip_20261021.py \
             tests/test_signal_motor_fresh_start_20261022.py \
             tests/test_signal_motor_independence_20261022.py \
+            tests/test_signal_motor_dense_discovery_20261022.py \
             tests/test_base_signal_rules.py \
             tests/test_base_signal_reader.py \
             tests/test_base_signal_scheduler.py \
