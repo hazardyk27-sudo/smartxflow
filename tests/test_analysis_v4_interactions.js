@@ -172,7 +172,7 @@ test('unconfirmed in-play score never appears as fulltime or a settled bet', asy
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Henüz doğrulanmadı/);
+  assert.match(html,/Doğrulanmadı/);
   assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|MAÇ SONUCU <strong>MS/);
 });
 
@@ -208,54 +208,68 @@ test('empty motor with no stored rows never fabricates a last recorded date', as
 });
 
 
-test('legacy and Base motors have distinct cards, verified-only provenance, no fabricated scores', async () => {
+
+test('unknown retired engines are excluded; archived Base evidence is preserved', async () => {
   const data = signals(todayTR());
-  data.phase = 'BASE_SHADOW_AND_LEGACY_HISTORY';
-  data.engines.push('LEGACY_UNDERDOG');
-  data.items.push({id:10000000022,engine:'LEGACY_UNDERDOG',uid:'uid-c',
-    kickoff_utc:todayTR()+'T18:00:00+00:00',day:todayTR(),home:'Legacy Club',
-    away:'Opponent',league:'UEFA Champions League',market:'1X2',
-    selection:'2',kind:'LEGACY_SIGNAL',stage_status:'LEGACY_RECORDED',
-    source_checkpoint:null,checkpoint:null,odds:null,observed_at:null,
-    result_state:'PENDING',final_score:null,shadow:false});
+  data.items.push({id:42, engine:'LEGACY_UNDERDOG',uid:'uid-old',
+    day:todayTR(),kickoff_utc:todayTR()+'T18:00:00+00:00',
+    home:'Retired Side',away:'Other Side',market:'1X2',selection:'1'});
   const mock=setup(data);
-  mock.window.openBaseSignalsPanel();
-  await flush();
+  mock.window.openBaseSignalsPanel(); await flush();
   const tiles=mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
-  assert.equal(tiles.length,15);
-  const old=tiles.find(x=>x.dataset.motor==='LEGACY_UNDERDOG');
-  old.click();
+  assert.equal(tiles.length,10);
+  assert.doesNotMatch(mock.get('sxfSignalContent').innerHTML,/LEGACY_UNDERDOG/);
+  tiles.find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Legacy Club/);
-  assert.match(html,/Eski motor kaydı/);
-  assert.match(html,/Doğrulanmış eski motor kaydı/);
-  assert.match(html,/Henüz doğrulanmadı/);
-  assert.match(html,/Oran kayıtlı değil/);
-  assert.doesNotMatch(html,/Takım V1|Takım V2|1\.85/);
-  assert.equal(mock.requests.length,1);
+  assert.match(html,/Takım V1/);
+  assert.match(html,/Geçmiş T-8/);
+  assert.doesNotMatch(html,/Retired Side/);
 });
 
-
-test('legacy source outage preserves real Base picks without false zero-count legacy cards', async () => {
+test('a selected V1 match also shows other engines on the exact same selection', async () => {
   const data=signals(todayTR());
-  data.legacy_source_status='unavailable';
-  data.phase='BASE_SHADOW_LEGACY_UNAVAILABLE';
+  const shared=data.items[0];
+  data.items[0].valid_on_time=true;
+  data.items[2].valid_on_time=false;
+  data.items.push(
+    {...shared,id:4,engine:'1X2_CONCENTRATION_V2',odds:1.83,checkpoint:6,valid_on_time:true},
+    {...shared,id:5,engine:'HEAVY_1X2_CONCENTRATION',odds:1.82,checkpoint:6,valid_on_time:true},
+    {...shared,id:6,engine:'EARLY_MONEY_CORE',odds:1.91,checkpoint:72,valid_on_time:false},
+    {...shared,id:7,engine:'EARLY_MONEY_CORE',odds:1.88,checkpoint:60,valid_on_time:false},
+    {...shared,id:8,engine:'BTTS_YES',market:'BTTS',selection:'Y',odds:1.72,valid_on_time:true},
+    {...shared,id:9,engine:'SURPRISE_TEAM',market:'1X2',selection:'2',odds:3.3,valid_on_time:true}
+  );
   const mock=setup(data);
-  mock.window.openBaseSignalsPanel();
-  await flush();
-  let html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Base sinyalleri erişilebilir/);
-  assert.match(html,/LEGACY_UNDERDOG/);
-  assert.match(html,/Kaynak okunamıyor/);
-  assert.match(mock.get('sxfSignalNotice').textContent,/Eski motor kaynağı okunamıyor/);
+  mock.window.openBaseSignalsPanel(); await flush();
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
-  assert.match(mock.get('sxfSignalContent').innerHTML,/Takım V1/);
-  mock.get('sxfSignalBack').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.equal((html.match(/class="sxf-signal-card"/g)||[]).length,1);
+  assert.equal((html.match(/class="sxf-direction-group"/g)||[]).length,3);
+  const grouped=html.match(/<div class="sxf-direction-badges">([^]*?)<\/div>/);
+  assert.ok(grouped);
+  for(const name of ['V1','V2','HEAVY','EARLY CORE']) {
+    assert.ok(grouped[1].includes('>'+name+'</span>'));
+    assert.equal(grouped[1].split('>'+name+'</span>').length-1,1,
+      name+' badge must not multiply with checkpoint count');
+  }
+  assert.match(html,/Deplasman kazanır/);
+  assert.match(html,/KG Var/);
+  assert.match(html,/Zamanında \+ arşiv/);
+  assert.equal((html.match(/<details class="sxf-history">/g)||[]).length,3);
+  assert.match(html,/checkpoint kaydı/);
+  assert.equal(mock.requests.length,1,'no extra fetch required for cross-engine grouping');
+});
+
+test('recorded odds come from latest actual source observation, not an inferred live price', async()=>{
+  const data=signals(todayTR());
+  data.items.splice(1,1);
+  Object.assign(data.items[0],{observed_at:'2026-10-21T09:00:00Z',odds:1.91});
+  Object.assign(data.items[1],{observed_at:'2026-10-21T12:00:00Z',odds:1.75});
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
-    .find(x=>x.dataset.motor==='LEGACY_UNDERDOG').click();
-  html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Eski sinyaller şu anda alınamıyor/);
-  assert.doesNotMatch(html,/Seçili motor için bu tarihte tamamlanmış/);
-  assert.equal(mock.requests.length,1);
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Kayıtlı oran<\/small><b>1\.75<\/b>/);
+  assert.doesNotMatch(html,/Kayıtlı oran<\/small><b>1\.91<\/b>/);
 });
