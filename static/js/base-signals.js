@@ -253,6 +253,8 @@
     return '<div class="sxf-signal-row sxf-history-entry">' +
       '<b class="sxf-history-engine">' + esc(SHORT_ENGINE[item.engine] || labelEngine(item.engine)) + '</b>' +
       '<span>' + esc(stage(item)) + (typeof item.checkpoint === 'number' ? ' · T-'+item.checkpoint : '') + '</span>' +
+      (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint ?
+        '<span>' + esc(t('source_t','Kaynak')) + ' T-' + item.source_checkpoint + '</span>' : '') +
       '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span>' +
       '<span class="sxf-history-price">' + esc(t('odds','Oran')) + ' <b>' + esc(price) + '</b></span>' +
       '<span class="sxf-history-status">' + esc(rowState(item)) + '</span>' + outcome +
