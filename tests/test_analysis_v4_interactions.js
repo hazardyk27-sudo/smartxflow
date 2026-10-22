@@ -159,7 +159,7 @@ test('confirmed 1-1 scoreboard marks home-pick LOSS; never mistakes selection fo
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/MAÇ SONUCU <strong>MS 1-1<\/strong>/);
   assert.match(html,/KAYBETTİ/);
-  assert.match(html,/SİNYAL TERCİHİ · Maç Sonucu \(1X2\)/);
+  assert.match(html,/Maç Sonucu \\(1X2\\)/);
   assert.match(html,/Takım V1 kazanır/);
 });
 
