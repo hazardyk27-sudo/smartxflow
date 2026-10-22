@@ -1,23 +1,23 @@
-SOURCE_SHA=a99530ee5a2e1c083c511e83ed1996646c48d58b
+SOURCE_SHA=f28ad2f9ee9f67dfebd6700bee4b4b9381051b75
 PYTEST_EXIT=1
-        assert payload["markets"]["OU25"]["state"]=="INSUFFICIENT_DATA"
-        assert payload["markets"]["OU25"]["checkpoint"] is None
-        assert payload["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
-        assert payload["markets"]["BTTS"]["state"]=="AUTHORITATIVE_T6"
-        assert coverage["missing_t6_markets"]==["OU25"]
->       assert coverage["disposition"]=="WAITING_DATA"
-E       AssertionError: assert 'EVALUATE' == 'WAITING_DATA'
-E         
-E         - WAITING_DATA
 E         + EVALUATE
 
 tests/test_base_signal_real_source_smoke.py:120: AssertionError
 =========================== short test summary info ============================
+FAILED tests/test_base_signal_phase4b.py::test_early_core_requires_proven_earlier_checkpoints_for_first_hit - assert [] == [72]
+  
+  Right contains one more item: 72
+  
+  Full diff:
+  + []
+  - [
+  -     72,
+  - ]
 FAILED tests/test_base_signal_real_source_smoke.py::test_one_missing_t6_market_side_is_not_fabricated_from_another_timestamp - AssertionError: assert 'EVALUATE' == 'WAITING_DATA'
   
   - WAITING_DATA
   + EVALUATE
-1 failed, 209 passed in 0.98s
+2 failed, 208 passed in 0.69s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
