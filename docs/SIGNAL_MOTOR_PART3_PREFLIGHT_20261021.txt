@@ -1,4 +1,4 @@
-SOURCE_SHA=f28ad2f9ee9f67dfebd6700bee4b4b9381051b75
+SOURCE_SHA=779ba74177a49a85cc591f680791f588a7b2e8a3
 PYTEST_EXIT=1
 E         + EVALUATE
 
@@ -17,7 +17,7 @@ FAILED tests/test_base_signal_real_source_smoke.py::test_one_missing_t6_market_s
   
   - WAITING_DATA
   + EVALUATE
-2 failed, 208 passed in 0.69s
+2 failed, 208 passed in 0.89s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
