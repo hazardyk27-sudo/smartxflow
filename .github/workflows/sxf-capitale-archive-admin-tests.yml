@@ -2,9 +2,13 @@ name: SXF CAPITALE archive admin security checks
 
 on:
   push:
-    branches: [preview, 'feature/sxf-archive-direct-admin-20261022']
+    branches: [main, preview, 'feature/sxf-admin-secure-login-archive-20261022']
     paths:
       - sxf_capitale_archive_admin.py
+      - sxf_admin_password_auth.py
+      - templates/admin_login.html
+      - app.py
+      - tests/test_sxf_admin_password_auth.py
       - templates/admin_sxf_archive.html
       - tests/test_sxf_capitale_archive_admin.py
       - .github/workflows/sxf-capitale-archive-admin-tests.yml
@@ -26,5 +30,5 @@ jobs:
         run: python -m pip install Flask==3.1.1
       - name: Compile new archive admin route and run no-network security tests
         run: |
-          python -m py_compile sxf_capitale_archive_admin.py
-          python -m unittest discover -s tests -p 'test_sxf_capitale_archive_admin.py' -v
+          python -m py_compile sxf_capitale_archive_admin.py sxf_admin_password_auth.py
+          python -m unittest discover -s tests -p 'test_sxf_*admin*.py' -v
