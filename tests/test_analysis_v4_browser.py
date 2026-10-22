@@ -35,6 +35,8 @@ def fixture(day: str, kickoff: str, motor: str, label: str, uid: str):
         "checkpoint": 8,
         "source_checkpoint": 8,
         "observed_at": kickoff,
+        "selection_status": "ELIGIBLE",
+        "review_state": "VALID_PREMATCH_RECORD",
     }
 
 def main():
