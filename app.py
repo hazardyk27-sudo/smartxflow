@@ -7834,8 +7834,15 @@ def admin_login():
 def admin_logout():
     """Admin Logout"""
     session.pop('admin_authenticated', None)
+    session.pop('sxf_capitale_archive_unlocked', None)
+    session.pop('sxf_capitale_archive_unlocked_at', None)
+    session.pop('sxf_capitale_archive_csrf', None)
     return redirect('/admin/login')
 
+
+# CAPITALE SXF archive administration: separate, short-lived authorization.
+from sxf_capitale_archive_admin import blueprint as sxf_capitale_archive_blueprint
+app.register_blueprint(sxf_capitale_archive_blueprint)
 
 # SmartXFlow Analizler V3: private, read-only Base signal feed.
 # The legacy analyst/guide APIs remain for their independent consumers,
