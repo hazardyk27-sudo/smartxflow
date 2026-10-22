@@ -30,6 +30,8 @@ jobs:
             echo "REMOTE_ALARM_ACTIVE=$(systemctl is-active smartxflow-alarm.service || true)"
             echo "REMOTE_WORKER_PID=$(systemctl show -p MainPID --value smartxflow-base-worker.service || true)"
             echo "REMOTE_WORKER_RESULT=$(systemctl show -p Result --value smartxflow-base-worker.service || true)"
+            echo "REMOTE_WORKER_EXEC_STATUS=$(systemctl show -p ExecMainStatus --value smartxflow-base-worker.service || true)"
+            sudo /bin/journalctl -u smartxflow-base-worker.service --since '-45 minutes' -o cat --no-pager 2>/dev/null | python3 -c 'import sys,re,collections; log=sys.stdin.read(); kinds=collections.Counter(re.findall(r"\b([A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception))\b",log)); print("REMOTE_WORKER_ERROR_CLASSES="+",".join(f"{k}:{v}" for k,v in kinds.most_common(8)))' || true
             echo "REMOTE_WORKER_RESTARTS=$(systemctl show -p NRestarts --value smartxflow-base-worker.service || true)"
             echo "REMOTE_WORKER_SUBSTATE=$(systemctl show -p SubState --value smartxflow-base-worker.service || true)"
             echo "REMOTE_WORKER_CYCLE_COUNT_30M=$(sudo /bin/journalctl -u smartxflow-base-worker.service --since '-30 minutes' -o cat --no-pager 2>/dev/null | grep -c 'HETZNER_BASE_DURABLE' || true)"
