@@ -92,7 +92,10 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
         }
 
     if job.family == "EARLY_CORE":
-        required = tuple(h for h in _EARLY_CORE if h >= job.hours)
+        # Only this Early checkpoint's source is required for computation.
+        # Previous missing Early data is separately marked as history-unknown
+        # in the payload, never claimed as a proven first qualifying moment.
+        required = (job.hours,)
     elif job.family == "EARLY_T12":
         required = (12,)
     elif job.family == "EARLY_RETENTION":
