@@ -27,6 +27,11 @@ def _admin():
     return session.get("admin_authenticated") is True
 
 
+def _strong_admin():
+    from sxf_admin_password_auth import is_secure_admin_session
+    return is_secure_admin_session(session)
+
+
 def _same_origin():
     origin = request.headers.get("Origin")
     if not origin:
@@ -76,6 +81,7 @@ def archive_page():
         "admin_sxf_archive.html",
         csrf_token=csrf,
         github_configured=bool(os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN")),
+        secure_admin_ready=_strong_admin(),
         initial_date="2026-10-09",
         max_date=dt.datetime.now(ZoneInfo("Europe/Istanbul")).date().isoformat(),
     )
@@ -83,8 +89,8 @@ def archive_page():
 
 @blueprint.route("/api/admin/sxf-archive/dispatch", methods=["POST"])
 def archive_dispatch():
-    if not _admin():
-        return jsonify(error="ADMIN_REQUIRED"), 403
+    if not _strong_admin():
+        return jsonify(error="SECURE_ADMIN_LOGIN_REQUIRED"), 403
     if not _same_origin() or not _csrf_ok():
         return jsonify(error="CSRF_CHECK_FAILED"), 403
     data = request.get_json(silent=True) or {}
@@ -136,8 +142,8 @@ def archive_dispatch():
 
 @blueprint.route("/api/admin/sxf-archive/runs", methods=["GET"])
 def archive_runs():
-    if not _admin():
-        return jsonify(error="ADMIN_REQUIRED"), 403
+    if not _strong_admin():
+        return jsonify(error="SECURE_ADMIN_LOGIN_REQUIRED"), 403
     url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/runs?per_page=15"
     try:
         data = _github_request(url)
