@@ -1,23 +1,23 @@
-SOURCE_SHA=91b011d000cbcd73f3dda106e51a3ccc49889f94
+SOURCE_SHA=26a4e4531cb848e286457eafbf848ee64f4aff8a
 PYTEST_EXIT=1
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override1] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override2] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override3] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override4] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override5] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override6] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_results_fail_closed_on_nonmatching_or_invalid_identity[override7] - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_ambiguous_duplicate_result_rows_never_get_settled - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_optional_scoreboard_outage_does_not_hide_valid_base_signals - assert 0 == 1
- +  where 0 = len([])
-FAILED tests/test_base_signals_feed.py::test_belated_checkpoint_is_explicitly_retroactive_not_an_on_time_alert - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_checkpoint_window_and_corrections_have_distinct_delivery_labels - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_price_rejected_signal_kept_in_archive_but_not_counted_as_valid - assert 0 == 1
- +  where 0 = len([])
-FAILED tests/test_base_signals_feed.py::test_unknown_legacy_eligibility_fails_closed_without_dropping_record - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_feed_rechecks_price_floor_when_persisted_label_conflicts - IndexError: list index out of range
-FAILED tests/test_base_signals_feed.py::test_mismatched_rejection_of_valid_price_does_not_become_eligible - IndexError: list index out of range
-35 failed, 187 passed in 1.50s
+........................................................................ [ 96%]
+.........                                                                [100%]
+=================================== FAILURES ===================================
+________ test_main_admin_security_files_survive_preview_reconciliation _________
+
+    def test_main_admin_security_files_survive_preview_reconciliation():
+        # Release branch integration must not accidentally revert main-only
+        # archive admin authentication and secret-safe setup.
+        root=ROOT
+        admin=(root/"sxf_capitale_archive_admin.py").read_text()
+        auth=(root/"sxf_admin_password_auth.py").read_text()
+>       assert "is_secure_admin_session" in admin
+E       assert 'is_secure_admin_session' in '"""Admin-only CAPITALE SXF archive dispatch. No Supabase writes or GitHub tokens in HTML."""\nfrom __future__ import ...tml_url", ""),\n        }\n        for r in data.get("workflow_runs", [])[:15]\n    ]\n    return jsonify(runs=runs)\n'
+
+tests/test_signal_motor_independence_20261022.py:101: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_signal_motor_independence_20261022.py::test_main_admin_security_files_survive_preview_reconciliation - assert 'is_secure_admin_session' in '"""Admin-only CAPITALE SXF archive dispatch. No Supabase writes or GitHub tokens in HTML."""\nfrom __future__ import ...tml_url", ""),\n        }\n        for r in data.get("workflow_runs", [])[:15]\n    ]\n    return jsonify(runs=runs)\n'
+1 failed, 224 passed in 1.32s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
