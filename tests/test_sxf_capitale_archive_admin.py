@@ -18,7 +18,7 @@ class ArchiveAdminTests(unittest.TestCase):
             ),
         })
         self.env.start()
-        self.app = Flask(__name__)
+        self.app = Flask(__name__, template_folder='../templates')
         self.app.secret_key = "test-only-flask-secret"
         self.app.register_blueprint(bridge.blueprint)
         self.client = self.app.test_client()
