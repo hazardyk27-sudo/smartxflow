@@ -106,7 +106,7 @@ test('home shows separate V1 and V2 tiles without horizontal tabs; opens only V1
   html = mock.get('sxfSignalContent').innerHTML;
   assert.match(html, /Takım V1/);
   assert.doesNotMatch(html, /Takım V2/);
-  assert.equal((html.match(/class="sxf-signal-card"/g)||[]).length, 1, 'same match must have one card');
+  assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length, 1, 'one fixture must have exactly one list row');
   assert.equal((html.match(/class="sxf-signal-row/g)||[]).length, 2, 'all signal events retained under match');
   assert.match(html, /Geçmiş T-8/);
   assert.equal(mock.get('sxfSearchWrap').hidden, false);
@@ -158,7 +158,7 @@ test('confirmed 1-1 scoreboard marks home-pick LOSS; never mistakes selection fo
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/MAÇ SONUCU <strong>MS 1-1<\/strong>/);
+  assert.match(html,/<span class="sxf-list-result"[^>]*>MS 1-1<\/span>/);
   assert.match(html,/KAYBETTİ/);
   assert.ok(html.includes('Maç Sonucu (1X2)'));
   assert.match(html,/Takım V1 kazanır/);
@@ -174,7 +174,7 @@ test('unconfirmed in-play score never appears as fulltime or a settled bet', asy
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/Doğrulanmadı/);
-  assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|MAÇ SONUCU <strong>MS/);
+  assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|sxf-list-result/);
 });
 
 test('zero-count motor tile reveals its last real day without changing the selected day', async () => {
@@ -245,9 +245,9 @@ test('a selected V1 match also shows other engines on the exact same selection',
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.equal((html.match(/class="sxf-signal-card"/g)||[]).length,1);
-  assert.equal((html.match(/class="sxf-direction-group"/g)||[]).length,3);
-  const grouped=html.match(/<div class="sxf-direction-badges">([^]*?)<\/div>/);
+  assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
+  assert.equal((html.match(/class="sxf-list-history-group"/g)||[]).length,3);
+  const grouped=html.match(/<span class="sxf-line-engines">([^]*?)<\/span>/);
   assert.ok(grouped);
   for(const name of ['V1','V2','HEAVY','EARLY CORE']) {
     assert.ok(grouped[1].includes('>'+name+'</span>'));
@@ -257,7 +257,8 @@ test('a selected V1 match also shows other engines on the exact same selection',
   assert.match(html,/Deplasman kazanır/);
   assert.match(html,/KG Var/);
   assert.match(html,/Zamanında \+ arşiv/);
-  assert.equal((html.match(/<details class="sxf-history">/g)||[]).length,3);
+  assert.equal((html.match(/<details class="sxf-fixture-line">/g)||[]).length,1);
+  assert.match(html,/\+2 diğer tercih/);
   assert.match(html,/checkpoint kaydı/);
   assert.equal(mock.requests.length,1,'no extra fetch required for cross-engine grouping');
 });
@@ -271,8 +272,8 @@ test('recorded odds come from latest actual source observation, not an inferred 
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Kayıtlı oran<\/small><b>1\.75<\/b>/);
-  assert.doesNotMatch(html,/Kayıtlı oran<\/small><b>1\.91<\/b>/);
+  assert.match(html,/class="sxf-line-odds">1\.75<\/span>/);
+  assert.doesNotMatch(html,/class="sxf-line-odds">1\.91<\/span>/);
 });
 
 
@@ -324,7 +325,9 @@ test('reject only the unsuitable engine of a match, not the valid supporting eng
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  const badges=[...html.matchAll(/class="sxf-direction-badge"[^>]*>(.*?)<\/span>/g)].map(x=>x[1]);
+  const first=html.match(/<span class="sxf-line-engines">([^]*?)<\/span>/);
+  assert.ok(first);
+  const badges=[...first[1].matchAll(/class="sxf-direction-badge"[^>]*>(.*?)<\/span>/g)].map(x=>x[1]);
   assert.deepEqual(badges,['V1','V2']);
   assert.doesNotMatch(html,/Uygun değil|HEAVY|EARLY CORE|EARLY T12/);
   assert.match(html,/Takım V1 kazanır/);
@@ -347,4 +350,30 @@ test('eligible archived checkpoint stays visible while rejected sibling is omitt
   assert.match(html,/Arşiv/);
   assert.match(html,/V1/);
   assert.doesNotMatch(html,/HEAVY|Uygun değil/);
+});
+
+
+test('desktop list has column labels, one row per match, and expandable history only', async()=>{
+  const data=signals(todayTR());
+  const shared=data.items[0];
+  data.items.push({...shared,id:18,engine:'HEAVY_1X2_CONCENTRATION',
+    valid_on_time:false,stage_status:'T8_HISTORICAL'});
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/class="sxf-fixture-list"/);
+  assert.match(html,/sxf-fixture-list-head/);
+  for(const word of ['Saat','Maç','Tercih','Oran','Sinyaller','Durum'])
+    assert.ok(html.includes('>'+word+'</span>'),word);
+  assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
+  assert.match(html,/class="sxf-line-time"/);
+  assert.match(html,/class="sxf-line-fixture"/);
+  assert.match(html,/class="sxf-line-selection"/);
+  assert.match(html,/class="sxf-line-odds"/);
+  assert.match(html,/class="sxf-line-engines"/);
+  assert.match(html,/class="sxf-line-state/);
+  assert.match(html,/class="sxf-fixture-expanded"/);
+  assert.doesNotMatch(html,/class="sxf-signal-card"|class="sxf-direction-group"|class="sxf-signal-grid"/);
+  assert.equal(mock.requests.length,1);
 });
