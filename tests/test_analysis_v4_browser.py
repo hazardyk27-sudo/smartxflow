@@ -110,13 +110,15 @@ def main():
             page.locator('[data-motor="1X2_CONCENTRATION_V1"]').click()
             details = page.locator("#sxfSignalContent").inner_text()
             assert "Takım V1" in details and "Takım V2" not in details, (name, details)
-            assert page.locator("#sxfSignalContent .sxf-signal-card").count() == 1
-            assert page.locator("#sxfSignalContent .sxf-direction-group").count() == 1
-            badges = page.locator("#sxfSignalContent .sxf-direction-badge").all_inner_texts()
+            assert page.locator("#sxfSignalContent .sxf-fixture-line").count() == 1
+            assert page.locator("#sxfSignalContent .sxf-fixture-list-head").count()==1
+            assert page.locator("#sxfSignalContent .sxf-signal-card").count()==0
+            assert page.locator("#sxfSignalContent .sxf-list-history-group").count() == 1
+            badges = page.locator("#sxfSignalContent .sxf-line-engines .sxf-direction-badge").all_inner_texts()
             assert badges == ["V1", "V2", "HEAVY", "EARLY CORE"], (name,badges)
-            assert page.locator(".sxf-history").first.get_attribute("open") is None
+            assert page.locator(".sxf-fixture-line").first.get_attribute("open") is None
             assert page.evaluate("document.documentElement.scrollWidth - window.innerWidth") <= 1
-            page.locator(".sxf-history summary").first.click()
+            page.locator(".sxf-fixture-line summary").first.click()
             assert page.locator(".sxf-history-entry").count() == 4
             assert page.locator("#sxfSearchWrap").is_visible()
             page.locator("#sxfSignalBack").click()
