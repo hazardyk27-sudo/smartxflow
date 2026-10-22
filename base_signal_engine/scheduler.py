@@ -173,9 +173,25 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
             # Store first qualifying Core only at its own checkpoint.
             found = early.core_signal
             signal = found if found and found.checkpoint == job.hours else None
-            payload["status"] = "SIGNAL" if signal else "NO_NEW_SIGNAL"
+            # A true earliest/Core first-hit is only verified when all
+            # earlier checkpoints have causal, complete 1X2 evidence.
+            # If earlier snapshots do not exist, preserve a REAL current
+            # candidate but mark its historical-first status unverified.
+            history_gaps = [
+                h for h in (72, 60, 40, 24) if h > job.hours
+                and select_snapshot(fixture, "1X2", h, snaps) is None
+            ]
+            payload["missing_prior_early_checkpoints"] = history_gaps
+            payload["status"] = (
+                "HISTORY_INCOMPLETE_SIGNAL" if signal and history_gaps else
+                "SIGNAL" if signal else "NO_NEW_SIGNAL"
+            )
             if signal:
-                payload["signals"] = [_serialize_signal(signal)]
+                item = _serialize_signal(signal)
+                if history_gaps and item["selection_status"] == "ELIGIBLE":
+                    item["selection_status"] = "HISTORY_INCOMPLETE"
+                    item["label"] = "FIRST_OBSERVED_NOT_VERIFIED"
+                payload["signals"] = [item]
                 payload["t24_cohort"] = early.t24_cohort
         else:
             state = dict(early.retention_checkpoints).get(job.hours, "NO_CORE_SIGNAL")
