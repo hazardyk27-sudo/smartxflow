@@ -21,6 +21,8 @@ on:
       - 'deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql'
       - 'tests/test_signal_motor_independence_20261022.py'
       - 'tests/test_signal_motor_dense_discovery_20261022.py'
+      - 'migrations/2026_10_22_signal_motor_live_checkpoint_deadline_priority.sql'
+      - 'tests/test_signal_motor_live_checkpoint_deadline_priority_20261022.py'
       - 'base_signal_engine/discovery.py'
   workflow_dispatch:
 permissions:
@@ -45,6 +47,7 @@ jobs:
             tests/test_signal_motor_fresh_start_20261022.py \
             tests/test_signal_motor_independence_20261022.py \
             tests/test_signal_motor_dense_discovery_20261022.py \
+            tests/test_signal_motor_live_checkpoint_deadline_priority_20261022.py \
             tests/test_base_signal_rules.py \
             tests/test_base_signal_reader.py \
             tests/test_base_signal_scheduler.py \
@@ -86,6 +89,7 @@ jobs:
               'migrations/2026_10_21_signal_motor_today_first.sql',
               'migrations/2026_10_22_signal_motor_independent_checkpoints.sql',
               'deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql',
+              'migrations/2026_10_22_signal_motor_live_checkpoint_deadline_priority.sql',
           ):
               assert (root/filename).is_file(), filename
           print('PART3_PREVIEW_MIGRATION_RELEASE_GUARDS_OK')
