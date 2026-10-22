@@ -16,15 +16,26 @@ claim policy before the new worker has the new safe skip RPC.
 - The closest **real complete observed snapshot at or before T** within
   **59 minutes** is selected for that T. This window does not overlap the
   neighboring hourly anchor; V2 requires distinct 1X2 hour anchors.
-- Missing original source data at any due T checkpoint means the **whole
-  fixture is skipped**, not just the failing checkpoint. The triggering job
-  receives `SOURCE_INCOMPLETE`; its unfinished sibling jobs receive
-  `FIXTURE_SKIPPED_UPSTREAM_GAP` (they are not falsely labeled as missing
-  observations at checkpoints that have not happened). The claim RPC
-  excludes already-skipped fixtures, including after a discovery replay.
-  Previously COMPLETED jobs and immutable source/signal events are preserved;
-  finished signal records belonging to skipped fixtures are hidden only
-  from the live signal feed. No missing odds are fabricated or re-tried forever.
+- **2026-10-22 correction (PREVIEW, not yet deployed):** each signal
+  family/checkpoint is independent. A missing Early T-72 does NOT skip
+  Base T-8/T-6, Early T-12, or other Early checkpoints. Only that due
+  job is marked `SKIPPED_DATA/SOURCE_INCOMPLETE`. Base 1X2, OU25 and
+  BTTS are independently evaluated: one missing market does not hide
+  another market's real valid signal. When all markets are missing,
+  that individual Base checkpoint is skipped without generating fake hits.
+- Early Core T-72/60/40/24 uses its own historical checkpoints, not as
+  entry requirements for non-Early engines. An Early T-60 candidate
+  computed from real source despite missing earlier T-72 is visibly marked
+  `HISTORY_INCOMPLETE` rather than claiming the *first-ever* hit
+  was proven. Retention still requires its genuine source chronology.
+- Authentically COMPLETED signals stay visible even when a different
+  signal family for the same fixture had a source gap.
+- Production V2 already contains wrongly propagated sibling
+  `FIXTURE_SKIPPED_UPSTREAM_GAP` rows from the earlier policy.
+  Reactivate these *unfinished* jobs in a distinct operator-gated
+  transaction; do not delete any original source-gap jobs or immutable
+  audit records.
+
 - A missing Base T-6 observation **never uses T-8 as a substitute**.
   Authentic prior T-8 events remain historical, not new T-6 picks.
 - Backlog of **already kicked-off** matches is no longer granted a worker
@@ -71,43 +82,41 @@ and aborts if a conflicting lease or previous V2 start is found.
 Release verification must confirm V1 has no claimable jobs, V2 enqueue
 RPC accepts the new ruleset, the discovery cursor starts on the Istanbul
 current day, the first V2 LIVE claims prioritize today's upcoming matches,
-missing genuine source skips whole fixtures once, and completed historical
-V1 events are absent from the new live signal feed.
+missing genuine source skips only the corresponding checkpoint, and
+completed historical V1 events remain excluded from the new V2-only feed.
 
 ## Safety / no fabrication
 
-`SKIPPED_DATA` is a distinct terminal state; it is NOT `COMPLETED` or
-`NO_SIGNAL`. The new `sxf_base_skip_missing_source` PostgreSQL function
-requires a live valid row lease token, a due checkpoint, and a kickoff in
-the future. One terminal operation also marks that fixture's other unfinished
-jobs as skipped; it refuses to invalidate another active leased job. It never
-inserts signal events, modifies COMPLETED jobs or edits original moneyway rows.
-The `sxf_base_claim_due_jobs_lane` migration preserves PostgreSQL
-`FOR UPDATE SKIP LOCKED`, per-job lease tokens, 1-job claims, and
-service_role-only execution. Existing completed events remain untouched.
+`SKIPPED_DATA` is distinct from `COMPLETED` and `NO_SIGNAL`.
+The **new corrective** `sxf_base_skip_missing_source` PostgreSQL
+function requires a live valid row lease token, a due checkpoint and
+a future kickoff. It only transitions that one job and never mutates a
+sibling family, historical completed signals or original Moneyway data.
 
-## Safe rollout order
+The corrective claim RPC retains `FOR UPDATE SKIP LOCKED`, date-first
+priority, per-job fencing and service-role-only execution. It removes
+the old fixture-wide exclusion predicate. A missing market may produce
+an `INSUFFICIENT_DATA` market decision but cannot veto another real,
+independently complete market.
 
-1. Focused tests PASS on preview, seven language JSON files checked and
-   `static/js/base-signals.js` syntax checked.
-2. Snapshot pre-deployment live state: original Moneyway scrape freshness and
-   Base worker service health. Preserve old historical data.
-3. Controlled migration 1: extend constrained job state vocabulary and
-   install the token-fenced terminal source skip RPC.
-4. After **verified worker and recovery-timer stop** and zero active leases,
-   apply the additive migration `2026_10_21_signal_motor_skip_future_only_guard.sql`
-   to require `kickoff_utc > now()` at terminal skip time; migration 1 was
-   already installed in production and must **not** be replayed or edited.
-5. Controlled date-first claim migration
-   `2026_10_21_signal_motor_today_first.sql`: prioritize current/future
-   Istanbul-local matchdays while preserving token-fenced leases.
-6. Release approved exact SHA from preview to main and deploy Hetzner.
-   Old legacy writer is disabled, Alarm Engine continues running.
-7. Verify `SKIPPED_DATA` increments only for genuinely incomplete
-   checkpoint windows, no new `WAITING_DATA` churn from Base worker,
-   `sxf_base_signal_events` still includes real priced choices only, and
-   today's fixtures are processed before later kickoff dates.
-8. Re-check 1X2/OU25/BTTS source timestamps and actual 24/7 worker health.
+## Corrective rollout order (2026-10-22, NOT yet production-approved)
+
+1. Pass targeted preview tests and review the exact SHA.
+2. Obtain explicit promotion approval (per repository release contract).
+3. Stop/disable Base worker and recovery timer; verify no checkpoint,
+   reconciliation or discovery leases, and preserve Alarm and Moneyway.
+4. Apply `migrations/2026_10_22_signal_motor_independent_checkpoints.sql`
+   to replace the single-job skip and date-first claim RPCs.
+5. In a separately authorized transaction with
+   `sxf.independent_restore_gate=VERIFIED_STOPPED_AND_LEASE_FREE`,
+   apply `deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql`.
+   It revives unfinished jobs wrongly mass-skipped by the previous
+   fixture-level policy, retaining true source gaps and immutable audits.
+6. Fast-forward the **exact approved preview SHA** to main, deploy that
+   main SHA to Hetzner and restart the Base worker/recovery timer.
+7. Verify today's fixture priority, independently completed Base/early jobs,
+   correctly marked unverified Early first-history, missing-data-only
+   per-job skips, visible completed signals, and 24/7 process health.
 
 **Important:** a release cannot recover real prices a provider never sent;
 `SKIPPED_DATA` documents that source gap. The 59-minute policy is a source
