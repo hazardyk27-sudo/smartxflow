@@ -304,7 +304,7 @@
       var bSelected = b.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
       return bSelected - aSelected || b.length - a.length;
     });
-    var finalScore = item.result_state === 'FT' && /^\\d{1,2}-\\d{1,2}$/.test(item.final_score || '');
+    var finalScore = item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
     var result = finalScore ? '<span class="sxf-match-result is-final">' +
       esc(t('final_score_label','MAÇ SONUCU')) + ' <strong>MS ' +
       esc(item.final_score) + '</strong></span>' : '';
