@@ -27,17 +27,6 @@ def _admin():
     return session.get("admin_authenticated") is True
 
 
-def _unlocked():
-    unlocked_at = session.get("sxf_capitale_archive_unlocked_at", 0)
-    try:
-        fresh = 0 <= time.time() - float(unlocked_at) <= 1800
-    except (TypeError, ValueError):
-        fresh = False
-    return (_admin() and fresh
-            and bool(os.environ.get("SXF_ARCHIVE_ADMIN_PIN"))
-            and session.get("sxf_capitale_archive_unlocked") is True)
-
-
 def _same_origin():
     origin = request.headers.get("Origin")
     if not origin:
@@ -86,36 +75,16 @@ def archive_page():
     return render_template(
         "admin_sxf_archive.html",
         csrf_token=csrf,
-        is_unlocked=_unlocked(),
-        authorization_configured=bool(os.environ.get("SXF_ARCHIVE_ADMIN_PIN")),
         github_configured=bool(os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN")),
         initial_date="2026-10-09",
         max_date=dt.datetime.now(ZoneInfo("Europe/Istanbul")).date().isoformat(),
     )
 
 
-@blueprint.route("/api/admin/sxf-archive/unlock", methods=["POST"])
-def archive_unlock():
-    if not _admin():
-        return jsonify(error="ADMIN_REQUIRED"), 403
-    if not _same_origin() or not _csrf_ok():
-        return jsonify(error="CSRF_CHECK_FAILED"), 403
-    pin = os.environ.get("SXF_ARCHIVE_ADMIN_PIN", "")
-    supplied = (request.get_json(silent=True) or {}).get("pin", "")
-    if not pin or len(pin) < 16 or not isinstance(supplied, str):
-        return jsonify(error="ARCHIVE_ADMIN_PIN_NOT_CONFIGURED"), 503
-    if not hmac.compare_digest(pin, supplied):
-        return jsonify(error="INVALID_ARCHIVE_AUTHORIZATION"), 403
-    session["sxf_capitale_archive_unlocked"] = True
-    session["sxf_capitale_archive_unlocked_at"] = int(time.time())
-    session["sxf_capitale_archive_csrf"] = secrets.token_urlsafe(32)
-    return jsonify(status="AUTHORIZED", csrf_token=session["sxf_capitale_archive_csrf"])
-
-
 @blueprint.route("/api/admin/sxf-archive/dispatch", methods=["POST"])
 def archive_dispatch():
-    if not _unlocked():
-        return jsonify(error="ARCHIVE_AUTHORIZATION_REQUIRED"), 403
+    if not _admin():
+        return jsonify(error="ADMIN_REQUIRED"), 403
     if not _same_origin() or not _csrf_ok():
         return jsonify(error="CSRF_CHECK_FAILED"), 403
     data = request.get_json(silent=True) or {}
@@ -167,8 +136,8 @@ def archive_dispatch():
 
 @blueprint.route("/api/admin/sxf-archive/runs", methods=["GET"])
 def archive_runs():
-    if not _unlocked():
-        return jsonify(error="ARCHIVE_AUTHORIZATION_REQUIRED"), 403
+    if not _admin():
+        return jsonify(error="ADMIN_REQUIRED"), 403
     url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/runs?per_page=15"
     try:
         data = _github_request(url)
