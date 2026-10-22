@@ -78,7 +78,7 @@ def test_t6_source_coverage_is_market_independent_and_no_fallback_when_t6_valid(
     captured=CapturingReader(reader)
     payload=evaluate_job(JOB6,captured)
     state=source_coverage(JOB6,captured.source,payload)
-    assert state["disposition"]=="WAITING_DATA"
+    assert state["disposition"]=="EVALUATE"
     assert state["state"]=="PARTIAL"
     assert state["markets"]["1X2"]["authority"]=="T6"
     assert state["markets"]["OU25"]["authority"]=="MISSING"
@@ -96,7 +96,7 @@ def test_t8_has_no_future_t6_inspection():
     state=source_coverage(job,captured.source,payload)
     assert state["markets"]["1X2"]["authority"]=="T8_PRELIMINARY"
     assert state["markets"]["OU25"]["authority"]=="MISSING"
-    assert state["disposition"]=="WAITING_DATA"
+    assert state["disposition"]=="EVALUATE"
 
 
 def test_empty_base_sources_wait_and_never_complete():
@@ -108,13 +108,28 @@ def test_empty_base_sources_wait_and_never_complete():
     assert rpc.calls[1][1]["p_reason"]=="SOURCE_INCOMPLETE"
 
 
-def test_partial_base_source_is_skipped_and_not_reported_as_complete():
+def test_partial_base_source_keeps_independent_valid_market_results():
     rpc=Rpc()
     metrics=execute_claims(Reader([snap("1X2",6),snap("OU25",8)]),store(rpc),worker_id="worker")
-    assert metrics["completed"]==0 and metrics["skipped_data"]==1
+    assert metrics["completed"]==1 and metrics["skipped_data"]==0
     assert [name for name,_ in rpc.calls]==[
-        "sxf_base_claim_due_jobs","sxf_base_skip_missing_source"]
-    assert rpc.calls[-1][1]["p_reason"]=="SOURCE_INCOMPLETE"
+        "sxf_base_claim_due_jobs","sxf_base_renew_lease","sxf_base_complete_job"]
+    payload=rpc.calls[-1][1]["p_payload"]
+    assert payload["source_coverage"]["state"]=="PARTIAL"
+    assert payload["source_coverage"]["missing_markets"]==["OU25","BTTS"]
+    assert payload["markets"]["1X2"]["checkpoint"]==6
+    assert payload["markets"]["OU25"]["checkpoint"] is None
+
+
+def test_t8_available_market_survives_other_missing_markets():
+    job=CheckpointJob(REF,8,"BASE")
+    rpc=Rpc(job=job)
+    metrics=execute_claims(Reader([snap("1X2",8)]),store(rpc),worker_id="worker")
+    assert metrics["completed"]==1 and metrics["skipped_data"]==0
+    payload=rpc.calls[-1][1]["p_payload"]
+    assert payload["source_coverage"]["state"]=="PARTIAL"
+    assert payload["markets"]["1X2"]["checkpoint"]==8
+    assert payload["markets"]["OU25"]["checkpoint"] is None
 
 
 def test_early_t12_missing_source_waits_but_complete_no_hit_is_final():
