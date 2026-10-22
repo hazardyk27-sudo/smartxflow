@@ -98,7 +98,8 @@ def test_main_admin_security_files_survive_preview_reconciliation():
     root=ROOT
     admin=(root/"sxf_capitale_archive_admin.py").read_text()
     auth=(root/"sxf_admin_password_auth.py").read_text()
-    assert "is_secure_admin_session" in admin
+    assert 'return session.get("admin_authenticated") is True' in admin
+    assert "def _admin():" in admin
     assert "SXF_ADMIN_PASSWORD_HASH" in auth
     assert (root/"scripts/configure_sxf_archive_access.py").is_file()
     assert (root/"tests/test_sxf_admin_password_auth.py").is_file()
