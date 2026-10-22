@@ -55,10 +55,26 @@ def discover_window_once(reader: Any, store: Any, *,
             fixtures = source.list_between(begin,end)
         if heartbeat is not None:
             heartbeat.pulse(force=True)
-        if max_fixtures is not None and len(fixtures) > max_fixtures:
-            # Never silently slice a complete source window: doing so would
-            # advance the durable cursor past unqueued physical fixtures.
-            raise RuntimeError("DISCOVERY_WINDOW_TOO_LARGE")
+        if max_fixtures is not None:
+            # Heavy kickoff hours can exceed the 100-fixture bounded fanout.
+            # Halve the ACTUAL source window and re-read *every* fixture in
+            # that smaller interval. Never truncate the source fixture list:
+            # that would advance the cursor past fixtures never enqueued.
+            # The cursor advances only to the verified smaller end time,
+            # then the next cycle resumes from that timestamp. Boundaries
+            # overlap intentionally; job-key upsert is idempotent.
+            while len(fixtures) > max_fixtures:
+                if end - begin <= timedelta(seconds=2):
+                    # A single dense timestamp cannot be split safely with
+                    # a time-only cursor; fail closed rather than lose games.
+                    raise RuntimeError("DISCOVERY_WINDOW_TOO_LARGE")
+                end = begin + (end - begin) / 2
+                if heartbeat is not None and isinstance(source, SupabaseFixtureCatalog):
+                    fixtures = source.list_between(begin,end,progress_hook=heartbeat.pulse)
+                else:
+                    fixtures = source.list_between(begin,end)
+                if heartbeat is not None:
+                    heartbeat.pulse(force=True)
         # Enqueue uses the same 11 frozen tasks per fixture; no filtering.
         enqueued = store.enqueue(fixtures)
     except Exception as error:
