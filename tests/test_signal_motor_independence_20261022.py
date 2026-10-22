@@ -90,3 +90,16 @@ def test_base_can_complete_when_some_markets_are_absent():
     scheduler=(ROOT/"base_signal_engine/scheduler.py").read_text()
     assert '"HISTORY_INCOMPLETE_SIGNAL"' in scheduler
     assert '"FIRST_OBSERVED_NOT_VERIFIED"' in scheduler
+
+
+def test_main_admin_security_files_survive_preview_reconciliation():
+    # Release branch integration must not accidentally revert main-only
+    # archive admin authentication and secret-safe setup.
+    root=ROOT
+    admin=(root/"sxf_capitale_archive_admin.py").read_text()
+    auth=(root/"sxf_admin_password_auth.py").read_text()
+    assert "is_secure_admin_session" in admin
+    assert "SXF_ADMIN_PASSWORD_HASH" in auth
+    assert (root/"scripts/configure_sxf_archive_access.py").is_file()
+    assert (root/"tests/test_sxf_admin_password_auth.py").is_file()
+    assert (root/"tests/test_sxf_archive_configuration.py").is_file()
