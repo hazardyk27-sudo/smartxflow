@@ -73,7 +73,8 @@ function signals(day) {
     return { id, engine, uid, kickoff_utc:kickoff, day, home, away:'Deplasman',
       league:'Süper Lig', market:'1X2', selection:'1', odds:1.85,
       kind:'EARLY_SIGNAL', stage_status:stage||'AS_RECORDED',
-      checkpoint:8, source_checkpoint:8, observed_at:kickoff };
+      checkpoint:8, source_checkpoint:8, observed_at:kickoff,
+      selection_status:'ELIGIBLE', review_state:'VALID_PREMATCH_RECORD' };
   }
   return { status:'ok', engines:['1X2_CONCENTRATION_V1','1X2_CONCENTRATION_V2'],
     items:[item(1,'1X2_CONCENTRATION_V1','uid-a','Takım V1'),
@@ -272,4 +273,78 @@ test('recorded odds come from latest actual source observation, not an inferred 
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/Kayıtlı oran<\/small><b>1\.75<\/b>/);
   assert.doesNotMatch(html,/Kayıtlı oran<\/small><b>1\.91<\/b>/);
+});
+
+
+test('Lincoln Red Imps – FC Twente has zero visible cards when all records are price rejected', async () => {
+  const data = signals(todayTR());
+  const common=data.items[0];
+  data.items=[
+    {...common,id:11,uid:'lincoln-twente',home:'Lincoln Red Imps',
+      away:'FC Twente',engine:'EARLY_MONEY_CORE',checkpoint:72,odds:1.27,
+      selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
+    {...common,id:12,uid:'lincoln-twente',home:'Lincoln Red Imps',
+      away:'FC Twente',engine:'EARLY_MONEY_T12',checkpoint:12,odds:1.24,
+      selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
+    {...common,id:13,uid:'lincoln-twente',home:'Lincoln Red Imps',
+      away:'FC Twente',engine:'HEAVY_1X2_CONCENTRATION',checkpoint:8,odds:1.25,
+      selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
+    {...common,id:14,uid:'lincoln-twente',home:'Lincoln Red Imps',
+      away:'FC Twente',engine:'HEAVY_1X2_CONCENTRATION',checkpoint:6,odds:1.24,
+      selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'}
+  ];
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel();await flush();
+  const index=mock.get('sxfSignalContent').innerHTML;
+  assert.doesNotMatch(index,/Lincoln Red Imps|FC Twente/);
+  for (const engine of ['EARLY_MONEY_CORE','EARLY_MONEY_T12','HEAVY_1X2_CONCENTRATION']) {
+    mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+      .find(x=>x.dataset.motor===engine).click();
+    const detail=mock.get('sxfSignalContent').innerHTML;
+    assert.match(detail,/Bu gün için maç bulunmuyor/);
+    assert.doesNotMatch(detail,/sxf-signal-card|sxf-direction-badge|Lincoln Red Imps|FC Twente/);
+    mock.get('sxfSignalBack').click();
+  }
+});
+
+test('reject only the unsuitable engine of a match, not the valid supporting engines', async () => {
+  const data=signals(todayTR());
+  const good=data.items[0];
+  data.items=[
+    {...good,id:1,valid_on_time:true},
+    {...good,id:2,engine:'1X2_CONCENTRATION_V2',odds:1.82,valid_on_time:true},
+    {...good,id:3,engine:'HEAVY_1X2_CONCENTRATION',odds:1.24,
+      review_state:'PRICE_REJECTED',selection_status:'PRICE_FILTER_REJECT'},
+    {...good,id:4,engine:'EARLY_MONEY_CORE',odds:1.91,
+      selection_status:'HISTORY_INCOMPLETE',review_state:'HISTORY_INCOMPLETE'},
+    {...good,id:5,engine:'EARLY_MONEY_T12',odds:1.25,
+      selection_status:'ELIGIBLE',review_state:'VALID_PREMATCH_RECORD'}
+  ];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  const badges=[...html.matchAll(/class="sxf-direction-badge"[^>]*>(.*?)<\/span>/g)].map(x=>x[1]);
+  assert.deepEqual(badges,['V1','V2']);
+  assert.doesNotMatch(html,/Uygun değil|HEAVY|EARLY CORE|EARLY T12/);
+  assert.match(html,/Takım V1 kazanır/);
+  assert.equal((html.match(/class="sxf-history-entry/g)||[]).length,0,
+    'history remains collapsed in DOM but as sxf-signal-row it is still present');
+});
+
+test('eligible archived checkpoint stays visible while rejected sibling is omitted', async () => {
+  const data=signals(todayTR());
+  const good=data.items[0];
+  data.items=[
+    {...good,id:1,valid_on_time:false,stage_status:'T8_HISTORICAL',odds:1.95},
+    {...good,id:2,engine:'HEAVY_1X2_CONCENTRATION',odds:1.21,
+      selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'}
+  ];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Arşiv/);
+  assert.match(html,/V1/);
+  assert.doesNotMatch(html,/HEAVY|Uygun değil/);
 });
