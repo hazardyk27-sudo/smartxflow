@@ -117,7 +117,8 @@ def test_one_missing_t6_market_side_is_not_fabricated_from_another_timestamp():
     assert payload["markets"]["1X2"]["state"]=="AUTHORITATIVE_T6"
     assert payload["markets"]["BTTS"]["state"]=="AUTHORITATIVE_T6"
     assert coverage["missing_t6_markets"]==["OU25"]
-    assert coverage["disposition"]=="WAITING_DATA"
+    assert coverage["state"]=="PARTIAL"
+    assert coverage["disposition"]=="EVALUATE"
     assert coverage["requires_reconciliation"]
 
 
