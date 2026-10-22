@@ -39,6 +39,14 @@
     <a href="/admin">← Admin panele dön</a>
   </header>
 
+  {% if not secure_admin_ready %}
+  <div class="panel" role="status">
+    <h2>Güvenli yönetici girişi gerekli</h2>
+    <p>Bu sayfada ikinci bir kilit yok. Ancak GitHub'a yazma yetkisi yalnız
+      güçlü yönetici şifresiyle açılmış oturumda çalışır. Şifre kurulunca
+      <a href="/admin/logout">admin panelinden çıkış yapıp</a> yeniden giriş yap.</p>
+  </div>
+  {% endif %}
   {% if not github_configured %}
   <div class="panel"><h2>GitHub bağlantısı eksik</h2>
     <p>Sunucuda yetkisi yalnız CAPİTALE Actions tetiklemeye sınırlandırılmış <code>CAPITALE_GITHUB_ACTIONS_TOKEN</code> yapılandırılmalı. Bu token tarayıcıya gönderilmez.</p>
@@ -80,7 +88,7 @@
 </main>
 <script>
   let csrfToken = {{ csrf_token|tojson }};
-  const configured = {{ github_configured|tojson }};
+  const configured = {{ (github_configured and secure_admin_ready)|tojson }};
   const runButton = document.getElementById('archive-button');
   const runsBody = document.getElementById('runs-body');
   const refreshButton = document.getElementById('refresh-button');
@@ -92,7 +100,7 @@
     return obj;
   }
   runButton.addEventListener('click', async()=>{
-    if(!configured){msg('archive-message','Önce sunucudaki güvenli bağlantı ayarları tamamlanmalı.',true);return}
+    if(!configured){msg('archive-message','Güçlü admin oturumu ve GitHub bağlantısı kurulmadan aktarım başlatılamaz.',true);return}
     const day=document.getElementById('archive-day').value;
     const types=[];
     if(document.getElementById('kind-full').checked) types.push('full_snapshots');
@@ -129,7 +137,7 @@
     }catch(err){msg('runs-message','İşlem geçmişi alınamadı: '+err.message,true)}
   }
   refreshButton.addEventListener('click',refreshRuns);
-  refreshRuns();
+  {% if secure_admin_ready %}refreshRuns();{% endif %}
 </script>
 <script src="/static/js/i18n.js?v=20261022-sxf-archive"></script>
 </body></html>
