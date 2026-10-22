@@ -467,3 +467,45 @@ body.sxf-signals-open{overflow:hidden!important}
 #sxfBaseSignalOverlay .sxf-direction-status.is-mixed{
   color:var(--sxf-yellow);border-color:rgba(234,179,8,.26)
 }
+
+
+#sxfBaseSignalOverlay .sxf-history{
+  margin-top:8px;padding-top:6px;border-top:1px solid var(--sxf-border)
+}
+#sxfBaseSignalOverlay .sxf-history summary{
+  display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  gap:8px;min-height:26px;list-style:none;color:var(--sxf-secondary);
+  border-radius:4px;font-size:11px
+}
+#sxfBaseSignalOverlay .sxf-history summary::-webkit-details-marker{display:none}
+#sxfBaseSignalOverlay .sxf-history summary:hover{color:var(--sxf-text)}
+#sxfBaseSignalOverlay .sxf-history summary:focus-visible{
+  outline:2px solid var(--sxf-green);outline-offset:2px
+}
+#sxfBaseSignalOverlay .sxf-history[open] summary span{transform:rotate(180deg)}
+#sxfBaseSignalOverlay .sxf-history-list{
+  display:flex;flex-direction:column;gap:4px;margin-top:7px
+}
+#sxfBaseSignalOverlay .sxf-history-entry.sxf-signal-row{
+  padding:7px 9px;gap:5px 9px;min-width:0;opacity:1;
+  background:var(--sxf-card);border:1px solid var(--sxf-border);
+  color:var(--sxf-secondary);font-size:10px;line-height:1.5
+}
+#sxfBaseSignalOverlay .sxf-history-engine{color:var(--sxf-text);font-size:10px}
+#sxfBaseSignalOverlay .sxf-history-price{margin-left:auto}
+#sxfBaseSignalOverlay .sxf-history-price b{
+  font-family:'JetBrains Mono',monospace;
+  color:var(--sxf-text);font-variant-numeric:tabular-nums
+}
+#sxfBaseSignalOverlay .sxf-history-status,
+#sxfBaseSignalOverlay .sxf-history-result{
+  border:1px solid var(--sxf-border);border-radius:4px;padding:2px 5px
+}
+#sxfBaseSignalOverlay .sxf-history-result{font-weight:600}
+@media(max-width:600px){
+  #sxfBaseSignalOverlay .sxf-signal-card{padding:12px}
+  #sxfBaseSignalOverlay .sxf-direction-group{padding:10px}
+  #sxfBaseSignalOverlay .sxf-direction-price b{font-size:17px}
+  #sxfBaseSignalOverlay .sxf-direction-status{margin-left:0}
+  #sxfBaseSignalOverlay .sxf-history-entry.sxf-signal-row{gap:5px}
+}
