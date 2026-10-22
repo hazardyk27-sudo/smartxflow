@@ -336,7 +336,7 @@ class BaseSignalsFeed:
             # give the UI a trustworthy count/status independent of the raw
             # ledger's kind or the time it was replayed.
             selection_status = details.get("selection_status")
-            if selection_status not in ("ELIGIBLE", "PRICE_FILTER_REJECT"):
+            if selection_status not in ("ELIGIBLE", "PRICE_FILTER_REJECT", "HISTORY_INCOMPLETE"):
                 selection_status = "UNKNOWN"
             # Never trust an inconsistent persisted eligibility label over
             # the event's own verified recorded price.
@@ -357,6 +357,8 @@ class BaseSignalsFeed:
             )
             if selection_status == "PRICE_FILTER_REJECT":
                 review_state = "PRICE_REJECTED"
+            elif selection_status == "HISTORY_INCOMPLETE":
+                review_state = "HISTORY_INCOMPLETE"
             elif row["kind"] == "CORRECTED":
                 review_state = "RECONCILED_HISTORY"
             elif historical_t8:
