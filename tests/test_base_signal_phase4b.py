@@ -142,18 +142,28 @@ def test_early_t12_missing_source_waits_but_complete_no_hit_is_final():
     assert rpc.calls[-1][1]["p_payload"]["status"]=="NO_SIGNAL"
 
 
-def test_early_core_requires_proven_earlier_checkpoints_for_first_hit():
+def test_early_t60_can_evaluate_independently_but_first_hit_history_is_marked():
     from base_signal_engine.source_quality import CapturingReader
     from base_signal_engine.scheduler import evaluate_job
     job=CheckpointJob(REF,60,"EARLY_CORE")
-    captured=CapturingReader(Reader([snap("1X2",60)]))
+    t60=Snapshot("1X2",KO-timedelta(hours=60,minutes=5),{
+        "1":Quote("1.75","6000","82"),"X":Quote("3.7","100","8"),
+        "2":Quote("4.2","50","10")})
+    captured=CapturingReader(Reader([t60]))
     payload=evaluate_job(job,captured)
     quality=source_coverage(job,captured.source,payload)
-    assert quality["missing_1x2_checkpoints"]==[72]
-    assert quality["disposition"]=="WAITING_DATA"
-    captured=CapturingReader(Reader([snap("1X2",72),snap("1X2",60)]))
+    assert quality["disposition"]=="EVALUATE"
+    assert quality["missing_1x2_checkpoints"]==[]
+    assert payload["missing_prior_early_checkpoints"]==[72]
+    assert payload["status"]=="HISTORY_INCOMPLETE_SIGNAL"
+    assert payload["signals"][0]["selection_status"]=="HISTORY_INCOMPLETE"
+    # With genuine T-72 evidence that did not trigger Core, T-60 is proven.
+    captured=CapturingReader(Reader([snap("1X2",72,strong=False),t60]))
     payload=evaluate_job(job,captured)
     assert source_coverage(job,captured.source,payload)["disposition"]=="EVALUATE"
+    assert payload["status"]=="SIGNAL"
+    assert payload["missing_prior_early_checkpoints"]==[]
+    assert payload["signals"][0]["selection_status"]=="ELIGIBLE"
 
 
 def test_wait_rpc_rejects_invalid_params_and_redacts_secrets():
