@@ -332,7 +332,8 @@
       '<span class="sxf-line-selection"><strong>' + esc(choice(primary.item)) +
       '</strong><small>' + esc(marketLabel(primary.item.market)) + extra +
       '</small></span>' +
-      '<span class="sxf-line-odds">' +
+      '<span class="sxf-line-odds"><small class="sxf-price-key">' +
+      esc(t('odds','Oran')) + '</small>' +
       (primary.price ? esc(primary.price.odds.toFixed(2)) : '—') + '</span>' +
       '<span class="sxf-line-engines">' + primary.badges + '</span>' +
       '<span class="sxf-line-state is-' + primary.state + '">' + esc(primary.status) + '</span>' +
