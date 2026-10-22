@@ -48,6 +48,21 @@ class ArchiveAdminTests(unittest.TestCase):
                          json={"day": "2026-10-09", "kind": "full_snapshots"}).status_code, 403)
         self.assertEqual(self.requests, [])
 
+    def test_github_dispatch_http_error_is_retained_for_diagnostics(self):
+        from urllib.error import HTTPError
+        h = self.admin()
+        with patch.object(bridge, "_github_request",
+                          side_effect=HTTPError("https://api.github.com/...", 403,
+                                                "Forbidden", {}, None)):
+            r = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
+                                 json={"day": "2026-10-09", "kind": "concentrated"})
+        self.assertEqual(r.status_code, 502)
+        self.assertEqual(r.json["error"], "GITHUB_DISPATCH_REJECTED")
+        self.assertEqual(r.json["http_status"], 403)
+        response = self.client.get("/admin/sxf-archive")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"GitHub HTTP", response.data)
+
     def test_existing_admin_session_can_read_without_strong_password(self):
         self.admin()
         r = self.client.get("/admin/sxf-archive")

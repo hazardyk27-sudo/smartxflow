@@ -88,7 +88,18 @@
   async function post(path, data){
     const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify(data)});
     const obj=await response.json();
-    if(!response.ok)throw new Error(obj.error+' ('+response.status+')');
+    if(!response.ok){
+      const githubStatus = Number(obj.http_status);
+      if(obj.error === 'GITHUB_DISPATCH_REJECTED'){
+        const reason = githubStatus === 401 ? 'GitHub tokenı geçersiz veya süresi dolmuş.'
+          : githubStatus === 403 ? 'GitHub tokenına Actions: Read and write yetkisi verilmeli.'
+          : githubStatus === 404 ? 'CAPITALE workflowu veya tokenın repo erişimi bulunamadı.'
+          : githubStatus === 422 ? 'GitHub, workflow girişini veya dal referansını reddetti.'
+          : 'GitHub API isteği reddetti.';
+        throw new Error('GitHub HTTP '+(Number.isInteger(githubStatus) ? githubStatus : '?')+' — '+reason);
+      }
+      throw new Error(obj.error+' (HTTP '+response.status+')');
+    }
     return obj;
   }
   runButton.addEventListener('click', async()=>{
