@@ -272,8 +272,8 @@ test('recorded odds come from latest actual source observation, not an inferred 
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/class="sxf-line-odds">1\.75<\/span>/);
-  assert.doesNotMatch(html,/class="sxf-line-odds">1\.91<\/span>/);
+  assert.match(html,/class="sxf-line-odds"><small class="sxf-price-key">Oran<\/small>1\.75<\/span>/);
+  assert.doesNotMatch(html,/class="sxf-line-odds"><small class="sxf-price-key">Oran<\/small>1\.91<\/span>/);
 });
 
 
