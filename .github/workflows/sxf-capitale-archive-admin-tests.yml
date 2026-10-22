@@ -2,7 +2,7 @@ name: SXF CAPITALE archive admin security checks
 
 on:
   push:
-    branches: [main, preview, 'feature/sxf-admin-secure-login-archive-20261022']
+    branches: [main, preview, 'fix/sxf-archive-legacy-admin-session-20261022']
     paths:
       - sxf_capitale_archive_admin.py
       - sxf_admin_password_auth.py
