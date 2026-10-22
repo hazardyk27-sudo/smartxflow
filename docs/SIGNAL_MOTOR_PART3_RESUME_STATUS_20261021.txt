@@ -1,3 +1,3 @@
-trigger_sha=e96fd259977e6e8ea9a60dfc622af1dca1f685db
+trigger_sha=8213d0f425df5a1a3752f82f3b9c511a9540bd6e
 main_gate=success
 resume_step=success
