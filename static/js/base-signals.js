@@ -213,59 +213,105 @@
     return fmt('signals_count','{count} sinyal',{count:timelySignalCount(rows)}) +
       ' · ' + fmt('records_count','{count} kayıt',{count:rows.length});
   }
+  // Aggregate only real source events. Repeated T checkpoints must not
+  // duplicate an engine badge or become independent confirmation votes.
+  var SHORT_ENGINE = {
+    EARLY_MONEY_CORE:'EARLY CORE', EARLY_MONEY_T12:'EARLY T12',
+    '1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2',
+    HEAVY_1X2_CONCENTRATION:'HEAVY', SURPRISE_TEAM:'SURPRISE',
+    STABLE_OVER_2_5:'STABLE', PREMIUM_OVER_2_5:'PREMIUM',
+    PREMIUM_OVER_MIN1_70:'PREMIUM 1.70+', BTTS_YES:'BTTS'
+  };
+  function recordTime(item) {
+    var value = Date.parse(item.observed_at || item.recorded_at || '');
+    return isFinite(value) ? value : 0;
+  }
+  function recordPrice(rows) {
+    return rows.filter(function (r) {
+      return typeof r.odds === 'number' && isFinite(r.odds);
+    }).sort(function (a,b) {
+      return recordTime(b)-recordTime(a) || Number(b.id||0)-Number(a.id||0);
+    })[0];
+  }
+  function isHistorical(item) {
+    return item.stage_status === 'T8_HISTORICAL' || item.valid_on_time === false ||
+      item.review_state === 'LATE_HISTORY' || item.review_state === 'RECONCILED_HISTORY';
+  }
+  function rowState(item) {
+    if (item.review_state === 'PRICE_REJECTED') return t('status_rejected','Uygun değil');
+    if (item.review_state === 'HISTORY_INCOMPLETE') return t('history_unverified','Early geçmişi eksik');
+    if (isHistorical(item)) return t('status_archive','Arşiv');
+    if (item.valid_on_time === true) return t('status_timely','Zamanında');
+    return t('status_unverified','Doğrulanmadı');
+  }
   function signalRow(item) {
-    var isHistory = item.stage_status === 'T8_HISTORICAL';
-    var isRejected = item.review_state === 'PRICE_REJECTED';
-    var isRetrospective = item.review_state === 'LATE_HISTORY' ||
-      item.review_state === 'RECONCILED_HISTORY';
-    var isUnverified = item.review_state === 'UNVERIFIED_STATUS';
-    var isArchived = isHistory || (item.valid_on_time === false);
-    var odds = typeof item.odds === 'number' && isFinite(item.odds)
-      ? '<span class="sxf-row-odds">' + esc(t('odds','Oran')) +
-        ' <b>' + item.odds.toFixed(2) + '</b></span>'
-      : '<span class="sxf-row-no-odds">' + esc(t('odds_missing','Oran kayıtlı değil')) + '</span>';
-    var settled = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
-    var result = settled ? '<span class="sxf-result-pill ' + (item.outcome === 'WIN' ? 'is-win' : 'is-loss') +
-      '">' + esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
-    return '<div class="sxf-signal-row' + (isArchived ? ' is-archived' : '') + '">' +
-      '<div class="sxf-signal-pick"><span class="sxf-signal-market">' +
-      esc(isArchived ? t('recorded_pick_heading','ARŞİV KAYDI') :
-        t('pick_heading','SİNYAL TERCİHİ')) + ' · ' +
-      esc(marketLabel(item.market)) + '</span><strong>' + esc(choice(item)) +
-      '</strong></div>' + odds + result +
-      '<div class="sxf-signal-meta"><span class="sxf-stage">' + esc(stage(item)) +
-      '</span>' + ((item.delivery_timing === 'LATE_EVALUATION' ||
-                    item.delivery_timing === 'RECONCILED_LATER') ?
-        '<span class="sxf-late-evaluation">' + esc(t('late_evaluation','Geçmişten hesaplandı')) +
-        '</span>' : '') +
-      (typeof item.checkpoint === 'number' ? '<span>T-' + item.checkpoint + '</span>' : '') +
-      (typeof item.source_checkpoint === 'number' && item.source_checkpoint !== item.checkpoint
-        ? '<span>' + esc(t('source_t','Kaynak')) + ' T-' + item.source_checkpoint + '</span>' : '') +
-      '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span></div>' +
-      (isHistory ? '<div class="sxf-row-warning">' +
-        esc(t('history_warning','T-6 kararı sonrası geçmiş ön sinyal')) + '</div>' : '') +
-      (isRejected ? '<div class="sxf-row-warning">' +
-        esc(t('price_rejected_warning','Oran 1.30 altında; sinyal olarak uygun değil')) + '</div>' : '') +
-      (isRetrospective && !isRejected ? '<div class="sxf-row-warning">' +
-        esc(t('retrospective_warning','Zamanında yayınlanmadı; yalnız geçmiş analiz kaydı')) + '</div>' : '') +
-      (isUnverified ? '<div class="sxf-row-warning">' +
-        esc(t('unverified_status_warning','Sinyal uygunluğu doğrulanamadı')) + '</div>' : '') +
+    var price = typeof item.odds === 'number' && isFinite(item.odds) ?
+      item.odds.toFixed(2) : '—';
+    var decided = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
+    var outcome = decided ? '<span class="sxf-history-result">' +
+      esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
+    return '<div class="sxf-signal-row sxf-history-entry">' +
+      '<b class="sxf-history-engine">' + esc(SHORT_ENGINE[item.engine] || labelEngine(item.engine)) + '</b>' +
+      '<span>' + esc(stage(item)) + (typeof item.checkpoint === 'number' ? ' · T-'+item.checkpoint : '') + '</span>' +
+      '<span>' + esc(t('data_at','Veri')) + ' ' + esc(timeTR(item.observed_at)) + '</span>' +
+      '<span class="sxf-history-price">' + esc(t('odds','Oran')) + ' <b>' + esc(price) + '</b></span>' +
+      '<span class="sxf-history-status">' + esc(rowState(item)) + '</span>' + outcome +
       '</div>';
   }
+  function choiceGroup(rows) {
+    var item=rows[0], latest=recordPrice(rows);
+    var engines=Array.from(new Set(rows.map(function (r) { return r.engine; })));
+    var timely=rows.some(function (r) { return r.valid_on_time === true &&
+      !isHistorical(r) && r.review_state !== 'PRICE_REJECTED'; });
+    var history=rows.some(isHistorical);
+    var rejected=rows.every(function (r) { return r.review_state === 'PRICE_REJECTED'; });
+    var state=rejected?'rejected':timely&&history?'mixed':timely?'timely':history?'archive':'unverified';
+    var label=state==='rejected'?t('status_rejected','Uygun değil'):
+      state==='mixed'?t('status_mixed','Zamanında + arşiv'):
+      state==='timely'?t('status_timely','Zamanında'):
+      state==='archive'?t('status_archive','Arşiv'):t('status_unverified','Doğrulanmadı');
+    var badges=engines.map(function (engine) {
+      return '<span class="sxf-direction-badge" title="' + esc(labelEngine(engine)) + '">' +
+        esc(SHORT_ENGINE[engine] || labelEngine(engine)) + '</span>';
+    }).join('');
+    var historyRows=rows.slice().sort(function (a,b) {
+      return recordTime(b)-recordTime(a) || Number(b.id||0)-Number(a.id||0);
+    });
+    return '<section class="sxf-direction-group">' +
+      '<div class="sxf-direction-line"><div class="sxf-direction-copy">' +
+      '<small>' + esc(marketLabel(item.market)) + '</small><strong>' + esc(choice(item)) +
+      '</strong></div><div class="sxf-direction-price"><small>' +
+      esc(t('recorded_odds','Kayıtlı oran')) + '</small><b>' +
+      (latest ? esc(latest.odds.toFixed(2)) : '—') + '</b></div></div>' +
+      '<div class="sxf-direction-badges">' + badges +
+      '<span class="sxf-direction-status is-' + state + '">' + esc(label) + '</span></div>' +
+      '<details class="sxf-history"><summary>' +
+      esc(fmt('history_count','{count} checkpoint kaydı',{count:historyRows.length})) +
+      '<span aria-hidden="true">⌄</span></summary><div class="sxf-history-list">' +
+      historyRows.map(signalRow).join('') + '</div></details></section>';
+  }
   function fixtureCard(rows) {
-    var item = rows[0];
-    var result = item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '')
-      ? '<span class="sxf-match-result is-final">' + esc(t('final_score_label','MAÇ SONUCU')) +
-        ' <strong>MS ' + esc(item.final_score) + '</strong></span>'
-      : '<span class="sxf-match-result is-pending">' + esc(t('final_score_label','MAÇ SONUCU')) +
-        ' <strong>' + esc(t('score_unverified','Henüz doğrulanmadı')) + '</strong></span>';
-    return '<article class="sxf-signal-card"><header class="sxf-match-top">' +
-      '<span class="sxf-match-league">' + esc(item.league || t('unknown_league','Lig belirtilmemiş')) + '</span>' +
-      '<time class="sxf-match-time">' + esc(timeTR(item.kickoff_utc)) + ' TR</time></header>' +
+    var item=rows[0], byChoice=new Map();
+    rows.forEach(function (r) {
+      var key=String(r.market)+'/'+String(r.selection);
+      if (!byChoice.has(key)) byChoice.set(key,[]);
+      byChoice.get(key).push(r);
+    });
+    var choices=Array.from(byChoice.values()).sort(function (a,b) {
+      var selectedA=a.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
+      var selectedB=b.some(function (r) { return r.engine === current.engine; }) ? 1 : 0;
+      return selectedB-selectedA || b.length-a.length;
+    });
+    var actual=item.result_state === 'FT' && /^\d{1,2}-\d{1,2}$/.test(item.final_score || '');
+    var score=actual ? '<div class="sxf-match-result-bar"><span class="sxf-match-result is-final">' +
+      esc(t('final_score_label','MAÇ SONUCU')) + ' <strong>MS '+esc(item.final_score)+
+      '</strong></span></div>' : '';
+    return '<article class="sxf-signal-card"><header class="sxf-match-top"><span class="sxf-match-league">' +
+      esc(item.league || t('unknown_league','Lig belirtilmemiş')) + '</span><time class="sxf-match-time">' +
+      esc(timeTR(item.kickoff_utc)) + ' TR</time></header>' +
       '<h3 class="sxf-match-name">' + esc(item.home || t('home_team','Ev sahibi')) +
-      '<span>–</span>' + esc(item.away || t('away_team','Deplasman')) + '</h3>' +
-      '<div class="sxf-match-result-bar">' + result + '</div>' +
-      '<div class="sxf-match-signals">' + rows.map(signalRow).join('') + '</div></article>';
+      '<span>–</span>'+esc(item.away || t('away_team','Deplasman'))+'</h3>'+score+
+      '<div class="sxf-match-signals">'+choices.map(choiceGroup).join('')+'</div></article>';
   }
   function renderHome() {
     var entries = engineIds();
@@ -301,12 +347,19 @@
       return !needle || [x.home, x.away, x.league, choice(x)].join(' ')
         .toLocaleLowerCase(locale()).includes(needle);
     });
+    // The chosen engine selects matches; other real engine records for the
+    // same physical match remain visible without an extra network request.
+    var selectedKeys = new Set(filtered.map(function (x) {
+      return x.uid + '/' + x.kickoff_utc;
+    }));
     var groups = new Map();
-    filtered.slice().sort(function (a, b) {
-      return a.kickoff_utc.localeCompare(b.kickoff_utc) || a.id - b.id;
+    items().filter(function (x) {
+      return x.day === current.day && selectedKeys.has(x.uid + '/' + x.kickoff_utc);
+    }).sort(function (a,b) {
+      return a.kickoff_utc.localeCompare(b.kickoff_utc) || a.id-b.id;
     }).forEach(function (x) {
-      var key = x.uid + '/' + x.kickoff_utc;
-      if (!groups.has(key)) groups.set(key, []);
+      var key=x.uid+'/'+x.kickoff_utc;
+      if (!groups.has(key)) groups.set(key,[]);
       groups.get(key).push(x);
     });
     summary.textContent = labelEngine(current.engine) + ' · ' +
