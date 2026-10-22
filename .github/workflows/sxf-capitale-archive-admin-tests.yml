@@ -2,7 +2,7 @@ name: SXF CAPITALE archive admin security checks
 
 on:
   push:
-    branches: [preview]
+    branches: [preview, 'feature/sxf-archive-direct-admin-20261022']
     paths:
       - sxf_capitale_archive_admin.py
       - templates/admin_sxf_archive.html
