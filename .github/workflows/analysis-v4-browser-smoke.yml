@@ -60,6 +60,19 @@ jobs:
         run: python -m pip install --disable-pip-version-check 'playwright==1.55.0'
       - name: Install headless Chromium
         run: python -m playwright install --with-deps chromium
+      - name: Confirm archive access assets survived release reconciliation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for file in (
+              'scripts/configure_sxf_archive_access.py',
+              'templates/admin_sxf_archive.html',
+              'tests/test_sxf_archive_configuration.py',
+              'tests/test_sxf_capitale_archive_admin.py',
+          ):
+              assert Path(file).is_file(), file
+          print('ARCHIVE_RECONCILIATION_OK')
+          PY
       - name: Test compact signal grouping and checkpoint history interactions
         run: node --test tests/test_analysis_v4_interactions.js
       - name: Test real V4 UI at desktop, tablet, phone, compact and landscape sizes
