@@ -328,8 +328,8 @@ test('reject only the unsuitable engine of a match, not the valid supporting eng
   assert.deepEqual(badges,['V1','V2']);
   assert.doesNotMatch(html,/Uygun değil|HEAVY|EARLY CORE|EARLY T12/);
   assert.match(html,/Takım V1 kazanır/);
-  assert.equal((html.match(/class="sxf-history-entry/g)||[]).length,0,
-    'history remains collapsed in DOM but as sxf-signal-row it is still present');
+  assert.equal((html.match(/class="sxf-signal-row sxf-history-entry"/g)||[]).length,2,
+    'only the two eligible checkpoints should remain in hidden history');
 });
 
 test('eligible archived checkpoint stays visible while rejected sibling is omitted', async () => {
