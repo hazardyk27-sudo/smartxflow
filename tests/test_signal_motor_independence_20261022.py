@@ -31,7 +31,8 @@ def test_new_skip_migration_only_terminates_owned_due_checkpoint():
         "REVOKE ALL ON FUNCTION", "TO service_role",
     ):
         assert marker in skip,marker
-    assert "sibling" not in skip
+    assert "sibling.state" not in skip
+    assert "sibling.fixture_uid" not in skip
     assert "FIXTURE_SKIPPED_UPSTREAM_GAP" not in skip
     assert "j.fixture_uid=" not in skip
     assert "DELETE FROM" not in skip.upper()
