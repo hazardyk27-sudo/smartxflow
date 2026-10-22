@@ -14,6 +14,9 @@ import os
 import pathlib
 import stat
 import tempfile
+import json
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from werkzeug.security import generate_password_hash
 
@@ -77,16 +80,55 @@ def save_secret_lines(path: pathlib.Path, replacements: dict[str, str]):
             os.unlink(tmp)
 
 
+def verify_workflow_token(token: str):
+    """Read-only token validity check, before replacing a working .env."""
+    url = ("https://api.github.com/repos/hazardyk27-sudo/capitale/"
+           "actions/workflows/sxf-admin-archive.yml")
+    req = Request(url, headers={
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "SmartXFlow-Archive-Token-Setup",
+        "X-GitHub-Api-Version": "2022-11-28",
+    })
+    try:
+        with urlopen(req, timeout=12) as response:
+            if response.status != 200:
+                raise RuntimeError("Token rejected by GitHub")
+            info = json.load(response)
+            if info.get("state") != "active":
+                raise RuntimeError("CAPITALE archive workflow is not active")
+    except HTTPError as error:
+        raise RuntimeError(
+            f"GitHub token validation failed (HTTP {error.code}); nothing changed"
+        ) from None
+    except (URLError, TimeoutError):
+        raise RuntimeError("GitHub connection failed; nothing changed") from None
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--env-file", type=pathlib.Path, default=DEFAULT_PATH)
     p.add_argument("--check", action="store_true")
+    p.add_argument("--token-only", action="store_true",
+                   help="Replace only GitHub Actions token; do not change admin login or password")
     args = p.parse_args()
+    if args.check and args.token_only:
+        p.error("--check and --token-only cannot be combined")
     if args.check:
         check_only(args.env_file)
         return
     check_file(args.env_file)
     print("This program never echoes passwords, token values or password hashes.")
+    if args.token_only:
+        token = getpass.getpass("New CAPITALE-only GitHub token (Actions: Write): ").strip()
+        if not token or len(token) < 20 or "=" in token or any(ch.isspace() for ch in token):
+            raise SystemExit("Invalid token format; nothing changed")
+        verify_workflow_token(token)
+        save_secret_lines(args.env_file, {"CAPITALE_GITHUB_ACTIONS_TOKEN": token})
+        del token
+        print("GitHub workflow token verified and updated. Admin login/password unchanged.")
+        print("Restart web service: sudo systemctl restart smartxflow-web")
+        return
     new_pw = getpass.getpass("New dedicated SXF administrator password (min. 16 characters): ")
     confirm = getpass.getpass("Repeat SXF administrator password: ")
     if len(new_pw) < 16 or new_pw != confirm:
