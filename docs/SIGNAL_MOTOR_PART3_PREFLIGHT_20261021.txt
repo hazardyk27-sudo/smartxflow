@@ -1,11 +1,25 @@
-SOURCE_SHA=8f7b4d8f93e8796b792969f07037885b2faea4ce
-PYTEST_EXIT=0
-........................................................................ [ 34%]
-........................................................................ [ 68%]
-.................................................................        [100%]
-209 passed in 1.07s
+SOURCE_SHA=83115b43005886b51c54ca781b78b2a9d7a93363
+PYTEST_EXIT=1
+  +         'checkpoint': 8,
+  +         'source_checkpoint': 8,
+  +         'recorded_at': '2026-10-22T17:30:00+00:00',
+  +         'observed_at': '2026-10-22T17:30:00+00:00',
+  +         'delivery_timing': 'LATE_EVALUATION',
+  +         'selection_status': 'UNKNOWN',
+  +         'review_state': 'LATE_HISTORY',
+  +         'valid_on_time': False,
+  +         'odds': 3.65,
+  +         'strength_tag': False,
+  +         'shadow': True,
+  +         'result_state': 'PENDING',
+  +         'final_score': None,
+  +         'outcome': None,
+  +     },
+  + ]
+FAILED tests/test_base_signals_feed.py::test_fixture_skip_probe_unavailable_fails_closed_not_as_no_skips - Failed: DID NOT RAISE BaseFeedUnavailable
+6 failed, 203 passed in 1.25s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
