@@ -66,16 +66,18 @@ def main():
                 assert "Team V1" in body and "Team V2" not in body,(viewport,lang,body)
                 assert lex["home_wins"].replace("{team}","Team V1") in body,(viewport,lang)
                 assert lex["market_1x2"] in body,(viewport,lang)
-                assert lex["recorded_odds"] in body,(viewport,lang)
+                assert lex["odds"] in body,(viewport,lang)
                 assert lex["status_mixed"] in body,(viewport,lang)
-                assert lex["history_count"].replace("{count}","4") in body,(viewport,lang)
-                assert lex["final_score_label"] in body,(viewport,lang)
+                assert page.locator(".sxf-list-result").first.get_attribute("title")==lex["final_score_label"],(viewport,lang)
                 assert lex["back_engines"] in body,(viewport,lang)
-                assert page.locator(".sxf-signal-card").count()==1
-                assert page.locator(".sxf-direction-group").count()==1
-                assert page.locator(".sxf-direction-badge").all_inner_texts()==["V1","V2","HEAVY","EARLY CORE"]
-                assert page.locator(".sxf-history").first.get_attribute("open") is None
-                page.locator(".sxf-history summary").first.click()
+                assert page.locator(".sxf-fixture-line").count()==1
+                for key in ("list_col_time","list_col_match","list_col_pick","list_col_engines","list_col_status"):
+                    assert lex[key] in page.locator(".sxf-fixture-list-head").inner_text(),(viewport,lang,key)
+                assert page.locator(".sxf-list-history-group").count()==1
+                assert page.locator(".sxf-line-engines .sxf-direction-badge").all_inner_texts()==["V1","V2","HEAVY","EARLY CORE"]
+                assert page.locator(".sxf-fixture-line").first.get_attribute("open") is None
+                page.locator(".sxf-fixture-line summary").first.click()
+                assert lex["history_count"].replace("{count}","4") in page.locator(".sxf-fixture-expanded").first.inner_text(),(viewport,lang)
                 assert lex["lost"] in page.locator(".sxf-history-list").inner_text(),(viewport,lang)
                 page.locator(".sxf-history summary").first.click()
                 assert page.locator("#sxfSignalSearch").get_attribute("placeholder")==lex["search_placeholder"]
