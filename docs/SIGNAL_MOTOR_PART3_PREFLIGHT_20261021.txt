@@ -1,25 +1,12 @@
-SOURCE_SHA=fa86a2a1b70c198b9674c7c1629774477818ce17
-PYTEST_EXIT=1
->       assert early_item["retention"]["status"]=="BROKEN"
-E       AssertionError: assert 'INCOMPLETE' == 'BROKEN'
-E         
-E         - BROKEN
-E         + INCOMPLETE
-
-tests/test_base_signals_feed.py:545: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_base_signals_feed.py::test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges - AssertionError: not an allowed signal read
-FAILED tests/test_base_signals_feed.py::test_retention_uses_each_finished_checkpoint_not_early_overall_flag - AssertionError: assert 'INCOMPLETE' == 'PENDING'
-  
-  - PENDING
-  + INCOMPLETE
-FAILED tests/test_base_signals_feed.py::test_retention_break_never_recovers_and_is_side_and_checkpoint_scoped - AssertionError: assert 'INCOMPLETE' == 'BROKEN'
-  
-  - BROKEN
-  + INCOMPLETE
-3 failed, 234 passed in 1.37s
+SOURCE_SHA=e7bbe2afefe0bf933f74774d2efd6bd7b19d74dc
+PYTEST_EXIT=0
+........................................................................ [ 30%]
+........................................................................ [ 60%]
+........................................................................ [ 91%]
+.....................                                                    [100%]
+237 passed in 1.27s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
