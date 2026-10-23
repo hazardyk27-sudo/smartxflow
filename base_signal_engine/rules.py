@@ -155,8 +155,9 @@ def _v2_valid(
 
     Each anchor T-(h+3), T-(h+2), T-(h+1), T-h needs a fresh 1X2 market.
     All complete observed snapshots in that window are checked for share dips
-    and odds going >3% above the first anchored quote. Incomplete snapshots
-    are not evidence for meeting the persistence requirement.
+    and odds rising >3% from ANY earlier observed trough (chronological
+    running minimum), not merely from the first anchored quote. Incomplete
+    snapshots are not evidence for meeting the persistence requirement.
     """
     anchors = [select_snapshot(fixture, "1X2", h, snapshots) for h in (hours+3, hours+2, hours+1, hours)]
     if any(s is None for s in anchors):
@@ -173,9 +174,15 @@ def _v2_valid(
               and first.observed_at <= s.observed_at <= latest.observed_at]
     if any(s.quotes[side].share < 70 for s in window):
         return False, "THREE_HOUR_SHARE_BREAK"
-    first_odds = first.quotes[side].odds
-    if any(s.quotes[side].odds > first_odds * d("1.03") for s in window):
-        return False, "THREE_HOUR_ADVERSE_ODDS"
+    # Inspect in source-time order: a rebound above 3% from ANY earlier
+    # observed low is adverse even when the initial T-(h+3) quote was higher.
+    # A future trough must never be used to reject a past observation.
+    trough = first.quotes[side].odds
+    for snap in sorted(window, key=lambda s: s.observed_at):
+        odds = snap.quotes[side].odds
+        if odds > trough * d("1.03"):
+            return False, "THREE_HOUR_ADVERSE_ODDS"
+        trough = min(trough, odds)
     return True, "QUALIFIED"
 
 
@@ -201,8 +208,9 @@ def evaluate_base(fixture: Fixture, hours: int, snapshots: Sequence[Snapshot]) -
                 hits.append(_make("1X2_CONCENTRATION_V2", side, hours, home_market))
         else:
             v2_state = "V1_NOT_QUALIFIED"
-        # Heavy is a strength tag, not an independent betting confirmation.
-        if quote.amount >= 10000 and quote.share >= 80:
+        # HEAVY is a stronger V1 tag, never a standalone pick. A high share
+        # and amount cannot bypass V1's inclusive 1.40–2.50 odds requirement.
+        if v1 and quote.amount >= 10000:
             hits.append(_make("HEAVY_1X2_CONCENTRATION", side, hours, home_market, "STRENGTH_TAG"))
         for s in ("1", "2"):
             q = home_market.quotes[s]
