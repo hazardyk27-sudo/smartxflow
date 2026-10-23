@@ -71,11 +71,96 @@ def test_premium_min170_and_boundaries():
     assert "PREMIUM_OVER_MIN1_70" in names(r2)
 
 
-def test_heavy_not_silently_gated_by_v1_odds():
-    snap = snapshot("1X2", 6, **{"1": ("1.32", "20000", "90"), "X": ("3", "1100", "5"), "2": ("8", "1100", "5")})
-    r = evaluate_base(FX, 6, [snap])
-    assert "HEAVY_1X2_CONCENTRATION" in names(r)
-    assert "1X2_CONCENTRATION_V1" not in names(r)
+def test_heavy_requires_v1_odds_band_and_never_stands_alone():
+    # Stuttgart: abundant money/share at 1.38 is NOT a V1/HEAVY signal.
+    for odds in ("1.32", "1.38", "2.51"):
+        snap = snapshot("1X2", 6, **{
+            "1": (odds, "143569.34", "84.4"),
+            "X": ("3", "17000", "10"),
+            "2": ("8", "11200", "5.6"),
+        })
+        assert "HEAVY_1X2_CONCENTRATION" not in names(evaluate_base(FX, 6, [snap]))
+        assert "1X2_CONCENTRATION_V1" not in names(evaluate_base(FX, 6, [snap]))
+    for odds in ("1.40", "2.50"):
+        snap = snapshot("1X2", 6, **{
+            "1": (odds, "143569.34", "84.4"),
+            "X": ("3", "17000", "10"),
+            "2": ("8", "11200", "5.6"),
+        })
+        assert {"1X2_CONCENTRATION_V1", "HEAVY_1X2_CONCENTRATION"} <= names(
+            evaluate_base(FX, 6, [snap])
+        )
+
+
+def test_heavy_still_requires_ten_thousand_and_80_percent():
+    for amount, share, draw_share, away_share in (
+        ("9999", "84", "10", "6"),
+        ("12000", "79.9", "12", "8.1"),
+    ):
+        snap = snapshot("1X2", 6, **{
+            "1": ("1.80", amount, share),
+            "X": ("3.4", "500", draw_share),
+            "2": ("4.0", "400", away_share),
+        })
+        result = evaluate_base(FX, 6, [snap])
+        assert "HEAVY_1X2_CONCENTRATION" not in names(result)
+
+
+def test_v2_rejects_wolfsburg_three_hour_rebound_from_intra_window_low():
+    # T-9 -> T-6: 2.10 -> 2.14 (+1.90%) would pass first-anchor only.
+    # A later 2.04 -> 2.14 rebound (+4.90%) must reject V2.
+    odds = {9: "2.10", 8: "2.06", 7: "2.04", 6: "2.14"}
+    snaps = [snapshot("1X2", h, **{
+        "1": ("3.40", "1300", "10"),
+        "X": ("3.60", "1000", "8"),
+        "2": (o, "12217.01", "82"),
+    }) for h, o in odds.items()]
+    result = evaluate_base(FX, 6, snaps)
+    assert "1X2_CONCENTRATION_V1" in names(result)
+    assert "HEAVY_1X2_CONCENTRATION" in names(result)
+    assert "1X2_CONCENTRATION_V2" not in names(result)
+    assert result.v2_state == "THREE_HOUR_ADVERSE_ODDS"
+
+
+def test_v2_intra_window_peak_does_not_use_future_trough():
+    # Earlier high cannot be compared with a trough which occurs later.
+    snaps = [snapshot("1X2", h, **{
+        "1": (price, "12000", "82"), "X": ("3.4", "1700", "10"),
+        "2": ("4", "1000", "8"),
+    }) for h, price in {9: "1.95", 8: "1.96", 7: "1.94", 6: "1.95"}.items()]
+    result = evaluate_base(FX, 6, snaps)
+    assert result.v2_state == "QUALIFIED"
+    assert "1X2_CONCENTRATION_V2" in names(result)
+
+
+def test_v2_adverse_rebound_in_dense_midpoint_and_3pct_boundary():
+    base = [snapshot("1X2", h, **{
+        "1": ("2.00", "12000", "82"), "X": ("3.4", "1700", "10"),
+        "2": ("4", "1000", "8"),
+    }) for h in (9, 8, 7, 6)]
+    # Exactly 3% is allowed; anything above 3% in the 3h window fails.
+    at_boundary = snapshot("1X2", 7.5, **{
+        "1": ("2.0600", "12000", "82"), "X": ("3.4", "1700", "10"),
+        "2": ("4", "1000", "8"),
+    })
+    above_boundary = snapshot("1X2", 7.5, **{
+        "1": ("2.0601", "12000", "82"), "X": ("3.4", "1700", "10"),
+        "2": ("4", "1000", "8"),
+    })
+    assert evaluate_base(FX, 6, base + [at_boundary]).v2_state == "QUALIFIED"
+    assert evaluate_base(FX, 6, base + [above_boundary]).v2_state == "THREE_HOUR_ADVERSE_ODDS"
+
+
+def test_v2_t8_preliminary_uses_same_trough_rule():
+    odds = {11: "2.24", 10: "2.10", 9: "2.13", 8: "2.20"}
+    snaps = [snapshot("1X2", h, **{
+        "1": (o, "14000", "85"), "X": ("3.4", "1500", "10"),
+        "2": ("4", "800", "5"),
+    }) for h, o in odds.items()]
+    result = evaluate_base(FX, 8, snaps)
+    assert result.v2_state == "THREE_HOUR_ADVERSE_ODDS"
+    assert "1X2_CONCENTRATION_V1" in names(result)
+    assert "1X2_CONCENTRATION_V2" not in names(result)
 
 
 def test_market_completeness_and_no_stale_or_future_data():
