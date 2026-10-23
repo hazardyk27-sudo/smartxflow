@@ -256,7 +256,8 @@
     var price = typeof item.odds === 'number' && isFinite(item.odds) ?
       item.odds.toFixed(2) : '—';
     var decided = item.result_state === 'FT' && (item.outcome === 'WIN' || item.outcome === 'LOSS');
-    var outcome = decided ? '<span class="sxf-history-result">' +
+    var outcome = decided ? '<span class="sxf-history-result ' +
+      (item.outcome === 'WIN' ? 'is-win' : 'is-loss') + '">' +
       esc(item.outcome === 'WIN' ? t('won','KAZANDI') : t('lost','KAYBETTİ')) + '</span>' : '';
     return '<div class="sxf-signal-row sxf-history-entry">' +
       '<b class="sxf-history-engine">' + esc(SHORT_ENGINE[item.engine] || labelEngine(item.engine)) + '</b>' +
