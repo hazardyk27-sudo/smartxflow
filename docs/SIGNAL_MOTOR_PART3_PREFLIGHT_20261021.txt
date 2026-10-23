@@ -1,4 +1,4 @@
-SOURCE_SHA=d930bf266cbb0acd909df7ef746eac6f7fad6c5a
+SOURCE_SHA=12f1d86918e513ac7891fd8adb003e432ea71ce5
 PYTEST_EXIT=2
     ???
 <frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
@@ -9,7 +9,7 @@ PYTEST_EXIT=2
     exec(co, module.__dict__)
 tests/test_base_signals_feed.py:7: in <module>
     from base_signal_engine.feed import (
-E     File "/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py", line 520
+E     File "/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py", line 524
 E       "confirmed": sorted(h for h, state in history.items()
 E                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 E   SyntaxError: Generator expression must be parenthesized
@@ -17,7 +17,7 @@ E   SyntaxError: Generator expression must be parenthesized
 ERROR tests/test_signal_motor_fresh_start_20261022.py
 ERROR tests/test_base_signals_feed.py
 !!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-2 errors in 0.90s
+2 errors in 1.20s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
