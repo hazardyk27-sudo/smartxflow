@@ -273,9 +273,14 @@ class BaseSignalsFeed:
                     item["as_of_checked_at"] = at.isoformat()
                 break
 
-    def read(self, start: date, *, days: int = 21):
+    def read(self, start: date, *, days: int = 21, as_of_utc: datetime | None = None):
         if not isinstance(start, date) or type(days) is not int or not 1 <= days <= 21:
             raise ValueError("invalid bounded date window")
+        if as_of_utc is not None and (
+            not isinstance(as_of_utc, datetime) or as_of_utc.tzinfo is None
+            or as_of_utc.utcoffset() is None
+        ):
+            raise ValueError("as_of_utc must be timezone-aware")
         today = datetime.now(TR_TZ).date()
         if start < today - timedelta(days=45) or start > today + timedelta(days=21):
             raise ValueError("date window outside allowed history")
@@ -355,7 +360,8 @@ class BaseSignalsFeed:
         # enrichment on the original Early Core side and first checkpoint.
         retention = {}
         retention_states = {"RETAINED_AT_CHECKPOINT", "RETENTION_BREAK", "INSUFFICIENT_DATA"}
-        read_as_of = datetime.now(timezone.utc)
+        read_as_of = (as_of_utc.astimezone(timezone.utc) if as_of_utc is not None
+                      else datetime.now(timezone.utc))
         for event in rows:
             if event.get("kind") != "RETENTION_CHECK":
                 continue
