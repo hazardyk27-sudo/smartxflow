@@ -473,3 +473,167 @@ def test_three_hour_backlog_delay_stays_archived_even_before_kickoff():
     assert item["delivery_timing"]=="LATE_EVALUATION"
     assert item["review_state"]=="LATE_HISTORY"
     assert item["valid_on_time"] is False
+
+
+def _core_event(start, *, ident=801, selection="2", checkpoint=60):
+    event=_event(start, ident=ident, kind="EARLY_SIGNAL",
+                 engine="EARLY_MONEY_CORE", selection=selection)
+    event["family"]="EARLY_CORE"
+    event["job_checkpoint_hours"]=checkpoint
+    event["source_checkpoint_hours"]=checkpoint
+    return event
+
+
+def _retention_event(start, ident, h, state, *, side="2", first=60):
+    event=_event(start,ident=ident,kind="RETENTION_CHECK",
+                 engine=None,selection=None)
+    event["family"]="EARLY_RETENTION"
+    event["job_checkpoint_hours"]=h
+    event["source_checkpoint_hours"]=h
+    event["details"]={
+        "first_core_checkpoint":first,
+        "first_core_side":side,
+        "current_checkpoint_state":state,
+        # A completed T-6 record legitimately said INSUFFICIENT_DATA
+        # because T-5/4/3 had not been executed yet.
+        "overall_state":"INSUFFICIENT_DATA",
+    }
+    return event
+
+
+def test_retention_uses_each_finished_checkpoint_not_early_overall_flag():
+    day=_day()
+    kickoff=datetime.fromisoformat(_stamp(day))
+    early=_core_event(day)
+    progress=[
+        _retention_event(day, 802, 6, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 803, 5, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 804, 4, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 805, 3, "RETAINED_AT_CHECKPOINT"),
+    ]
+    pre=_feed(Source(day,events=[early,*progress[:2]])).read(
+        day,as_of_utc=kickoff-timedelta(hours=4,minutes=30))["items"][0]
+    assert pre["retention"]["status"]=="PENDING"
+    assert pre["retention"]["confirmed"]==[6,5]
+
+    incomplete=_feed(Source(day,events=[early,progress[0],progress[2]])).read(
+        day,as_of_utc=kickoff-timedelta(hours=3,minutes=30))["items"][0]
+    assert incomplete["retention"]["status"]=="INCOMPLETE"
+
+    fully=_feed(Source(day,events=[early,*progress])).read(
+        day,as_of_utc=kickoff-timedelta(hours=2))["items"][0]
+    assert fully["retention"]["status"]=="RETAINED"
+    assert fully["retention"]["confirmed"]==[6,5,4,3]
+    assert len([e for e in Source(day,events=[early,*progress]).events
+                if e["kind"]=="RETENTION_CHECK"])==4
+
+
+def test_retention_break_never_recovers_and_is_side_and_checkpoint_scoped():
+    day=_day()
+    kickoff=datetime.fromisoformat(_stamp(day))
+    early=_core_event(day)
+    events=[
+        _retention_event(day, 807, 6, "RETENTION_BREAK"),
+        _retention_event(day, 808, 5, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 809, 4, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 810, 3, "RETAINED_AT_CHECKPOINT"),
+        _retention_event(day, 811, 3, "RETENTION_BREAK",side="1"),
+        _retention_event(day, 812, 3, "RETENTION_BREAK",first=72),
+    ]
+    early_item=_feed(Source(day,events=[early,*events])).read(
+        day,as_of_utc=kickoff-timedelta(hours=2))["items"][0]
+    assert early_item["retention"]["status"]=="BROKEN"
+    assert len(early_item["retention"]["checked"])==4
+    assert early_item["engine"]=="EARLY_MONEY_CORE"
+
+
+def test_retention_audit_is_never_itself_a_signal():
+    day=_day()
+    result=_feed(Source(day,events=[
+        _retention_event(day, 815, 6, "RETAINED_AT_CHECKPOINT"),
+    ])).read(day,as_of_utc=datetime.fromisoformat(_stamp(day)))
+    assert result["items"]==[]
+
+
+def test_retention_no_audit_after_kickoff_fails_closed_incomplete():
+    day=_day()
+    item=_feed(Source(day,events=[_core_event(day)])).read(
+        day,as_of_utc=datetime.fromisoformat(_stamp(day))+timedelta(minutes=5))["items"][0]
+    assert item["retention"]["status"]=="INCOMPLETE"
+
+
+class CurrentQuotesSource(Source):
+    def __init__(self, day, snapshots):
+        super().__init__(day,events=[])
+        self.snapshots=snapshots
+
+    def get(self,url,*,params,headers,timeout):
+        if url.endswith("moneyway_snapshots"):
+            self.calls.append((url,params,headers))
+            assert dict(params)["market"]=="eq.1X2"
+            return Reply(self.snapshots)
+        return super().get(url,params=params,headers=headers,timeout=timeout)
+
+
+def _present_rows(uid, when, odds="1.90", share="85", amount="12000"):
+    return [
+        {"id":1,"fixture_uid":uid,"market":"1X2","selection":"1",
+         "odds":"3.20","volume":"1300","share":"10","scraped_at_utc":when},
+        {"id":2,"fixture_uid":uid,"market":"1X2","selection":"X",
+         "odds":"3.60","volume":"600","share":str(100-float(share)-10),
+         "scraped_at_utc":when},
+        {"id":3,"fixture_uid":uid,"market":"1X2","selection":"2",
+         "odds":odds,"volume":amount,"share":share,"scraped_at_utc":when},
+    ]
+
+
+def test_current_as_of_checks_snapshot_without_mutating_checkpoint_result():
+    day=_day()
+    now=datetime.fromisoformat(_stamp(day))-timedelta(hours=5)
+    rows=_present_rows(UID,(now-timedelta(minutes=2)).isoformat(),
+                       odds="2.22",share="76.8",amount="26742.60")
+    source=CurrentQuotesSource(day,rows)
+    checks=[{"uid":UID,"kickoff_utc":_stamp(day),"selection":"2",
+             "engine":engine,"as_of_state":"NOT_RECHECKED",
+             "as_of_checked_at":None,"odds":2.14}
+            for engine in ("HEAVY_1X2_CONCENTRATION","1X2_CONCENTRATION_V2")]
+    _feed(source)._enrich_current_1x2(checks,now=now)
+    assert [x["as_of_state"] for x in checks]==["THRESHOLD_FAIL","THRESHOLD_FAIL"]
+    assert checks[1]["as_of_scope"]=="V1_BASE_ONLY"
+    assert [x["odds"] for x in checks]==[2.14,2.14]
+
+    passing=_present_rows(UID,(now-timedelta(minutes=1)).isoformat(),
+                          odds="2.10",share="81.7",amount="12217.01")
+    source.snapshots=passing
+    _feed(source)._enrich_current_1x2(checks,now=now)
+    assert [x["as_of_state"] for x in checks]==["THRESHOLD_PASS","THRESHOLD_PASS"]
+
+
+def test_current_as_of_never_uses_partial_stale_or_post_kickoff_data():
+    day=_day()
+    now=datetime.fromisoformat(_stamp(day))-timedelta(hours=4)
+    fresh=(now-timedelta(minutes=2)).isoformat()
+    item={"uid":UID,"kickoff_utc":_stamp(day),"selection":"2",
+          "engine":"HEAVY_1X2_CONCENTRATION",
+          "as_of_state":"NOT_RECHECKED","as_of_checked_at":None}
+    for quotes in (
+        _present_rows(UID,fresh)[:2],
+        _present_rows(UID,(now-timedelta(minutes=25)).isoformat()),
+        _present_rows(UID,fresh,share="95"),
+    ):
+        source=CurrentQuotesSource(day,quotes)
+        copy=item.copy()
+        _feed(source)._enrich_current_1x2([copy],now=now)
+        assert copy["as_of_state"]=="NOT_RECHECKED"
+    source=CurrentQuotesSource(day,_present_rows(UID,fresh))
+    copy=item.copy()
+    _feed(source)._enrich_current_1x2([copy],
+        now=datetime.fromisoformat(_stamp(day))+timedelta(minutes=1))
+    assert copy["as_of_state"]=="AFTER_KICKOFF"
+    assert not any(call[0].endswith("moneyway_snapshots") for call in source.calls)
+
+
+def test_as_of_clock_requires_timezone():
+    day=_day()
+    with pytest.raises(ValueError,match="timezone-aware"):
+        _feed(Source(day)).read(day,as_of_utc=datetime(2026,10,23,12))
