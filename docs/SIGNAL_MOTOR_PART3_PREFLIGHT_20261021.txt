@@ -1,23 +1,23 @@
-SOURCE_SHA=7a52a12525c1afbb855842c05fcada36d32bfd5c
-PYTEST_EXIT=2
-    ???
-<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
-    ???
-<frozen importlib._bootstrap>:690: in _load_unlocked
-    ???
-/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/_pytest/assertion/rewrite.py:188: in exec_module
-    exec(co, module.__dict__)
-tests/test_base_signals_feed.py:7: in <module>
-    from base_signal_engine.feed import (
-E     File "/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py", line 530
-E       "confirmed": sorted(h for h, state in history.items()
-E                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E   SyntaxError: Generator expression must be parenthesized
+SOURCE_SHA=fa86a2a1b70c198b9674c7c1629774477818ce17
+PYTEST_EXIT=1
+>       assert early_item["retention"]["status"]=="BROKEN"
+E       AssertionError: assert 'INCOMPLETE' == 'BROKEN'
+E         
+E         - BROKEN
+E         + INCOMPLETE
+
+tests/test_base_signals_feed.py:545: AssertionError
 =========================== short test summary info ============================
-ERROR tests/test_signal_motor_fresh_start_20261022.py
-ERROR tests/test_base_signals_feed.py
-!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-2 errors in 0.96s
+FAILED tests/test_base_signals_feed.py::test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges - AssertionError: not an allowed signal read
+FAILED tests/test_base_signals_feed.py::test_retention_uses_each_finished_checkpoint_not_early_overall_flag - AssertionError: assert 'INCOMPLETE' == 'PENDING'
+  
+  - PENDING
+  + INCOMPLETE
+FAILED tests/test_base_signals_feed.py::test_retention_break_never_recovers_and_is_side_and_checkpoint_scoped - AssertionError: assert 'INCOMPLETE' == 'BROKEN'
+  
+  - BROKEN
+  + INCOMPLETE
+3 failed, 234 passed in 1.37s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
