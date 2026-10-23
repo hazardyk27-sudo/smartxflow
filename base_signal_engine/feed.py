@@ -186,6 +186,89 @@ class BaseSignalsFeed:
                 item["outcome"] = "WIN" if win else "LOSS"
         return source_state
 
+    def _enrich_current_1x2(self, items, *, now=None):
+        """Separate frozen checkpoint truth from current, independently verified
+        1X2 threshold truth. This is NOT a V2 three-hour re-evaluation.
+        No historical snapshots, partial markets, or post-kickoff updates are
+        promoted to 'currently valid'. A failed live read stays unverified.
+        """
+        now = now or datetime.now(timezone.utc)
+        families = frozenset(("1X2_CONCENTRATION_V1", "1X2_CONCENTRATION_V2",
+                              "HEAVY_1X2_CONCENTRATION"))
+        active = {}
+        for item in items:
+            if item["engine"] not in families:
+                continue
+            kickoff = _utc(item["kickoff_utc"])
+            if now >= kickoff:
+                item["as_of_state"] = "AFTER_KICKOFF"
+            elif kickoff > now + timedelta(hours=24):
+                item["as_of_state"] = "OUTSIDE_WINDOW"
+            else:
+                active.setdefault(item["uid"], []).append(item)
+
+        for uid, related in active.items():
+            try:
+                rows = self._get("moneyway_snapshots", [
+                    ("select", "id,fixture_uid,market,selection,odds,volume,share,scraped_at_utc"),
+                    ("fixture_uid", "eq." + uid),
+                    ("market", "eq.1X2"),
+                    ("scraped_at_utc", "gte." + (now - timedelta(minutes=15)).isoformat()),
+                    ("scraped_at_utc", "lte." + now.isoformat()),
+                    ("order", "scraped_at_utc.desc,id.desc"),
+                    ("limit", "250"),
+                ])
+                if len(rows) >= 250:
+                    # Truncated page must NEVER become an apparent live signal.
+                    continue
+            except BaseFeedUnavailable:
+                continue
+            groups = {}
+            for raw in rows:
+                try:
+                    if (_uid(raw.get("fixture_uid")) != uid or
+                            raw.get("market") != "1X2"):
+                        continue
+                    at = _utc(raw.get("scraped_at_utc"))
+                    if not now - timedelta(minutes=15) <= at <= now:
+                        continue
+                    groups.setdefault(at, []).append(raw)
+                except BaseFeedUnavailable:
+                    continue
+            for at in sorted(groups, reverse=True):
+                group = groups[at]
+                if len(group) != 3 or {q.get("selection") for q in group} != {"1", "X", "2"}:
+                    continue
+                try:
+                    quotes = {q["selection"]: {
+                        "odds": Decimal(str(q["odds"])),
+                        "share": Decimal(str(q["share"])),
+                        "amount": Decimal(str(q["volume"])),
+                    } for q in group}
+                    if any(not all(v.is_finite() for v in q.values())
+                           or q["odds"] < 1 or q["amount"] < 0
+                           or not 0 <= q["share"] <= 100 for q in quotes.values()):
+                        continue
+                    if abs(sum((q["share"] for q in quotes.values()), Decimal(0)) - 100) > Decimal("0.5"):
+                        continue
+                except (ValueError, TypeError, InvalidOperation, KeyError):
+                    continue
+                leader = ("1" if quotes["1"]["amount"] >= quotes["2"]["amount"] else "2")
+                for item in related:
+                    side = item["selection"]
+                    if side not in ("1", "2"):
+                        continue
+                    q = quotes[side]
+                    v1 = (side == leader and q["amount"] >= 1000 and q["share"] >= 80
+                          and Decimal("1.40") <= q["odds"] <= Decimal("2.50"))
+                    heavy = v1 and q["amount"] >= 10000
+                    passed = heavy if item["engine"] == "HEAVY_1X2_CONCENTRATION" else v1
+                    item["as_of_state"] = "THRESHOLD_PASS" if passed else "THRESHOLD_FAIL"
+                    item["as_of_scope"] = ("V1_BASE_ONLY" if item["engine"] == "1X2_CONCENTRATION_V2"
+                                            else "CURRENT_THRESHOLDS")
+                    item["as_of_checked_at"] = at.isoformat()
+                break
+
     def read(self, start: date, *, days: int = 21):
         if not isinstance(start, date) or type(days) is not int or not 1 <= days <= 21:
             raise ValueError("invalid bounded date window")
@@ -470,6 +553,8 @@ class BaseSignalsFeed:
                 "shadow": True,
             })
         results_source_state = self._finished_results(items, fixtures) if items else "ok"
+        if items:
+            self._enrich_current_1x2(items, now=read_as_of)
         items.sort(key=lambda x: (x["kickoff_utc"], x["id"]))
         return {"status":"ok", "phase":"SHADOW", "timezone":"Europe/Istanbul",
                 "start":start.isoformat(),"days":days, "engines":list(KNOWN_ENGINES),
