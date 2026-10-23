@@ -197,3 +197,29 @@ New or changed rules follow:
 `CANDIDATE -> HISTORICAL_TEST -> SHADOW -> REVIEW -> PROMOTE / REJECT`
 
 Do not silently rewrite historical samples, thresholds or production behavior. New versions must be explicit and time-ordered.
+
+## 2026-10-23 prospective correction — HEAVY and V2 (preview only)
+
+**Change provenance:** User-requested correction to two V2 signal-motor behaviors after
+auditing Stuttgart–Mgladbach and Bochum–Wolfsburg. This section is a
+forward-looking amendment; the 2026-10-15 research definitions above and
+previously archived signals remain historically unchanged.
+
+- **HEAVY:** Must meet **all** V1 conditions (top-money HOME/AWAY,
+  amount >= £1,000, share >=80%, odds **1.40–2.50 inclusive**) **and**
+  amount >= £10,000. It is a V1 strength tag, never an independent signal.
+  A 1.38 quote fails HEAVY regardless of concentration.
+- **V2:** Must meet all V1 conditions, retain four distinct hourly anchored
+  snapshots spanning the prior three hours, and have no complete observation
+  with share <70%. In time order, maintain the lowest odds observed **so far**
+  (the running trough). If any **later** price exceeds that prior trough by
+  more than 3%, reject V2. Exactly +3% is allowed. Do not use a future low
+  to invalidate an earlier quote. Status code stays
+  `THREE_HOUR_ADVERSE_ODDS` for clients that recognize it.
+- Original archived ruleset `SXF_SIGNAL_MOTOR_V2_2026_10_22` events must
+  **not** be overwritten or silently re-labeled. Full production rollout
+  requires a separately verified, versioned cutover across queue, claim,
+  worker, storage and feed (the current SQL claims are V2-only).
+- V1, Early Core, Early T12, Over, BTTS, Surprise and checkpoint scheduling
+  rules are deliberately unchanged. The changes are tested on `preview`;
+  they are not automatically released to production.
