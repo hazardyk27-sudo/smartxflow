@@ -5,6 +5,7 @@ on:
     paths:
       - "base_signal_engine/**"
       - "tests/test_base_signal_*.py"
+      - "tests/test_base_signals_feed.py"
       - "migrations/2026_10_18_sxf_base_*.sql"
       - "migrations/2026_10_19_sxf_base_*.sql"
       - "migrations/2026_10_20_sxf_base_*.sql"
@@ -33,6 +34,7 @@ jobs:
         run: |
           python -m pytest -q \
             tests/test_base_signal_rules.py \
+            tests/test_base_signals_feed.py \
             tests/test_base_signal_reader.py \
             tests/test_base_signal_scheduler.py \
             tests/test_base_signal_storage.py \
