@@ -1,12 +1,25 @@
-SOURCE_SHA=97bbc9e5338426c48af9728d8df8817de1ba7d6e
-PYTEST_EXIT=0
-........................................................................ [ 32%]
-........................................................................ [ 64%]
-........................................................................ [ 96%]
-.........                                                                [100%]
-225 passed in 1.16s
+SOURCE_SHA=d29cfe1c568fb0f8e8a177ee8a7b4474133429d8
+PYTEST_EXIT=2
+    ???
+<frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
+    ???
+<frozen importlib._bootstrap>:690: in _load_unlocked
+    ???
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/_pytest/assertion/rewrite.py:188: in exec_module
+    exec(co, module.__dict__)
+tests/test_base_signals_feed.py:7: in <module>
+    from base_signal_engine.feed import (
+E     File "/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py", line 437
+E       "confirmed": sorted(h for h, state in history.items()
+E                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   SyntaxError: Generator expression must be parenthesized
+=========================== short test summary info ============================
+ERROR tests/test_signal_motor_fresh_start_20261022.py
+ERROR tests/test_base_signals_feed.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+2 errors in 1.20s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
