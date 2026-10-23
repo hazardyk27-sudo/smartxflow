@@ -527,8 +527,8 @@ class BaseSignalsFeed:
                     retention_status = "PENDING"
                 retained = {
                     "status": retention_status,
-                    "confirmed": sorted(h for h, state in history.items()
-                                        if state == "RETAINED_AT_CHECKPOINT", reverse=True),
+                    "confirmed": sorted((h for h, state in history.items()
+                                         if state == "RETAINED_AT_CHECKPOINT"), reverse=True),
                     "checked": sorted(history, reverse=True),
                     "required": [6, 5, 4, 3],
                 }
