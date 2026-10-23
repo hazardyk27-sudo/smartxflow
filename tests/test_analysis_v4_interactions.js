@@ -159,7 +159,8 @@ test('confirmed 1-1 scoreboard marks home-pick LOSS; never mistakes selection fo
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/<span class="sxf-list-result"[^>]*>MS 1-1<\/span>/);
-  assert.match(html,/KAYBETTİ/);
+  assert.match(html,/<span class="sxf-history-result is-loss">KAYBETTİ<\/span>/);
+  assert.doesNotMatch(html,/sxf-history-result is-win/);
   assert.ok(html.includes('Maç Sonucu (1X2)'));
   assert.match(html,/Takım V1 kazanır/);
 });
@@ -174,7 +175,7 @@ test('unconfirmed in-play score never appears as fulltime or a settled bet', asy
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/Doğrulanmadı/);
-  assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|sxf-list-result/);
+  assert.doesNotMatch(html,/KAYBETTİ|KAZANDI|sxf-list-result|sxf-history-result is-win|sxf-history-result is-loss/);
 });
 
 test('zero-count motor tile reveals its last real day without changing the selected day', async () => {
@@ -376,4 +377,17 @@ test('desktop list has column labels, one row per match, and expandable history 
   assert.match(html,/class="sxf-fixture-expanded"/);
   assert.doesNotMatch(html,/class="sxf-signal-card"|class="sxf-direction-group"|class="sxf-signal-grid"/);
   assert.equal(mock.requests.length,1);
+});
+
+test('verified won checkpoint uses site green class and never loss red class', async () => {
+  const data=signals(todayTR());
+  Object.assign(data.items[0], {final_score:'2-0',result_state:'FT',outcome:'WIN'});
+  Object.assign(data.items[2], {final_score:'2-0',result_state:'FT',outcome:'WIN'});
+  const mock=setup(data);
+  mock.window.openBaseSignalsPanel(); await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.equal((html.match(/class="sxf-history-result is-win">KAZANDI<\/span>/g)||[]).length,2);
+  assert.doesNotMatch(html,/sxf-history-result is-loss|KAYBETTİ/);
 });
