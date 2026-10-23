@@ -56,6 +56,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Test compact signal grouping and checkpoint history interactions
+        run: node --test tests/test_analysis_v4_interactions.js
       - name: Install pinned browser test dependency
         run: python -m pip install --disable-pip-version-check 'playwright==1.55.0'
       - name: Install headless Chromium
@@ -73,8 +75,6 @@ jobs:
               assert Path(file).is_file(), file
           print('ARCHIVE_RECONCILIATION_OK')
           PY
-      - name: Test compact signal grouping and checkpoint history interactions
-        run: node --test tests/test_analysis_v4_interactions.js
       - name: Test real V4 UI at desktop, tablet, phone, compact and landscape sizes
         run: |
           python tests/test_analysis_v4_browser.py
