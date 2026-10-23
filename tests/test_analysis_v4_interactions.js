@@ -391,3 +391,72 @@ test('verified won checkpoint uses site green class and never loss red class', a
   assert.equal((html.match(/class="sxf-history-result is-win">KAZANDI<\/span>/g)||[]).length,2);
   assert.doesNotMatch(html,/sxf-history-result is-loss|KAYBETTİ/);
 });
+
+
+
+test('Early T-3 retention is shown separately from the original eligible signal', async () => {
+  const data=signals(todayTR());
+  const original=data.items[0];
+  data.items=[{
+    ...original,id:1,engine:'EARLY_MONEY_CORE',
+    checkpoint:60,source_checkpoint:60,
+    retention:{status:'RETAINED',confirmed:[6,5,4,3],checked:[6,5,4,3],required:[6,5,4,3]},
+    as_of_state:'NOT_RECHECKED'
+  }];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='EARLY_MONEY_CORE').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Early süreklilik/);
+  assert.match(html,/T-3.e kadar korundu/);
+  assert.match(html,/4\/4 kontrol korundu/);
+  assert.match(html,/Sinyal, üretildiği andaki koşulların kaydıdır|Bu sinyal kayıt anındaki koşulları gösterir/);
+  assert.match(html,/Güncel piyasa doğrulanmadı/);
+  assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
+});
+
+test('broken Early retention is visibly marked but frozen history is not removed',async()=>{
+  const data=signals(todayTR());
+  data.items=[{...data.items[0],id:1,engine:'EARLY_MONEY_CORE',
+    checkpoint:40,source_checkpoint:40,
+    retention:{status:'BROKEN',confirmed:[6],checked:[6,5],required:[6,5,4,3]},
+    as_of_state:'NOT_RECHECKED'}];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='EARLY_MONEY_CORE').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Süreklilik bozuldu/);
+  assert.match(html,/sxf-direction-badge is-retention-broken/);
+  assert.match(html,/class="sxf-audit-line is-broken"/);
+  assert.equal((html.match(/class="sxf-history-entry sxf-signal-row"/g)||[]).length,1);
+});
+
+test('past checkpoint remains distinct from failed fresh live quote thresholds',async()=>{
+  const data=signals(todayTR());
+  data.items=[{...data.items[0],id:1,engine:'HEAVY_1X2_CONCENTRATION',
+    checkpoint:6,source_checkpoint:6,odds:2.14,
+    as_of_state:'THRESHOLD_FAIL',as_of_scope:'CURRENT_THRESHOLDS',
+    as_of_checked_at:'2026-10-23T12:50:00Z',valid_on_time:true}];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='HEAVY_1X2_CONCENTRATION').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Güncel eşikler sağlanmıyor/);
+  assert.match(html,/Kayıt anındaki koşulları|Bu sinyal kayıt anındaki koşulları gösterir/);
+  assert.match(html,/class="sxf-audit-line is-broken"/);
+  assert.match(html,/Veri: 15:50 TR/);
+  assert.match(html,/class="sxf-line-odds"><small class="sxf-price-key">Oran<\/small>2.14<\/span>/);
+});
+
+test('V2 present-time V1 pass never appears as three-hour V2 confirmation',async()=>{
+  const data=signals(todayTR());
+  data.items=[{...data.items[0],id:1,engine:'1X2_CONCENTRATION_V2',
+    as_of_state:'THRESHOLD_PASS',as_of_scope:'V1_BASE_ONLY',
+    as_of_checked_at:'2026-10-23T12:50:00Z'}];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V2').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Güncel V1 tabanı sağlanıyor/);
+  assert.match(html,/V2'nin üç saatlik kontrolü yeniden yapılmadı/);
+});
