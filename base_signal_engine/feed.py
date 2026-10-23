@@ -6,6 +6,7 @@ opens service_role access to browsers. No odds or outcomes are inferred.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 import re
 from zoneinfo import ZoneInfo
 from uuid import UUID
@@ -13,7 +14,7 @@ from uuid import UUID
 import requests
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
-VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION"))
+VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION", "RETENTION_CHECK"))
 KNOWN_ENGINES = (
     "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
@@ -75,7 +76,7 @@ class BaseSignalsFeed:
 
     def _get(self, table, params):
         if table not in ("sxf_base_signal_events", "sxf_base_checkpoint_jobs",
-                         "fixtures", "live_fixtures"):
+                         "fixtures", "live_fixtures", "moneyway_snapshots"):
             raise BaseFeedUnavailable("forbidden source")
         try:
             response = self._session.get(self.base + table, params=params,
@@ -262,15 +263,56 @@ class BaseSignalsFeed:
                     (_uid(event.get("fixture_uid")), event.get("market"),
                      _utc(event.get("kickoff_utc"))))
 
+        # Retention checkpoints are audit events, never standalone picks.
+        # Validate their immutable job/fixture identity before using them as
+        # enrichment on the original Early Core side and first checkpoint.
+        retention = {}
+        retention_states = {"RETAINED_AT_CHECKPOINT", "RETENTION_BREAK", "INSUFFICIENT_DATA"}
+        read_as_of = datetime.now(timezone.utc)
+        for event in rows:
+            if event.get("kind") != "RETENTION_CHECK":
+                continue
+            uid = _uid(event.get("fixture_uid"))
+            job_id = _uid(event.get("job_id"))
+            job, fixture = jobs.get(job_id), fixtures.get(uid)
+            if not job or not fixture or job.get("state") != "COMPLETED":
+                continue
+            kickoff = _utc(event.get("kickoff_utc"))
+            if (_uid(job.get("fixture_uid")) != uid or
+                    _utc(job.get("kickoff_utc")) != kickoff or
+                    _utc(fixture.get("kickoff_utc")) != kickoff):
+                continue
+            h = event.get("job_checkpoint_hours")
+            if type(h) is not int or h not in (6, 5, 4, 3):
+                continue
+            details = event.get("details")
+            if not isinstance(details, dict):
+                continue
+            side, cp, state = (details.get("first_core_side"),
+                               details.get("first_core_checkpoint"),
+                               details.get("current_checkpoint_state"))
+            if side not in ("1", "2") or type(cp) is not int or cp not in (72,60,40,24):
+                continue
+            if state not in retention_states or kickoff-timedelta(hours=h) > read_as_of:
+                continue
+            if _utc(event.get("recorded_at")) > read_as_of:
+                continue
+            key = (uid, kickoff, side, cp)
+            # An identical T checkpoint must never get two contradictory
+            # completed retention verdicts.
+            group = retention.setdefault(key, {})
+            if h in group and group[h] != state:
+                raise BaseFeedUnavailable("contradictory retention audit")
+            group[h] = state
+
         items, dedupe = [], set()
         for row in rows:
             ident = row.get("event_id")
             if type(ident) is not int or ident <= 0 or ident in dedupe:
                 raise BaseFeedUnavailable("duplicate/invalid signal event")
             dedupe.add(ident)
-            if row.get("kind") == "MARKET_DECISION":
-                # These are coverage/no-hit records, not picks, even when a
-                # malformed upstream row happens to contain engine/selection.
+            if row.get("kind") in ("MARKET_DECISION", "RETENTION_CHECK"):
+                # Coverage and retention are audit state, not new signals.
                 continue
             engine = row.get("engine")
             market = row.get("market")
@@ -376,7 +418,31 @@ class BaseSignalsFeed:
                 review_state = "UNVERIFIED_STATUS"
             else:
                 review_state = "VALID_PREMATCH_RECORD"
+            retained = None
+            if engine == "EARLY_MONEY_CORE":
+                source_h = row.get("source_checkpoint_hours")
+                history = retention.get((uid, kickoff, selection, source_h), {})
+                reached = {h for h in (6,5,4,3)
+                           if kickoff-timedelta(hours=h) <= read_as_of}
+                if any(state == "RETENTION_BREAK" for state in history.values()):
+                    retention_status = "BROKEN"
+                elif all(history.get(h) == "RETAINED_AT_CHECKPOINT" for h in (6,5,4,3)):
+                    retention_status = "RETAINED"
+                elif any(h not in history or history[h] == "INSUFFICIENT_DATA" for h in reached):
+                    retention_status = "INCOMPLETE"
+                else:
+                    retention_status = "PENDING"
+                retained = {
+                    "status": retention_status,
+                    "confirmed": sorted(h for h, state in history.items()
+                                        if state == "RETAINED_AT_CHECKPOINT", reverse=True),
+                    "checked": sorted(history, reverse=True),
+                    "required": [6, 5, 4, 3],
+                }
             items.append({
+                "retention": retained,
+                "as_of_state": "NOT_RECHECKED",
+                "as_of_checked_at": None,
                 "id": ident,
                 "uid": uid,
                 "match_hash": str(fixture.get("match_id_hash") or "")[:20],
