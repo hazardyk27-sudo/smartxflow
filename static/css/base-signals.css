@@ -691,3 +691,40 @@ body.sxf-signals-open{overflow:hidden!important}
 @media(prefers-reduced-motion:reduce){
   #sxfBaseSignalOverlay .sxf-fixture-summary{transition:none}
 }
+
+
+/* Checkpoint truth, independent current quote status and Early retention. */
+#sxfBaseSignalOverlay .sxf-line-state{
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  white-space:normal;min-width:0
+}
+#sxfBaseSignalOverlay .sxf-line-now{
+  color:var(--sxf-secondary);font-size:9px;font-weight:550;
+  overflow-wrap:anywhere;line-height:1.35
+}
+#sxfBaseSignalOverlay .sxf-line-now.is-retained{color:var(--sxf-green)}
+#sxfBaseSignalOverlay .sxf-line-now.is-broken{color:var(--accent-red,#ef4444)}
+#sxfBaseSignalOverlay .sxf-direction-badge.is-retention-broken{
+  color:var(--accent-red,#ef4444)!important;
+  border-color:color-mix(in srgb,var(--accent-red,#ef4444) 35%,transparent)!important;
+}
+#sxfBaseSignalOverlay .sxf-audit-note{
+  color:var(--sxf-muted);font-size:10px;line-height:1.45;
+  padding:6px 0 9px
+}
+#sxfBaseSignalOverlay .sxf-audit-line{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;
+  padding:6px 0;color:var(--sxf-secondary);font-size:10px;
+  border-top:1px dashed var(--sxf-border);line-height:1.4
+}
+#sxfBaseSignalOverlay .sxf-audit-line strong{
+  font-weight:650;color:var(--sxf-text);min-width:92px
+}
+#sxfBaseSignalOverlay .sxf-audit-line small{font-size:9px;color:var(--sxf-muted)}
+#sxfBaseSignalOverlay .sxf-audit-line.is-retained>span,
+#sxfBaseSignalOverlay .sxf-audit-line.is-broken>span{color:var(--accent-red,#ef4444)}
+#sxfBaseSignalOverlay .sxf-audit-line.is-incomplete>span{color:var(--sxf-yellow)}
+@media(max-width:700px){
+  #sxfBaseSignalOverlay .sxf-line-state{align-items:flex-end;text-align:right}
+  #sxfBaseSignalOverlay .sxf-audit-line strong{min-width:0}
+}
