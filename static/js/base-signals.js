@@ -269,6 +269,57 @@
       '<span class="sxf-history-status">' + esc(rowState(item)) + '</span>' + outcome +
       '</div>';
   }
+  function retentionLabel(item) {
+    if (!item || !item.retention) return '';
+    var status = item.retention.status;
+    return status === 'RETAINED' ? t('retention_passed','T-3’e kadar korundu') :
+      status === 'BROKEN' ? t('retention_broken','Süreklilik bozuldu') :
+      status === 'INCOMPLETE' ? t('retention_incomplete','Kontrol verisi eksik') :
+      t('retention_pending','Kontroller sürüyor');
+  }
+  function liveCheckLabel(item) {
+    if (!item || !item.as_of_state) return '';
+    if (item.as_of_state === 'THRESHOLD_PASS') {
+      return item.as_of_scope === 'V1_BASE_ONLY' ?
+        t('current_base_pass','Güncel V1 eşikleri sağlanıyor') :
+        t('current_pass','Güncel eşikler sağlanıyor');
+    }
+    if (item.as_of_state === 'THRESHOLD_FAIL') return t('current_fail','Güncel eşikler sağlanmıyor');
+    if (item.as_of_state === 'AFTER_KICKOFF') return t('current_after_kickoff','Maç başladı; geçmiş kayıt');
+    if (item.as_of_state === 'OUTSIDE_WINDOW') return t('current_outside_window','Güncel kontrol penceresi dışında');
+    return t('current_unverified','Güncel piyasa doğrulanmadı');
+  }
+  function auditLines(rows) {
+    var lines = [];
+    var early = rows.find(function (item) { return item.engine === 'EARLY_MONEY_CORE'; });
+    if (early && early.retention) {
+      var retention = early.retention;
+      var count = Array.isArray(retention.confirmed) ? retention.confirmed.length : 0;
+      lines.push('<div class="sxf-audit-line is-' + esc(retention.status.toLowerCase()) + '">' +
+        '<strong>' + esc(t('retention_label','Early takibi')) + '</strong>' +
+        '<span>' + esc(retentionLabel(early)) + ' · ' +
+        esc(fmt('retention_steps','{count}/4 kontrol tamam',{count:count})) +
+        '</span></div>');
+    }
+    var live = rows.find(function (item) {
+      return item.engine === current.engine && item.as_of_state;
+    }) || rows.find(function (item) { return item.as_of_state; });
+    if (live) {
+      var verified = live.as_of_state === 'THRESHOLD_PASS' || live.as_of_state === 'THRESHOLD_FAIL';
+      var color = live.as_of_state === 'THRESHOLD_FAIL' ? 'is-broken' : verified ? 'is-retained' : '';
+      var extra = live.as_of_scope === 'V1_BASE_ONLY' ?
+        '<small>' + esc(t('current_v2_scope','V2’nin 3 saatlik doğrulaması tekrar yapılmadı')) + '</small>' : '';
+      if (verified && live.as_of_checked_at) extra +=
+        '<small>' + esc(fmt('asof_data_at','Veri: {time} TR',{time:timeTR(live.as_of_checked_at)})) + '</small>';
+      lines.push('<div class="sxf-audit-line ' + color + '"><strong>' +
+        esc(t('current_market_label','Güncel piyasa')) + '</strong><span>' +
+        esc(liveCheckLabel(live)) + '</span>' + extra + '</div>');
+    }
+    if (lines.length) lines.unshift('<div class="sxf-audit-note">' +
+      esc(t('checkpoint_is_historical','Sinyal, üretildiği andaki koşulların kaydıdır; güncel geçerlilik değildir.')) +
+      '</div>');
+    return lines.join('');
+  }
   function signalGroupInfo(rows) {
     var item = rows[0], price = recordPrice(rows);
     var engines = Array.from(new Set(rows.map(function (r) { return r.engine; })));
@@ -283,8 +334,14 @@
       state === 'archive' ? t('status_archive','Arşiv') :
       t('status_unverified','Doğrulanmadı');
     var badges = engines.map(function (engine) {
-      return '<span class="sxf-direction-badge" title="' + esc(labelEngine(engine)) + '">' +
-        esc(SHORT_ENGINE[engine] || labelEngine(engine)) + '</span>';
+      var broken = engine === 'EARLY_MONEY_CORE' && rows.some(function (r) {
+        return r.engine === engine && r.retention && r.retention.status === 'BROKEN';
+      });
+      return '<span class="sxf-direction-badge' + (broken ? ' is-retention-broken' : '') +
+        '" title="' + esc(labelEngine(engine) + (broken ? ' — ' +
+          t('retention_broken','Süreklilik bozuldu') : '')) + '">' +
+        esc(SHORT_ENGINE[engine] || labelEngine(engine)) +
+        (broken ? ' <span aria-hidden="true">×</span>' : '') + '</span>';
     }).join('');
     return { item:item, price:price, status:status, state:state, badges:badges };
   }
@@ -297,6 +354,7 @@
       '<strong>' + esc(choice(info.item)) + '</strong><span>' +
       esc(marketLabel(info.item.market)) + '</span></div>' +
       '<div class="sxf-list-history-badges">' + info.badges + '</div></div>' +
+      auditLines(rows) +
       '<div class="sxf-history-list">' + ordered.map(signalRow).join('') + '</div>' +
       '</section>';
   }
@@ -323,6 +381,16 @@
     var extra = directions.length > 1 ? ' · ' +
       esc(fmt('other_picks_count','+{count} diğer tercih',{count:directions.length-1})) : '';
     var events = rows.length;
+    var representative = directions[0].find(function (r) {
+      return r.engine === current.engine;
+    }) || directions[0][0];
+    var nowText = representative.engine === 'EARLY_MONEY_CORE' ?
+      retentionLabel(representative) : liveCheckLabel(representative);
+    var nowFlag = representative.engine === 'EARLY_MONEY_CORE' ?
+      (representative.retention && representative.retention.status === 'BROKEN' ? 'is-broken' :
+       representative.retention && representative.retention.status === 'RETAINED' ? 'is-retained' : '') :
+      (representative.as_of_state === 'THRESHOLD_FAIL' ? 'is-broken' :
+       representative.as_of_state === 'THRESHOLD_PASS' ? 'is-retained' : '');
     return '<details class="sxf-fixture-line"><summary class="sxf-fixture-summary">' +
       '<span class="sxf-line-time">' + esc(timeTR(item.kickoff_utc)) + '<small>TR</small></span>' +
       '<span class="sxf-line-fixture"><strong>' +
@@ -337,7 +405,10 @@
       esc(t('odds','Oran')) + '</small>' +
       (primary.price ? esc(primary.price.odds.toFixed(2)) : '—') + '</span>' +
       '<span class="sxf-line-engines">' + primary.badges + '</span>' +
-      '<span class="sxf-line-state is-' + primary.state + '">' + esc(primary.status) + '</span>' +
+      '<span class="sxf-line-state is-' + primary.state + '"><span>' +
+      esc(primary.status) + '</span>' +
+      (nowText ? '<small class="sxf-line-now ' + nowFlag + '">' + esc(nowText) + '</small>' : '') +
+      '</span>' +
       '<span class="sxf-line-open" aria-hidden="true">⌄</span></summary>' +
       '<div class="sxf-fixture-expanded"><div class="sxf-list-expanded-title">' +
       esc(fmt('history_count','{count} checkpoint kaydı',{count:events})) + '</div>' +
