@@ -102,7 +102,10 @@ def test_bounded_window_refuses_overflow_without_skipping_any_uid():
     assert result["retry"] and not result["advanced"]
     assert "enqueue" not in store.calls and "advance" not in store.calls
     assert store.cursor==NOW
-    assert store.calls[-1]==("release","RUNTIMEERROR")
+    # Dense-window splitting retries at narrower boundaries. This legacy
+    # fixture mock intentionally rejects the second, shorter interval with
+    # AssertionError, which the discovery worker safely sanitizes.
+    assert store.calls[-1]==("release","WORKER_ERROR")
 
 
 def test_bounded_cursor_pauses_without_claiming_or_enqueuing_when_busy():
