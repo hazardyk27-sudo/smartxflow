@@ -1,4 +1,4 @@
-SOURCE_SHA=5393ca81f74d318b80c46e8999b3dab84b8323c1
+SOURCE_SHA=7a52a12525c1afbb855842c05fcada36d32bfd5c
 PYTEST_EXIT=2
     ???
 <frozen importlib._bootstrap>:1147: in _find_and_load_unlocked
@@ -17,7 +17,7 @@ E   SyntaxError: Generator expression must be parenthesized
 ERROR tests/test_signal_motor_fresh_start_20261022.py
 ERROR tests/test_base_signals_feed.py
 !!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-2 errors in 1.60s
+2 errors in 0.96s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
