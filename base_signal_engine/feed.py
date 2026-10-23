@@ -207,6 +207,10 @@ class BaseSignalsFeed:
             else:
                 active.setdefault(item["uid"], []).append(item)
 
+        # The optional current-state probe must not turn an authenticated
+        # 21-day historical feed into an unbounded live snapshot scan.
+        if len(active) > 25:
+            return
         for uid, related in active.items():
             try:
                 rows = self._get("moneyway_snapshots", [
