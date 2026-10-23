@@ -187,10 +187,11 @@ class BaseSignalsFeed:
         return source_state
 
     def _enrich_current_1x2(self, items, *, now=None):
-        """Separate frozen checkpoint truth from current, independently verified
-        1X2 threshold truth. This is NOT a V2 three-hour re-evaluation.
-        No historical snapshots, partial markets, or post-kickoff updates are
-        promoted to 'currently valid'. A failed live read stays unverified.
+        """Bounded live threshold enrichment, independent from saved checkpoints.
+
+        This does NOT re-run V2 three-hour persistence. Never treat stale,
+        partial, future or post-kickoff quotes as verified. Failed optional
+        reads leave the historical signal feed intact.
         """
         now = now or datetime.now(timezone.utc)
         families = frozenset(("1X2_CONCENTRATION_V1", "1X2_CONCENTRATION_V2",
@@ -206,41 +207,47 @@ class BaseSignalsFeed:
                 item["as_of_state"] = "OUTSIDE_WINDOW"
             else:
                 active.setdefault(item["uid"], []).append(item)
-
-        # The optional current-state probe must not turn an authenticated
-        # 21-day historical feed into an unbounded live snapshot scan.
-        if len(active) > 25:
+        # A 21-day response cannot fan out into dozens of network round trips.
+        # One batched, full-page-complete private read covers imminent fixtures.
+        if not active or len(active) > 25:
             return
-        for uid, related in active.items():
-            try:
-                rows = self._get("moneyway_snapshots", [
+        rows = []
+        try:
+            for page in range(4):
+                batch = self._get("moneyway_snapshots", [
                     ("select", "id,fixture_uid,market,selection,odds,volume,share,scraped_at_utc"),
-                    ("fixture_uid", "eq." + uid),
+                    ("fixture_uid", "in.(" + ",".join(sorted(active)) + ")"),
                     ("market", "eq.1X2"),
                     ("scraped_at_utc", "gte." + (now - timedelta(minutes=15)).isoformat()),
                     ("scraped_at_utc", "lte." + now.isoformat()),
                     ("order", "scraped_at_utc.desc,id.desc"),
-                    ("limit", "250"),
+                    ("limit", str(PAGE_SIZE)), ("offset", str(page * PAGE_SIZE)),
                 ])
-                if len(rows) >= 250:
-                    # Truncated page must NEVER become an apparent live signal.
+                if len(batch) > PAGE_SIZE:
+                    return
+                rows.extend(batch)
+                if len(batch) < PAGE_SIZE:
+                    break
+            else:
+                # Do not claim live validity when a bounded source is truncated.
+                return
+        except BaseFeedUnavailable:
+            return
+        groups = {}
+        for raw in rows:
+            try:
+                uid = _uid(raw.get("fixture_uid"))
+                if uid not in active or raw.get("market") != "1X2":
                     continue
+                at = _utc(raw.get("scraped_at_utc"))
+                if not now - timedelta(minutes=15) <= at <= now:
+                    continue
+                groups.setdefault(uid, {}).setdefault(at, []).append(raw)
             except BaseFeedUnavailable:
                 continue
-            groups = {}
-            for raw in rows:
-                try:
-                    if (_uid(raw.get("fixture_uid")) != uid or
-                            raw.get("market") != "1X2"):
-                        continue
-                    at = _utc(raw.get("scraped_at_utc"))
-                    if not now - timedelta(minutes=15) <= at <= now:
-                        continue
-                    groups.setdefault(at, []).append(raw)
-                except BaseFeedUnavailable:
-                    continue
-            for at in sorted(groups, reverse=True):
-                group = groups[at]
+        for uid, related in active.items():
+            for at in sorted(groups.get(uid, {}), reverse=True):
+                group = groups[uid][at]
                 if len(group) != 3 or {q.get("selection") for q in group} != {"1", "X", "2"}:
                     continue
                 try:
