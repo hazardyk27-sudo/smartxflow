@@ -407,10 +407,10 @@ test('Early T-3 retention is shown separately from the original eligible signal'
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='EARLY_MONEY_CORE').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Early süreklilik/);
+  assert.match(html,/Early takibi/);
   assert.match(html,/T-3.e kadar korundu/);
-  assert.match(html,/4\/4 kontrol korundu/);
-  assert.match(html,/Sinyal, üretildiği andaki koşulların kaydıdır|Bu sinyal kayıt anındaki koşulları gösterir/);
+  assert.match(html,/4\/4 kontrol tamam/);
+  assert.match(html,/Sinyal, üretildiği andaki koşulların kaydıdır/);
   assert.match(html,/Güncel piyasa doğrulanmadı/);
   assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
 });
@@ -428,7 +428,7 @@ test('broken Early retention is visibly marked but frozen history is not removed
   assert.match(html,/Süreklilik bozuldu/);
   assert.match(html,/sxf-direction-badge is-retention-broken/);
   assert.match(html,/class="sxf-audit-line is-broken"/);
-  assert.equal((html.match(/class="sxf-history-entry sxf-signal-row"/g)||[]).length,1);
+  assert.equal((html.match(/class="sxf-signal-row sxf-history-entry"/g)||[]).length,1);
 });
 
 test('past checkpoint remains distinct from failed fresh live quote thresholds',async()=>{
@@ -442,7 +442,7 @@ test('past checkpoint remains distinct from failed fresh live quote thresholds',
     .find(x=>x.dataset.motor==='HEAVY_1X2_CONCENTRATION').click();
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/Güncel eşikler sağlanmıyor/);
-  assert.match(html,/Kayıt anındaki koşulları|Bu sinyal kayıt anındaki koşulları gösterir/);
+  assert.match(html,/Sinyal, üretildiği andaki koşulların kaydıdır/);
   assert.match(html,/class="sxf-audit-line is-broken"/);
   assert.match(html,/Veri: 15:50 TR/);
   assert.match(html,/class="sxf-line-odds"><small class="sxf-price-key">Oran<\/small>2.14<\/span>/);
@@ -457,6 +457,6 @@ test('V2 present-time V1 pass never appears as three-hour V2 confirmation',async
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V2').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Güncel V1 tabanı sağlanıyor/);
-  assert.match(html,/V2'nin üç saatlik kontrolü yeniden yapılmadı/);
+  assert.match(html,/Güncel V1 eşikleri sağlanıyor/);
+  assert.match(html,/V2’nin 3 saatlik doğrulaması tekrar yapılmadı/);
 });
