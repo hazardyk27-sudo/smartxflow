@@ -502,6 +502,17 @@ body.sxf-signals-open{overflow:hidden!important}
   border:1px solid var(--sxf-border);border-radius:4px;padding:2px 5px
 }
 #sxfBaseSignalOverlay .sxf-history-result{font-weight:600}
+/* Use the application's canonical win/loss accents in checkpoint history. */
+#sxfBaseSignalOverlay .sxf-history-result.is-win{
+  color:var(--sxf-green);
+  border-color:color-mix(in srgb,var(--sxf-green) 30%,transparent);
+  background:color-mix(in srgb,var(--sxf-green) 9%,transparent)
+}
+#sxfBaseSignalOverlay .sxf-history-result.is-loss{
+  color:var(--accent-red,#ef4444);
+  border-color:color-mix(in srgb,var(--accent-red,#ef4444) 30%,transparent);
+  background:color-mix(in srgb,var(--accent-red,#ef4444) 9%,transparent)
+}
 @media(max-width:600px){
   #sxfBaseSignalOverlay .sxf-signal-card{padding:12px}
   #sxfBaseSignalOverlay .sxf-direction-group{padding:10px}
