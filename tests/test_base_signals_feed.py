@@ -66,6 +66,10 @@ class Source:
                            "kickoff_utc":_stamp(self.start),"state":self.state}])
         if url.endswith("live_fixtures"):
             return Reply(self.results)
+        if url.endswith("moneyway_snapshots"):
+            # Existing feed fixtures may be prematch; no live quote source
+            # is available unless the dedicated quote fixture provides one.
+            return Reply([])
         if url.endswith("fixtures"):
             return Reply([{"fixture_uid":UID,"home_team":"Ev Sahibi",
                            "away_team":"Konuk Takım","league":"Süper Lig",
@@ -481,6 +485,9 @@ def _core_event(start, *, ident=801, selection="2", checkpoint=60):
     event["family"]="EARLY_CORE"
     event["job_checkpoint_hours"]=checkpoint
     event["source_checkpoint_hours"]=checkpoint
+    event["recorded_at"]=(datetime.fromisoformat(_stamp(start))
+                          -timedelta(hours=checkpoint)+timedelta(minutes=5)).isoformat()
+    event["details"]["observed_at"]=event["recorded_at"]
     return event
 
 
@@ -490,6 +497,8 @@ def _retention_event(start, ident, h, state, *, side="2", first=60):
     event["family"]="EARLY_RETENTION"
     event["job_checkpoint_hours"]=h
     event["source_checkpoint_hours"]=h
+    event["recorded_at"]=(datetime.fromisoformat(_stamp(start))
+                          -timedelta(hours=h)+timedelta(minutes=5)).isoformat()
     event["details"]={
         "first_core_checkpoint":first,
         "first_core_side":side,
