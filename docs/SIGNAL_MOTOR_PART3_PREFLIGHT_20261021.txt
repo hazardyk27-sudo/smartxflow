@@ -1,12 +1,25 @@
-SOURCE_SHA=e45d7c9d323e999529fb8c171bd61a2b7a62cd23
-PYTEST_EXIT=0
-........................................................................ [ 29%]
-........................................................................ [ 58%]
-........................................................................ [ 87%]
-................................                                         [100%]
-248 passed in 1.35s
+SOURCE_SHA=121ac545a01b28244535153fcc6db84801365169
+PYTEST_EXIT=1
+            def enqueue(self,fixtures):
+                self.enqueued=list(fixtures)
+                return len(fixtures)*11
+            def advance_discovery(self,item,*,end,fixture_count):
+                self.advanced_count=fixture_count
+        store=Store()
+>       result=discovery.discover_window_once(
+            object(),store,worker_id="worker",now=AT,catalog=Catalog(),
+            window_hours=1,future_only=True)
+E       TypeError: discover_window_once() got an unexpected keyword argument 'future_only'
+
+tests/test_base_backlog_throughput_20261021.py:229: TypeError
+=========================== short test summary info ============================
+FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_real_119_fixture_dense_hour_splits_and_resumes_without_drops - NameError: name 'future_only' is not defined
+FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_single_timestamp_over_limit_fails_closed_without_cursor_advance - NameError: name 'future_only' is not defined
+FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_small_window_keeps_single_hour_behavior - NameError: name 'future_only' is not defined
+FAILED tests/test_base_backlog_throughput_20261021.py::test_cursor_future_only_preserves_source_window_audit_and_data - TypeError: discover_window_once() got an unexpected keyword argument 'future_only'
+4 failed, 246 passed in 1.42s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
