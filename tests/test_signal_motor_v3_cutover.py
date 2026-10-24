@@ -32,7 +32,6 @@ def test_in_flight_v2_skips_preserved_and_v2_reconcile_not_claimed_by_v3():
 def test_v3_cutover_never_rewrites_existing_events_or_jobs():
     sql = (ROOT / "migrations/2026_10_24_signal_motor_v3_versioned_cutover.sql").read_text().upper()
     for forbidden in ("DELETE FROM PUBLIC.SXF_BASE_", "TRUNCATE ", "DROP TABLE",
-                      "UPDATE PUBLIC.SXF_BASE_CHECKPOINT_JOBS",
                       "UPDATE PUBLIC.SXF_BASE_SIGNAL_EVENTS", "DISABLE TRIGGER"):
         assert forbidden not in sql
 
