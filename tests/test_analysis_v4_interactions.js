@@ -28,7 +28,7 @@ class FakeNode {
   querySelectorAll(selector) {
     const attribute = selector === '[data-day]' ? 'day' :
       selector === '[data-motor]' ? 'motor' :
-      selector === '[data-ruleset-mode]' ? 'ruleset-mode' : null;
+      null;
     if (!attribute) return [];
     const key = selector + '\\u0000' + this.innerHTML;
     if (this._queryCache.has(key)) return this._queryCache.get(key);
@@ -38,20 +38,15 @@ class FakeNode {
     while ((match = regex.exec(this.innerHTML))) {
       const node = new FakeNode(this.ownerDocument, match[1]);
       node.dataset[attribute] = match[1];
-      if (attribute === 'ruleset-mode') node.dataset.rulesetMode = match[1];
       out.push(node);
     }
     this._queryCache.set(key, out);
     return out;
   }
 }
-function setup(data, archiveData) {
+function setup(data) {
   data.ruleset_mode = data.ruleset_mode || 'CURRENT';
   (data.items || []).forEach(x => { if (!x.ruleset_status) x.ruleset_status = 'CURRENT'; });
-  if (archiveData) {
-    archiveData.ruleset_mode = 'LEGACY';
-    (archiveData.items || []).forEach(x => { if (!x.ruleset_status) x.ruleset_status = 'LEGACY'; });
-  }
   const els = new Map();
   const document = {
     readyState: 'complete', activeElement: null,
@@ -69,8 +64,7 @@ function setup(data, archiveData) {
     window: {}, document, console, Date, Intl, Map, Set, Array, String,
     fetch: async (url) => {
       requests.push(url);
-      return { ok: true, json: async () => url.includes('mode=archive')
-        ? (archiveData || {status:'ok',ruleset_mode:'LEGACY',items:[]}) : data };
+      return { ok: true, json: async () => data };
     }
   };
   vm.runInNewContext(js, sandbox, { filename: 'base-signals.js' });
@@ -471,35 +465,25 @@ test('V2 present-time V1 pass never appears as three-hour V2 confirmation',async
 });
 
 
-test('old V2 heavy cannot inflate V3 cards; archived mode is clearly isolated', async () => {
+test('only current signal motor is visible; retired event and archive controls stay disabled', async () => {
   const day = todayTR();
-  const currentData = signals(day);
-  currentData.items = [{
-    ...currentData.items[0], id:900, engine:'HEAVY_1X2_CONCENTRATION',
+  const data = signals(day);
+  data.items = [{
+    ...data.items[0], id:900, engine:'HEAVY_1X2_CONCENTRATION',
     home:'Stuttgart', odds:1.38, ruleset_status:'LEGACY', valid_on_time:true
   }];
-  const archiveData = {
-    status:'ok',items:[{...currentData.items[0],ruleset_status:'LEGACY'}]
-  };
-  const mock = setup(currentData, archiveData);
+  const mock = setup(data);
   mock.window.openBaseSignalsPanel(); await flush();
   let html = mock.get('sxfSignalContent').innerHTML;
   const heavy = mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='HEAVY_1X2_CONCENTRATION');
   assert.ok(heavy);
-  assert.match(html,/data-ruleset-mode="current"/);
-  assert.doesNotMatch(html, /Stuttgart/);
+  assert.doesNotMatch(html,/data-ruleset-mode|Güncel V3|Eski V2 arşivi|Stuttgart/);
   heavy.click();
   html=mock.get('sxfSignalContent').innerHTML;
-  assert.doesNotMatch(html,/Stuttgart/);
-  const archive = mock.get('sxfSignalContent').querySelectorAll('[data-ruleset-mode]')
-    .find(x=>x.dataset.rulesetMode==='archive' || x.dataset['ruleset-mode']==='archive');
-  assert.ok(archive);
-  archive.click(); await flush();
-  html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Stuttgart/);
-  assert.match(html,/V2 kayıtları geçmiş dönem kurallarıyla üretildi/);
-  assert.match(html,/Arşiv/);
-  assert.equal(mock.requests.length,2);
-  assert.match(mock.requests[1],/days=1&mode=archive/);
+  assert.doesNotMatch(html,/Stuttgart|data-ruleset-mode|V2 kayıtları geçmiş/);
+  assert.equal(mock.requests.length,1);
+  assert.match(mock.requests[0],/days=21/);
+  assert.doesNotMatch(mock.requests[0],/archive|mode=/);
 });
+
