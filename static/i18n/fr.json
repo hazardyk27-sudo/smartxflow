@@ -685,6 +685,8 @@
       "late_evaluation": "Calculé rétrospectivement",
       "records_count": "{count} enregistrements",
       "recorded_odds": "Cote enregistrée",
+      "recorded_money": "Montant total",
+      "recorded_share": "Part de l'argent",
       "history_count": "{count} relevés de contrôle",
       "retention_label": "Maintien Early",
       "retention_passed": "Maintenu jusqu'à T-3",
