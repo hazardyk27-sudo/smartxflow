@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+import math
 import re
 from zoneinfo import ZoneInfo
 from uuid import UUID
@@ -48,6 +49,21 @@ def _v3_price_in_range(engine: str, odds: float | None) -> bool:
         return False
     limits = V3_PRICE_BANDS.get(engine)
     return limits is None or limits[0] <= odds <= limits[1]
+
+
+def _frozen_money_metric(value, *, max_value=None):
+    """Only expose a finite metric frozen in the selected signal event."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        metric = Decimal(str(value))
+        if (not metric.is_finite() or metric < 0 or
+                (max_value is not None and metric > max_value)):
+            return None
+        result = float(metric)
+        return result if math.isfinite(result) else None
+    except (InvalidOperation, ValueError, TypeError, OverflowError):
+        return None
 
 
 class BaseFeedUnavailable(Exception):
@@ -604,6 +620,10 @@ class BaseSignalsFeed:
                 "review_state": review_state,
                 "valid_on_time": valid_on_time,
                 "odds": odds,
+                # Exactly this event's selected market/side and observed snapshot;
+                # never substitute current quotes or infer missing historical money.
+                "amount": _frozen_money_metric(details.get("amount")),
+                "share": _frozen_money_metric(details.get("share"), max_value=Decimal(100)),
                 "strength_tag": details.get("label") == "STRENGTH_TAG",
                 "shadow": True,
             })
