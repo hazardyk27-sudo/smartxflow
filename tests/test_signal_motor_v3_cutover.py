@@ -43,3 +43,13 @@ def test_v2_events_remain_in_feed_with_explicit_version_metadata():
     assert '"ruleset_version": row.get("ruleset_version")' in source
     assert 'and (uid, market, kickoff,' in source
     assert 'history = retention.get((uid, kickoff, selection, source_h,' in source
+
+
+def test_v3_health_ignores_historical_backlog_without_erasing_it():
+    sql = (ROOT / "migrations/2026_10_24_signal_motor_v3_health_scope.sql").read_text()
+    assert f"WHERE ruleset_version='{V3}'" in sql
+    assert f"WHERE e.ruleset_version='{V3}'" in sql
+    assert "'historical_pending_due'" in sql
+    assert "CREATE OR REPLACE FUNCTION public.sxf_base_health_snapshot" in sql
+    assert "DELETE FROM" not in sql.upper()
+    assert "UPDATE public.sxf_base_checkpoint_jobs" not in sql
