@@ -127,6 +127,38 @@ def test_real_signal_preserves_selection_kickoff_and_turkey_day():
         "sxf_base_signal_events","sxf_base_checkpoint_jobs","fixtures","live_fixtures"}
 
 
+
+def test_selected_side_frozen_money_and_share_are_projected_without_a_live_join():
+    start = _day()
+    event = _event(start, ident=912, engine="1X2_CONCENTRATION_V1")
+    event["details"].update({"odds":"1.85","amount":"2934.29","share":"95.6"})
+    source = Source(start, events=[event])
+    row = _feed(source).read(start)["items"][0]
+    assert row["market"] == event["market"]
+    assert row["selection"] == event["selection"]
+    assert row["amount"] == 2934.29
+    assert row["share"] == 95.6
+    assert not any(call[0].endswith("moneyway_snapshots") for call in source.calls)
+
+
+@pytest.mark.parametrize("amount,share,expected_amount,expected_share", [
+    (None,None,None,None),
+    ("not-a-number","NaN",None,None),
+    ("-2","101",None,None),
+    ("Infinity","-1",None,None),
+    ("0","0",0.0,0.0),
+    ("1200.75","100",1200.75,100.0),
+])
+def test_frozen_money_invalid_or_missing_metrics_are_never_invented(
+        amount, share, expected_amount, expected_share):
+    start = _day()
+    event = _event(start, ident=913)
+    event["details"].update({"amount":amount,"share":share})
+    row = _feed(Source(start,events=[event])).read(start)["items"][0]
+    assert row["amount"] == expected_amount
+    assert row["share"] == expected_share
+
+
 @pytest.mark.parametrize("state",["PENDING","WAITING_DATA","RETRY","LEASED"])
 def test_uncompleted_jobs_are_not_displayed_as_signals(state):
     start=_day()
