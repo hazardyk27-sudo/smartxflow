@@ -11,6 +11,20 @@ from .lease_heartbeat import CooperativeLeaseHeartbeat
 from .storage import DurableStoreError
 
 
+
+def missing_source_reconcile_delay(attempt_count: int) -> int:
+    """Retain late-source recovery without starving never-attempted corrections.
+
+    Newly missing observations get a 15-minute retry; repeated immutable gaps
+    gradually move to an hourly bounded revisit instead of consuming every
+    reconciliation lease. The DB keeps the original event and audit history.
+    """
+    if type(attempt_count) is not int or attempt_count < 1:
+        raise ValueError("invalid reconciliation attempt count")
+    return min(3600, 900 * (2 ** min(2, (attempt_count - 1) // 3)))
+
+
+
 def reconcile_once(reader, store, *, worker_id: str, lease_seconds: int = 900) -> dict:
     """Process at most one durable reconciliation claim to avoid idle leases."""
     claimed = store.claim_reconcile(worker_id, lease_seconds=lease_seconds)
@@ -42,7 +56,9 @@ def reconcile_once(reader, store, *, worker_id: str, lease_seconds: int = 900) -
             continue
         if plan is None:
             try:
-                store.retry_reconcile(item, reason="SOURCE_INCOMPLETE", delay_seconds=900)
+                store.retry_reconcile(
+                    item, reason="SOURCE_INCOMPLETE",
+                    delay_seconds=missing_source_reconcile_delay(item["attempt_count"]))
                 stats["waiting_data"] += 1
             except DurableStoreError:
                 stats["lease_uncertain"] += 1
