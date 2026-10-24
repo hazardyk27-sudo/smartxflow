@@ -34,6 +34,17 @@
     progress.failed{accent-color:#f85149}
     .progress-details{font-size:13px;line-height:1.65;color:var(--muted)}
     .progress-details a{white-space:nowrap}
+    .stage-status{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;
+      background:#0e2131;border:1px solid #325169;border-radius:9px;color:#b9dcfa;font-size:14px}
+    .stage-pulse{flex:none;display:inline-block;width:9px;height:9px;border-radius:50%;
+      background:#58a6ff;animation:sxfPulse 1.2s ease-in-out infinite}
+    @keyframes sxfPulse{0%,100%{opacity:.35}50%{opacity:1}}
+    .stage-status.complete .stage-pulse{background:#3fb950;animation:none}
+    .stage-status.fail .stage-pulse{background:#f85149;animation:none}
+    .stall-warning{color:#e8b06c;font-size:13px;padding:9px 11px;margin-top:8px;
+      border:1px solid #826435;border-radius:8px;background:#302313}
+    .stage-time{font-variant-numeric:tabular-nums;color:#c8d5e4}
+    @media(prefers-reduced-motion:reduce){.stage-pulse{animation:none}}
     @media(max-width:600px){body{padding:16px 10px}.panel{padding:17px}h1{font-size:22px}table{display:block;overflow-x:auto}}
   </style>
 </head>
@@ -107,6 +118,10 @@
   const labels = {full_snapshots:'Ham arşiv',concentrated:'Konsantre arşiv'};
   let progressRequestSerial = 0;
   const records = x => Number(x).toLocaleString('tr-TR');
+  const duration = total => {
+    const min=Math.floor(Math.max(0,total)/60);
+    return min>=60?Math.floor(min/60)+' sa '+(min%60)+' dk':min+' dk';
+  };
   function detail(parent,content){
     const p=document.createElement('div');p.className='progress-details';p.textContent=content;parent.appendChild(p);return p;
   }
@@ -136,6 +151,12 @@
       value.textContent=d&&Number.isInteger(d.percent)?d.percent+'%':'—';
       head.append(title,value);outer.appendChild(head);
       if(item.error){detail(outer,'Durum alınamadı: '+item.error);progressPanel.appendChild(outer);continue}
+      const stage=document.createElement('div');
+      stage.className='stage-status'+(d.status==='DOĞRULANDI'?' complete':d.status==='BAŞARISIZ'?' fail':'');
+      const pulse=document.createElement('span');pulse.className='stage-pulse';
+      const stageText=document.createElement('span');
+      stageText.textContent='Anlık GitHub aşaması: '+(d.stage_description||'İş durumu okunuyor');
+      stage.append(pulse,stageText);outer.appendChild(stage);
       const progress=document.createElement('progress');
       progress.max=100;progress.value=Number.isInteger(d.percent)?d.percent:0;
       if(d.status==='DOĞRULANDI')progress.className='verified';
@@ -143,8 +164,15 @@
       progress.setAttribute('aria-label',labels[item.kind]+' aktarım yüzdesi');
       outer.appendChild(progress);
       detail(outer,'Durum: '+({BEKLİYOR:'Bekliyor',AKTARILIYOR:'Aktarılıyor',DOĞRULANDI:'Doğrulandı',BAŞARISIZ:'Başarısız'}[d.status]||d.status));
+      if(Number.isInteger(d.job_elapsed_seconds)){
+        const el=detail(outer,'İşin çalışma süresi: '+duration(d.job_elapsed_seconds));
+        el.classList.add('stage-time');
+      }
       if(Number.isInteger(d.expected_rows)){
         detail(outer,'GitHub\u2019a yüklenen: '+records(d.uploaded_rows)+' / '+records(d.expected_rows)+' kayıt · Kalan: '+records(d.remaining_rows));
+        if(d.count_source==='SOURCE_INVENTORY'){
+          detail(outer,'Toplam kayıt: mevcut GitHub kaynak envanterinden. Yükleme henüz başlamadıysa %0 gösterilir; veri dışa aktarma işleminin ne kadar ilerlediği bilinmiyor.');
+        }
         const key=day+'|'+item.kind;
         const now=Date.now();
         const prev=progressHistory.get(key);
@@ -157,7 +185,12 @@
         }
         if(!prev||d.uploaded_rows>prev.rows||d.status!=='AKTARILIYOR')progressHistory.set(key,{rows:d.uploaded_rows,when:now});
       }else{
-        detail(outer,'Henüz doğrulanabilir yükleme yüzdesi yok. Eski işler dosyalar tamamen hazırlanana kadar ilerleme bildirmeyebilir.');
+        detail(outer,'Kaynak envanteri/yüklenen parça sayısı okunamadığı için güvenilir yüzde henüz hesaplanamıyor. GitHub\u2019daki işlem aşaması yukarıda görünüyor.');
+      }
+      if(d.status==='AKTARILIYOR' && d.uploaded_rows===0 && Number.isInteger(d.job_elapsed_seconds) && d.job_elapsed_seconds>1200){
+        const warning=document.createElement('div');warning.className='stall-warning';
+        warning.textContent='Dikkat: '+duration(d.job_elapsed_seconds)+' geçti, fakat GitHub Release\u2019e henüz kayıt yüklenmedi. İş GitHub\u2019da çalışıyor görünse de veri dışa aktarmanın gerçekten ilerlediği doğrulanamıyor; yavaş veya takılmış olabilir.';
+        outer.appendChild(warning);
       }
       if(d.release_error==='RELEASE_CONTENTS_READ_PERMISSION_REQUIRED')detail(outer,'GitHub tokenında Contents: Read izni eksik; taslak Release ilerlemesi okunamıyor.');
       if(d.run_url&&d.run_url.startsWith('https://github.com/hazardyk27-sudo/capitale/actions/runs/')){

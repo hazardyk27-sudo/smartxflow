@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import base64
 import hmac
 import json
 import os
@@ -181,6 +182,87 @@ def _run_matches_day(run: dict, day: dt.date, kind: str) -> bool:
     return day in (first, first + dt.timedelta(days=1))
 
 
+_SOURCE_TOTAL_CACHE = {}
+
+
+def _expected_from_source_inventory(day: dt.date, kind: str):
+    """Read a published source *inventory*, not a claim of GitHub completion.
+
+    GitHub API's content endpoint may be unavailable to a narrowly scoped
+    Actions token; in that case the UI explicitly falls back to unknown rather
+    than guessing or accessing Supabase with privileged credentials.
+    """
+    key = (str(day), kind)
+    current = time.monotonic()
+    cached = _SOURCE_TOTAL_CACHE.get(key)
+    if cached and current - cached[0] < 300:
+        return cached[1]
+    path = f"archive/{day.strftime('%Y/%m/%d')}/manifest.json"
+    try:
+        data = _github_request(f"https://api.github.com/repos/{REPO}/contents/{path}")
+        encoded = data.get("content") if isinstance(data, dict) else None
+        if not encoded:
+            return None
+        source = json.loads(base64.b64decode(encoded).decode("utf-8"))["source"]
+        if kind == "concentrated":
+            fixtures = source.get("archived_fixtures")
+            count = fixtures * 27 if type(fixtures) is int and fixtures > 0 else None
+        else:
+            names = (
+                "rows_1x2", "rows_ou25", "rows_btts",
+                "rows_dropping_1x2_history", "rows_dropping_ou25_history",
+                "rows_dropping_btts_history", "rows_moneyway_snapshots",
+                "rows_live_snapshots",
+            )
+            fields = source.get("source_recorded_counts", {})
+            counts = [fields.get(k) for k in names]
+            count = sum(counts) if all(type(x) is int and x >= 0 for x in counts) else None
+        if count is not None and count > 0:
+            _SOURCE_TOTAL_CACHE[key] = (current, count)
+        return count
+    except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError,
+            RuntimeError, UnicodeError):
+        return None
+
+
+def _utc_age_seconds(when: str):
+    if not isinstance(when, str) or not when:
+        return None
+    try:
+        parsed = dt.datetime.fromisoformat(when.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return None
+        return max(0, int((dt.datetime.now(dt.timezone.utc) - parsed).total_seconds()))
+    except ValueError:
+        return None
+
+
+def _describe_archive_step(step: str | None, status: str | None):
+    if status in ("queued", "waiting", "pending", "requested"):
+        return "GitHub kuyruğunda, henüz başlamadı"
+    labels = {
+        "Validate ordered two-day date range": "İki günlük plan kontrol ediliyor",
+        "Checkout archival script": "Arşiv kodu hazırlanıyor",
+        "Set up Python": "GitHub aktarım ortamı hazırlanıyor",
+        "Install pinned PostgreSQL client": "PostgreSQL sürücüsü kuruluyor",
+        "Export bounded daily gzip assets and local verification":
+            "Supabase verileri dışa aktarılıyor; parçalar hazırlanıyor",
+        "Upload final manifest after streaming all checked source chunks":
+            "GitHub Release yüklemesi tamamlanıyor",
+        "Upload into a new draft Release without overwrites":
+            "Hazırlanan dosyalar GitHub Release'e yükleniyor",
+        "Download all assets; check byte identity, SHA and JSONL restore":
+            "Yüklenen dosyalar indiriliyor, SHA-256 ve JSONL doğrulanıyor",
+        "Publish verification receipt to draft and read it back":
+            "Doğrulama makbuzu kaydediliyor",
+        "Write append-only archive receipt index to GitHub and read back":
+            "GitHub arşiv makbuzu son kez doğrulanıyor",
+    }
+    return labels.get(step, "GitHub işi çalışıyor; ayrıntı GitHub Actions'ta") if step else (
+        "Arşiv işi tamamlandı" if status == "completed" else "GitHub işçisi hazırlanıyor"
+    )
+
+
 @blueprint.route("/api/admin/sxf-archive/progress", methods=["GET"])
 def archive_progress():
     """True uploaded-row progress. Never manufacture a percentage or a success."""
@@ -220,20 +302,31 @@ def archive_progress():
         # actively uploading merely because the overall batch is running.
         day_run_status = matching.get("status") if matching else None
         day_run_conclusion = matching.get("conclusion") if matching else None
-        if matching and kind == "full_snapshots" and matching.get("display_title", "").startswith("SXF full raw "):
+        active_step = None
+        job_started_at = matching.get("run_started_at") if matching else None
+        if matching:
             try:
                 jobs = _github_request(
                     f"https://api.github.com/repos/{REPO}/actions/runs/{matching['id']}/jobs?per_page=100"
                 ).get("jobs", [])
+                own = None
                 title = matching.get("display_title", "")
-                first = dt.date.fromisoformat(title[len("SXF full raw "): -len(" + next day")])
-                prefix = "first-day" if day == first else "second-day"
-                own = next((job for job in jobs if job.get("name", "").startswith(prefix)), None)
+                if kind == "full_snapshots" and title.startswith("SXF full raw "):
+                    first = dt.date.fromisoformat(title[len("SXF full raw "): -len(" + next day")])
+                    prefix = "first-day" if day == first else "second-day"
+                    own = next((job for job in jobs if job.get("name", "").startswith(prefix)), None)
+                    if not own and day != first:
+                        day_run_status, day_run_conclusion = "queued", None
+                elif jobs:
+                    own = jobs[0]
                 if own:
                     day_run_status, day_run_conclusion = own.get("status"), own.get("conclusion")
-                elif day != first:
-                    day_run_status, day_run_conclusion = "queued", None
-            except (HTTPError, URLError, TimeoutError, ValueError):
+                    job_started_at = own.get("started_at")
+                    active_step = next(
+                        (step.get("name") for step in own.get("steps", [])
+                         if step.get("status") == "in_progress"), None
+                    )
+            except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError):
                 pass
 
         assets = release.get("assets", []) if release else []
@@ -258,7 +351,13 @@ def archive_progress():
             for item in assets
             if (m := re.fullmatch(r"progress_total_rows_([1-9]\d*)\.json", item.get("name", "")))
         ]
-        expected = total_markers[0] if len(total_markers) == 1 else None
+        release_expected = total_markers[0] if len(total_markers) == 1 else None
+        fallback_expected = (_expected_from_source_inventory(day, kind)
+                             if release_expected is None and matching else None)
+        expected = release_expected if release_expected is not None else fallback_expected
+        count_source = ("GITHUB_RELEASE" if release_expected is not None
+                        else "SOURCE_INVENTORY" if fallback_expected is not None
+                        else "UNKNOWN")
         uploaded = sum(
             int(m.group(1))
             for item in assets
@@ -266,7 +365,7 @@ def archive_progress():
         )
         receipt = any(item.get("name") == "verification_receipt.json" for item in assets)
         verified = bool(
-            receipt and expected is not None and uploaded == expected
+            receipt and release_expected is not None and uploaded == release_expected
             and day_run_status == "completed" and day_run_conclusion == "success"
         )
         if verified:
@@ -284,6 +383,13 @@ def archive_progress():
             expected_rows=expected, uploaded_rows=uploaded,
             remaining_rows=max(0, expected - uploaded) if expected is not None else None,
             verified=verified, release_tag=tag, release_error=release_error,
+            count_source=count_source,
+            current_step=active_step,
+            stage_description=_describe_archive_step(active_step, day_run_status),
+            job_started_at=job_started_at,
+            job_elapsed_seconds=_utc_age_seconds(job_started_at),
+            stage_has_measured_rows=bool(release_expected is not None),
+            checked_at_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
             run_url=matching.get("html_url") if matching else None,
             run_status=day_run_status, run_conclusion=day_run_conclusion,
             note=("Tamamlandı yalnız GitHub SHA-256/JSONL geri okuma denetimi ve iş başarısı ile onaylanır."
