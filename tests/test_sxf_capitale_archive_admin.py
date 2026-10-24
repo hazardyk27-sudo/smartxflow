@@ -143,6 +143,49 @@ class ArchiveAdminTests(unittest.TestCase):
         self.assertEqual(r.json["percent"], 99)
         self.assertFalse(r.json["verified"])
 
+    def test_progress_reports_actual_step_and_source_count_before_release(self):
+        import base64
+        self.admin()
+        manifest = {
+            "source": {"source_recorded_counts": {
+                "rows_1x2": 4, "rows_ou25": 6, "rows_btts": 2,
+                "rows_dropping_1x2_history": 3, "rows_dropping_ou25_history": 5,
+                "rows_dropping_btts_history": 1, "rows_moneyway_snapshots": 7,
+                "rows_live_snapshots": 2,
+            }}
+        }
+        def fake(url, method="GET", payload=None):
+            if "/contents/" in url:
+                return {"content": base64.b64encode(__import__("json").dumps(manifest).encode()).decode()}
+            if "/jobs" in url:
+                return {"jobs": [{
+                    "name": "first-day / archive", "status": "in_progress",
+                    "conclusion": None, "started_at": "2026-10-24T01:42:00Z",
+                    "steps": [{"name": "Export bounded daily gzip assets and local verification",
+                               "status": "in_progress"}],
+                }]}
+            if "sxf-raw-two-day-batch.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "id": 987, "display_title": "SXF full raw 2026-10-09 + next day",
+                    "status": "in_progress", "conclusion": None,
+                    "created_at": "2026-10-24T01:42:00Z",
+                }]}
+            if "sxf-admin-archive.yml/runs" in url:
+                return {"workflow_runs": []}
+            raise HTTPError(url, 404, "not found", {}, None)
+        from urllib.error import HTTPError
+        with patch.object(bridge, "_github_request", side_effect=fake):
+            bridge._SOURCE_TOTAL_CACHE.clear()
+            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-09&kind=full_snapshots")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["percent"], 0)
+        self.assertEqual(r.json["expected_rows"], 30)
+        self.assertEqual(r.json["uploaded_rows"], 0)
+        self.assertEqual(r.json["count_source"], "SOURCE_INVENTORY")
+        self.assertIn("dışa aktarılıyor", r.json["stage_description"])
+        self.assertGreaterEqual(r.json["job_elapsed_seconds"], 0)
+        self.assertFalse(r.json["verified"])
+
     def test_progress_reports_100_after_receipt_and_success(self):
         self.admin()
         def remote(url, method="GET", payload=None):
