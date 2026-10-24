@@ -1,21 +1,23 @@
-SOURCE_SHA=a83ed8b621a74bf69d3a4cd9e89e3c7bac3906d9
-PYTEST_EXIT=2
+SOURCE_SHA=fd2c5fc7f005fd40cdd0a400780dcad5d4b365d5
+PYTEST_EXIT=1
+        fn=app.split("def base_signal_feed_api():",1)[1].split("_analyses_cache",1)[0]
+        assert "LegacySignalsFeed" not in fn
+>       assert "source.read(first, days=int(days_text), archive=(mode == 'archive'))" in fn
+E       assert "source.read(first, days=int(days_text), archive=(mode == 'archive'))" in "\n    if session.get('license_plan') == 'test':\n        return jsonify({'error':'PRO_REQUIRED'}), 403\n\n    # An ac...rivate source read or integrity check failed')\n        return jsonify({'error':'SIGNAL_DATA_UNAVAILABLE'}), 503\n\n\n"
 
-==================================== ERRORS ====================================
-_______________ ERROR collecting tests/test_base_signals_feed.py _______________
-ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signals_feed.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-tests/test_base_signals_feed.py:7: in <module>
-    from base_signal_engine.feed import (
-E   ImportError: cannot import name 'LEGACY_RULESET_VERSION' from 'base_signal_engine.feed' (/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py)
+tests/test_signal_motor_daily_skip_20261021.py:95: AssertionError
+__________________ test_feed_reads_only_fresh_release_events ___________________
+
+    def test_feed_reads_only_fresh_release_events():
+        source = (ROOT/"base_signal_engine/feed.py").read_text()
+>       assert '("ruleset_version", "eq." + version)' in source
+E       assert '("ruleset_version", "eq." + version)' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
+
+tests/test_signal_motor_fresh_start_20261022.py:44: AssertionError
 =========================== short test summary info ============================
-ERROR tests/test_base_signals_feed.py
-!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
-1 error in 1.24s
+FAILED tests/test_signal_motor_daily_skip_20261021.py::test_legacy_five_removed_from_api_and_ui_and_old_writer_disabled - assert "source.read(first, days=int(days_text), archive=(mode == 'archive'))" in "\n    if session.get('license_plan') == 'test':\n        return jsonify({'error':'PRO_REQUIRED'}), 403\n\n    # An ac...rivate source read or integrity check failed')\n        return jsonify({'error':'SIGNAL_DATA_UNAVAILABLE'}), 503\n\n\n"
+FAILED tests/test_signal_motor_fresh_start_20261022.py::test_feed_reads_only_fresh_release_events - assert '("ruleset_version", "eq." + version)' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
+2 failed, 241 passed in 1.37s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
