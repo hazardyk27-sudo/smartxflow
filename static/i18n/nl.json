@@ -685,6 +685,8 @@
       "late_evaluation": "Achteraf berekend",
       "records_count": "{count} records",
       "recorded_odds": "Vastgelegde quotering",
+      "recorded_money": "Totaalbedrag",
+      "recorded_share": "Geldaandeel",
       "history_count": "{count} meetmomenten",
       "retention_label": "Early-behoud",
       "retention_passed": "Behouden tot T-3",
