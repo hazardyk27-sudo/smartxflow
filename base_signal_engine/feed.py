@@ -15,7 +15,6 @@ import requests
 
 from .scheduler import RULESET_VERSION
 
-LEGACY_RULESET_VERSION = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
 VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION", "RETENTION_CHECK"))
@@ -305,8 +304,7 @@ class BaseSignalsFeed:
                     item["as_of_checked_at"] = at.isoformat()
                 break
 
-    def read(self, start: date, *, days: int = 21, as_of_utc: datetime | None = None,
-             archive: bool = False):
+    def read(self, start: date, *, days: int = 21, as_of_utc: datetime | None = None):
         if not isinstance(start, date) or type(days) is not int or not 1 <= days <= 21:
             raise ValueError("invalid bounded date window")
         if as_of_utc is not None and (
@@ -317,9 +315,6 @@ class BaseSignalsFeed:
         today = datetime.now(TR_TZ).date()
         if start < today - timedelta(days=45) or start > today + timedelta(days=21):
             raise ValueError("date window outside allowed history")
-        if type(archive) is not bool or (archive and days != 1):
-            raise ValueError("archive queries must target exactly one day")
-        version = LEGACY_RULESET_VERSION if archive else RULESET_VERSION
         end = start + timedelta(days=days)
         start_utc = datetime.combine(start, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
         end_utc = datetime.combine(end, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
@@ -329,7 +324,7 @@ class BaseSignalsFeed:
                 ("select", FIELDS),
                 ("kickoff_utc", "gte." + start_utc.isoformat()),
                 ("kickoff_utc", "lt." + end_utc.isoformat()),
-                ("ruleset_version", "eq." + version),
+                ("ruleset_version", "eq." + RULESET_VERSION),
                 ("kind", "in.(" + ",".join(sorted(VISIBLE_KINDS)) + ")"),
                 ("order", "event_id.asc"),
                 ("limit", str(PAGE_SIZE)),
@@ -390,7 +385,7 @@ class BaseSignalsFeed:
                 authoritative_t6.add(
                     (_uid(event.get("fixture_uid")), event.get("market"),
                      _utc(event.get("kickoff_utc")),
-                     event.get("ruleset_version") or LEGACY_RULESET_VERSION))
+                     event.get("ruleset_version") or RULESET_VERSION))
 
         # Retention checkpoints are audit events, never standalone picks.
         # Validate their immutable job/fixture identity before using them as
@@ -428,7 +423,7 @@ class BaseSignalsFeed:
             if _utc(event.get("recorded_at")) > read_as_of:
                 continue
             key = (uid, kickoff, side, cp,
-                   event.get("ruleset_version") or LEGACY_RULESET_VERSION)
+                   event.get("ruleset_version") or RULESET_VERSION)
             # An identical T checkpoint must never get two contradictory
             # completed retention verdicts.
             group = retention.setdefault(key, {})
@@ -439,7 +434,7 @@ class BaseSignalsFeed:
         items, dedupe = [], set()
         for row in rows:
             # A stale/misconfigured storage response must not cross rulesets.
-            if row.get("ruleset_version") != version:
+            if row.get("ruleset_version") != RULESET_VERSION:
                 continue
             ident = row.get("event_id")
             if type(ident) is not int or ident <= 0 or ident in dedupe:
@@ -479,7 +474,7 @@ class BaseSignalsFeed:
             historical_t8 = (
                 row["kind"] == "PRELIMINARY_SIGNAL"
                 and (uid, market, kickoff,
-                     row.get("ruleset_version") or LEGACY_RULESET_VERSION) in authoritative_t6
+                     row.get("ruleset_version") or RULESET_VERSION) in authoritative_t6
             )
             observed = details.get("observed_at")
             try:
@@ -532,8 +527,8 @@ class BaseSignalsFeed:
                 continue
             # Independent read-side guard: the persisted ELIGIBLE flag can
             # never bypass frozen V3 engine price limits (notably HEAVY 1.40).
-            # Old V2 events stay immutable and visible only in the archive.
-            if not archive and not _v3_price_in_range(engine, odds):
+            # Old-version audit events never enter the active signal feed.
+            if not _v3_price_in_range(engine, odds):
                 continue
             recorded_on_time = (
                 delivery_timing == "CHECKPOINT_WINDOW" and recorded < kickoff
@@ -562,7 +557,7 @@ class BaseSignalsFeed:
             if engine == "EARLY_MONEY_CORE":
                 source_h = row.get("source_checkpoint_hours")
                 history = retention.get((uid, kickoff, selection, source_h,
-                                         row.get("ruleset_version") or LEGACY_RULESET_VERSION), {})
+                                         row.get("ruleset_version") or RULESET_VERSION), {})
                 reached = {h for h in (6,5,4,3)
                            if kickoff-timedelta(hours=h) <= read_as_of}
                 if any(state == "RETENTION_BREAK" for state in history.values()):
@@ -585,9 +580,8 @@ class BaseSignalsFeed:
                 "as_of_state": "NOT_RECHECKED",
                 "as_of_checked_at": None,
                 "id": ident,
-                "ruleset_version": row.get("ruleset_version") or LEGACY_RULESET_VERSION,
-                "ruleset_status": ("CURRENT" if row.get("ruleset_version") == RULESET_VERSION
-                                   else "LEGACY"),
+                "ruleset_version": row.get("ruleset_version") or RULESET_VERSION,
+                "ruleset_status": "CURRENT",
                 "uid": uid,
                 "match_hash": str(fixture.get("match_id_hash") or "")[:20],
                 "home": str(fixture.get("home_team") or "")[:100],
@@ -614,12 +608,12 @@ class BaseSignalsFeed:
                 "shadow": True,
             })
         results_source_state = self._finished_results(items, fixtures) if items else "ok"
-        if items and not archive:
+        if items:
             self._enrich_current_1x2(items, now=read_as_of)
         items.sort(key=lambda x: (x["kickoff_utc"], x["id"]))
         return {"status":"ok", "phase":"SHADOW", "timezone":"Europe/Istanbul",
-                "ruleset_mode":"LEGACY" if archive else "CURRENT",
-                "ruleset_version":version,
+                "ruleset_mode":"CURRENT",
+                "ruleset_version":RULESET_VERSION,
                 "start":start.isoformat(),"days":days, "engines":list(KNOWN_ENGINES),
                 "items":items, "results_source_state":results_source_state, "source_complete":False,
                 "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}
