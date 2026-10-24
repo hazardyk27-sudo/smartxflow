@@ -133,6 +133,35 @@ def archive_dispatch():
         return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
     except RuntimeError as error:
         return jsonify(error=str(error)), 503
+    if scope == "kickoff16_24":
+        # A previously repaired/verified scoped export is immutable. Do not
+        # dispatch a duplicate run that would fail on its existing Release tag.
+        try:
+            sub = "03_full_snapshots" if kind == "full_snapshots" else "04_concentrated"
+            idx_path = (f"archive/{day.strftime('%Y/%m/%d')}/{sub}/"
+                        "admin_release_receipt_kickoff16_24_v1.json")
+            existing = _github_request(
+                f"https://api.github.com/repos/{REPO}/contents/{idx_path}?ref=main"
+            )
+            encoded = existing.get("content") if isinstance(existing, dict) else None
+            index = json.loads(base64.b64decode(encoded).decode("utf-8")) if encoded else {}
+            tag = (f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-"
+                   f"{day}-kickoff16-24-v1")
+            if (
+                index.get("receipt_index_schema") == "SXF_VERIFIED_RELEASE_INDEX_V2"
+                and index.get("status") == "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED"
+                and index.get("release_tag") == tag
+                and index.get("total_verified_rows", 0) > 0
+            ):
+                return jsonify(error="ARCHIVE_ALREADY_VERIFIED", day=day_str,
+                               kind=kind, scope=scope), 409
+        except HTTPError as exc:
+            if exc.code != 404:
+                return jsonify(error="GITHUB_STATUS_REJECTED", http_status=exc.code), 502
+        except (URLError, TimeoutError):
+            return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
+        except (UnicodeError, ValueError, TypeError):
+            return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
     if active:
         return jsonify(error="ARCHIVE_ALREADY_RUNNING",
                        day=day_str, kind=kind,
@@ -364,7 +393,27 @@ def archive_progress():
             release = _github_request(f"https://api.github.com/repos/{REPO}/releases/tags/{tag}")
         except HTTPError as exc:
             if exc.code == 404:
-                release_error = "RELEASE_NOT_FOUND_OR_NOT_VISIBLE"
+                # GitHub's tag lookup can hide a DRAFT Release even when the
+                # authenticated releases listing includes it. Match exact tag.
+                for page in range(1, 6):
+                    try:
+                        listed = _github_request(
+                            f"https://api.github.com/repos/{REPO}/releases"
+                            f"?per_page=100&page={page}"
+                        )
+                    except HTTPError as listing_error:
+                        if listing_error.code == 404:
+                            break
+                        raise
+                    if not isinstance(listed, list):
+                        break
+                    release = next(
+                        (item for item in listed if item.get("tag_name") == tag), None
+                    )
+                    if release or len(listed) < 100:
+                        break
+                if release is None:
+                    release_error = "RELEASE_NOT_FOUND_OR_NOT_VISIBLE"
             elif exc.code == 403:
                 release_error = "RELEASE_CONTENTS_READ_PERMISSION_REQUIRED"
             else:
