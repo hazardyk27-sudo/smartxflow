@@ -1,4 +1,4 @@
-"""Independent, bounded 80-hour Base fixture-discovery service.
+"""Independent, future-kickoff-only 80-hour Base fixture-discovery service.
 
 This deliberately does NOT evaluate signals or claim checkpoint/reconciliation
 jobs. It reads the canonical fixtures table and all 11 existing job identities,
@@ -31,11 +31,11 @@ def scan_horizon_once(reader: Any, store: Any, *,
                       now: datetime | None = None,
                       catalog: Any = None,
                       forward_hours: int = 80,
-                      lookback_hours: int = 2,
+                      lookback_hours: int = 0,
                       fixture_batch: int = 12,
                       max_fixtures: int = 1500,
                       progress_hook=None) -> dict:
-    """Complete snapshot-before-enqueue sweep; never silently truncate fixtures.
+    """Complete future-only snapshot-before-enqueue sweep; never truncate fixtures.
 
     A read-only query gathers ALL existing non-superseded job keys first.
     A fixture is skipped only if ALL 11 frozen jobs exist for its current
@@ -59,9 +59,13 @@ def scan_horizon_once(reader: Any, store: Any, *,
         raise FixtureHorizonUnverified("durable discovery not initialized")
 
     source = catalog or SupabaseFixtureCatalog(reader, page_size=250, max_pages=20)
-    fixtures = source.list_between(start, end)
-    if len(fixtures) > max_fixtures:
+    catalog_fixtures = source.list_between(start, end)
+    if len(catalog_fixtures) > max_fixtures:
         raise FixtureHorizonUnverified("fixture universe exceeds bounded scan cap")
+    # Enforce the invariant even if a catalog returns records outside its
+    # requested window or a caller explicitly allows a legacy lookback.
+    # Historical fixtures and their checkpoint rows remain untouched.
+    fixtures = [fixture for fixture in catalog_fixtures if fixture.kickoff_utc > at]
     # Never compare against a partial response; all pages complete or raise.
     keys = store.active_job_keys_between(start, end)
     missing = []

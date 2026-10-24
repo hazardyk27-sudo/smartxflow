@@ -25,6 +25,8 @@ on:
       - 'tests/test_signal_motor_live_checkpoint_deadline_priority_20261022.py'
       - 'base_signal_engine/discovery.py'
       - 'base_signal_engine/hetzner_worker.py'
+      - 'base_signal_engine/fixture_discovery_worker.py'
+      - 'tests/test_base_fixture_discovery_worker.py'
       - 'deploy/systemd/smartxflow-base-worker.service'
       - 'tests/test_base_backlog_throughput_20261021.py'
   workflow_dispatch:
@@ -57,6 +59,7 @@ jobs:
             tests/test_base_signal_phase4b.py \
             tests/test_base_signal_priority_lanes.py \
             tests/test_base_backlog_throughput_20261021.py \
+            tests/test_base_fixture_discovery_worker.py \
             tests/test_base_missing_source_backoff_20261021.py \
             tests/test_base_signal_real_source_smoke.py \
             tests/test_analysis_merged_feed_api.py \

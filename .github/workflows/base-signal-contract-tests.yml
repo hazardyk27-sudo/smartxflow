@@ -5,6 +5,7 @@ on:
     paths:
       - "base_signal_engine/**"
       - "tests/test_base_signal_*.py"
+      - "tests/test_base_fixture_discovery_worker.py"
       - "tests/test_signal_motor_*.py"
       - "migrations/2026_10_24_signal_motor_*.sql"
       - "tests/test_base_signals_feed.py"
@@ -61,6 +62,7 @@ jobs:
             tests/test_base_signal_hetzner_probe.py \
             tests/test_base_signal_hetzner_worker.py \
             tests/test_base_signal_near_term_discovery.py \
+            tests/test_base_fixture_discovery_worker.py \
             tests/test_base_signal_priority_lanes.py \
             tests/test_base_signal_pre_shadow.py \
             tests/test_base_signal_source_tail_probe.py \

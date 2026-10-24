@@ -62,11 +62,40 @@ def test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent():
     assert len(store.keys)==37*11
     assert len([c for c in store.calls if c[0]=="enqueue"])==4
     assert len(pings)==5  # 4 acknowledged batches and drift finalization
-    assert catalog.windows==[(NOW-timedelta(hours=2),NOW+timedelta(hours=80))]
+    assert catalog.windows==[(NOW,NOW+timedelta(hours=80))]
     again=app.scan_horizon_once(None,store,now=NOW,catalog=catalog)
     assert again["fixtures_needing_enqueue"]==0
     assert again["new_jobs"]==0
     assert again["fully_scheduled_before"]==37
+
+
+def test_past_and_started_fixtures_never_get_new_jobs_even_when_catalog_returns_them():
+    # Test the hard fence, not only the default catalog query bounds.
+    past=fixture(21,NOW-timedelta(minutes=5))
+    started_now=fixture(22,NOW)
+    future=fixture(23,NOW+timedelta(minutes=5))
+    store=Store()
+    catalog=Catalog([past,started_now,future])
+    result=app.scan_horizon_once(None,store,now=NOW,catalog=catalog,
+                                 lookback_hours=2)
+    assert catalog.windows==[(NOW-timedelta(hours=2),NOW+timedelta(hours=80))]
+    assert result["fixtures"]==1
+    assert result["fixtures_needing_enqueue"]==1
+    assert result["new_jobs"]==len(CHECKPOINT_TASKS)
+    assert ("enqueue",1,200) in store.calls
+    assert all(CheckpointJob(future,h,fam).key in store.keys
+               for h,fam in CHECKPOINT_TASKS)
+    assert all(CheckpointJob(past,h,fam).key not in store.keys
+               and CheckpointJob(started_now,h,fam).key not in store.keys
+               for h,fam in CHECKPOINT_TASKS)
+
+
+def test_default_discovery_uses_only_future_kickoff_window():
+    catalog=Catalog([])
+    result=app.scan_horizon_once(None,Store(),now=NOW,catalog=catalog)
+    assert result["status"]=="SCANNED"
+    assert result["range_start"]==NOW.isoformat()
+    assert catalog.windows==[(NOW,NOW+timedelta(hours=80))]
 
 
 def test_partial_checkpoint_identity_is_not_mistaken_for_complete_fixture():
