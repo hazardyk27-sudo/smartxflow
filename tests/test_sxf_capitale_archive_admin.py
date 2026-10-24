@@ -164,6 +164,28 @@ class ArchiveAdminTests(unittest.TestCase):
         self.assertTrue(r.json["verified"])
         self.assertEqual(r.json["status"], "DOĞRULANDI")
 
+    def test_active_two_day_batch_blocks_duplicate_single_day_dispatch(self):
+        h = self.admin()
+        def existing_batch(url, method="GET", payload=None):
+            if method == "POST":
+                self.fail("Duplicate dispatch must not reach GitHub")
+            if "sxf-raw-two-day-batch.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "display_title": "SXF full raw 2026-10-09 + next day",
+                    "status": "in_progress", "conclusion": None,
+                    "created_at": "2026-10-24T01:42:00Z",
+                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/40050990059",
+                }]}
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=existing_batch):
+            for day in ("2026-10-09", "2026-10-10"):
+                r = self.client.post("/api/admin/sxf-archive/dispatch",
+                                     headers=h,
+                                     json={"day": day, "kind": "full_snapshots"})
+                self.assertEqual(r.status_code, 409)
+                self.assertEqual(r.json["error"], "ARCHIVE_ALREADY_RUNNING")
+                self.assertTrue(r.json["existing_run_url"].endswith("/40050990059"))
+
     def test_invalid_day_and_kind_and_missing_github_token(self):
         h = self.admin()
         for payload in (
