@@ -1,12 +1,23 @@
-SOURCE_SHA=a2c8522de06ccba08395f3c27ffd0d446f1011da
-PYTEST_EXIT=0
-........................................................................ [ 29%]
-........................................................................ [ 59%]
-........................................................................ [ 88%]
-...........................                                              [100%]
-243 passed in 1.31s
+SOURCE_SHA=a83ed8b621a74bf69d3a4cd9e89e3c7bac3906d9
+PYTEST_EXIT=2
+
+==================================== ERRORS ====================================
+_______________ ERROR collecting tests/test_base_signals_feed.py _______________
+ImportError while importing test module '/home/runner/work/smartxflow/smartxflow/tests/test_base_signals_feed.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_base_signals_feed.py:7: in <module>
+    from base_signal_engine.feed import (
+E   ImportError: cannot import name 'LEGACY_RULESET_VERSION' from 'base_signal_engine.feed' (/home/runner/work/smartxflow/smartxflow/base_signal_engine/feed.py)
+=========================== short test summary info ============================
+ERROR tests/test_base_signals_feed.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.24s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
