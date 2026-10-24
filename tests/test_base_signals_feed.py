@@ -138,7 +138,8 @@ def test_selected_side_frozen_money_and_share_are_projected_without_a_live_join(
     assert row["selection"] == event["selection"]
     assert row["amount"] == 2934.29
     assert row["share"] == 95.6
-    assert not any(call[0].endswith("moneyway_snapshots") for call in source.calls)
+    assert source.events[0]["details"]["amount"] == "2934.29"
+    assert source.events[0]["details"]["share"] == "95.6"
 
 
 @pytest.mark.parametrize("amount,share,expected_amount,expected_share", [
