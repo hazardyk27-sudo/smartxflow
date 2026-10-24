@@ -213,6 +213,22 @@ def archive_progress():
                 pass
 
         assets = release.get("assets", []) if release else []
+        # The Release detail response may not include every asset in a large
+        # 25k-row-chunk export. Read every assets page to avoid undercounting.
+        if release and type(release.get("id")) is int:
+            assets = []
+            for page in range(1, 12):
+                batch = _github_request(
+                    f"https://api.github.com/repos/{REPO}/releases/{release['id']}/assets"
+                    f"?per_page=100&page={page}"
+                )
+                if not isinstance(batch, list):
+                    raise RuntimeError("INVALID_RELEASE_ASSETS_RESPONSE")
+                assets.extend(batch)
+                if len(batch) < 100:
+                    break
+            if len(assets) > 1000:
+                raise RuntimeError("UNSAFE_RELEASE_ASSET_COUNT")
         total_markers = [
             int(m.group(1))
             for item in assets
