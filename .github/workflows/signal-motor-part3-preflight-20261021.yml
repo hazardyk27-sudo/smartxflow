@@ -30,6 +30,9 @@ on:
       - 'tests/test_base_fixture_discovery_worker.py'
       - 'deploy/systemd/smartxflow-base-worker.service'
       - 'tests/test_base_backlog_throughput_20261021.py'
+      - 'migrations/2026_10_24_base_drift_quarantine_fastpath.sql'
+      - 'migrations/2026_10_24_base_returned_kickoff_reactivate.sql'
+      - 'tests/test_base_drift_return_20261024.py'
   workflow_dispatch:
 permissions:
   contents: write
@@ -61,6 +64,7 @@ jobs:
             tests/test_base_signal_priority_lanes.py \
             tests/test_base_backlog_throughput_20261021.py \
             tests/test_base_fixture_discovery_worker.py \
+            tests/test_base_drift_return_20261024.py \
             tests/test_base_activation_legacy_retirement_contract.py \
             tests/test_base_missing_source_backoff_20261021.py \
             tests/test_base_signal_real_source_smoke.py \
@@ -101,6 +105,8 @@ jobs:
               'migrations/2026_10_22_signal_motor_independent_checkpoints.sql',
               'deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql',
               'migrations/2026_10_22_signal_motor_live_checkpoint_deadline_priority.sql',
+              'migrations/2026_10_24_base_drift_quarantine_fastpath.sql',
+              'migrations/2026_10_24_base_returned_kickoff_reactivate.sql',
           ):
               assert (root/filename).is_file(), filename
           print('PART3_PREVIEW_MIGRATION_RELEASE_GUARDS_OK')
