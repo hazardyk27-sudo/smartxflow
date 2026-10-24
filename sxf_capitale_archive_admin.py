@@ -109,6 +109,26 @@ def archive_dispatch():
     now = int(time.time())
     if now - int(recently.get(key, 0)) < 120:
         return jsonify(error="ALREADY_REQUESTED_RECENTLY"), 409
+    # A browser session's 120-second guard cannot prevent duplicate exports
+    # when a two-day GitHub Actions batch is running in another session.
+    # Refuse a second real dispatch for ANY active workflow covering this day.
+    try:
+        active = next(
+            (r for r in _archive_runs_for_workflows()
+             if _run_matches_day(r, day, kind)
+             and r.get("status") in ("queued", "pending", "waiting", "requested", "in_progress")),
+            None,
+        )
+    except HTTPError as error:
+        return jsonify(error="GITHUB_STATUS_REJECTED", http_status=error.code), 502
+    except (URLError, TimeoutError):
+        return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
+    except RuntimeError as error:
+        return jsonify(error=str(error)), 503
+    if active:
+        return jsonify(error="ARCHIVE_ALREADY_RUNNING",
+                       day=day_str, kind=kind,
+                       existing_run_url=active.get("html_url")), 409
     url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/dispatches"
     try:
         _github_request(url, "POST", {
@@ -179,7 +199,11 @@ def archive_progress():
     tag = f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-{day}-v1"
     try:
         runs = _archive_runs_for_workflows()
-        matching = next((run for run in runs if _run_matches_day(run, day, kind)), None)
+        candidates = [run for run in runs if _run_matches_day(run, day, kind)]
+        # If a duplicate request is pending while the older batch is actually
+        # exporting this day, prefer the running job over the queued duplicate.
+        matching = next((run for run in candidates if run.get("status") == "in_progress"),
+                        candidates[0] if candidates else None)
         release = None
         release_error = None
         try:
