@@ -822,3 +822,15 @@ body.sxf-signals-open{overflow:hidden!important}
   #sxfBaseSignalOverlay .sxf-fixture-summary{column-gap:6px;padding:12px 9px}
   #sxfBaseSignalOverlay .sxf-ruleset-tab{padding:7px 9px;font-size:11px}
 }
+
+/* Visible price label now that the compressed table header is removed. */
+#sxfBaseSignalOverlay .sxf-line-odds{
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:3px
+}
+#sxfBaseSignalOverlay .sxf-price-key{
+  display:block;font:550 10px/1.2 Inter,-apple-system,sans-serif;
+  color:var(--sxf-secondary)
+}
+@media(max-width:700px){
+  #sxfBaseSignalOverlay .sxf-line-odds{flex-direction:row;align-items:baseline;gap:5px}
+}
