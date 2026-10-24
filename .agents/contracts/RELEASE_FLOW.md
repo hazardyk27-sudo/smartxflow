@@ -15,10 +15,35 @@ Open only for GitHub/Replit/Hetzner sync, release or deployment work.
 ## Required flow
 
 1. Start from current `main`; make/test changes on `preview`.
-2. Sync Replit Preview only to the exact GitHub `preview` SHA and obtain user Preview approval.
-3. Before approval, never promote to `main` or deploy Hetzner/Replit Production.
+2. Normally sync Replit Preview only to the exact GitHub `preview` SHA and obtain user Preview approval. For a specifically authorized Replit-excluded release, follow the exception below.
+3. Before user production approval, never promote to `main` or deploy Hetzner/Replit Production.
 4. After approval, fast-forward the exact approved `preview` SHA to `main`, then deploy/publish that exact `main` SHA.
 5. Stop on ordinary divergence; no force-push, reset, rebase, cherry-pick or improvised merge around the guardrails.
+
+## Explicit Replit-excluded production releases
+
+When the user has expressly prohibited touching Replit and explicitly orders a
+specific Hetzner release, their authorization is a one-release exception to the
+Replit Preview sync/Preview-approval requirement, not an ongoing bypass.
+No Replit tooling, shell, source changes, sync or publish may be invoked.
+
+This alternative still requires all of the following:
+
+1. Read the exact GitHub `preview` and `main` HEADs; abort on branch divergence.
+2. Prove the exact `preview` SHA is fast-forward from `main`; inspect the
+   diff and require relevant GitHub CI checks to pass.
+3. Verify database/schema/version migrations and signal contracts before a
+   release that changes the engine. Never relabel old immutable events.
+4. Fast-forward `main` to that exact CI-validated `preview` SHA without force;
+   GitHub Actions deploys the exact `main` SHA to Hetzner.
+5. Check the deployment job, exact server HEAD, service health, live web/API,
+   durable queue, and signal rules. Report unknown or unverified checks plainly.
+6. On any safety failure, stop and escalate: never force-push, rewrite
+   history, modify Hetzner tracked files in place or claim success.
+
+The user must explicitly authorize this path for each production release.
+An ordinary development instruction, past exception, or passing CI alone is
+not release authorization.
 
 ## Replit Preview synchronization
 
