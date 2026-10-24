@@ -20,6 +20,7 @@ blueprint = Blueprint("sxf_capitale_archive_admin", __name__)
 REPO = "hazardyk27-sudo/capitale"
 WORKFLOW = "sxf-admin-archive.yml"
 WINDOW_WORKFLOW = "sxf-kickoff-window-archive.yml"
+REPAIR_WORKFLOW = "sxf-repair-oct11-receipt.yml"
 SCOPES = {"all", "kickoff16_24"}
 BRANCH = "main"
 KINDS = {"full_snapshots", "concentrated"}
@@ -165,7 +166,7 @@ def _archive_runs_for_workflows():
     """All kinds of SXF Actions runs, including two-day batch launches."""
     results = []
     for workflow in ("sxf-admin-archive.yml", "sxf-raw-two-day-batch.yml",
-                     WINDOW_WORKFLOW):
+                     WINDOW_WORKFLOW, REPAIR_WORKFLOW):
         endpoint = (f"https://api.github.com/repos/{REPO}/actions/"
                     f"workflows/{workflow}/runs?per_page=30")
         try:
@@ -173,7 +174,7 @@ def _archive_runs_for_workflows():
         except HTTPError as exc:
             # Newly added workflow might not be indexed by GitHub until the
             # first dispatch. Other HTTP failures must remain visible.
-            if workflow != WINDOW_WORKFLOW or exc.code != 404:
+            if workflow not in (WINDOW_WORKFLOW, REPAIR_WORKFLOW) or exc.code != 404:
                 raise
     results.sort(key=lambda r: r.get("created_at", ""), reverse=True)
     return results
@@ -183,7 +184,11 @@ def _run_matches_day(run: dict, day: dt.date, kind: str,
                      scope: str = "all") -> bool:
     title = run.get("display_title", "")
     if scope == "kickoff16_24":
-        return title == f"SXF {day} / {kind} / 16-24"
+        return (
+            title == f"SXF {day} / {kind} / 16-24"
+            or (day == dt.date(2026, 10, 11) and kind == "full_snapshots"
+                and title == "SXF receipt repair 2026-10-11 / full_snapshots / 16-24")
+        )
     if title == f"SXF {day} / {kind}":
         return True
     if kind != "full_snapshots":
@@ -196,6 +201,53 @@ def _run_matches_day(run: dict, day: dt.date, kind: str,
     except ValueError:
         return False
     return day in (first, first + dt.timedelta(days=1))
+
+
+def _scoped_index_is_verified(day: dt.date, kind: str, tag: str,
+                              uploaded: int, expected: int | None,
+                              release_assets=None) -> bool:
+    """Require a durable, count-consistent GitHub main receipt for scoped success."""
+    if expected is None or uploaded != expected or expected < 1:
+        return False
+    sub = "03_full_snapshots" if kind == "full_snapshots" else "04_concentrated"
+    path = (f"archive/{day.strftime('%Y/%m/%d')}/{sub}/"
+            "admin_release_receipt_kickoff16_24_v1.json")
+    try:
+        data = _github_request(f"https://api.github.com/repos/{REPO}/contents/{path}?ref=main")
+        encoded = data.get("content") if isinstance(data, dict) else None
+        if not encoded:
+            return False
+        index = json.loads(base64.b64decode(encoded).decode("utf-8"))
+        files = index.get("asset_inventory", [])
+        if not isinstance(files, list) or not files:
+            return False
+        if any((item.get("name", "").endswith(".jsonl.gz") is False
+                or type(item.get("rows")) is not int or item["rows"] <= 0
+                or not re.fullmatch(r"[a-f0-9]{64}", item.get("sha256_gzip", "")))
+               for item in files):
+            return False
+        if release_assets is not None:
+            known = {a.get("name") for a in release_assets
+                     if a.get("name", "").endswith(".jsonl.gz")}
+            if known != {a["name"] for a in files}:
+                return False
+        return (
+            index.get("receipt_index_schema") == "SXF_VERIFIED_RELEASE_INDEX_V2"
+            and index.get("status") == "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED"
+            and index.get("day") == str(day) and index.get("kind") == kind
+            and index.get("scope") == "kickoff16_24"
+            and index.get("release_tag") == tag
+            and index.get("source_count_consistency") is True
+            and index.get("total_verified_rows") == expected
+            and sum(a["rows"] for a in files) == expected
+            and re.fullmatch(r"[a-f0-9]{64}", index.get("export_manifest_sha256", "")) is not None
+        )
+    except HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise
+    except (ValueError, TypeError, KeyError, RuntimeError, UnicodeError):
+        return False
 
 
 _SOURCE_TOTAL_CACHE = {}
@@ -387,9 +439,18 @@ def archive_progress():
             if (m := re.search(r"_rows_([1-9]\d*)\.jsonl\.gz$", item.get("name", "")))
         )
         receipt = any(item.get("name") == "verification_receipt.json" for item in assets)
+        # A restored job may succeed after the original full export's last
+        # metadata step failed. Both a successful verification/recovery Actions
+        # run AND a count-consistent GitHub main index are required.
+        successful_run = (day_run_status == "completed"
+                          and day_run_conclusion == "success")
+        scoped_index_ok = (
+            _scoped_index_is_verified(day, kind, tag, uploaded, release_expected, assets)
+            if scope == "kickoff16_24" and receipt and successful_run else False
+        )
         verified = bool(
             receipt and release_expected is not None and uploaded == release_expected
-            and day_run_status == "completed" and day_run_conclusion == "success"
+            and successful_run and (scope != "kickoff16_24" or scoped_index_ok)
         )
         if verified:
             status, percent = "DOĞRULANDI", 100
