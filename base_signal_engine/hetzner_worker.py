@@ -29,6 +29,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
               near_term_hour_offset: int = 0,
               near_term_rotation: bool = False,
               priority_lanes: bool = False,
+              queue_drain_first: bool = False,
               now: datetime | None = None,
               progress_hook=None) -> dict:
     """Work is bounded, independently retryable, and never invents successful ACKs."""
@@ -43,6 +44,8 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         raise ValueError("rotating hour conflicts with explicit hour")
     if type(priority_lanes) is not bool or (priority_lanes and max_jobs < 3):
         raise ValueError("priority lanes require 3 or more jobs per cycle")
+    if type(queue_drain_first) is not bool or (queue_drain_first and not priority_lanes):
+        raise ValueError("queue-first mode requires approved priority lanes")
     if type(near_term_hour_offset) is not int or not -1 <= near_term_hour_offset <= 80:
         raise ValueError("unsafe near-term hour offset")
     if progress_hook is not None and not callable(progress_hook):
@@ -58,6 +61,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             "near_term_fixtures":0,"near_term_cursor_advanced":False,
             "near_term_rotation_coverage_verified":False,
             "priority_lanes_enabled":priority_lanes,
+            "queue_drain_first_enabled":queue_drain_first,
             "live_claimed":0,"backlog_claimed":0,
             "live_completed":0,"backlog_completed":0,
             "live_waiting_data":0,"backlog_waiting_data":0}
@@ -65,13 +69,14 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         try:
             # Autonomous recovery keeps new fixture discovery alive even when
             # old incomplete snapshots have accumulated in WAITING_DATA.
-            recovery = near_term_rotation and priority_lanes
+            recovery = near_term_rotation and priority_lanes and not queue_drain_first
             discovery_options = (
                 {"allow_high_backlog": True, "max_fixtures": 100}
                 if recovery else {"max_fixtures": 50})
             status=bounded_cursor_discovery_once(
                 reader,store,worker_id=worker_id,window_hours=1,
-                max_pending_due=250,**discovery_options)
+                max_pending_due=(1 if queue_drain_first else 250),
+                **discovery_options)
             report["discovery"]=status["status"]
             report["enqueued"]=status["enqueued"]
             report["discovered_fixtures"]=status["fixtures"]
@@ -97,7 +102,12 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     # Optional Part 1 safety path. It does not change the historical cursor.
     # Default OFF; activating the guarded worker and this mode are separate
     # operator decisions. Never run after discovery uncertainty or failure.
-    if near_term and report["discovery"] in ("OK", "IDLE", "PAUSED_BACKLOG"):
+    if (near_term and queue_drain_first and
+            (report["discovery"] == "PAUSED_BACKLOG" or report["enqueued"] > 0)):
+        # Drain existing due V3 jobs before scanning more future fixtures.
+        # A just-enqueued cursor window is processed before the next scan.
+        report["near_term_status"] = "PAUSED_BACKLOG"
+    elif near_term and report["discovery"] in ("OK", "IDLE", "PAUSED_BACKLOG"):
         try:
             selected_offset = near_term_hour_offset
             if near_term_rotation:
@@ -141,12 +151,19 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         if report["superseded"] and progress_hook is not None:
             progress_hook()
 
-    # User-requested daily scan: today's future matches, then tomorrow,
-    # then the next Istanbul match day. Historical backlog is NOT a quota.
-    # The DB LIVE lane performs stable date/kickoff ordering.
-    slots = (["LIVE"] * max_jobs if priority_lanes else ["ANY"] * max_jobs)
+    # The production queue-first mode drains existing due work before
+    # discovering more fixtures. LIVE keeps Istanbul date/kickoff ordering;
+    # BACKLOG reclaims jobs whose matches have already started. Both lanes
+    # retain the versioned DB claim gate and immutable event audit.
+    if priority_lanes and queue_drain_first:
+        slots = (["LIVE", "LIVE", "BACKLOG"] * ((max_jobs + 2) // 3))[:max_jobs]
+    else:
+        slots = (["LIVE"] * max_jobs if priority_lanes else ["ANY"] * max_jobs)
     exhausted = set()
-    for lane in slots:
+    for preferred_lane in slots:
+        lane = preferred_lane
+        if queue_drain_first and lane in exhausted:
+            lane = "BACKLOG" if lane == "LIVE" else "LIVE"
         if lane in exhausted:
             continue
         claim_options = {"progress_hook": progress_hook} if progress_hook is not None else {}
@@ -268,6 +285,8 @@ def main(argv=None) -> int:
                         help="rotate one UTC hour bucket per wall-clock minute, no coverage claim")
     parser.add_argument("--priority-lanes",action="store_true",
                         help="separately gated LIVE/BACKLOG fenced claim RPC")
+    parser.add_argument("--queue-drain-first",action="store_true",
+                        help="drain due work from both lanes before future discovery")
     args=parser.parse_args(argv)
     if os.environ.get("SXF_BASE_DURABLE_WORKER_APPROVED")!="yes":
         parser.error("durable worker disabled until separately approved production release")
@@ -287,6 +306,8 @@ def main(argv=None) -> int:
     if args.priority_lanes and (
             args.max_jobs < 3 or os.environ.get("SXF_BASE_PRIORITY_LANES_APPROVED") != "yes"):
         parser.error("priority lanes require approval, migration and >=3 jobs")
+    if args.queue_drain_first and not args.priority_lanes:
+        parser.error("queue-first mode requires approved priority lanes")
     if args.no_discovery and not args.once:
         parser.error("--no-discovery requires --once")
     url=os.environ.get("SUPABASE_URL","")
@@ -310,6 +331,8 @@ def main(argv=None) -> int:
                         if args.near_term_discovery else {})
             if args.priority_lanes:
                 optional["priority_lanes"] = True
+            if args.queue_drain_first:
+                optional["queue_drain_first"] = True
             if notifier.enabled:
                 optional["progress_hook"] = notifier.progressed
             report=run_cycle(reader,store,worker_id=worker_id,
