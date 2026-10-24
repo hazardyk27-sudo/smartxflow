@@ -199,7 +199,11 @@ def archive_progress():
     tag = f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-{day}-v1"
     try:
         runs = _archive_runs_for_workflows()
-        matching = next((run for run in runs if _run_matches_day(run, day, kind)), None)
+        candidates = [run for run in runs if _run_matches_day(run, day, kind)]
+        # If a duplicate request is pending while the older batch is actually
+        # exporting this day, prefer the running job over the queued duplicate.
+        matching = next((run for run in candidates if run.get("status") == "in_progress"),
+                        candidates[0] if candidates else None)
         release = None
         release_error = None
         try:
