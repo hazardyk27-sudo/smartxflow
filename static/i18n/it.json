@@ -685,6 +685,8 @@
       "late_evaluation": "Calcolato retrospettivamente",
       "records_count": "{count} registrazioni",
       "recorded_odds": "Quota registrata",
+      "recorded_money": "Importo totale",
+      "recorded_share": "Quota denaro",
       "history_count": "{count} rilevazioni",
       "retention_label": "Tenuta Early",
       "retention_passed": "Confermata fino a T-3",
