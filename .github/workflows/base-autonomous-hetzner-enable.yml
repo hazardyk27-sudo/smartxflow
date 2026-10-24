@@ -1,10 +1,6 @@
 name: Enable autonomous Base signal worker on Hetzner
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/base-autonomous-hetzner-enable.yml'
   workflow_dispatch:
 
 permissions:
