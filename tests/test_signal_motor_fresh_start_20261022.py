@@ -41,8 +41,8 @@ def test_skip_rpc_is_fenced_to_fresh_v2_jobs():
 
 def test_feed_reads_only_fresh_release_events():
     source = (ROOT/"base_signal_engine/feed.py").read_text()
-    assert '("ruleset_version", "eq." + version)' in source
-    assert 'version = LEGACY_RULESET_VERSION if archive else RULESET_VERSION' in source
+    assert '("ruleset_version", "eq." + RULESET_VERSION)' in source
+    assert 'archive: bool = False' not in source
     assert '"sxf_base_signal_events"' in source
     assert '"sxf_base_checkpoint_jobs"' in source
 
