@@ -310,3 +310,48 @@ def test_future_deploy_refreshes_only_healthy_permanent_worker():
     assert "enabled but stopped; not auto-restarting" in deploy
     assert "workflow_dispatch:" in legacy and "branches: [main]" not in legacy
     assert "DEPRECATED_WORKFLOW_STOP" in legacy
+
+def test_kickoff_drift_is_quarantined_before_any_checkpoint_claim(monkeypatch):
+    calls = []
+
+    class DriftStore(FakeStore):
+        def quarantine_fixture_drift(self, *, limit):
+            calls.append(("quarantine", limit))
+            return 7
+
+    def claim(*args, **kwargs):
+        calls.append(("claim", kwargs["limit"]))
+        return {"claimed": 0, "completed": 0, "waiting_data": 0,
+                "retry": 0, "lease_lost": 0, "commit_uncertain": 0}
+
+    monkeypatch.setattr(app, "execute_claims", claim)
+    result = app.run_cycle(object(), DriftStore(), worker_id="worker",
+                           discover=False, max_jobs=1, max_reconcile=0)
+    assert calls == [("quarantine", 250), ("claim", 1)]
+    assert result["superseded"] == 7
+    assert result["healthy_cycle"] is True
+
+
+def test_uncertain_kickoff_quarantine_ack_blocks_claims(monkeypatch):
+    called = []
+
+    class BrokenQuarantine(FakeStore):
+        def quarantine_fixture_drift(self, *, limit):
+            assert limit == 250
+            raise app.DurableStoreError("quarantine ACK lost")
+
+    monkeypatch.setattr(app, "execute_claims",
+                        lambda *a, **k: called.append("claim"))
+    with pytest.raises(app.DurableStoreError):
+        app.run_cycle(object(), BrokenQuarantine(), worker_id="worker",
+                      discover=False, max_jobs=1, max_reconcile=0)
+    assert called == []
+
+
+def test_prematch_backup_loads_existing_dotenv_without_push_cleanup():
+    workflow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/signal-retention.yml").read_text()
+    assert "enqueue_due_learning_revisit.py --dotenv /opt/smartxflow/.env" in workflow
+    assert "github.event_name == 'workflow_dispatch'" in workflow
+    assert "github.event_name == 'schedule'" in workflow
+    assert "github.event_name != 'schedule'" not in workflow
