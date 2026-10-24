@@ -685,6 +685,8 @@
       "late_evaluation": "Nachträglich berechnet",
       "records_count": "{count} Einträge",
       "recorded_odds": "Erfasste Quote",
+      "recorded_money": "Geldbetrag",
+      "recorded_share": "Geldanteil",
       "history_count": "{count} Checkpoint-Einträge",
       "retention_label": "Early-Beständigkeit",
       "retention_passed": "Bis T-3 bestätigt",
