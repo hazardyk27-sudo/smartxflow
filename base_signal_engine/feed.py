@@ -13,6 +13,10 @@ from uuid import UUID
 
 import requests
 
+from .scheduler import RULESET_VERSION
+
+LEGACY_RULESET_VERSION = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
+
 TR_TZ = ZoneInfo("Europe/Istanbul")
 VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION", "RETENTION_CHECK"))
 KNOWN_ENGINES = (
@@ -20,7 +24,7 @@ KNOWN_ENGINES = (
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
     "STABLE_OVER_2_5", "PREMIUM_OVER_2_5", "PREMIUM_OVER_MIN1_70", "BTTS_YES",
 )
-FIELDS = "event_id,job_id,fixture_uid,kickoff_utc,kind,engine,market,selection,family,job_checkpoint_hours,source_checkpoint_hours,recorded_at,details"
+FIELDS = "event_id,job_id,fixture_uid,kickoff_utc,kind,engine,market,selection,family,job_checkpoint_hours,source_checkpoint_hours,recorded_at,details,ruleset_version"
 PAGE_SIZE = 250
 MAX_PAGES = 8
 CHUNK_SIZE = 75
@@ -300,7 +304,7 @@ class BaseSignalsFeed:
                 ("select", FIELDS),
                 ("kickoff_utc", "gte." + start_utc.isoformat()),
                 ("kickoff_utc", "lt." + end_utc.isoformat()),
-                ("ruleset_version", "eq.SXF_SIGNAL_MOTOR_V2_2026_10_22"),
+                ("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")"),
                 ("kind", "in.(" + ",".join(sorted(VISIBLE_KINDS)) + ")"),
                 ("order", "event_id.asc"),
                 ("limit", str(PAGE_SIZE)),
@@ -332,7 +336,7 @@ class BaseSignalsFeed:
                 fixtures[key] = item
         for chunk in _chunks(job_ids):
             got = self._get("sxf_base_checkpoint_jobs", [
-                ("select", "job_id,fixture_uid,kickoff_utc,state"),
+                ("select", "job_id,fixture_uid,kickoff_utc,state,ruleset_version"),
                 ("job_id", "in.(" + ",".join(chunk) + ")"),
                 ("limit", str(len(chunk) + 1)),
             ])
@@ -360,7 +364,8 @@ class BaseSignalsFeed:
             if source_job and source_job.get("state") == "COMPLETED":
                 authoritative_t6.add(
                     (_uid(event.get("fixture_uid")), event.get("market"),
-                     _utc(event.get("kickoff_utc"))))
+                     _utc(event.get("kickoff_utc")),
+                     event.get("ruleset_version") or LEGACY_RULESET_VERSION))
 
         # Retention checkpoints are audit events, never standalone picks.
         # Validate their immutable job/fixture identity before using them as
@@ -397,7 +402,8 @@ class BaseSignalsFeed:
                 continue
             if _utc(event.get("recorded_at")) > read_as_of:
                 continue
-            key = (uid, kickoff, side, cp)
+            key = (uid, kickoff, side, cp,
+                   event.get("ruleset_version") or LEGACY_RULESET_VERSION)
             # An identical T checkpoint must never get two contradictory
             # completed retention verdicts.
             group = retention.setdefault(key, {})
@@ -444,7 +450,8 @@ class BaseSignalsFeed:
                 continue
             historical_t8 = (
                 row["kind"] == "PRELIMINARY_SIGNAL"
-                and (uid, market, kickoff) in authoritative_t6
+                and (uid, market, kickoff,
+                     row.get("ruleset_version") or LEGACY_RULESET_VERSION) in authoritative_t6
             )
             observed = details.get("observed_at")
             try:
@@ -521,7 +528,8 @@ class BaseSignalsFeed:
             retained = None
             if engine == "EARLY_MONEY_CORE":
                 source_h = row.get("source_checkpoint_hours")
-                history = retention.get((uid, kickoff, selection, source_h), {})
+                history = retention.get((uid, kickoff, selection, source_h,
+                                         row.get("ruleset_version") or LEGACY_RULESET_VERSION), {})
                 reached = {h for h in (6,5,4,3)
                            if kickoff-timedelta(hours=h) <= read_as_of}
                 if any(state == "RETENTION_BREAK" for state in history.values()):
@@ -544,6 +552,9 @@ class BaseSignalsFeed:
                 "as_of_state": "NOT_RECHECKED",
                 "as_of_checked_at": None,
                 "id": ident,
+                "ruleset_version": row.get("ruleset_version") or LEGACY_RULESET_VERSION,
+                "ruleset_status": ("CURRENT" if row.get("ruleset_version") == RULESET_VERSION
+                                   else "LEGACY"),
                 "uid": uid,
                 "match_hash": str(fixture.get("match_id_hash") or "")[:20],
                 "home": str(fixture.get("home_team") or "")[:100],
