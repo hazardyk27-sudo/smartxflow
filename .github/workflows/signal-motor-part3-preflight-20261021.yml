@@ -1,3 +1,4 @@
+# Verify user-approved main -> preview history merge (PR #63) on exact preview source.
 name: Signal Motor Part 3 - source skip release safety preflight
 on:
   push:

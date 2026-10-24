@@ -1,3 +1,4 @@
+# Verify user-approved main -> preview history merge (PR #63) on exact preview source.
 name: Base signal source and persistence tests (no DB)
 on:
   push:
