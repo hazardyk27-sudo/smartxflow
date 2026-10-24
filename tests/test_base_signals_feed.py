@@ -5,7 +5,8 @@ from uuid import uuid4
 import pytest
 
 from base_signal_engine.feed import (
-    BaseFeedUnavailable, BaseSignalsFeed, TR_TZ, parse_day
+    BaseFeedUnavailable, BaseSignalsFeed, TR_TZ, parse_day,
+    LEGACY_RULESET_VERSION, RULESET_VERSION,
 )
 
 UID = str(uuid4())
@@ -28,6 +29,7 @@ def _event(start, *, ident=12, kind="PRELIMINARY_SIGNAL",
             "kickoff_utc":ts,"kind":kind,"market":"1X2","selection":selection,
             "engine":engine,"family":"BASE","job_checkpoint_hours":8,
             "source_checkpoint_hours":8,"recorded_at":ts,
+            "ruleset_version":RULESET_VERSION,
             "details":{"odds":"3.65","observed_at":ts,"label":"SIGNAL",
                        "selection_status":"ELIGIBLE"}}
 
@@ -379,6 +381,7 @@ def test_all_rejected_lincoln_twente_checkpoints_do_not_create_signal_cards():
 def test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges():
     start=_day()
     allowed=_event(start,ident=230,engine="1X2_CONCENTRATION_V1")
+    allowed["details"]["odds"] = "1.85"
     blocked=_event(start,ident=231,engine="HEAVY_1X2_CONCENTRATION")
     blocked["details"].update({"odds":"1.24","selection_status":"PRICE_FILTER_REJECT"})
     valid=_feed(Source(start,events=[allowed,blocked])).read(start)["items"]
@@ -646,3 +649,35 @@ def test_as_of_clock_requires_timezone():
     day=_day()
     with pytest.raises(ValueError,match="timezone-aware"):
         _feed(Source(day)).read(day,as_of_utc=datetime(2026,10,23,12))
+
+
+def test_current_feed_fails_closed_on_legacy_heavy_and_archives_it_separately():
+    start = _day()
+    legacy = _event(start, ident=821, engine="HEAVY_1X2_CONCENTRATION")
+    legacy["ruleset_version"] = LEGACY_RULESET_VERSION
+    legacy["details"]["odds"] = "1.38"
+    source = Source(start, events=[legacy])
+    current = _feed(source).read(start)
+    assert current["ruleset_mode"] == "CURRENT"
+    assert current["items"] == []
+    archived = _feed(source).read(start + timedelta(days=2), days=1, archive=True)
+    assert archived["ruleset_mode"] == "LEGACY"
+    assert len(archived["items"]) == 1
+    assert archived["items"][0]["ruleset_status"] == "LEGACY"
+    assert archived["items"][0]["odds"] == 1.38
+
+
+def test_v3_heavy_price_floor_is_checked_independently_of_stored_eligibility():
+    start = _day()
+    event = _event(start, ident=822, engine="HEAVY_1X2_CONCENTRATION")
+    event["details"]["odds"] = "1.38"
+    assert _feed(Source(start, events=[event])).read(start)["items"] == []
+    event["details"]["odds"] = "1.40"
+    out = _feed(Source(start, events=[event])).read(start)
+    assert len(out["items"]) == 1
+    assert out["items"][0]["ruleset_status"] == "CURRENT"
+
+
+def test_archive_scope_is_one_day_only():
+    with pytest.raises(ValueError, match="one day"):
+        _feed(Source(_day())).read(_day(), days=21, archive=True)
