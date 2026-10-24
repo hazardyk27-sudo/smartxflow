@@ -92,7 +92,7 @@ def test_legacy_five_removed_from_api_and_ui_and_old_writer_disabled():
     app=(ROOT/"app.py").read_text()
     fn=app.split("def base_signal_feed_api():",1)[1].split("_analyses_cache",1)[0]
     assert "LegacySignalsFeed" not in fn
-    assert "source.read(first, days=int(days_text), archive=(mode == 'archive'))" in fn
+    assert "source.read(first, days=21)" in fn
     js=(ROOT/"static/js/base-signals.js").read_text()
     assert "LEGACY_UNDERDOG:" not in js
     assert "LEGACY_FAKE_SHARP:" not in js
