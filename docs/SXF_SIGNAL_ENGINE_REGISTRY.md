@@ -198,7 +198,7 @@ New or changed rules follow:
 
 Do not silently rewrite historical samples, thresholds or production behavior. New versions must be explicit and time-ordered.
 
-## 2026-10-23 prospective correction — HEAVY and V2 (preview only)
+## 2026-10-23 prospective correction — HEAVY and V2 (V3 release candidate)
 
 **Change provenance:** User-requested correction to two V2 signal-motor behaviors after
 auditing Stuttgart–Mgladbach and Bochum–Wolfsburg. This section is a
@@ -219,7 +219,27 @@ previously archived signals remain historically unchanged.
 - Original archived ruleset `SXF_SIGNAL_MOTOR_V2_2026_10_22` events must
   **not** be overwritten or silently re-labeled. Full production rollout
   requires a separately verified, versioned cutover across queue, claim,
-  worker, storage and feed (the current SQL claims are V2-only).
+  worker, storage and feed (the SQL claims were V2-only at the 23 October audit).
 - V1, Early Core, Early T12, Over, BTTS, Surprise and checkpoint scheduling
   rules are deliberately unchanged. The changes are tested on `preview`;
   they are not automatically released to production.
+
+
+## 2026-10-24 prospective V3 release contract
+
+- New live releases use `SXF_SIGNAL_MOTOR_V3_2026_10_24` in the
+  scheduler, durable job key, claim RPCs, immutable evaluations/events and
+  server-side feed.
+- Database migrations:
+  `migrations/2026_10_24_signal_motor_v3_versioned_cutover.sql` and
+  `migrations/2026_10_24_signal_motor_v3_health_scope.sql`.
+- Enqueue permits all audited V1/V2 identities but only V3 is claimable
+  for new checkpoint evaluation or rule-dependent late-T6 reconciliation.
+  In-flight V2 source-skip leases remain fenced and can settle.
+- Previous V1/V2 jobs, attempts, evaluations and signals remain unchanged;
+  historical V2 events continue to be available with explicit LEGACY
+  release metadata. Worker backpressure is V3-scoped, and historical due
+  debt is separately exposed as `historical_pending_due`.
+- This contract does not declare complete fixture coverage, historical
+  backlog clearance, or a production release. Exact SHA, CI, versioned DB
+  readiness, Hetzner deploy and post-release checks remain required.
