@@ -11,13 +11,14 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 V2 = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
+V3 = "SXF_SIGNAL_MOTOR_V3_2026_10_24"
 
 
 def test_new_ruleset_is_explicit_and_all_jobs_get_new_identity():
-    assert RULESET_VERSION == V2
+    assert RULESET_VERSION == V3
     ref = FixtureRef("fake-fixture-uid",datetime(2026,10,22,20,tzinfo=timezone.utc))
     job = CheckpointJob(ref,8,"BASE")
-    assert job.key.startswith(V2 + ":")
+    assert job.key.startswith(V3 + ":")
     assert len(CHECKPOINT_TASKS)==11
 
 
@@ -40,7 +41,7 @@ def test_skip_rpc_is_fenced_to_fresh_v2_jobs():
 
 def test_feed_reads_only_fresh_release_events():
     source = (ROOT/"base_signal_engine/feed.py").read_text()
-    assert '("ruleset_version", "eq.'+V2+'")' in source
+    assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")")' in source
     assert '"sxf_base_signal_events"' in source
     assert '"sxf_base_checkpoint_jobs"' in source
 
