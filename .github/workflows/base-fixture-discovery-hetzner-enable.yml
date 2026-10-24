@@ -55,9 +55,11 @@ jobs:
             sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
             grep -qx 'SXF_BASE_DURABLE_WORKER_APPROVED=yes' /etc/smartxflow/base-worker.env
             grep -qx 'SXF_BASE_COMPOSITE_INDEX_VERIFIED=yes' /etc/smartxflow/base-worker.env
-            for unit in smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-web; do
+            for unit in smartxflow-scraper smartxflow-alarm smartxflow-web; do
               test "$(systemctl is-active "$unit")" = active || { echo "DISCOVERY_STOP: dependency_down=$unit"; exit 1; }
             done
+            test "$(systemctl is-active smartxflow-sinyal.service || true)" != active || { echo "DISCOVERY_STOP: retired_legacy_signal_active"; exit 1; }
+            test "$(systemctl is-enabled smartxflow-sinyal.service || true)" = disabled || { echo "DISCOVERY_STOP: retired_legacy_signal_enabled"; exit 1; }
             /usr/bin/install -m 0640 -o root -g smartxflow /dev/null /etc/smartxflow/base-fixture-discovery.env
             printf '%s\n' 'SXF_BASE_FIXTURE_DISCOVERY_APPROVED=yes' > /etc/smartxflow/base-fixture-discovery.env
             systemctl daemon-reload

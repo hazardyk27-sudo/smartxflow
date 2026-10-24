@@ -1,6 +1,10 @@
 name: Enable autonomous Base signal worker on Hetzner
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/base-autonomous-hetzner-enable.yml'
   workflow_dispatch:
 
 permissions:
@@ -47,9 +51,11 @@ jobs:
             test "$(sudo -u smartxflow git -C /opt/smartxflow branch --show-current)" = main
             sudo -u smartxflow git -C /opt/smartxflow diff --quiet
             sudo -u smartxflow git -C /opt/smartxflow diff --cached --quiet
-            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
               test "$(systemctl is-active "$s")" = active || { echo "ACTIVATION_STOP:old_service_down=$s"; exit 1; }
             done
+            test "$(systemctl is-active smartxflow-sinyal.service || true)" != active || { echo "ACTIVATION_STOP:retired_legacy_signal_active"; exit 1; }
+            test "$(systemctl is-enabled smartxflow-sinyal.service || true)" = disabled || { echo "ACTIVATION_STOP:retired_legacy_signal_enabled"; exit 1; }
             # Existing 24-hour temporary unit is replaced, not duplicated.
             for old in sxf-base-durable-shadow-20261019.service sxf-base-priority-shadow-20261020.service sxf-base-priority-guarded-20261020.service; do
               if [ "$(systemctl is-active "$old" || true)" = active ]; then
@@ -95,7 +101,9 @@ jobs:
             cycles="$(journalctl -u smartxflow-base-worker.service --since '-5 minutes' -o cat --no-pager | grep -c '"mode": "HETZNER_BASE_DURABLE"' || true)"
             test "$cycles" -ge 2 || { echo "AUTONOMOUS_FAILURE:less_than_two_cycles=$cycles"; exit 1; }
             test "$(sudo -u smartxflow git -C /opt/smartxflow rev-parse HEAD)" = "$DEPLOY_SHA"
-            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-sinyal smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
+            for s in smartxflow-web smartxflow-scraper smartxflow-alarm smartxflow-live smartxflow-poly smartxflow-predictor-orchestrator; do
               test "$(systemctl is-active "$s")" = active || { echo "AUTONOMOUS_FAILURE:old_service_down=$s"; exit 1; }
             done
+            test "$(systemctl is-active smartxflow-sinyal.service || true)" != active
+            test "$(systemctl is-enabled smartxflow-sinyal.service || true)" = disabled
             echo "AUTONOMOUS_BASE_24_7_OK sha=$DEPLOY_SHA cycles=$cycles"
