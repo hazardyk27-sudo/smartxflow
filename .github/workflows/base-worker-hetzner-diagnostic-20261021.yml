@@ -37,12 +37,19 @@ jobs:
             pid="$(systemctl show smartxflow-base-worker.service -p MainPID --value)"
             if [ "$pid" -gt 0 ]; then ps -o pid,etime,stat,wchan:28,%cpu,%mem,comm -p "$pid" || true; fi
             echo "SCRAPER_SERVICE_ACTIVE=$(systemctl is-active smartxflow-scraper.service || true)"
+            echo "RECOVERY_TIMER_ACTIVE=$(systemctl is-active smartxflow-base-guarded-recovery.timer || true)"
+            echo "RECOVERY_TIMER_ENABLED=$(systemctl is-enabled smartxflow-base-guarded-recovery.timer || true)"
+            echo "DISCOVERY_SERVICE_ACTIVE=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            echo "DISCOVERY_SERVICE_ENABLED=$(systemctl is-enabled smartxflow-base-fixture-discovery.service || true)"
+            echo "LEGACY_SIGNAL_ENABLED=$(systemctl is-enabled smartxflow-sinyal.service || true)"
+            echo "GUARD_RECENT_DECISIONS"
+            journalctl -u smartxflow-base-guarded-recovery.service --since '-75 minutes' --no-pager -o cat | grep '"mode": "BASE_GUARDED_RECOVERY"' | tail -n 10 || true
             echo "LEGACY_SIGNAL_ACTIVE=$(systemctl is-active smartxflow-sinyal.service || true)"
             echo "BASE_PROCESS_THREADS"
             pid="$(systemctl show smartxflow-base-worker.service -p MainPID --value)"
             if [ "$pid" -gt 0 ]; then ps -L -o pid,tid,etime,stat,wchan:32,comm -p "$pid" | head -n 12 || true; fi
-            echo "BASE_JOURNAL_LAST_45"
-            journalctl -u smartxflow-base-worker.service -n 45 --no-pager -o cat | tail -n 45
+            echo "BASE_JOURNAL_LAST_5"
+            journalctl -u smartxflow-base-worker.service -n 120 --no-pager -o cat | grep -E 'Main process exited|Failed with result|Deactivated successfully|HETZNER_BASE_DURABLE' | tail -n 5 | cut -c1-400 || true
             echo "BASE_DIAG_FINAL_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             echo "BASE_DIAG_FINAL_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
             echo "BASE_DIAG_FINAL_STATE=$(systemctl is-active smartxflow-base-worker.service || true)"
@@ -64,7 +71,7 @@ jobs:
           id="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name | contains("base-health")) | .id' | head -1)"
           test -n "$id"
           gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" > /tmp/base-worker-diagnostic-raw.txt
-          grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|BASE_DIAG_FINAL_|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|ExecMainStartTimestamp=|MemoryCurrent=|TasksCurrent=|CPUUsageNSec=|SCRAPER_SERVICE_ACTIVE=|LEGACY_SIGNAL_ACTIVE=||HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 45 > /tmp/base-worker-diagnostic-sanitized.txt || true
+          grep -E '(DIAGNOSTIC_UTC=|PRODUCTION_SHA=|BASE_WORKER_ENABLED=|BASE_WORKER_ACTIVE=|BASE_DIAGNOSTIC_END|BASE_DIAG_FINAL_|ActiveState=|SubState=|Result=|ExecMainStatus=|NRestarts=|MainPID=|ActiveEnterTimestamp=|InactiveEnterTimestamp=|ExecMainStartTimestamp=|MemoryCurrent=|TasksCurrent=|CPUUsageNSec=|SCRAPER_SERVICE_ACTIVE=|LEGACY_SIGNAL_ACTIVE=|LEGACY_SIGNAL_ENABLED=|RECOVERY_TIMER_ACTIVE=|RECOVERY_TIMER_ENABLED=|DISCOVERY_SERVICE_ACTIVE=|DISCOVERY_SERVICE_ENABLED=|BASE_GUARDED_RECOVERY|HETZNER_BASE_DURABLE|UNCERTAIN)' /tmp/base-worker-diagnostic-raw.txt | tail -n 55 > /tmp/base-worker-diagnostic-sanitized.txt || true
           test -s /tmp/base-worker-diagnostic-sanitized.txt
           CONTENT="$(base64 -w0 /tmp/base-worker-diagnostic-sanitized.txt)"
           DEST="repos/$GITHUB_REPOSITORY/contents/docs/BASE_WORKER_READONLY_DIAGNOSTIC_20261021.txt"
