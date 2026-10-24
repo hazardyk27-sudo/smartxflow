@@ -7889,8 +7889,11 @@ def base_signal_feed_api():
                           (today - timedelta(days=10)).isoformat())
         if first < today - timedelta(days=45) or first > today + timedelta(days=21):
             return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
+        mode = request.args.get('mode', 'current')
+        if mode not in ('current', 'archive'):
+            return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
         days_text = request.args.get('days', '21')
-        if days_text != '21':
+        if days_text != ('1' if mode == 'archive' else '21'):
             return jsonify({'error':'INVALID_DATE_WINDOW'}), 400
         source = BaseSignalsFeed(
             os.environ.get('SUPABASE_URL', ''),
@@ -7899,7 +7902,7 @@ def base_signal_feed_api():
         # Only the ten approved new Sinyal Motoru families are served.
         # No legacy Underdog/Confirmed/FakeSharp/EarlyMoneyLock reads, cards
         # or production signal suggestions. Preserve historical DB audit rows.
-        result = source.read(first, days=21)
+        result = source.read(first, days=int(days_text), archive=(mode == 'archive'))
         result['phase'] = 'SIGNAL_MOTOR'
         result['message'] = 'Sinyal Motoru: yalnız yeni doğrulanmış motor aileleri.'
         return jsonify(result)
