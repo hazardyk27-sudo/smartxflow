@@ -216,6 +216,9 @@
     const obj=await response.json();
     if(!response.ok){
       const githubStatus = Number(obj.http_status);
+      if(obj.error === 'ARCHIVE_ALREADY_VERIFIED'){
+        throw new Error('Bu gün ve saat aralığı arşivi zaten doğrulanmış ve GitHub\u2019a kalıcı kaydedilmiş. Yeniden aktarım başlatılmadı.');
+      }
       if(obj.error === 'ARCHIVE_ALREADY_RUNNING'){
         throw new Error('Bu tarih ve arşiv türü için GitHub\u2019da zaten çalışan veya bekleyen bir aktarım var. İkinci aktarım başlatılmadı.');
       }
