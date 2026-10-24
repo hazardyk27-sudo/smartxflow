@@ -27,7 +27,8 @@ class FakeNode {
   }
   querySelectorAll(selector) {
     const attribute = selector === '[data-day]' ? 'day' :
-      selector === '[data-motor]' ? 'motor' : null;
+      selector === '[data-motor]' ? 'motor' :
+      selector === '[data-ruleset-mode]' ? 'ruleset-mode' : null;
     if (!attribute) return [];
     const key = selector + '\\u0000' + this.innerHTML;
     if (this._queryCache.has(key)) return this._queryCache.get(key);
@@ -43,7 +44,13 @@ class FakeNode {
     return out;
   }
 }
-function setup(data) {
+function setup(data, archiveData) {
+  data.ruleset_mode = data.ruleset_mode || 'CURRENT';
+  (data.items || []).forEach(x => { if (!x.ruleset_status) x.ruleset_status = 'CURRENT'; });
+  if (archiveData) {
+    archiveData.ruleset_mode = 'LEGACY';
+    (archiveData.items || []).forEach(x => { if (!x.ruleset_status) x.ruleset_status = 'LEGACY'; });
+  }
   const els = new Map();
   const document = {
     readyState: 'complete', activeElement: null,
@@ -61,7 +68,8 @@ function setup(data) {
     window: {}, document, console, Date, Intl, Map, Set, Array, String,
     fetch: async (url) => {
       requests.push(url);
-      return { ok: true, json: async () => data };
+      return { ok: true, json: async () => url.includes('mode=archive')
+        ? (archiveData || {status:'ok',ruleset_mode:'LEGACY',items:[]}) : data };
     }
   };
   vm.runInNewContext(js, sandbox, { filename: 'base-signals.js' });
@@ -459,4 +467,38 @@ test('V2 present-time V1 pass never appears as three-hour V2 confirmation',async
   const html=mock.get('sxfSignalContent').innerHTML;
   assert.match(html,/Güncel V1 eşikleri sağlanıyor/);
   assert.match(html,/V2’nin 3 saatlik doğrulaması tekrar yapılmadı/);
+});
+
+
+test('old V2 heavy cannot inflate V3 cards; archived mode is clearly isolated', async () => {
+  const day = todayTR();
+  const currentData = signals(day);
+  currentData.items = [{
+    ...currentData.items[0], id:900, engine:'HEAVY_1X2_CONCENTRATION',
+    home:'Stuttgart', odds:1.38, ruleset_status:'LEGACY', valid_on_time:true
+  }];
+  const archiveData = {
+    status:'ok',items:[{...currentData.items[0],ruleset_status:'LEGACY'}]
+  };
+  const mock = setup(currentData, archiveData);
+  mock.window.openBaseSignalsPanel(); await flush();
+  let html = mock.get('sxfSignalContent').innerHTML;
+  const heavy = mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='HEAVY_1X2_CONCENTRATION');
+  assert.ok(heavy);
+  assert.match(html,/data-ruleset-mode="current"/);
+  assert.doesNotMatch(html, /Stuttgart/);
+  heavy.click();
+  html=mock.get('sxfSignalContent').innerHTML;
+  assert.doesNotMatch(html,/Stuttgart/);
+  const archive = mock.get('sxfSignalContent').querySelectorAll('[data-ruleset-mode]')
+    .find(x=>x.dataset.rulesetMode==='archive' || x.dataset['ruleset-mode']==='archive');
+  assert.ok(archive);
+  archive.click(); await flush();
+  html=mock.get('sxfSignalContent').innerHTML;
+  assert.match(html,/Stuttgart/);
+  assert.match(html,/V2 kayıtları geçmiş dönem kurallarıyla üretildi/);
+  assert.match(html,/Arşiv/);
+  assert.equal(mock.requests.length,2);
+  assert.match(mock.requests[1],/days=1&mode=archive/);
 });
