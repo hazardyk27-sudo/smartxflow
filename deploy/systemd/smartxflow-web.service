@@ -14,7 +14,10 @@ Environment=SMARTXFLOW_MODE=server
 Environment=DISABLE_SCRAPER=true
 # web_runtime installs the server-only Supabase service-role guard before app.py
 # is imported. Desktop/preview client credentials are not changed.
-ExecStart=/opt/smartxflow/venv/bin/gunicorn web_runtime:app --workers 2 --bind 127.0.0.1:8000 --timeout 120 --access-logfile /opt/smartxflow/logs/gunicorn-access.log --error-logfile /opt/smartxflow/logs/gunicorn-error.log --log-level info
+# Browser admin consoles keep /scraper/stream and /alarm-engine/stream open.
+# Two sync workers alone cause complete request starvation and WORKER TIMEOUT.
+# gthread keeps independent request threads for GitHub Archive navigation/status.
+ExecStart=/opt/smartxflow/venv/bin/gunicorn web_runtime:app --worker-class gthread --workers 2 --threads 8 --bind 127.0.0.1:8000 --timeout 120 --access-logfile /opt/smartxflow/logs/gunicorn-access.log --error-logfile /opt/smartxflow/logs/gunicorn-error.log --log-level info
 Restart=always
 RestartSec=5
 
