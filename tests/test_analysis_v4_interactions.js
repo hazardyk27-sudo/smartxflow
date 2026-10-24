@@ -38,6 +38,7 @@ class FakeNode {
     while ((match = regex.exec(this.innerHTML))) {
       const node = new FakeNode(this.ownerDocument, match[1]);
       node.dataset[attribute] = match[1];
+      if (attribute === 'ruleset-mode') node.dataset.rulesetMode = match[1];
       out.push(node);
     }
     this._queryCache.set(key, out);
