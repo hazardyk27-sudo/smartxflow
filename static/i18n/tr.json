@@ -685,6 +685,8 @@
       "late_evaluation": "Geçmişten hesaplandı",
       "records_count": "{count} kayıt",
       "recorded_odds": "Kayıtlı oran",
+      "recorded_money": "Toplam para",
+      "recorded_share": "Para payı",
       "history_count": "{count} checkpoint kaydı",
       "retention_label": "Early süreklilik",
       "retention_passed": "T-3'e kadar korundu",
