@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import pytest
 
-from base_signal_engine.reconcile_runtime import reconcile_once
+from base_signal_engine.reconcile_runtime import reconcile_once, missing_source_reconcile_delay
 from base_signal_engine.rules import Fixture, Quote, Snapshot
 
 UID="ef5c99bf-e002-451b-b401-af9174ad53f0"
@@ -40,7 +40,7 @@ class Store:
         self.calls.append("claim")
         return self.rows
     def retry_reconcile(self,item,*,reason,delay_seconds):
-        self.calls.append(("retry",reason))
+        self.calls.append(("retry",reason,delay_seconds))
     def renew_reconcile(self,item,*,lease_seconds):
         self.calls.append("renew")
         if self.fail=="renew":
@@ -57,7 +57,7 @@ def test_missing_source_is_waiting_without_fake_completion():
     store=Store()
     result=reconcile_once(Reader(provided=False),store,worker_id="worker")
     assert result["waiting_data"]==1 and result["completed"]==0
-    assert store.calls==["claim",("retry","SOURCE_INCOMPLETE")]
+    assert store.calls==["claim",("retry","SOURCE_INCOMPLETE",900)]
 
 
 def test_complete_late_t6_uses_real_row_ids_and_frozen_rule_hits():
@@ -94,3 +94,17 @@ def test_no_reconcile_claims_do_not_read_source():
     store=Store(rows=[])
     result=reconcile_once(object(),store,worker_id="worker")
     assert result["claimed"]==0 and result["completed"]==0
+
+def test_repeated_missing_t6_uses_bounded_backoff_to_unblock_pending():
+    assert [missing_source_reconcile_delay(n) for n in (1, 3, 4, 6, 7, 146)] == [
+        900, 900, 1800, 1800, 3600, 3600]
+    for invalid in (0, -1, True, 1.5):
+        with pytest.raises(ValueError):
+            missing_source_reconcile_delay(invalid)
+
+    old = claim()
+    old["attempt_count"] = 146
+    store = Store(rows=[old])
+    result = reconcile_once(Reader(provided=False), store, worker_id="worker")
+    assert result["waiting_data"] == 1
+    assert store.calls == ["claim", ("retry", "SOURCE_INCOMPLETE", 3600)]
