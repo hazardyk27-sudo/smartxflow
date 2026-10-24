@@ -32,8 +32,11 @@ def _load_scheduled_scraper(monkeypatch):
     core_pkg.__path__ = []
     retention = types.ModuleType("core.retention_guard")
     retention.retention_cleanup_disabled = lambda: True
+    recovery = types.ModuleType("core.prematch_stall_recovery")
+    recovery.should_exit_stale_prematch_loop = lambda **_kwargs: False
     monkeypatch.setitem(sys.modules, "core", core_pkg)
     monkeypatch.setitem(sys.modules, "core.retention_guard", retention)
+    monkeypatch.setitem(sys.modules, "core.prematch_stall_recovery", recovery)
 
     return _load_module("scheduled_scraper_master_test", ROOT / "scheduled_scraper_legacy.py")
 
