@@ -159,7 +159,16 @@ def main(argv=None) -> int:
                               "error_type": type(error).__name__}), file=sys.stderr, flush=True)
             return 3
         except FixtureHorizonUnverified as error:
+            # Every reason below is a fixed internal invariant; do not leak
+            # fixture identifiers, transport details or credentials to logs.
+            allowed = {
+                "durable discovery not initialized": "CURSOR_UNINITIALIZED",
+                "fixture universe exceeds bounded scan cap": "UNIVERSE_CAP",
+                "duplicate frozen checkpoint rules": "CHECKPOINT_RULE_DUPLICATE",
+                "post-enqueue checkpoint coverage incomplete": "COVERAGE_INCOMPLETE",
+            }
             print(json.dumps({"mode": "BASE_FIXTURE_DISCOVERY", "status": "INVALID_UNIVERSE",
+                              "reason": allowed.get(str(error), "UNCLASSIFIED"),
                               "error_type": type(error).__name__}), file=sys.stderr, flush=True)
             return 4
         except Exception as error:
