@@ -1,12 +1,25 @@
-SOURCE_SHA=30cacd8b0980b699308809470f6bba3de86f6503
-PYTEST_EXIT=0
-........................................................................ [ 30%]
-........................................................................ [ 60%]
-........................................................................ [ 91%]
-.....................                                                    [100%]
-237 passed in 0.80s
+SOURCE_SHA=02c3939ff0665e6da82ba6b0b529854f7df94748
+PYTEST_EXIT=1
+    def test_new_ruleset_is_explicit_and_all_jobs_get_new_identity():
+>       assert RULESET_VERSION == V2
+E       AssertionError: assert 'SXF_SIGNAL_M...V3_2026_10_24' == 'SXF_SIGNAL_M...V2_2026_10_22'
+E         
+E         - SXF_SIGNAL_MOTOR_V2_2026_10_22
+E         ?                   ^          ^
+E         + SXF_SIGNAL_MOTOR_V3_2026_10_24
+E         ?                   ^          ^
+
+tests/test_signal_motor_fresh_start_20261022.py:17: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_signal_motor_fresh_start_20261022.py::test_new_ruleset_is_explicit_and_all_jobs_get_new_identity - AssertionError: assert 'SXF_SIGNAL_M...V3_2026_10_24' == 'SXF_SIGNAL_M...V2_2026_10_22'
+  
+  - SXF_SIGNAL_MOTOR_V2_2026_10_22
+  ?                   ^          ^
+  + SXF_SIGNAL_MOTOR_V3_2026_10_24
+  ?                   ^          ^
+1 failed, 239 passed in 0.85s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
