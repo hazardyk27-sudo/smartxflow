@@ -731,26 +731,6 @@ body.sxf-signals-open{overflow:hidden!important}
 
 /* Signal list V7: responsive match cards.  The previous seven-column
    grid assigned 68-86px to multiword status and overlaid adjacent rows. */
-#sxfBaseSignalOverlay .sxf-ruleset-nav{
-  display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;
-  padding:4px;width:max-content;max-width:100%;background:var(--sxf-section);
-  border:1px solid var(--sxf-border);border-radius:11px
-}
-#sxfBaseSignalOverlay .sxf-ruleset-tab{
-  border:0;background:transparent;border-radius:8px;padding:8px 14px;
-  font-size:12px;font-weight:650;color:var(--sxf-secondary)
-}
-#sxfBaseSignalOverlay .sxf-ruleset-tab:hover{color:var(--sxf-text);background:var(--sxf-soft)}
-#sxfBaseSignalOverlay .sxf-ruleset-tab.is-active{
-  color:var(--sxf-green);background:var(--sxf-soft);
-  box-shadow:inset 0 0 0 1px rgba(34,197,94,.25)
-}
-#sxfBaseSignalOverlay .sxf-legacy-warning{
-  padding:12px 14px;margin:0 0 17px;border:1px solid rgba(250,204,21,.22);
-  border-radius:10px;background:rgba(250,204,21,.055);
-  font-size:12px;line-height:1.5;color:var(--sxf-yellow)
-}
-#sxfBaseSignalOverlay .sxf-zero-ruleset{font-size:11px;color:var(--sxf-secondary)}
 #sxfBaseSignalOverlay .sxf-fixture-list{
   display:grid;gap:10px;background:transparent;border:0;min-width:0
 }
@@ -815,12 +795,10 @@ body.sxf-signals-open{overflow:hidden!important}
   #sxfBaseSignalOverlay .sxf-line-odds{justify-self:end;white-space:nowrap}
   #sxfBaseSignalOverlay .sxf-line-state{justify-self:stretch;align-items:flex-start;text-align:left}
   #sxfBaseSignalOverlay .sxf-line-open{align-self:start}
-  #sxfBaseSignalOverlay .sxf-legacy-warning{font-size:11px}
   #sxfBaseSignalOverlay .sxf-fixture-expanded{padding:12px}
 }
 @media(max-width:360px){
   #sxfBaseSignalOverlay .sxf-fixture-summary{column-gap:6px;padding:12px 9px}
-  #sxfBaseSignalOverlay .sxf-ruleset-tab{padding:7px 9px;font-size:11px}
 }
 
 /* Visible price label now that the compressed table header is removed. */
