@@ -614,7 +614,7 @@ class BaseSignalsFeed:
                 "shadow": True,
             })
         results_source_state = self._finished_results(items, fixtures) if items else "ok"
-        if items:
+        if items and not archive:
             self._enrich_current_1x2(items, now=read_as_of)
         items.sort(key=lambda x: (x["kickoff_utc"], x["id"]))
         return {"status":"ok", "phase":"SHADOW", "timezone":"Europe/Istanbul",
