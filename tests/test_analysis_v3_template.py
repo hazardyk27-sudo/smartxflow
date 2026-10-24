@@ -28,7 +28,7 @@ def test_new_analizler_cards_are_not_mocks_or_old_analysts():
     assert "source_checkpoint" in ui and "sxf-signal-row" in ui
     assert "SHADOW" in ui
     assert "renderDates()" in ui and "renderHome()" in ui and "renderDetail()" in ui
-    assert "engineCard(name)" in ui and "fixtureCard(rows)" in ui
+    assert "engineCard(name)" in ui and "fixtureRow(rows)" in ui
     assert "data-motor" in ui and "current.engine = btn.dataset.motor" in ui
     assert "current.engine = null" in ui and "sxfSignalBack" in ui
     for legacy in ("analyst-card","/api/analyses","dummyMatch","MOCK_SIGNAL"):
