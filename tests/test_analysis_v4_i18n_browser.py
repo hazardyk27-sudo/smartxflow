@@ -29,7 +29,7 @@ def main():
     heavy=dict(base,engine="HEAVY_1X2_CONCENTRATION",id=13)
     early=dict(base,engine="EARLY_MONEY_CORE",id=14,checkpoint=72,valid_on_time=False)
     excluded=fixture(now.isoformat(),kickoff,"1X2_CONCENTRATION_V2","Team V2","uid-other")
-    payload={"status":"ok","phase":"SHADOW","results_source_state":"ok",
+    payload={"status":"ok","phase":"SHADOW","results_source_state":"ok","ruleset_mode":"CURRENT",
              "items":[base,v2,heavy,early,excluded]}
     with sync_playwright() as browser_api:
         browser=browser_api.chromium.launch(headless=True)
@@ -72,7 +72,7 @@ def main():
                 assert lex["back_engines"] in body,(viewport,lang)
                 assert page.locator(".sxf-fixture-line").count()==1
                 for key in ("list_col_time","list_col_match","list_col_pick","list_col_engines","list_col_status"):
-                    assert lex[key] in page.locator(".sxf-fixture-list-head").inner_text(),(viewport,lang,key)
+                    assert lex[key] in page.locator(".sxf-fixture-list-head").text_content(),(viewport,lang,key)
                 assert page.locator(".sxf-list-history-group").count()==1
                 assert page.locator(".sxf-line-engines .sxf-direction-badge").all_inner_texts()==["V1","V2","HEAVY","EARLY CORE"]
                 assert page.locator(".sxf-fixture-line").first.get_attribute("open") is None
