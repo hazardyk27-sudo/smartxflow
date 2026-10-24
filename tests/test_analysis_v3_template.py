@@ -25,7 +25,7 @@ def test_new_analizler_cards_are_not_mocks_or_old_analysts():
     assert "fetch('/api/base-signals/feed?start='" in ui
     assert 'window.openBaseSignalsPanel = open' in ui
     assert "Europe/Istanbul" in ui
-    assert "source_checkpoint" in ui and "sxf-signal-card" in ui
+    assert "source_checkpoint" in ui and "sxf-signal-row" in ui
     assert "SHADOW" in ui
     assert "renderDates()" in ui and "renderHome()" in ui and "renderDetail()" in ui
     assert "engineCard(name)" in ui and "fixtureCard(rows)" in ui
@@ -89,6 +89,6 @@ def test_v4_app_native_responsive_design_contract():
     assert "@media(max-height:560px)" in css
     assert "prefers-reduced-motion:reduce" in css
     assert "sxf-signal-date-rail" in css and "sxf-engine-grid" in css
-    assert 'id="sxfBaseSignalTitle" data-i18n="app.v4.title">Analizler</h2>' in html
+    assert 'id="sxfBaseSignalTitle" data-i18n="app.v4.title">Sinyal Motoru</h2>' in html
     assert 'placeholder="Takım, lig veya tercih ara"' in html
     assert 'placeholder:app.v4.search_placeholder' in html
