@@ -19,7 +19,7 @@ WorkingDirectory=/opt/smartxflow
 EnvironmentFile=/opt/smartxflow/.env
 EnvironmentFile=/etc/smartxflow/base-worker.env
 Environment=SXF_BASE_WORKER_ID=prod-autonomous-1
-ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --near-term-discovery --near-term-rotation --priority-lanes --max-jobs 24 --max-reconcile 1 --interval-seconds 30
+ExecStart=/opt/smartxflow/venv/bin/python -m base_signal_engine.hetzner_worker --near-term-discovery --near-term-rotation --priority-lanes --queue-drain-first --max-jobs 24 --max-reconcile 1 --interval-seconds 30
 # Expired DB lease backlog is recovered by atomic claim, not restart-loop exits.\n# Restart on genuine process stalls, *not* on explicitly fenced exit 3/4.
 Restart=on-failure
 # STOP indefinitely on uncertain database lease/commit or missing explicit
