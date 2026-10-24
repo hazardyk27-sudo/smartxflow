@@ -69,7 +69,7 @@ def test_day_navigation_and_modal_accessibility():
     assert "role=\"tablist\"" in html
     assert "aria-selected" in ui
     assert "e.key === 'Escape'" in ui
-    assert "encodeURIComponent(queryDay)" in ui
+    assert "encodeURIComponent(current.start)" in ui
     assert "mode=' + mode" in ui
 
 def test_v4_app_native_responsive_design_contract():
