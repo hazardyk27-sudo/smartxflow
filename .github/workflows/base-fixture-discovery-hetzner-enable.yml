@@ -9,6 +9,8 @@ on:
       - 'deploy/systemd/smartxflow-base-fixture-discovery.service'
       - 'deploy/sync_runtime_units.sh'
       - '.github/workflows/base-fixture-discovery-hetzner-enable.yml'
+      - 'migrations/2026_10_24_base_returned_kickoff_reactivate.sql'
+      - 'migrations/2026_10_24_base_drift_quarantine_fastpath.sql'
 
 permissions:
   contents: read
