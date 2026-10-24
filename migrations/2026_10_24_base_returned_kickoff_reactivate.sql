@@ -110,7 +110,6 @@ BEGIN
         v_added := v_added + v_count;
     END LOOP;
     RETURN v_added;
-END $function$
-
+END $function$;
 
 COMMIT;
