@@ -123,14 +123,16 @@ def test_source_url_and_allowlist_remain_private_and_strict():
     value=_literal_list(['FC "Test", (U21)',"Napoli"])
     assert r'\"' in value and "Napoli" in value
 
-def test_app_route_retains_pro_gate_before_legacy_source_reads():
-    # Contract test: API must never expose service-role credentials or bypass
-    # its existing PRO session gate to fetch old raw signal tables.
+def test_app_route_retains_pro_gate_before_private_base_reads():
+    # Retired legacy motors cannot be exposed. Private Base queries remain
+    # behind the account/PRO gate; no service-role material reaches browsers.
     from pathlib import Path
     app=(Path(__file__).resolve().parents[1]/"app.py").read_text()
     code=app.split("@app.route('/api/base-signals/feed'",1)[1].split("_analyses_cache =",1)[0]
-    assert code.index("if session.get('license_plan') == 'test'") < code.index("LegacySignalsFeed(source)")
-    assert code.index("_legacy_license_session_valid()") < code.index("LegacySignalsFeed(source)")
-    assert code.index("resolve_account_session()") < code.index("LegacySignalsFeed(source)")
+    constructor = "source = BaseSignalsFeed("
+    assert code.index("if session.get('license_plan') == 'test'") < code.index(constructor)
+    assert code.index("_legacy_license_session_valid()") < code.index(constructor)
+    assert code.index("resolve_account_session()") < code.index(constructor)
     assert "os.environ.get('SUPABASE_SERVICE_ROLE_KEY'" in code
-    assert "LegacySignalsFeed(source).read(first, days=21)" in code
+    assert "source.read(first, days=21)" in code
+    assert "LegacySignalsFeed(" not in code
