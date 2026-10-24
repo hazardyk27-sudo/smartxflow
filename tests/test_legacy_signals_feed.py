@@ -134,5 +134,5 @@ def test_app_route_retains_pro_gate_before_private_base_reads():
     assert code.index("_legacy_license_session_valid()") < code.index(constructor)
     assert code.index("resolve_account_session()") < code.index(constructor)
     assert "os.environ.get('SUPABASE_SERVICE_ROLE_KEY'" in code
-    assert "source.read(first, days=21)" in code
+    assert "source.read(first, days=int(days_text), archive=(mode == 'archive'))" in code
     assert "LegacySignalsFeed(" not in code
