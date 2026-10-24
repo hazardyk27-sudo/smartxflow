@@ -167,7 +167,7 @@ def archive_progress():
     if not _admin():
         return jsonify(error="ADMIN_REQUIRED"), 403
     day_str, kind = request.args.get("day", ""), request.args.get("kind", "")
-    if kind not in KINDS or not re.fullmatch(r"20\\d{2}-\\d{2}-\\d{2}", day_str):
+    if kind not in KINDS or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", day_str):
         return jsonify(error="INVALID_ARCHIVE_SELECTION"), 400
     try:
         day = dt.date.fromisoformat(day_str)
@@ -216,13 +216,13 @@ def archive_progress():
         total_markers = [
             int(m.group(1))
             for item in assets
-            if (m := re.fullmatch(r"progress_total_rows_([1-9]\\d*)\\.json", item.get("name", "")))
+            if (m := re.fullmatch(r"progress_total_rows_([1-9]\d*)\.json", item.get("name", "")))
         ]
         expected = total_markers[0] if len(total_markers) == 1 else None
         uploaded = sum(
             int(m.group(1))
             for item in assets
-            if (m := re.search(r"_rows_([1-9]\\d*)\\.jsonl\\.gz$", item.get("name", "")))
+            if (m := re.search(r"_rows_([1-9]\d*)\.jsonl\.gz$", item.get("name", "")))
         )
         receipt = any(item.get("name") == "verification_receipt.json" for item in assets)
         verified = bool(
