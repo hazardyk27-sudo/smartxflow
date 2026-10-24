@@ -172,6 +172,12 @@
     const obj=await response.json();
     if(!response.ok){
       const githubStatus = Number(obj.http_status);
+      if(obj.error === 'ARCHIVE_ALREADY_RUNNING'){
+        throw new Error('Bu tarih ve arşiv türü için GitHub\u2019da zaten çalışan veya bekleyen bir aktarım var. İkinci aktarım başlatılmadı.');
+      }
+      if(obj.error === 'ALREADY_REQUESTED_RECENTLY'){
+        throw new Error('Bu aktarım isteği kısa süre önce gönderildi. Durum ekranını kontrol et.');
+      }
       if(obj.error === 'GITHUB_DISPATCH_REJECTED'){
         const reason = githubStatus === 401 ? 'GitHub tokenı geçersiz veya süresi dolmuş.'
           : githubStatus === 403 ? 'GitHub tokenına Actions: Read and write yetkisi verilmeli.'
