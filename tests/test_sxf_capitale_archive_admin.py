@@ -51,9 +51,11 @@ class ArchiveAdminTests(unittest.TestCase):
     def test_github_dispatch_http_error_is_retained_for_diagnostics(self):
         from urllib.error import HTTPError
         h = self.admin()
-        with patch.object(bridge, "_github_request",
-                          side_effect=HTTPError("https://api.github.com/...", 403,
-                                                "Forbidden", {}, None)):
+        def fail_dispatch_only(url, method="GET", payload=None):
+            if method == "POST":
+                raise HTTPError("https://api.github.com/...", 403, "Forbidden", {}, None)
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=fail_dispatch_only):
             r = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
                                  json={"day": "2026-10-09", "kind": "concentrated"})
         self.assertEqual(r.status_code, 502)
