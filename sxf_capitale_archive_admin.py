@@ -19,6 +19,8 @@ from flask import Blueprint, jsonify, render_template, request, session
 blueprint = Blueprint("sxf_capitale_archive_admin", __name__)
 REPO = "hazardyk27-sudo/capitale"
 WORKFLOW = "sxf-admin-archive.yml"
+WINDOW_WORKFLOW = "sxf-kickoff-window-archive.yml"
+SCOPES = {"all", "kickoff16_24"}
 BRANCH = "main"
 KINDS = {"full_snapshots", "concentrated"}
 MIN_DAY = dt.date(2026, 10, 9)
@@ -91,6 +93,10 @@ def archive_dispatch():
     data = request.get_json(silent=True) or {}
     day_str = data.get("day")
     kind = data.get("kind")
+    scope = data.get("scope", "all")
+    if scope not in SCOPES:
+        return jsonify(error="INVALID_ARCHIVE_SCOPE"), 400
+    workflow = WINDOW_WORKFLOW if scope == "kickoff16_24" else WORKFLOW
     if not isinstance(day_str, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day_str):
         return jsonify(error="INVALID_DATE"), 400
     try:
@@ -105,7 +111,7 @@ def archive_dispatch():
         return jsonify(error="GITHUB_TOKEN_NOT_CONFIGURED"), 503
 
     # Best-effort duplicate-click protection; GitHub Release tags are the final idempotence guard.
-    key = day_str + ":" + kind
+    key = day_str + ":" + kind + ":" + scope
     recently = session.get("sxf_capitale_archive_recent", {})
     now = int(time.time())
     if now - int(recently.get(key, 0)) < 120:
@@ -116,7 +122,7 @@ def archive_dispatch():
     try:
         active = next(
             (r for r in _archive_runs_for_workflows()
-             if _run_matches_day(r, day, kind)
+             if _run_matches_day(r, day, kind, scope=scope)
              and r.get("status") in ("queued", "pending", "waiting", "requested", "in_progress")),
             None,
         )
@@ -130,7 +136,7 @@ def archive_dispatch():
         return jsonify(error="ARCHIVE_ALREADY_RUNNING",
                        day=day_str, kind=kind,
                        existing_run_url=active.get("html_url")), 409
-    url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/dispatches"
+    url = f"https://api.github.com/repos/{REPO}/actions/workflows/{workflow}/dispatches"
     try:
         _github_request(url, "POST", {
             "ref": BRANCH,
@@ -149,8 +155,8 @@ def archive_dispatch():
     return jsonify(
         status="QUEUED_NOT_ARCHIVED",
         day=day_str,
-        kind=kind,
-        actions_url=f"https://github.com/{REPO}/actions/workflows/{WORKFLOW}",
+        kind=kind, scope=scope,
+        actions_url=f"https://github.com/{REPO}/actions/workflows/{workflow}",
         note="Success requires full GitHub Actions source-to-Release download/hash/restore validation.",
     ), 202
 
@@ -158,7 +164,8 @@ def archive_dispatch():
 def _archive_runs_for_workflows():
     """All kinds of SXF Actions runs, including two-day batch launches."""
     results = []
-    for workflow in ("sxf-admin-archive.yml", "sxf-raw-two-day-batch.yml"):
+    for workflow in ("sxf-admin-archive.yml", "sxf-raw-two-day-batch.yml",
+                     WINDOW_WORKFLOW):
         endpoint = (f"https://api.github.com/repos/{REPO}/actions/"
                     f"workflows/{workflow}/runs?per_page=30")
         results.extend(_github_request(endpoint).get("workflow_runs", []))
@@ -166,8 +173,11 @@ def _archive_runs_for_workflows():
     return results
 
 
-def _run_matches_day(run: dict, day: dt.date, kind: str) -> bool:
+def _run_matches_day(run: dict, day: dt.date, kind: str,
+                     scope: str = "all") -> bool:
     title = run.get("display_title", "")
+    if scope == "kickoff16_24":
+        return title == f"SXF {day} / {kind} / 16-24"
     if title == f"SXF {day} / {kind}":
         return True
     if kind != "full_snapshots":
@@ -269,6 +279,9 @@ def archive_progress():
     if not _admin():
         return jsonify(error="ADMIN_REQUIRED"), 403
     day_str, kind = request.args.get("day", ""), request.args.get("kind", "")
+    scope = request.args.get("scope", "all")
+    if scope not in SCOPES:
+        return jsonify(error="INVALID_ARCHIVE_SCOPE"), 400
     if kind not in KINDS or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", day_str):
         return jsonify(error="INVALID_ARCHIVE_SELECTION"), 400
     try:
@@ -278,10 +291,11 @@ def archive_progress():
     if not MIN_DAY <= day <= dt.datetime.now(ZoneInfo("Europe/Istanbul")).date():
         return jsonify(error="DATE_OUT_OF_RANGE"), 400
 
-    tag = f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-{day}-v1"
+    suffix = "-kickoff16-24" if scope == "kickoff16_24" else ""
+    tag = f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-{day}{suffix}-v1"
     try:
         runs = _archive_runs_for_workflows()
-        candidates = [run for run in runs if _run_matches_day(run, day, kind)]
+        candidates = [run for run in runs if _run_matches_day(run, day, kind, scope=scope)]
         # If a duplicate request is pending while the older batch is actually
         # exporting this day, prefer the running job over the queued duplicate.
         matching = next((run for run in candidates if run.get("status") == "in_progress"),
@@ -352,8 +366,11 @@ def archive_progress():
             if (m := re.fullmatch(r"progress_total_rows_([1-9]\d*)\.json", item.get("name", "")))
         ]
         release_expected = total_markers[0] if len(total_markers) == 1 else None
+        # The daily source manifest lists every kickoff. Never display its
+        # total for the selected 16:00–24:00 window.
         fallback_expected = (_expected_from_source_inventory(day, kind)
-                             if release_expected is None and matching else None)
+                             if release_expected is None and matching and scope == "all"
+                             else None)
         expected = release_expected if release_expected is not None else fallback_expected
         count_source = ("GITHUB_RELEASE" if release_expected is not None
                         else "SOURCE_INVENTORY" if fallback_expected is not None
@@ -379,7 +396,7 @@ def archive_progress():
         else:
             status, percent = "BEKLİYOR", None
         return jsonify(
-            day=day_str, kind=kind, status=status, percent=percent,
+            day=day_str, kind=kind, scope=scope, status=status, percent=percent,
             expected_rows=expected, uploaded_rows=uploaded,
             remaining_rows=max(0, expected - uploaded) if expected is not None else None,
             verified=verified, release_tag=tag, release_error=release_error,
