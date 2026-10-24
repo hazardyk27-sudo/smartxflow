@@ -16,8 +16,8 @@ from .rules import (
     evaluate_early, evaluate_early_t12, select_snapshot,
 )
 
-# Isolated release identity: never reclaim pre-cutover pending or waiting jobs.
-RULESET_VERSION = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
+# Prospective V3 release identity: V1/V2 immutable history remains untouched.
+RULESET_VERSION = "SXF_SIGNAL_MOTOR_V3_2026_10_24"
 INGESTION_GRACE = timedelta(minutes=10)
 # Early's T-5/T-4/T-3 checkpoints are retention ONLY, not Base triggers.
 CHECKPOINT_TASKS = (
