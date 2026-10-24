@@ -5,7 +5,7 @@
   var DAY_MS = 86400000;
   var overlay, rail, content, summary, notice, searchWrap;
   var priorFocus = null;
-  var current = { start: '', day: '', engine: null, archive: false, search: '', payload: null, seq: 0 };
+  var current = { start: '', day: '', engine: null, search: '', payload: null, seq: 0 };
   var ENGINES = {
     EARLY_MONEY_CORE: { name: 'Early Money Core', description: 'Erken para hareketleri', market: 'PARA AKIŞI', code: 'EM' },
     EARLY_MONEY_T12: { name: 'Early Money T-12', description: 'T-12 erken hareketleri', market: 'PARA AKIŞI', code: 'T12' },
@@ -123,17 +123,16 @@
     return !!(overlay && rail && content && summary && notice && searchWrap);
   }
   function items() {
-    var required = current.archive ? 'LEGACY' : 'CURRENT';
+    var required = 'CURRENT';
     if (!current.payload || current.payload.ruleset_mode !== required ||
         !Array.isArray(current.payload.items)) return [];
     return current.payload.items.filter(function (x) {
-      // Stale or mixed API responses must never reintroduce V2 labels in V3.
+      // Stale or mixed API responses must never reintroduce retired ruleset labels.
       if (!Object.prototype.hasOwnProperty.call(ENGINES, x.engine) ||
           x.ruleset_status !== required || x.selection_status !== 'ELIGIBLE' ||
           x.review_state === 'PRICE_REJECTED' ||
           typeof x.odds !== 'number' || !isFinite(x.odds) || x.odds < 1.30)
         return false;
-      if (current.archive) return true;
       var bands = {
         '1X2_CONCENTRATION_V1':[1.40,2.50],
         '1X2_CONCENTRATION_V2':[1.40,2.50],
@@ -146,43 +145,6 @@
       };
       var limit = bands[x.engine];
       return !limit || (x.odds >= limit[0] && x.odds <= limit[1]);
-    });
-  }
-  var MODE_WORDS = {
-    tr:['Güncel V3','Eski V2 arşivi','V2 kayıtları geçmiş dönem kurallarıyla üretildi. Güncel V3 sinyali değildir.','Güncel kurallarla doğrulanmış kayıt yok.'],
-    en:['Current V3','Legacy V2 archive','V2 records were generated under previous rules. They are not current V3 signals.','No record verified under current rules.'],
-    de:['Aktuell V3','Altes V2-Archiv','V2-Einträge stammen aus früheren Regeln. Sie sind keine aktuellen V3-Signale.','Keine nach aktuellen Regeln bestätigten Einträge.'],
-    fr:['V3 actuel','Archives V2','Les données V2 suivent d’anciennes règles. Elles ne sont pas des signaux V3 actuels.','Aucun signal confirmé selon les règles actuelles.'],
-    nl:['Actueel V3','Oud V2-archief','V2-gegevens volgen oudere regels. Het zijn geen actuele V3-signalen.','Geen signalen bevestigd volgens de huidige regels.'],
-    it:['V3 attuale','Archivio V2','I record V2 usano regole precedenti. Non sono segnali V3 attuali.','Nessun segnale confermato con le regole attuali.'],
-    es:['V3 actual','Archivo V2','Los registros V2 siguen reglas anteriores. No son señales V3 actuales.','No hay señales verificadas con las reglas actuales.']
-  };
-  function modeWord(index) {
-    var lang = window.SXFI18n && window.SXFI18n.current && window.SXFI18n.current();
-    return (MODE_WORDS[lang] || MODE_WORDS.tr)[index];
-  }
-  function modeControls() {
-    return '<nav class="sxf-ruleset-nav" aria-label="SXF ruleset">' +
-      '<button type="button" data-ruleset-mode="current" class="sxf-ruleset-tab' +
-      (!current.archive ? ' is-active' : '') + '" aria-pressed="' +
-      (!current.archive) + '">' + esc(modeWord(0)) + '</button>' +
-      '<button type="button" data-ruleset-mode="archive" class="sxf-ruleset-tab' +
-      (current.archive ? ' is-active' : '') + '" aria-pressed="' +
-      current.archive + '">' + esc(modeWord(1)) + '</button></nav>' +
-      (current.archive ? '<p class="sxf-legacy-warning" role="note">' +
-        esc(modeWord(2)) + '</p>' : '');
-  }
-  function wireModeControls() {
-    content.querySelectorAll('[data-ruleset-mode]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var next = btn.dataset.rulesetMode === 'archive';
-        if (next === current.archive) return;
-        current.archive = next;
-        current.search = '';
-        var search = document.getElementById('sxfSignalSearch');
-        if (search) search.value = '';
-        load();
-      });
     });
   }
   function engineIds() {
@@ -229,8 +191,7 @@
     rail.querySelectorAll('[data-day]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         current.day = btn.dataset.day;
-        if (current.archive) load();
-        else render();
+        render();
       });
     });
     var active = rail.querySelector('.is-active');
@@ -266,11 +227,9 @@
       '</button>';
   }
   function timelySignalCount(rows) {
-    return current.archive ? 0 : rows.filter(function (item) { return item.valid_on_time === true; }).length;
+    return rows.filter(function (item) { return item.valid_on_time === true; }).length;
   }
   function recordsSummary(rows) {
-    if (current.archive) return fmt('records_count','{count} kayıt',{count:rows.length}) +
-      ' · V2';
     return fmt('signals_count','{count} sinyal',{count:timelySignalCount(rows)}) +
       ' · ' + fmt('records_count','{count} kayıt',{count:rows.length});
   }
@@ -438,7 +397,7 @@
     var representative = directions[0].find(function (r) {
       return r.engine === current.engine;
     }) || directions[0][0];
-    var nowText = current.archive ? '' : representative.engine === 'EARLY_MONEY_CORE' ?
+    var nowText = representative.engine === 'EARLY_MONEY_CORE' ?
       retentionLabel(representative) : liveCheckLabel(representative);
     var nowFlag = representative.engine === 'EARLY_MONEY_CORE' ?
       (representative.retention && representative.retention.status === 'BROKEN' ? 'is-broken' :
@@ -476,14 +435,13 @@
       fmt('match_count','{count} maç',{count:fixturesCount(rows)}) + ' / ' +
       recordsSummary(rows);
     searchWrap.hidden = true;
-    content.innerHTML = modeControls() + '<div class="sxf-directory-header"><div><span class="sxf-eyebrow">' +
+    content.innerHTML = '<div class="sxf-directory-header"><div><span class="sxf-eyebrow">' +
       esc(t('directory_eyebrow','SİNYAL MOTORLARI')) + '</span><h3>' +
       esc(t('choose_engine','Bir motor seç')) + '</h3><p>' +
       esc(t('choose_engine_desc','Seçtiğin günün maçlarını motor bazında görüntüle.')) +
       '</p></div><span class="sxf-directory-total">' +
       esc(fmt('engines_count','{count} motor',{count:entries.length})) + '</span></div>' +
       '<div class="sxf-engine-grid">' + cards + '</div>';
-    wireModeControls();
     content.querySelectorAll('[data-motor]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         current.engine = btn.dataset.motor;
@@ -522,7 +480,7 @@
       fmt('match_count','{count} maç',{count:fixturesCount(source)}) + ' / ' +
       recordsSummary(source);
     searchWrap.hidden = false;
-    var html = modeControls() + '<div class="sxf-detail-head"><button class="sxf-back" type="button" ' +
+    var html = '<div class="sxf-detail-head"><button class="sxf-back" type="button" ' +
       'id="sxfSignalBack">' + esc(t('back_engines','← Tüm motorlar')) +
       '</button><div class="sxf-detail-caption"><span class="sxf-eyebrow">' +
       esc(descriptor ? engineCategory(current.engine, descriptor) : t('cat_signal','SİNYAL')) +
@@ -536,7 +494,6 @@
       html += '<div class="sxf-zero"><span class="sxf-zero-icon">◇</span>' +
         '<h4>' + esc(t('empty_title','Bu gün için maç bulunmuyor')) +
         '</h4><p>' + esc(t('empty_desc','Seçili motor için bu tarihte tamamlanmış bir sinyal kaydı yok.')) +
-        '</p><p class="sxf-zero-ruleset">' + esc(current.archive ? modeWord(2) : modeWord(3)) +
         '</p>' + (last ? '<button id="sxfSignalShowLast" type="button" class="sxf-retry">' +
           esc(fmt('show_last','{date} sinyallerini göster', {date:dateTitle(last)})) +
           '</button>' : '') + '</div>';
@@ -554,7 +511,6 @@
         Array.from(groups.values()).map(fixtureRow).join('') + '</div>';
     }
     content.innerHTML = html;
-    wireModeControls();
     var showLast = document.getElementById('sxfSignalShowLast');
     if (last && showLast) showLast.addEventListener('click', function () {
       current.day = last;
@@ -632,11 +588,8 @@
       esc(t('loading_engines','Motor kayıtları yükleniyor…')) + '</p></div>';
     var headers = {};
     if (window.userLicenseKey) headers['X-License-Key'] = window.userLicenseKey;
-    var queryDay = current.archive ? current.day : current.start;
-    var queryDays = current.archive ? 1 : 21;
-    var mode = current.archive ? 'archive' : 'current';
-    return fetch('/api/base-signals/feed?start=' + encodeURIComponent(queryDay) +
-      '&days=' + queryDays + '&mode=' + mode, {
+    return fetch('/api/base-signals/feed?start=' + encodeURIComponent(current.start) +
+      '&days=21', {
       credentials: 'same-origin', headers: headers
     }).then(function (response) {
       return response.json().then(function (data) {
@@ -645,7 +598,7 @@
           err.code = data.error;
           throw err;
         }
-        if (data.ruleset_mode !== (current.archive ? 'LEGACY' : 'CURRENT')) {
+        if (data.ruleset_mode !== 'CURRENT') {
           var incompatible = new Error('STALE_RULESET_RESPONSE');
           incompatible.code = 'SIGNAL_DATA_UNAVAILABLE';
           throw incompatible;
@@ -685,7 +638,6 @@
     current.start = dayShift(today, -10);
     current.day = today;
     current.engine = null;
-    current.archive = false;
     current.search = '';
     current.payload = null;
     current.errorCode = null;
