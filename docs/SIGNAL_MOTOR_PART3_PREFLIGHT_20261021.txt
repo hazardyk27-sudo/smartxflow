@@ -1,11 +1,10 @@
-SOURCE_SHA=e67f76a491a8850b1e6485669a91e885cfcaaa55
+SOURCE_SHA=49d99b467115bd47be63de2e0788851075ef6d2a
 PYTEST_EXIT=1
-        fn=app.split("def base_signal_feed_api():",1)[1].split("_analyses_cache",1)[0]
-        assert "LegacySignalsFeed" not in fn
->       assert "source.read(first, days=21)" in fn
-E       assert 'source.read(first, days=21)' in "\n    if session.get('license_plan') == 'test':\n        return jsonify({'error':'PRO_REQUIRED'}), 403\n\n    # An ac...rivate source read or integrity check failed')\n        return jsonify({'error':'SIGNAL_DATA_UNAVAILABLE'}), 503\n\n\n"
-
-tests/test_signal_motor_daily_skip_20261021.py:95: AssertionError
+..............F......................................................... [ 29%]
+........................................................................ [ 59%]
+........................................................................ [ 88%]
+...........................                                              [100%]
+=================================== FAILURES ===================================
 __________________ test_feed_reads_only_fresh_release_events ___________________
 
     def test_feed_reads_only_fresh_release_events():
@@ -15,9 +14,8 @@ E       assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULE
 
 tests/test_signal_motor_fresh_start_20261022.py:44: AssertionError
 =========================== short test summary info ============================
-FAILED tests/test_signal_motor_daily_skip_20261021.py::test_legacy_five_removed_from_api_and_ui_and_old_writer_disabled - assert 'source.read(first, days=21)' in "\n    if session.get('license_plan') == 'test':\n        return jsonify({'error':'PRO_REQUIRED'}), 403\n\n    # An ac...rivate source read or integrity check failed')\n        return jsonify({'error':'SIGNAL_DATA_UNAVAILABLE'}), 503\n\n\n"
 FAILED tests/test_signal_motor_fresh_start_20261022.py::test_feed_reads_only_fresh_release_events - assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")")' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-2 failed, 241 passed in 1.17s
+1 failed, 242 passed in 1.37s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
