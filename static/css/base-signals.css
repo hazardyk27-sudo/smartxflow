@@ -645,6 +645,16 @@ body.sxf-signals-open{overflow:hidden!important}
   font-size:10px;line-height:1.35
 }
 #sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-entry:last-child{border-bottom:0}
+#sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-money{
+  display:inline-flex;align-items:baseline;flex-wrap:wrap;
+  gap:4px 13px;min-width:0;color:var(--sxf-secondary)
+}
+#sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-money > span{white-space:nowrap}
+#sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-money small{font-size:10px}
+#sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-money b{
+  color:var(--sxf-text);font-family:'JetBrains Mono',monospace;
+  font-variant-numeric:tabular-nums;font-weight:600
+}
 #sxfBaseSignalOverlay .sxf-fixture-expanded .sxf-history-price{margin-left:auto}
 @media(max-width:950px){
   #sxfBaseSignalOverlay .sxf-fixture-list-head,
