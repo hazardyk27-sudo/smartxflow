@@ -37,6 +37,7 @@ def fixture(day: str, kickoff: str, motor: str, label: str, uid: str):
         "observed_at": kickoff,
         "selection_status": "ELIGIBLE",
         "review_state": "VALID_PREMATCH_RECORD",
+        "ruleset_status": "CURRENT",
     }
 
 def main():
@@ -52,7 +53,7 @@ def main():
     day = tr_now.date().isoformat()
     kickoff = datetime.combine(tr_now.date(), time(18, 0), ZoneInfo("Europe/Istanbul")).astimezone(timezone.utc).isoformat()
     payload = {
-        "status": "ok", "phase": "SHADOW", "engines": [
+        "status": "ok", "phase": "SHADOW", "ruleset_mode": "CURRENT", "engines": [
             "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
             "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
             "STABLE_OVER_2_5", "PREMIUM_OVER_2_5",
