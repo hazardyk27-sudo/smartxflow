@@ -168,7 +168,13 @@ def _archive_runs_for_workflows():
                      WINDOW_WORKFLOW):
         endpoint = (f"https://api.github.com/repos/{REPO}/actions/"
                     f"workflows/{workflow}/runs?per_page=30")
-        results.extend(_github_request(endpoint).get("workflow_runs", []))
+        try:
+            results.extend(_github_request(endpoint).get("workflow_runs", []))
+        except HTTPError as exc:
+            # Newly added workflow might not be indexed by GitHub until the
+            # first dispatch. Other HTTP failures must remain visible.
+            if workflow != WINDOW_WORKFLOW or exc.code != 404:
+                raise
     results.sort(key=lambda r: r.get("created_at", ""), reverse=True)
     return results
 
