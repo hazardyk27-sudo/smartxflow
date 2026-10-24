@@ -6,7 +6,7 @@ import pytest
 
 from base_signal_engine.feed import (
     BaseFeedUnavailable, BaseSignalsFeed, TR_TZ, parse_day,
-    LEGACY_RULESET_VERSION, RULESET_VERSION,
+    RULESET_VERSION,
 )
 
 UID = str(uuid4())
@@ -651,20 +651,22 @@ def test_as_of_clock_requires_timezone():
         _feed(Source(day)).read(day,as_of_utc=datetime(2026,10,23,12))
 
 
-def test_current_feed_fails_closed_on_legacy_heavy_and_archives_it_separately():
+def test_only_one_active_ruleset_is_read_and_legacy_events_never_surface():
     start = _day()
     legacy = _event(start, ident=821, engine="HEAVY_1X2_CONCENTRATION")
-    legacy["ruleset_version"] = LEGACY_RULESET_VERSION
+    legacy["ruleset_version"] = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
     legacy["details"]["odds"] = "1.38"
     source = Source(start, events=[legacy])
     current = _feed(source).read(start)
     assert current["ruleset_mode"] == "CURRENT"
+    assert current["ruleset_version"] == RULESET_VERSION
     assert current["items"] == []
-    archived = _feed(source).read(start + timedelta(days=2), days=1, archive=True)
-    assert archived["ruleset_mode"] == "LEGACY"
-    assert len(archived["items"]) == 1
-    assert archived["items"][0]["ruleset_status"] == "LEGACY"
-    assert archived["items"][0]["odds"] == 1.38
+    event_queries = [dict(params) for url,params,_ in source.calls
+                     if url.endswith("sxf_base_signal_events")]
+    assert event_queries
+    assert all(q["ruleset_version"] == "eq." + RULESET_VERSION for q in event_queries)
+    # The retired event is not deleted or rewritten, only excluded.
+    assert source.events[0]["ruleset_version"] != RULESET_VERSION
 
 
 def test_v3_heavy_price_floor_is_checked_independently_of_stored_eligibility():
@@ -678,6 +680,6 @@ def test_v3_heavy_price_floor_is_checked_independently_of_stored_eligibility():
     assert out["items"][0]["ruleset_status"] == "CURRENT"
 
 
-def test_archive_scope_is_one_day_only():
-    with pytest.raises(ValueError, match="one day"):
-        _feed(Source(_day())).read(_day(), days=21, archive=True)
+def test_retired_archive_read_parameter_is_not_supported():
+    with pytest.raises(TypeError, match="archive"):
+        _feed(Source(_day())).read(_day(), days=1, archive=True)
