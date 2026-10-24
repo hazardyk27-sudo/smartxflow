@@ -1,12 +1,25 @@
-SOURCE_SHA=b7bfd8b9d6b2a21815449a7ee8a36e67ba904a18
-PYTEST_EXIT=0
-........................................................................ [ 30%]
-........................................................................ [ 60%]
-........................................................................ [ 90%]
-........................                                                 [100%]
-240 passed in 1.60s
+SOURCE_SHA=d53ac4b93c29656138912e0e7bf1228eb611031e
+PYTEST_EXIT=1
+FAILED tests/test_base_signals_feed.py::test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges - AssertionError: assert [] == ['1X2_CONCENTRATION_V1']
+  
+  Right contains one more item: '1X2_CONCENTRATION_V1'
+  
+  Full diff:
+  + []
+  - [
+  -     '1X2_CONCENTRATION_V1',
+  - ]
+FAILED tests/test_base_signals_feed.py::test_retroactive_signal_remains_audit_record_not_timely_pick - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_timely_eligible_signal_is_countable - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_corrected_reconciliation_is_not_fresh_signal_even_with_eligible_state - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_scheduler_source_grace_plus_worker_budget_allows_twelve_minutes - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_three_hour_backlog_delay_stays_archived_even_before_kickoff - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_retention_uses_each_finished_checkpoint_not_early_overall_flag - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_retention_break_never_recovers_and_is_side_and_checkpoint_scoped - IndexError: list index out of range
+FAILED tests/test_base_signals_feed.py::test_retention_no_audit_after_kickoff_fails_closed_incomplete - IndexError: list index out of range
+41 failed, 199 passed in 1.50s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
