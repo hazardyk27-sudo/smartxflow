@@ -36,11 +36,14 @@ def test_v3_cutover_never_rewrites_existing_events_or_jobs():
         assert forbidden not in sql
 
 
-def test_v2_events_remain_in_feed_with_explicit_version_metadata():
+def test_retired_ruleset_events_remain_auditable_but_are_never_served():
     source = (ROOT / "base_signal_engine/feed.py").read_text()
-    assert "LEGACY_RULESET_VERSION = " in source
-    assert '"ruleset_status": ("CURRENT"' in source
-    assert '"ruleset_version": row.get("ruleset_version")' in source
+    assert "LEGACY_RULESET_VERSION" not in source
+    assert '("ruleset_version", "eq." + RULESET_VERSION)' in source
+    assert 'if row.get("ruleset_version") != RULESET_VERSION:' in source
+    assert '"ruleset_status": "CURRENT"' in source
+    assert '"ruleset_mode":"CURRENT"' in source
+    assert "archive: bool = False" not in source
     assert 'and (uid, market, kickoff,' in source
     assert 'history = retention.get((uid, kickoff, selection, source_h,' in source
 
