@@ -95,6 +95,57 @@ class ArchiveAdminTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
                          json={"day": "2026-10-09", "kind": "concentrated"}).status_code, 409)
 
+    def test_kickoff_window_dispatch_uses_separate_workflow_and_scope(self):
+        h = self.admin()
+        p = {"day": "2026-10-11", "kind": "full_snapshots", "scope": "kickoff16_24"}
+        resp = self.client.post("/api/admin/sxf-archive/dispatch", headers=h, json=p)
+        self.assertEqual(resp.status_code, 202)
+        self.assertEqual(resp.json["scope"], "kickoff16_24")
+        posts = [(u, payload) for u, method, payload in self.requests if method == "POST"]
+        self.assertEqual(len(posts), 1)
+        self.assertIn("/sxf-kickoff-window-archive.yml/dispatches", posts[0][0])
+        self.assertEqual(posts[0][1]["inputs"], {
+            "day": "2026-10-11", "archive_kind": "full_snapshots"
+        })
+        self.assertEqual(
+            self.client.post("/api/admin/sxf-archive/dispatch", headers=h, json=p).status_code,
+            409,
+        )
+
+    def test_invalid_kickoff_scope_rejected_before_github(self):
+        h = self.admin()
+        resp = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
+                                json={"day": "2026-10-11", "kind": "concentrated",
+                                      "scope": "arbitrary"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json["error"], "INVALID_ARCHIVE_SCOPE")
+        self.assertEqual(self.requests, [])
+
+    def test_kickoff_scope_does_not_use_full_day_inventory_for_percentage(self):
+        self.admin()
+        def fake(url, method="GET", payload=None):
+            if "sxf-kickoff-window-archive.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "display_title": "SXF 2026-10-11 / full_snapshots / 16-24",
+                    "status": "in_progress", "conclusion": None,
+                    "created_at": "2026-10-24T12:00:00Z",
+                }]}
+            if "/releases/tags/" in url:
+                from urllib.error import HTTPError
+                raise HTTPError(url, 404, "no release", {}, None)
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=fake):
+            r = self.client.get(
+                "/api/admin/sxf-archive/progress?day=2026-10-11"
+                "&kind=full_snapshots&scope=kickoff16_24"
+            )
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["scope"], "kickoff16_24")
+        self.assertIsNone(r.json["expected_rows"])
+        self.assertIsNone(r.json["percent"])
+        self.assertEqual(r.json["release_tag"], "sxf-raw-2026-10-11-kickoff16-24-v1")
+        self.assertFalse(r.json["verified"])
+
     def test_progress_counts_only_git_hub_uploaded_rows(self):
         self.admin()
         def remote(url, method="GET", payload=None):
