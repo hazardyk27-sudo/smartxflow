@@ -1,25 +1,12 @@
-SOURCE_SHA=121ac545a01b28244535153fcc6db84801365169
-PYTEST_EXIT=1
-            def enqueue(self,fixtures):
-                self.enqueued=list(fixtures)
-                return len(fixtures)*11
-            def advance_discovery(self,item,*,end,fixture_count):
-                self.advanced_count=fixture_count
-        store=Store()
->       result=discovery.discover_window_once(
-            object(),store,worker_id="worker",now=AT,catalog=Catalog(),
-            window_hours=1,future_only=True)
-E       TypeError: discover_window_once() got an unexpected keyword argument 'future_only'
-
-tests/test_base_backlog_throughput_20261021.py:229: TypeError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_real_119_fixture_dense_hour_splits_and_resumes_without_drops - NameError: name 'future_only' is not defined
-FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_single_timestamp_over_limit_fails_closed_without_cursor_advance - NameError: name 'future_only' is not defined
-FAILED tests/test_signal_motor_dense_discovery_20261022.py::test_small_window_keeps_single_hour_behavior - NameError: name 'future_only' is not defined
-FAILED tests/test_base_backlog_throughput_20261021.py::test_cursor_future_only_preserves_source_window_audit_and_data - TypeError: discover_window_once() got an unexpected keyword argument 'future_only'
-4 failed, 246 passed in 1.42s
+SOURCE_SHA=8ef690519a7e61bd808c0a4d0e5f00a5169970ab
+PYTEST_EXIT=0
+........................................................................ [ 28%]
+........................................................................ [ 57%]
+........................................................................ [ 86%]
+..................................                                       [100%]
+250 passed in 1.10s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
