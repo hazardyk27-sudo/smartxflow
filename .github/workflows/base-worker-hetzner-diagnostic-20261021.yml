@@ -1,4 +1,5 @@
 name: Read-only Hetzner Base worker diagnostic 2026-10-21 (Moneyway source handoff)
+# Re-run for queue-first worker restart failure on 2026-10-24; no remote mutations.
 
 on:
   push:
