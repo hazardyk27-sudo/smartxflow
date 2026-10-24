@@ -17,7 +17,7 @@
     .kind input{width:18px;height:18px;accent-color:var(--blue);vertical-align:middle;margin-right:9px}
     .kind strong{font-size:16px}.kind span{display:block;padding-left:31px;margin-top:8px;color:var(--muted);font-size:13px}
     label.caption{display:block;color:var(--muted);margin-bottom:8px}
-    input[type=date]{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
+    input[type=date],select{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
     button{border:0;border-radius:9px;background:#238636;color:white;padding:12px 20px;font:600 15px system-ui;cursor:pointer}
     button.secondary{background:#303b4b}button:disabled{cursor:not-allowed;opacity:.55}
     .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.row>*{flex-shrink:0}
@@ -69,11 +69,17 @@
     <h2>Arşiv oluştur</h2>
     <label for="archive-day" class="caption">Maçların Türkiye saatiyle başlangıç tarihi</label>
     <input id="archive-day" type="date" min="2026-10-09" max="{{max_date}}" value="{{initial_date}}" required>
+    <label for="archive-scope" class="caption" style="margin-top:17px">Maç başlangıç aralığı (Türkiye saati)</label>
+    <select id="archive-scope">
+      <option value="kickoff16_24" selected>16:00–24:00 başlayan maçlar (önerilen)</option>
+      <option value="all">Günün tüm maçları (eski arşivler)</option>
+    </select>
+    <p><strong>16:00–24:00</strong> sadece maç başlangıç saatini sınırlar. Bu maçların önceki saatlerdeki oran/para hareketi geçmişi kesilmez. Eski tam gün arşivleri korunur.</p>
     <p>Birini veya ikisini seçebilirsin. İki tür farklı GitHub Release varlığı olarak saklanır.</p>
     <div class="grid">
       <label class="kind"><input id="kind-full" type="checkbox" checked>
-        <strong>01 · Tüm Snapshotlar</strong>
-        <span>O güne ait mevcut tüm ham 1X2, OU2.5, BTTS, Dropping, Moneyway ve Live kayıtları. Sinyalsiz maçlar da dahil.</span>
+        <strong>01 · Seçili Maçların Tüm Ham Kayıtları</strong>
+        <span>Seçili maçlara ait ham 1X2, OU2.5, BTTS, Dropping, Moneyway ve Live kayıtlarının tamamı; geçmiş gözlem saatlerine filtre uygulanmaz.</span>
       </label>
       <label class="kind"><input id="kind-concentrated" type="checkbox">
         <strong>02 · Konsantre Arşiv</strong>
@@ -128,13 +134,14 @@
   async function refreshProgress(){
     const serial=++progressRequestSerial;
     const day=document.getElementById('archive-day').value;
+    const scope=document.getElementById('archive-scope').value;
     const kinds=[];
     if(document.getElementById('kind-full').checked)kinds.push('full_snapshots');
     if(document.getElementById('kind-concentrated').checked)kinds.push('concentrated');
     if(!day||!kinds.length){progressPanel.textContent='Tarih ve arşiv türü seçin.';return}
     const items=await Promise.all(kinds.map(async kind=>{
       try{
-        const r=await fetch('/api/admin/sxf-archive/progress?day='+encodeURIComponent(day)+'&kind='+encodeURIComponent(kind),{credentials:'same-origin'});
+        const r=await fetch('/api/admin/sxf-archive/progress?day='+encodeURIComponent(day)+'&kind='+encodeURIComponent(kind)+'&scope='+encodeURIComponent(scope),{credentials:'same-origin'});
         const o=await r.json();
         if(!r.ok)throw new Error(o.error||'HTTP '+r.status);
         return {kind,data:o};
@@ -145,7 +152,7 @@
     for(const item of items){
       const outer=document.createElement('div');outer.className='progress-item';
       const head=document.createElement('div');head.className='progress-head';
-      const title=document.createElement('span');title.textContent=day+' · '+labels[item.kind];
+      const title=document.createElement('span');title.textContent=day+' · '+labels[item.kind]+' · '+(scope==='kickoff16_24'?'16:00–24:00':'tüm gün');
       const value=document.createElement('span');value.className='progress-value';
       const d=item.data;
       value.textContent=d&&Number.isInteger(d.percent)?d.percent+'%':(d&&d.status==='AKTARILIYOR'?'Hazırlanıyor':'—');
@@ -230,15 +237,16 @@
   runButton.addEventListener('click', async()=>{
     if(!configured){msg('archive-message','GitHub sunucu bağlantısı eksik. Aktarım başlatılamaz.',true);return}
     const day=document.getElementById('archive-day').value;
+    const scope=document.getElementById('archive-scope').value;
     const types=[];
     if(document.getElementById('kind-full').checked) types.push('full_snapshots');
     if(document.getElementById('kind-concentrated').checked) types.push('concentrated');
     if(!day||types.length===0){msg('archive-message','Tarih ve en az bir arşiv türü seç.',true);return}
-    if(!confirm(day+' tarihi için '+types.length+' arşiv aktarımı isteği gönderilsin mi?'))return;
+    if(!confirm(day+' tarihi için '+types.length+' arşiv aktarımı ('+(scope==='kickoff16_24'?'16:00–24:00 TSİ':'tüm gün')+') isteği gönderilsin mi?'))return;
     runButton.disabled=true;const lines=[];
     for(const kind of types){
       try{
-        const r=await post('/api/admin/sxf-archive/dispatch',{day,kind});
+        const r=await post('/api/admin/sxf-archive/dispatch',{day,kind,scope});
         lines.push(kind+': GitHub iş kuyruğuna alındı; henüz arşiv tamamlanmadı.');
       }catch(err){lines.push(kind+': BAŞLATILAMADI — '+err.message)}
     }
@@ -266,7 +274,7 @@
   }
   refreshButton.addEventListener('click',refreshRuns);
   document.getElementById('progress-refresh').addEventListener('click',refreshProgress);
-  for(const el of ['archive-day','kind-full','kind-concentrated'])
+  for(const el of ['archive-day','archive-scope','kind-full','kind-concentrated'])
     document.getElementById(el).addEventListener('change',refreshProgress);
   refreshRuns();refreshProgress();
   setInterval(refreshProgress,10000);
