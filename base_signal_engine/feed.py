@@ -30,6 +30,27 @@ MAX_PAGES = 8
 CHUNK_SIZE = 75
 
 
+# Frozen v3 price bands from the pure Base evaluator.  For engines not
+# constrained by that kernel, preserve the general 1.30 selection floor.
+V3_PRICE_BANDS = {
+    "1X2_CONCENTRATION_V1": (1.40, 2.50),
+    "1X2_CONCENTRATION_V2": (1.40, 2.50),
+    "HEAVY_1X2_CONCENTRATION": (1.40, 2.50),
+    "SURPRISE_TEAM": (2.90, 4.49),
+    "STABLE_OVER_2_5": (1.40, 1.80),
+    "PREMIUM_OVER_2_5": (1.40, 1.80),
+    "PREMIUM_OVER_MIN1_70": (1.70, 1.80),
+    "BTTS_YES": (1.60, 1.90),
+}
+
+
+def _v3_price_in_range(engine: str, odds: float | None) -> bool:
+    if odds is None or not 1.30 <= odds <= 1000:
+        return False
+    limits = V3_PRICE_BANDS.get(engine)
+    return limits is None or limits[0] <= odds <= limits[1]
+
+
 class BaseFeedUnavailable(Exception):
     """Missing/oversized/untrusted private Base data: never serve partial results."""
 
@@ -284,7 +305,8 @@ class BaseSignalsFeed:
                     item["as_of_checked_at"] = at.isoformat()
                 break
 
-    def read(self, start: date, *, days: int = 21, as_of_utc: datetime | None = None):
+    def read(self, start: date, *, days: int = 21, as_of_utc: datetime | None = None,
+             archive: bool = False):
         if not isinstance(start, date) or type(days) is not int or not 1 <= days <= 21:
             raise ValueError("invalid bounded date window")
         if as_of_utc is not None and (
@@ -295,6 +317,9 @@ class BaseSignalsFeed:
         today = datetime.now(TR_TZ).date()
         if start < today - timedelta(days=45) or start > today + timedelta(days=21):
             raise ValueError("date window outside allowed history")
+        if type(archive) is not bool or (archive and days != 1):
+            raise ValueError("archive queries must target exactly one day")
+        version = LEGACY_RULESET_VERSION if archive else RULESET_VERSION
         end = start + timedelta(days=days)
         start_utc = datetime.combine(start, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
         end_utc = datetime.combine(end, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
@@ -304,7 +329,7 @@ class BaseSignalsFeed:
                 ("select", FIELDS),
                 ("kickoff_utc", "gte." + start_utc.isoformat()),
                 ("kickoff_utc", "lt." + end_utc.isoformat()),
-                ("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")"),
+                ("ruleset_version", "eq." + version),
                 ("kind", "in.(" + ",".join(sorted(VISIBLE_KINDS)) + ")"),
                 ("order", "event_id.asc"),
                 ("limit", str(PAGE_SIZE)),
@@ -413,6 +438,9 @@ class BaseSignalsFeed:
 
         items, dedupe = [], set()
         for row in rows:
+            # A stale/misconfigured storage response must not cross rulesets.
+            if row.get("ruleset_version") != version:
+                continue
             ident = row.get("event_id")
             if type(ident) is not int or ident <= 0 or ident in dedupe:
                 raise BaseFeedUnavailable("duplicate/invalid signal event")
@@ -502,6 +530,11 @@ class BaseSignalsFeed:
             # cards, same-side badges, totals or historical details are built.
             if selection_status != "ELIGIBLE":
                 continue
+            # Independent read-side guard: the persisted ELIGIBLE flag can
+            # never bypass frozen V3 engine price limits (notably HEAVY 1.40).
+            # Old V2 events stay immutable and visible only in the archive.
+            if not archive and not _v3_price_in_range(engine, odds):
+                continue
             recorded_on_time = (
                 delivery_timing == "CHECKPOINT_WINDOW" and recorded < kickoff
             )
@@ -585,6 +618,8 @@ class BaseSignalsFeed:
             self._enrich_current_1x2(items, now=read_as_of)
         items.sort(key=lambda x: (x["kickoff_utc"], x["id"]))
         return {"status":"ok", "phase":"SHADOW", "timezone":"Europe/Istanbul",
+                "ruleset_mode":"LEGACY" if archive else "CURRENT",
+                "ruleset_version":version,
                 "start":start.isoformat(),"days":days, "engines":list(KNOWN_ENGINES),
                 "items":items, "results_source_state":results_source_state, "source_complete":False,
                 "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}
