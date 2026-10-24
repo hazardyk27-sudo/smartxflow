@@ -112,9 +112,9 @@ jobs:
           ! grep -q 'sinyal_engine_runtime.py' run_services.sh
           grep -q 'sinyal_engine_runtime.py' deploy/smartxflow-sinyal.service
           grep -q 'deploy/smartxflow-sinyal.service' deploy/sync_runtime_units.sh
-          grep -q 'systemctl restart smartxflow-sinyal' .github/workflows/deploy.yml
-          grep -q 'systemctl is-active smartxflow-sinyal' .github/workflows/deploy.yml
-          grep -q 'smartxflow-sinyal is not using sinyal_engine_runtime.py' .github/workflows/deploy.yml
+          ! grep -q 'systemctl restart smartxflow-sinyal' .github/workflows/deploy.yml
+          grep -q 'systemctl stop smartxflow-sinyal.service' .github/workflows/deploy.yml
+          grep -q 'systemctl disable smartxflow-sinyal.service' .github/workflows/deploy.yml
       - name: Run alarm, scraper, and archive regression tests
         run: >-
           python -m pytest -q
