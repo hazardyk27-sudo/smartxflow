@@ -1,25 +1,12 @@
-SOURCE_SHA=727ed846296408628a4f0be49495dda470237fec
-PYTEST_EXIT=1
-tests/test_signal_motor_fresh_start_20261022.py:17: AssertionError
-__________________ test_feed_reads_only_fresh_release_events ___________________
-
-    def test_feed_reads_only_fresh_release_events():
-        source = (ROOT/"base_signal_engine/feed.py").read_text()
->       assert '("ruleset_version", "eq.'+V2+'")' in source
-E       assert (('("ruleset_version", "eq.' + 'SXF_SIGNAL_MOTOR_V2_2026_10_22') + '")') in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-
-tests/test_signal_motor_fresh_start_20261022.py:43: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_fresh_start_20261022.py::test_new_ruleset_is_explicit_and_all_jobs_get_new_identity - AssertionError: assert 'SXF_SIGNAL_M...V3_2026_10_24' == 'SXF_SIGNAL_M...V2_2026_10_22'
-  
-  - SXF_SIGNAL_MOTOR_V2_2026_10_22
-  ?                   ^          ^
-  + SXF_SIGNAL_MOTOR_V3_2026_10_24
-  ?                   ^          ^
-FAILED tests/test_signal_motor_fresh_start_20261022.py::test_feed_reads_only_fresh_release_events - assert (('("ruleset_version", "eq.' + 'SXF_SIGNAL_MOTOR_V2_2026_10_22') + '")') in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-2 failed, 238 passed in 0.71s
+SOURCE_SHA=b7bfd8b9d6b2a21815449a7ee8a36e67ba904a18
+PYTEST_EXIT=0
+........................................................................ [ 30%]
+........................................................................ [ 60%]
+........................................................................ [ 90%]
+........................                                                 [100%]
+240 passed in 1.60s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
