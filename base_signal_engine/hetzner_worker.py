@@ -65,17 +65,52 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             "live_claimed":0,"backlog_claimed":0,
             "live_completed":0,"backlog_completed":0,
             "live_waiting_data":0,"backlog_waiting_data":0}
-    if discover:
+    def claim_future_due() -> None:
+        # Both normal priority mode and queue-first mode use LIVE only.
+        # Expired/past-kickoff jobs remain durable for audit, never replayed.
+        lane = "LIVE" if priority_lanes else "ANY"
+        for _ in range(max_jobs):
+            claim_options = {"progress_hook": progress_hook} if progress_hook is not None else {}
+            result = execute_claims(reader, store, worker_id=worker_id,
+                                    limit=1, **({"lane": lane} if priority_lanes else {}),
+                                    **claim_options)
+            report["claimed"] += result["claimed"]
+            report["completed"] += result["completed"]
+            report["waiting_data"] += result["waiting_data"]
+            report["skipped_data"] += result.get("skipped_data", 0)
+            report["retried"] += result["retry"]
+            report["lease_uncertain"] += result["lease_lost"]
+            report["commit_uncertain"] += result["commit_uncertain"]
+            if priority_lanes:
+                report["live_claimed"] += result["claimed"]
+                report["live_completed"] += result["completed"]
+                report["live_waiting_data"] += result["waiting_data"]
+            if result["lease_lost"] or result["commit_uncertain"] or not result["claimed"]:
+                break
+
+    if queue_drain_first:
+        # Guard reschedules before consuming LIVE work, without deleting any
+        # past jobs; a failed/unknown drift ACK still stops the worker.
+        quarantine = getattr(store, "quarantine_fixture_drift", None)
+        if callable(quarantine):
+            report["superseded"] = quarantine(limit=250)
+            if report["superseded"] and progress_hook is not None:
+                progress_hook()
+        claim_future_due()
+
+    if discover and not (queue_drain_first and (report["claimed"] or
+                          report["lease_uncertain"] or report["commit_uncertain"])):
         try:
             # Autonomous recovery keeps new fixture discovery alive even when
             # old incomplete snapshots have accumulated in WAITING_DATA.
-            recovery = near_term_rotation and priority_lanes and not queue_drain_first
+            recovery = (near_term_rotation and priority_lanes) or queue_drain_first
             discovery_options = (
                 {"allow_high_backlog": True, "max_fixtures": 100}
                 if recovery else {"max_fixtures": 50})
             status=bounded_cursor_discovery_once(
                 reader,store,worker_id=worker_id,window_hours=1,
-                max_pending_due=(1 if queue_drain_first else 250),
+                max_pending_due=250,
+                **({"future_only": True} if queue_drain_first else {}),
                 **discovery_options)
             report["discovery"]=status["status"]
             report["enqueued"]=status["enqueued"]
@@ -98,15 +133,18 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
         except Exception as exc:
             # Catalog errors do not discard previously enqueued checkpoints.
             report["discovery"]="ERROR_"+type(exc).__name__.upper()[:50]
+    elif discover and queue_drain_first:
+        report["discovery"] = "PAUSED_LIVE_QUEUE"
+        report["discovery_paused"] = True
 
     # Optional Part 1 safety path. It does not change the historical cursor.
     # Default OFF; activating the guarded worker and this mode are separate
     # operator decisions. Never run after discovery uncertainty or failure.
     if (near_term and queue_drain_first and
-            (report["discovery"] == "PAUSED_BACKLOG" or report["enqueued"] > 0)):
+            (report["discovery"] == "PAUSED_LIVE_QUEUE" or report["enqueued"] > 0)):
         # Drain existing due V3 jobs before scanning more future fixtures.
         # A just-enqueued cursor window is processed before the next scan.
-        report["near_term_status"] = "PAUSED_BACKLOG"
+        report["near_term_status"] = "PAUSED_LIVE_QUEUE"
     elif near_term and report["discovery"] in ("OK", "IDLE", "PAUSED_BACKLOG"):
         try:
             selected_offset = near_term_hour_offset
@@ -121,6 +159,7 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
             urgent = near_term_discovery_once(
                 reader, store, now=now, hour_offset=selected_offset,
                 max_pending_due=(2500 if priority_lanes else 1200),
+                **({"future_only": True} if queue_drain_first else {}),
                 **urgent_options)
             report["near_term_hour_offset"] = selected_offset
             report["near_term_status"] = urgent["status"]
@@ -146,50 +185,15 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     # event and leaves historical signal events untouched. Missing ACKs
     # propagate as DurableStoreError, stopping claims for operator review.
     quarantine = getattr(store, "quarantine_fixture_drift", None)
-    if callable(quarantine):
+    if not queue_drain_first and callable(quarantine):
         report["superseded"] = quarantine(limit=250)
         if report["superseded"] and progress_hook is not None:
             progress_hook()
 
-    # The production queue-first mode drains existing due work before
-    # discovering more fixtures. LIVE keeps Istanbul date/kickoff ordering;
-    # BACKLOG reclaims jobs whose matches have already started. Both lanes
-    # retain the versioned DB claim gate and immutable event audit.
-    if priority_lanes and queue_drain_first:
-        slots = (["LIVE", "LIVE", "BACKLOG"] * ((max_jobs + 2) // 3))[:max_jobs]
-    else:
-        slots = (["LIVE"] * max_jobs if priority_lanes else ["ANY"] * max_jobs)
-    exhausted = set()
-    for preferred_lane in slots:
-        lane = preferred_lane
-        if queue_drain_first and lane in exhausted:
-            lane = "BACKLOG" if lane == "LIVE" else "LIVE"
-        if lane in exhausted:
-            continue
-        claim_options = {"progress_hook": progress_hook} if progress_hook is not None else {}
-        if priority_lanes:
-            result = execute_claims(reader, store, worker_id=worker_id,
-                                    limit=1, lane=lane, **claim_options)
-        else:
-            result = execute_claims(reader, store, worker_id=worker_id,
-                                    limit=1, **claim_options)
-        report["claimed"] += result["claimed"]
-        report["completed"] += result["completed"]
-        report["waiting_data"] += result["waiting_data"]
-        report["skipped_data"] += result.get("skipped_data",0)
-        report["retried"] += result["retry"]
-        report["lease_uncertain"] += result["lease_lost"]
-        report["commit_uncertain"] += result["commit_uncertain"]
-        if priority_lanes:
-            prefix = "live" if lane=="LIVE" else "backlog"
-            report[prefix+"_claimed"] += result["claimed"]
-            report[prefix+"_completed"] += result["completed"]
-            report[prefix+"_waiting_data"] += result["waiting_data"]
-        if result["lease_lost"] or result["commit_uncertain"]:
-            # Unknown outcome must stop both lanes before any further claim.
-            break
-        if result["claimed"] == 0:
-            exhausted.add(lane)
+    if not queue_drain_first or (discover and report["claimed"] == 0 and
+                                  not report["lease_uncertain"] and
+                                  not report["commit_uncertain"]):
+        claim_future_due()
     if not (report["lease_uncertain"] or report["commit_uncertain"]):
         for _ in range(max_reconcile):
             result=reconcile_once(reader,store,worker_id=worker_id)
@@ -243,13 +247,13 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     # the next UTC-hour rotation rather than killing all future checkpoints.
     # Unknown ACKs, catalog errors, uninitialized discovery and bad health
     # data still stop execution through the existing fail-closed paths.
-    capacity_pauses = ("PAUSED_CAPACITY", "PAUSED_BACKLOG", "WINDOW_TOO_LARGE")
+    capacity_pauses = ("PAUSED_CAPACITY", "PAUSED_BACKLOG", "PAUSED_LIVE_QUEUE", "WINDOW_TOO_LARGE")
     report["near_term_capacity_limited"] = (
         near_term and report["near_term_status"] in capacity_pauses)
     if report["near_term_capacity_limited"]:
         report["coverage_state"] = "DEGRADED"
         report["near_term_rotation_coverage_verified"] = False
-    report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED","IDLE","PAUSED_BACKLOG")
+    report["healthy_cycle"]=(report["discovery"] in ("OK","SKIPPED","IDLE","PAUSED_BACKLOG","PAUSED_LIVE_QUEUE")
        and not report["lease_uncertain"] and not report["commit_uncertain"]
        and not report["reconcile_uncertain"]
        and (not near_term or
@@ -286,7 +290,7 @@ def main(argv=None) -> int:
     parser.add_argument("--priority-lanes",action="store_true",
                         help="separately gated LIVE/BACKLOG fenced claim RPC")
     parser.add_argument("--queue-drain-first",action="store_true",
-                        help="drain due work from both lanes before future discovery")
+                        help="drain only future-match due work before future discovery")
     args=parser.parse_args(argv)
     if os.environ.get("SXF_BASE_DURABLE_WORKER_APPROVED")!="yes":
         parser.error("durable worker disabled until separately approved production release")

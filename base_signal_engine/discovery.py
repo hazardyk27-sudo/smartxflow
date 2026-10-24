@@ -22,6 +22,8 @@ def discover_window_once(reader: Any, store: Any, *,
     """Scan one contiguous UTC window; crash/retry replays idempotent enqueue."""
     if not 1 <= window_hours <= 24:
         raise ValueError("discovery window must be <=24h")
+    if type(future_only) is not bool:
+        raise ValueError("invalid future-only discovery flag")
     if max_fixtures is not None and (type(max_fixtures) is not int or
                                      not 1 <= max_fixtures <= 500):
         raise ValueError("unsafe fixture fanout limit")
@@ -75,7 +77,12 @@ def discover_window_once(reader: Any, store: Any, *,
                     fixtures = source.list_between(begin,end)
                 if heartbeat is not None:
                     heartbeat.pulse(force=True)
-        # Enqueue uses the same 11 frozen tasks per fixture; no filtering.
+        # Queue-first mode never creates new checkpoint jobs for past kickoffs.
+        # Full catalog enumeration and cursor advancement still preserve the
+        # scanned window audit; no match, snapshot, or event is deleted.
+        source_fixture_count = len(fixtures)
+        if future_only:
+            fixtures = [fixture for fixture in fixtures if fixture.kickoff_utc > at]
         enqueued = store.enqueue(fixtures)
     except Exception as error:
         reason = type(error).__name__.upper()
@@ -92,7 +99,7 @@ def discover_window_once(reader: Any, store: Any, *,
     try:
         if heartbeat is not None:
             heartbeat.pulse(force=True)
-        store.advance_discovery(item,end=end,fixture_count=len(fixtures))
+        store.advance_discovery(item,end=end,fixture_count=source_fixture_count)
     except DurableStoreError:
         # The advance may have committed but HTTP response was lost.
         stats["uncertain"] = True
@@ -130,7 +137,8 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
                                   window_hours: int = 1,
                                   max_fixtures: int = 50,
                                   max_pending_due: int = 250,
-                                  allow_high_backlog: bool = False) -> dict:
+                                  allow_high_backlog: bool = False,
+                                  future_only: bool = False) -> dict:
     """Backpressure-safe contiguous fixture discovery; no mass rolling fanout.
 
     Requires an explicitly initialized SQL cursor. Never performs bootstrap.
@@ -143,7 +151,8 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
     if (type(window_hours) is not int or not 1 <= window_hours <= 6 or
             type(max_fixtures) is not int or not 1 <= max_fixtures <= 100 or
             type(max_pending_due) is not int or not 1 <= max_pending_due <= 1000
-            or type(allow_high_backlog) is not bool):
+            or type(allow_high_backlog) is not bool or
+            type(future_only) is not bool):
         raise ValueError("unsafe bounded discovery settings")
     health = store.health_snapshot()
     if not isinstance(health, dict):
@@ -166,7 +175,8 @@ def bounded_cursor_discovery_once(reader: Any, store: Any, *,
                 "uncertain": False, "paused": True, "backpressure": True}
     result = discover_window_once(
         reader, store, worker_id=worker_id, now=now, catalog=catalog,
-        window_hours=window_hours, max_fixtures=max_fixtures)
+        window_hours=window_hours, max_fixtures=max_fixtures,
+        **({"future_only": True} if future_only else {}))
     status = ("UNCERTAIN" if result["uncertain"] else
               "RETRY" if result["retry"] else
               "IDLE" if result["idle"] else
@@ -183,7 +193,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
                              hour_offset: int = 0,
                              max_fixtures: int = 50,
                              max_pending_due: int = 1200,
-                             allow_high_backlog: bool = False) -> dict:
+                             allow_high_backlog: bool = False,
+                             future_only: bool = False) -> dict:
     """Operator-opt-in, one-hour near-term discovery independent of old cursor lag.
 
     Scans exactly ONE UTC kickoff hour. The caller must rotate offsets
@@ -199,7 +210,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
     if (type(hour_offset) is not int or not -1 <= hour_offset <= 80 or
             type(max_fixtures) is not int or not 1 <= max_fixtures <= 100 or
             type(max_pending_due) is not int or not 250 <= max_pending_due <= 2500
-            or type(allow_high_backlog) is not bool):
+            or type(allow_high_backlog) is not bool or
+            type(future_only) is not bool):
         raise ValueError("unsafe near-term discovery settings")
     at = _parse_time(now or datetime.now(timezone.utc))
     begin = at.replace(minute=0, second=0, microsecond=0) + timedelta(hours=hour_offset)
@@ -226,6 +238,8 @@ def near_term_discovery_once(reader: Any, store: Any, *,
 
     source = catalog or SupabaseFixtureCatalog(reader)
     fixtures = source.list_between(begin, end)
+    if future_only:
+        fixtures = [fixture for fixture in fixtures if fixture.kickoff_utc > at]
     report["fixtures"] = len(fixtures)
     if len(fixtures) > max_fixtures:
         report["status"], report["paused"] = "WINDOW_TOO_LARGE", True

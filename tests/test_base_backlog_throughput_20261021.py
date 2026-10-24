@@ -1,4 +1,4 @@
-"""Regression: 24-job bounded production throughput, fresh BACKLOG priority."""
+"""Regression: bounded LIVE-only queue drain; past jobs stay immutable."""
 from pathlib import Path
 from datetime import datetime,timezone
 import pytest
@@ -70,118 +70,169 @@ def test_unexpected_uncertain_commit_stops_all_lanes_even_under_higher_quota(mon
     assert report["healthy_cycle"] is False
 
 
-def test_queue_first_pauses_future_discovery_and_claims_both_due_lanes(monkeypatch):
-    calls = {"discovery": [], "near_term": [], "lanes": []}
-    def discovery(*args, **kwargs):
-        calls["discovery"].append(kwargs)
-        return {"status":"PAUSED_BACKLOG","enqueued":0,"fixtures":0,
-                "paused":True,"pending_due":748,"uncertain":False}
-    def urgent(*args, **kwargs):
-        calls["near_term"].append(kwargs)
-        raise AssertionError("future rescan must wait for due queue")
-    def claim(*args, **kwargs):
-        calls["lanes"].append(kwargs["lane"])
-        return {"claimed":1,"completed":1,"waiting_data":0,"retry":0,
-                "lease_lost":0,"commit_uncertain":0}
-    monkeypatch.setattr(hetzner_worker,"bounded_cursor_discovery_once",discovery)
-    monkeypatch.setattr(hetzner_worker,"near_term_discovery_once",urgent)
-    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
-    class Store:
-        def health_snapshot(self):
-            return {"checkpoint_queue":{"pending_due":748,"expired_leases":0,
-                                        "oldest_due_seconds":7200},
-                    "reconciliation_queue":{"pending_due":0,"expired_leases":0},
-                    "discovery_cursor":{"initialized":True,
-                                        "last_scanned_at":AT.isoformat()}}
-    result = hetzner_worker.run_cycle(object(),Store(),worker_id="w",now=AT,
-            priority_lanes=True,queue_drain_first=True,near_term=True,
-            near_term_rotation=True,max_jobs=24,max_reconcile=0)
-    assert result["discovery"] == "PAUSED_BACKLOG"
-    assert calls["discovery"][0]["max_pending_due"] == 1
-    assert calls["discovery"][0].get("allow_high_backlog") is None
-    assert calls["near_term"] == []
-    assert result["near_term_status"] == "PAUSED_BACKLOG"
-    assert result["live_claimed"] == 16
-    assert result["backlog_claimed"] == 8
-    assert result["claimed"] == result["completed"] == 24
-    assert result["healthy_cycle"] is True
+def _health(pending=66):
+    return {"checkpoint_queue":{"pending_due":pending,"expired_leases":0,
+                                "oldest_due_seconds":7200},
+            "reconciliation_queue":{"pending_due":0,"expired_leases":0},
+            "discovery_cursor":{"initialized":True,
+                                "last_scanned_at":AT.isoformat()}}
 
 
-def test_queue_first_refills_from_backlog_when_live_lane_is_empty(monkeypatch):
-    claimed = []
-    def claim(*args, **kwargs):
-        lane = kwargs["lane"]
-        claimed.append(lane)
-        return {"claimed":int(lane=="BACKLOG"),"completed":int(lane=="BACKLOG"),
-                "waiting_data":0,"retry":0,"lease_lost":0,"commit_uncertain":0}
-    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
-    class Store:
-        def health_snapshot(self):
-            return {"checkpoint_queue":{"pending_due":66,"expired_leases":0,
-                                        "oldest_due_seconds":7200},
-                    "reconciliation_queue":{"pending_due":0,"expired_leases":0},
-                    "discovery_cursor":{"initialized":True,
-                                        "last_scanned_at":AT.isoformat()}}
-    result=hetzner_worker.run_cycle(object(),Store(),worker_id="w",now=AT,
-        discover=False,priority_lanes=True,queue_drain_first=True,
-        max_jobs=24,max_reconcile=0)
-    assert claimed.count("LIVE") == 1
-    assert claimed.count("BACKLOG") == 23
-    assert result["backlog_claimed"] == 23
-    assert result["healthy_cycle"] is True
+def _claim_result(claimed=1, uncertain=0):
+    return {"claimed":claimed,"completed":claimed,"waiting_data":0,
+            "retry":0,"lease_lost":uncertain,"commit_uncertain":0}
 
 
-def test_future_scan_resumes_when_due_queue_is_empty(monkeypatch):
-    calls = []
+def test_queue_first_drains_only_future_live_jobs_before_discovery(monkeypatch):
+    calls = {"lanes": [], "discovery": []}
     monkeypatch.setattr(hetzner_worker,"bounded_cursor_discovery_once",
-        lambda *args,**kwargs: (calls.append(("cursor",kwargs)) or
-        {"status":"IDLE","enqueued":0,"fixtures":0,"paused":False,
-         "pending_due":0,"uncertain":False}))
+        lambda *a,**k: calls["discovery"].append(k))
     monkeypatch.setattr(hetzner_worker,"near_term_discovery_once",
-        lambda *args,**kwargs: (calls.append(("near",kwargs)) or
-        {"status":"EMPTY","enqueued":0,"fixtures":0,"pending_due":0,
-         "window_start":AT.isoformat(),"window_end":AT.isoformat()}))
-    monkeypatch.setattr(hetzner_worker,"execute_claims",lambda *args,**kwargs: {
-        "claimed":0,"completed":0,"waiting_data":0,"retry":0,
-        "lease_lost":0,"commit_uncertain":0})
+        lambda *a,**k: (_ for _ in ()).throw(AssertionError("should not rescan")))
+    def claim(*args,**kwargs):
+        calls["lanes"].append(kwargs["lane"])
+        return _claim_result()
+    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
     class Store:
         def health_snapshot(self):
-            return {"checkpoint_queue":{"pending_due":0,"expired_leases":0,
-                                        "oldest_due_seconds":None},
-                    "reconciliation_queue":{"pending_due":0,"expired_leases":0},
-                    "discovery_cursor":{"initialized":True,
-                                        "last_scanned_at":AT.isoformat()}}
+            return _health(748)
     result=hetzner_worker.run_cycle(object(),Store(),worker_id="w",now=AT,
         priority_lanes=True,queue_drain_first=True,near_term=True,
-        near_term_rotation=True,max_jobs=6,max_reconcile=0)
-    assert [call[0] for call in calls] == ["cursor","near"]
+        near_term_rotation=True,max_jobs=24,max_reconcile=0)
+    assert calls["lanes"] == ["LIVE"]*24
+    assert calls["discovery"] == []
+    assert result["discovery"] == "PAUSED_LIVE_QUEUE"
+    assert result["near_term_status"] == "PAUSED_LIVE_QUEUE"
+    assert result["backlog_claimed"] == 0
+    assert result["claimed"] == result["live_claimed"] == 24
+    assert result["healthy_cycle"] is True
+
+
+def test_only_past_backlog_does_not_block_future_discovery(monkeypatch):
+    claimed = []
+    scanned = []
+    def claim(*args,**kwargs):
+        claimed.append(kwargs["lane"])
+        return _claim_result(claimed=0)
+    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
+    def cursor(*args,**kwargs):
+        scanned.append(("cursor",kwargs))
+        return {"status":"IDLE","enqueued":0,"fixtures":0,
+                "paused":False,"pending_due":66,"uncertain":False}
+    def near(*args,**kwargs):
+        scanned.append(("near",kwargs))
+        return {"status":"EMPTY","enqueued":0,"fixtures":0,
+                "pending_due":66,"window_start":AT.isoformat(),
+                "window_end":AT.isoformat()}
+    monkeypatch.setattr(hetzner_worker,"bounded_cursor_discovery_once",cursor)
+    monkeypatch.setattr(hetzner_worker,"near_term_discovery_once",near)
+    class Store:
+        def health_snapshot(self):
+            return _health(66)
+    result=hetzner_worker.run_cycle(object(),Store(),worker_id="w",now=AT,
+        priority_lanes=True,queue_drain_first=True,near_term=True,
+        near_term_rotation=True,max_jobs=24,max_reconcile=0)
+    assert claimed == ["LIVE","LIVE"]
+    assert [x[0] for x in scanned] == ["cursor","near"]
+    assert all(x[1]["future_only"] is True for x in scanned)
+    assert all(x[1]["allow_high_backlog"] is True for x in scanned)
+    assert result["backlog_claimed"] == 0
     assert result["near_term_status"] == "EMPTY"
     assert result["healthy_cycle"] is True
 
 
-def test_cursor_newly_enqueued_jobs_precede_near_term_scan(monkeypatch):
+def test_newly_discovered_future_jobs_are_processed_without_past_lane(monkeypatch):
+    lanes=[]
+    def claim(*args,**kwargs):
+        lanes.append(kwargs["lane"])
+        return _claim_result(claimed=0 if len(lanes)==1 else 1)
+    monkeypatch.setattr(hetzner_worker,"execute_claims",claim)
     monkeypatch.setattr(hetzner_worker,"bounded_cursor_discovery_once",
-        lambda *args,**kwargs:{
-            "status":"OK","enqueued":11,"fixtures":1,"paused":False,
-            "pending_due":0,"uncertain":False})
-    def unexpected(*args,**kwargs):
-        raise AssertionError("must process newly enqueued jobs before rescan")
-    monkeypatch.setattr(hetzner_worker,"near_term_discovery_once",unexpected)
-    monkeypatch.setattr(hetzner_worker,"execute_claims",lambda *args,**kwargs: {
-        "claimed":0,"completed":0,"waiting_data":0,"retry":0,
-        "lease_lost":0,"commit_uncertain":0})
+        lambda *a,**k: {"status":"OK","enqueued":11,"fixtures":1,
+                        "paused":False,"pending_due":66,"uncertain":False})
+    monkeypatch.setattr(hetzner_worker,"near_term_discovery_once",
+        lambda *a,**k: (_ for _ in ()).throw(AssertionError("new jobs first")))
     class Store:
         def health_snapshot(self):
-            return {"checkpoint_queue":{"pending_due":0,"expired_leases":0,
-                                        "oldest_due_seconds":None},
-                    "reconciliation_queue":{"pending_due":0,"expired_leases":0},
-                    "discovery_cursor":{"initialized":True,
-                                        "last_scanned_at":AT.isoformat()}}
+            return _health(66)
     result=hetzner_worker.run_cycle(object(),Store(),worker_id="w",now=AT,
         priority_lanes=True,queue_drain_first=True,near_term=True,
         near_term_rotation=True,max_jobs=3,max_reconcile=0)
-    assert result["near_term_status"] == "PAUSED_BACKLOG"
+    assert lanes == ["LIVE"]*4
+    assert result["near_term_status"] == "PAUSED_LIVE_QUEUE"
+    assert result["claimed"] == result["live_claimed"] == 3
+    assert result["backlog_claimed"] == 0
     assert result["healthy_cycle"] is True
+
+
+def test_future_lane_uncertainty_stops_before_discovery(monkeypatch):
+    attempts=[]
+    monkeypatch.setattr(hetzner_worker,"execute_claims",
+        lambda *a,**k: (attempts.append(k["lane"]) or
+                        _claim_result(claimed=1,uncertain=1)))
+    monkeypatch.setattr(hetzner_worker,"bounded_cursor_discovery_once",
+        lambda *a,**k: (_ for _ in ()).throw(AssertionError("fenced")))
+    result=hetzner_worker.run_cycle(object(),object(),worker_id="w",
+        discover=True,priority_lanes=True,queue_drain_first=True,
+        max_jobs=24,max_reconcile=0)
+    assert attempts == ["LIVE"]
+    assert result["lease_uncertain"] == 1
+    assert result["healthy_cycle"] is False
+
+
+def test_near_term_future_only_does_not_enqueue_past_kickoffs():
+    from datetime import timedelta
+    from base_signal_engine import discovery
+    from base_signal_engine.scheduler import FixtureRef
+    past=FixtureRef("past",AT-timedelta(minutes=5))
+    boundary=FixtureRef("boundary",AT)
+    upcoming=FixtureRef("future",AT+timedelta(minutes=15))
+    class Catalog:
+        def list_between(self,begin,end):
+            return [past,boundary,upcoming]
+    class Store:
+        enqueued = None
+        def health_snapshot(self):
+            return _health(0)
+        def enqueue(self,fixtures):
+            self.enqueued=list(fixtures)
+            return len(fixtures)*11
+    store=Store()
+    result=discovery.near_term_discovery_once(
+        object(),store,now=AT,catalog=Catalog(),future_only=True,
+        allow_high_backlog=True)
+    assert store.enqueued == [upcoming]
+    assert result["fixtures"] == 1
+    assert result["enqueued"] == 11
+
+
+def test_cursor_future_only_preserves_source_window_audit_and_data():
+    from datetime import timedelta
+    from base_signal_engine import discovery
+    from base_signal_engine.scheduler import FixtureRef
+    past=FixtureRef("past",AT-timedelta(minutes=5))
+    upcoming=FixtureRef("future",AT+timedelta(minutes=10))
+    class Catalog:
+        def list_between(self,begin,end):
+            return [past,upcoming]
+    class Store:
+        enqueued = None
+        advanced_count = None
+        def claim_discovery(self,worker_id):
+            return {"completed_through":AT-timedelta(minutes=15)}
+        def enqueue(self,fixtures):
+            self.enqueued=list(fixtures)
+            return len(fixtures)*11
+        def advance_discovery(self,item,*,end,fixture_count):
+            self.advanced_count=fixture_count
+    store=Store()
+    result=discovery.discover_window_once(
+        object(),store,worker_id="worker",now=AT,catalog=Catalog(),
+        window_hours=1,future_only=True)
+    assert store.enqueued == [upcoming]
+    assert store.advanced_count == 2
+    assert result["fixtures"] == 1
+    assert result["advanced"] is True
 
 
 def test_queue_first_requires_versioned_priority_claim_lanes():
