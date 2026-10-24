@@ -685,6 +685,8 @@
       "late_evaluation": "Calculado retrospectivamente",
       "records_count": "{count} registros",
       "recorded_odds": "Cuota registrada",
+      "recorded_money": "Dinero total",
+      "recorded_share": "Porcentaje del dinero",
       "history_count": "{count} registros de control",
       "retention_label": "Persistencia Early",
       "retention_passed": "Mantenida hasta T-3",
