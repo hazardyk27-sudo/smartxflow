@@ -282,6 +282,84 @@ class ArchiveAdminTests(unittest.TestCase):
                 self.assertEqual(r.json["error"], "ARCHIVE_ALREADY_RUNNING")
                 self.assertTrue(r.json["existing_run_url"].endswith("/40050990059"))
 
+    def test_recovered_draft_release_is_verified_only_with_github_main_index(self):
+        import base64
+        import json
+        from urllib.error import HTTPError
+        h = self.admin()
+        tag = "sxf-raw-2026-10-11-kickoff16-24-v1"
+        assets = [
+            {"name": "progress_total_rows_100.json"},
+            {"name": "raw_2026-10-11_A_part0001_rows_60.jsonl.gz"},
+            {"name": "raw_2026-10-11_B_part0001_rows_40.jsonl.gz"},
+            {"name": "verification_receipt.json"},
+        ]
+        index = {
+            "receipt_index_schema": "SXF_VERIFIED_RELEASE_INDEX_V2",
+            "status": "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED",
+            "release_tag": tag, "day": "2026-10-11",
+            "kind": "full_snapshots", "scope": "kickoff16_24",
+            "source_count_consistency": True, "total_verified_rows": 100,
+            "export_manifest_sha256": "f" * 64,
+            "asset_inventory": [
+                {"name": "raw_2026-10-11_A_part0001_rows_60.jsonl.gz",
+                 "rows": 60, "sha256_gzip": "a" * 64},
+                {"name": "raw_2026-10-11_B_part0001_rows_40.jsonl.gz",
+                 "rows": 40, "sha256_gzip": "b" * 64},
+            ],
+        }
+        def fake(url, method="GET", payload=None):
+            if "sxf-repair-oct11-receipt.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "id": 42, "display_title": "SXF receipt repair 2026-10-11 / full_snapshots / 16-24",
+                    "status": "completed", "conclusion": "success",
+                    "created_at": "2026-10-24T16:34:00Z",
+                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/42",
+                }]}
+            if "/releases/tags/" in url:
+                raise HTTPError(url, 404, "draft not reachable by tag", {}, None)
+            if "/releases?per_page=100" in url:
+                return [{"id": 888, "tag_name": tag, "draft": True}]
+            if "/releases/888/assets" in url:
+                return assets
+            if "/contents/" in url:
+                return {"content": base64.b64encode(json.dumps(index).encode()).decode()}
+            if "/jobs" in url:
+                return {"jobs": [{
+                    "name": "verify-and-finish",
+                    "status": "completed", "conclusion": "success",
+                    "steps": [],
+                }]}
+            if method == "POST":
+                self.fail("Never re-dispatch verified archive")
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=fake):
+            r = self.client.get(
+                "/api/admin/sxf-archive/progress?day=2026-10-11"
+                "&kind=full_snapshots&scope=kickoff16_24"
+            )
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.json["percent"], 100)
+            self.assertTrue(r.json["verified"])
+            self.assertEqual(r.json["status"], "DOĞRULANDI")
+            once = self.client.post(
+                "/api/admin/sxf-archive/dispatch", headers=h,
+                json={"day": "2026-10-11", "kind": "full_snapshots",
+                      "scope": "kickoff16_24"},
+            )
+            self.assertEqual(once.status_code, 409)
+            self.assertEqual(once.json["error"], "ARCHIVE_ALREADY_VERIFIED")
+
+            # A forged/corrupt GitHub main index can never make a release 100%.
+            index["total_verified_rows"] = 999
+            again = self.client.get(
+                "/api/admin/sxf-archive/progress?day=2026-10-11"
+                "&kind=full_snapshots&scope=kickoff16_24"
+            )
+            self.assertEqual(again.status_code, 200)
+            self.assertFalse(again.json["verified"])
+            self.assertLess(again.json["percent"], 100)
+
     def test_invalid_day_and_kind_and_missing_github_token(self):
         h = self.admin()
         for payload in (
