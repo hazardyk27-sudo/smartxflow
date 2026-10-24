@@ -130,6 +130,17 @@ def run_cycle(reader, store, *, worker_id: str, discover: bool = True,
     elif near_term:
         report["near_term_status"] = "SKIPPED_DISCOVERY_UNHEALTHY"
 
+    # A fixture may have been rescheduled after its checkpoint jobs were
+    # enqueued. Quarantine obsolete UID/kickoff jobs before claiming any:
+    # the existing SQL RPC skips live leases, records an append-only drift
+    # event and leaves historical signal events untouched. Missing ACKs
+    # propagate as DurableStoreError, stopping claims for operator review.
+    quarantine = getattr(store, "quarantine_fixture_drift", None)
+    if callable(quarantine):
+        report["superseded"] = quarantine(limit=250)
+        if report["superseded"] and progress_hook is not None:
+            progress_hook()
+
     # User-requested daily scan: today's future matches, then tomorrow,
     # then the next Istanbul match day. Historical backlog is NOT a quota.
     # The DB LIVE lane performs stable date/kickoff ordering.
