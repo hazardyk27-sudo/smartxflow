@@ -61,6 +61,7 @@ jobs:
             tests/test_base_signal_priority_lanes.py \
             tests/test_base_backlog_throughput_20261021.py \
             tests/test_base_fixture_discovery_worker.py \
+            tests/test_base_activation_legacy_retirement_contract.py \
             tests/test_base_missing_source_backoff_20261021.py \
             tests/test_base_signal_real_source_smoke.py \
             tests/test_analysis_merged_feed_api.py \
@@ -86,10 +87,13 @@ jobs:
               '.github/workflows/signal-motor-part3-guarded-pause-20261021.yml',
               '.github/workflows/signal-motor-part3-guarded-resume-20261021.yml',
               '.github/workflows/base-autonomous-hetzner-enable.yml',
+              '.github/workflows/base-fixture-discovery-hetzner-enable.yml',
           )
           for name in names:
               yaml.safe_load((root/name).read_text(encoding='utf-8'))
-          assert 'branches: [main]' not in (root/names[-1]).read_text()
+          activation=(root/'.github/workflows/base-autonomous-hetzner-enable.yml').read_text()
+          assert 'branches: [main]' not in activation
+          assert 'ACTIVATION_STOP:retired_legacy_signal_active' in activation
           for filename in (
               'migrations/2026_10_21_signal_motor_skip_missing.sql',
               'migrations/2026_10_21_signal_motor_skip_future_only_guard.sql',
