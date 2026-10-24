@@ -70,7 +70,8 @@ def test_day_navigation_and_modal_accessibility():
     assert "aria-selected" in ui
     assert "e.key === 'Escape'" in ui
     assert "encodeURIComponent(current.start)" in ui
-    assert "mode=' + mode" in ui
+    assert "data-ruleset-mode" not in ui
+    assert "archive" not in ui.split("function load()", 1)[1].split("function switchWindow", 1)[0]
 
 def test_v4_app_native_responsive_design_contract():
     css=(ROOT/"static/css/base-signals.css").read_text()
