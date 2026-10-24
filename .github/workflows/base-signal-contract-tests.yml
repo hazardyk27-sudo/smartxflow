@@ -61,7 +61,9 @@ jobs:
             tests/test_base_signal_near_term_discovery.py \
             tests/test_base_signal_priority_lanes.py \
             tests/test_base_signal_pre_shadow.py \
-            tests/test_base_signal_source_tail_probe.py
+            tests/test_base_signal_source_tail_probe.py \
+            tests/test_signal_motor_fresh_start_20261022.py \
+            tests/test_signal_motor_v3_cutover.py
 
   postgres-contract:
     runs-on: ubuntu-latest
