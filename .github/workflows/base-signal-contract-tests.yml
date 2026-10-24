@@ -5,6 +5,8 @@ on:
     paths:
       - "base_signal_engine/**"
       - "tests/test_base_signal_*.py"
+      - "tests/test_signal_motor_*.py"
+      - "migrations/2026_10_24_signal_motor_*.sql"
       - "tests/test_base_signals_feed.py"
       - "migrations/2026_10_18_sxf_base_*.sql"
       - "migrations/2026_10_19_sxf_base_*.sql"
