@@ -1,23 +1,12 @@
-SOURCE_SHA=acf3c32f4403584db10bebb00a79c0ec0d44435e
-PYTEST_EXIT=1
-..............F......................................................... [ 29%]
+SOURCE_SHA=036ecffd6336b24d0387ce2aea8da961b29f4395
+PYTEST_EXIT=0
+........................................................................ [ 29%]
 ........................................................................ [ 59%]
 ........................................................................ [ 88%]
 ...........................                                              [100%]
-=================================== FAILURES ===================================
-__________________ test_feed_reads_only_fresh_release_events ___________________
-
-    def test_feed_reads_only_fresh_release_events():
-        source = (ROOT/"base_signal_engine/feed.py").read_text()
->       assert '("ruleset_version", "eq." + version)' in source
-E       assert '("ruleset_version", "eq." + version)' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-
-tests/test_signal_motor_fresh_start_20261022.py:44: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_fresh_start_20261022.py::test_feed_reads_only_fresh_release_events - assert '("ruleset_version", "eq." + version)' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-1 failed, 242 passed in 0.83s
+243 passed in 1.41s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
