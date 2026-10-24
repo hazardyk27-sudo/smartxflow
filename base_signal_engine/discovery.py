@@ -18,7 +18,8 @@ from .lease_heartbeat import CooperativeLeaseHeartbeat
 def discover_window_once(reader: Any, store: Any, *,
                          worker_id: str, now: datetime | None = None,
                          catalog: Any = None, window_hours: int = 24,
-                         max_fixtures: int | None = None) -> dict:
+                         max_fixtures: int | None = None,
+                         future_only: bool = False) -> dict:
     """Scan one contiguous UTC window; crash/retry replays idempotent enqueue."""
     if not 1 <= window_hours <= 24:
         raise ValueError("discovery window must be <=24h")
