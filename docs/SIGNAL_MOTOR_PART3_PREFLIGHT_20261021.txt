@@ -1,23 +1,12 @@
-SOURCE_SHA=49d99b467115bd47be63de2e0788851075ef6d2a
-PYTEST_EXIT=1
-..............F......................................................... [ 29%]
+SOURCE_SHA=5a06cb825ae11419ebdc4e5895610db132738390
+PYTEST_EXIT=0
+........................................................................ [ 29%]
 ........................................................................ [ 59%]
 ........................................................................ [ 88%]
 ...........................                                              [100%]
-=================================== FAILURES ===================================
-__________________ test_feed_reads_only_fresh_release_events ___________________
-
-    def test_feed_reads_only_fresh_release_events():
-        source = (ROOT/"base_signal_engine/feed.py").read_text()
->       assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")")' in source
-E       assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")")' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-
-tests/test_signal_motor_fresh_start_20261022.py:44: AssertionError
-=========================== short test summary info ============================
-FAILED tests/test_signal_motor_fresh_start_20261022.py::test_feed_reads_only_fresh_release_events - assert '("ruleset_version", "in.(" + LEGACY_RULESET_VERSION + "," + RULESET_VERSION + ")")' in '"""Read-only, server-side feed for the replacement SmartXFlow Analizler panel.\n\nNever uses legacy analysis rows. On...ce_complete":False,\n                "message":"Shadow verileri test amaçlıdır; onaylanmış bahis önerisi değildir."}\n'
-1 failed, 242 passed in 1.37s
+243 passed in 0.93s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
