@@ -1,12 +1,12 @@
-SOURCE_SHA=57c92e6949c08a6358855be236adccbcdcd23dfc
+SOURCE_SHA=eae1ea38fcd05a233ee619bb93577cc34b17e257
 PYTEST_EXIT=0
 ........................................................................ [ 27%]
 ........................................................................ [ 54%]
 ........................................................................ [ 81%]
 ................................................                         [100%]
-264 passed in 1.36s
+264 passed in 1.67s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
-YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+YAML_SQL_RELEASE_GUARDS_EXIT=1
+VERIFICATION_STEP=failure
