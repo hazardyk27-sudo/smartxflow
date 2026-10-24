@@ -685,6 +685,8 @@
       "late_evaluation": "Calculated retrospectively",
       "records_count": "Records: {count}",
       "recorded_odds": "Recorded odds",
+      "recorded_money": "Total money",
+      "recorded_share": "Money share",
       "history_count": "{count} checkpoint records",
       "retention_label": "Early retention",
       "retention_passed": "Retained through T-3",
