@@ -24,6 +24,9 @@ on:
       - 'migrations/2026_10_22_signal_motor_live_checkpoint_deadline_priority.sql'
       - 'tests/test_signal_motor_live_checkpoint_deadline_priority_20261022.py'
       - 'base_signal_engine/discovery.py'
+      - 'base_signal_engine/hetzner_worker.py'
+      - 'deploy/systemd/smartxflow-base-worker.service'
+      - 'tests/test_base_backlog_throughput_20261021.py'
   workflow_dispatch:
 permissions:
   contents: write
