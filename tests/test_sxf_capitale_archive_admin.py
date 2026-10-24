@@ -93,6 +93,77 @@ class ArchiveAdminTests(unittest.TestCase):
         self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
                          json={"day": "2026-10-09", "kind": "concentrated"}).status_code, 409)
 
+    def test_progress_counts_only_git_hub_uploaded_rows(self):
+        self.admin()
+        def remote(url, method="GET", payload=None):
+            if "/releases/tags/" in url:
+                return {"assets": [
+                    {"name": "progress_total_rows_300.json"},
+                    {"name": "concentrated_2026-10-22_1X2_part0001_rows_250.jsonl.gz"},
+                ]}
+            if "sxf-admin-archive.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "display_title": "SXF 2026-10-22 / concentrated",
+                    "status": "in_progress", "conclusion": None,
+                    "created_at": "2026-10-24T12:00:00Z",
+                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/123"
+                }]}
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=remote):
+            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=concentrated")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["expected_rows"], 300)
+        self.assertEqual(r.json["uploaded_rows"], 250)
+        self.assertEqual(r.json["remaining_rows"], 50)
+        self.assertEqual(r.json["percent"], 83)
+        self.assertEqual(r.json["status"], "AKTARILIYOR")
+        self.assertFalse(r.json["verified"])
+
+    def test_progress_never_reports_100_without_verified_success(self):
+        self.admin()
+        def remote(url, method="GET", payload=None):
+            if "/releases/tags/" in url:
+                return {"assets": [
+                    {"name": "progress_total_rows_300.json"},
+                    {"name": "raw_2026-10-22_A_part0001_rows_300.jsonl.gz"},
+                    {"name": "verification_receipt.json"},
+                ]}
+            if "sxf-admin-archive.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "display_title": "SXF 2026-10-22 / full_snapshots",
+                    "status": "in_progress", "conclusion": None,
+                    "created_at": "2026-10-24T12:00:00Z",
+                }]}
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=remote):
+            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=full_snapshots")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["percent"], 99)
+        self.assertFalse(r.json["verified"])
+
+    def test_progress_reports_100_after_receipt_and_success(self):
+        self.admin()
+        def remote(url, method="GET", payload=None):
+            if "/releases/tags/" in url:
+                return {"assets": [
+                    {"name": "progress_total_rows_27.json"},
+                    {"name": "concentrated_2026-10-22_1X2_part0001_rows_27.jsonl.gz"},
+                    {"name": "verification_receipt.json"},
+                ]}
+            if "sxf-admin-archive.yml/runs" in url:
+                return {"workflow_runs": [{
+                    "display_title": "SXF 2026-10-22 / concentrated",
+                    "status": "completed", "conclusion": "success",
+                    "created_at": "2026-10-24T12:00:00Z",
+                }]}
+            return {"workflow_runs": []}
+        with patch.object(bridge, "_github_request", side_effect=remote):
+            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=concentrated")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json["percent"], 100)
+        self.assertTrue(r.json["verified"])
+        self.assertEqual(r.json["status"], "DOĞRULANDI")
+
     def test_invalid_day_and_kind_and_missing_github_token(self):
         h = self.admin()
         for payload in (
