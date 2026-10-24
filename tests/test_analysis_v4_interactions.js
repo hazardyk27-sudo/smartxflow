@@ -487,3 +487,33 @@ test('only current signal motor is visible; retired event and archive controls s
   assert.doesNotMatch(mock.requests[0],/archive|mode=/);
 });
 
+
+test('each checkpoint shows its own recorded selected-side money and money share', async()=>{
+  const data=signals(todayTR());
+  data.items[0].amount=2934.29;data.items[0].share=95.6;
+  data.items[2].amount=14250.75;data.items[2].share=87.25;
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.equal((html.match(/class="sxf-history-money"/g)||[]).length,2);
+  for(const value of ['$2.934,29','95,6%','$14.250,75','87,25%']) {
+    assert.ok(html.includes(value),'each frozen checkpoint keeps '+value);
+  }
+  assert.equal((html.match(/<small>Toplam para<\/small>/g)||[]).length,2);
+  assert.equal((html.match(/<small>Para payı<\/small>/g)||[]).length,2);
+  assert.equal(mock.requests.length,1,'no additional moneyway request or live substitution');
+});
+
+test('missing or invalid frozen money never becomes a fake zero or percentage',async()=>{
+  const data=signals(todayTR());
+  data.items=[{...data.items[0],id:1,amount:null,share:null},
+    {...data.items[0],id:2,amount:'999',share:120}];
+  const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
+  mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+    .find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
+  const html=mock.get('sxfSignalContent').innerHTML;
+  assert.equal((html.match(/<small>Toplam para<\/small> <b>—<\/b>/g)||[]).length,2);
+  assert.equal((html.match(/<small>Para payı<\/small> <b>—<\/b>/g)||[]).length,2);
+  assert.doesNotMatch(html,/\$999|120%|NaN|Infinity/);
+});
