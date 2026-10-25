@@ -7,7 +7,7 @@ import pytest
 
 from base_signal_engine import fixture_discovery_worker as app
 from base_signal_engine.scheduler import CHECKPOINT_TASKS, CheckpointJob, FixtureRef
-from base_signal_engine.storage import ReadOnlyStoreError, SupabaseCheckpointStore
+from base_signal_engine.storage import DurableStoreError, ReadOnlyStoreError, SupabaseCheckpointStore
 
 NOW = datetime(2026, 10, 21, 3, 0, tzinfo=timezone.utc)
 
@@ -193,6 +193,86 @@ def test_incomplete_or_duplicate_key_listing_must_fail_closed():
         with pytest.raises(ReadOnlyStoreError):
             store.active_job_keys_between(NOW,NOW+timedelta(hours=80),
                                           page_size=1,max_pages=max_pages)
+
+
+
+def test_immutable_returning_kickoff_only_quarantines_its_own_fixture():
+    blocked = fixture(2)
+    fixtures = [fixture(1), blocked, fixture(3)]
+
+    class CollisionStore(Store):
+        def enqueue(self, group, *, batch_size=200):
+            self.calls.append(("attempt", len(group)))
+            if any(f.fixture_uid == blocked.fixture_uid for f in group):
+                raise DurableStoreError("sxf_base_enqueue_jobs failed: HTTP 400")
+            return super().enqueue(group, batch_size=batch_size)
+
+        def is_protected_returning_fixture(self, f):
+            self.calls.append(("proof", f.fixture_uid))
+            return f.fixture_uid == blocked.fixture_uid
+
+    store = CollisionStore()
+    report = app.scan_horizon_once(None, store, now=NOW,
+                                   catalog=Catalog(fixtures))
+    assert report["status"] == "SCANNED_WITH_PROTECTED_EXCEPTIONS"
+    assert report["protected_returning_fixtures"] == 1
+    assert report["coverage_verified_for_snapshot"] is False
+    assert report["verified_fixtures"] == 2
+    assert report["new_jobs"] == 22
+    assert ("proof", blocked.fixture_uid) in store.calls
+    for f in (fixtures[0], fixtures[2]):
+        assert all(CheckpointJob(f, h, fam).key in store.keys
+                   for h, fam in CHECKPOINT_TASKS)
+    assert not any(CheckpointJob(blocked, h, fam).key in store.keys
+                   for h, fam in CHECKPOINT_TASKS)
+
+
+@pytest.mark.parametrize("http_error", [
+    "sxf_base_enqueue_jobs failed: HTTP 500",
+    "sxf_base_enqueue_jobs unavailable (Timeout)",
+    "sxf_base_enqueue_jobs failed: HTTP 503",
+])
+def test_uncertain_discovery_errors_still_stop_without_retry(http_error):
+    class UnsafeStore(Store):
+        def enqueue(self, group, *, batch_size=200):
+            self.calls.append(("attempt", len(group)))
+            raise DurableStoreError(http_error)
+        def is_protected_returning_fixture(self, f):
+            raise AssertionError("must not consult immutable exceptions")
+    store = UnsafeStore()
+    with pytest.raises(DurableStoreError):
+        app.scan_horizon_once(None, store, now=NOW,
+                              catalog=Catalog([fixture(1), fixture(2)]))
+    assert [x[0] for x in store.calls].count("attempt") == 1
+
+
+def test_unproven_http_400_fails_closed_instead_of_skipping():
+    class InvalidStore(Store):
+        def enqueue(self, group, *, batch_size=200):
+            self.calls.append(("attempt", len(group)))
+            raise DurableStoreError("sxf_base_enqueue_jobs failed: HTTP 400")
+        def is_protected_returning_fixture(self, f):
+            return False
+    store=InvalidStore()
+    with pytest.raises(DurableStoreError):
+        app.scan_horizon_once(None, store, now=NOW,
+                              catalog=Catalog([fixture(1),fixture(2)]))
+
+
+def test_readonly_protection_proof_requires_old_job_and_immutable_event():
+    uid = str(uuid4())
+    for pages, expected in (
+        ([[{"job_id":uid}],[{"event_id":1}]],True),
+        ([[{"job_id":uid}],[]],False),
+        ([[],],False),
+    ):
+        session=HttpSession(pages)
+        store=SupabaseCheckpointStore("https://db.invalid","test",session=session)
+        assert store.is_protected_returning_fixture(fixture(1)) is expected
+        assert session.calls[0][0].endswith("sxf_base_checkpoint_jobs")
+        assert session.calls[0][1]["state"] == "eq.SUPERSEDED"
+        if expected:
+            assert session.calls[1][0].endswith("sxf_base_signal_events")
 
 
 def test_cli_is_gated_and_service_has_independent_restart_policy(monkeypatch):
