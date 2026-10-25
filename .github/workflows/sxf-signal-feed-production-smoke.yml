@@ -1,0 +1,71 @@
+name: SmartXFlow signal feed and discovery postrelease read-only smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'base_signal_engine/feed.py'
+      - 'base_signal_engine/fixture_discovery_worker.py'
+      - 'base_signal_engine/storage.py'
+      - '.github/workflows/sxf-signal-feed-production-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validate exact live SHA and complete private signal feed
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: EXPECTED_SHA
+          command_timeout: 10m
+          script: |
+            set -eu
+            test "$(hostname)" = smartxflow
+            cd /opt/smartxflow
+            synced=0
+            for n in $(seq 1 120); do
+              actual="$(sudo -u smartxflow git rev-parse HEAD)"
+              web="$(systemctl is-active smartxflow-web.service || true)"
+              if [ "$actual" = "$EXPECTED_SHA" ] && [ "$web" = active ]; then synced=1; break; fi
+              sleep 3
+            done
+            test "$synced" = 1 || { echo "FEED_SMOKE_FAIL: wrong SHA or web down"; exit 1; }
+            echo "FEED_SMOKE_SHA=$actual"
+            echo "FEED_SMOKE_WEB=$web"
+            echo "FEED_SMOKE_BASE=$(systemctl is-active smartxflow-base-worker.service || true)"
+            echo "FEED_SMOKE_DISCOVERY=$(systemctl is-active smartxflow-base-fixture-discovery.service || true)"
+            echo "FEED_SMOKE_LEGACY=$(systemctl is-active smartxflow-sinyal.service || true)"
+            http="$(curl --max-time 12 -sS -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8000/api/base-signals/feed' || true)"
+            echo "FEED_UNAUTH_HTTP=$http"
+            test "$http" = 403 || { echo "FEED_SMOKE_FAIL: unauthenticated access changed"; exit 1; }
+            sudo -u smartxflow /opt/smartxflow/venv/bin/python - <<'PY'
+            from datetime import datetime, timedelta
+            from pathlib import Path
+            from base_signal_engine.feed import BaseSignalsFeed, TR_TZ
+            keys = {}
+            for line in Path('/opt/smartxflow/.env').read_text().splitlines():
+                if line.startswith(('SUPABASE_URL=', 'SUPABASE_SERVICE_ROLE_KEY=')):
+                    k, v = line.split('=', 1)
+                    v = v.strip()
+                    if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+                        v = v[1:-1]
+                    keys[k] = v
+            url = keys.get('SUPABASE_URL','')
+            key = keys.get('SUPABASE_SERVICE_ROLE_KEY','')
+            assert url.startswith('https://') and key, 'FEED_SMOKE_CONFIG_MISSING'
+            start = datetime.now(TR_TZ).date() - timedelta(days=10)
+            response = BaseSignalsFeed(url,key).read(start,days=21)
+            assert isinstance(response,dict) and isinstance(response.get('items'),list)
+            print('FEED_PRIVATE_21DAY_OK count=' + str(len(response['items'])),flush=True)
+            PY
+            echo "FEED_SMOKE_END"
