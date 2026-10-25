@@ -56,7 +56,24 @@ class Source:
         assert headers["Authorization"] == "Bearer service-token"
         assert timeout==12
         if url.endswith("sxf_base_signal_events"):
-            return Reply(self.events)
+            # Emulate PostgREST filters, keyset ordering and page limits.
+            # Otherwise a mock might mask a truncated production feed.
+            query = dict(params)
+            kinds = set(query["kind"].removeprefix("in.(").removesuffix(")").split(","))
+            fixtures = (set(query["fixture_uid"].removeprefix("in.(").removesuffix(")").split(","))
+                        if "fixture_uid" in query else None)
+            after_id = int(query.get("event_id", "gt.0").removeprefix("gt."))
+            start_utc = datetime.fromisoformat(next(v[4:] for k, v in params
+                                                     if k == "kickoff_utc" and v.startswith("gte.")))
+            # Duplicate kickoff_utc filters are ordered pairs; take both.
+            end_utc = datetime.fromisoformat(next(v[3:] for k, v in params
+                                                   if k == "kickoff_utc" and v.startswith("lt.")))
+            rows = [event for event in self.events
+                    if event["kind"] in kinds and
+                    (fixtures is None or event["fixture_uid"] in fixtures) and
+                    event["event_id"] > after_id and
+                    start_utc <= datetime.fromisoformat(event["kickoff_utc"]) < end_utc]
+            return Reply(sorted(rows, key=lambda e: e["event_id"])[:int(query["limit"])])
         if url.endswith("sxf_base_checkpoint_jobs"):
             if dict(params).get("state") == "eq.SKIPPED_DATA":
                 if not self.skip_fixture:
@@ -216,10 +233,56 @@ def test_malformed_event_identity_fails_closed():
 def test_pagination_cap_refuses_partial_signals():
     from base_signal_engine.feed import PAGE_SIZE,MAX_PAGES
     start=_day()
-    source=Source(start,events=[_event(start,ident=i+1) for i in range(PAGE_SIZE)])
+    source=Source(start,events=[_event(start,ident=i+1)
+                                for i in range(PAGE_SIZE*MAX_PAGES)])
     with pytest.raises(BaseFeedUnavailable,match="safety limit"):
         _feed(source).read(start)
     assert len(source.calls)==MAX_PAGES
+
+
+def test_many_unrelated_audits_no_longer_exhaust_valid_signal_feed():
+    # Regression: 2,534 persisted events were enough to trip the old
+    # 2,000-row global cap even though fewer than 500 were actual picks.
+    start = _day()
+    unrelated = str(uuid4())
+    signals = [_event(start, ident=i + 1) for i in range(445)]
+    decisions = [
+        {**_event(start, ident=1000 + i, kind="MARKET_DECISION",
+                  selection="", engine=""),
+         "fixture_uid": unrelated}
+        for i in range(1716)
+    ]
+    retention = [
+        {**_event(start, ident=3000 + i, kind="RETENTION_CHECK",
+                  selection="", engine=""),
+         "fixture_uid": unrelated}
+        for i in range(373)
+    ]
+    source = Source(start, events=[*signals, *decisions, *retention])
+    feed = _feed(source).read(start)
+    assert len(feed["items"]) == 445
+    event_calls = [dict(params) for url, params, _ in source.calls
+                   if url.endswith("sxf_base_signal_events")]
+    assert len(event_calls) >= 3
+    assert any("event_id" in call for call in event_calls)
+    assert any("fixture_uid" in call for call in event_calls)
+    assert all(call["limit"] == str(250) for call in event_calls)
+
+
+def test_relevant_t6_and_early_retention_survive_audit_partition():
+    start = _day()
+    pre = _event(start, ident=11)
+    decision = _event(start, ident=12, kind="MARKET_DECISION",
+                      engine="", selection="")
+    decision["job_checkpoint_hours"] = 6
+    decision["source_checkpoint_hours"] = 6
+    decision["details"] = {"state": "AUTHORITATIVE_T6"}
+    unrelated = str(uuid4())
+    ignored = {**_event(start, ident=13, kind="MARKET_DECISION",
+                        engine="", selection=""), "fixture_uid": unrelated}
+    result = _feed(Source(start,events=[pre,decision,ignored])).read(start)
+    assert len(result["items"]) == 1
+    assert result["items"][0]["stage_status"] == "T8_HISTORICAL"
 
 
 def test_untrusted_or_unconfigured_source_refused():
