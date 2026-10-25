@@ -77,14 +77,37 @@ def scan_horizon_once(reader: Any, store: Any, *,
             missing.append(fixture)
 
     added = 0
-    for i in range(0, len(missing), fixture_batch):
-        group = missing[i:i + fixture_batch]
-        # Enqueue is idempotent across its full frozen 11-job fanout. It is
-        # not a signal event and does not alter any past result or snapshot.
-        ack = store.enqueue(group, batch_size=200)
-        if type(ack) is not int or not 0 <= ack <= len(group) * len(CHECKPOINT_TASKS):
+    protected = set()
+    rejected_enqueue = "sxf_base_enqueue_jobs failed: HTTP 400"
+
+    def add_ack(ack, group_count):
+        nonlocal added
+        if type(ack) is not int or not 0 <= ack <= group_count * len(CHECKPOINT_TASKS):
             raise DurableStoreError("invalid fixture enqueue acknowledgement")
         added += ack
+
+    for i in range(0, len(missing), fixture_batch):
+        group = missing[i:i + fixture_batch]
+        # HTTP 400 from PostgREST is a rolled-back SQL transaction. Only a
+        # proven returning kickoff with immutable events can be quarantined.
+        # Lost acknowledgements, timeouts and 500s remain unsafe to retry.
+        try:
+            add_ack(store.enqueue(group, batch_size=200), len(group))
+        except DurableStoreError as error:
+            if str(error) != rejected_enqueue:
+                raise
+            for fixture in group:
+                try:
+                    add_ack(store.enqueue([fixture], batch_size=11), 1)
+                except DurableStoreError as single_error:
+                    if str(single_error) != rejected_enqueue:
+                        raise
+                    if not store.is_protected_returning_fixture(fixture):
+                        raise
+                    protected.add(fixture.fixture_uid)
+                    if len(protected) > 5:
+                        raise FixtureHorizonUnverified(
+                            "too many immutable kickoff conflicts")
         if progress_hook is not None:
             progress_hook()
 
@@ -98,22 +121,27 @@ def scan_horizon_once(reader: Any, store: Any, *,
     verified_keys = store.active_job_keys_between(start, end)
     for fixture in fixtures:
         required = {CheckpointJob(fixture, h, family).key for h, family in CHECKPOINT_TASKS}
-        if not required.issubset(verified_keys):
+        if required.issubset(verified_keys):
+            protected.discard(fixture.fixture_uid)
+            continue
+        if fixture.fixture_uid not in protected:
             raise FixtureHorizonUnverified("post-enqueue checkpoint coverage incomplete")
     if progress_hook is not None:
         progress_hook()
     return {"mode": "BASE_FIXTURE_DISCOVERY",
-            "status": "SCANNED",
+            "status": "SCANNED_WITH_PROTECTED_EXCEPTIONS" if protected else "SCANNED",
             "checked_at": at.isoformat(),
             "range_start": start.isoformat(), "range_end": end.isoformat(),
             "fixtures": len(fixtures),
             "fully_scheduled_before": len(fixtures) - len(missing),
             "fixtures_needing_enqueue": len(missing),
             "new_jobs": added, "superseded_drift_jobs": drift,
+            "protected_returning_fixtures": len(protected),
+            "verified_fixtures": len(fixtures) - len(protected),
             "drift_may_remain": drift == 250,
             "full_catalog_read": True,
             "full_job_key_read": True,
-            "coverage_verified_for_snapshot": True,
+            "coverage_verified_for_snapshot": not bool(protected),
             "continuous_future_coverage_verified": False}
 
 
@@ -166,6 +194,7 @@ def main(argv=None) -> int:
                 "fixture universe exceeds bounded scan cap": "UNIVERSE_CAP",
                 "duplicate frozen checkpoint rules": "CHECKPOINT_RULE_DUPLICATE",
                 "post-enqueue checkpoint coverage incomplete": "COVERAGE_INCOMPLETE",
+                "too many immutable kickoff conflicts": "IMMUTABLE_CONFLICT_LIMIT",
             }
             print(json.dumps({"mode": "BASE_FIXTURE_DISCOVERY", "status": "INVALID_UNIVERSE",
                               "reason": allowed.get(str(error), "UNCLASSIFIED"),
