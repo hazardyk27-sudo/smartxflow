@@ -18,7 +18,9 @@ from .scheduler import RULESET_VERSION
 
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
-VISIBLE_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED", "MARKET_DECISION", "RETENTION_CHECK"))
+SIGNAL_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", "CORRECTED"))
+AUDIT_KINDS = frozenset(("MARKET_DECISION", "RETENTION_CHECK"))
+VISIBLE_KINDS = SIGNAL_KINDS | AUDIT_KINDS
 KNOWN_ENGINES = (
     "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
@@ -26,7 +28,7 @@ KNOWN_ENGINES = (
 )
 FIELDS = "event_id,job_id,fixture_uid,kickoff_utc,kind,engine,market,selection,family,job_checkpoint_hours,source_checkpoint_hours,recorded_at,details,ruleset_version"
 PAGE_SIZE = 250
-MAX_PAGES = 8
+MAX_PAGES = 64
 CHUNK_SIZE = 75
 
 
@@ -334,26 +336,47 @@ class BaseSignalsFeed:
         end = start + timedelta(days=days)
         start_utc = datetime.combine(start, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
         end_utc = datetime.combine(end, datetime.min.time(), TR_TZ).astimezone(timezone.utc)
-        rows = []
-        for page in range(MAX_PAGES):
-            batch = self._get("sxf_base_signal_events", [
-                ("select", FIELDS),
-                ("kickoff_utc", "gte." + start_utc.isoformat()),
-                ("kickoff_utc", "lt." + end_utc.isoformat()),
-                ("ruleset_version", "eq." + RULESET_VERSION),
-                ("kind", "in.(" + ",".join(sorted(VISIBLE_KINDS)) + ")"),
-                ("order", "event_id.asc"),
-                ("limit", str(PAGE_SIZE)),
-                ("offset", str(page*PAGE_SIZE)),
-            ])
-            if len(batch) > PAGE_SIZE:
-                raise BaseFeedUnavailable("unbounded event page")
-            rows.extend(batch)
-            if len(batch) < PAGE_SIZE:
-                break
-        else:
-            # Never say a day is empty due to truncated results.
+        # Fetch signal picks first. Most persisted events are internal audits:
+        # querying all six kinds together exhausts the safety cap and makes
+        # the *entire* customer feed 503 even when few signals exist.
+        # Keep the 21-day window and append-only audit truth intact.
+        def event_pages(kinds, fixture_uids=None):
+            rows = []
+            cursor = 0
+            for _ in range(MAX_PAGES):
+                params = [
+                    ("select", FIELDS),
+                    ("kickoff_utc", "gte." + start_utc.isoformat()),
+                    ("kickoff_utc", "lt." + end_utc.isoformat()),
+                    ("ruleset_version", "eq." + RULESET_VERSION),
+                    ("kind", "in.(" + ",".join(sorted(kinds)) + ")"),
+                ]
+                if fixture_uids is not None:
+                    params.append(("fixture_uid", "in.(" + ",".join(fixture_uids) + ")"))
+                if cursor:
+                    params.append(("event_id", "gt." + str(cursor)))
+                params.extend((("order", "event_id.asc"), ("limit", str(PAGE_SIZE))))
+                batch = self._get("sxf_base_signal_events", params)
+                if len(batch) > PAGE_SIZE:
+                    raise BaseFeedUnavailable("unbounded event page")
+                for event in batch:
+                    ident = event.get("event_id")
+                    if type(ident) is not int or ident <= cursor:
+                        raise BaseFeedUnavailable("duplicate or invalid event identity")
+                    cursor = ident
+                rows.extend(batch)
+                if len(batch) < PAGE_SIZE:
+                    return rows
+            # Never return a truncated list of real signals or relevant audits.
             raise BaseFeedUnavailable("signal event window exceeds safety limit")
+
+        rows = event_pages(SIGNAL_KINDS)
+        related = sorted({_uid(row.get("fixture_uid")) for row in rows})
+        # Historical T-6 decisions and Early retention checks are essential
+        # context for these picks, but audits for unrelated fixtures are not.
+        for fixture_group in _chunks(related):
+            rows.extend(event_pages(AUDIT_KINDS, fixture_group))
+        rows.sort(key=lambda event: event["event_id"])
 
         # Join server-side, not in the browser, and reject stale/foreign jobs.
         ids = sorted({_uid(row.get("fixture_uid")) for row in rows})
