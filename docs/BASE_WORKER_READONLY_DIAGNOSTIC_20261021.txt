@@ -1,55 +1,55 @@
-2026-10-24T15:54:17.2803876Z journalctl -u smartxflow-base-worker.service -n 120 --no-pager -o cat | grep -E 'Main process exited|Failed with result|Deactivated successfully|HETZNER_BASE_DURABLE' | tail -n 5 | cut -c1-400 || true
-2026-10-24T15:54:17.2804793Z echo "BASE_DIAG_FINAL_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-2026-10-24T15:54:17.2805238Z echo "BASE_DIAG_FINAL_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
-2026-10-24T15:54:17.2805814Z echo "BASE_DIAG_FINAL_STATE=$(systemctl is-active smartxflow-base-worker.service || true)"
-2026-10-24T15:54:17.2807166Z echo "BASE_DIAG_FINAL_WATCHDOG=$(systemctl show smartxflow-base-worker.service -p WatchdogUSec --value)"
-2026-10-24T15:54:17.2807805Z echo "BASE_DIAGNOSTIC_END"
-2026-10-24T15:54:18.4398627Z out: DIAGNOSTIC_UTC=2026-10-24T15:54:18Z
-2026-10-24T15:54:18.4431409Z out: PRODUCTION_SHA=6638c4bf47f013de788c002e5f138c1fe7b687a8
-2026-10-24T15:54:18.4516894Z out: BASE_WORKER_ENABLED=enabled
-2026-10-24T15:54:18.4602967Z out: BASE_WORKER_ACTIVE=active
-2026-10-24T15:54:18.4668081Z out: ActiveState=active
-2026-10-24T15:54:18.4668668Z out: SubState=running
-2026-10-24T15:54:18.4669254Z out: ActiveEnterTimestamp=Sat 2026-10-24 15:43:03 UTC
-2026-10-24T15:54:18.4669814Z out: InactiveEnterTimestamp=Sat 2026-10-24 15:43:03 UTC
-2026-10-24T15:54:18.4670270Z out: MainPID=2948130
-2026-10-24T15:54:18.4670591Z out: Result=success
-2026-10-24T15:54:18.4671287Z out: NRestarts=0
-2026-10-24T15:54:18.4671870Z out: ExecMainStatus=0
-2026-10-24T15:54:18.4745316Z out: ExecMainStartTimestamp=Sat 2026-10-24 15:43:03 UTC
-2026-10-24T15:54:18.4745994Z out: MemoryCurrent=26640384
-2026-10-24T15:54:18.4746813Z out: CPUUsageNSec=1255743000
-2026-10-24T15:54:18.4747365Z out: TasksCurrent=1
-2026-10-24T15:54:18.4980384Z out: SCRAPER_SERVICE_ACTIVE=active
-2026-10-24T15:54:18.5521497Z out: RECOVERY_TIMER_ACTIVE=active
-2026-10-24T15:54:18.5522091Z out: RECOVERY_TIMER_ENABLED=enabled
-2026-10-24T15:54:18.5522604Z out: DISCOVERY_SERVICE_ACTIVE=active
-2026-10-24T15:54:18.5523120Z out: DISCOVERY_SERVICE_ENABLED=enabled
-2026-10-24T15:54:18.5523683Z out: LEGACY_SIGNAL_ENABLED=disabled
-2026-10-24T15:54:18.5524156Z out: DISCOVERY_SERVICE_EXIT=0
-2026-10-24T15:54:18.5524621Z out: DISCOVERY_SERVICE_RESULT=success
-2026-10-24T15:54:18.5525129Z out: DISCOVERY_JOURNAL_LAST_8
-2026-10-24T15:54:18.5655746Z out: {"checked_at": "2026-10-24T15:29:44.596517+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 611, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 611, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:29:44.596517+00:00", "range_start": "2026-10-24T15:29:44.596517+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5659282Z out: {"checked_at": "2026-10-24T15:32:46.997144+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 602, "fixtures_needing_enqueue": 1, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 601, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 11, "range_end": "2026-10-27T23:32:46.997144+00:00", "range_start": "2026-10-24T15:32:46.997144+00:00", "status": "SCANNED", "superseded_
-2026-10-24T15:54:18.5662316Z out: {"checked_at": "2026-10-24T15:35:49.311552+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 602, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 602, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:35:49.311552+00:00", "range_start": "2026-10-24T15:35:49.311552+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5665286Z out: {"checked_at": "2026-10-24T15:38:51.065382+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 602, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 602, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:38:51.065382+00:00", "range_start": "2026-10-24T15:38:51.065382+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5668650Z out: {"checked_at": "2026-10-24T15:41:52.611589+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 602, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 602, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:41:52.611589+00:00", "range_start": "2026-10-24T15:41:52.611589+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5671677Z out: {"checked_at": "2026-10-24T15:44:54.228920+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 602, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 602, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:44:54.228920+00:00", "range_start": "2026-10-24T15:44:54.228920+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5674686Z out: {"checked_at": "2026-10-24T15:47:56.059129+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 599, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 599, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:47:56.059129+00:00", "range_start": "2026-10-24T15:47:56.059129+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5678015Z out: {"checked_at": "2026-10-24T15:50:57.427867+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 599, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 599, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-27T23:50:57.427867+00:00", "range_start": "2026-10-24T15:50:57.427867+00:00", "status": "SCANNED", "superseded_d
-2026-10-24T15:54:18.5779371Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5780405Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5781133Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5781941Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5782489Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5783025Z out: {"decision": "SKIP_COOLDOWN", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5783577Z out: {"decision": "RECOVERY_STARTED", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5784154Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5784713Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5785269Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
-2026-10-24T15:54:18.5852451Z out: LEGACY_SIGNAL_ACTIVE=inactive
-2026-10-24T15:54:18.6375889Z out: BASE_DIAG_FINAL_UTC=2026-10-24T15:54:18Z
-2026-10-24T15:54:18.6400768Z out: BASE_DIAG_FINAL_SHA=6638c4bf47f013de788c002e5f138c1fe7b687a8
-2026-10-24T15:54:18.6449985Z out: BASE_DIAG_FINAL_STATE=active
-2026-10-24T15:54:18.6517630Z out: BASE_DIAG_FINAL_WATCHDOG=7min
-2026-10-24T15:54:18.6522900Z out: BASE_DIAGNOSTIC_END
+2026-10-25T13:37:20.2806732Z journalctl -u smartxflow-base-guarded-recovery.service --since '-75 minutes' --no-pager -o cat | grep '"mode": "BASE_GUARDED_RECOVERY"' | tail -n 10 || true
+2026-10-25T13:37:20.2807618Z echo "LEGACY_SIGNAL_ACTIVE=$(systemctl is-active smartxflow-sinyal.service || true)"
+2026-10-25T13:37:20.2810445Z journalctl -u smartxflow-base-worker.service -n 120 --no-pager -o cat | grep -E 'Main process exited|Failed with result|Deactivated successfully|HETZNER_BASE_DURABLE' | tail -n 5 | cut -c1-400 || true
+2026-10-25T13:37:20.2811400Z echo "BASE_DIAG_FINAL_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+2026-10-25T13:37:20.2811863Z echo "BASE_DIAG_FINAL_SHA=$(git -C /opt/smartxflow rev-parse HEAD)"
+2026-10-25T13:37:20.2812425Z echo "BASE_DIAG_FINAL_STATE=$(systemctl is-active smartxflow-base-worker.service || true)"
+2026-10-25T13:37:20.2813131Z echo "BASE_DIAG_FINAL_WATCHDOG=$(systemctl show smartxflow-base-worker.service -p WatchdogUSec --value)"
+2026-10-25T13:37:20.2813667Z echo "BASE_DIAGNOSTIC_END"
+2026-10-25T13:37:21.6943795Z out: DIAGNOSTIC_UTC=2026-10-25T13:37:21Z
+2026-10-25T13:37:21.7007774Z out: PRODUCTION_SHA=0fe023442f09dd147fc787ea7de90d0a1c38f402
+2026-10-25T13:37:21.7133139Z out: BASE_WORKER_ENABLED=enabled
+2026-10-25T13:37:21.7216249Z out: BASE_WORKER_ACTIVE=active
+2026-10-25T13:37:21.7340822Z out: ActiveState=active
+2026-10-25T13:37:21.7341919Z out: SubState=running
+2026-10-25T13:37:21.7342478Z out: ActiveEnterTimestamp=Sun 2026-10-25 13:35:11 UTC
+2026-10-25T13:37:21.7343211Z out: InactiveEnterTimestamp=Sun 2026-10-25 13:35:11 UTC
+2026-10-25T13:37:21.7343830Z out: MainPID=3008131
+2026-10-25T13:37:21.7344798Z out: Result=success
+2026-10-25T13:37:21.7345244Z out: NRestarts=0
+2026-10-25T13:37:21.7345743Z out: ExecMainStatus=0
+2026-10-25T13:37:21.7439257Z out: ExecMainStartTimestamp=Sun 2026-10-25 13:35:11 UTC
+2026-10-25T13:37:21.7439883Z out: MemoryCurrent=26624000
+2026-10-25T13:37:21.7440309Z out: CPUUsageNSec=480373000
+2026-10-25T13:37:21.7440709Z out: TasksCurrent=1
+2026-10-25T13:37:21.7720789Z out: SCRAPER_SERVICE_ACTIVE=active
+2026-10-25T13:37:21.7791946Z out: RECOVERY_TIMER_ACTIVE=active
+2026-10-25T13:37:21.7864035Z out: RECOVERY_TIMER_ENABLED=enabled
+2026-10-25T13:37:21.7932587Z out: DISCOVERY_SERVICE_ACTIVE=failed
+2026-10-25T13:37:21.8005943Z out: DISCOVERY_SERVICE_ENABLED=enabled
+2026-10-25T13:37:21.8078710Z out: LEGACY_SIGNAL_ENABLED=disabled
+2026-10-25T13:37:21.8150959Z out: DISCOVERY_SERVICE_EXIT=3
+2026-10-25T13:37:21.8211664Z out: DISCOVERY_SERVICE_RESULT=exit-code
+2026-10-25T13:37:21.8212674Z out: DISCOVERY_JOURNAL_LAST_8
+2026-10-25T13:37:21.8427696Z out: {"checked_at": "2026-10-24T19:20:12.671560+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 519, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 519, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-28T03:20:12.671560+00:00", "range_start": "2026-10-24T19:20:12.671560+00:00", "status": "SCANNED", "superseded_d
+2026-10-25T13:37:21.8432438Z out: {"checked_at": "2026-10-24T19:23:14.377996+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 519, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 519, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-28T03:23:14.377996+00:00", "range_start": "2026-10-24T19:23:14.377996+00:00", "status": "SCANNED", "superseded_d
+2026-10-25T13:37:21.8437220Z out: {"checked_at": "2026-10-24T19:26:15.963710+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 519, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 519, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-28T03:26:15.963710+00:00", "range_start": "2026-10-24T19:26:15.963710+00:00", "status": "SCANNED", "superseded_d
+2026-10-25T13:37:21.8440768Z out: {"checked_at": "2026-10-24T19:29:17.636723+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 519, "fixtures_needing_enqueue": 0, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 519, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 0, "range_end": "2026-10-28T03:29:17.636723+00:00", "range_start": "2026-10-24T19:29:17.636723+00:00", "status": "SCANNED", "superseded_d
+2026-10-25T13:37:21.8444230Z out: {"checked_at": "2026-10-24T19:32:19.901955+00:00", "continuous_future_coverage_verified": false, "coverage_verified_for_snapshot": true, "drift_may_remain": false, "fixtures": 512, "fixtures_needing_enqueue": 1, "full_catalog_read": true, "full_job_key_read": true, "fully_scheduled_before": 511, "mode": "BASE_FIXTURE_DISCOVERY", "new_jobs": 11, "range_end": "2026-10-28T03:32:19.901955+00:00", "range_start": "2026-10-24T19:32:19.901955+00:00", "status": "SCANNED", "superseded_
+2026-10-25T13:37:21.8446486Z out: {"mode": "BASE_FIXTURE_DISCOVERY", "status": "UNCERTAIN", "error_type": "DurableStoreError"}
+2026-10-25T13:37:21.8623066Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8624357Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8625186Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8626000Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8626818Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8627629Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8628421Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8629161Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8629892Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8630626Z out: {"decision": "SKIP_NOT_FAILED", "mode": "BASE_GUARDED_RECOVERY"}
+2026-10-25T13:37:21.8692038Z out: LEGACY_SIGNAL_ACTIVE=inactive
+2026-10-25T13:37:21.9178688Z out: BASE_DIAG_FINAL_UTC=2026-10-25T13:37:21Z
+2026-10-25T13:37:21.9222406Z out: BASE_DIAG_FINAL_SHA=0fe023442f09dd147fc787ea7de90d0a1c38f402
+2026-10-25T13:37:21.9258542Z out: BASE_DIAG_FINAL_STATE=active
+2026-10-25T13:37:21.9332882Z out: BASE_DIAG_FINAL_WATCHDOG=7min
+2026-10-25T13:37:21.9333837Z out: BASE_DIAGNOSTIC_END
