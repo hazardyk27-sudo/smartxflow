@@ -1,25 +1,12 @@
-SOURCE_SHA=5962d6c55607db4fdccddad4df6c99ce479c79a9
-PYTEST_EXIT=1
-FAILED tests/test_base_signals_feed.py::test_price_rejected_detection_never_enters_signal_feed - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_all_rejected_lincoln_twente_checkpoints_do_not_create_signal_cards - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_retroactive_signal_remains_audit_record_not_timely_pick - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_timely_eligible_signal_is_countable - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_unknown_legacy_eligibility_fails_closed_and_is_not_a_signal - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_incomplete_early_first_history_is_not_an_eligible_signal - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_corrected_reconciliation_is_not_fresh_signal_even_with_eligible_state - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_feed_rechecks_price_floor_when_persisted_label_conflicts - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_mismatched_rejection_of_valid_price_does_not_become_eligible - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_scheduler_source_grace_plus_worker_budget_allows_twelve_minutes - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_three_hour_backlog_delay_stays_archived_even_before_kickoff - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_retention_uses_each_finished_checkpoint_not_early_overall_flag - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_retention_break_never_recovers_and_is_side_and_checkpoint_scoped - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_retention_audit_is_never_itself_a_signal - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_retention_no_audit_after_kickoff_fails_closed_incomplete - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-FAILED tests/test_base_signals_feed.py::test_v3_heavy_price_floor_is_checked_independently_of_stored_eligibility - base_signal_engine.feed.BaseFeedUnavailable: duplicate/invalid signal event
-62 failed, 214 passed in 3.17s
+SOURCE_SHA=b6853c746c66dbfd69577c401cf5a8093f88d5a7
+PYTEST_EXIT=0
+........................................................................ [ 25%]
+........................................................................ [ 51%]
+........................................................................ [ 77%]
+..............................................................           [100%]
+278 passed in 1.98s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=failure
+VERIFICATION_STEP=success
