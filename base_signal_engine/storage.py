@@ -174,6 +174,61 @@ class SupabaseCheckpointStore:
                 return found
         raise ReadOnlyStoreError("active job coverage pagination cap reached")
 
+    def is_protected_returning_fixture(self, fixture: FixtureRef) -> bool:
+        """Read-only proof of a restored kickoff blocked by immutable events.
+
+        This is consulted ONLY after a deterministic enqueue HTTP 400.
+        Any missing or malformed response fails closed; it never deletes,
+        rewrites, reactivates, or re-labels an older signal event.
+        """
+        try:
+            resp = self._session.get(
+                self._base[:-4] + "sxf_base_checkpoint_jobs",
+                params=[
+                    ("select", "job_id"),
+                    ("ruleset_version", "eq." + RULESET_VERSION),
+                    ("fixture_uid", "eq." + fixture.fixture_uid),
+                    ("kickoff_utc", "eq." + fixture.kickoff_utc.isoformat()),
+                    ("state", "eq.SUPERSEDED"),
+                    ("limit", "12"),
+                ], headers=self._headers, timeout=self._timeout)
+            if resp.status_code not in (200, 206):
+                raise ReadOnlyStoreError("protected-return job lookup rejected")
+            jobs = resp.json()
+            if not isinstance(jobs, list) or len(jobs) > 11 or any(
+                not isinstance(j, dict) or not isinstance(j.get("job_id"), str)
+                for j in jobs
+            ):
+                raise ReadOnlyStoreError("protected-return job lookup malformed")
+            if not jobs:
+                return False
+            ids = [str(UUID(j["job_id"])) for j in jobs]
+            if len(set(ids)) != len(ids):
+                raise ReadOnlyStoreError("protected-return duplicate jobs")
+            resp = self._session.get(
+                self._base[:-4] + "sxf_base_signal_events",
+                params=[
+                    ("select", "event_id"),
+                    ("job_id", "in.(" + ",".join(ids) + ")"),
+                    ("ruleset_version", "eq." + RULESET_VERSION),
+                    ("limit", "1"),
+                ], headers=self._headers, timeout=self._timeout)
+            if resp.status_code not in (200, 206):
+                raise ReadOnlyStoreError("protected-return event lookup rejected")
+            events = resp.json()
+            if not isinstance(events, list) or len(events) > 1 or any(
+                not isinstance(e, dict) or type(e.get("event_id")) is not int
+                for e in events
+            ):
+                raise ReadOnlyStoreError("protected-return event lookup malformed")
+            return len(events) == 1
+        except ReadOnlyStoreError:
+            raise
+        except Exception as error:
+            raise ReadOnlyStoreError(
+                "protected-return lookup unavailable (" + type(error).__name__ + ")"
+            ) from error
+
     def claim(self, worker_id: str, *, limit: int = 25,
               lease_seconds: int = 300, lane: str = "ANY") -> list[ClaimedCheckpoint]:
         if not worker_id or len(worker_id) > 100 or not 1 <= limit <= 100 or not 60 <= lease_seconds <= 1800:
