@@ -275,6 +275,18 @@ def test_readonly_protection_proof_requires_old_job_and_immutable_event():
             assert session.calls[1][0].endswith("sxf_base_signal_events")
 
 
+def test_production_feed_smoke_is_read_only_and_gated_to_exact_sha():
+    from pathlib import Path
+    workflow = (Path(__file__).resolve().parents[1] /
+                ".github/workflows/sxf-signal-feed-production-smoke.yml").read_text()
+    assert "EXPECTED_SHA" in workflow
+    assert 'test "$synced" = 1' in workflow
+    assert 'BaseSignalsFeed(url,key).read(start,days=21)' in workflow
+    assert 'FEED_PRIVATE_21DAY_OK' in workflow
+    assert 'systemctl restart' not in workflow
+    assert 'systemctl reset-failed' not in workflow
+
+
 def test_cli_is_gated_and_service_has_independent_restart_policy(monkeypatch):
     monkeypatch.delenv("SXF_BASE_FIXTURE_DISCOVERY_APPROVED",raising=False)
     with pytest.raises(SystemExit):
