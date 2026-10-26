@@ -1,5 +1,5 @@
 -- SmartXFlow 2026-10-26: starvation-free eligible T-6 reconciliation claims.
--- No DELETE/TRUNCATE/DROP and no mutation of existing event/queue rows.
+-- No removal of rows and no modification of existing event/queue records.
 -- Keep the exact lease fencing, worker/ruleset validation and RETURN signature.
 -- Old WAITING_DATA retries must not permanently outrank never-attempted
 -- PENDING items merely because their reconciliation_id is smaller.
