@@ -108,3 +108,22 @@ def test_repeated_missing_t6_uses_bounded_backoff_to_unblock_pending():
     result = reconcile_once(Reader(provided=False), store, worker_id="worker")
     assert result["waiting_data"] == 1
     assert store.calls == ["claim", ("retry", "SOURCE_INCOMPLETE", 3600)]
+
+
+def test_due_time_claim_migration_prevents_old_waiting_data_starvation():
+    from pathlib import Path
+    sql=(Path(__file__).resolve().parents[1]/
+         "migrations/2026_10_26_sxf_base_reconcile_due_time_fairness.sql"
+         ).read_text(encoding="utf-8")
+    assert "CREATE OR REPLACE FUNCTION public.sxf_base_claim_reconcile" in sql
+    assert "WHEN r.state='LEASED' THEN r.lease_expires_at" in sql
+    assert "ELSE r.next_attempt_at END ASC" in sql
+    assert "r.reconciliation_id ASC" in sql
+    assert "FOR UPDATE OF r SKIP LOCKED" in sql
+    assert "e.ruleset_version='SXF_SIGNAL_MOTOR_V3_2026_10_24'" in sql
+    assert "r.next_attempt_at<=now()" in sql
+    assert "r.lease_expires_at<now()" in sql
+    assert "attempt_count=r.attempt_count+1" in sql
+    assert "SECURITY INVOKER" in sql and "TO service_role" in sql
+    for token in ("DELETE FROM", "TRUNCATE", "DROP TABLE", "UPDATE public.sxf_base_signal_events"):
+        assert token not in sql
