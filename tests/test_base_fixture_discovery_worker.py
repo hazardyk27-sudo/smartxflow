@@ -311,6 +311,55 @@ def test_reschedule_quarantine_sql_preserves_live_worker_leases():
     assert "DROP " not in migration
 
 
+def test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery():
+    old = fixture(10, NOW + timedelta(hours=40))
+    changed = fixture(10, NOW + timedelta(hours=41))
+
+    class RescheduledCatalog:
+        def __init__(self):
+            self.calls = 0
+        def list_between(self, start, end):
+            self.calls += 1
+            return [old] if self.calls == 1 else [changed]
+
+    # An acknowledged enqueue may be superseded by another service between
+    # enqueue and the final key read. The old frozen identity is no longer
+    # authoritative. Never claim full coverage, but next scan must recover.
+    class ConcurrentStore(Store):
+        def active_job_keys_between(self, start, end):
+            self.calls.append(("read", start, end))
+            if len([c for c in self.calls if c[0] == "read"]) == 2:
+                return set()
+            return set(self.keys)
+
+    store = ConcurrentStore()
+    cat = RescheduledCatalog()
+    with pytest.raises(app.FixtureCatalogChanged, match="identity changed"):
+        app.scan_horizon_once(None, store, now=NOW, catalog=cat)
+    assert cat.calls == 2
+    assert ("enqueue", 1, 200) in store.calls
+    assert len(store.keys) == 11
+    # No historical record is deleted; the fresh kickoff creates its own
+    # independent, idempotent 11-job identity in the following sweep.
+    result = app.scan_horizon_once(None, store, now=NOW, catalog=cat)
+    assert result["status"] == "SCANNED"
+    assert result["coverage_verified_for_snapshot"]
+    assert result["new_jobs"] == 11
+    assert len(store.keys) == 22
+
+
+def test_stable_fixture_missing_jobs_never_masquerades_as_catalog_race():
+    candidate = fixture(11)
+    class FailedStore(Store):
+        def enqueue(self, fixtures, *, batch_size=200):
+            self.calls.append(("enqueue", len(fixtures), batch_size))
+            return 0
+    with pytest.raises(app.FixtureHorizonUnverified,
+                       match="post-enqueue checkpoint coverage incomplete"):
+        app.scan_horizon_once(None, FailedStore(), now=NOW,
+                              catalog=Catalog([candidate]))
+
+
 def test_superceded_job_keys_cannot_produce_false_complete_coverage():
     class CannotRestoreHistoricalJob(Store):
         def enqueue(self, fixtures, *, batch_size=200):
