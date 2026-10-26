@@ -27,6 +27,14 @@ class FixtureHorizonUnverified(RuntimeError):
     """The universe cannot be proven complete; never mark this sweep healthy."""
 
 
+class FixtureCatalogChanged(RuntimeError):
+    """A kickoff identity changed after the first complete catalog read.
+
+    Treat this as a transient, UNVERIFIED sweep, never as healthy coverage.
+    Unknown gaps still fail closed as FixtureHorizonUnverified.
+    """
+
+
 def scan_horizon_once(reader: Any, store: Any, *,
                       now: datetime | None = None,
                       catalog: Any = None,
@@ -119,13 +127,28 @@ def scan_horizon_once(reader: Any, store: Any, *,
     # ACK cannot prove coverage. Re-read active keys after the fenced writes:
     # never report green if any of the eleven currently required jobs is absent.
     verified_keys = store.active_job_keys_between(start, end)
+    still_missing = []
     for fixture in fixtures:
         required = {CheckpointJob(fixture, h, family).key for h, family in CHECKPOINT_TASKS}
         if required.issubset(verified_keys):
             protected.discard(fixture.fixture_uid)
             continue
         if fixture.fixture_uid not in protected:
-            raise FixtureHorizonUnverified("post-enqueue checkpoint coverage incomplete")
+            still_missing.append(fixture)
+    if still_missing:
+        # The source may reschedule a fixture DURING the read/enqueue/drift
+        # sequence. It is unsafe to call that original frozen snapshot
+        # complete, but the NEXT scan can safely use a fresh kickoff identity.
+        # Re-read the ENTIRE authoritative catalog (not an individual UID),
+        # or fail closed if its pagination/consistency cannot be proven.
+        current = source.list_between(start, end)
+        latest = {(f.fixture_uid, f.kickoff_utc) for f in current}
+        if all((f.fixture_uid, f.kickoff_utc) not in latest
+               for f in still_missing):
+            raise FixtureCatalogChanged("fixture identity changed during sweep")
+        # A currently valid fixture with missing jobs is NOT an ordinary
+        # reschedule: preserve the safety stop and do not report green.
+        raise FixtureHorizonUnverified("post-enqueue checkpoint coverage incomplete")
     if progress_hook is not None:
         progress_hook()
     return {"mode": "BASE_FIXTURE_DISCOVERY",
@@ -186,6 +209,21 @@ def main(argv=None) -> int:
             print(json.dumps({"mode": "BASE_FIXTURE_DISCOVERY", "status": "UNCERTAIN",
                               "error_type": type(error).__name__}), file=sys.stderr, flush=True)
             return 3
+        except FixtureCatalogChanged:
+            # A moving fixture catalog is not a commit uncertainty and must
+            # not poison independent discovery forever. The incomplete
+            # snapshot stays explicitly UNVERIFIED; the next cycle re-reads
+            # the entire horizon and never invents an old checkpoint.
+            print(json.dumps({"mode": "BASE_FIXTURE_DISCOVERY",
+                              "status": "RETRY_CATALOG_CHANGED",
+                              "coverage_verified_for_snapshot": False}),
+                  file=sys.stderr, flush=True)
+            if args.once:
+                return 2
+            if notifier.enabled:
+                notifier.progressed()
+            time.sleep(args.interval_seconds)
+            continue
         except FixtureHorizonUnverified as error:
             # Every reason below is a fixed internal invariant; do not leak
             # fixture identifiers, transport details or credentials to logs.
