@@ -12,7 +12,7 @@ V3 = "SXF_SIGNAL_MOTOR_V3_2026_10_24"
 
 
 def test_v3_new_jobs_have_separate_identity():
-    # The V3 migration remains an immutable historical cutover contract.
+    assert RULESET_VERSION == V3
     sql = (ROOT / "migrations/2026_10_24_signal_motor_v3_versioned_cutover.sql").read_text()
     assert f"v_ruleset NOT IN ('SXF_BASE_V1_2026_10_18', '{V2}', '{V3}')" in sql
     assert f"AND j.ruleset_version='{V3}'" in sql
