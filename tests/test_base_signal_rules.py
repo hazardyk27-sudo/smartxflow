@@ -71,16 +71,16 @@ def test_premium_min170_and_boundaries():
     assert "PREMIUM_OVER_MIN1_70" in names(r2)
 
 
-def test_heavy_requires_v1_odds_band_and_never_stands_alone():
-    # Stuttgart: abundant money/share at 1.38 is NOT a V1/HEAVY signal.
+def test_heavy_uses_its_own_amount_share_threshold_without_v1_odds_band():
     for odds in ("1.32", "1.38", "2.51"):
         snap = snapshot("1X2", 6, **{
             "1": (odds, "143569.34", "84.4"),
             "X": ("3", "17000", "10"),
             "2": ("8", "11200", "5.6"),
         })
-        assert "HEAVY_1X2_CONCENTRATION" not in names(evaluate_base(FX, 6, [snap]))
-        assert "1X2_CONCENTRATION_V1" not in names(evaluate_base(FX, 6, [snap]))
+        result = evaluate_base(FX, 6, [snap])
+        assert "HEAVY_1X2_CONCENTRATION" in names(result)
+        assert "1X2_CONCENTRATION_V1" not in names(result)
     for odds in ("1.40", "2.50"):
         snap = snapshot("1X2", 6, **{
             "1": (odds, "143569.34", "84.4"),
