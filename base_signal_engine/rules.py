@@ -208,9 +208,9 @@ def evaluate_base(fixture: Fixture, hours: int, snapshots: Sequence[Snapshot]) -
                 hits.append(_make("1X2_CONCENTRATION_V2", side, hours, home_market))
         else:
             v2_state = "V1_NOT_QUALIFIED"
-        # HEAVY is a concentration strength tag with its own amount/share
-        # thresholds. It does not inherit V1's 1.40–2.50 odds band.
-        if quote.amount >= 10000 and quote.share >= 80:
+        # HEAVY is a stronger V1 tag, never a standalone pick. A high share
+        # and amount cannot bypass V1's inclusive 1.40–2.50 odds requirement.
+        if v1 and quote.amount >= 10000:
             hits.append(_make("HEAVY_1X2_CONCENTRATION", side, hours, home_market, "STRENGTH_TAG"))
         for s in ("1", "2"):
             q = home_market.quotes[s]
