@@ -43,9 +43,9 @@
   <section class="panel">
     <h2>Günlük otomatik kayıt</h2>
     <div class="schedule"><strong>Her gün 02:00 Türkiye saati</strong><br>
-      Bir önceki tamamlanmış günün PRATİK ARŞİVİ üretilir, dosyalar GitHub'a yazılır ve geri okunarak doğrulanır.
+      Önceki tamamlanmış gün ve geriye dönük üç gün kontrol edilir. Eksik PRATİK günleri üretilir; tamamlanmış arşivler checksum ile doğrulanıp değiştirilmeden bırakılır.
     </div>
-    <p>İş akışı 23:00 UTC'de çalışır; SmartXFlow'un 02:17 UTC saklama temizliğinden önce biter. Başarısız veya kısmi aktarım başarılı olarak gösterilmez.</p>
+    <p>İş akışı 23:00 UTC'de başlar; SmartXFlow'un 02:17 UTC saklama temizliğinden önce dört günlük yakalama aralığını tamamlamaya çalışır. Başarısız veya kısmi aktarım başarılı olarak gösterilmez.</p>
   </section>
 
   <section class="panel">
