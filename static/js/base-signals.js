@@ -8,6 +8,7 @@
   var current = { start: '', day: '', engine: null, search: '', payload: null, seq: 0 };
   var ENGINES = {
     EARLY_MONEY_CORE: { name: 'Early Money Core', description: 'Erken para hareketleri', market: 'PARA AKIŞI', code: 'EM' },
+    EARLY_MONEY_CORE_V2: { name: 'Early Money Core V2', description: 'İlk erken sinyalde oran <2,00 ve para payı <%95 · Retention-55', market: 'PARA AKIŞI', code: 'EM2' },
     EARLY_MONEY_T12: { name: 'Early Money T-12', description: 'T-12 erken hareketleri', market: 'PARA AKIŞI', code: 'T12' },
     '1X2_CONCENTRATION_V1': { name: '1X2 Concentration V1', description: '1X2 para yoğunlaşması · V1', market: 'MAÇ SONUCU', code: 'V1' },
     '1X2_CONCENTRATION_V2': { name: '1X2 Concentration V2', description: '1X2 para yoğunlaşması · V2', market: 'MAÇ SONUCU', code: 'V2' },
@@ -39,14 +40,14 @@
     return ({tr:'tr-TR',en:'en-GB',de:'de-DE',fr:'fr-FR',nl:'nl-NL',it:'it-IT',es:'es-ES'})[active] || 'tr-TR';
   }
   var DESC = {
-    EARLY_MONEY_CORE:'engine_early_core_desc', EARLY_MONEY_T12:'engine_early_t12_desc',
+    EARLY_MONEY_CORE:'engine_early_core_desc', EARLY_MONEY_CORE_V2:'engine_early_core_v2_desc', EARLY_MONEY_T12:'engine_early_t12_desc',
     '1X2_CONCENTRATION_V1':'engine_v1_desc', '1X2_CONCENTRATION_V2':'engine_v2_desc',
     HEAVY_1X2_CONCENTRATION:'engine_heavy_desc', SURPRISE_TEAM:'engine_surprise_desc',
     STABLE_OVER_2_5:'engine_stable_over_desc', PREMIUM_OVER_2_5:'engine_premium_over_desc',
     PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc'
   };
   var CATS = {
-    EARLY_MONEY_CORE:'cat_money', EARLY_MONEY_T12:'cat_money',
+    EARLY_MONEY_CORE:'cat_money', EARLY_MONEY_CORE_V2:'cat_money', EARLY_MONEY_T12:'cat_money',
     '1X2_CONCENTRATION_V1':'cat_1x2', '1X2_CONCENTRATION_V2':'cat_1x2',
     HEAVY_1X2_CONCENTRATION:'cat_1x2', SURPRISE_TEAM:'cat_1x2',
     STABLE_OVER_2_5:'cat_over', PREMIUM_OVER_2_5:'cat_over',
@@ -87,6 +88,7 @@
     }).format(d);
   }
   function labelEngine(id) { return (ENGINES[id] && ENGINES[id].name) || String(id).replace(/_/g, ' '); }
+  function isEarlyCoreEngine(id) { return id === 'EARLY_MONEY_CORE' || id === 'EARLY_MONEY_CORE_V2'; }
   function marketLabel(m) {
     return m === 'OU25' ? t('market_ou','Alt / Üst 2.5') :
       m === 'BTTS' ? t('market_btts','Karşılıklı Gol') : t('market_1x2','Maç Sonucu (1X2)');
@@ -131,7 +133,7 @@
       if (!Object.prototype.hasOwnProperty.call(ENGINES, x.engine) ||
           x.ruleset_status !== required || x.selection_status !== 'ELIGIBLE' ||
           x.review_state === 'PRICE_REJECTED' ||
-          (x.engine === 'EARLY_MONEY_CORE' && x.retention &&
+          (isEarlyCoreEngine(x.engine) && x.retention &&
             x.retention.status === 'BROKEN') ||
           typeof x.odds !== 'number' || !isFinite(x.odds) || x.odds < 1.30)
         return false;
@@ -145,6 +147,8 @@
         'PREMIUM_OVER_MIN1_70':[1.70,1.80],
         'BTTS_YES':[1.60,1.90]
       };
+      if (x.engine === 'EARLY_MONEY_CORE_V2' &&
+          !(x.odds < 2.00 && typeof x.share === 'number' && x.share < 95)) return false;
       var limit = bands[x.engine];
       return !limit || (x.odds >= limit[0] && x.odds <= limit[1]);
     });
@@ -238,7 +242,7 @@
   // Aggregate only real source events. Repeated T checkpoints must not
   // duplicate an engine badge or become independent confirmation votes.
   var SHORT_ENGINE = {
-    EARLY_MONEY_CORE:'EARLY CORE', EARLY_MONEY_T12:'EARLY T12',
+    EARLY_MONEY_CORE:'EARLY CORE', EARLY_MONEY_CORE_V2:'EARLY CORE V2', EARLY_MONEY_T12:'EARLY T12',
     '1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2',
     HEAVY_1X2_CONCENTRATION:'HEAVY', SURPRISE_TEAM:'SURPRISE',
     STABLE_OVER_2_5:'STABLE', PREMIUM_OVER_2_5:'PREMIUM',
@@ -326,7 +330,7 @@
   }
   function auditLines(rows) {
     var lines = [];
-    var early = rows.find(function (item) { return item.engine === 'EARLY_MONEY_CORE'; });
+    var early = rows.find(function (item) { return isEarlyCoreEngine(item.engine); });
     if (early && early.retention) {
       var retention = early.retention;
       var count = Array.isArray(retention.confirmed) ? retention.confirmed.length : 0;
@@ -369,7 +373,7 @@
       state === 'archive' ? t('status_archive','Arşiv') :
       t('status_unverified','Doğrulanmadı');
     var badges = engines.map(function (engine) {
-      var broken = engine === 'EARLY_MONEY_CORE' && rows.some(function (r) {
+      var broken = isEarlyCoreEngine(engine) && rows.some(function (r) {
         return r.engine === engine && r.retention && r.retention.status === 'BROKEN';
       });
       return '<span class="sxf-direction-badge' + (broken ? ' is-retention-broken' : '') +
@@ -419,9 +423,9 @@
     var representative = directions[0].find(function (r) {
       return r.engine === current.engine;
     }) || directions[0][0];
-    var nowText = representative.engine === 'EARLY_MONEY_CORE' ?
+    var nowText = isEarlyCoreEngine(representative.engine) ?
       retentionLabel(representative) : liveCheckLabel(representative);
-    var nowFlag = representative.engine === 'EARLY_MONEY_CORE' ?
+    var nowFlag = isEarlyCoreEngine(representative.engine) ?
       (representative.retention && representative.retention.status === 'BROKEN' ? 'is-broken' :
        representative.retention && representative.retention.status === 'RETAINED' ? 'is-retained' : '') :
       (representative.as_of_state === 'THRESHOLD_FAIL' ? 'is-broken' :
