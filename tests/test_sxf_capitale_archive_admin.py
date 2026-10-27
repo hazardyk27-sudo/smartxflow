@@ -1,4 +1,5 @@
 """Offline checks for the PRATİK archive admin bridge."""
+import datetime as dt
 import os
 import unittest
 from unittest.mock import patch
@@ -30,6 +31,11 @@ class PratikArchiveAdminTests(unittest.TestCase):
         if method == "POST":
             return {}
         return {"workflow_runs": []}
+
+    def recent_day(self):
+        from datetime import date, timedelta
+        from zoneinfo import ZoneInfo
+        return (dt.datetime.now(bridge.ISTANBUL).date() - timedelta(days=2)).isoformat()
 
     def admin_headers(self):
         with self.client.session_transaction() as state:
@@ -73,9 +79,10 @@ class PratikArchiveAdminTests(unittest.TestCase):
 
     def test_dispatch_sends_only_the_day_and_prevents_repeat(self):
         headers = self.admin_headers()
+        day = self.recent_day()
         response = self.client.post(
             "/api/admin/sxf-archive/dispatch", headers=headers,
-            json={"day": "2026-10-09"},
+            json={"day": day},
         )
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json["status"], "QUEUED_NOT_ARCHIVED")
@@ -83,23 +90,24 @@ class PratikArchiveAdminTests(unittest.TestCase):
         self.assertEqual(len(posts), 1)
         self.assertIn("/sxf-admin-archive.yml/dispatches", posts[0][0])
         self.assertEqual(posts[0][1], {
-            "ref": "main", "inputs": {"day": "2026-10-09"},
+            "ref": "main", "inputs": {"day": day},
         })
         repeated = self.client.post(
             "/api/admin/sxf-archive/dispatch", headers=headers,
-            json={"day": "2026-10-09"},
+            json={"day": day},
         )
         self.assertEqual(repeated.status_code, 409)
 
     def test_active_date_run_is_not_dispatched_again(self):
         self.admin_headers()
+        day = self.recent_day()
 
         def remote(url, method="GET", payload=None):
             self.requests.append((url, method, payload))
             if method == "POST":
                 return {}
             return {"workflow_runs": [{
-                "display_title": "PRATİK 2026-10-09",
+                "display_title": f"PRATİK {day}",
                 "status": "in_progress",
                 "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/123",
             }]}
@@ -107,7 +115,7 @@ class PratikArchiveAdminTests(unittest.TestCase):
         with patch.object(bridge, "_github_request", side_effect=remote):
             response = self.client.post(
                 "/api/admin/sxf-archive/dispatch", headers=self.admin_headers(),
-                json={"day": "2026-10-09"},
+                json={"day": day},
             )
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json["error"], "ARCHIVE_ALREADY_RUNNING")
