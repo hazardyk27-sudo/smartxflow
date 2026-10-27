@@ -37,7 +37,6 @@ CHUNK_SIZE = 75
 V3_PRICE_BANDS = {
     "1X2_CONCENTRATION_V1": (1.40, 2.50),
     "1X2_CONCENTRATION_V2": (1.40, 2.50),
-    "HEAVY_1X2_CONCENTRATION": (1.40, 2.50),
     "SURPRISE_TEAM": (2.90, 4.49),
     "STABLE_OVER_2_5": (1.40, 1.80),
     "PREMIUM_OVER_2_5": (1.40, 1.80),
@@ -314,7 +313,8 @@ class BaseSignalsFeed:
                     q = quotes[side]
                     v1 = (side == leader and q["amount"] >= 1000 and q["share"] >= 80
                           and Decimal("1.40") <= q["odds"] <= Decimal("2.50"))
-                    heavy = v1 and q["amount"] >= 10000
+                    heavy = (side == leader and q["amount"] >= 10000 and q["share"] >= 80
+                             and Decimal("1.30") <= q["odds"] <= Decimal("1000"))
                     passed = heavy if item["engine"] == "HEAVY_1X2_CONCENTRATION" else v1
                     item["as_of_state"] = "THRESHOLD_PASS" if passed else "THRESHOLD_FAIL"
                     item["as_of_scope"] = ("V1_BASE_ONLY" if item["engine"] == "1X2_CONCENTRATION_V2"
@@ -614,6 +614,10 @@ class BaseSignalsFeed:
                     "checked": sorted(history, reverse=True),
                     "required": [6, 5, 4, 3],
                 }
+            if engine == "EARLY_MONEY_CORE" and retained["status"] == "BROKEN":
+                # A retention break is irreversible and disqualifies the Early pick.
+                valid_on_time = False
+                review_state = "RETENTION_BROKEN"
             items.append({
                 "retention": retained,
                 "as_of_state": "NOT_RECHECKED",
