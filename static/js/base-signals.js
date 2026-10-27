@@ -131,6 +131,8 @@
       if (!Object.prototype.hasOwnProperty.call(ENGINES, x.engine) ||
           x.ruleset_status !== required || x.selection_status !== 'ELIGIBLE' ||
           x.review_state === 'PRICE_REJECTED' ||
+          (x.engine === 'EARLY_MONEY_CORE' && x.retention &&
+            x.retention.status === 'BROKEN') ||
           typeof x.odds !== 'number' || !isFinite(x.odds) || x.odds < 1.30)
         return false;
       var bands = {
