@@ -178,10 +178,13 @@ def archive_days():
     except (ValueError, TypeError, RuntimeError):
         return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
 
-    if index.get("archive_name") != "PRATİK ARŞİV":
+    if not isinstance(index, dict) or index.get("archive_name") != "PRATİK ARŞİV":
+        return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
+    entries = index.get("days")
+    if not isinstance(entries, list):
         return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
     indexed = {}
-    for item in index.get("days", []):
+    for item in entries:
         if isinstance(item, dict) and isinstance(item.get("date"), str):
             indexed[item["date"]] = item
 
@@ -200,10 +203,11 @@ def archive_days():
                 "source_status": None,
             })
             continue
-        checksums = item.get("checksums", {})
+        checksums = item.get("checksums")
         archived = (
-            isinstance(item.get("fixtures"), int)
-            and isinstance(item.get("alarms"), int)
+            isinstance(item.get("fixtures"), int) and not isinstance(item.get("fixtures"), bool)
+            and isinstance(item.get("alarms"), int) and not isinstance(item.get("alarms"), bool)
+            and isinstance(checksums, dict)
             and _sha256(checksums.get("checkpoints"))
             and _sha256(checksums.get("alarms"))
         )
