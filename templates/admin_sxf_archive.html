@@ -154,5 +154,14 @@
   refreshRuns();
   refreshDays();
 </script>
+
+<script src="/static/js/i18n.js?v=20261020-full"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.SXFI18n && window.SXFI18n.ensureAdminCatalog) {
+      window.SXFI18n.ensureAdminCatalog().then(function () { window.SXFI18n.apply(); });
+    }
+  });
+</script>
 </body>
 </html>
