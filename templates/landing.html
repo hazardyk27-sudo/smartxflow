@@ -1375,7 +1375,118 @@
         @media (min-width: 901px) {
             .mobile-lang-picker { display: none; }
         }
-    </style>
+    
+        /* Refined homepage hierarchy */
+        :root {
+            --text-secondary: #a4afb9;
+            --border-subtle: rgba(255,255,255,0.085);
+            --surface-1: rgba(255,255,255,0.035);
+            --surface-2: rgba(255,255,255,0.06);
+        }
+        body {
+            background:
+                radial-gradient(900px 620px at 76% 15%, rgba(43,255,136,0.075), transparent 66%),
+                radial-gradient(700px 520px at 8% 42%, rgba(50,93,78,0.09), transparent 70%),
+                linear-gradient(180deg, #080b0e 0%, #0b1012 48%, #080b0e 100%);
+        }
+        .navbar {
+            background: rgba(8,12,15,0.74);
+            border-bottom-color: rgba(255,255,255,0.085);
+        }
+        .navbar.scrolled {
+            background: rgba(8,12,15,0.92);
+        }
+        .hero {
+            min-height: 640px;
+            padding: 76px 48px 64px;
+            gap: clamp(42px, 6vw, 88px);
+        }
+        .hero-pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: max-content;
+            margin: 0 0 22px;
+            padding: 7px 12px;
+            border: 1px solid rgba(43,255,136,0.18);
+            border-radius: 999px;
+            background: rgba(43,255,136,0.065);
+            color: #b9e8cf;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .02em;
+        }
+        .hero-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #2bff88; box-shadow: 0 0 14px rgba(43,255,136,.55); }
+        .hero-text h1 {
+            font-size: clamp(50px, 5.2vw, 72px);
+            line-height: 1.04;
+            letter-spacing: -.045em;
+            margin-bottom: 22px;
+        }
+        .hero-text .subtitle {
+            color: #b3bec7;
+            font-size: 17px;
+            line-height: 1.7;
+            max-width: 540px;
+        }
+        .hero-feature-item {
+            color: #b4c0c8;
+            border-color: rgba(43,255,136,0.16);
+            background: rgba(43,255,136,0.055);
+        }
+        .hero-visual { isolation: isolate; }
+        .mockup-window {
+            border-color: rgba(160,190,175,0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 36px 90px -28px rgba(0,0,0,.82), 0 0 64px rgba(43,255,136,.08);
+            transform: perspective(1200px) rotateY(-4deg) rotateX(1deg) translateX(-6px) scale(1.025);
+        }
+        .statsBar {
+            background: linear-gradient(145deg, rgba(20,27,27,.94), rgba(13,18,20,.94));
+            border-color: rgba(255,255,255,.1);
+            box-shadow: 0 24px 70px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.035);
+            backdrop-filter: blur(18px);
+        }
+        .feature-card {
+            background: linear-gradient(150deg, rgba(20,25,27,.88), rgba(13,17,19,.92));
+            border-color: rgba(255,255,255,.09);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+        }
+        .feature-card .feat-desc { color: #a7b2bb; }
+        .feature-card .feat-why {
+            color: #83919a;
+            font-style: normal;
+            border-top-color: rgba(255,255,255,.075);
+        }
+        .footer-row a, .footer-links a, .footer-legal a, .footer-contact a { color: #89959f; }
+        .footer-brand span { color: #a1adb5; }
+        .footer-copy { color: #69757d; }
+        @media (max-width: 768px) {
+            .hero { min-height: 0; padding: 30px 20px 42px; gap: 16px; }
+            .hero-pill-badge { margin: 0 auto 16px; }
+            .hero-text .subtitle { color: #a9b5bd; opacity: 1; }
+            .hero-visual {
+                display: flex;
+                width: 100%;
+                max-width: 500px;
+                margin: 16px auto 0;
+            }
+            .mockup-window {
+                width: 100%;
+                max-width: 500px;
+                transform: none;
+            }
+            .mockup-body { padding: 10px; }
+            .mockup-row { padding: 10px; gap: 8px; margin-bottom: 7px; }
+            .mockup-badge { min-width: 68px; font-size: 8px; padding: 4px 7px; }
+            .mockup-row:nth-of-type(n+3), .mockup-chart { display: none; }
+            .hero-mini-grid { max-width: 380px; }
+            .footer-row a, .footer-links a, .footer-legal a, .footer-contact a { color: #a1adb5; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-pill-dot { animation: none; }
+            .mockup-window { transform: none; }
+        }
+</style>
 </head>
 <body>
     <nav class="navbar">
