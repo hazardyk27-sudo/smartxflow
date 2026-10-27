@@ -4,7 +4,7 @@
 
 CAPİTALE deposundaki `.github/workflows/sxf-admin-archive.yml` her gün **23:00 UTC / 02:00 Europe/Istanbul** saatinde çalışır. Tarihi Türkiye takvimine göre bir önceki tamamlanmış gün olarak seçer. Bu plan, SmartXFlow'un **02:17 UTC** saklama temizliğinden önce arşiv işine yaklaşık üç saatlik başlangıç payı bırakır.
 
-İş akışı kaynak kayıtları salt okunur alır, PRATİK formatındaki üç dosyayı üretir, geri açıp SHA-256/çizelge/gelecek gözlem kontrollerini yapar ve yalnızca doğrulamadan sonra CAPİTALE deposunun `main` dalına commit eder. GitHub deposuna yazma izni Actions'ın kendi `GITHUB_TOKEN`'ına verilir.
+İş akışı kaynak kayıtları salt okunur alır, PRATİK formatındaki üç dosyayı üretir, geri açıp SHA-256/çizelge/gelecek gözlem kontrollerini yapar ve yalnızca doğrulamadan sonra üç günlük dosyayı ve `archive/pratik_arsiv/index.json` gün özetini CAPİTALE deposunun `main` dalına tek commit olarak yazar. GitHub deposuna yazma izni Actions'ın kendi `GITHUB_TOKEN`'ına verilir.
 
 Admin sayfası: `/admin/sxf-archive`. Yönetici oturumundan geçmiş bir tamamlanmış gün seçilip aynı Actions işi elle başlatılabilir. İş geçmişi GitHub Actions'tan okunur. Kuyruğa alınma, arşivin başarıyla kaydedildiği anlamına gelmez.
 
