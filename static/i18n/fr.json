@@ -850,8 +850,8 @@
     "pill": "Signaux en direct",
     "subtitle_desktop": "Observez le flux d'argent, les mouvements de cotes et les signaux inhabituels sur un seul écran.<br>Repérez-les tôt, saisissez le bon moment.",
     "subtitle_mobile": "Flux d'argent + mouvement des cotes + alertes intelligentes.",
-    "title_desktop": "<span class=\"accent\">Nous vous aidons à parier</span><br>comme les professionnels.",
-    "title_mobile": "<span class=\"accent\">Des signaux qui lisent</span><br>le marché."
+    "title_desktop": "<span class=\"accent\">Lisez le marché.</span><br>Repérez les signaux tôt.",
+    "title_mobile": "<span class=\"accent\">Lisez le marché.</span><br>Repérez les signaux tôt."
   },
   "howto": {
     "s1_desc": "Créez votre compte et accédez au panneau.",
