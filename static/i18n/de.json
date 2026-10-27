@@ -316,7 +316,7 @@
       "draw": "Unentschieden",
       "draw_x": "Unentschieden",
       "editor_approved": "REDAKTEUR-FREIGABE",
-      "ended_status": "BEENDET",
+      "ended_status": "Beendet",
       "failed": "Laden fehlgeschlagen",
       "fav": "Favorit",
       "filter_history": "Verlauf",
@@ -530,7 +530,8 @@
       "license_init_failed": "Die Lizenzprüfung konnte nicht abgeschlossen werden. Seite neu laden und erneut versuchen.",
       "match_retry_page": "Seite neu laden",
       "copied": "Kopiert!",
-      "logout_confirm": "Möchten Sie sich wirklich abmelden?"
+      "logout_confirm": "Möchten Sie sich wirklich abmelden?",
+      "test_mode": "Testmodus"
     },
     "lic": {
       "activate": "Lizenz Aktivieren",
@@ -887,7 +888,7 @@
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Echtzeit-Daten, intelligente Signale.",
-    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "oran takibi, para akışı, bahis analiz, odds movement, dropping odds, akıllı para, moneyway, canlı oran, piyasa analizi, SmartXFlow",
+    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "Quotenverfolgung, Geldfluss, Wettanalyse, Quotenbewegungen, fallende Quoten, Smart Money, Moneyway, Live-Quoten, Marktanalyse, SmartXFlow",
     "piyasayi_okuyan": "Den Markt lesen",
     "super_lig": "Süper Lig"
   },
