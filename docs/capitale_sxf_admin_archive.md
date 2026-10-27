@@ -6,7 +6,7 @@ CAPİTALE deposundaki `.github/workflows/sxf-admin-archive.yml` her gün **23:00
 
 İş akışı kaynak kayıtları salt okunur alır, PRATİK formatındaki üç dosyayı üretir, geri açıp SHA-256/çizelge/gelecek gözlem kontrollerini yapar ve yalnızca doğrulamadan sonra üç günlük dosyayı ve `archive/pratik_arsiv/index.json` gün özetini CAPİTALE deposunun `main` dalına tek commit olarak yazar. GitHub deposuna yazma izni Actions'ın kendi `GITHUB_TOKEN`'ına verilir.
 
-Admin sayfası: `/admin/sxf-archive`. Yönetici oturumundan geçmiş bir tamamlanmış gün seçilip aynı Actions işi elle başlatılabilir. İş geçmişi GitHub Actions'tan okunur. Kuyruğa alınma, arşivin başarıyla kaydedildiği anlamına gelmez.
+Admin sayfası: `/admin/sxf-archive`. Yönetici oturumundan son dört gün içindeki tamamlanmış bir gün seçilip aynı Actions işi elle başlatılabilir. İş geçmişi GitHub Actions'tan okunur. Kuyruğa alınma, arşivin başarıyla kaydedildiği anlamına gelmez.
 
 ## Saklanan veri ve konum
 
