@@ -23,6 +23,7 @@ class Table:
     column: str
     kind: str = "timestamp"  # timestamp, text_timestamp, or date
     optional: bool = False
+    count_field: str = "id"
 
 
 TABLES = (
@@ -54,6 +55,7 @@ TABLES = (
     Table("dropping_1x2", "date", "text_timestamp"),
     Table("dropping_ou25", "date", "text_timestamp"),
     Table("dropping_btts", "date", "text_timestamp"),
+    Table("fixture_source_ids", "last_seen_at", count_field="source_event_id"),
     Table("fixtures", "fixture_date", "date"),
     Table("live_fixtures", "fixture_date", "text_timestamp"),
     Table("scraper_signal", "created_at"),
@@ -96,7 +98,7 @@ def _request(method: str, url: str, headers: dict[str, str], params: Iterable[tu
 
 
 def _count(base_url: str, headers: dict[str, str], table: Table, cutoff: str | None = None) -> int:
-    params = [("select", "id")]
+    params = [("select", table.count_field)]
     if cutoff:
         params.append((table.column, f"lt.{cutoff}"))
     count_headers = dict(headers)
