@@ -2,7 +2,7 @@
 """Keep SmartXFlow operational market data within a seven-day rolling window.
 
 This explicit allowlist covers market snapshots/history, current market rows,
-fixtures, Polymarket feed rows, and operational signal/alarm logs. It never
+fixtures, Polymarket feed rows, operational signal/alarm logs, and alarm rows. It never
 queries or deletes Learning Archive, SXF research archive, or PRATIK files.
 """
 from __future__ import annotations
@@ -31,6 +31,14 @@ TABLES = (
     Table("live_snapshots", "snapshot_at"),
     Table("polymarket_price_snapshots", "created_at"),
     Table("polymarket_trades", "scraped_at"),
+    Table("bigmoney_alarms", "created_at"),
+    Table("dropping_alarms", "created_at"),
+    Table("insider_alarms", "created_at"),
+    Table("mim_alarms", "created_at"),
+    Table("publicmove_alarms", "created_at"),
+    Table("sharp_alarms", "created_at"),
+    Table("volume_leader_alarms", "created_at"),
+    Table("volumeshock_alarms", "created_at"),
     Table("moneyway_1x2_history", "scraped_at", "text_timestamp"),
     Table("moneyway_ou25_history", "scraped_at", "text_timestamp"),
     Table("moneyway_btts_history", "scraped_at", "text_timestamp"),
