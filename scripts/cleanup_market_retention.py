@@ -205,7 +205,7 @@ def main() -> int:
 
     failed = False
     for table in TABLES:
-        cutoff = date_cutoff if table.kind == "date" else timestamp_cutoff
+        cutoff = timestamp_cutoff if table.kind == "timestamp" else date_cutoff
         try:
             before = _count(base_url, headers, table)
             if before == -1:
