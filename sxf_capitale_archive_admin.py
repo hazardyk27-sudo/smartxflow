@@ -1,8 +1,7 @@
-"""Admin-only CAPITALE SXF archive dispatch. No Supabase writes or GitHub tokens in HTML."""
+"""Admin-only PRATİK archive dispatch and GitHub Actions status."""
 from __future__ import annotations
 
 import datetime as dt
-import base64
 import hmac
 import json
 import os
@@ -18,13 +17,9 @@ from flask import Blueprint, jsonify, render_template, request, session
 
 blueprint = Blueprint("sxf_capitale_archive_admin", __name__)
 REPO = "hazardyk27-sudo/capitale"
-WORKFLOW = "sxf-admin-archive.yml"
-WINDOW_WORKFLOW = "sxf-kickoff-window-archive.yml"
-REPAIR_WORKFLOW = "sxf-repair-oct11-receipt.yml"
-SCOPES = {"all", "kickoff16_24"}
-BRANCH = "main"
-KINDS = {"full_snapshots", "concentrated"}
+WORKFLOW = "pratik-daily-archive.yml"
 MIN_DAY = dt.date(2026, 10, 9)
+ISTANBUL = ZoneInfo("Europe/Istanbul")
 
 
 def _admin():
@@ -32,9 +27,8 @@ def _admin():
 
 
 def _same_origin():
-    origin = request.headers.get("Origin")
+    origin = request.headers.get("Origin", "")
     if not origin:
-        # Browser same-origin JSON POSTs include an Origin header.
         return False
     parsed = urlparse(origin)
     return parsed.scheme in ("https", "http") and parsed.netloc == request.host
@@ -55,17 +49,33 @@ def _github_request(url: str, method: str = "GET", payload: dict | None = None):
         "Authorization": "Bearer " + token,
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "SmartXFlow-CAPITALE-Archive-Admin",
+        "User-Agent": "SmartXFlow-PRATIK-Archive-Admin",
     }
     if body is not None:
         headers["Content-Type"] = "application/json"
     req = Request(url, data=body, headers=headers, method=method)
-    with urlopen(req, timeout=12) as response:
+    with urlopen(req, timeout=15) as response:
         if method == "POST":
             if response.status != 204:
                 raise RuntimeError("UNEXPECTED_GITHUB_DISPATCH_STATUS")
             return {}
         return json.load(response)
+
+
+def _runs():
+    url = (f"https://api.github.com/repos/{REPO}/actions/workflows/"
+           f"{WORKFLOW}/runs?per_page=30")
+    payload = _github_request(url)
+    return payload.get("workflow_runs", []) if isinstance(payload, dict) else []
+
+
+def _parse_day(value):
+    if not isinstance(value, str) or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", value):
+        return None
+    try:
+        return dt.date.fromisoformat(value)
+    except ValueError:
+        return None
 
 
 @blueprint.route("/admin/sxf-archive", methods=["GET"])
@@ -76,12 +86,14 @@ def archive_page():
     if not csrf:
         csrf = secrets.token_urlsafe(32)
         session["sxf_capitale_archive_csrf"] = csrf
+    yesterday = dt.datetime.now(ISTANBUL).date() - dt.timedelta(days=1)
     return render_template(
         "admin_sxf_archive.html",
         csrf_token=csrf,
         github_configured=bool(os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN")),
-        initial_date="2026-10-09",
-        max_date=dt.datetime.now(ZoneInfo("Europe/Istanbul")).date().isoformat(),
+        min_date=MIN_DAY.isoformat(),
+        max_date=yesterday.isoformat(),
+        initial_date=min(yesterday, dt.datetime.now(ISTANBUL).date()).isoformat(),
     )
 
 
@@ -93,447 +105,51 @@ def archive_dispatch():
         return jsonify(error="CSRF_CHECK_FAILED"), 403
     data = request.get_json(silent=True) or {}
     day_str = data.get("day")
-    kind = data.get("kind")
-    scope = data.get("scope", "all")
-    if scope not in SCOPES:
-        return jsonify(error="INVALID_ARCHIVE_SCOPE"), 400
-    workflow = WINDOW_WORKFLOW if scope == "kickoff16_24" else WORKFLOW
-    if not isinstance(day_str, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day_str):
+    day = _parse_day(day_str)
+    latest_complete_day = dt.datetime.now(ISTANBUL).date() - dt.timedelta(days=1)
+    if day is None:
         return jsonify(error="INVALID_DATE"), 400
-    try:
-        day = dt.date.fromisoformat(day_str)
-    except ValueError:
-        return jsonify(error="INVALID_DATE"), 400
-    if day < MIN_DAY or day > dt.datetime.now(ZoneInfo("Europe/Istanbul")).date():
+    if not MIN_DAY <= day <= latest_complete_day:
         return jsonify(error="DATE_OUT_OF_RANGE"), 400
-    if kind not in KINDS:
-        return jsonify(error="INVALID_ARCHIVE_TYPE"), 400
     if not os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN"):
         return jsonify(error="GITHUB_TOKEN_NOT_CONFIGURED"), 503
 
-    # Best-effort duplicate-click protection; GitHub Release tags are the final idempotence guard.
-    key = day_str + ":" + kind + ":" + scope
-    recently = session.get("sxf_capitale_archive_recent", {})
     now = int(time.time())
-    if now - int(recently.get(key, 0)) < 120:
-        return jsonify(error="ALREADY_REQUESTED_RECENTLY"), 409
-    # A browser session's 120-second guard cannot prevent duplicate exports
-    # when a two-day GitHub Actions batch is running in another session.
-    # Refuse a second real dispatch for ANY active workflow covering this day.
+    recent = session.get("pratik_archive_recent", {})
+    if now - int(recent.get(day_str, 0)) < 120:
+        return jsonify(error="ALREADY_REQUESTED_RECENTLY", day=day_str), 409
     try:
-        active = next(
-            (r for r in _archive_runs_for_workflows()
-             if _run_matches_day(r, day, kind, scope=scope)
-             and r.get("status") in ("queued", "pending", "waiting", "requested", "in_progress")),
-            None,
-        )
+        active = next((run for run in _runs()
+                       if run.get("display_title") == f"PRATİK {day_str}"
+                       and run.get("status") in
+                       ("queued", "pending", "waiting", "requested", "in_progress")), None)
     except HTTPError as error:
         return jsonify(error="GITHUB_STATUS_REJECTED", http_status=error.code), 502
     except (URLError, TimeoutError):
         return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
     except RuntimeError as error:
         return jsonify(error=str(error)), 503
-    if scope == "kickoff16_24":
-        # A previously repaired/verified scoped export is immutable. Do not
-        # dispatch a duplicate run that would fail on its existing Release tag.
-        try:
-            sub = "03_full_snapshots" if kind == "full_snapshots" else "04_concentrated"
-            idx_path = (f"archive/{day.strftime('%Y/%m/%d')}/{sub}/"
-                        "admin_release_receipt_kickoff16_24_v1.json")
-            existing = _github_request(
-                f"https://api.github.com/repos/{REPO}/contents/{idx_path}?ref=main"
-            )
-            encoded = existing.get("content") if isinstance(existing, dict) else None
-            index = json.loads(base64.b64decode(encoded).decode("utf-8")) if encoded else {}
-            tag = (f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-"
-                   f"{day}-kickoff16-24-v1")
-            if (
-                index.get("receipt_index_schema") == "SXF_VERIFIED_RELEASE_INDEX_V2"
-                and index.get("status") == "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED"
-                and index.get("release_tag") == tag
-                and index.get("total_verified_rows", 0) > 0
-            ):
-                return jsonify(error="ARCHIVE_ALREADY_VERIFIED", day=day_str,
-                               kind=kind, scope=scope), 409
-        except HTTPError as exc:
-            if exc.code != 404:
-                return jsonify(error="GITHUB_STATUS_REJECTED", http_status=exc.code), 502
-        except (URLError, TimeoutError):
-            return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
-        except (UnicodeError, ValueError, TypeError):
-            return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
     if active:
         return jsonify(error="ARCHIVE_ALREADY_RUNNING",
-                       day=day_str, kind=kind,
-                       existing_run_url=active.get("html_url")), 409
-    url = f"https://api.github.com/repos/{REPO}/actions/workflows/{workflow}/dispatches"
+                       day=day_str, run_url=active.get("html_url")), 409
+
+    url = f"https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/dispatches"
     try:
-        _github_request(url, "POST", {
-            "ref": BRANCH,
-            "inputs": {"day": day_str, "archive_kind": kind},
-        })
+        _github_request(url, "POST", {"ref": "main", "inputs": {"day": day_str}})
     except HTTPError as error:
-        # Never echo body: GitHub errors may leak internal infrastructure metadata.
         return jsonify(error="GITHUB_DISPATCH_REJECTED", http_status=error.code), 502
     except (URLError, TimeoutError):
         return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
     except RuntimeError as error:
         return jsonify(error=str(error)), 503
-
-    recently[key] = now
-    session["sxf_capitale_archive_recent"] = recently
+    recent[day_str] = now
+    session["pratik_archive_recent"] = recent
     return jsonify(
         status="QUEUED_NOT_ARCHIVED",
         day=day_str,
-        kind=kind, scope=scope,
-        actions_url=f"https://github.com/{REPO}/actions/workflows/{workflow}",
-        note="Success requires full GitHub Actions source-to-Release download/hash/restore validation.",
+        actions_url=f"https://github.com/{REPO}/actions/workflows/{WORKFLOW}",
+        note="Arşiv ancak Action başarıyla tamamlanıp dosyalar ve SHA-256 doğrulanınca hazır sayılır.",
     ), 202
-
-
-def _archive_runs_for_workflows():
-    """All kinds of SXF Actions runs, including two-day batch launches."""
-    results = []
-    for workflow in ("sxf-admin-archive.yml", "sxf-raw-two-day-batch.yml",
-                     WINDOW_WORKFLOW, REPAIR_WORKFLOW):
-        endpoint = (f"https://api.github.com/repos/{REPO}/actions/"
-                    f"workflows/{workflow}/runs?per_page=30")
-        try:
-            results.extend(_github_request(endpoint).get("workflow_runs", []))
-        except HTTPError as exc:
-            # Newly added workflow might not be indexed by GitHub until the
-            # first dispatch. Other HTTP failures must remain visible.
-            if workflow not in (WINDOW_WORKFLOW, REPAIR_WORKFLOW) or exc.code != 404:
-                raise
-    results.sort(key=lambda r: r.get("created_at", ""), reverse=True)
-    return results
-
-
-def _run_matches_day(run: dict, day: dt.date, kind: str,
-                     scope: str = "all") -> bool:
-    title = run.get("display_title", "")
-    if scope == "kickoff16_24":
-        return (
-            title == f"SXF {day} / {kind} / 16-24"
-            or (day == dt.date(2026, 10, 11) and kind == "full_snapshots"
-                and title == "SXF receipt repair 2026-10-11 / full_snapshots / 16-24")
-        )
-    if title == f"SXF {day} / {kind}":
-        return True
-    if kind != "full_snapshots":
-        return False
-    prefix = "SXF full raw "
-    if not title.startswith(prefix) or not title.endswith(" + next day"):
-        return False
-    try:
-        first = dt.date.fromisoformat(title[len(prefix): -len(" + next day")])
-    except ValueError:
-        return False
-    return day in (first, first + dt.timedelta(days=1))
-
-
-def _scoped_index_is_verified(day: dt.date, kind: str, tag: str,
-                              uploaded: int, expected: int | None,
-                              release_assets=None) -> bool:
-    """Require a durable, count-consistent GitHub main receipt for scoped success."""
-    if expected is None or uploaded != expected or expected < 1:
-        return False
-    sub = "03_full_snapshots" if kind == "full_snapshots" else "04_concentrated"
-    path = (f"archive/{day.strftime('%Y/%m/%d')}/{sub}/"
-            "admin_release_receipt_kickoff16_24_v1.json")
-    try:
-        data = _github_request(f"https://api.github.com/repos/{REPO}/contents/{path}?ref=main")
-        encoded = data.get("content") if isinstance(data, dict) else None
-        if not encoded:
-            return False
-        index = json.loads(base64.b64decode(encoded).decode("utf-8"))
-        files = index.get("asset_inventory", [])
-        if not isinstance(files, list) or not files:
-            return False
-        if any((item.get("name", "").endswith(".jsonl.gz") is False
-                or type(item.get("rows")) is not int or item["rows"] <= 0
-                or not re.fullmatch(r"[a-f0-9]{64}", item.get("sha256_gzip", "")))
-               for item in files):
-            return False
-        if release_assets is not None:
-            known = {a.get("name") for a in release_assets
-                     if a.get("name", "").endswith(".jsonl.gz")}
-            if known != {a["name"] for a in files}:
-                return False
-        return (
-            index.get("receipt_index_schema") == "SXF_VERIFIED_RELEASE_INDEX_V2"
-            and index.get("status") == "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED"
-            and index.get("day") == str(day) and index.get("kind") == kind
-            and index.get("scope") == "kickoff16_24"
-            and index.get("release_tag") == tag
-            and index.get("source_count_consistency") is True
-            and index.get("total_verified_rows") == expected
-            and sum(a["rows"] for a in files) == expected
-            and re.fullmatch(r"[a-f0-9]{64}", index.get("export_manifest_sha256", "")) is not None
-        )
-    except HTTPError as exc:
-        if exc.code == 404:
-            return False
-        raise
-    except (ValueError, TypeError, KeyError, RuntimeError, UnicodeError):
-        return False
-
-
-_SOURCE_TOTAL_CACHE = {}
-
-
-def _expected_from_source_inventory(day: dt.date, kind: str):
-    """Read a published source *inventory*, not a claim of GitHub completion.
-
-    GitHub API's content endpoint may be unavailable to a narrowly scoped
-    Actions token; in that case the UI explicitly falls back to unknown rather
-    than guessing or accessing Supabase with privileged credentials.
-    """
-    key = (str(day), kind)
-    current = time.monotonic()
-    cached = _SOURCE_TOTAL_CACHE.get(key)
-    if cached and current - cached[0] < 300:
-        return cached[1]
-    path = f"archive/{day.strftime('%Y/%m/%d')}/manifest.json"
-    try:
-        data = _github_request(f"https://api.github.com/repos/{REPO}/contents/{path}")
-        encoded = data.get("content") if isinstance(data, dict) else None
-        if not encoded:
-            return None
-        source = json.loads(base64.b64decode(encoded).decode("utf-8"))["source"]
-        if kind == "concentrated":
-            fixtures = source.get("archived_fixtures")
-            count = fixtures * 27 if type(fixtures) is int and fixtures > 0 else None
-        else:
-            names = (
-                "rows_1x2", "rows_ou25", "rows_btts",
-                "rows_dropping_1x2_history", "rows_dropping_ou25_history",
-                "rows_dropping_btts_history", "rows_moneyway_snapshots",
-                "rows_live_snapshots",
-            )
-            fields = source.get("source_recorded_counts", {})
-            counts = [fields.get(k) for k in names]
-            count = sum(counts) if all(type(x) is int and x >= 0 for x in counts) else None
-        if count is not None and count > 0:
-            _SOURCE_TOTAL_CACHE[key] = (current, count)
-        return count
-    except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError,
-            RuntimeError, UnicodeError):
-        return None
-
-
-def _utc_age_seconds(when: str):
-    if not isinstance(when, str) or not when:
-        return None
-    try:
-        parsed = dt.datetime.fromisoformat(when.replace("Z", "+00:00"))
-        if parsed.tzinfo is None:
-            return None
-        return max(0, int((dt.datetime.now(dt.timezone.utc) - parsed).total_seconds()))
-    except ValueError:
-        return None
-
-
-def _describe_archive_step(step: str | None, status: str | None):
-    if status in ("queued", "waiting", "pending", "requested"):
-        return "GitHub kuyruğunda, henüz başlamadı"
-    labels = {
-        "Validate ordered two-day date range": "İki günlük plan kontrol ediliyor",
-        "Checkout archival script": "Arşiv kodu hazırlanıyor",
-        "Set up Python": "GitHub aktarım ortamı hazırlanıyor",
-        "Install pinned PostgreSQL client": "PostgreSQL sürücüsü kuruluyor",
-        "Export bounded daily gzip assets and local verification":
-            "Supabase verileri dışa aktarılıyor; parçalar hazırlanıyor",
-        "Upload final manifest after streaming all checked source chunks":
-            "GitHub Release yüklemesi tamamlanıyor",
-        "Upload into a new draft Release without overwrites":
-            "Hazırlanan dosyalar GitHub Release'e yükleniyor",
-        "Download all assets; check byte identity, SHA and JSONL restore":
-            "Yüklenen dosyalar indiriliyor, SHA-256 ve JSONL doğrulanıyor",
-        "Publish verification receipt to draft and read it back":
-            "Doğrulama makbuzu kaydediliyor",
-        "Write append-only archive receipt index to GitHub and read back":
-            "GitHub arşiv makbuzu son kez doğrulanıyor",
-    }
-    return labels.get(step, "GitHub işi çalışıyor; ayrıntı GitHub Actions'ta") if step else (
-        "Arşiv işi tamamlandı" if status == "completed" else "GitHub işçisi hazırlanıyor"
-    )
-
-
-@blueprint.route("/api/admin/sxf-archive/progress", methods=["GET"])
-def archive_progress():
-    """True uploaded-row progress. Never manufacture a percentage or a success."""
-    if not _admin():
-        return jsonify(error="ADMIN_REQUIRED"), 403
-    day_str, kind = request.args.get("day", ""), request.args.get("kind", "")
-    scope = request.args.get("scope", "all")
-    if scope not in SCOPES:
-        return jsonify(error="INVALID_ARCHIVE_SCOPE"), 400
-    if kind not in KINDS or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", day_str):
-        return jsonify(error="INVALID_ARCHIVE_SELECTION"), 400
-    try:
-        day = dt.date.fromisoformat(day_str)
-    except ValueError:
-        return jsonify(error="INVALID_ARCHIVE_SELECTION"), 400
-    if not MIN_DAY <= day <= dt.datetime.now(ZoneInfo("Europe/Istanbul")).date():
-        return jsonify(error="DATE_OUT_OF_RANGE"), 400
-
-    suffix = "-kickoff16-24" if scope == "kickoff16_24" else ""
-    tag = f"sxf-{'raw' if kind == 'full_snapshots' else 'concentrated'}-{day}{suffix}-v1"
-    try:
-        runs = _archive_runs_for_workflows()
-        candidates = [run for run in runs if _run_matches_day(run, day, kind, scope=scope)]
-        # If a duplicate request is pending while the older batch is actually
-        # exporting this day, prefer the running job over the queued duplicate.
-        matching = next((run for run in candidates if run.get("status") == "in_progress"),
-                        candidates[0] if candidates else None)
-        release = None
-        release_error = None
-        try:
-            release = _github_request(f"https://api.github.com/repos/{REPO}/releases/tags/{tag}")
-        except HTTPError as exc:
-            if exc.code == 404:
-                # GitHub's tag lookup can hide a DRAFT Release even when the
-                # authenticated releases listing includes it. Match exact tag.
-                for page in range(1, 6):
-                    try:
-                        listed = _github_request(
-                            f"https://api.github.com/repos/{REPO}/releases"
-                            f"?per_page=100&page={page}"
-                        )
-                    except HTTPError as listing_error:
-                        if listing_error.code == 404:
-                            break
-                        raise
-                    if not isinstance(listed, list):
-                        break
-                    release = next(
-                        (item for item in listed if item.get("tag_name") == tag), None
-                    )
-                    if release or len(listed) < 100:
-                        break
-                if release is None:
-                    release_error = "RELEASE_NOT_FOUND_OR_NOT_VISIBLE"
-            elif exc.code == 403:
-                release_error = "RELEASE_CONTENTS_READ_PERMISSION_REQUIRED"
-            else:
-                return jsonify(error="RELEASE_LOOKUP_REJECTED", http_status=exc.code), 502
-
-        # If the second day of a two-day batch has not started, don't label it
-        # actively uploading merely because the overall batch is running.
-        day_run_status = matching.get("status") if matching else None
-        day_run_conclusion = matching.get("conclusion") if matching else None
-        active_step = None
-        job_started_at = matching.get("run_started_at") if matching else None
-        if matching:
-            try:
-                jobs = _github_request(
-                    f"https://api.github.com/repos/{REPO}/actions/runs/{matching['id']}/jobs?per_page=100"
-                ).get("jobs", [])
-                own = None
-                title = matching.get("display_title", "")
-                if kind == "full_snapshots" and title.startswith("SXF full raw "):
-                    first = dt.date.fromisoformat(title[len("SXF full raw "): -len(" + next day")])
-                    prefix = "first-day" if day == first else "second-day"
-                    own = next((job for job in jobs if job.get("name", "").startswith(prefix)), None)
-                    if not own and day != first:
-                        day_run_status, day_run_conclusion = "queued", None
-                elif jobs:
-                    own = jobs[0]
-                if own:
-                    day_run_status, day_run_conclusion = own.get("status"), own.get("conclusion")
-                    job_started_at = own.get("started_at")
-                    active_step = next(
-                        (step.get("name") for step in own.get("steps", [])
-                         if step.get("status") == "in_progress"), None
-                    )
-            except (HTTPError, URLError, TimeoutError, ValueError, KeyError, TypeError):
-                pass
-
-        assets = release.get("assets", []) if release else []
-        # The Release detail response may not include every asset in a large
-        # 25k-row-chunk export. Read every assets page to avoid undercounting.
-        if release and type(release.get("id")) is int:
-            assets = []
-            for page in range(1, 12):
-                batch = _github_request(
-                    f"https://api.github.com/repos/{REPO}/releases/{release['id']}/assets"
-                    f"?per_page=100&page={page}"
-                )
-                if not isinstance(batch, list):
-                    raise RuntimeError("INVALID_RELEASE_ASSETS_RESPONSE")
-                assets.extend(batch)
-                if len(batch) < 100:
-                    break
-            if len(assets) > 1000:
-                raise RuntimeError("UNSAFE_RELEASE_ASSET_COUNT")
-        total_markers = [
-            int(m.group(1))
-            for item in assets
-            if (m := re.fullmatch(r"progress_total_rows_([1-9]\d*)\.json", item.get("name", "")))
-        ]
-        release_expected = total_markers[0] if len(total_markers) == 1 else None
-        # The daily source manifest lists every kickoff. Never display its
-        # total for the selected 16:00–24:00 window.
-        fallback_expected = (_expected_from_source_inventory(day, kind)
-                             if release_expected is None and matching and scope == "all"
-                             else None)
-        expected = release_expected if release_expected is not None else fallback_expected
-        count_source = ("GITHUB_RELEASE" if release_expected is not None
-                        else "SOURCE_INVENTORY" if fallback_expected is not None
-                        else "UNKNOWN")
-        uploaded = sum(
-            int(m.group(1))
-            for item in assets
-            if (m := re.search(r"_rows_([1-9]\d*)\.jsonl\.gz$", item.get("name", "")))
-        )
-        receipt = any(item.get("name") == "verification_receipt.json" for item in assets)
-        # A restored job may succeed after the original full export's last
-        # metadata step failed. Both a successful verification/recovery Actions
-        # run AND a count-consistent GitHub main index are required.
-        successful_run = (day_run_status == "completed"
-                          and day_run_conclusion == "success")
-        scoped_index_ok = (
-            _scoped_index_is_verified(day, kind, tag, uploaded, release_expected, assets)
-            if scope == "kickoff16_24" and receipt and successful_run else False
-        )
-        verified = bool(
-            receipt and release_expected is not None and uploaded == release_expected
-            and successful_run and (scope != "kickoff16_24" or scoped_index_ok)
-        )
-        if verified:
-            status, percent = "DOĞRULANDI", 100
-        elif day_run_conclusion in ("failure", "cancelled", "timed_out"):
-            status, percent = "BAŞARISIZ", min(99, uploaded * 100 // expected) if expected else None
-        elif day_run_status in ("queued", "waiting", "pending"):
-            status, percent = "BEKLİYOR", min(99, uploaded * 100 // expected) if expected else None
-        elif day_run_status == "in_progress" or release:
-            status, percent = "AKTARILIYOR", min(99, uploaded * 100 // expected) if expected else None
-        else:
-            status, percent = "BEKLİYOR", None
-        return jsonify(
-            day=day_str, kind=kind, scope=scope, status=status, percent=percent,
-            expected_rows=expected, uploaded_rows=uploaded,
-            remaining_rows=max(0, expected - uploaded) if expected is not None else None,
-            verified=verified, release_tag=tag, release_error=release_error,
-            count_source=count_source,
-            current_step=active_step,
-            stage_description=_describe_archive_step(active_step, day_run_status),
-            job_started_at=job_started_at,
-            job_elapsed_seconds=_utc_age_seconds(job_started_at),
-            stage_has_measured_rows=bool(release_expected is not None),
-            checked_at_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
-            run_url=matching.get("html_url") if matching else None,
-            run_status=day_run_status, run_conclusion=day_run_conclusion,
-            note=("Tamamlandı yalnız GitHub SHA-256/JSONL geri okuma denetimi ve iş başarısı ile onaylanır."
-                  if verified else "Yalnız GitHub'a yüklenen parçalar sayılır; bitmeden yüzde 100 gösterilmez."),
-        )
-    except HTTPError as exc:
-        return jsonify(error="GITHUB_STATUS_REJECTED", http_status=exc.code), 502
-    except (URLError, TimeoutError):
-        return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
-    except RuntimeError as exc:
-        return jsonify(error=str(exc)), 503
 
 
 @blueprint.route("/api/admin/sxf-archive/runs", methods=["GET"])
@@ -541,21 +157,17 @@ def archive_runs():
     if not _admin():
         return jsonify(error="ADMIN_REQUIRED"), 403
     try:
-        data = _archive_runs_for_workflows()
+        runs = _runs()
     except HTTPError as error:
         return jsonify(error="GITHUB_STATUS_REJECTED", http_status=error.code), 502
     except (URLError, TimeoutError):
         return jsonify(error="GITHUB_CONNECTION_FAILED"), 502
     except RuntimeError as error:
         return jsonify(error=str(error)), 503
-    runs = [
-        {
-            "title": r.get("display_title", ""),
-            "status": r.get("status", ""),
-            "conclusion": r.get("conclusion"),
-            "created_at": r.get("created_at"),
-            "url": r.get("html_url", ""),
-        }
-        for r in data[:20]
-    ]
-    return jsonify(runs=runs)
+    return jsonify(runs=[{
+        "title": run.get("display_title") or run.get("name") or "PRATİK günlük",
+        "status": run.get("status"),
+        "conclusion": run.get("conclusion"),
+        "created_at": run.get("created_at"),
+        "html_url": run.get("html_url"),
+    } for run in runs])
