@@ -614,6 +614,10 @@ class BaseSignalsFeed:
                     "checked": sorted(history, reverse=True),
                     "required": [6, 5, 4, 3],
                 }
+            if engine == "EARLY_MONEY_CORE" and retained["status"] == "BROKEN":
+                # A retention break is irreversible and disqualifies the Early pick.
+                valid_on_time = False
+                review_state = "RETENTION_BROKEN"
             items.append({
                 "retention": retained,
                 "as_of_state": "NOT_RECHECKED",

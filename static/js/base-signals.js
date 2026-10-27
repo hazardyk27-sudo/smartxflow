@@ -131,6 +131,8 @@
       if (!Object.prototype.hasOwnProperty.call(ENGINES, x.engine) ||
           x.ruleset_status !== required || x.selection_status !== 'ELIGIBLE' ||
           x.review_state === 'PRICE_REJECTED' ||
+          (x.engine === 'EARLY_MONEY_CORE' && x.retention &&
+            x.retention.status === 'BROKEN') ||
           typeof x.odds !== 'number' || !isFinite(x.odds) || x.odds < 1.30)
         return false;
       var bands = {
@@ -259,6 +261,7 @@
       item.review_state === 'LATE_HISTORY' || item.review_state === 'RECONCILED_HISTORY';
   }
   function rowState(item) {
+    if (item.review_state === 'RETENTION_BROKEN') return t('retention_broken','Süreklilik bozuldu');
     if (item.review_state === 'PRICE_REJECTED') return t('status_rejected','Uygun değil');
     if (item.review_state === 'HISTORY_INCOMPLETE') return t('history_unverified','Early geçmişi eksik');
     if (isHistorical(item)) return t('status_archive','Arşiv');
