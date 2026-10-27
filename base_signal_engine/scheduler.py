@@ -17,7 +17,7 @@ from .rules import (
 )
 
 # Prospective V3 release identity: V1/V2 immutable history remains untouched.
-RULESET_VERSION = "SXF_SIGNAL_MOTOR_V4_2026_10_27"
+RULESET_VERSION = "SXF_SIGNAL_MOTOR_V3_2026_10_24"
 INGESTION_GRACE = timedelta(minutes=10)
 # Early's T-5/T-4/T-3 checkpoints are retention ONLY, not Base triggers.
 CHECKPOINT_TASKS = (
