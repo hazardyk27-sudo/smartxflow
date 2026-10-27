@@ -87,11 +87,12 @@ def archive_page():
         csrf = secrets.token_urlsafe(32)
         session["sxf_capitale_archive_csrf"] = csrf
     yesterday = dt.datetime.now(ISTANBUL).date() - dt.timedelta(days=1)
+    oldest_allowed = max(MIN_DAY, yesterday - dt.timedelta(days=3))
     return render_template(
         "admin_sxf_archive.html",
         csrf_token=csrf,
         github_configured=bool(os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN")),
-        min_date=MIN_DAY.isoformat(),
+        min_date=oldest_allowed.isoformat(),
         max_date=yesterday.isoformat(),
         initial_date=min(yesterday, dt.datetime.now(ISTANBUL).date()).isoformat(),
     )
@@ -107,9 +108,10 @@ def archive_dispatch():
     day_str = data.get("day")
     day = _parse_day(day_str)
     latest_complete_day = dt.datetime.now(ISTANBUL).date() - dt.timedelta(days=1)
+    oldest_allowed = max(MIN_DAY, latest_complete_day - dt.timedelta(days=3))
     if day is None:
         return jsonify(error="INVALID_DATE"), 400
-    if not MIN_DAY <= day <= latest_complete_day:
+    if not oldest_allowed <= day <= latest_complete_day:
         return jsonify(error="DATE_OUT_OF_RANGE"), 400
     if not os.environ.get("CAPITALE_GITHUB_ACTIONS_TOKEN"):
         return jsonify(error="GITHUB_TOKEN_NOT_CONFIGURED"), 503
