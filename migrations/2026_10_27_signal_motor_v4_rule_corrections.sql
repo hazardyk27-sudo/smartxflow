@@ -18,7 +18,7 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM public.sxf_base_checkpoint_jobs
               WHERE ruleset_version='SXF_SIGNAL_MOTOR_V4_2026_10_27') THEN
-    RAISE EXCEPTION 'V4_CUTOVER_REJECTED: V3 jobs already exist';
+    RAISE EXCEPTION 'V4_CUTOVER_REJECTED: V4 jobs already exist';
   END IF;
 END $preflight$;
 
@@ -119,7 +119,7 @@ CREATE OR REPLACE FUNCTION public.sxf_base_claim_reconcile(
     p_worker text, p_limit integer DEFAULT 1, p_lease_seconds integer DEFAULT 900)
 RETURNS TABLE(reconciliation_id bigint, origin_event_key text, fixture_uid uuid,
     kickoff_utc timestamptz, market text, lease_token uuid, attempt_count integer)
-LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,public AS $$
 BEGIN
     IF p_worker IS NULL OR length(btrim(p_worker)) NOT BETWEEN 1 AND 100
        OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 10
@@ -153,7 +153,7 @@ BEGIN
     ) SELECT u.reconciliation_id,u.origin_event_key,u.fixture_uid,u.kickoff_utc,
              u.market,u.lease_token,u.attempt_count FROM updated u
       ORDER BY u.reconciliation_id;
-END $;
+END $$;
 
 -- sxf_base_enqueue_jobs
 CREATE OR REPLACE FUNCTION public.sxf_base_enqueue_jobs(p_jobs jsonb)
