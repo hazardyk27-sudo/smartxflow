@@ -49,7 +49,7 @@ See `/.agents/contracts/RELEASE_FLOW.md` for the canonical release procedure.
 
 | Unit | Entrypoint / purpose |
 |---|---|
-| `smartxflow-web.service` | Gunicorn `app:app`, bound to `127.0.0.1:8000` |
+| `smartxflow-web.service` | Gunicorn `web_runtime:app`, bound to `127.0.0.1:8000` |
 | `smartxflow-scraper.service` | `prematch_authoritative_runtime.py` |
 | `smartxflow-alarm.service` | `alarm_engine.py` |
 | `smartxflow-sinyal.service` | `sinyal_engine_runtime.py` |
