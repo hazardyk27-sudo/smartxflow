@@ -17,7 +17,7 @@ from flask import Blueprint, jsonify, render_template, request, session
 
 blueprint = Blueprint("sxf_capitale_archive_admin", __name__)
 REPO = "hazardyk27-sudo/capitale"
-WORKFLOW = "pratik-daily-archive.yml"
+WORKFLOW = "sxf-admin-archive.yml"
 MIN_DAY = dt.date(2026, 10, 9)
 ISTANBUL = ZoneInfo("Europe/Istanbul")
 
