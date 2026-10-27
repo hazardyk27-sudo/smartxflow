@@ -60,6 +60,16 @@
   </section>
 
   <section class="panel">
+    <h2>Arşivlenen günler</h2>
+    <p>En yeni tamamlanmış günden eskiye doğru listelenir. Durum, CAPİTALE deposundaki PRATİK gün indeksi ve doğrulama SHA değerlerine göre gösterilir.</p>
+    <button class="secondary" id="days-refresh-button" type="button">Gün listesini yenile</button>
+    <div id="days-message" class="message" role="status"></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Gün</th><th>Durum</th><th>Maç</th><th>Alarm</th><th>Boyut</th></tr></thead><tbody id="days-body"></tbody></table>
+    </div>
+  </section>
+
+  <section class="panel">
     <h2>GitHub Actions geçmişi</h2>
     <p>“İstek sıraya alındı” tamamlandığı anlamına gelmez. Başarı için GitHub'a yazma, geri okuma ve manifest SHA-256 kontrollerinin geçmesi gerekir.</p>
     <button class="secondary" id="refresh-button" type="button">Durumu yenile</button>
@@ -73,6 +83,7 @@
   const csrfToken = {{ csrf_token|tojson }};
   const runButton = document.getElementById('archive-button');
   const runsBody = document.getElementById('runs-body');
+  const daysBody = document.getElementById('days-body');
   const message = (id,text,isError=false) => {
     const n=document.getElementById(id);
     n.textContent=text;
@@ -101,6 +112,27 @@
     }catch(error){message('runs-message','Durum alınamadı: '+error.message,true);}
     finally{button.disabled=false;}
   }
+  async function refreshDays(){
+    const button=document.getElementById('days-refresh-button');
+    button.disabled=true;
+    try{
+      const response=await fetch('/api/admin/sxf-archive/days',{credentials:'same-origin'});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
+      daysBody.replaceChildren();
+      for(const day of data.days){
+        const row=document.createElement('tr');
+        const date=document.createElement('td');date.textContent=day.date;
+        const status=document.createElement('td');status.textContent=day.status;
+        const fixtures=document.createElement('td');fixtures.textContent=day.fixtures==null?'—':day.fixtures.toLocaleString('tr-TR');
+        const alarms=document.createElement('td');alarms.textContent=day.alarms==null?'—':day.alarms.toLocaleString('tr-TR');
+        const size=document.createElement('td');size.textContent=day.bytes==null?'—':(day.bytes/1048576).toFixed(2)+' MiB';
+        row.append(date,status,fixtures,alarms,size);daysBody.appendChild(row);
+      }
+      message('days-message',data.days.length?'Gün listesi en yeniden eskiye yüklendi.':'Listelenecek tamamlanmış gün yok.');
+    }catch(error){message('days-message','Arşiv günleri alınamadı: '+error.message,true);}
+    finally{button.disabled=false;}
+  }
   runButton.addEventListener('click',async()=>{
     runButton.disabled=true;
     const day=document.getElementById('archive-day').value;
@@ -118,7 +150,9 @@
     finally{runButton.disabled=false;}
   });
   document.getElementById('refresh-button').addEventListener('click',refreshRuns);
+  document.getElementById('days-refresh-button').addEventListener('click',refreshDays);
   refreshRuns();
+  refreshDays();
 </script>
 </body>
 </html>
