@@ -316,7 +316,7 @@
       "draw": "Empate",
       "draw_x": "Empate",
       "editor_approved": "APROBADO POR EDITOR",
-      "ended_status": "FINALIZADO",
+      "ended_status": "Finalizado",
       "failed": "Error al cargar",
       "fav": "Favorito",
       "filter_history": "Historial",
@@ -530,7 +530,8 @@
       "license_init_failed": "No se pudo completar la verificación de la licencia. Actualiza la página e inténtalo de nuevo.",
       "match_retry_page": "Actualizar página",
       "copied": "¡Copiado!",
-      "logout_confirm": "¿Seguro que quieres cerrar sesión?"
+      "logout_confirm": "¿Seguro que quieres cerrar sesión?",
+      "test_mode": "Modo de prueba"
     },
     "lic": {
       "activate": "Activar Licencia",
@@ -887,7 +888,7 @@
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Datos en tiempo real, señales inteligentes.",
-    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "oran takibi, para akışı, bahis analiz, odds movement, dropping odds, akıllı para, moneyway, canlı oran, piyasa analizi, SmartXFlow",
+    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "seguimiento de cuotas, flujo de dinero, análisis de apuestas, movimientos de cuotas, cuotas a la baja, dinero inteligente, Moneyway, cuotas en directo, análisis de mercado, SmartXFlow",
     "piyasayi_okuyan": "Leer el mercado",
     "super_lig": "Süper Lig"
   },
