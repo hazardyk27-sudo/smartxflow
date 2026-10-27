@@ -68,6 +68,17 @@ def _runs():
     payload = _github_request(url)
     return payload.get("workflow_runs", []) if isinstance(payload, dict) else []
 
+def _archive_index():
+    """Read the public archive index without widening the admin token scope."""
+    url = f"https://raw.githubusercontent.com/{REPO}/main/archive/pratik_arsiv/index.json"
+    req = Request(url, headers={"User-Agent": "SmartXFlow-PRATIK-Archive-Admin"})
+    with urlopen(req, timeout=12) as response:
+        return json.load(response)
+
+
+def _sha256(value):
+    return isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value) is not None
+
 
 def _parse_day(value):
     if not isinstance(value, str) or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", value):
@@ -152,6 +163,63 @@ def archive_dispatch():
         actions_url=f"https://github.com/{REPO}/actions/workflows/{WORKFLOW}",
         note="Arşiv ancak Action başarıyla tamamlanıp dosyalar ve SHA-256 doğrulanınca hazır sayılır.",
     ), 202
+
+
+@blueprint.route("/api/admin/sxf-archive/days", methods=["GET"])
+def archive_days():
+    if not _admin():
+        return jsonify(error="ADMIN_REQUIRED"), 403
+    try:
+        index = _archive_index()
+    except HTTPError as error:
+        return jsonify(error="ARCHIVE_INDEX_UNAVAILABLE", http_status=error.code), 502
+    except (URLError, TimeoutError):
+        return jsonify(error="ARCHIVE_INDEX_CONNECTION_FAILED"), 502
+    except (ValueError, TypeError, RuntimeError):
+        return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
+
+    if index.get("archive_name") != "PRATİK ARŞİV":
+        return jsonify(error="INVALID_ARCHIVE_INDEX"), 502
+    indexed = {}
+    for item in index.get("days", []):
+        if isinstance(item, dict) and isinstance(item.get("date"), str):
+            indexed[item["date"]] = item
+
+    latest = dt.datetime.now(ISTANBUL).date() - dt.timedelta(days=1)
+    count = max(0, (latest - MIN_DAY).days + 1)
+    days = []
+    for offset in range(count):
+        day = latest - dt.timedelta(days=offset)
+        if day < MIN_DAY:
+            break
+        item = indexed.get(day.isoformat())
+        if item is None:
+            days.append({
+                "date": day.isoformat(), "status": "Eksik",
+                "fixtures": None, "alarms": None, "bytes": None,
+                "source_status": None,
+            })
+            continue
+        checksums = item.get("checksums", {})
+        archived = (
+            isinstance(item.get("fixtures"), int)
+            and isinstance(item.get("alarms"), int)
+            and _sha256(checksums.get("checkpoints"))
+            and _sha256(checksums.get("alarms"))
+        )
+        if not archived:
+            status = "Kontrol gerekli"
+        elif item.get("source_archive_status") == "PARTIAL":
+            status = "Arşivlendi · kaynak kısmi"
+        else:
+            status = "Arşivlendi"
+        days.append({
+            "date": day.isoformat(), "status": status,
+            "fixtures": item.get("fixtures"), "alarms": item.get("alarms"),
+            "bytes": item.get("total_bytes"),
+            "source_status": item.get("source_archive_status"),
+        })
+    return jsonify(days=days)
 
 
 @blueprint.route("/api/admin/sxf-archive/runs", methods=["GET"])
