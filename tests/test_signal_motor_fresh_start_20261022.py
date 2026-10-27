@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parents[1]
 V2 = "SXF_SIGNAL_MOTOR_V2_2026_10_22"
-V3 = "SXF_SIGNAL_MOTOR_V3_2026_10_24"
+V3 = "SXF_SIGNAL_MOTOR_V4_2026_10_27"
 
 
 def test_new_ruleset_is_explicit_and_all_jobs_get_new_identity():
