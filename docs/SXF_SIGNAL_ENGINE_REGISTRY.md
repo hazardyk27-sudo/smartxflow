@@ -243,12 +243,3 @@ previously archived signals remain historically unchanged.
 - This contract does not declare complete fixture coverage, historical
   backlog clearance, or a production release. Exact SHA, CI, versioned DB
   readiness, Hetzner deploy and post-release checks remain required.
-
-## 2026-10-27 prospective V4 rule corrections
-
-V4 preserves V3's archived rule identity and corrects two implementation mismatches:
-
-- `HEAVY_1X2_CONCENTRATION` uses the top HOME/AWAY side with amount `>= £10,000` and share `>=80%`. It does not inherit V1's `1.40–2.50` odds band. The global `1.30` selection floor still applies.
-- An `EARLY_MONEY_CORE` pick whose T-6/T-5/T-4/T-3 retention reaches `RETENTION_BREAK` is marked invalid in the feed and excluded from the timely-signal count. Incomplete checks remain visibly incomplete.
-
-The ruleset identity is `SXF_SIGNAL_MOTOR_V4_2026_10_27`. V3 events remain unchanged. Apply `migrations/2026_10_27_signal_motor_v4_rule_corrections.sql` only after the V3 worker/recovery timer is stopped and its live leases are drained.
