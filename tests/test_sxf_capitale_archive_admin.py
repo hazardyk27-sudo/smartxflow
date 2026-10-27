@@ -46,6 +46,7 @@ class PratikArchiveAdminTests(unittest.TestCase):
     def test_admin_authentication_guards_page_and_api(self):
         self.assertEqual(self.client.get("/admin/sxf-archive").status_code, 403)
         self.assertEqual(self.client.get("/api/admin/sxf-archive/runs").status_code, 403)
+        self.assertEqual(self.client.get("/api/admin/sxf-archive/days").status_code, 403)
         response = self.client.post(
             "/api/admin/sxf-archive/dispatch",
             headers={"Origin": "http://localhost", "X-CSRF-Token": "csrf-test"},
