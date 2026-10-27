@@ -201,7 +201,7 @@ fi
 
 section "ENTRYPOINT READBACK"
 check_exec_contains smartxflow-web.service "gunicorn"
-check_exec_contains smartxflow-web.service "app:app"
+check_exec_contains smartxflow-web.service "web_runtime:app"
 check_exec_contains smartxflow-scraper.service "prematch_authoritative_runtime.py"
 check_exec_contains smartxflow-alarm.service "alarm_engine.py"
 check_exec_contains smartxflow-live.service "live_scraper.py"
