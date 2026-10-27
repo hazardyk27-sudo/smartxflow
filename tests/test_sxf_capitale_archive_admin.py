@@ -131,6 +131,27 @@ class PratikArchiveAdminTests(unittest.TestCase):
             self.assertEqual(response.status_code, 400)
         self.assertEqual(self.requests, [])
 
+    def test_archive_days_are_newest_first_and_show_missing_and_partial(self):
+        self.admin_headers()
+        latest = dt.datetime.now(bridge.ISTANBUL).date() - dt.timedelta(days=1)
+        previous = latest - dt.timedelta(days=1)
+        index = {
+            "archive_name": "PRATİK ARŞİV",
+            "days": [{
+                "date": previous.isoformat(), "fixtures": 12, "alarms": 7,
+                "total_bytes": 2048, "source_archive_status": "PARTIAL",
+                "checksums": {"checkpoints": "a" * 64, "alarms": "b" * 64},
+            }],
+        }
+        with patch.object(bridge, "_archive_index", return_value=index):
+            response = self.client.get("/api/admin/sxf-archive/days")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["days"][0]["date"], latest.isoformat())
+        self.assertEqual(response.json["days"][0]["status"], "Eksik")
+        self.assertEqual(response.json["days"][1]["date"], previous.isoformat())
+        self.assertEqual(response.json["days"][1]["status"], "Arşivlendi · kaynak kısmi")
+        self.assertEqual(response.json["days"][1]["bytes"], 2048)
+
     def test_run_history_returns_only_display_fields(self):
         self.admin_headers()
         response = self.client.get("/api/admin/sxf-archive/runs")
