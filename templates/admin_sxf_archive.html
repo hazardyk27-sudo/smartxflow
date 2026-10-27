@@ -3,48 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SXF Arşiv Yönetimi — SmartXFlow</title>
+  <title>PRATİK Arşiv — SmartXFlow</title>
   <style>
     :root{color-scheme:dark;--bg:#0d1117;--panel:#161b22;--line:#30363d;--text:#e6edf3;--muted:#919ca9;--blue:#58a6ff}
     *{box-sizing:border-box}body{margin:0;padding:28px 18px;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
-    main{max-width:920px;margin:auto}header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
-    a{color:var(--blue)}h1{font-size:27px;line-height:1.2;margin:4px 0 7px}h2{font-size:18px;margin:0 0 13px}
-    p{color:var(--muted);margin:8px 0 18px}small,.muted{color:var(--muted)}
+    main{max-width:900px;margin:auto}header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
+    a{color:var(--blue)}h1{font-size:27px;line-height:1.2;margin:4px 0 7px}h2{font-size:18px;margin:0 0 10px}
+    p{color:var(--muted);margin:8px 0 16px}small,.muted{color:var(--muted)}
     .panel{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:14px;margin:14px 0}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-    .kind{display:block;padding:20px;cursor:pointer;border:1px solid #3b4758;border-radius:12px;background:#111923}
-    .kind:has(input:checked){border-color:var(--blue);background:#182a3f}
-    .kind input{width:18px;height:18px;accent-color:var(--blue);vertical-align:middle;margin-right:9px}
-    .kind strong{font-size:16px}.kind span{display:block;padding-left:31px;margin-top:8px;color:var(--muted);font-size:13px}
-    label.caption{display:block;color:var(--muted);margin-bottom:8px}
-    input[type=date],select{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
+    .schedule{border-left:4px solid #3fb950;padding:10px 14px;background:#11241a;border-radius:6px}
+    label.caption{display:block;color:var(--muted);margin:15px 0 7px}
+    input[type=date]{color:var(--text);background:#0d1117;border:1px solid #526073;padding:12px;border-radius:9px;font-size:16px;max-width:100%;width:250px}
     button{border:0;border-radius:9px;background:#238636;color:white;padding:12px 20px;font:600 15px system-ui;cursor:pointer}
     button.secondary{background:#303b4b}button:disabled{cursor:not-allowed;opacity:.55}
-    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.row>*{flex-shrink:0}
-    .message{white-space:pre-line;font-size:14px;line-height:1.6;margin-top:13px;color:#d0d7de}
-    .message.error{color:#ff9292}.message.success{color:#7ee6a2}
+    .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+    .message{white-space:pre-line;font-size:14px;line-height:1.6;margin-top:13px;color:#d0d7de}.message.error{color:#ff9292}.message.success{color:#7ee6a2}
     table{width:100%;border-collapse:collapse;font-size:13px}td,th{border-bottom:1px solid var(--line);text-align:left;padding:10px 6px;vertical-align:top}
-    .hidden{display:none!important}
-    .progress-item{padding:15px 0;border-top:1px solid var(--line)}
-    .progress-item:first-child{border-top:0}
-    .progress-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-weight:600}
-    .progress-value{font-variant-numeric:tabular-nums;font-size:18px;color:#a6d7ff}
-    progress{display:block;width:100%;height:22px;accent-color:#58a6ff;margin:12px 0 6px}
-    progress.verified{accent-color:#3fb950}
-    progress.failed{accent-color:#f85149}
-    .progress-details{font-size:13px;line-height:1.65;color:var(--muted)}
-    .progress-details a{white-space:nowrap}
-    .stage-status{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;
-      background:#0e2131;border:1px solid #325169;border-radius:9px;color:#b9dcfa;font-size:14px}
-    .stage-pulse{flex:none;display:inline-block;width:9px;height:9px;border-radius:50%;
-      background:#58a6ff;animation:sxfPulse 1.2s ease-in-out infinite}
-    @keyframes sxfPulse{0%,100%{opacity:.35}50%{opacity:1}}
-    .stage-status.complete .stage-pulse{background:#3fb950;animation:none}
-    .stage-status.fail .stage-pulse{background:#f85149;animation:none}
-    .stall-warning{color:#e8b06c;font-size:13px;padding:9px 11px;margin-top:8px;
-      border:1px solid #826435;border-radius:8px;background:#302313}
-    .stage-time{font-variant-numeric:tabular-nums;color:#c8d5e4}
-    @media(prefers-reduced-motion:reduce){.stage-pulse{animation:none}}
     @media(max-width:600px){body{padding:16px 10px}.panel{padding:17px}h1{font-size:22px}table{display:block;overflow-x:auto}}
   </style>
 </head>
@@ -53,235 +27,132 @@
   <header>
     <div>
       <small>SMARTXFLOW · YÖNETİCİ İŞLEMLERİ</small>
-      <h1>GitHub Arşiv Yönetimi</h1>
-      <p>Tarih seç, arşiv türünü belirle ve GitHub'a aktarım isteği gönder.</p>
+      <h1>PRATİK ARŞİV</h1>
+      <p>34 zaman noktası, üç piyasa, sonuçlar ve maç alarmları; GitHub'da günlük arşiv.</p>
     </div>
     <a href="/admin">← Admin panele dön</a>
   </header>
 
   {% if not github_configured %}
-  <div class="panel"><h2>GitHub bağlantısı eksik</h2>
-    <p>Sunucuda yetkisi yalnız CAPİTALE Actions tetiklemeye sınırlandırılmış <code>CAPITALE_GITHUB_ACTIONS_TOKEN</code> yapılandırılmalı. Bu token tarayıcıya gönderilmez.</p>
-  </div>
+  <section class="panel">
+    <h2>GitHub bağlantısı eksik</h2>
+    <p>Sunucuda yalnız CAPİTALE deposunun Actions iş akışını çalıştırabilen <code>CAPITALE_GITHUB_ACTIONS_TOKEN</code> yapılandırılmalı. Token tarayıcıya gönderilmez.</p>
+  </section>
   {% endif %}
 
-  <section id="archive-panel" class="panel">
-    <h2>Arşiv oluştur</h2>
-    <label for="archive-day" class="caption">Maçların Türkiye saatiyle başlangıç tarihi</label>
-    <input id="archive-day" type="date" min="2026-10-09" max="{{max_date}}" value="{{initial_date}}" required>
-    <label for="archive-scope" class="caption" style="margin-top:17px">Maç başlangıç aralığı (Türkiye saati)</label>
-    <select id="archive-scope">
-      <option value="kickoff16_24" selected>16:00–24:00 başlayan maçlar (önerilen)</option>
-      <option value="all">Günün tüm maçları (eski arşivler)</option>
-    </select>
-    <p><strong>16:00–24:00</strong> sadece maç başlangıç saatini sınırlar. Bu maçların önceki saatlerdeki oran/para hareketi geçmişi kesilmez. Eski tam gün arşivleri korunur.</p>
-    <p>Birini veya ikisini seçebilirsin. İki tür farklı GitHub Release varlığı olarak saklanır.</p>
-    <div class="grid">
-      <label class="kind"><input id="kind-full" type="checkbox" checked>
-        <strong>01 · Seçili Maçların Tüm Ham Kayıtları</strong>
-        <span>Seçili maçlara ait ham 1X2, OU2.5, BTTS, Dropping, Moneyway ve Live kayıtlarının tamamı; geçmiş gözlem saatlerine filtre uygulanmaz.</span>
-      </label>
-      <label class="kind"><input id="kind-concentrated" type="checkbox">
-        <strong>02 · Konsantre Arşiv</strong>
-        <span>Her maç ve üç piyasa için T-72, T-60, T-40, T-24, T-12, T-8, T-6, T-3, T-1 kontrol noktaları; eksikler MISSING.</span>
-      </label>
+  <section class="panel">
+    <h2>Günlük otomatik kayıt</h2>
+    <div class="schedule"><strong>Her gün 02:00 Türkiye saati</strong><br>
+      Önceki tamamlanmış gün ve geriye dönük üç gün kontrol edilir. Eksik PRATİK günleri üretilir; tamamlanmış arşivler checksum ile doğrulanıp değiştirilmeden bırakılır.
     </div>
-    <div class="row" style="margin-top:20px">
-      <button id="archive-button" type="button">Seçili arşivleri başlat</button>
-      <small>Yalnızca kaynak okuma · Kalıcı hedef GitHub</small>
+    <p>İş akışı 23:00 UTC'de başlar; SmartXFlow'un 02:17 UTC saklama temizliğinden önce dört günlük yakalama aralığını tamamlamaya çalışır. Başarısız veya kısmi aktarım başarılı olarak gösterilmez.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Geçmiş bir günü elle arşivle</h2>
+    <label for="archive-day" class="caption">Maçların Türkiye saatiyle başlangıç tarihi</label>
+    <input id="archive-day" type="date" min="{{min_date}}" max="{{max_date}}" value="{{initial_date}}" required>
+    <div class="row">
+      <button id="archive-button" type="button">PRATİK ARŞİVİ başlat</button>
+      <small>Var olan doğrulanmış gün yeniden yazılmaz.</small>
     </div>
     <div id="archive-message" class="message" role="status"></div>
   </section>
 
   <section class="panel">
-    <h2>Aktarım ilerlemesi (%0–100)</h2>
-    <p>Bu çubuk tahmini süreye göre değil, <strong>GitHub'a gerçekten yüklenen kayıt sayısına göre</strong> ilerler.
-    %100 ancak GitHub indirme, SHA-256 ve JSONL geri okuma kontrolleri başarılıysa görünür.</p>
-    <div id="progress-panel" aria-live="polite"></div>
-    <div class="row"><button type="button" id="progress-refresh" class="secondary">İlerlemeyi yenile</button>
-    <small>Aktarım sırasında 10 saniyede bir otomatik güncellenir.</small></div>
+    <h2>Arşivlenen günler</h2>
+    <p>En yeni tamamlanmış günden eskiye doğru listelenir. Durum, CAPİTALE deposundaki PRATİK gün indeksi ve doğrulama SHA değerlerine göre gösterilir.</p>
+    <button class="secondary" id="days-refresh-button" type="button">Gün listesini yenile</button>
+    <div id="days-message" class="message" role="status"></div>
+    <div style="overflow-x:auto">
+      <table><thead><tr><th>Gün</th><th>Durum</th><th>Maç</th><th>Alarm</th><th>Boyut</th></tr></thead><tbody id="days-body"></tbody></table>
+    </div>
   </section>
 
   <section class="panel">
-    <h2>GitHub Actions işlem geçmişi</h2>
-    <p>“İstek gönderildi” arşivin tamamlandığı anlamına gelmez. Tamamlanma için GitHub dosya indirme, SHA-256 ve JSONL geri açma denetimleri geçmelidir.</p>
+    <h2>GitHub Actions geçmişi</h2>
+    <p>“İstek sıraya alındı” tamamlandığı anlamına gelmez. Başarı için GitHub'a yazma, geri okuma ve manifest SHA-256 kontrollerinin geçmesi gerekir.</p>
     <button class="secondary" id="refresh-button" type="button">Durumu yenile</button>
-    <div id="runs-message" class="message"></div>
+    <div id="runs-message" class="message" role="status"></div>
     <div style="overflow-x:auto">
-      <table><thead><tr><th>İş</th><th>Başlama</th><th>Durum</th><th>GitHub</th></tr></thead><tbody id="runs-body"></tbody></table>
+      <table><thead><tr><th>Gün / iş</th><th>Başlama</th><th>Durum</th><th>GitHub</th></tr></thead><tbody id="runs-body"></tbody></table>
     </div>
   </section>
-  <p>Orijinal kaynak Supabase <code>research_archive</code> korunur. Başarısız veya kısmi aktarım “tamamlandı” olarak işaretlenmez.</p>
 </main>
 <script>
-  let csrfToken = {{ csrf_token|tojson }};
-  const configured = {{ github_configured|tojson }};
+  const csrfToken = {{ csrf_token|tojson }};
   const runButton = document.getElementById('archive-button');
   const runsBody = document.getElementById('runs-body');
-  const refreshButton = document.getElementById('refresh-button');
-  const progressPanel = document.getElementById('progress-panel');
-  const progressHistory = new Map();
-  const labels = {full_snapshots:'Ham arşiv',concentrated:'Konsantre arşiv'};
-  let progressRequestSerial = 0;
-  const records = x => Number(x).toLocaleString('tr-TR');
-  const duration = total => {
-    const min=Math.floor(Math.max(0,total)/60);
-    return min>=60?Math.floor(min/60)+' sa '+(min%60)+' dk':min+' dk';
+  const daysBody = document.getElementById('days-body');
+  const message = (id,text,isError=false) => {
+    const n=document.getElementById(id);
+    n.textContent=text;
+    n.className='message'+(isError?' error':'')+(text&&!isError?' success':'');
   };
-  function detail(parent,content){
-    const p=document.createElement('div');p.className='progress-details';p.textContent=content;parent.appendChild(p);return p;
-  }
-  async function refreshProgress(){
-    const serial=++progressRequestSerial;
-    const day=document.getElementById('archive-day').value;
-    const scope=document.getElementById('archive-scope').value;
-    const kinds=[];
-    if(document.getElementById('kind-full').checked)kinds.push('full_snapshots');
-    if(document.getElementById('kind-concentrated').checked)kinds.push('concentrated');
-    if(!day||!kinds.length){progressPanel.textContent='Tarih ve arşiv türü seçin.';return}
-    const items=await Promise.all(kinds.map(async kind=>{
-      try{
-        const r=await fetch('/api/admin/sxf-archive/progress?day='+encodeURIComponent(day)+'&kind='+encodeURIComponent(kind)+'&scope='+encodeURIComponent(scope),{credentials:'same-origin'});
-        const o=await r.json();
-        if(!r.ok)throw new Error(o.error||'HTTP '+r.status);
-        return {kind,data:o};
-      }catch(e){return {kind,error:e.message}}
-    }));
-    if(serial!==progressRequestSerial)return;
-    progressPanel.replaceChildren();
-    for(const item of items){
-      const outer=document.createElement('div');outer.className='progress-item';
-      const head=document.createElement('div');head.className='progress-head';
-      const title=document.createElement('span');title.textContent=day+' · '+labels[item.kind]+' · '+(scope==='kickoff16_24'?'16:00–24:00':'tüm gün');
-      const value=document.createElement('span');value.className='progress-value';
-      const d=item.data;
-      value.textContent=d&&Number.isInteger(d.percent)?d.percent+'%':(d&&d.status==='AKTARILIYOR'?'Hazırlanıyor':'—');
-      head.append(title,value);outer.appendChild(head);
-      if(item.error){detail(outer,'Durum alınamadı: '+item.error);progressPanel.appendChild(outer);continue}
-      const stage=document.createElement('div');
-      stage.className='stage-status'+(d.status==='DOĞRULANDI'?' complete':d.status==='BAŞARISIZ'?' fail':'');
-      const pulse=document.createElement('span');pulse.className='stage-pulse';
-      const stageText=document.createElement('span');
-      stageText.textContent='Anlık GitHub aşaması: '+(d.stage_description||'İş durumu okunuyor');
-      stage.append(pulse,stageText);outer.appendChild(stage);
-      const progress=document.createElement('progress');
-      progress.max=100;
-      if(Number.isInteger(d.percent))progress.value=d.percent;
-      // Missing numeric progress is an indeterminate activity animation,
-      // not a fabricated upload percentage.
-      else progress.removeAttribute('value');
-      if(d.status==='DOĞRULANDI')progress.className='verified';
-      else if(d.status==='BAŞARISIZ')progress.className='failed';
-      progress.setAttribute('aria-label',labels[item.kind]+' aktarım yüzdesi');
-      outer.appendChild(progress);
-      detail(outer,'Durum: '+({BEKLİYOR:'Bekliyor',AKTARILIYOR:'Aktarılıyor',DOĞRULANDI:'Doğrulandı',BAŞARISIZ:'Başarısız'}[d.status]||d.status));
-      if(Number.isInteger(d.job_elapsed_seconds)){
-        const el=detail(outer,'İşin çalışma süresi: '+duration(d.job_elapsed_seconds));
-        el.classList.add('stage-time');
-      }
-      if(Number.isInteger(d.expected_rows)){
-        detail(outer,'GitHub\u2019a yüklenen: '+records(d.uploaded_rows)+' / '+records(d.expected_rows)+' kayıt · Kalan: '+records(d.remaining_rows));
-        if(d.count_source==='SOURCE_INVENTORY'){
-          detail(outer,'Toplam kayıt: mevcut GitHub kaynak envanterinden. Yükleme henüz başlamadıysa %0 gösterilir; veri dışa aktarma işleminin ne kadar ilerlediği bilinmiyor.');
-        }
-        const key=day+'|'+item.kind;
-        const now=Date.now();
-        const prev=progressHistory.get(key);
-        if(d.status==='AKTARILIYOR'&&prev&&d.uploaded_rows>prev.rows&&now>prev.when+2000){
-          const speed=(d.uploaded_rows-prev.rows)*1000/(now-prev.when);
-          if(speed>0){
-            const mins=Math.ceil(d.remaining_rows/speed/60);
-            detail(outer,'Yaklaşık kalan süre: '+mins+' dk (son yükleme hızına göre değişebilir)');
-          }
-        }
-        if(!prev||d.uploaded_rows>prev.rows||d.status!=='AKTARILIYOR')progressHistory.set(key,{rows:d.uploaded_rows,when:now});
-      }else{
-        detail(outer,'Kaynak envanteri/yüklenen parça sayısı okunamadığı için güvenilir yüzde henüz hesaplanamıyor. GitHub\u2019daki işlem aşaması yukarıda görünüyor.');
-      }
-      if(d.status==='AKTARILIYOR' && d.uploaded_rows===0 && Number.isInteger(d.job_elapsed_seconds) && d.job_elapsed_seconds>1200){
-        const warning=document.createElement('div');warning.className='stall-warning';
-        warning.textContent='Dikkat: '+duration(d.job_elapsed_seconds)+' geçti, fakat GitHub Release\u2019e henüz kayıt yüklenmedi. İş GitHub\u2019da çalışıyor görünse de veri dışa aktarmanın gerçekten ilerlediği doğrulanamıyor; yavaş veya takılmış olabilir.';
-        outer.appendChild(warning);
-      }
-      if(d.release_error==='RELEASE_CONTENTS_READ_PERMISSION_REQUIRED')detail(outer,'GitHub tokenında Contents: Read izni eksik; taslak Release ilerlemesi okunamıyor.');
-      if(d.run_url&&d.run_url.startsWith('https://github.com/hazardyk27-sudo/capitale/actions/runs/')){
-        const link=document.createElement('a');link.href=d.run_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='GitHub işini aç';outer.appendChild(link);
-      }
-      progressPanel.appendChild(outer);
-    }
-  }
-  const msg = (id,text,isError=false) => { const n=document.getElementById(id);n.textContent=text;n.className='message'+(isError?' error':''); };
-  async function post(path, data){
-    const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify(data)});
-    const obj=await response.json();
-    if(!response.ok){
-      const githubStatus = Number(obj.http_status);
-      if(obj.error === 'ARCHIVE_ALREADY_VERIFIED'){
-        throw new Error('Bu gün ve saat aralığı arşivi zaten doğrulanmış ve GitHub\u2019a kalıcı kaydedilmiş. Yeniden aktarım başlatılmadı.');
-      }
-      if(obj.error === 'ARCHIVE_ALREADY_RUNNING'){
-        throw new Error('Bu tarih ve arşiv türü için GitHub\u2019da zaten çalışan veya bekleyen bir aktarım var. İkinci aktarım başlatılmadı.');
-      }
-      if(obj.error === 'ALREADY_REQUESTED_RECENTLY'){
-        throw new Error('Bu aktarım isteği kısa süre önce gönderildi. Durum ekranını kontrol et.');
-      }
-      if(obj.error === 'GITHUB_DISPATCH_REJECTED'){
-        const reason = githubStatus === 401 ? 'GitHub tokenı geçersiz veya süresi dolmuş.'
-          : githubStatus === 403 ? 'GitHub tokenına Actions: Read and write yetkisi verilmeli.'
-          : githubStatus === 404 ? 'CAPITALE workflowu veya tokenın repo erişimi bulunamadı.'
-          : githubStatus === 422 ? 'GitHub, workflow girişini veya dal referansını reddetti.'
-          : 'GitHub API isteği reddetti.';
-        throw new Error('GitHub HTTP '+(Number.isInteger(githubStatus) ? githubStatus : '?')+' — '+reason);
-      }
-      throw new Error(obj.error+' (HTTP '+response.status+')');
-    }
-    return obj;
-  }
-  runButton.addEventListener('click', async()=>{
-    if(!configured){msg('archive-message','GitHub sunucu bağlantısı eksik. Aktarım başlatılamaz.',true);return}
-    const day=document.getElementById('archive-day').value;
-    const scope=document.getElementById('archive-scope').value;
-    const types=[];
-    if(document.getElementById('kind-full').checked) types.push('full_snapshots');
-    if(document.getElementById('kind-concentrated').checked) types.push('concentrated');
-    if(!day||types.length===0){msg('archive-message','Tarih ve en az bir arşiv türü seç.',true);return}
-    if(!confirm(day+' tarihi için '+types.length+' arşiv aktarımı ('+(scope==='kickoff16_24'?'16:00–24:00 TSİ':'tüm gün')+') isteği gönderilsin mi?'))return;
-    runButton.disabled=true;const lines=[];
-    for(const kind of types){
-      try{
-        const r=await post('/api/admin/sxf-archive/dispatch',{day,kind,scope});
-        lines.push(kind+': GitHub iş kuyruğuna alındı; henüz arşiv tamamlanmadı.');
-      }catch(err){lines.push(kind+': BAŞLATILAMADI — '+err.message)}
-    }
-    msg('archive-message',lines.join('\n'));
-    runButton.disabled=false;await Promise.all([refreshRuns(),refreshProgress()]);
-  });
   async function refreshRuns(){
+    const button=document.getElementById('refresh-button');
+    button.disabled=true;
     try{
       const response=await fetch('/api/admin/sxf-archive/runs',{credentials:'same-origin'});
-      const data=await response.json();if(!response.ok)throw new Error(data.error||'Durum okunamadı');
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
       runsBody.replaceChildren();
-      for(const r of data.runs){
-        const tr=document.createElement('tr');
-        for(const str of [r.title,r.created_at,r.conclusion||r.status]){
-          const td=document.createElement('td');td.textContent=str||'—';tr.appendChild(td);
+      for(const run of data.runs){
+        const row=document.createElement('tr');
+        const title=document.createElement('td');title.textContent=run.title||'PRATİK günlük';
+        const date=document.createElement('td');date.textContent=run.created_at?new Date(run.created_at).toLocaleString('tr-TR'):'—';
+        const status=document.createElement('td');status.textContent=run.conclusion||run.status||'Bilinmiyor';
+        const linkCell=document.createElement('td');
+        if(typeof run.html_url==='string'&&run.html_url.startsWith('https://github.com/hazardyk27-sudo/capitale/actions/runs/')){
+          const link=document.createElement('a');link.href=run.html_url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='İşi aç';linkCell.appendChild(link);
         }
-        const td=document.createElement('td');
-        if(typeof r.url==='string'&&r.url.startsWith('https://github.com/hazardyk27-sudo/capitale/actions/runs/')){
-          const a=document.createElement('a');a.href=r.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Çalışmayı aç';td.appendChild(a);
-        }
-        tr.appendChild(td);runsBody.appendChild(tr);
+        row.append(title,date,status,linkCell);runsBody.appendChild(row);
       }
-      msg('runs-message',data.runs.length?'':'Henüz işlem kaydı yok.');
-    }catch(err){msg('runs-message','İşlem geçmişi alınamadı: '+err.message,true)}
+      message('runs-message',data.runs.length?'Son GitHub işlemleri yüklendi.':'Henüz işlem yok.');
+    }catch(error){message('runs-message','Durum alınamadı: '+error.message,true);}
+    finally{button.disabled=false;}
   }
-  refreshButton.addEventListener('click',refreshRuns);
-  document.getElementById('progress-refresh').addEventListener('click',refreshProgress);
-  for(const el of ['archive-day','archive-scope','kind-full','kind-concentrated'])
-    document.getElementById(el).addEventListener('change',refreshProgress);
-  refreshRuns();refreshProgress();
-  setInterval(refreshProgress,10000);
-  setInterval(refreshRuns,30000);
+  async function refreshDays(){
+    const button=document.getElementById('days-refresh-button');
+    button.disabled=true;
+    try{
+      const response=await fetch('/api/admin/sxf-archive/days',{credentials:'same-origin'});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
+      daysBody.replaceChildren();
+      for(const day of data.days){
+        const row=document.createElement('tr');
+        const date=document.createElement('td');date.textContent=day.date;
+        const status=document.createElement('td');status.textContent=day.status;
+        const fixtures=document.createElement('td');fixtures.textContent=day.fixtures==null?'—':day.fixtures.toLocaleString('tr-TR');
+        const alarms=document.createElement('td');alarms.textContent=day.alarms==null?'—':day.alarms.toLocaleString('tr-TR');
+        const size=document.createElement('td');size.textContent=day.bytes==null?'—':(day.bytes/1048576).toFixed(2)+' MiB';
+        row.append(date,status,fixtures,alarms,size);daysBody.appendChild(row);
+      }
+      message('days-message',data.days.length?'Gün listesi en yeniden eskiye yüklendi.':'Listelenecek tamamlanmış gün yok.');
+    }catch(error){message('days-message','Arşiv günleri alınamadı: '+error.message,true);}
+    finally{button.disabled=false;}
+  }
+  runButton.addEventListener('click',async()=>{
+    runButton.disabled=true;
+    const day=document.getElementById('archive-day').value;
+    try{
+      const response=await fetch('/api/admin/sxf-archive/dispatch',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},
+        body:JSON.stringify({day})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'HTTP '+response.status);
+      message('archive-message',day+' için arşiv işi GitHub Actions kuyruğuna alındı. Tamamlanma durumunu aşağıdaki listeden takip et.');
+      refreshRuns();
+    }catch(error){message('archive-message','İş başlatılamadı: '+error.message,true);}
+    finally{runButton.disabled=false;}
+  });
+  document.getElementById('refresh-button').addEventListener('click',refreshRuns);
+  document.getElementById('days-refresh-button').addEventListener('click',refreshDays);
+  refreshRuns();
+  refreshDays();
 </script>
-<script src="/static/js/i18n.js?v=20261022-sxf-archive"></script>
-</body></html>
+</body>
+</html>

@@ -1,30 +1,26 @@
-"""Offline tests: original admin login, no second PIN/password for archive panel.
-
-The existing admin session is checked, alongside CSRF, origin, token and date
-validation. The system's legacy anon-key login is a separate security risk:
-no new authentication mechanism is introduced by this archive-only patch.
-"""
+"""Offline checks for the PRATİK archive admin bridge."""
+import datetime as dt
 import os
 import unittest
 from unittest.mock import patch
+
 from flask import Flask
 import sxf_capitale_archive_admin as bridge
 
 
-class ArchiveAdminTests(unittest.TestCase):
+class PratikArchiveAdminTests(unittest.TestCase):
     def setUp(self):
         self.env = patch.dict(os.environ, {
             "CAPITALE_GITHUB_ACTIONS_TOKEN": "MOCK_TOKEN_NOT_REAL",
-            "SXF_ADMIN_PASSWORD_HASH": "",
         })
         self.env.start()
         self.app = Flask(__name__, template_folder="../templates")
         self.app.secret_key = "test-only-flask-secret"
         self.app.register_blueprint(bridge.blueprint)
         self.client = self.app.test_client()
+        self.requests = []
         self.remote = patch.object(bridge, "_github_request", side_effect=self.fake_github)
         self.remote.start()
-        self.requests = []
 
     def tearDown(self):
         self.remote.stop()
@@ -32,347 +28,133 @@ class ArchiveAdminTests(unittest.TestCase):
 
     def fake_github(self, url, method="GET", payload=None):
         self.requests.append((url, method, payload))
-        return {} if method == "POST" else {"workflow_runs": []}
+        if method == "POST":
+            return {}
+        return {"workflow_runs": []}
 
-    def admin(self):
+    def recent_day(self):
+        from datetime import date, timedelta
+        from zoneinfo import ZoneInfo
+        return (dt.datetime.now(bridge.ISTANBUL).date() - timedelta(days=2)).isoformat()
+
+    def admin_headers(self):
         with self.client.session_transaction() as state:
             state["admin_authenticated"] = True
-            state["sxf_capitale_archive_csrf"] = "csrf-unchanged"
-        return {"Origin": "http://localhost", "X-CSRF-Token": "csrf-unchanged"}
+            state["sxf_capitale_archive_csrf"] = "csrf-test"
+        return {"Origin": "http://localhost", "X-CSRF-Token": "csrf-test"}
 
-    def test_not_logged_in_cannot_read_or_dispatch(self):
+    def test_admin_authentication_guards_page_and_api(self):
         self.assertEqual(self.client.get("/admin/sxf-archive").status_code, 403)
         self.assertEqual(self.client.get("/api/admin/sxf-archive/runs").status_code, 403)
-        self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch",
-                         headers={"Origin": "http://localhost", "X-CSRF-Token": "csrf-unchanged"},
-                         json={"day": "2026-10-09", "kind": "full_snapshots"}).status_code, 403)
+        self.assertEqual(self.client.get("/api/admin/sxf-archive/days").status_code, 403)
+        response = self.client.post(
+            "/api/admin/sxf-archive/dispatch",
+            headers={"Origin": "http://localhost", "X-CSRF-Token": "csrf-test"},
+            json={"day": "2026-10-09"},
+        )
+        self.assertEqual(response.status_code, 403)
         self.assertEqual(self.requests, [])
 
-    def test_github_dispatch_http_error_is_retained_for_diagnostics(self):
-        from urllib.error import HTTPError
-        h = self.admin()
-        def fail_dispatch_only(url, method="GET", payload=None):
-            if method == "POST":
-                raise HTTPError("https://api.github.com/...", 403, "Forbidden", {}, None)
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=fail_dispatch_only):
-            r = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                                 json={"day": "2026-10-09", "kind": "concentrated"})
-        self.assertEqual(r.status_code, 502)
-        self.assertEqual(r.json["error"], "GITHUB_DISPATCH_REJECTED")
-        self.assertEqual(r.json["http_status"], 403)
+    def test_page_describes_daily_pratik_workflow(self):
+        self.admin_headers()
         response = self.client.get("/admin/sxf-archive")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"GitHub HTTP", response.data)
+        self.assertIn("PRATİK ARŞİV".encode(), response.data)
+        self.assertIn("02:00 Türkiye saati".encode(), response.data)
+        self.assertNotIn("Konsantre Arşiv".encode(), response.data)
+        self.assertNotIn("Tüm Snapshotlar".encode(), response.data)
 
-    def test_existing_admin_session_can_read_without_strong_password(self):
-        self.admin()
-        r = self.client.get("/admin/sxf-archive")
-        self.assertEqual(r.status_code, 200)
-        self.assertNotIn(b"G\xc3\xbcvenli y\xc3\xb6netici giri\xc5\x9fi gerekli", r.data)
-        self.assertEqual(self.client.get("/api/admin/sxf-archive/runs").status_code, 200)
-
-    def test_cross_origin_and_bad_csrf_denied(self):
-        h = self.admin()
+    def test_cross_origin_and_bad_csrf_are_rejected(self):
+        self.admin_headers()
         for headers in (
-            {"Origin": "https://attacker.invalid", "X-CSRF-Token": h["X-CSRF-Token"]},
+            {"Origin": "https://attacker.invalid", "X-CSRF-Token": "csrf-test"},
             {"Origin": "http://localhost", "X-CSRF-Token": "bad"},
-            {"X-CSRF-Token": h["X-CSRF-Token"]},
+            {"X-CSRF-Token": "csrf-test"},
         ):
-            self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=headers,
-                             json={"day": "2026-10-09", "kind": "full_snapshots"}).status_code, 403)
+            response = self.client.post(
+                "/api/admin/sxf-archive/dispatch", headers=headers,
+                json={"day": "2026-10-09"},
+            )
+            self.assertEqual(response.status_code, 403)
         self.assertEqual(self.requests, [])
 
-    def test_dispatch_from_original_admin_session_and_duplicate_protection(self):
-        h = self.admin()
-        r = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                             json={"day": "2026-10-09", "kind": "concentrated"})
-        self.assertEqual(r.status_code, 202)
-        self.assertEqual(r.json["status"], "QUEUED_NOT_ARCHIVED")
-        self.assertEqual(self.requests[-1][2]["inputs"], {
-            "day": "2026-10-09", "archive_kind": "concentrated"
-        })
-        self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                         json={"day": "2026-10-09", "kind": "concentrated"}).status_code, 409)
-
-    def test_kickoff_window_dispatch_uses_separate_workflow_and_scope(self):
-        h = self.admin()
-        p = {"day": "2026-10-11", "kind": "full_snapshots", "scope": "kickoff16_24"}
-        resp = self.client.post("/api/admin/sxf-archive/dispatch", headers=h, json=p)
-        self.assertEqual(resp.status_code, 202)
-        self.assertEqual(resp.json["scope"], "kickoff16_24")
-        posts = [(u, payload) for u, method, payload in self.requests if method == "POST"]
-        self.assertEqual(len(posts), 1)
-        self.assertIn("/sxf-kickoff-window-archive.yml/dispatches", posts[0][0])
-        self.assertEqual(posts[0][1]["inputs"], {
-            "day": "2026-10-11", "archive_kind": "full_snapshots"
-        })
-        self.assertEqual(
-            self.client.post("/api/admin/sxf-archive/dispatch", headers=h, json=p).status_code,
-            409,
+    def test_dispatch_sends_only_the_day_and_prevents_repeat(self):
+        headers = self.admin_headers()
+        day = self.recent_day()
+        response = self.client.post(
+            "/api/admin/sxf-archive/dispatch", headers=headers,
+            json={"day": day},
         )
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json["status"], "QUEUED_NOT_ARCHIVED")
+        posts = [(url, payload) for url, method, payload in self.requests if method == "POST"]
+        self.assertEqual(len(posts), 1)
+        self.assertIn("/sxf-admin-archive.yml/dispatches", posts[0][0])
+        self.assertEqual(posts[0][1], {
+            "ref": "main", "inputs": {"day": day},
+        })
+        repeated = self.client.post(
+            "/api/admin/sxf-archive/dispatch", headers=headers,
+            json={"day": day},
+        )
+        self.assertEqual(repeated.status_code, 409)
 
-    def test_invalid_kickoff_scope_rejected_before_github(self):
-        h = self.admin()
-        resp = self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                                json={"day": "2026-10-11", "kind": "concentrated",
-                                      "scope": "arbitrary"})
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json["error"], "INVALID_ARCHIVE_SCOPE")
+    def test_active_date_run_is_not_dispatched_again(self):
+        self.admin_headers()
+        day = self.recent_day()
+
+        def remote(url, method="GET", payload=None):
+            self.requests.append((url, method, payload))
+            if method == "POST":
+                return {}
+            return {"workflow_runs": [{
+                "display_title": f"PRATİK {day}",
+                "status": "in_progress",
+                "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/123",
+            }]}
+
+        with patch.object(bridge, "_github_request", side_effect=remote):
+            response = self.client.post(
+                "/api/admin/sxf-archive/dispatch", headers=self.admin_headers(),
+                json={"day": day},
+            )
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json["error"], "ARCHIVE_ALREADY_RUNNING")
+        self.assertFalse(any(method == "POST" for _, method, _ in self.requests))
+
+    def test_invalid_and_future_dates_are_rejected(self):
+        headers = self.admin_headers()
+        for day in ("2026-13-40", "not-a-date", "2099-01-01"):
+            response = self.client.post(
+                "/api/admin/sxf-archive/dispatch", headers=headers,
+                json={"day": day},
+            )
+            self.assertEqual(response.status_code, 400)
         self.assertEqual(self.requests, [])
 
-    def test_kickoff_scope_does_not_use_full_day_inventory_for_percentage(self):
-        self.admin()
-        def fake(url, method="GET", payload=None):
-            if "sxf-kickoff-window-archive.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "display_title": "SXF 2026-10-11 / full_snapshots / 16-24",
-                    "status": "in_progress", "conclusion": None,
-                    "created_at": "2026-10-24T12:00:00Z",
-                }]}
-            if "/releases/tags/" in url:
-                from urllib.error import HTTPError
-                raise HTTPError(url, 404, "no release", {}, None)
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=fake):
-            r = self.client.get(
-                "/api/admin/sxf-archive/progress?day=2026-10-11"
-                "&kind=full_snapshots&scope=kickoff16_24"
-            )
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json["scope"], "kickoff16_24")
-        self.assertIsNone(r.json["expected_rows"])
-        self.assertIsNone(r.json["percent"])
-        self.assertEqual(r.json["release_tag"], "sxf-raw-2026-10-11-kickoff16-24-v1")
-        self.assertFalse(r.json["verified"])
-
-    def test_progress_counts_only_git_hub_uploaded_rows(self):
-        self.admin()
-        def remote(url, method="GET", payload=None):
-            if "/releases/tags/" in url:
-                return {"assets": [
-                    {"name": "progress_total_rows_300.json"},
-                    {"name": "concentrated_2026-10-22_1X2_part0001_rows_250.jsonl.gz"},
-                ]}
-            if "sxf-admin-archive.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "display_title": "SXF 2026-10-22 / concentrated",
-                    "status": "in_progress", "conclusion": None,
-                    "created_at": "2026-10-24T12:00:00Z",
-                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/123"
-                }]}
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=remote):
-            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=concentrated")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json["expected_rows"], 300)
-        self.assertEqual(r.json["uploaded_rows"], 250)
-        self.assertEqual(r.json["remaining_rows"], 50)
-        self.assertEqual(r.json["percent"], 83)
-        self.assertEqual(r.json["status"], "AKTARILIYOR")
-        self.assertFalse(r.json["verified"])
-
-    def test_progress_never_reports_100_without_verified_success(self):
-        self.admin()
-        def remote(url, method="GET", payload=None):
-            if "/releases/tags/" in url:
-                return {"assets": [
-                    {"name": "progress_total_rows_300.json"},
-                    {"name": "raw_2026-10-22_A_part0001_rows_300.jsonl.gz"},
-                    {"name": "verification_receipt.json"},
-                ]}
-            if "sxf-admin-archive.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "display_title": "SXF 2026-10-22 / full_snapshots",
-                    "status": "in_progress", "conclusion": None,
-                    "created_at": "2026-10-24T12:00:00Z",
-                }]}
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=remote):
-            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=full_snapshots")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json["percent"], 99)
-        self.assertFalse(r.json["verified"])
-
-    def test_progress_reports_actual_step_and_source_count_before_release(self):
-        import base64
-        self.admin()
-        manifest = {
-            "source": {"source_recorded_counts": {
-                "rows_1x2": 4, "rows_ou25": 6, "rows_btts": 2,
-                "rows_dropping_1x2_history": 3, "rows_dropping_ou25_history": 5,
-                "rows_dropping_btts_history": 1, "rows_moneyway_snapshots": 7,
-                "rows_live_snapshots": 2,
-            }}
-        }
-        def fake(url, method="GET", payload=None):
-            if "/contents/" in url:
-                return {"content": base64.b64encode(__import__("json").dumps(manifest).encode()).decode()}
-            if "/jobs" in url:
-                return {"jobs": [{
-                    "name": "first-day / archive", "status": "in_progress",
-                    "conclusion": None, "started_at": "2026-10-24T01:42:00Z",
-                    "steps": [{"name": "Export bounded daily gzip assets and local verification",
-                               "status": "in_progress"}],
-                }]}
-            if "sxf-raw-two-day-batch.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "id": 987, "display_title": "SXF full raw 2026-10-09 + next day",
-                    "status": "in_progress", "conclusion": None,
-                    "created_at": "2026-10-24T01:42:00Z",
-                }]}
-            if "sxf-admin-archive.yml/runs" in url:
-                return {"workflow_runs": []}
-            raise HTTPError(url, 404, "not found", {}, None)
-        from urllib.error import HTTPError
-        with patch.object(bridge, "_github_request", side_effect=fake):
-            bridge._SOURCE_TOTAL_CACHE.clear()
-            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-09&kind=full_snapshots")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json["percent"], 0)
-        self.assertEqual(r.json["expected_rows"], 30)
-        self.assertEqual(r.json["uploaded_rows"], 0)
-        self.assertEqual(r.json["count_source"], "SOURCE_INVENTORY")
-        self.assertIn("dışa aktarılıyor", r.json["stage_description"])
-        self.assertGreaterEqual(r.json["job_elapsed_seconds"], 0)
-        self.assertFalse(r.json["verified"])
-
-    def test_progress_reports_100_after_receipt_and_success(self):
-        self.admin()
-        def remote(url, method="GET", payload=None):
-            if "/releases/tags/" in url:
-                return {"assets": [
-                    {"name": "progress_total_rows_27.json"},
-                    {"name": "concentrated_2026-10-22_1X2_part0001_rows_27.jsonl.gz"},
-                    {"name": "verification_receipt.json"},
-                ]}
-            if "sxf-admin-archive.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "display_title": "SXF 2026-10-22 / concentrated",
-                    "status": "completed", "conclusion": "success",
-                    "created_at": "2026-10-24T12:00:00Z",
-                }]}
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=remote):
-            r = self.client.get("/api/admin/sxf-archive/progress?day=2026-10-22&kind=concentrated")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json["percent"], 100)
-        self.assertTrue(r.json["verified"])
-        self.assertEqual(r.json["status"], "DOĞRULANDI")
-
-    def test_active_two_day_batch_blocks_duplicate_single_day_dispatch(self):
-        h = self.admin()
-        def existing_batch(url, method="GET", payload=None):
-            if method == "POST":
-                self.fail("Duplicate dispatch must not reach GitHub")
-            if "sxf-raw-two-day-batch.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "display_title": "SXF full raw 2026-10-09 + next day",
-                    "status": "in_progress", "conclusion": None,
-                    "created_at": "2026-10-24T01:42:00Z",
-                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/40050990059",
-                }]}
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=existing_batch):
-            for day in ("2026-10-09", "2026-10-10"):
-                r = self.client.post("/api/admin/sxf-archive/dispatch",
-                                     headers=h,
-                                     json={"day": day, "kind": "full_snapshots"})
-                self.assertEqual(r.status_code, 409)
-                self.assertEqual(r.json["error"], "ARCHIVE_ALREADY_RUNNING")
-                self.assertTrue(r.json["existing_run_url"].endswith("/40050990059"))
-
-    def test_recovered_draft_release_is_verified_only_with_github_main_index(self):
-        import base64
-        import json
-        from urllib.error import HTTPError
-        h = self.admin()
-        tag = "sxf-raw-2026-10-11-kickoff16-24-v1"
-        assets = [
-            {"name": "progress_total_rows_100.json"},
-            {"name": "raw_2026-10-11_A_part0001_rows_60.jsonl.gz"},
-            {"name": "raw_2026-10-11_B_part0001_rows_40.jsonl.gz"},
-            {"name": "verification_receipt.json"},
-        ]
+    def test_archive_days_are_newest_first_and_show_missing_and_partial(self):
+        self.admin_headers()
+        latest = dt.datetime.now(bridge.ISTANBUL).date() - dt.timedelta(days=1)
+        previous = latest - dt.timedelta(days=1)
         index = {
-            "receipt_index_schema": "SXF_VERIFIED_RELEASE_INDEX_V2",
-            "status": "GITHUB_RELEASE_DRAFT_DOWNLOADED_AND_VERIFIED",
-            "release_tag": tag, "day": "2026-10-11",
-            "kind": "full_snapshots", "scope": "kickoff16_24",
-            "source_count_consistency": True, "total_verified_rows": 100,
-            "export_manifest_sha256": "f" * 64,
-            "asset_inventory": [
-                {"name": "raw_2026-10-11_A_part0001_rows_60.jsonl.gz",
-                 "rows": 60, "sha256_gzip": "a" * 64},
-                {"name": "raw_2026-10-11_B_part0001_rows_40.jsonl.gz",
-                 "rows": 40, "sha256_gzip": "b" * 64},
-            ],
+            "archive_name": "PRATİK ARŞİV",
+            "days": [{
+                "date": previous.isoformat(), "fixtures": 12, "alarms": 7,
+                "total_bytes": 2048, "source_archive_status": "PARTIAL",
+                "checksums": {"checkpoints": "a" * 64, "alarms": "b" * 64},
+            }],
         }
-        def fake(url, method="GET", payload=None):
-            if "sxf-repair-oct11-receipt.yml/runs" in url:
-                return {"workflow_runs": [{
-                    "id": 42, "display_title": "SXF receipt repair 2026-10-11 / full_snapshots / 16-24",
-                    "status": "completed", "conclusion": "success",
-                    "created_at": "2026-10-24T16:34:00Z",
-                    "html_url": "https://github.com/hazardyk27-sudo/capitale/actions/runs/42",
-                }]}
-            if "/releases/tags/" in url:
-                raise HTTPError(url, 404, "draft not reachable by tag", {}, None)
-            if "/releases?per_page=100" in url:
-                return [{"id": 888, "tag_name": tag, "draft": True}]
-            if "/releases/888/assets" in url:
-                return assets
-            if "/contents/" in url:
-                return {"content": base64.b64encode(json.dumps(index).encode()).decode()}
-            if "/jobs" in url:
-                return {"jobs": [{
-                    "name": "verify-and-finish",
-                    "status": "completed", "conclusion": "success",
-                    "steps": [],
-                }]}
-            if method == "POST":
-                self.fail("Never re-dispatch verified archive")
-            return {"workflow_runs": []}
-        with patch.object(bridge, "_github_request", side_effect=fake):
-            r = self.client.get(
-                "/api/admin/sxf-archive/progress?day=2026-10-11"
-                "&kind=full_snapshots&scope=kickoff16_24"
-            )
-            self.assertEqual(r.status_code, 200)
-            self.assertEqual(r.json["percent"], 100)
-            self.assertTrue(r.json["verified"])
-            self.assertEqual(r.json["status"], "DOĞRULANDI")
-            once = self.client.post(
-                "/api/admin/sxf-archive/dispatch", headers=h,
-                json={"day": "2026-10-11", "kind": "full_snapshots",
-                      "scope": "kickoff16_24"},
-            )
-            self.assertEqual(once.status_code, 409)
-            self.assertEqual(once.json["error"], "ARCHIVE_ALREADY_VERIFIED")
+        with patch.object(bridge, "_archive_index", return_value=index):
+            response = self.client.get("/api/admin/sxf-archive/days")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json["days"][0]["date"], latest.isoformat())
+        self.assertEqual(response.json["days"][0]["status"], "Eksik")
+        self.assertEqual(response.json["days"][1]["date"], previous.isoformat())
+        self.assertEqual(response.json["days"][1]["status"], "Arşivlendi · kaynak kısmi")
+        self.assertEqual(response.json["days"][1]["bytes"], 2048)
 
-            # A forged/corrupt GitHub main index can never make a release 100%.
-            index["total_verified_rows"] = 999
-            again = self.client.get(
-                "/api/admin/sxf-archive/progress?day=2026-10-11"
-                "&kind=full_snapshots&scope=kickoff16_24"
-            )
-            self.assertEqual(again.status_code, 200)
-            self.assertFalse(again.json["verified"])
-            self.assertLess(again.json["percent"], 100)
-
-    def test_invalid_day_and_kind_and_missing_github_token(self):
-        h = self.admin()
-        for payload in (
-            {"day": "2030-01-01", "kind": "full_snapshots"},
-            {"day": "2026-10-09", "kind": "bad"},
-            {"day": "../config", "kind": "concentrated"},
-        ):
-            self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                             json=payload).status_code, 400)
-        with patch.dict(os.environ, {"CAPITALE_GITHUB_ACTIONS_TOKEN": ""}):
-            self.assertEqual(self.client.post("/api/admin/sxf-archive/dispatch", headers=h,
-                             json={"day": "2026-10-09", "kind": "full_snapshots"}).status_code, 503)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_run_history_returns_only_display_fields(self):
+        self.admin_headers()
+        response = self.client.get("/api/admin/sxf-archive/runs")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json, {"runs": []})
