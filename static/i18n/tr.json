@@ -530,7 +530,8 @@
       "license_init_failed": "Lisans doğrulaması tamamlanamadı. Sayfayı yenileyip tekrar deneyin.",
       "match_retry_page": "Sayfayı yenile",
       "copied": "Kopyalandı!",
-      "logout_confirm": "Çıkış yapmak istediğinizden emin misiniz?"
+      "logout_confirm": "Çıkış yapmak istediğinizden emin misiniz?",
+      "test_mode": "Test Modu"
     },
     "lic": {
       "activate": "Lisansi Aktif Et",
@@ -887,7 +888,7 @@
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Gerçek zamanlı veri, akıllı sinyaller.",
-    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "oran takibi, para akışı, bahis analiz, odds movement, dropping odds, akıllı para, moneyway, canlı oran, piyasa analizi, SmartXFlow",
+    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "oran takibi, para akışı, bahis analizi, oran hareketleri, düşen oranlar, akıllı para, Moneyway, canlı oranlar, piyasa analizi, SmartXFlow",
     "piyasayi_okuyan": "Piyasayı Okuyan",
     "super_lig": "Süper Lig"
   },
