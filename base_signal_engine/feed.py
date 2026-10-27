@@ -22,7 +22,7 @@ SIGNAL_KINDS = frozenset(("EARLY_SIGNAL", "PRELIMINARY_SIGNAL", "FINAL_SIGNAL", 
 AUDIT_KINDS = frozenset(("MARKET_DECISION", "RETENTION_CHECK"))
 VISIBLE_KINDS = SIGNAL_KINDS | AUDIT_KINDS
 KNOWN_ENGINES = (
-    "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
+    "EARLY_MONEY_CORE", "EARLY_MONEY_CORE_V2", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
     "STABLE_OVER_2_5", "PREMIUM_OVER_2_5", "PREMIUM_OVER_MIN1_70", "BTTS_YES",
 )
@@ -49,6 +49,8 @@ V3_PRICE_BANDS = {
 def _v3_price_in_range(engine: str, odds: float | None) -> bool:
     if odds is None or not 1.30 <= odds <= 1000:
         return False
+    if engine == "EARLY_MONEY_CORE_V2":
+        return odds < 2.00
     limits = V3_PRICE_BANDS.get(engine)
     return limits is None or limits[0] <= odds <= limits[1]
 
@@ -527,6 +529,10 @@ class BaseSignalsFeed:
                     odds = None
             except (ValueError, TypeError):
                 odds = None
+            if engine == "EARLY_MONEY_CORE_V2":
+                v2_share = _frozen_money_metric(details.get("share"), max_value=Decimal(100))
+                if odds is None or odds >= 2.00 or v2_share is None or v2_share >= 95:
+                    continue
             recorded = _utc(row["recorded_at"])
             checkpoint_hours = row.get("job_checkpoint_hours")
             # A belated evaluation can preserve frozen pre-match source evidence,
@@ -593,7 +599,7 @@ class BaseSignalsFeed:
             else:
                 review_state = "VALID_PREMATCH_RECORD"
             retained = None
-            if engine == "EARLY_MONEY_CORE":
+            if engine in ("EARLY_MONEY_CORE", "EARLY_MONEY_CORE_V2"):
                 source_h = row.get("source_checkpoint_hours")
                 history = retention.get((uid, kickoff, selection, source_h,
                                          row.get("ruleset_version") or RULESET_VERSION), {})
@@ -614,7 +620,7 @@ class BaseSignalsFeed:
                     "checked": sorted(history, reverse=True),
                     "required": [6, 5, 4, 3],
                 }
-            if engine == "EARLY_MONEY_CORE" and retained["status"] == "BROKEN":
+            if engine in ("EARLY_MONEY_CORE", "EARLY_MONEY_CORE_V2") and retained["status"] == "BROKEN":
                 # A retention break is irreversible and disqualifies the Early pick.
                 valid_on_time = False
                 review_state = "RETENTION_BROKEN"
