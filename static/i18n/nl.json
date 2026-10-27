@@ -316,7 +316,7 @@
       "draw": "Gelijkspel",
       "draw_x": "Gelijk",
       "editor_approved": "DOOR REDACTIE GOEDGEKEURD",
-      "ended_status": "BEËINDIGD",
+      "ended_status": "Afgelopen",
       "failed": "Laden mislukt",
       "fav": "Favoriet",
       "filter_history": "Geschiedenis",
@@ -530,7 +530,8 @@
       "license_init_failed": "Licentieverificatie kon niet worden voltooid. Vernieuw de pagina en probeer opnieuw.",
       "match_retry_page": "Pagina vernieuwen",
       "copied": "Gekopieerd!",
-      "logout_confirm": "Weet je zeker dat je wilt uitloggen?"
+      "logout_confirm": "Weet je zeker dat je wilt uitloggen?",
+      "test_mode": "Testmodus"
     },
     "lic": {
       "activate": "Licentie Activeren",
@@ -887,7 +888,7 @@
   },
   "land": {
     "gercek_zamanli_veri_akilli_sinyaller": "Realtime gegevens, slimme signalen.",
-    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "oran takibi, para akışı, bahis analiz, odds movement, dropping odds, akıllı para, moneyway, canlı oran, piyasa analizi, SmartXFlow",
+    "oran_takibi_para_akisi_bahis_analiz_odds_movemen": "odds volgen, geldstromen, wedanalyse, oddsbewegingen, dalende odds, smart money, Moneyway, live odds, marktanalyse, SmartXFlow",
     "piyasayi_okuyan": "De markt lezen",
     "super_lig": "Süper Lig"
   },
