@@ -13,8 +13,8 @@ EnvironmentFile=/opt/smartxflow/.env
 Environment=SMARTXFLOW_FIXTURE_UID_AUTHORITATIVE_WRITE=true
 # Stable lease holder identity for atomic cross-host prematch ownership.
 Environment=SMARTXFLOW_RUNTIME_ID=hetzner-prod
-# Short Early T-72 source windows: one authoritative poll every 180s, >=40s API limit.
-Environment=SMARTXFLOW_PREMATCH_INTERVAL_SECONDS=180
+# Poll the prematch source every five minutes.
+Environment=SMARTXFLOW_PREMATCH_INTERVAL_SECONDS=300
 # Only the production single-master may exit at a completed cycle boundary
 # after a 20m source outage / 15m uptime, letting systemd recover it.
 # Never forcibly kill in-flight uncertain database writes.
