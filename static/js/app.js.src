@@ -104,6 +104,28 @@ let _favCounts = {};
 let _favFilterActive = false;
 let _favoritesFilterRequestId = 0;
 
+function _favoritesCacheKey() {
+    var did = getWebDeviceId();
+    return did ? 'smartxflow_favorites_' + did : null;
+}
+
+function _restoreCachedUserFavorites() {
+    try {
+        var key = _favoritesCacheKey();
+        var cached = key ? JSON.parse(localStorage.getItem(key) || 'null') : null;
+        if (Array.isArray(cached)) _userFavorites = new Set(cached);
+    } catch (error) {}
+}
+
+function _saveCachedUserFavorites() {
+    try {
+        var key = _favoritesCacheKey();
+        if (key) localStorage.setItem(key, JSON.stringify(Array.from(_userFavorites)));
+    } catch (error) {}
+}
+
+_restoreCachedUserFavorites();
+
 function _getMatchKey(match) {
     return (match.home_team || '') + '|' + (match.away_team || '') + '|' + (match.league || '');
 }
@@ -115,6 +137,7 @@ function loadUserFavorites() {
         .then(function(r) { return r.json(); })
         .then(function(data) {
             _userFavorites = new Set(data.favorites || []);
+            _saveCachedUserFavorites();
         })
         .catch(function() {});
 }
@@ -146,6 +169,7 @@ function loadFavoritesBootstrap() {
                 throw new Error('invalid favorites bootstrap payload');
             }
             _userFavorites = new Set(data.favorites);
+            _saveCachedUserFavorites();
             _favCounts = data.counts;
             _updateFavCountsInDOM();
         })
@@ -192,6 +216,7 @@ function toggleFavorite(el) {
         } else {
             _userFavorites.delete(mk);
         }
+        _saveCachedUserFavorites();
         document.querySelectorAll('.fav-heart').forEach(function(h) {
             if (h.getAttribute('data-matchkey') === mk) {
                 if (data.favorited) {
@@ -256,6 +281,7 @@ function toggleModalFavorite() {
         } else {
             _userFavorites.delete(mk);
         }
+        _saveCachedUserFavorites();
         _setModalFavBtnState(mk);
         document.querySelectorAll('.fav-heart').forEach(function(h) {
             if (h.getAttribute('data-matchkey') === mk) {
@@ -371,7 +397,10 @@ async function _loadAndApplyFavoritesFilter(requestId) {
 
 function _renderFavoritesView() {
     if (!_favFilterActive) return;
-    filteredMatches = applySorting(matches || []);
+    var favoriteMatches = (matches || []).filter(function(match) {
+        return _userFavorites.has(_getMatchKey(match));
+    });
+    filteredMatches = applySorting(favoriteMatches);
     renderMatches(filteredMatches);
 }
 
