@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Kaynak okunamıyor",
       "legacy_unavailable_title": "Eski sinyaller şu anda alınamıyor",
       "legacy_unavailable_desc": "Base sinyalleri erişilebilir; eski motor kaynağı henüz doğrulanamadı.",
-      "legacy_unavailable_notice": "BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor"
+      "legacy_unavailable_notice": "BASE SİNYALLERİ AKTİF · Eski motor kaynağı okunamıyor",
+      "engine_early_core_v2_desc": "İlk erken sinyal: oran <2,00 ve para payı <%95 · Retention-55"
     },
     "live": {
       "pro_gerekli": "Canlı veriler için <strong>Pro</strong> üyelik gerekmektedir",

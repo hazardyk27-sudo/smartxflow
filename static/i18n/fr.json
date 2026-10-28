@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Source indisponible",
       "legacy_unavailable_title": "Les anciens signaux sont indisponibles",
       "legacy_unavailable_desc": "Les signaux Base restent disponibles ; la source des anciens moteurs n'a pas pu être vérifiée.",
-      "legacy_unavailable_notice": "SIGNAUX BASE DISPONIBLES · Source historique indisponible"
+      "legacy_unavailable_notice": "SIGNAUX BASE DISPONIBLES · Source historique indisponible",
+      "engine_early_core_v2_desc": "Premier signal précoce : cote <2,00 et part des mises <95 % · Retention-55"
     },
     "live": {
       "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",

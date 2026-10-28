@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Quelle nicht verfügbar",
       "legacy_unavailable_title": "Alte Signale derzeit nicht verfügbar",
       "legacy_unavailable_desc": "Base-Signale bleiben verfügbar; die alte Motorquelle konnte nicht verifiziert werden.",
-      "legacy_unavailable_notice": "BASE-SIGNALE VERFÜGBAR · Alte Quelle nicht verfügbar"
+      "legacy_unavailable_notice": "BASE-SIGNALE VERFÜGBAR · Alte Quelle nicht verfügbar",
+      "engine_early_core_v2_desc": "Erstes Frühsignal: Quote <2,00 und Geldanteil <95 % · Retention-55"
     },
     "live": {
       "pro_gerekli": "Für Live-Daten ist eine <strong>Pro</strong>-Mitgliedschaft erforderlich",
