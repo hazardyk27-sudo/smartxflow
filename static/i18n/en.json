@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Source unavailable",
       "legacy_unavailable_title": "Legacy signals are currently unavailable",
       "legacy_unavailable_desc": "Base signals remain available; the legacy engine source could not be verified.",
-      "legacy_unavailable_notice": "BASE SIGNALS AVAILABLE · Legacy source unavailable"
+      "legacy_unavailable_notice": "BASE SIGNALS AVAILABLE · Legacy source unavailable",
+      "engine_early_core_v2_desc": "First early signal: odds <2.00 and money share <95% · Retention-55"
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",
