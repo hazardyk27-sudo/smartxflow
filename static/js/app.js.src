@@ -346,6 +346,8 @@ async function _loadAndApplyFavoritesFilter(requestId) {
             currentMarket !== marketAtRequest || currentSource !== sourceAtRequest) return;
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         var data = await resp.json();
+        if (!_favFilterActive || requestId !== _favoritesFilterRequestId ||
+            currentMarket !== marketAtRequest || currentSource !== sourceAtRequest) return;
         var extraMatches = data.matches || [];
         if (extraMatches.length > 0) {
             var missingSet = new Set(missingFavs);
