@@ -115,6 +115,7 @@ class EarlyEvaluation:
     t24_cohort: bool
     retention_status: str
     retention_checkpoints: tuple[tuple[int, str], ...]
+    core_v2_signal: Signal | None = None
 
 
 def checkpoint_time(fixture: Fixture, hours: int) -> datetime:
@@ -284,7 +285,18 @@ def evaluate_early(fixture: Fixture, snapshots: Sequence[Snapshot]) -> EarlyEval
             first = _make("EARLY_MONEY_CORE", side, hours, snap)
             break
     if first is None:
-        return EarlyEvaluation(None, False, "NO_CORE_SIGNAL", ())
+        return EarlyEvaluation(None, False, "NO_CORE_SIGNAL", (), None)
+
+    # EARLY CORE V2 is a separate engine built from the same first-hit CORE
+    # candidate. Its first signal must also be a favorite (<2.00) and must
+    # avoid extreme concentration (share <95%). Retention-55 is tracked below.
+    core_v2 = None
+    first_snapshot = select_snapshot(fixture, "1X2", first.checkpoint, snapshots)
+    if first_snapshot is not None:
+        first_quote = first_snapshot.quotes[first.side]
+        if first_quote.odds < d("2.00") and first_quote.share < d("95"):
+            core_v2 = _make("EARLY_MONEY_CORE_V2", first.side, first.checkpoint, first_snapshot)
+
     states = []
     broken = False
     missing = False
@@ -299,7 +311,7 @@ def evaluate_early(fixture: Fixture, snapshots: Sequence[Snapshot]) -> EarlyEval
         else:
             states.append((hours, "RETAINED_AT_CHECKPOINT"))
     status = "RETENTION_BREAK" if broken else ("INSUFFICIENT_DATA" if missing else "RETAINED")
-    return EarlyEvaluation(first, first.checkpoint == 24, status, tuple(states))
+    return EarlyEvaluation(first, first.checkpoint == 24, status, tuple(states), core_v2)
 
 
 def evaluate_early_t12(fixture: Fixture, snapshots: Sequence[Snapshot]) -> Signal | None:

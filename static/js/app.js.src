@@ -3406,8 +3406,8 @@ function applySorting(data) {
     if (_mobileHideEnded || _mobileHideLive || _mobileOnlyLive) {
         sortedData = sortedData.filter(m => {
             const statusHtml = getMatchStatus(m.date);
-            const isLive = statusHtml.includes('CANLI');
-            const isEnded = statusHtml.includes('BİTTİ');
+            const isLive = statusHtml.includes('match-status live');
+            const isEnded = statusHtml.includes('match-status ended');
             if (_mobileOnlyLive && !isLive) return false;
             if (_mobileHideEnded && isEnded) return false;
             if (_mobileHideLive && isLive) return false;

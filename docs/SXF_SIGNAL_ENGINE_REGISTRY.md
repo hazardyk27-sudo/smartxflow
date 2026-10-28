@@ -39,6 +39,23 @@ Current research note:
 - T-24 is the weak cohort and is being investigated separately.
 - Candidate improvements include T-24 money/share thresholds and extreme adverse price drift, but none is promoted yet.
 
+## 1A. EARLY_MONEY_CORE_V2
+
+Status: separate prospective engine added alongside EARLY_MONEY_CORE; the original engine and its historical events remain unchanged.
+
+Purpose: filter the first strong Early Core signal to favor-price selections without extreme early concentration.
+
+Criteria:
+- Use the same first qualifying checkpoint and thresholds as EARLY_MONEY_CORE: T-72/T-60 amount >= £5,000, T-40/T-24 amount >= £10,000, and selected share >=50%.
+- Selected side remains the highest-money HOME/AWAY team; DRAW is excluded.
+- At that first signal, odds must be strictly below 2.00 and money share strictly below 95%.
+- Apply Retention-55 at T-6/T-5/T-4/T-3; any later valid share below 55% irreversibly breaks the signal.
+- The exploratory T-8 to T-6 odds-rise warning is not a required filter.
+
+The V2 filter is applied to the first qualifying EARLY_MONEY_CORE candidate. If that first candidate fails either added filter, a later checkpoint does not replace it. The original EARLY_MONEY_CORE remains separately emitted when its base criteria qualify.
+
+The supplied 9–26 October 2026 historical study reports 46 cases and 38 wins (82.6%). This is the source document's retrospective result, not an independent prospective validation.
+
 ## 2. EARLY_MONEY_T12
 
 Purpose: track a later high-concentration Early observation separately from the strong Early core.

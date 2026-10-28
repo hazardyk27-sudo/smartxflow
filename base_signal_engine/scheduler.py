@@ -187,11 +187,16 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
                 "SIGNAL" if signal else "NO_NEW_SIGNAL"
             )
             if signal:
-                item = _serialize_signal(signal)
-                if history_gaps and item["selection_status"] == "ELIGIBLE":
-                    item["selection_status"] = "HISTORY_INCOMPLETE"
-                    item["label"] = "FIRST_OBSERVED_NOT_VERIFIED"
-                payload["signals"] = [item]
+                items = []
+                for candidate in (signal, early.core_v2_signal):
+                    if candidate is None:
+                        continue
+                    item = _serialize_signal(candidate)
+                    if history_gaps and item["selection_status"] == "ELIGIBLE":
+                        item["selection_status"] = "HISTORY_INCOMPLETE"
+                        item["label"] = "FIRST_OBSERVED_NOT_VERIFIED"
+                    items.append(item)
+                payload["signals"] = items
                 payload["t24_cohort"] = early.t24_cohort
         else:
             state = dict(early.retention_checkpoints).get(job.hours, "NO_CORE_SIGNAL")
