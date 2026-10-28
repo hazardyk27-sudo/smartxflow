@@ -14,4 +14,23 @@ for (const file of ['app.js', 'app.js.src']) {
     assert.match(source.slice(startup, startup + 180), /loadFavoritesBootstrap\(\)/);
     assert.doesNotMatch(source.slice(startup, startup + 180), /Promise\.all\(\[loadUserFavorites/);
   });
+
+  test(`favorites filter constrains the virtual list before rendering or scrolling (${file})`, () => {
+    const toggleStart = source.indexOf('function toggleFavoritesFilter()');
+    const helperStart = source.indexOf('function _renderFavoritesView()');
+    const renderStart = source.indexOf('function renderMatches(data)');
+    const mobileStart = source.indexOf('function renderMobileMatchCards(data)');
+    assert.ok(toggleStart >= 0 && helperStart > toggleStart && renderStart >= 0 && mobileStart >= 0);
+    const toggle = source.slice(toggleStart, source.indexOf('function _applyFavoritesFilter()', toggleStart));
+    const helper = source.slice(helperStart, renderStart);
+    assert.ok(toggle.indexOf('_renderFavoritesView()') < toggle.indexOf('_loadAndApplyFavoritesFilter('),
+      'filter the current list before the async favorites lookup');
+    assert.match(helper, /applySorting\\(matches/);
+    assert.match(helper, /renderMatches\\(filteredMatches/);
+    for (const start of [renderStart, mobileStart]) {
+      assert.match(source.slice(start, start + 260),
+        /if\\s*\\(_favFilterActive\\)\\s*data\\s*=\\s*data\\.filter/);
+    }
+    assert.match(toggle, /_favoritesFilterRequestId/);
+  });
 }
