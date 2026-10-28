@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Fonte non disponibile",
       "legacy_unavailable_title": "Segnali precedenti al momento non disponibili",
       "legacy_unavailable_desc": "I segnali Base restano disponibili; la fonte dei vecchi motori non è stata verificata.",
-      "legacy_unavailable_notice": "SEGNALI BASE DISPONIBILI · Fonte precedente non disponibile"
+      "legacy_unavailable_notice": "SEGNALI BASE DISPONIBILI · Fonte precedente non disponibile",
+      "engine_early_core_v2_desc": "Primo segnale anticipato: quota <2,00 e quota denaro <95% · Retention-55"
     },
     "live": {
       "pro_gerekli": "Per i dati in diretta è necessario un abbonamento <strong>Pro</strong>",
