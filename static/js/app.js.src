@@ -296,6 +296,8 @@ function toggleFavoritesFilter() {
         if (btn) btn.classList.remove('btn-favorites-active');
         if (btnM) btnM.classList.remove('btn-favorites-active');
         _clearFavoritesFilter();
+        filteredMatches = applySorting(matches);
+        renderMatches(filteredMatches);
     }
 }
 
@@ -3413,6 +3415,11 @@ function applySorting(data) {
         });
     }
     
+    // Filter before rendering so later scroll batches never reveal non-favorites.
+    if (_favFilterActive) {
+        sortedData = sortedData.filter(m => _userFavorites.has(_getMatchKey(m)));
+    }
+
     return sortedData.sort((a, b) => {
         let valA, valB;
         const d1 = a.details || a.odds || {};
