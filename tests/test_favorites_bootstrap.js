@@ -33,4 +33,16 @@ for (const file of ['app.js', 'app.js.src']) {
     }
     assert.match(toggle, /_favoritesFilterRequestId/);
   });
+  test(`favorites renders from local cache and filters before sorting (${file})`, () => {
+    assert.match(source, /function _restoreCachedUserFavorites\(\)/);
+    assert.match(source, /function _saveCachedUserFavorites\(\)/);
+    assert.match(source, /localStorage\.getItem\(key\)/);
+    assert.match(source, /localStorage\.setItem\(key,\s*JSON\.stringify\(Array\.from\(_userFavorites\)\)\)/);
+    const helperStart = source.indexOf('function _renderFavoritesView()');
+    const helperEnd = source.indexOf('function _applyFavoritesFilter()', helperStart);
+    const helper = source.slice(helperStart, helperEnd);
+    assert.ok(helper.indexOf('.filter(function(match)') < helper.indexOf('applySorting(favoriteMatches)'),
+      'sort only favorites so opening the view does not process every match first');
+  });
+
 }
