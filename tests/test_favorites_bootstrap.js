@@ -25,11 +25,11 @@ for (const file of ['app.js', 'app.js.src']) {
     const helper = source.slice(helperStart, renderStart);
     assert.ok(toggle.indexOf('_renderFavoritesView()') < toggle.indexOf('_loadAndApplyFavoritesFilter('),
       'filter the current list before the async favorites lookup');
-    assert.match(helper, /applySorting\\(matches/);
-    assert.match(helper, /renderMatches\\(filteredMatches/);
+    assert.match(helper, /applySorting\(matches/);
+    assert.match(helper, /renderMatches\(filteredMatches/);
     for (const start of [renderStart, mobileStart]) {
       assert.match(source.slice(start, start + 260),
-        /if\\s*\\(_favFilterActive\\)\\s*data\\s*=\\s*data\\.filter/);
+        /if\s*\(_favFilterActive\)\s*data\s*=\s*data\.filter/);
     }
     assert.match(toggle, /_favoritesFilterRequestId/);
   });
