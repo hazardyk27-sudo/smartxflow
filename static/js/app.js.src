@@ -102,6 +102,7 @@ function getWebDeviceId() {
 let _userFavorites = new Set();
 let _favCounts = {};
 let _favFilterActive = false;
+let _favoritesFilterRequestId = 0;
 
 function _getMatchKey(match) {
     return (match.home_team || '') + '|' + (match.away_team || '') + '|' + (match.league || '');
@@ -213,11 +214,9 @@ function toggleFavorite(el) {
                 mc.textContent = (displayCount > 0 ? displayCount : 0) + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') + ' ' + window.SXFI18n.t('app.dyn.takip_ediyor') : ' kişi takip ediyor');
             }
         });
-        if (_favFilterActive && !data.favorited) {
-            var row = el.closest('tr');
-            if (row) row.style.display = 'none';
-            var card = el.closest('.match-card');
-            if (card) card.style.display = 'none';
+        if (_favFilterActive) {
+            _favoritesFilterRequestId += 1;
+            _renderFavoritesView();
         }
     })
     .catch(function() {});
@@ -280,18 +279,26 @@ function toggleModalFavorite() {
                 mc.textContent = (displayCount > 0 ? displayCount : 0) + (window.SXFI18n ? window.SXFI18n.t('app.dyn.kisi') + ' ' + window.SXFI18n.t('app.dyn.takip_ediyor') : ' kişi takip ediyor');
             }
         });
+        if (_favFilterActive) {
+            _favoritesFilterRequestId += 1;
+            _renderFavoritesView();
+        }
     })
     .catch(function() {});
 }
 
 function toggleFavoritesFilter() {
     _favFilterActive = !_favFilterActive;
+    _favoritesFilterRequestId += 1;
+    var requestId = _favoritesFilterRequestId;
     var btn = document.getElementById('favoritesBtn');
     var btnM = document.getElementById('favoritesBtnMobile');
     if (_favFilterActive) {
         if (btn) btn.classList.add('btn-favorites-active');
         if (btnM) btnM.classList.add('btn-favorites-active');
-        _loadAndApplyFavoritesFilter();
+        // Replace the virtualized backing list immediately, before any network request.
+        _renderFavoritesView();
+        void _loadAndApplyFavoritesFilter(requestId);
     } else {
         if (btn) btn.classList.remove('btn-favorites-active');
         if (btnM) btnM.classList.remove('btn-favorites-active');
@@ -301,12 +308,16 @@ function toggleFavoritesFilter() {
     }
 }
 
-async function _loadAndApplyFavoritesFilter() {
+async function _loadAndApplyFavoritesFilter(requestId) {
+    requestId = requestId == null ? _favoritesFilterRequestId : requestId;
+    if (!_favFilterActive || requestId !== _favoritesFilterRequestId) return;
     if (_userFavorites.size === 0) {
-        _applyFavoritesFilter();
+        _renderFavoritesView();
         return;
     }
 
+    var marketAtRequest = currentMarket;
+    var sourceAtRequest = currentSource;
     var renderedKeys = new Set();
     document.querySelectorAll('#matchesTableBody tr').forEach(function(row) {
         var mk = row.getAttribute('data-matchkey');
@@ -323,43 +334,45 @@ async function _loadAndApplyFavoritesFilter() {
     _userFavorites.forEach(function(mk) {
         if (!renderedKeys.has(mk)) missingFavs.push(mk);
     });
-
-    if (missingFavs.length === 0) {
-        _applyFavoritesFilter();
-        return;
-    }
+    if (missingFavs.length === 0) return;
 
     try {
         var did = getWebDeviceId();
-        var mkt = (typeof currentMarket !== 'undefined') ? currentMarket : 'moneyway_1x2';
-        var srcParam = (typeof currentSource !== 'undefined' && currentSource !== 'betfair') ? '&source=' + encodeURIComponent(currentSource) : '';
+        var mkt = marketAtRequest || 'moneyway_1x2';
+        var srcParam = sourceAtRequest && sourceAtRequest !== 'betfair' ? '&source=' + encodeURIComponent(sourceAtRequest) : '';
         var url = '/api/favorites-matches?device_id=' + encodeURIComponent(did || '') + '&market=' + encodeURIComponent(mkt) + srcParam;
         var resp = await fetch(url);
+        if (!_favFilterActive || requestId !== _favoritesFilterRequestId ||
+            currentMarket !== marketAtRequest || currentSource !== sourceAtRequest) return;
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
         var data = await resp.json();
+        if (!_favFilterActive || requestId !== _favoritesFilterRequestId ||
+            currentMarket !== marketAtRequest || currentSource !== sourceAtRequest) return;
         var extraMatches = data.matches || [];
-
         if (extraMatches.length > 0) {
             var missingSet = new Set(missingFavs);
             var existingKeys = new Set();
             (matches || []).forEach(function(m) {
-                existingKeys.add((m.home_team || '') + '|' + (m.away_team || '') + '|' + (m.league || ''));
+                existingKeys.add(_getMatchKey(m));
             });
             var toAdd = extraMatches.filter(function(m) {
-                var mk = (m.home_team || '') + '|' + (m.away_team || '') + '|' + (m.league || '');
+                var mk = _getMatchKey(m);
                 return missingSet.has(mk) && !existingKeys.has(mk);
             });
             if (toAdd.length > 0) {
                 matches = (matches || []).concat(toAdd);
-                filteredMatches = applySorting(matches);
-                renderMatches(filteredMatches);
-                return;
+                _renderFavoritesView();
             }
         }
     } catch(e) {
         console.error('[Fav] Error loading past favorites:', e);
     }
+}
 
-    _applyFavoritesFilter();
+function _renderFavoritesView() {
+    if (!_favFilterActive) return;
+    filteredMatches = applySorting(matches || []);
+    renderMatches(filteredMatches);
 }
 
 function _applyFavoritesFilter() {
@@ -1260,7 +1273,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const matchKey = el.getAttribute('data-matchkey');
                 el.classList.toggle('fav-active', _userFavorites.has(matchKey));
             });
-            if (_favFilterActive) _applyFavoritesFilter();
+            if (_favFilterActive) {
+                _renderFavoritesView();
+                void _loadAndApplyFavoritesFilter(_favoritesFilterRequestId);
+            }
         })
         .catch(error => console.warn('[Fav] Startup favorites failed:', error)));
     runOptionalStartupTask('background live data', _startBackgroundLiveFetch);
@@ -2312,6 +2328,7 @@ function _setupInfiniteScroll() {
 
 function renderMatches(data) {
     if (typeof _liveMode !== 'undefined' && _liveMode) return;
+    if (_favFilterActive) data = data.filter(function(match) { return _userFavorites.has(_getMatchKey(match)); });
     if (_isTestLockedMarket(currentMarket)) {
         _showTestLockedToast();
         var _fallbackTab = document.querySelector('.market-tabs .tab[data-market="moneyway_1x2"]');
@@ -2381,6 +2398,7 @@ function isMobileView() {
 
 function renderMobileMatchCards(data) {
     if (typeof _liveMode !== 'undefined' && _liveMode) return;
+    if (_favFilterActive) data = data.filter(function(match) { return _userFavorites.has(_getMatchKey(match)); });
     if (_isTestLockedMarket(currentMarket)) {
         _showTestLockedToast();
         _mobCurCat = 'moneyway';
