@@ -154,7 +154,7 @@
     });
   }
   function engineIds() {
-    // Only ten approved Base motor families: legacy signals were removed.
+    // Only the approved Base motor families are listed; legacy signals stay removed.
     return Object.keys(ENGINES);
   }
   function dayItems() {
