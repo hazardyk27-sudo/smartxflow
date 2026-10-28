@@ -732,7 +732,8 @@
       "legacy_unavailable_count": "Bron niet beschikbaar",
       "legacy_unavailable_title": "Oude signalen momenteel niet beschikbaar",
       "legacy_unavailable_desc": "Base-signalen blijven beschikbaar; de oude enginebron kon niet worden geverifieerd.",
-      "legacy_unavailable_notice": "BASE-SIGNALEN BESCHIKBAAR · Oude bron niet beschikbaar"
+      "legacy_unavailable_notice": "BASE-SIGNALEN BESCHIKBAAR · Oude bron niet beschikbaar",
+      "engine_early_core_v2_desc": "Eerste vroege signaal: odds <2,00 en geldpercentage <95% · Retention-55"
     },
     "live": {
       "pro_gerekli": "Voor livegegevens is een <strong>Pro</strong>-abonnement vereist",
