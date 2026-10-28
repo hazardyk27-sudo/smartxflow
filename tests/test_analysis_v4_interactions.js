@@ -418,9 +418,8 @@ test('Early T-3 retention is shown separately from the original eligible signal'
   assert.equal((html.match(/class="sxf-fixture-line"/g)||[]).length,1);
 });
 
-test('broken Early retention is visibly marked but frozen history is not removed',async()=>{
+test('broken Early retention is excluded from the visible signal list without changing the stored record',async()=>{
   const data=signals(todayTR());
-  data.engines.push('EARLY_MONEY_CORE');
   data.items=[{...data.items[0],id:1,engine:'EARLY_MONEY_CORE',
     checkpoint:40,source_checkpoint:40,
     retention:{status:'BROKEN',confirmed:[6],checked:[6,5],required:[6,5,4,3]},
@@ -429,10 +428,9 @@ test('broken Early retention is visibly marked but frozen history is not removed
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
     .find(x=>x.dataset.motor==='EARLY_MONEY_CORE').click();
   const html=mock.get('sxfSignalContent').innerHTML;
-  assert.match(html,/Süreklilik bozuldu/);
-  assert.match(html,/sxf-direction-badge is-retention-broken/);
-  assert.match(html,/class="sxf-audit-line is-broken"/);
-  assert.equal((html.match(/class="sxf-signal-row sxf-history-entry"/g)||[]).length,1);
+  assert.match(html,/Bu gün için maç bulunmuyor/);
+  assert.equal(data.items.length,1,'the API record remains available as frozen history');
+  assert.equal(data.items[0].retention.status,'BROKEN');
 });
 
 test('past checkpoint remains distinct from failed fresh live quote thresholds',async()=>{
