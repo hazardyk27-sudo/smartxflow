@@ -222,7 +222,7 @@ test('unknown retired engines are excluded; archived Base evidence is preserved'
   const mock=setup(data);
   mock.window.openBaseSignalsPanel(); await flush();
   const tiles=mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
-  assert.equal(tiles.length,10);
+  assert.equal(tiles.length,11);
   assert.doesNotMatch(mock.get('sxfSignalContent').innerHTML,/LEGACY_UNDERDOG/);
   tiles.find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;
@@ -420,6 +420,7 @@ test('Early T-3 retention is shown separately from the original eligible signal'
 
 test('broken Early retention is visibly marked but frozen history is not removed',async()=>{
   const data=signals(todayTR());
+  data.engines.push('EARLY_MONEY_CORE');
   data.items=[{...data.items[0],id:1,engine:'EARLY_MONEY_CORE',
     checkpoint:40,source_checkpoint:40,
     retention:{status:'BROKEN',confirmed:[6],checked:[6,5],required:[6,5,4,3]},
