@@ -13,11 +13,11 @@ def test_analizler_keeps_signal_engine_and_removes_guide_entrypoints():
     assert "trendsModalOverlay" not in html
     assert "Kılavuz" not in html
     assert 'onclick="_testGuardAnalysis(this)"' in html
-    assert "id=\\"sxfBaseSignalOverlay\\"" in html
-    assert "id=\\"sxfSignalDateRail\\"" in html
-    assert "id=\\"sxfSignalEngineRail\\"" not in html
-    assert "id=\\"sxfSearchWrap\\"" in html
-    assert "id=\\"sxfSignalContent\\"" in html
+    assert 'id="sxfBaseSignalOverlay"' in html
+    assert 'id="sxfSignalDateRail"' in html
+    assert 'id="sxfSignalEngineRail"' not in html
+    assert 'id="sxfSearchWrap"' in html
+    assert 'id="sxfSignalContent"' in html
     assert "js/base-signals.js" in html and "css/base-signals.css" in html
 
 
