@@ -180,6 +180,41 @@ class LiveSupabaseWriter:
         except Exception:
             return set()
 
+    def get_regulation_time_score(self, match_hash: str) -> Optional[str]:
+        """Return the latest observed 90th-minute score (including stoppage time).
+
+        Standard football 1X2 results exclude extra time and penalties. Live
+        snapshots retain the score/minute observed during 90+ stoppage; those
+        observations are the best source when the provider later reports the
+        post-extra-time or shootout aggregate as the final live score.
+        """
+        try:
+            headers = self._headers()
+            resp = requests.get(
+                self._rest_url('live_snapshots'),
+                params={
+                    "match_id_hash": f"eq.{match_hash}",
+                    "minute": "like.90%",
+                    "select": "score,minute,snapshot_at",
+                    "order": "snapshot_at.desc",
+                    "limit": "100",
+                },
+                headers=headers,
+                timeout=15,
+                verify=SSL_VERIFY,
+            )
+            if resp.status_code != 200:
+                log(f"[90-MIN SCORE] snapshot lookup HTTP {resp.status_code}: {resp.text[:120]}")
+                return None
+            for row in resp.json():
+                minute = str(row.get("minute") or "").strip()
+                score = str(row.get("score") or "").strip()
+                if re.fullmatch(r"90(?:\+\d+)?'?", minute) and re.fullmatch(r"\d+-\d+", score):
+                    return score
+        except Exception as e:
+            log(f"[90-MIN SCORE] snapshot lookup failed for {match_hash}: {e}")
+        return None
+
     def get_fixtures_by_hashes(self, hashes: List[str]) -> List[Dict]:
         if not hashes:
             return []
@@ -617,6 +652,17 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
             log(f"  [AUTO-FT] {auto_ft_count} maç 120+ dk geçtiği için otomatik FT yapıldı")
         if auto_ft_skipped:
             log(f"  [AUTO-FT SKIP] {auto_ft_skipped} maç 120+ dk ama dakika bilgisi aktif, atlandı")
+        # Store the regulation-time score for finished matches. A 90+ snapshot
+        # includes stoppage time and excludes extra time / penalty shootouts.
+        regulation_scores = {}
+        for h, fix in all_fixtures.items():
+            if fix.get("status") == "ft":
+                regulation_score = writer.get_regulation_time_score(h)
+                if regulation_score:
+                    regulation_scores[h] = regulation_score
+                    fix["score"] = regulation_score
+                    log(f"  [90-MIN SCORE] {fix.get('home_team','')[:20]} vs {fix.get('away_team','')[:20]} | {regulation_score}")
+
         already_ft = writer.get_ft_fixture_hashes()
         ft_skipped = 0
         ft_recovered = []
@@ -708,8 +754,13 @@ def run_live_scrape(writer: LiveSupabaseWriter) -> int:
                 info = existing_live_info.get(h, '')
                 log(f"    hash={h} kickoff={info} elapsed={em:.0f}dk")
         if stale_hashes:
-            marked = writer.mark_fixtures_finished(stale_hashes)
-            log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi")
+            stale_regulation_scores = {}
+            for h in stale_hashes:
+                regulation_score = writer.get_regulation_time_score(h)
+                if regulation_score:
+                    stale_regulation_scores[h] = regulation_score
+            marked = writer.mark_fixtures_finished(stale_hashes, stale_regulation_scores)
+            log(f"  [MS] {marked}/{len(stale_hashes)} biten maç FT olarak işaretlendi ({len(stale_regulation_scores)} normal-süre skoru korundu)")
     else:
         log("  [UYARI] Betwatch verisi alınamadı, FT işaretleme atlanıyor")
 
