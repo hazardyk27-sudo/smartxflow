@@ -43,7 +43,7 @@ def fixture(day: str, kickoff: str, motor: str, label: str, uid: str):
 def main():
     html = (ROOT / "templates/index.html").read_text(encoding="utf8")
     start = html.index('<div id="sxfBaseSignalOverlay"')
-    stop = html.index("<!-- Trendler Modal -->", start)
+    stop = html.index('    <div class="mf-overlay"', start)
     modal = html[start:stop]
     style = (ROOT / "static/css/style.css").read_text(encoding="utf8")
     v4css = (ROOT / "static/css/base-signals.css").read_text(encoding="utf8")
