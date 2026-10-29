@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def test_analizler_launches_new_modal_but_guide_keeps_its_entrypoint():
+def test_analizler_keeps_signal_engine_and_removes_guide_entrypoints():
     html=(ROOT/"templates/index.html").read_text()
     assert "window.loadSxfBaseSignalsUi = function ()" in html
     assert "if (tab === 'analysis')" in html
