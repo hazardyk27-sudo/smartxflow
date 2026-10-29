@@ -2818,10 +2818,21 @@ def get_live_matches():
                     ko_t = _dt2.fromisoformat(ko_str)
                     dm = (_now_api - ko_t).total_seconds() / 60
                     if dm >= 120:
-                        auto_ft_hashes.append(f['match_id_hash'])
-                        f['status'] = 'ft'
-                        if not f.get('minute') or f['minute'] not in ('FT', 'MS', 'AET', 'PEN'):
-                            f['minute'] = 'FT'
+                        updated_at = str(f.get('updated_at') or '').strip()
+                        stale_live = True
+                        if updated_at:
+                            try:
+                                last_update = _dt2.fromisoformat(updated_at.replace('Z', '+00:00'))
+                                if last_update.tzinfo is None:
+                                    last_update = last_update.replace(tzinfo=_tz2.utc)
+                                stale_live = (_now_api - last_update).total_seconds() >= 300
+                            except Exception:
+                                stale_live = True
+                        if stale_live:
+                            auto_ft_hashes.append(f['match_id_hash'])
+                            f['status'] = 'ft'
+                            if not f.get('minute') or f['minute'] not in ('FT', 'MS', 'AET', 'PEN'):
+                                f['minute'] = 'FT'
                 except Exception:
                     pass
             fixtures.append(f)
