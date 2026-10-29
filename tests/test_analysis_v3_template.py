@@ -7,16 +7,17 @@ ROOT=Path(__file__).resolve().parents[1]
 def test_analizler_keeps_signal_engine_and_removes_guide_entrypoints():
     html=(ROOT/"templates/index.html").read_text()
     assert "window.loadSxfBaseSignalsUi = function ()" in html
-    assert "if (tab === 'analysis')" in html
+    assert "window.openDeferredTrendsModal = function ()" in html
     assert "return window.openBaseSignalsPanel();" in html
-    assert "return window.openTrendsModal(tab);" in html  # Guide only
-    assert html.index("if (tab === 'analysis')") < html.index("return window.loadSxfAnalysisUi()")
-    assert html.count('onclick="openDeferredTrendsModal(\'moves\')') >= 1
-    assert "id=\"sxfBaseSignalOverlay\"" in html
-    assert "id=\"sxfSignalDateRail\"" in html
-    assert "id=\"sxfSignalEngineRail\"" not in html
-    assert "id=\"sxfSearchWrap\"" in html
-    assert "id=\"sxfSignalContent\"" in html
+    assert "openDeferredTrendsModal('moves')" not in html
+    assert "trendsModalOverlay" not in html
+    assert "Kılavuz" not in html
+    assert 'onclick="_testGuardAnalysis(this)"' in html
+    assert "id=\\"sxfBaseSignalOverlay\\"" in html
+    assert "id=\\"sxfSignalDateRail\\"" in html
+    assert "id=\\"sxfSignalEngineRail\\"" not in html
+    assert "id=\\"sxfSearchWrap\\"" in html
+    assert "id=\\"sxfSignalContent\\"" in html
     assert "js/base-signals.js" in html and "css/base-signals.css" in html
 
 
