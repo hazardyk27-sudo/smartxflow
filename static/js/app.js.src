@@ -978,6 +978,14 @@ function _isFinishedLiveMatch(lm) {
     return st === 'ft' || mn === 'FT' || mn === 'MS' || mn === 'AET' || mn === 'PEN';
 }
 
+function _isFreshActiveLiveMatch(lm) {
+    if (!lm || String(lm.status || '').toLowerCase() !== 'live') return false;
+    var updatedAt = Date.parse(lm.updated_at || '');
+    if (!Number.isFinite(updatedAt)) return false;
+    var ageMs = Date.now() - updatedAt;
+    return ageMs >= -60000 && ageMs <= 300000;
+}
+
 function _buildFinishedCapsule(lm, extraClass) {
     var scoreHtml = '';
     var sc = lm.score || '';
@@ -1066,7 +1074,7 @@ function getMatchLiveCapsule(dateStr, homeTeam, awayTeam, matchId) {
         }
     }
     var lm = _findLiveMatchByHash(matchId) || _findLiveMatch(homeTeam, awayTeam);
-    if (diffMinutes < 0 || diffMinutes > 113) return '';
+    if (diffMinutes < 0 || (diffMinutes > 113 && !_isFreshActiveLiveMatch(_findLiveMatchByHash(matchId) || _findLiveMatch(homeTeam, awayTeam)))) return '';
     var minStr = '';
     var scoreHtml = '';
     if (lm) {
@@ -1121,7 +1129,7 @@ function getMatchLiveCapsuleDT(dateStr, homeTeam, awayTeam, matchId) {
         }
     }
     var lm = _findLiveMatchByHash(matchId) || _findLiveMatch(homeTeam, awayTeam);
-    if (diffMinutes < 0 || diffMinutes > 113) return '';
+    if (diffMinutes < 0 || (diffMinutes > 113 && !_isFreshActiveLiveMatch(_findLiveMatchByHash(matchId) || _findLiveMatch(homeTeam, awayTeam)))) return '';
     var minStr = '';
     var scoreHtml = '';
     if (lm) {
@@ -7126,6 +7134,7 @@ async function _fetchBackgroundLiveData() {
 
 function _updateLiveCapsulesInDOM() {
     if (_liveMode) return;
+    var shouldRerenderForLiveStatus = false;
     document.querySelectorAll('#matchesTableBody tr').forEach(function(row) {
         var teamsCell = row.querySelector('.match-teams');
         var dateCell = row.querySelector('.match-date');
@@ -7140,7 +7149,13 @@ function _updateLiveCapsulesInDOM() {
         var away = parts[parts.length - 1].trim();
         var lm = _findLiveMatchByHash(matchId) || _findLiveMatch(home, away);
         if (!lm) return;
-        if (_isFinishedLiveMatch(lm)) return;
+        if (_isFinishedLiveMatch(lm)) {
+            if (!dateCell.querySelector('.lc-ended')) shouldRerenderForLiveStatus = true;
+            return;
+        }
+        if (_isFreshActiveLiveMatch(lm) && (!deskCapsuleEl || deskCapsuleEl.classList.contains('lc-ended'))) {
+            shouldRerenderForLiveStatus = true;
+        }
         if (capsuleEl) {
             var rawMin = (lm.minute || '').trim();
             var sc = lm.score || '';
@@ -7171,6 +7186,9 @@ function _updateLiveCapsulesInDOM() {
             }
         }
     });
+    if (shouldRerenderForLiveStatus && typeof renderMatches === 'function' && filteredMatches && filteredMatches.length) {
+        renderMatches(filteredMatches);
+    }
 }
 
 function _startBackgroundLiveFetch() {
