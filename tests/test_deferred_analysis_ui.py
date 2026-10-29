@@ -7,7 +7,7 @@ def _index():
 
 def test_guide_ui_is_removed_from_the_app():
     text = _index()
-    assert 'onclick="openDeferredTrendsModal(\\'moves\\')' not in text
+    assert "openDeferredTrendsModal('moves')" not in text
     assert 'id="trendsModalOverlay"' not in text
     assert 'data-i18n="idx.nav.kilavuz"' not in text
     assert 'Kılavuz' not in text
