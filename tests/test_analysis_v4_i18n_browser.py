@@ -14,7 +14,7 @@ def main():
     locales={c:json.loads((ROOT/"static/i18n"/f"{c}.json").read_text(encoding="utf8")) for c in LANGS}
     html=(ROOT/"templates/index.html").read_text(encoding="utf8")
     a=html.index('<div id="sxfBaseSignalOverlay"')
-    b=html.index("<!-- Trendler Modal -->",a)
+    b=html.index('    <div class="mf-overlay"',a)
     modal=html[a:b]
     style=(ROOT/"static/css/style.css").read_text(encoding="utf8")
     css=(ROOT/"static/css/base-signals.css").read_text(encoding="utf8")
