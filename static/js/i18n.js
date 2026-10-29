@@ -451,12 +451,6 @@
     });
 
     try {
-      if (typeof window.loadSxfAnalysisUi === 'function') {
-        Promise.resolve(window.loadSxfAnalysisUi()).catch(function () {});
-      }
-    } catch (e) {}
-
-    try {
       if (typeof window.loadChartLibs === 'function') {
         Promise.resolve(window.loadChartLibs()).catch(function () {});
       }

@@ -49,29 +49,6 @@
     <script defer src="/static/js/app.js?v={{ asset_v("js/app.js") }}"></script>
     <script>
     (function () {
-        var analysisUiPromise = null;
-        var analysisUiUrl = '/static/js/ui.js?v={{ asset_v("js/ui.js") }}';
-
-        window.loadSxfAnalysisUi = function () {
-            if (typeof window.openTrendsModal === 'function') {
-                return Promise.resolve();
-            }
-            if (analysisUiPromise) return analysisUiPromise;
-
-            analysisUiPromise = new Promise(function (resolve, reject) {
-                var script = document.createElement('script');
-                script.src = analysisUiUrl;
-                script.async = true;
-                script.onload = function () { resolve(); };
-                script.onerror = function () {
-                    analysisUiPromise = null;
-                    reject(new Error('Analysis UI bundle failed to load'));
-                };
-                document.head.appendChild(script);
-            });
-            return analysisUiPromise;
-        };
-
         var baseSignalsUiPromise = null;
         window.loadSxfBaseSignalsUi = function () {
             if (typeof window.openBaseSignalsPanel === 'function') return Promise.resolve();
@@ -90,32 +67,17 @@
             return baseSignalsUiPromise;
         };
 
-        window.openDeferredTrendsModal = function (tab) {
-            if (tab === 'analysis') {
-                return window.loadSxfBaseSignalsUi()
-                    .then(function () {
-                        if (typeof window.openBaseSignalsPanel !== 'function')
-                            throw new Error('Base signal UI not ready');
-                        return window.openBaseSignalsPanel();
-                    })
-                    .catch(function (error) {
-                        console.error('[BaseSignals] Load failed:', error);
-                        if (typeof window.showToast === 'function')
-                            window.showToast(window.SXFI18n ? window.SXFI18n.t('app.v4.panel_load_error') : 'Sinyal merkezi yüklenemedi. Tekrar deneyin.', 'error');
-                    });
-            }
-            return window.loadSxfAnalysisUi()
+        window.openDeferredTrendsModal = function () {
+            return window.loadSxfBaseSignalsUi()
                 .then(function () {
-                    if (typeof window.openTrendsModal !== 'function') {
-                        throw new Error('Analysis UI bundle loaded without openTrendsModal');
-                    }
-                    return window.openTrendsModal(tab);
+                    if (typeof window.openBaseSignalsPanel !== 'function')
+                        throw new Error('Base signal UI not ready');
+                    return window.openBaseSignalsPanel();
                 })
                 .catch(function (error) {
-                    console.error('[AnalysisUI] Lazy-load failed:', error);
-                    if (typeof window.showToast === 'function') {
-                        window.showToast(window.SXFI18n ? window.SXFI18n.t('app.v4.guide_load_error') : 'Analiz ekranı yüklenemedi. Lütfen tekrar deneyin.', 'error');
-                    }
+                    console.error('[BaseSignals] Load failed:', error);
+                    if (typeof window.showToast === 'function')
+                        window.showToast(window.SXFI18n ? window.SXFI18n.t('app.v4.panel_load_error') : 'Sinyal merkezi yüklenemedi. Tekrar deneyin.', 'error');
                 });
         };
     })();
@@ -439,13 +401,7 @@
                         </svg>
                         <span data-i18n="idx.favoriler">Favoriler</span>
                     </button>
-                    <button onclick="openDeferredTrendsModal('moves'); closeMobileOverflow();">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                        </svg>
-                        <span data-i18n="app.flt.guide">Kılavuz</span>
-                    </button>
+                    
                     <button onclick="_testGuardAnalysis(this); closeMobileOverflow();">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -482,13 +438,7 @@
                         </svg>
                         <span data-i18n="idx.favoriler">Favoriler</span>
                     </button>
-                    <button class="btn btn-today desktop-only" onclick="openDeferredTrendsModal('moves')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                        </svg>
-                        <span data-i18n="idx.nav.kilavuz">Kılavuz</span>
-                    </button>
+                    
                     <button class="btn btn-today desktop-only" onclick="_testGuardAnalysis(this)" style="position:relative;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -897,41 +847,6 @@
                 <div class="sxf-zero"><p data-i18n="app.v4.initial_loading">Sinyal ekranı açıldığında veriler yüklenir.</p></div>
             </div>
         </section>
-    </div>
-
-    <!-- Trendler Modal -->
-    <div class="modal-overlay" id="trendsModalOverlay" onclick="closeTrendsModal()" style="display:none;">
-        <div class="modal-content trends-modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title">
-                    <h2 id="trendsModalTitle" data-i18n="app.flt.guide">Kılavuz</h2>
-                    <span class="modal-subtitle" id="trendsModalSubtitle" data-i18n="app.flt.guide_tips">Kullanım tavsiyeleri</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <button onclick="closeTrendsModal();setTimeout(function(){localStorage.removeItem('sxf_tutorial_done');startTutorial();},350);" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:#6e7681;font-size:11px;padding:5px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;backdrop-filter:blur(4px);transition:all 0.2s;" onmouseover="this.style.color='#34d399';this.style.borderColor='rgba(52,211,153,0.25)';this.style.background='rgba(52,211,153,0.06)'" onmouseout="this.style.color='#6e7681';this.style.borderColor='rgba(255,255,255,0.08)';this.style.background='rgba(255,255,255,0.03)'" data-i18n="app.flt.show_tutorial">Öğreticiyi Göster</button>
-                    <button class="modal-close" onclick="closeTrendsModal()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"/>
-                            <line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <div class="modal-body trends-modal-body">
-                <div class="trends-sidebar" id="trendsSidebar">
-                    <div style="text-align:center;padding:30px 10px;color:#484f58;font-size:13px;" data-i18n="app.tbl.loading">Yükleniyor...</div>
-                </div>
-                <div class="trends-content-area" id="trendsContentArea">
-                    <div class="trends-placeholder">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#2e3238" stroke-width="1.5">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                        </svg>
-                        <div data-i18n="app.flt.select_topic">Sol menüden bir konu seçin</div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="mf-overlay" id="mobileFilterOverlay" onclick="closeMobileFilterModal()" style="display:none;">

@@ -34,7 +34,7 @@ test('warmup prepares first-click runtimes without adding eager script tags', ()
   ]) {
     assert.match(warmup, new RegExp(helper));
   }
-  assert.match(warmup, /loadSxfAnalysisUi/);
+  assert.doesNotMatch(warmup, /loadSxfAnalysisUi/);
   assert.match(warmup, /loadChartLibs/);
   assert.doesNotMatch(warmup, /createElement\(['"]script['"]\)/,
     'local split runtimes should be prefetched, not eagerly executed by script injection');
