@@ -1,23 +1,23 @@
-SOURCE_SHA=d1c5111425e3bda5c80e892b6e31060a691d293c
+SOURCE_SHA=09eb65e915ac6ff023bf4460c1eb7d4ffb6cddf0
 PYTEST_EXIT=1
-  +         'recorded_at': '2026-10-30T17:30:00+00:00',
-  +         'observed_at': '2026-10-30T17:30:00+00:00',
-  +         'delivery_timing': 'LATE_EVALUATION',
-  +         'selection_status': 'ELIGIBLE',
-  +         'review_state': 'LATE_HISTORY',
-  +         'valid_on_time': False,
-  +         'odds': 3.65,
-  +         'amount': None,
-  +         'share': None,
-  +         'strength_tag': False,
-  +         'shadow': True,
-  +         'result_state': 'PENDING',
-  +         'final_score': None,
-  +         'outcome': None,
-  +     },
-  + ]
+            value = self._rpc("sxf_base_enqueue_jobs", {"p_jobs": payloads[i:i + batch_size]})
+            if type(value) is not int or value < 0 or value > len(payloads[i:i + batch_size]):
+>               raise DurableStoreError("enqueue RPC returned invalid count")
+E               base_signal_engine.storage.DurableStoreError: enqueue RPC returned invalid count
+
+base_signal_engine/storage.py:126: DurableStoreError
+=========================== short test summary info ============================
+FAILED tests/test_signal_motor_fresh_start_20261022.py::test_new_ruleset_is_explicit_and_all_jobs_get_new_identity - AssertionError: assert 10 == 11
+ +  where 10 = len(((72, 'EARLY_CORE'), (60, 'EARLY_CORE'), (40, 'EARLY_CORE'), (24, 'EARLY_CORE'), (8, 'BASE'), (6, 'BASE'), ...))
+FAILED tests/test_base_signal_scheduler.py::test_actual_shadow_retries_missing_t6_instead_of_marking_done - assert (7 == 8)
+FAILED tests/test_base_fixture_discovery_worker.py::test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent - assert 370 == (37 * 11)
+FAILED tests/test_base_fixture_discovery_worker.py::test_rescheduled_kickoff_generates_new_identity_and_quarantines_old - assert (10 == 11)
+FAILED tests/test_base_fixture_discovery_worker.py::test_immutable_returning_kickoff_only_quarantines_its_own_fixture - assert 20 == 22
+FAILED tests/test_base_fixture_discovery_worker.py::test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery - AssertionError: assert 10 == 11
+ +  where 10 = len({'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...})
+ +    where {'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...} = <test_base_fixture_discovery_worker.test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery.<locals>.ConcurrentStore object at 0x7fce90580c10>.keys
 FAILED tests/test_base_signal_storage.py::test_enqueue_chunking_and_empty_universe - base_signal_engine.storage.DurableStoreError: enqueue RPC returned invalid count
-8 failed, 277 passed in 1.83s
+7 failed, 278 passed in 1.91s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
