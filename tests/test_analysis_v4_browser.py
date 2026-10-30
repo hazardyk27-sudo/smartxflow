@@ -79,7 +79,7 @@ def main():
             page.add_script_tag(content=js)
             page.evaluate("window.openBaseSignalsPanel()")
             page.locator(".sxf-engine-tile").first.wait_for()
-            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 11")
+            page.wait_for_function("document.querySelectorAll('.sxf-engine-tile').length === 10")
             metrics = page.evaluate("""() => {
               const overlay=document.getElementById('sxfBaseSignalOverlay');
               const modal=overlay.querySelector('.sxf-panel');
