@@ -59,7 +59,7 @@ def test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent():
     assert result["new_jobs"]==37*len(CHECKPOINT_TASKS)
     assert result["fixtures_needing_enqueue"]==37
     assert result["coverage_verified_for_snapshot"] is True
-    assert len(store.keys)==37*11
+    assert len(store.keys)==37*len(CHECKPOINT_TASKS)
     assert len([c for c in store.calls if c[0]=="enqueue"])==4
     assert len(pings)==5  # 4 acknowledged batches and drift finalization
     assert catalog.windows==[(NOW,NOW+timedelta(hours=80))]
@@ -218,7 +218,7 @@ def test_immutable_returning_kickoff_only_quarantines_its_own_fixture():
     assert report["protected_returning_fixtures"] == 1
     assert report["coverage_verified_for_snapshot"] is False
     assert report["verified_fixtures"] == 2
-    assert report["new_jobs"] == 22
+    assert report["new_jobs"] == 2*len(CHECKPOINT_TASKS)
     assert ("proof", blocked.fixture_uid) in store.calls
     for f in (fixtures[0], fixtures[2]):
         assert all(CheckpointJob(f, h, fam).key in store.keys
@@ -340,12 +340,12 @@ def test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery():
     assert ("enqueue", 1, 200) in store.calls
     assert len(store.keys) == len(CHECKPOINT_TASKS)
     # No historical record is deleted; the fresh kickoff creates its own
-    # independent, idempotent 11-job identity in the following sweep.
+    # independent, idempotent 10-job identity in the following sweep.
     result = app.scan_horizon_once(None, store, now=NOW, catalog=cat)
     assert result["status"] == "SCANNED"
     assert result["coverage_verified_for_snapshot"]
     assert result["new_jobs"] == len(CHECKPOINT_TASKS)
-    assert len(store.keys) == 22
+    assert len(store.keys) == 2*len(CHECKPOINT_TASKS)
 
 
 def test_stable_fixture_missing_jobs_never_masquerades_as_catalog_race():
