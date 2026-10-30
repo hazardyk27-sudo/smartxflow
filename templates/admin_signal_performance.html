@@ -31,6 +31,14 @@
     <div class="grid" id="cards"></div>
 
     <section class="section">
+      <div class="section-head"><div><h2>Motor bazında performans</h2><p>Her sinyal motoru ayrı hesaplanır. Tarihsel araştırma ile canlı SHADOW sonuçları birbirine karıştırılmaz.</p></div></div>
+      <h3>Tarihsel araştırma motorları</h3>
+      <div class="scroll"><table><thead><tr><th>Motor</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">Kaybeden</th><th class="num">İsabet</th><th class="num">Ort. oran</th></tr></thead><tbody id="historicEngineRates"></tbody></table></div>
+      <h3 style="margin-top:18px">Günlük arşiv motorları · son 21 gün</h3>
+      <div class="scroll"><table><thead><tr><th>Motor</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">Kaybeden</th><th class="num">Bekleyen</th><th class="num">Doğrulanamayan</th><th class="num">İsabet</th></tr></thead><tbody id="runtimeEngineRates"></tbody></table></div>
+    </section>
+
+    <section class="section">
       <div class="section-head"><div><h2 data-i18n="signalPerformance.historyTitle">GitHub’daki tarihsel motor raporu</h2><p id="historyPeriod">Yükleniyor…</p></div><span class="tag" id="historyStatus" data-i18n="signalPerformance.historyStatus">Tarihsel araştırma</span></div>
       <div id="historyWarning" class="small"></div>
       <div class="scroll"><table><thead><tr><th data-i18n="signalPerformance.thDay">Gün</th><th class="num" data-i18n="signalPerformance.thSignals">Motor kaydı</th><th class="num" data-i18n="signalPerformance.thSettled">Sonuçlanan</th><th class="num" data-i18n="signalPerformance.thWins">Kazanan</th><th class="num" data-i18n="signalPerformance.thHit">Motor isabeti</th><th data-i18n="signalPerformance.thSource">Kaynak yöntemi</th></tr></thead><tbody id="historyDays"></tbody></table></div>
@@ -85,6 +93,21 @@
       document.getElementById('historyPeriod').textContent=h ? `${h.period_start} – ${h.period_end} · ${h.mode||'tarihsel çalışma'} · skor: ${h.score_rule||'90 dakika'}` : (data.historical_error||'Tarihsel rapor henüz okunamadı.');
       const warnings=(h?.warnings||[]).slice(0,4).join(' · ');
       document.getElementById('historyWarning').textContent=warnings ? `Yöntem/kalite notları: ${warnings}` : '';
+      const historicRows=Object.entries(h?.engine_totals||{}).sort(([a],[b])=>a.localeCompare(b));
+      document.getElementById('historicEngineRates').innerHTML=historicRows.map(([engine,m])=>{
+        const settled=Number(m.settled||0), wins=Number(m.hits||0), losses=Number(m.misses||0);
+        const hit=m.hit_pct ?? (settled ? wins*100/settled : null);
+        return `<tr><td>${esc(engine)}</td><td class="num">${Number(m.signals||0)}</td><td class="num">${settled}</td><td class="num good">${wins}</td><td class="num bad">${losses}</td><td class="num">${pct(hit)}</td><td class="num">${m.avg_odds_settled==null?'—':Number(m.avg_odds_settled).toFixed(2)}</td></tr>`;
+      }).join('') || '<tr><td colspan="7">Tarihsel motor verisi yok.</td></tr>';
+      const runtimeTotals={};
+      runtimeDays.forEach(day=>Object.entries(day.engines||{}).forEach(([engine,m])=>{
+        const total=runtimeTotals[engine]||(runtimeTotals[engine]={signals:0,settled:0,wins:0,losses:0,pending:0,unverified:0});
+        for(const key of ['signals','settled','wins','losses','pending','unverified']) total[key]+=Number(m[key]||0);
+      }));
+      document.getElementById('runtimeEngineRates').innerHTML=Object.entries(runtimeTotals).sort(([a],[b])=>a.localeCompare(b)).map(([engine,m])=>{
+        const hit=(m.wins+m.losses)?m.wins*100/(m.wins+m.losses):null;
+        return `<tr><td>${esc(engine)}</td><td class="num">${m.signals}</td><td class="num">${m.settled}</td><td class="num good">${m.wins}</td><td class="num bad">${m.losses}</td><td class="num">${m.pending}</td><td class="num">${m.unverified}</td><td class="num">${pct(hit)}</td></tr>`;
+      }).join('') || '<tr><td colspan="8">Günlük sinyal motoru verisi henüz yok.</td></tr>';
       const hd=document.getElementById('historyDays');
       hd.innerHTML=(h?.days||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(d=>{
         const engines=Object.values(d.engine||{}); const total=engines.reduce((n,e)=>n+Number(e.signals||0),0); const settled=engines.reduce((n,e)=>n+Number(e.settled||0),0); const wins=engines.reduce((n,e)=>n+Number(e.hits||0),0);

@@ -235,7 +235,7 @@ def summarize_day(day: str, events: list[dict[str, Any]]) -> dict[str, Any]:
     by_engine = {name: engines[name] for name in sorted(engines)}
     return {
         "date": day,
-        "status": "ARCHIVED",
+        "status": "NO_SIGNALS" if not signals else "ARCHIVED",
         "source_complete": False,
         "logged_events": len(signals),
         "settled_signals": sum(v["settled"] for v in by_engine.values()),

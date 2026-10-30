@@ -6,9 +6,12 @@ import argparse
 from datetime import datetime, timedelta
 import json
 import os
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import sys
 from urllib.parse import quote
+
+# Running a script by path puts scripts/ first on sys.path, not the repository root.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import requests
 
@@ -101,14 +104,28 @@ def archive(feed: dict, backend: GitHubContents) -> dict:
     if not isinstance(old_days, dict):
         raise SignalArchiveError("existing signal archive day index is malformed")
 
-    by_day: dict[str, list[dict]] = {}
+    start_value = feed.get("start")
+    window_days = feed.get("days")
+    if (not isinstance(start_value, str) or type(window_days) is not int
+            or not 1 <= window_days <= 21):
+        raise SignalArchiveError("Base signal feed has an invalid archive window")
+    try:
+        window_start = datetime.fromisoformat(start_value).date()
+    except ValueError as exc:
+        raise SignalArchiveError("Base signal feed has an invalid archive start") from exc
+    if window_start.isoformat() != start_value:
+        raise SignalArchiveError("Base signal feed has a non-canonical archive start")
+    by_day: dict[str, list[dict]] = {
+        (window_start + timedelta(days=offset)).isoformat(): []
+        for offset in range(window_days)
+    }
     for item in feed["items"]:
         if not isinstance(item, dict):
             raise SignalArchiveError("Base signal feed contains a malformed row")
         day = item.get("day")
-        if not isinstance(day, str):
-            raise SignalArchiveError("Base signal feed contains a row without a day")
-        by_day.setdefault(day, []).append(item)
+        if not isinstance(day, str) or day not in by_day:
+            raise SignalArchiveError("Base signal feed contains a row outside its archive window")
+        by_day[day].append(item)
 
     index_days = dict(old_days)
     changed_days = 0
@@ -119,7 +136,7 @@ def archive(feed: dict, backend: GitHubContents) -> dict:
         current = backend.read(day_path)
         previous_events, file_sha = decode_day(current[0]) if current else ([], None)
         merged, changed = merge_feed_day(day, by_day[day], previous_events)
-        if changed:
+        if changed or current is None:
             prior_count = len(previous_events)
             payload = encode_day(merged)
             commit_sha = backend.write(
@@ -128,8 +145,11 @@ def archive(feed: dict, backend: GitHubContents) -> dict:
             )
             changed_days += 1
             appended_events += len(merged) - prior_count
+        summary = summarize_day(day, merged)
+        if day == datetime.now(TR_TZ).date().isoformat():
+            summary["status"] = "IN_PROGRESS"
         index_days[day] = {
-            **summarize_day(day, merged),
+            **summary,
             "path": day_path,
             "archive_bytes": len(encode_day(merged)),
             "source_state": feed.get("results_source_state"),
