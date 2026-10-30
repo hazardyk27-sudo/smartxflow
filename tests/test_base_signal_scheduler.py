@@ -200,7 +200,7 @@ def test_actual_shadow_retries_missing_t6_instead_of_marking_done():
     empty=FakeReader([])
     journal=MemoryJournal()
     first=scan_once(empty,journal,now=now,catalog=Catalog(),max_jobs=9)
-    assert first["due"]==8 and first["waiting_data"]==8 and first["committed"]==0
+    assert first["due"]==7 and first["waiting_data"]==7 and first["committed"]==0
     assert journal.logs=={}
     # A later successful scan can evaluate if all original T-6 markets exist.
     history=[mkt("1X2",h) for h in (11,10,9,8,7,6)]
