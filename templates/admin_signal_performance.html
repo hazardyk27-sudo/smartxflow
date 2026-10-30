@@ -3,154 +3,255 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-i18n="signalPerformance.title">Sinyal Performansları | SmartXFlow Admin</title>
+  <title>Sinyal Performansı | SmartXFlow</title>
   <style>
-    :root{color-scheme:dark;--bg:#101419;--panel:#171c22;--line:#2b323a;--muted:#98a4b3;--text:#edf2f7;--green:#25d366;--red:#ff6b75;--amber:#f6c453}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,Segoe UI,Arial,sans-serif}
-    header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid var(--line);background:#14191f;position:sticky;top:0;z-index:3}
-    h1{font-size:20px;margin:0}h2{font-size:16px;margin:0 0 12px}.sub{color:var(--muted);font-size:12px;margin-top:4px}
-    button,.back{border:1px solid var(--line);border-radius:8px;background:#202832;color:var(--text);padding:9px 13px;text-decoration:none;cursor:pointer;font-weight:600}
-    main{max-width:1440px;margin:0 auto;padding:22px 24px 48px}.notice{border:1px solid #594a25;background:#292315;color:#ecd9a1;padding:12px 14px;border-radius:10px;margin-bottom:16px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:16px 0}.card,.section{background:var(--panel);border:1px solid var(--line);border-radius:12px}.card{padding:14px 16px}.card strong{display:block;font-size:23px;line-height:1.2}.card span{display:block;color:var(--muted);font-size:11px;margin-top:5px;text-transform:uppercase;letter-spacing:.04em}
-    .section{padding:17px;margin:16px 0}.section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}.section-head p{margin:3px 0 0;color:var(--muted);font-size:12px}
-    .scroll{overflow:auto;border:1px solid var(--line);border-radius:9px}table{border-collapse:collapse;width:100%;min-width:680px}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}th{font-size:11px;color:#b7c0cb;background:#20262d;position:sticky;top:0}tbody tr:last-child td{border-bottom:0}tbody tr[data-source]{cursor:pointer}tbody tr[data-source]:hover{background:#202830}.num{text-align:right}.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
-    .detail-empty{color:var(--muted);padding:16px 2px}.tag{display:inline-block;padding:2px 7px;border:1px solid #3a444f;border-radius:99px;color:#c7d0db;font-size:10px;margin-right:4px}
-    .error{color:var(--red);padding:12px}.small{color:var(--muted);font-size:11px}.right{display:flex;gap:8px;align-items:center}
-    @media(max-width:760px){header{padding:14px 15px;align-items:flex-start}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:16px 12px 32px}.section{padding:13px}.right{flex-wrap:wrap;justify-content:flex-end}}
-    @media(max-width:420px){header h1{font-size:17px}.back,button{padding:8px 9px;font-size:12px}.grid{gap:8px}.card{padding:12px}.card strong{font-size:20px}}
+    :root{color-scheme:dark;--bg:#101419;--panel:#171d24;--panel2:#1d252e;--line:#2c3641;--text:#eef3f8;--muted:#9eabb8;--green:#36d787;--red:#ff737d;--amber:#f2c15b;--blue:#74b7ff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Segoe UI",Arial,sans-serif}
+    header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px max(20px,calc((100vw - 1280px)/2));background:#141a20;border-bottom:1px solid var(--line)}
+    h1{font-size:20px;margin:0;letter-spacing:-.02em}h2{font-size:17px;margin:0}h3{font-size:15px;margin:0}.sub{color:var(--muted);font-size:12px;margin-top:3px}
+    .actions{display:flex;gap:8px}.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 12px;text-decoration:none;cursor:pointer;font:600 12px/1.2 Inter,"Segoe UI",Arial,sans-serif}.button:hover{border-color:#536170}
+    main{max-width:1280px;margin:0 auto;padding:22px 20px 50px}.notice{padding:12px 14px;border:1px solid #594b2c;border-radius:10px;background:#282317;color:#eadbb4;font-size:12px;margin-bottom:15px}
+    .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}.summary-card,.section{background:var(--panel);border:1px solid var(--line);border-radius:12px}.summary-card{padding:13px 15px}.summary-card .value{display:block;font-size:23px;font-weight:700;line-height:1.2}.summary-card .label{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+    .section{padding:16px;margin:14px 0}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}.section-head p{color:var(--muted);font-size:12px;margin:4px 0 0}
+    .switcher{display:flex;gap:6px;padding:4px;border:1px solid var(--line);border-radius:10px;background:#11161b;margin:0 0 12px;width:max-content;max-width:100%}
+    .switcher button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:8px 12px;font:600 12px/1.2 Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}
+    .switcher button[aria-pressed="true"]{background:#26323d;color:var(--text);box-shadow:inset 0 0 0 1px #3b4b5a}
+    .period{color:var(--muted);font-size:11px;margin:0 0 12px}.engines{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .engine{background:#141a20;border:1px solid var(--line);border-radius:10px;padding:13px;min-width:0}
+    .engine-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.engine-name{font-size:13px;font-weight:700}.rate{font-size:20px;font-weight:750;white-space:nowrap}.rate.good{color:var(--green)}.rate.muted{color:var(--muted)}
+    .engine-main{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:10px 0 6px}.engine-main small,.engine-note{color:var(--muted);font-size:11px}
+    .engine-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.stat{background:var(--panel2);border-radius:6px;padding:4px 7px;color:#c8d2dc;font-size:10px}
+    .help{color:var(--muted);font-size:11px;margin:10px 0 0}.tag{border:1px solid #3a4754;border-radius:99px;color:#b9c8d6;padding:3px 8px;font-size:10px;white-space:nowrap}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;min-width:620px}th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+    th{background:#202831;color:#c2ccd7;font-size:11px;font-weight:650}tbody tr:last-child td{border-bottom:0}tbody tr[data-source]{cursor:pointer}tbody tr[data-source]:hover{background:#202830}.num{text-align:right}.good-text{color:var(--green)}.bad-text{color:var(--red)}.pending-text{color:var(--amber)}
+    .empty{padding:15px 4px;color:var(--muted);font-size:12px}.error{padding:10px 0;color:var(--red);font-size:12px}.small{color:var(--muted);font-size:11px}
+    .section-title{display:flex;align-items:center;gap:8px}.count{color:var(--muted);font-size:11px;font-weight:500}
+    @media(max-width:900px){.engines{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){header{padding:12px;align-items:flex-start}.actions{gap:5px}.button{padding:8px 9px;font-size:11px}h1{font-size:17px}main{padding:14px 11px 34px}.summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.summary-card{padding:11px}.summary-card .value{font-size:20px}.section{padding:12px;margin:10px 0}.section-head{gap:8px}.engines{grid-template-columns:1fr}.switcher{width:100%}.switcher button{flex:1;padding:8px 6px;font-size:11px}}
   </style>
 </head>
 <body>
   <header>
-    <div><h1 data-i18n="signalPerformance.title">Sinyal Performansları</h1><div class="sub" data-i18n="signalPerformance.subtitle">Tarihsel araştırma ve günlük SmartXFlow motor kayıtları</div></div>
-    <div class="right"><a class="back" href="/admin" data-i18n="signalPerformance.backAdmin">Admin panele dön</a><button id="refresh" data-i18n="signalPerformance.refresh">Yenile</button></div>
+    <div><h1>Sinyal Performansı</h1><div class="sub">Motorları ayrı ayrı değerlendirin; günlük kayıt ve sonuçları inceleyin.</div></div>
+    <div class="actions"><a class="button" href="/admin">Yönetici paneli</a><button class="button" id="refresh">Yenile</button></div>
   </header>
   <main>
-    <div class="notice" data-i18n="signalPerformance.measurementNote"><strong>Ölçüm notu:</strong> CAPİTALE tarihsel raporu 9–26 Ekim T-6/T-8 araştırması ile 27 Ekim canlı sohbet taramasını ayrı yöntem dönemleri olarak saklar. Yeni SmartXFlow kayıtları SHADOW aşamasındadır ve kaynak kapsamı tam değildir. Yüzde, yalnız sonuçlanmış WIN/LOSS sinyallerinde hesaplanır; SURPRISE takımın yenilmeme kuralıyla ölçülür.</div>
+    <div class="notice"><strong>Ölçüm:</strong> İsabet oranı yalnızca sonucu kesinleşmiş kazanç ve kayıplardan hesaplanır. 90 dakikalık normal süre esas alınır; uzatma ve penaltılar dahil değildir. Güncel SmartXFlow kayıtları gölge ölçümüdür, kaynak kapsamı henüz tam değildir.</div>
     <div id="error" class="error" hidden></div>
-    <div class="grid" id="cards"></div>
+    <div class="summary" id="summary"></div>
 
     <section class="section">
-      <div class="section-head"><div><h2>Motor bazında performans</h2><p>Her sinyal motoru ayrı hesaplanır. Tarihsel araştırma ile canlı SHADOW sonuçları birbirine karıştırılmaz.</p></div></div>
-      <h3>Tarihsel araştırma motorları</h3>
-      <div class="scroll"><table><thead><tr><th>Motor</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">Kaybeden</th><th class="num">İsabet</th><th class="num">Ort. oran</th></tr></thead><tbody id="historicEngineRates"></tbody></table></div>
-      <h3 style="margin-top:18px">Günlük arşiv motorları · son 21 gün</h3>
-      <div class="scroll"><table><thead><tr><th>Motor</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">Kaybeden</th><th class="num">Bekleyen</th><th class="num">Doğrulanamayan</th><th class="num">İsabet</th></tr></thead><tbody id="runtimeEngineRates"></tbody></table></div>
+      <div class="section-head">
+        <div><h2>Sinyal bazında performans</h2><p>Her motorun sonuçlarını ayrı görün. Bekleyen ve doğrulanamayan sinyaller isabet hesabına katılmaz.</p></div>
+        <span id="engineCount" class="tag">Yükleniyor</span>
+      </div>
+      <div class="switcher" role="group" aria-label="Performans dönemi">
+        <button type="button" id="showHistorical" aria-pressed="true">Tarihsel rapor</button>
+        <button type="button" id="showRuntime" aria-pressed="false">Son 21 gün</button>
+      </div>
+      <div id="enginePeriod" class="period">Tarihsel dönem yükleniyor…</div>
+      <div id="engineCards" class="engines"></div>
+      <div id="engineEmpty" class="empty" hidden>Bu dönem için motor performansı kaydı yok.</div>
+      <p class="help">Örnek sayısını da kontrol edin: az sayıda sinyal, oranı yanıltıcı gösterebilir.</p>
     </section>
 
     <section class="section">
-      <div class="section-head"><div><h2 data-i18n="signalPerformance.historyTitle">GitHub’daki tarihsel motor raporu</h2><p id="historyPeriod">Yükleniyor…</p></div><span class="tag" id="historyStatus" data-i18n="signalPerformance.historyStatus">Tarihsel araştırma</span></div>
+      <div class="section-head"><div><div class="section-title"><h2>Tarihsel gün raporları</h2><span id="historyCount" class="count"></span></div><p id="historyPeriod">CAPİTALE arşivinden yükleniyor…</p></div><span class="tag">Kaynak: CAPİTALE</span></div>
       <div id="historyWarning" class="small"></div>
-      <div class="scroll"><table><thead><tr><th data-i18n="signalPerformance.thDay">Gün</th><th class="num" data-i18n="signalPerformance.thSignals">Motor kaydı</th><th class="num" data-i18n="signalPerformance.thSettled">Sonuçlanan</th><th class="num" data-i18n="signalPerformance.thWins">Kazanan</th><th class="num" data-i18n="signalPerformance.thHit">Motor isabeti</th><th data-i18n="signalPerformance.thSource">Kaynak yöntemi</th></tr></thead><tbody id="historyDays"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Gün</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">İsabet</th><th>Yöntem</th></tr></thead><tbody id="historyDays"></tbody></table></div>
+      <div id="historyEmpty" class="empty" hidden>Tarihsel günlük kayıt bulunamadı.</div>
     </section>
 
     <section class="section">
-      <div class="section-head"><div><h2 data-i18n="signalPerformance.runtimeTitle">Günlük SmartXFlow arşivi</h2><p data-i18n="signalPerformance.runtimeSubtitle">Günlük sinyaller ve 90 dakika skorları; sıkıştırılmış JSONL, tekrar çalıştırmaya dayanıklı.</p></div><span class="tag" id="runtimePhase" data-i18n="signalPerformance.runtimePhase">SHADOW</span></div>
-      <div class="scroll"><table><thead><tr><th data-i18n="signalPerformance.thDay">Gün</th><th data-i18n="signalPerformance.thRuntimeStatus">Durum</th><th class="num" data-i18n="signalPerformance.thEventCount">Kayıtlı sinyal olayı</th><th class="num" data-i18n="signalPerformance.thSettled">Sonuçlanan</th><th class="num" data-i18n="signalPerformance.thPending">Bekleyen</th><th data-i18n="signalPerformance.thEngineRate">Motor bazında isabet</th></tr></thead><tbody id="runtimeDays"></tbody></table></div>
-      <div id="runtimeEmpty" class="detail-empty" data-i18n="signalPerformance.runtimeEmpty" hidden>Günlük SmartXFlow arşivi henüz oluşmadı. Günlük Action, main dalında çalışmaya başladıktan sonra kayıt ekler.</div>
+      <div class="section-head"><div><div class="section-title"><h2>Günlük SmartXFlow arşivi</h2><span id="runtimeCount" class="count"></span></div><p>Son 21 günün gölge kayıtları ve sonuçları.</p></div><span class="tag" id="runtimePhase">Gölge ölçümü</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Gün</th><th>Durum</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Bekleyen</th><th>Motor bazında isabet</th></tr></thead><tbody id="runtimeDays"></tbody></table></div>
+      <div id="runtimeEmpty" class="empty" hidden>Günlük arşiv henüz oluşturulmadı.</div>
     </section>
 
     <section class="section">
-      <div class="section-head"><div><h2 id="detailTitle">Maç kayıtları</h2><p id="detailSubtitle">Detayları görmek için bir güne tıklayın.</p></div></div>
+      <div class="section-head"><div><h2 id="detailTitle">Maç ayrıntıları</h2><p id="detailSubtitle">Detayları görmek için yukarıdaki bir günü seçin.</p></div></div>
       <div id="detailError" class="error" hidden></div>
-      <div class="scroll"><table><thead><tr><th>Maç</th><th>Lig</th><th>Motor</th><th>Piyasa / seçim</th><th>Oran</th><th>90 dk skor</th><th>Sonuç</th><th>Kayıt durumu</th></tr></thead><tbody id="detailRows"></tbody></table></div>
-      <div id="detailEmpty" class="detail-empty">Bir gün seçilmedi.</div>
+      <div class="table-wrap"><table><thead><tr><th>Maç</th><th>Lig</th><th>Sinyal motoru</th><th>Piyasa / seçim</th><th>Oran</th><th>90 dk skoru</th><th>Sonuç</th><th>Kayıt durumu</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+      <div id="detailEmpty" class="empty">Henüz gün seçilmedi.</div>
     </section>
   </main>
-  <script src="/static/js/i18n.js?v=20261030-signal-performance"></script>
   <script>
-    const t = (key, fallback) => { const k=`signalPerformance.${key}`; const v=window.SXFI18n?.t(k); return v && v!==k ? v : fallback; };
-    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const pct = v => v == null ? '—' : '%' + Number(v).toFixed(1).replace(/\.0$/,'');
-    const outcomeClass = v => v === 'WIN' || v === 'NONLOSS_WIN' ? 'good' : (v === 'LOSS' ? 'bad' : 'warn');
-    let overview = null;
-    function engineRates(day){
-      const engines=day.engines||{};
-      return Object.entries(engines).map(([name,m])=>`${esc(name)} ${pct(m.hit_rate_pct)} (${m.wins}/${m.settled})`).join(' · ') || '—';
-    }
-    function renderOverview(data){
-      overview=data;
-      const h=data.historical, r=data.runtime;
-      const totals=h?.totals||{};
-      const runtimeDays=r?.days||[];
-      const runtimeSignals=runtimeDays.reduce((s,d)=>s+Number(d.logged_events||0),0);
-      const runtimeSettled=runtimeDays.reduce((s,d)=>s+Number(d.settled_signals||0),0);
-      const historicalEngines=Object.values(h?.engine_totals||{});
-      const historicSettled=historicalEngines.reduce((sum,e)=>sum+Number(e.settled||0),0);
-      const historicWins=historicalEngines.reduce((sum,e)=>sum+Number(e.hits||0),0);
-      const historicRate=historicSettled?historicWins*100/historicSettled:null;
-      const runtimeWins=runtimeDays.reduce((sum,d)=>sum+Object.values(d.engines||{}).reduce((n,m)=>n+Number(m.wins||0),0),0);
-      const runtimeLosses=runtimeDays.reduce((sum,d)=>sum+Object.values(d.engines||{}).reduce((n,m)=>n+Number(m.losses||0),0),0);
-      const runtimeRate=(runtimeWins+runtimeLosses)?runtimeWins*100/(runtimeWins+runtimeLosses):null;
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const percent = value => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toFixed(1).replace(/\.0$/,'') + '%';
+    const engineNames = {
+      EARLY_CORE:'Erken Para Çekirdeği', EARLY_MONEY_CORE:'Erken Para Çekirdeği',
+      EARLY_CORE_V2:'Erken Para Çekirdeği V2', EARLY_MONEY_CORE_V2:'Erken Para Çekirdeği V2',
+      V1:'Para Akışı 1X2 V1', '1X2_CONCENTRATION_V1':'Para Akışı 1X2 V1',
+      V2:'Para Akışı 1X2 V2', '1X2_CONCENTRATION_V2':'Para Akışı 1X2 V2',
+      HEAVY:'Yoğun Para 1X2', HEAVY_1X2_CONCENTRATION:'Yoğun Para 1X2',
+      SURPRISE_TEAM:'Sürpriz Takım', STABLE_OVER_2_5:'2,5 Üst Dengeli',
+      PREMIUM_OVER_2_5:'2,5 Üst Premium', PREMIUM_OVER_MIN1_70:'2,5 Üst Premium 1,70+',
+      BTTS_YES:'Karşılıklı Gol Var'
+    };
+    const engineName = key => engineNames[key] || String(key||'').replaceAll('_',' ');
+    let overview = null, selectedMode = 'historical';
+
+    function setSummary(data){
+      const h=data.historical||{}, r=data.runtime||{}, days=r.days||[], totals=h.totals||{};
+      const hEngines=Object.values(h.engine_totals||{});
+      const hSignals=hEngines.reduce((n,m)=>n+Number(m.signals||0),0);
+      const hSettled=hEngines.reduce((n,m)=>n+Number(m.settled||0),0);
+      const hWins=hEngines.reduce((n,m)=>n+Number(m.hits||0),0);
+      const rSignals=days.reduce((n,d)=>n+Number(d.logged_events||0),0);
+      const rSettled=days.reduce((n,d)=>n+Number(d.settled_signals||0),0);
       const cards=[
-        [totals.days ?? '—','Tarihsel gün'],
-        [totals.signals ?? '—','Tarihsel seçim'],
-        [pct(historicRate),`Tarihsel motor isabeti · ${historicWins}/${historicSettled} motor kaydı`],
-        [runtimeSignals,`Günlük motor olayları · ${runtimeSettled} sonuçlanan`],
-        [pct(runtimeRate),`SHADOW motor isabeti · ${runtimeWins}/${runtimeWins+runtimeLosses}`]
+        [totals.days??'—','Tarihsel gün'],
+        [hSignals,'Tarihsel motor sinyali'],
+        [percent(hSettled?hWins*100/hSettled:null),'Tarihsel isabet'],
+        [days.length,'Günlük arşiv günü']
       ];
-      document.getElementById('cards').innerHTML=cards.map(x=>`<div class="card"><strong>${esc(x[0])}</strong><span>${esc(x[1])}</span></div>`).join('');
-      document.getElementById('historyPeriod').textContent=h ? `${h.period_start} – ${h.period_end} · ${h.mode||'tarihsel çalışma'} · skor: ${h.score_rule||'90 dakika'}` : (data.historical_error||'Tarihsel rapor henüz okunamadı.');
-      const warnings=(h?.warnings||[]).slice(0,4).join(' · ');
-      document.getElementById('historyWarning').textContent=warnings ? `Yöntem/kalite notları: ${warnings}` : '';
-      const historicRows=Object.entries(h?.engine_totals||{}).sort(([a],[b])=>a.localeCompare(b));
-      document.getElementById('historicEngineRates').innerHTML=historicRows.map(([engine,m])=>{
-        const settled=Number(m.settled||0), wins=Number(m.hits||0), losses=Number(m.misses||0);
-        const hit=m.hit_pct ?? (settled ? wins*100/settled : null);
-        return `<tr><td>${esc(engine)}</td><td class="num">${Number(m.signals||0)}</td><td class="num">${settled}</td><td class="num good">${wins}</td><td class="num bad">${losses}</td><td class="num">${pct(hit)}</td><td class="num">${m.avg_odds_settled==null?'—':Number(m.avg_odds_settled).toFixed(2)}</td></tr>`;
-      }).join('') || '<tr><td colspan="7">Tarihsel motor verisi yok.</td></tr>';
-      const runtimeTotals={};
-      runtimeDays.forEach(day=>Object.entries(day.engines||{}).forEach(([engine,m])=>{
-        const total=runtimeTotals[engine]||(runtimeTotals[engine]={signals:0,settled:0,wins:0,losses:0,pending:0,unverified:0});
-        for(const key of ['signals','settled','wins','losses','pending','unverified']) total[key]+=Number(m[key]||0);
+      document.getElementById('summary').innerHTML=cards.map(card=>'<div class="summary-card"><span class="value">'+escapeHtml(card[0])+'</span><span class="label">'+escapeHtml(card[1])+'</span></div>').join('');
+      document.getElementById('historyPeriod').textContent=h.period_start&&h.period_end ? h.period_start+' – '+h.period_end+' · 90 dk sonuç' : 'Tarihsel dönem bilgisi yok.';
+      document.getElementById('historyCount').textContent=(h.days||[]).length+' gün';
+      document.getElementById('runtimeCount').textContent=days.length+' gün · '+rSignals+' sinyal · '+rSettled+' sonuçlanan';
+      document.getElementById('runtimePhase').textContent=(r.phase||'Gölge ölçümü')+(r.source_complete===false?' · kaynak kısmi':'');
+      document.getElementById('enginePeriod').textContent=selectedMode==='historical'
+        ? (h.period_start&&h.period_end ? h.period_start+' – '+h.period_end+' · CAPİTALE tarihsel raporu' : 'Tarihsel rapor yüklenemedi.')
+        : 'Son 21 gün · SmartXFlow gölge kayıtları';
+      renderEngineCards();
+      renderDailyTables();
+    }
+
+    function runtimeTotals(days){
+      const result={};
+      days.forEach(day=>Object.entries(day.engines||{}).forEach(([engine,metric])=>{
+        const total=result[engine]||(result[engine]={signals:0,settled:0,wins:0,losses:0,pending:0,unverified:0});
+        ['signals','settled','wins','losses','pending','unverified'].forEach(key=>total[key]+=Number(metric[key]||0));
       }));
-      document.getElementById('runtimeEngineRates').innerHTML=Object.entries(runtimeTotals).sort(([a],[b])=>a.localeCompare(b)).map(([engine,m])=>{
-        const hit=(m.wins+m.losses)?m.wins*100/(m.wins+m.losses):null;
-        return `<tr><td>${esc(engine)}</td><td class="num">${m.signals}</td><td class="num">${m.settled}</td><td class="num good">${m.wins}</td><td class="num bad">${m.losses}</td><td class="num">${m.pending}</td><td class="num">${m.unverified}</td><td class="num">${pct(hit)}</td></tr>`;
-      }).join('') || '<tr><td colspan="8">Günlük sinyal motoru verisi henüz yok.</td></tr>';
-      const hd=document.getElementById('historyDays');
-      hd.innerHTML=(h?.days||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).map(d=>{
-        const engines=Object.values(d.engine||{}); const total=engines.reduce((n,e)=>n+Number(e.signals||0),0); const settled=engines.reduce((n,e)=>n+Number(e.settled||0),0); const wins=engines.reduce((n,e)=>n+Number(e.hits||0),0);
-        const rate=settled?wins*100/settled:null;
-        return `<tr data-source="historical" data-day="${esc(d.date)}"><td>${esc(d.date)}</td><td class="num">${total}</td><td class="num">${settled}</td><td class="num">${wins}</td><td class="num">${pct(rate)}</td><td>CAPİTALE tarihsel · motor bazında</td></tr>`;
+      return result;
+    }
+
+    function renderEngineCards(){
+      if(!overview)return;
+      const h=overview.historical||{}, days=overview.runtime?.days||[];
+      let metrics;
+      if(selectedMode==='historical'){
+        metrics=Object.entries(h.engine_totals||{}).map(([key,m])=>({
+          key:key, signals:Number(m.signals||0), settled:Number(m.settled||0),
+          wins:Number(m.hits||0), losses:Number(m.misses||0), pending:0,
+          unverified:Math.max(0,Number(m.signals||0)-Number(m.settled||0)),
+          hit:m.hit_pct??(Number(m.settled||0)?Number(m.hits||0)*100/Number(m.settled||0):null),
+          odds:m.avg_odds_settled
+        }));
+      } else {
+        metrics=Object.entries(runtimeTotals(days)).map(([key,m])=>({
+          key:key, signals:m.signals, settled:m.settled, wins:m.wins, losses:m.losses,
+          pending:m.pending, unverified:m.unverified,
+          hit:(m.wins+m.losses)?m.wins*100/(m.wins+m.losses):null, odds:null
+        }));
+      }
+      metrics.sort((a,b)=>b.signals-a.signals||engineName(a.key).localeCompare(engineName(b.key),'tr'));
+      document.getElementById('engineCount').textContent=metrics.length+' motor';
+      document.getElementById('engineEmpty').hidden=metrics.length>0;
+      document.getElementById('engineCards').innerHTML=metrics.map(m=>{
+        const rate=(m.wins+m.losses)?m.wins*100/(m.wins+m.losses):null;
+        const hasResults=m.wins+m.losses>0;
+        const secondary=selectedMode==='historical'
+          ? (m.odds==null?'':'<span class="stat">Ort. oran '+Number(m.odds).toFixed(2)+'</span>')
+          : '<span class="stat">Bekleyen '+m.pending+'</span><span class="stat">Doğrulanamayan '+m.unverified+'</span>';
+        return '<article class="engine"><div class="engine-top"><div class="engine-name">'+escapeHtml(engineName(m.key))+'</div><span class="tag">'+m.signals+' sinyal</span></div>'+
+          '<div class="engine-main"><span class="rate '+(hasResults?'good':'muted')+'">'+percent(rate)+'</span><small>'+m.wins+' kazanan / '+(m.wins+m.losses)+' sonuçlanan</small></div>'+
+          '<div class="engine-note">'+m.losses+' kaybeden · '+Math.max(0,m.signals-m.wins-m.losses-m.pending-m.unverified)+' sonucu beklenen</div>'+
+          '<div class="engine-stats"><span class="stat">Kaybeden '+m.losses+'</span>'+secondary+'</div></article>';
       }).join('');
-      const rd=document.getElementById('runtimeDays');
-      rd.innerHTML=runtimeDays.map(d=>`<tr data-source="runtime" data-day="${esc(d.date)}"><td>${esc(d.date)}</td><td class="warn">${esc(d.status||'ARCHIVED')} · SHADOW</td><td class="num">${Number(d.logged_events||0)}</td><td class="num">${Number(d.settled_signals||0)}</td><td class="num">${Number(d.pending_signals||0)}</td><td>${engineRates(d)}</td></tr>`).join('');
-      document.getElementById('runtimeEmpty').hidden=runtimeDays.length>0;
-      document.getElementById('runtimePhase').textContent=`${r?.phase||'SHADOW'} · kaynak kapsamı kısmi`;
-      document.querySelectorAll('tr[data-source]').forEach(tr=>tr.addEventListener('click',()=>loadDay(tr.dataset.source,tr.dataset.day)));
-      document.getElementById('error').hidden=true;
-      if(data.historical_error){const el=document.getElementById('error');el.textContent=data.historical_error;el.hidden=false;}
+    }
+
+    function renderDailyTables(){
+      const h=overview.historical||{}, r=overview.runtime||{}, history=h.days||[], days=r.days||[];
+      document.getElementById('historyEmpty').hidden=history.length>0;
+      document.getElementById('historyDays').innerHTML=history.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(day=>{
+        const engines=Object.values(day.engine||{});
+        const signals=engines.reduce((n,m)=>n+Number(m.signals||0),0);
+        const settled=engines.reduce((n,m)=>n+Number(m.settled||0),0);
+        const wins=engines.reduce((n,m)=>n+Number(m.hits||0),0);
+        return '<tr data-source="historical" data-day="'+escapeHtml(day.date)+'"><td>'+escapeHtml(day.date)+'</td><td class="num">'+signals+'</td><td class="num">'+settled+'</td><td class="num good-text">'+wins+'</td><td class="num">'+percent(settled?wins*100/settled:null)+'</td><td>CAPİTALE araştırması</td></tr>';
+      }).join('');
+      document.getElementById('runtimeEmpty').hidden=days.length>0;
+      document.getElementById('runtimeDays').innerHTML=days.map(day=>{
+        const status=day.status==='IN_PROGRESS'?'Sürüyor':day.status==='NO_SIGNALS'?'Sinyal yok':'Arşivlendi';
+        return '<tr data-source="runtime" data-day="'+escapeHtml(day.date)+'"><td>'+escapeHtml(day.date)+'</td><td class="pending-text">'+status+'</td><td class="num">'+Number(day.logged_events||0)+'</td><td class="num">'+Number(day.settled_signals||0)+'</td><td class="num">'+Number(day.pending_signals||0)+'</td><td>'+runtimeEngineRates(day)+'</td></tr>';
+      }).join('');
+      document.querySelectorAll('tr[data-source]').forEach(row=>row.addEventListener('click',()=>loadDay(row.dataset.source,row.dataset.day)));
+    }
+
+    function runtimeEngineRates(day){
+      return Object.entries(day.engines||{}).map(([key,m])=>{
+        const hit=(Number(m.wins||0)+Number(m.losses||0))?Number(m.wins||0)*100/(Number(m.wins||0)+Number(m.losses||0)):null;
+        return escapeHtml(engineName(key))+' '+percent(hit);
+      }).join(' · ')||'—';
+    }
+
+    function resultName(value){
+      return ({WIN:'Kazandı',LOSS:'Kaybetti',NONLOSS_WIN:'Kaybetmedi',UNGRADABLE:'Değerlendirilemedi',PENDING:'Bekliyor',BEKLEYEN:'Bekliyor'})[value]||value||'Bekliyor';
     }
     function renderItems(data){
-      document.getElementById('detailTitle').textContent=`${data.date} · ${data.source||''}`;
-      document.getElementById('detailSubtitle').textContent=`${data.mode||''} · ${data.score_rule||''}`;
-      const items=data.items||[]; const body=document.getElementById('detailRows');
-      body.innerHTML=items.map(item=>{
-        const runtime=item.event==='SIGNAL_RECORDED';
-        const settle=runtime?item.settlement:item;
+      document.getElementById('detailTitle').textContent=data.date+' · Maç ayrıntıları';
+      document.getElementById('detailSubtitle').textContent=(data.mode==='SHADOW'?'SmartXFlow günlük gölge motor kaydı':'CAPİTALE tarihsel araştırması')+' · '+(data.score_rule||'90 dakika');
+      const items=data.items||[];
+      document.getElementById('detailRows').innerHTML=items.map(item=>{
+        const runtime=item.event==='SIGNAL_RECORDED', settlement=runtime?item.settlement:item;
         const tags=runtime?item.engine:(item.engine_tags||[]);
-        const motor=Array.isArray(tags)?tags.join(', '):String(tags||'');
-        const home=item.home||''; const away=item.away||'';
-        const market=runtime?item.market:item.market;
-        const selection=runtime?item.selection:item.selection;
-        const result=settle?.outcome||settle?.settlement||item.selected_team_outcome_90m||item.settlement||'BEKLEYEN';
-        const score=runtime?(settle?.score_90m||'—'):(item.score_90m||item.final_score_90m||'—');
-        const state=runtime?(item.status?.review_state||item.status?.selection_status||'KAYITLI'):(item.experimental_only?'DENEYSEL':'TARİHSEL');
-        return `<tr><td>${esc(home)} – ${esc(away)}</td><td>${esc(item.league||'—')}</td><td>${esc(motor||'—')}</td><td>${esc(market||'—')} / ${esc(selection||'—')}</td><td>${esc(item.sxf_odds??item.odds??'—')}</td><td>${esc(score)}</td><td class="${outcomeClass(result)}">${esc(result)}</td><td>${esc(state)}</td></tr>`;
+        const motor=Array.isArray(tags)?tags.map(engineName).join(', '):engineName(tags);
+        const score=runtime?(settlement?.score_90m||'—'):(item.score_90m||item.final_score_90m||'—');
+        const outcome=settlement?.outcome||settlement?.settlement||item.selected_team_outcome_90m||item.settlement||'BEKLEYEN';
+        const state=runtime?(item.status?.review_state||item.status?.selection_status||'Kayıtlı'):(item.experimental_only?'Deneysel':'Tarihsel');
+        const market=({OU25:'2,5 gol',BTTS:'Karşılıklı gol',SURPRISE_NONLOSS_RISK:'Sürpriz takım / kaybetmeme'})[item.market]||item.market||'—';
+        return '<tr><td>'+escapeHtml((item.home||'')+' – '+(item.away||''))+'</td><td>'+escapeHtml(item.league||'—')+'</td><td>'+escapeHtml(motor||'—')+'</td><td>'+escapeHtml(market+' / '+(item.selection||'—'))+'</td><td>'+escapeHtml(item.sxf_odds??item.odds??'—')+'</td><td>'+escapeHtml(score)+'</td><td>'+escapeHtml(resultName(outcome))+'</td><td>'+escapeHtml(state)+'</td></tr>';
       }).join('');
       document.getElementById('detailEmpty').hidden=items.length>0;
+      document.getElementById('detailEmpty').textContent=items.length?'':'Bu gün için maç kaydı yok.';
       document.getElementById('detailError').hidden=true;
     }
+
     async function loadDay(source,day){
-      const empty=document.getElementById('detailEmpty');empty.hidden=false;empty.textContent='Maç kayıtları yükleniyor…';
-      try{const res=await fetch(`/api/admin/signal-performance/day/${encodeURIComponent(source)}/${encodeURIComponent(day)}`);const data=await res.json();if(!res.ok)throw new Error(data.message||data.error||'Günlük kayıt okunamadı');renderItems(data);}
-      catch(e){const el=document.getElementById('detailError');el.textContent=e.message;el.hidden=false;document.getElementById('detailRows').innerHTML='';}
+      const empty=document.getElementById('detailEmpty');
+      empty.hidden=false;empty.textContent='Maç kayıtları yükleniyor…';
+      try{
+        const response=await fetch('/api/admin/signal-performance/day/'+encodeURIComponent(source)+'/'+encodeURIComponent(day));
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.message||'Günlük kayıt okunamadı.');
+        renderItems(data);
+      }catch(error){
+        document.getElementById('detailRows').innerHTML='';
+        const box=document.getElementById('detailError');box.textContent=error.message;box.hidden=false;
+        empty.textContent='Maç detayları yüklenemedi.';
+      }
     }
-    async function load(){document.getElementById('refresh').disabled=true;try{const res=await fetch('/api/admin/signal-performance/overview');const data=await res.json();if(!res.ok)throw new Error(data.message||data.error||'Rapor okunamadı');renderOverview(data);}catch(e){const el=document.getElementById('error');el.textContent=e.message;el.hidden=false;}finally{document.getElementById('refresh').disabled=false;}}
+
+    async function load(){
+      const button=document.getElementById('refresh');button.disabled=true;
+      try{
+        const response=await fetch('/api/admin/signal-performance/overview');
+        const data=await response.json();
+        if(!response.ok)throw new Error('Sinyal performans raporu yüklenemedi.');
+        overview=data;setSummary(data);
+        document.getElementById('error').hidden=true;
+        if(data.historical_error){const box=document.getElementById('error');box.textContent=data.historical_error;box.hidden=false;}
+      }catch(error){
+        const box=document.getElementById('error');box.textContent=error.message;box.hidden=false;
+      }finally{button.disabled=false;}
+    }
+
+    document.getElementById('showHistorical').addEventListener('click',()=>{
+      selectedMode='historical';
+      document.getElementById('showHistorical').setAttribute('aria-pressed','true');
+      document.getElementById('showRuntime').setAttribute('aria-pressed','false');
+      if(overview){document.getElementById('enginePeriod').textContent=overview.historical?.period_start&&overview.historical?.period_end
+        ? overview.historical.period_start+' – '+overview.historical.period_end+' · CAPİTALE tarihsel raporu':'Tarihsel rapor yüklenemedi.';renderEngineCards();}
+    });
+    document.getElementById('showRuntime').addEventListener('click',()=>{
+      selectedMode='runtime';
+      document.getElementById('showHistorical').setAttribute('aria-pressed','false');
+      document.getElementById('showRuntime').setAttribute('aria-pressed','true');
+      if(overview){document.getElementById('enginePeriod').textContent='Son 21 gün · SmartXFlow gölge kayıtları';renderEngineCards();}
+    });
     document.getElementById('refresh').addEventListener('click',load);
     load();
   </script>
 </body>
 </html>
-
