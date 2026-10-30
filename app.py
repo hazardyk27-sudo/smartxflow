@@ -7863,6 +7863,11 @@ def admin_logout():
 from sxf_capitale_archive_admin import blueprint as sxf_capitale_archive_blueprint
 app.register_blueprint(sxf_capitale_archive_blueprint)
 
+# Signal engine performance reports: CAPITALE historical outcomes plus the
+# daily compressed SmartXFlow shadow archive on the learning-archive branch.
+from sxf_signal_performance_admin import blueprint as sxf_signal_performance_blueprint
+app.register_blueprint(sxf_signal_performance_blueprint)
+
 # SmartXFlow Analizler V3: private, read-only Base signal feed.
 # The legacy analyst/guide APIs remain for their independent consumers,
 # but the /app Analizler button never calls them after the V3 UI switch.
