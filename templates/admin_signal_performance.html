@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Sinyal Performansları | SmartXFlow Admin</title>
+  <title data-i18n="signalPerformance.title">Sinyal Performansları | SmartXFlow Admin</title>
   <style>
     :root{color-scheme:dark;--bg:#101419;--panel:#171c22;--line:#2b323a;--muted:#98a4b3;--text:#edf2f7;--green:#25d366;--red:#ff6b75;--amber:#f6c453}
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,Segoe UI,Arial,sans-serif}
@@ -22,24 +22,24 @@
 </head>
 <body>
   <header>
-    <div><h1>Sinyal Performansları</h1><div class="sub">Tarihsel araştırma ve günlük SmartXFlow motor kayıtları</div></div>
-    <div class="right"><a class="back" href="/admin">Admin panele dön</a><button id="refresh">Yenile</button></div>
+    <div><h1 data-i18n="signalPerformance.title">Sinyal Performansları</h1><div class="sub" data-i18n="signalPerformance.subtitle">Tarihsel araştırma ve günlük SmartXFlow motor kayıtları</div></div>
+    <div class="right"><a class="back" href="/admin" data-i18n="signalPerformance.backAdmin">Admin panele dön</a><button id="refresh" data-i18n="signalPerformance.refresh">Yenile</button></div>
   </header>
   <main>
-    <div class="notice"><strong>Ölçüm notu:</strong> CAPİTALE tarihsel raporu 9–26 Ekim T-6/T-8 araştırması ile 27 Ekim canlı sohbet taramasını ayrı yöntem dönemleri olarak saklar. Yeni SmartXFlow kayıtları SHADOW aşamasındadır ve kaynak kapsamı tam değildir. Yüzde, yalnız sonuçlanmış WIN/LOSS sinyallerinde hesaplanır; SURPRISE takımın yenilmeme kuralıyla ölçülür.</div>
+    <div class="notice" data-i18n="signalPerformance.measurementNote"><strong>Ölçüm notu:</strong> CAPİTALE tarihsel raporu 9–26 Ekim T-6/T-8 araştırması ile 27 Ekim canlı sohbet taramasını ayrı yöntem dönemleri olarak saklar. Yeni SmartXFlow kayıtları SHADOW aşamasındadır ve kaynak kapsamı tam değildir. Yüzde, yalnız sonuçlanmış WIN/LOSS sinyallerinde hesaplanır; SURPRISE takımın yenilmeme kuralıyla ölçülür.</div>
     <div id="error" class="error" hidden></div>
     <div class="grid" id="cards"></div>
 
     <section class="section">
-      <div class="section-head"><div><h2>GitHub’daki tarihsel motor raporu</h2><p id="historyPeriod">Yükleniyor…</p></div><span class="tag" id="historyStatus">Tarihsel araştırma</span></div>
+      <div class="section-head"><div><h2 data-i18n="signalPerformance.historyTitle">GitHub’daki tarihsel motor raporu</h2><p id="historyPeriod">Yükleniyor…</p></div><span class="tag" id="historyStatus" data-i18n="signalPerformance.historyStatus">Tarihsel araştırma</span></div>
       <div id="historyWarning" class="small"></div>
-      <div class="scroll"><table><thead><tr><th>Gün</th><th class="num">Motor kaydı</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">Motor isabeti</th><th>Kaynak yöntemi</th></tr></thead><tbody id="historyDays"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th data-i18n="signalPerformance.thDay">Gün</th><th class="num" data-i18n="signalPerformance.thSignals">Motor kaydı</th><th class="num" data-i18n="signalPerformance.thSettled">Sonuçlanan</th><th class="num" data-i18n="signalPerformance.thWins">Kazanan</th><th class="num" data-i18n="signalPerformance.thHit">Motor isabeti</th><th data-i18n="signalPerformance.thSource">Kaynak yöntemi</th></tr></thead><tbody id="historyDays"></tbody></table></div>
     </section>
 
     <section class="section">
-      <div class="section-head"><div><h2>Günlük SmartXFlow arşivi</h2><p>Günlük sinyaller ve 90 dakika skorları; sıkıştırılmış JSONL, tekrar çalıştırmaya dayanıklı.</p></div><span class="tag" id="runtimePhase">SHADOW</span></div>
-      <div class="scroll"><table><thead><tr><th>Gün</th><th>Durum</th><th class="num">Kayıtlı sinyal olayı</th><th class="num">Sonuçlanan</th><th class="num">Bekleyen</th><th>Motor bazında isabet</th></tr></thead><tbody id="runtimeDays"></tbody></table></div>
-      <div id="runtimeEmpty" class="detail-empty" hidden>Günlük SmartXFlow arşivi henüz oluşmadı. Günlük Action, main dalında çalışmaya başladıktan sonra kayıt ekler.</div>
+      <div class="section-head"><div><h2 data-i18n="signalPerformance.runtimeTitle">Günlük SmartXFlow arşivi</h2><p data-i18n="signalPerformance.runtimeSubtitle">Günlük sinyaller ve 90 dakika skorları; sıkıştırılmış JSONL, tekrar çalıştırmaya dayanıklı.</p></div><span class="tag" id="runtimePhase" data-i18n="signalPerformance.runtimePhase">SHADOW</span></div>
+      <div class="scroll"><table><thead><tr><th data-i18n="signalPerformance.thDay">Gün</th><th data-i18n="signalPerformance.thRuntimeStatus">Durum</th><th class="num" data-i18n="signalPerformance.thEventCount">Kayıtlı sinyal olayı</th><th class="num" data-i18n="signalPerformance.thSettled">Sonuçlanan</th><th class="num" data-i18n="signalPerformance.thPending">Bekleyen</th><th data-i18n="signalPerformance.thEngineRate">Motor bazında isabet</th></tr></thead><tbody id="runtimeDays"></tbody></table></div>
+      <div id="runtimeEmpty" class="detail-empty" data-i18n="signalPerformance.runtimeEmpty" hidden>Günlük SmartXFlow arşivi henüz oluşmadı. Günlük Action, main dalında çalışmaya başladıktan sonra kayıt ekler.</div>
     </section>
 
     <section class="section">
@@ -49,7 +49,9 @@
       <div id="detailEmpty" class="detail-empty">Bir gün seçilmedi.</div>
     </section>
   </main>
+  <script src="/static/js/i18n.js?v=20261030-signal-performance"></script>
   <script>
+    const t = (key, fallback) => { const k=`signalPerformance.${key}`; const v=window.SXFI18n?.t(k); return v && v!==k ? v : fallback; };
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const pct = v => v == null ? '—' : '%' + Number(v).toFixed(1).replace(/\.0$/,'');
     const outcomeClass = v => v === 'WIN' || v === 'NONLOSS_WIN' ? 'good' : (v === 'LOSS' ? 'bad' : 'warn');

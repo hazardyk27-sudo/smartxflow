@@ -534,7 +534,8 @@
     "inline_operation_failed": "İşlem başarısız",
     "inline_error_occurred": "Hata oluştu",
     "inline_scraper_started": "Scraper başlatıldı",
-    "inline_scraper_stopped": "Scraper durduruldu"
+    "inline_scraper_stopped": "Scraper durduruldu",
+    "signal_performance": "Sinyal Performansları"
   },
   "en": {
     "system": "System",
@@ -1071,7 +1072,8 @@
     "inline_operation_failed": "Operation failed",
     "inline_error_occurred": "An error occurred",
     "inline_scraper_started": "Scraper started",
-    "inline_scraper_stopped": "Scraper stopped"
+    "inline_scraper_stopped": "Scraper stopped",
+    "signal_performance": "Signal Performance"
   },
   "de": {
     "system": "System",
@@ -1608,7 +1610,8 @@
     "inline_operation_failed": "Vorgang fehlgeschlagen",
     "inline_error_occurred": "Ein Fehler ist aufgetreten",
     "inline_scraper_started": "Scraper gestartet",
-    "inline_scraper_stopped": "Scraper angehalten"
+    "inline_scraper_stopped": "Scraper angehalten",
+    "signal_performance": "Signal-Leistung"
   },
   "fr": {
     "system": "Système",
@@ -2145,7 +2148,8 @@
     "inline_operation_failed": "Échec de l’opération",
     "inline_error_occurred": "Une erreur s’est produite",
     "inline_scraper_started": "Collecteur démarré",
-    "inline_scraper_stopped": "Collecteur arrêté"
+    "inline_scraper_stopped": "Collecteur arrêté",
+    "signal_performance": "Performance des signaux"
   },
   "nl": {
     "system": "Systeem",
@@ -2682,7 +2686,8 @@
     "inline_operation_failed": "Bewerking mislukt",
     "inline_error_occurred": "Er is een fout opgetreden",
     "inline_scraper_started": "Scraper gestart",
-    "inline_scraper_stopped": "Scraper gestopt"
+    "inline_scraper_stopped": "Scraper gestopt",
+    "signal_performance": "Signaalprestaties"
   },
   "it": {
     "system": "Sistema",
@@ -3219,7 +3224,8 @@
     "inline_operation_failed": "Operazione non riuscita",
     "inline_error_occurred": "Si è verificato un errore",
     "inline_scraper_started": "Raccoglitore avviato",
-    "inline_scraper_stopped": "Raccoglitore arrestato"
+    "inline_scraper_stopped": "Raccoglitore arrestato",
+    "signal_performance": "Prestazioni dei segnali"
   },
   "es": {
     "system": "Sistema",
@@ -3756,6 +3762,7 @@
     "inline_operation_failed": "Operación fallida",
     "inline_error_occurred": "Se produjo un error",
     "inline_scraper_started": "Recopilador iniciado",
-    "inline_scraper_stopped": "Recopilador detenido"
+    "inline_scraper_stopped": "Recopilador detenido",
+    "signal_performance": "Rendimiento de señales"
   }
 }
