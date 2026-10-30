@@ -101,6 +101,9 @@
       BTTS_YES:'BTTS Yes'
     };
     const engineName = key => engineNames[key] || String(key||'').replaceAll('_',' ');
+    const engineAliases = {EARLY_MONEY_CORE:'EARLY_CORE',EARLY_MONEY_CORE_V2:'EARLY_CORE_V2','1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2',HEAVY_1X2_CONCENTRATION:'HEAVY'};
+    const canonicalEngine = value => {const name=String(value||'').trim().toUpperCase();return engineAliases[name]||name;};
+    const engineMetric = (engines,key) => Object.entries(engines||{}).find(([name])=>canonicalEngine(name)===canonicalEngine(key))?.[1];
     let overview = null, selectedMode = 'historical', selectedEngine = null, selectedEngineDay = null, engineDayCache = {}, prefetchGeneration = 0;
 
     function setSummary(data){
@@ -237,9 +240,7 @@
     function resultClass(value,item){const label=resultName(value,item);return label==='Kazandı'?'won':label==='Kaybetti'?'lost':'';}
     function itemHasEngine(item,key,runtime){
       const values=runtime?[item?.engine]:[item?.engine,...(Array.isArray(item?.engine_tags)?item.engine_tags:[])];
-      const aliases={'EARLY_MONEY_CORE':'EARLY_CORE','EARLY_MONEY_CORE_V2':'EARLY_CORE_V2','1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2','HEAVY_1X2_CONCENTRATION':'HEAVY'};
-      const canonical=value=>{const name=String(value||'').trim().toUpperCase();return aliases[name]||name;};
-      return values.some(value=>canonical(value)===canonical(key));
+      return values.some(value=>canonicalEngine(value)===canonicalEngine(key));
     }
     function selectEngine(key){
       selectedEngine=selectedEngine===key?null:key;selectedEngineDay=null;prefetchGeneration++;
@@ -250,8 +251,8 @@
     }
     function engineDayEntries(){
       if(!overview||!selectedEngine)return [];
-      const historical=(overview.historical?.days||[]).map(day=>({date:day.date,metric:(day.engine||{})[selectedEngine],source:'historical'}));
-      const runtime=(overview.runtime?.days||[]).map(day=>({date:day.date,metric:(day.engines||{})[selectedEngine],source:'runtime'}));
+      const historical=(overview.historical?.days||[]).map(day=>({date:day.date,metric:engineMetric(day.engine,selectedEngine),source:'historical'}));
+      const runtime=(overview.runtime?.days||[]).map(day=>({date:day.date,metric:engineMetric(day.engines,selectedEngine),source:'runtime'}));
       return [...historical,...runtime]
         .filter(row=>row.date&&Number(row.metric?.signals||0)>0)
         .sort((a,b)=>b.date.localeCompare(a.date)||a.source.localeCompare(b.source));
