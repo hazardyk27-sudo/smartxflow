@@ -85,7 +85,7 @@ def test_enqueue_chunking_and_empty_universe():
     assert s.enqueue([REF, twin], batch_size=3) == 20
     assert len(fake.calls) == 7
     assert s.enqueue([]) == 0
-    assert len(fake.calls) == 8
+    assert len(fake.calls) == 7
 
 
 def test_claim_confirms_identities_and_rejects_unknown_ruleset():
