@@ -1,23 +1,23 @@
-SOURCE_SHA=09eb65e915ac6ff023bf4460c1eb7d4ffb6cddf0
+SOURCE_SHA=5539a4be38813974ab0608fc13c766805df8d9a7
 PYTEST_EXIT=1
-            value = self._rpc("sxf_base_enqueue_jobs", {"p_jobs": payloads[i:i + batch_size]})
-            if type(value) is not int or value < 0 or value > len(payloads[i:i + batch_size]):
->               raise DurableStoreError("enqueue RPC returned invalid count")
-E               base_signal_engine.storage.DurableStoreError: enqueue RPC returned invalid count
+>       assert len(fake.calls) == 8
+E       AssertionError: assert 7 == 8
+E        +  where 7 = len([('sxf_base_enqueue_jobs', {'p_jobs': [{'job_key': 'SXF_SIGNAL_MOTOR_V3_2026_10_24:ef5c99bf-e002-451b-b401-af9174ad53f...ikey': 'very-secret-token', 'Authorization': 'Bearer very-secret-token', 'Content-Type': 'application/json'}, 20), ...])
+E        +    where [('sxf_base_enqueue_jobs', {'p_jobs': [{'job_key': 'SXF_SIGNAL_MOTOR_V3_2026_10_24:ef5c99bf-e002-451b-b401-af9174ad53f...ikey': 'very-secret-token', 'Authorization': 'Bearer very-secret-token', 'Content-Type': 'application/json'}, 20), ...] = <test_base_signal_storage.FakeRpc object at 0x7fa506b99890>.calls
 
-base_signal_engine/storage.py:126: DurableStoreError
+tests/test_base_signal_storage.py:88: AssertionError
 =========================== short test summary info ============================
-FAILED tests/test_signal_motor_fresh_start_20261022.py::test_new_ruleset_is_explicit_and_all_jobs_get_new_identity - AssertionError: assert 10 == 11
- +  where 10 = len(((72, 'EARLY_CORE'), (60, 'EARLY_CORE'), (40, 'EARLY_CORE'), (24, 'EARLY_CORE'), (8, 'BASE'), (6, 'BASE'), ...))
-FAILED tests/test_base_signal_scheduler.py::test_actual_shadow_retries_missing_t6_instead_of_marking_done - assert (7 == 8)
-FAILED tests/test_base_fixture_discovery_worker.py::test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent - assert 370 == (37 * 11)
-FAILED tests/test_base_fixture_discovery_worker.py::test_rescheduled_kickoff_generates_new_identity_and_quarantines_old - assert (10 == 11)
+FAILED tests/test_base_fixture_discovery_worker.py::test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent - AssertionError: assert 370 == (37 * 11)
+ +  where 370 = len({'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-000000000001:2026-10-23T20:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-000000000001:2026-10-23T20:00:00+00:00:EARLY_CORE:T-72', ...})
+ +    where {'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-000000000001:2026-10-23T20:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-000000000001:2026-10-23T20:00:00+00:00:EARLY_CORE:T-72', ...} = <test_base_fixture_discovery_worker.Store object at 0x7fa5068d6bd0>.keys
 FAILED tests/test_base_fixture_discovery_worker.py::test_immutable_returning_kickoff_only_quarantines_its_own_fixture - assert 20 == 22
-FAILED tests/test_base_fixture_discovery_worker.py::test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery - AssertionError: assert 10 == 11
- +  where 10 = len({'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...})
- +    where {'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...} = <test_base_fixture_discovery_worker.test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery.<locals>.ConcurrentStore object at 0x7fce90580c10>.keys
-FAILED tests/test_base_signal_storage.py::test_enqueue_chunking_and_empty_universe - base_signal_engine.storage.DurableStoreError: enqueue RPC returned invalid count
-7 failed, 278 passed in 1.91s
+FAILED tests/test_base_fixture_discovery_worker.py::test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery - AssertionError: assert 20 == 22
+ +  where 20 = len({'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...})
+ +    where {'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:BASE:T-6', 'SXF_SIGNAL..., 'SXF_SIGNAL_MOTOR_V3_2026_10_24:00000000-0000-0000-0000-00000000000b:2026-10-22T19:00:00+00:00:EARLY_CORE:T-72', ...} = <test_base_fixture_discovery_worker.test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery.<locals>.ConcurrentStore object at 0x7fa506967950>.keys
+FAILED tests/test_base_signal_storage.py::test_enqueue_chunking_and_empty_universe - AssertionError: assert 7 == 8
+ +  where 7 = len([('sxf_base_enqueue_jobs', {'p_jobs': [{'job_key': 'SXF_SIGNAL_MOTOR_V3_2026_10_24:ef5c99bf-e002-451b-b401-af9174ad53f...ikey': 'very-secret-token', 'Authorization': 'Bearer very-secret-token', 'Content-Type': 'application/json'}, 20), ...])
+ +    where [('sxf_base_enqueue_jobs', {'p_jobs': [{'job_key': 'SXF_SIGNAL_MOTOR_V3_2026_10_24:ef5c99bf-e002-451b-b401-af9174ad53f...ikey': 'very-secret-token', 'Authorization': 'Bearer very-secret-token', 'Content-Type': 'application/json'}, 20), ...] = <test_base_signal_storage.FakeRpc object at 0x7fa506b99890>.calls
+4 failed, 281 passed in 1.49s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
