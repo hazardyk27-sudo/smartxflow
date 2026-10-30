@@ -17,7 +17,7 @@
     .switcher button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:8px 12px;font:600 12px/1.2 Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}
     .switcher button[aria-pressed="true"]{background:#26323d;color:var(--text);box-shadow:inset 0 0 0 1px #3b4b5a}
     .period{color:var(--muted);font-size:11px;margin:0 0 12px}.engines{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-    .engine{background:#141a20;border:1px solid var(--line);border-radius:10px;padding:13px;min-width:0}
+    .engine{background:#141a20;border:1px solid var(--line);border-radius:10px;padding:13px;min-width:0;cursor:pointer;transition:border-color .15s,background .15s}.engine:hover,.engine[aria-pressed="true"]{border-color:#4a6575;background:#182129}.engine:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.engine-drilldown{margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:10px;background:#12181e}.engine-days{display:grid;gap:6px;margin-top:9px}.engine-day{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#171e25;color:var(--text);text-align:left;cursor:pointer;font:inherit}.engine-day:hover,.engine-day[aria-expanded="true"]{border-color:#536879;background:#202a33}.engine-day small{color:var(--muted)}.engine-matches{margin-top:12px}.result-badge{font-size:11px;font-weight:700}.result-badge.won{color:var(--green)}.result-badge.lost{color:var(--red)}
     .engine-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.engine-name{font-size:13px;font-weight:700}.rate{font-size:20px;font-weight:750;white-space:nowrap}.rate.good{color:var(--green)}.rate.muted{color:var(--muted)}
     .engine-main{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:10px 0 6px}.engine-main small,.engine-note{color:var(--muted);font-size:11px}
     .engine-stats{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.stat{background:var(--panel2);border-radius:6px;padding:4px 7px;color:#c8d2dc;font-size:10px}
@@ -52,6 +52,16 @@
       <div id="enginePeriod" class="period">Tarihsel dönem yükleniyor…</div>
       <div id="engineCards" class="engines"></div>
       <div id="engineEmpty" class="empty" hidden>Bu dönem için motor performansı kaydı yok.</div>
+      <div id="engineDrilldown" class="engine-drilldown" hidden>
+        <div class="section-title"><h3 id="drilldownTitle">Sinyal ayrıntıları</h3><span id="drilldownCount" class="count"></span></div>
+        <p class="small">Bu sinyalin bulunduğu günleri seçerek maçları ve sonuçlarını inceleyin.</p>
+        <div id="engineDays" class="engine-days"></div>
+        <div id="engineMatches" class="engine-matches" hidden>
+          <div class="table-wrap"><table><thead><tr><th>Maç</th><th>Lig</th><th>Piyasa / seçim</th><th>Oran</th><th>90 dk skoru</th><th>Sonuç</th></tr></thead><tbody id="engineMatchRows"></tbody></table></div>
+          <div id="engineMatchEmpty" class="empty" hidden>Bu gün için bu sinyale ait maç kaydı yok.</div>
+        </div>
+        <div id="engineMatchError" class="error" hidden></div>
+      </div>
       <p class="help">Örnek sayısını da kontrol edin: az sayıda sinyal, oranı yanıltıcı gösterebilir.</p>
     </section>
 
@@ -90,7 +100,7 @@
       BTTS_YES:'Karşılıklı Gol Var'
     };
     const engineName = key => engineNames[key] || String(key||'').replaceAll('_',' ');
-    let overview = null, selectedMode = 'historical';
+    let overview = null, selectedMode = 'historical', selectedEngine = null, selectedEngineDay = null, engineDayCache = {};
 
     function setSummary(data){
       const h=data.historical||{}, r=data.runtime||{}, days=r.days||[], totals=h.totals||{};
@@ -155,11 +165,17 @@
         const secondary=selectedMode==='historical'
           ? (m.odds==null?'':'<span class="stat">Ort. oran '+Number(m.odds).toFixed(2)+'</span>')
           : '<span class="stat">Bekleyen '+m.pending+'</span><span class="stat">Doğrulanamayan '+m.unverified+'</span>';
-        return '<article class="engine"><div class="engine-top"><div class="engine-name">'+escapeHtml(engineName(m.key))+'</div><span class="tag">'+m.signals+' sinyal</span></div>'+
+        return '<article class="engine" tabindex="0" role="button" aria-pressed="'+(selectedEngine===m.key?'true':'false')+'" data-engine="'+escapeHtml(m.key)+'"><div class="engine-top"><div class="engine-name">'+escapeHtml(engineName(m.key))+'</div><span class="tag">'+m.signals+' sinyal</span></div>'+
           '<div class="engine-main"><span class="rate '+(hasResults?'good':'muted')+'">'+percent(rate)+'</span><small>'+m.wins+' kazanan / '+(m.wins+m.losses)+' sonuçlanan</small></div>'+
           '<div class="engine-note">'+m.losses+' kaybeden · '+Math.max(0,m.signals-m.wins-m.losses-m.pending-m.unverified)+' sonucu beklenen</div>'+
           '<div class="engine-stats"><span class="stat">Kaybeden '+m.losses+'</span>'+secondary+'</div></article>';
       }).join('');
+      document.querySelectorAll('#engineCards [data-engine]').forEach(card=>{
+        const choose=()=>selectEngine(card.dataset.engine);
+        card.addEventListener('click',choose);
+        card.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose();}});
+      });
+      renderEngineDrilldown();
     }
 
     function renderDailyTables(){
@@ -187,8 +203,72 @@
       }).join(' · ')||'—';
     }
 
-    function resultName(value){
-      return ({WIN:'Kazandı',LOSS:'Kaybetti',NONLOSS_WIN:'Kaybetmedi',UNGRADABLE:'Değerlendirilemedi',PENDING:'Bekliyor',BEKLEYEN:'Bekliyor'})[value]||value||'Bekliyor';
+    function isSurpriseEngine(item){
+      const tags=[item?.engine,item?.market,...(Array.isArray(item?.engine_tags)?item.engine_tags:[])].map(value=>String(value||'').trim().toUpperCase());
+      return tags.some(value=>['SURPRISE_TEAM','SURPRISE_NONLOSS_RISK','SURPRISE_TEAM_NONLOSS'].includes(value));
+    }
+    function resultName(value,item){
+      const key=String(value||'').trim().toUpperCase();
+      if(isSurpriseEngine(item)){
+        if(['LOSS','LOST','LOSE','MISS','LOST_NONLOSS','KAYBETTI'].includes(key))return 'Kaybetti';
+        if(['PENDING','BEKLEYEN','UNGRADABLE','UNVERIFIED','UNKNOWN',''].includes(key))return key==='UNGRADABLE'||key==='UNVERIFIED'?'Değerlendirilemedi':'Bekliyor';
+        return 'Kazandı';
+      }
+      return ({WIN:'Kazandı',HIT:'Kazandı',LOSS:'Kaybetti',MISS:'Kaybetti',NONLOSS_WIN:'Kazandı',DRAW_NONLOSS:'Kazandı',UNGRADABLE:'Değerlendirilemedi',UNVERIFIED:'Doğrulanamadı',PENDING:'Bekliyor',BEKLEYEN:'Bekliyor'})[key]||value||'Bekliyor';
+    }
+    function resultClass(value,item){const label=resultName(value,item);return label==='Kazandı'?'won':label==='Kaybetti'?'lost':'';}
+    function itemHasEngine(item,key,runtime){
+      const values=runtime?[item?.engine]:[item?.engine,...(Array.isArray(item?.engine_tags)?item.engine_tags:[])];
+      const aliases={'EARLY_MONEY_CORE':'EARLY_CORE','EARLY_MONEY_CORE_V2':'EARLY_CORE_V2','1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2','HEAVY_1X2_CONCENTRATION':'HEAVY'};
+      const canonical=value=>{const name=String(value||'').trim().toUpperCase();return aliases[name]||name;};
+      return values.some(value=>canonical(value)===canonical(key));
+    }
+    function selectEngine(key){
+      selectedEngine=selectedEngine===key?null:key;selectedEngineDay=null;
+      document.getElementById('engineMatches').hidden=true;
+      document.getElementById('engineMatchError').hidden=true;
+      renderEngineCards();
+    }
+    function engineDayEntries(){
+      if(!overview||!selectedEngine)return [];
+      if(selectedMode==='historical')return (overview.historical?.days||[]).map(day=>({date:day.date,metric:(day.engine||{})[selectedEngine],source:'historical'})).filter(row=>Number(row.metric?.signals||0)>0).sort((a,b)=>b.date.localeCompare(a.date));
+      return (overview.runtime?.days||[]).map(day=>({date:day.date,metric:(day.engines||{})[selectedEngine],source:'runtime'})).filter(row=>Number(row.metric?.signals||0)>0).sort((a,b)=>b.date.localeCompare(a.date));
+    }
+    function renderEngineDrilldown(){
+      const panel=document.getElementById('engineDrilldown');
+      if(!selectedEngine){panel.hidden=true;return;}
+      const days=engineDayEntries();panel.hidden=false;
+      document.getElementById('drilldownTitle').textContent=engineName(selectedEngine)+' · sinyal günleri';
+      document.getElementById('drilldownCount').textContent=days.length+' gün';
+      document.getElementById('engineDays').innerHTML=days.map(day=>{
+        const settled=Number(day.metric?.settled||0),wins=Number(day.metric?.hits??day.metric?.wins??0),losses=Number(day.metric?.misses??day.metric?.losses??0);
+        return '<button type="button" class="engine-day" data-engine-day="'+escapeHtml(day.date)+'" aria-expanded="'+(selectedEngineDay===day.date?'true':'false')+'"><span>'+escapeHtml(day.date)+'</span><small>'+Number(day.metric?.signals||0)+' maç · '+wins+' kazandı · '+losses+' kaybetti'+(settled&&wins+losses<settled?' · '+(settled-wins-losses)+' belirsiz':'')+'</small></button>';
+      }).join('')||'<div class="empty">Bu dönemde bu sinyal için gün kaydı bulunamadı.</div>';
+      document.querySelectorAll('[data-engine-day]').forEach(button=>button.addEventListener('click',()=>loadEngineDay(button.dataset.engineDay)));
+    }
+    function renderEngineMatches(data){
+      const runtime=data.mode==='SHADOW';
+      const items=(data.items||[]).filter(item=>itemHasEngine(item,selectedEngine,runtime));
+      document.getElementById('engineMatches').hidden=false;
+      document.getElementById('engineMatchError').hidden=true;
+      document.getElementById('engineMatchEmpty').hidden=items.length>0;
+      document.getElementById('engineMatchRows').innerHTML=items.map(item=>{
+        const settlement=runtime?item.settlement:item;
+        const outcome=settlement?.outcome||settlement?.settlement||item.selected_team_outcome_90m||item.settlement||'BEKLEYEN';
+        const label=resultName(outcome,item),market=({OU25:'2,5 gol',BTTS:'Karşılıklı gol',SURPRISE_NONLOSS_RISK:'Sürpriz takım / kaybetmeme',OVER_2_5:'2,5 üst','1X2':'Maç sonucu'})[item.market]||item.market||'—';
+        return '<tr><td>'+escapeHtml((item.home||'')+' – '+(item.away||''))+'</td><td>'+escapeHtml(item.league||'—')+'</td><td>'+escapeHtml(market+' / '+(item.selection||'—'))+'</td><td>'+escapeHtml(item.sxf_odds??item.odds??'—')+'</td><td>'+escapeHtml(runtime?(settlement?.score_90m||'—'):(item.score_90m||item.final_score_90m||'—'))+'</td><td><span class="result-badge '+resultClass(outcome,item)+'">'+escapeHtml(label)+'</span></td></tr>';
+      }).join('');
+    }
+    async function loadEngineDay(day){
+      selectedEngineDay=day;renderEngineDrilldown();
+      const panel=document.getElementById('engineMatches'),errorBox=document.getElementById('engineMatchError');panel.hidden=false;errorBox.hidden=true;
+      document.getElementById('engineMatchRows').innerHTML='';document.getElementById('engineMatchEmpty').hidden=false;document.getElementById('engineMatchEmpty').textContent='Maçlar yükleniyor…';
+      const cacheKey=selectedMode+':'+day;
+      try{
+        let data=engineDayCache[cacheKey];
+        if(!data){const response=await fetch('/api/admin/signal-performance/day/'+encodeURIComponent(selectedMode)+'/'+encodeURIComponent(day));data=await response.json();if(!response.ok)throw new Error(data.message||'Günlük maç kayıtları yüklenemedi.');engineDayCache[cacheKey]=data;}
+        if(selectedEngineDay===day&&selectedEngine)renderEngineMatches(data);
+      }catch(error){errorBox.textContent=error.message;errorBox.hidden=false;document.getElementById('engineMatchEmpty').hidden=true;}
     }
     function renderItems(data){
       document.getElementById('detailTitle').textContent=data.date+' · Maç ayrıntıları';
@@ -202,7 +282,7 @@
         const outcome=settlement?.outcome||settlement?.settlement||item.selected_team_outcome_90m||item.settlement||'BEKLEYEN';
         const state=runtime?(item.status?.review_state||item.status?.selection_status||'Kayıtlı'):(item.experimental_only?'Deneysel':'Tarihsel');
         const market=({OU25:'2,5 gol',BTTS:'Karşılıklı gol',SURPRISE_NONLOSS_RISK:'Sürpriz takım / kaybetmeme'})[item.market]||item.market||'—';
-        return '<tr><td>'+escapeHtml((item.home||'')+' – '+(item.away||''))+'</td><td>'+escapeHtml(item.league||'—')+'</td><td>'+escapeHtml(motor||'—')+'</td><td>'+escapeHtml(market+' / '+(item.selection||'—'))+'</td><td>'+escapeHtml(item.sxf_odds??item.odds??'—')+'</td><td>'+escapeHtml(score)+'</td><td>'+escapeHtml(resultName(outcome))+'</td><td>'+escapeHtml(state)+'</td></tr>';
+        return '<tr><td>'+escapeHtml((item.home||'')+' – '+(item.away||''))+'</td><td>'+escapeHtml(item.league||'—')+'</td><td>'+escapeHtml(motor||'—')+'</td><td>'+escapeHtml(market+' / '+(item.selection||'—'))+'</td><td>'+escapeHtml(item.sxf_odds??item.odds??'—')+'</td><td>'+escapeHtml(score)+'</td><td>'+'<span class="result-badge '+resultClass(outcome,item)+'">'+escapeHtml(resultName(outcome,item))+'</span></td><td>'+escapeHtml(state)+'</td></tr>';
       }).join('');
       document.getElementById('detailEmpty').hidden=items.length>0;
       document.getElementById('detailEmpty').textContent=items.length?'':'Bu gün için maç kaydı yok.';
@@ -239,14 +319,14 @@
     }
 
     document.getElementById('showHistorical').addEventListener('click',()=>{
-      selectedMode='historical';
+      selectedMode='historical';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;
       document.getElementById('showHistorical').setAttribute('aria-pressed','true');
       document.getElementById('showRuntime').setAttribute('aria-pressed','false');
       if(overview){document.getElementById('enginePeriod').textContent=overview.historical?.period_start&&overview.historical?.period_end
         ? overview.historical.period_start+' – '+overview.historical.period_end+' · CAPİTALE tarihsel raporu':'Tarihsel rapor yüklenemedi.';renderEngineCards();}
     });
     document.getElementById('showRuntime').addEventListener('click',()=>{
-      selectedMode='runtime';
+      selectedMode='runtime';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;
       document.getElementById('showHistorical').setAttribute('aria-pressed','false');
       document.getElementById('showRuntime').setAttribute('aria-pressed','true');
       if(overview){document.getElementById('enginePeriod').textContent='Son 21 gün · SmartXFlow gölge kayıtları';renderEngineCards();}
