@@ -91,14 +91,14 @@
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     const percent = value => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toFixed(1).replace(/\.0$/,'') + '%';
     const engineNames = {
-      EARLY_CORE:'Erken Para Çekirdeği', EARLY_MONEY_CORE:'Erken Para Çekirdeği',
-      EARLY_CORE_V2:'Erken Para Çekirdeği V2', EARLY_MONEY_CORE_V2:'Erken Para Çekirdeği V2',
-      V1:'Para Akışı 1X2 V1', '1X2_CONCENTRATION_V1':'Para Akışı 1X2 V1',
-      V2:'Para Akışı 1X2 V2', '1X2_CONCENTRATION_V2':'Para Akışı 1X2 V2',
-      HEAVY:'Yoğun Para 1X2', HEAVY_1X2_CONCENTRATION:'Yoğun Para 1X2',
-      SURPRISE_TEAM:'Sürpriz Takım', STABLE_OVER_2_5:'2,5 Üst Dengeli',
-      PREMIUM_OVER_2_5:'2,5 Üst Premium', PREMIUM_OVER_MIN1_70:'2,5 Üst Premium 1,70+',
-      BTTS_YES:'Karşılıklı Gol Var'
+      EARLY_CORE:'Early Money Core', EARLY_MONEY_CORE:'Early Money Core',
+      EARLY_CORE_V2:'Early Money Core V2', EARLY_MONEY_CORE_V2:'Early Money Core V2',
+      V1:'Moneyway 1X2 V1', '1X2_CONCENTRATION_V1':'Moneyway 1X2 V1',
+      V2:'Moneyway 1X2 V2', '1X2_CONCENTRATION_V2':'Moneyway 1X2 V2',
+      HEAVY:'Heavy 1X2', HEAVY_1X2_CONCENTRATION:'Heavy 1X2',
+      SURPRISE_TEAM:'Surprise Team', STABLE_OVER_2_5:'Stable Over 2.5',
+      PREMIUM_OVER_2_5:'Premium Over 2.5', PREMIUM_OVER_MIN1_70:'Premium Over 2.5 1.70+',
+      BTTS_YES:'BTTS Yes'
     };
     const engineName = key => engineNames[key] || String(key||'').replaceAll('_',' ');
     let overview = null, selectedMode = 'historical', selectedEngine = null, selectedEngineDay = null, engineDayCache = {}, prefetchGeneration = 0;
