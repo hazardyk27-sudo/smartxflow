@@ -250,8 +250,11 @@
     }
     function engineDayEntries(){
       if(!overview||!selectedEngine)return [];
-      if(selectedMode==='historical')return (overview.historical?.days||[]).map(day=>({date:day.date,metric:(day.engine||{})[selectedEngine],source:'historical'})).filter(row=>Number(row.metric?.signals||0)>0).sort((a,b)=>b.date.localeCompare(a.date));
-      return (overview.runtime?.days||[]).map(day=>({date:day.date,metric:(day.engines||{})[selectedEngine],source:'runtime'})).filter(row=>Number(row.metric?.signals||0)>0).sort((a,b)=>b.date.localeCompare(a.date));
+      const historical=(overview.historical?.days||[]).map(day=>({date:day.date,metric:(day.engine||{})[selectedEngine],source:'historical'}));
+      const runtime=(overview.runtime?.days||[]).map(day=>({date:day.date,metric:(day.engines||{})[selectedEngine],source:'runtime'}));
+      return [...historical,...runtime]
+        .filter(row=>row.date&&Number(row.metric?.signals||0)>0)
+        .sort((a,b)=>b.date.localeCompare(a.date)||a.source.localeCompare(b.source));
     }
     function renderEngineDrilldown(){
       const panel=document.getElementById('engineDrilldown');
@@ -261,9 +264,11 @@
       document.getElementById('drilldownCount').textContent=days.length+' gün';
       document.getElementById('engineDays').innerHTML=days.map(day=>{
         const settled=Number(day.metric?.settled||0),wins=Number(day.metric?.hits??day.metric?.wins??0),losses=Number(day.metric?.misses??day.metric?.losses??0);
-        return '<button type="button" class="engine-day" data-engine-day="'+escapeHtml(day.date)+'" aria-expanded="'+(selectedEngineDay===day.date?'true':'false')+'"><span>'+escapeHtml(day.date)+'</span><small>'+Number(day.metric?.signals||0)+' maç · '+wins+' kazandı · '+losses+' kaybetti'+(settled&&wins+losses<settled?' · '+(settled-wins-losses)+' belirsiz':'')+'</small></button>';
+        const dayKey=day.source+':'+day.date;
+        const sourceName=day.source==='runtime'?'SmartXFlow':'CAPİTALE';
+        return '<button type="button" class="engine-day" data-engine-source="'+day.source+'" data-engine-day="'+escapeHtml(day.date)+'" aria-expanded="'+(selectedEngineDay===dayKey?'true':'false')+'"><span>'+sourceName+' · '+escapeHtml(day.date)+'</span><small>'+Number(day.metric?.signals||0)+' maç · '+wins+' kazandı · '+losses+' kaybetti'+(settled&&wins+losses<settled?' · '+(settled-wins-losses)+' belirsiz':'')+'</small></button>';
       }).join('')||'<div class="empty">Bu dönemde bu sinyal için gün kaydı bulunamadı.</div>';
-      document.querySelectorAll('[data-engine-day]').forEach(button=>button.addEventListener('click',()=>loadEngineDay(button.dataset.engineDay)));
+      document.querySelectorAll('[data-engine-day]').forEach(button=>button.addEventListener('click',()=>loadEngineDay(button.dataset.engineSource,button.dataset.engineDay)));
     }
     function getEngineDayData(source,day){
       const cacheKey=source+':'+day;
@@ -310,13 +315,14 @@
         return '<tr><td>'+escapeHtml((item.home||'')+' – '+(item.away||''))+'</td><td>'+escapeHtml(item.league||'—')+'</td><td>'+escapeHtml(market+' / '+(item.selection||'—'))+'</td><td>'+escapeHtml(item.sxf_odds??item.odds??'—')+'</td><td>'+escapeHtml(runtime?(settlement?.score_90m||'—'):(item.score_90m||item.final_score_90m||'—'))+'</td><td><span class="result-badge '+resultClass(outcome,item)+'">'+escapeHtml(label)+'</span></td></tr>';
       }).join('');
     }
-    async function loadEngineDay(day){
-      selectedEngineDay=day;renderEngineDrilldown();
+    async function loadEngineDay(source,day){
+      const dayKey=source+':'+day;
+      selectedEngineDay=dayKey;renderEngineDrilldown();
       const panel=document.getElementById('engineMatches'),errorBox=document.getElementById('engineMatchError');panel.hidden=false;errorBox.hidden=true;
       document.getElementById('engineMatchRows').innerHTML='';document.getElementById('engineMatchEmpty').hidden=false;document.getElementById('engineMatchEmpty').textContent='Maçlar yükleniyor…';
       try{
-        const data=await getEngineDayData(selectedMode,day);
-        if(selectedEngineDay===day&&selectedEngine)renderEngineMatches(data);
+        const data=await getEngineDayData(source,day);
+        if(selectedEngineDay===dayKey&&selectedEngine)renderEngineMatches(data);
       }catch(error){errorBox.textContent=error.message;errorBox.hidden=false;document.getElementById('engineMatchEmpty').hidden=true;}
     }
     function renderItems(data){
