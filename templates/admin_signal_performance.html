@@ -75,6 +75,7 @@
       <div id="detailEmpty" class="empty">Henüz gün seçilmedi.</div>
     </section>
   </main>
+  <script src="/static/js/i18n.js?v=20261030-signal-performance-tr"></script>
   <script>
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     const percent = value => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toFixed(1).replace(/\.0$/,'') + '%';
