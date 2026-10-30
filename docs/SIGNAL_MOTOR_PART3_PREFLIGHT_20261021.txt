@@ -1,12 +1,25 @@
-SOURCE_SHA=a9825a35ac88cad6865601a23e170ab720383ba0
-PYTEST_EXIT=0
-........................................................................ [ 25%]
-........................................................................ [ 50%]
-........................................................................ [ 75%]
-.......................................................................  [100%]
-287 passed in 1.21s
+SOURCE_SHA=d1c5111425e3bda5c80e892b6e31060a691d293c
+PYTEST_EXIT=1
+  +         'recorded_at': '2026-10-30T17:30:00+00:00',
+  +         'observed_at': '2026-10-30T17:30:00+00:00',
+  +         'delivery_timing': 'LATE_EVALUATION',
+  +         'selection_status': 'ELIGIBLE',
+  +         'review_state': 'LATE_HISTORY',
+  +         'valid_on_time': False,
+  +         'odds': 3.65,
+  +         'amount': None,
+  +         'share': None,
+  +         'strength_tag': False,
+  +         'shadow': True,
+  +         'result_state': 'PENDING',
+  +         'final_score': None,
+  +         'outcome': None,
+  +     },
+  + ]
+FAILED tests/test_base_signal_storage.py::test_enqueue_chunking_and_empty_universe - base_signal_engine.storage.DurableStoreError: enqueue RPC returned invalid count
+8 failed, 277 passed in 1.83s
 JS_SYNTAX_EXIT=0
 BASH_SYNTAX_EXIT=0
 SUDOERS_EXIT=0
 YAML_SQL_RELEASE_GUARDS_EXIT=0
-VERIFICATION_STEP=success
+VERIFICATION_STEP=failure
