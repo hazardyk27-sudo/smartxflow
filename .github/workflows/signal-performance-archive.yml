@@ -1,0 +1,39 @@
+name: Signal Performance Archive
+
+on:
+  schedule:
+    # After the signal/result retention cleanup and the overnight FT updates.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sxf-signal-performance-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install archive reader dependency
+        run: python -m pip install --disable-pip-version-check requests
+
+      - name: Capture signals and reconcile recent 90-minute results
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/archive_signal_performance.py --lookback-days 21
+
