@@ -135,11 +135,6 @@ def test_early_core_t24_is_cohort_and_not_extra_independent_engine():
     assert p["signals"][0]["checkpoint"]==24
 
 
-def test_early_t12_is_independent():
-    r=FakeReader([mkt("1X2",12,strong=2000)])
-    p=evaluate_job(CheckpointJob(REF,12,"EARLY_T12"),r)
-    assert p["signals"][0]["engine"]=="EARLY_MONEY_T12"
-
 
 def test_early_retention_is_not_created_as_a_base_t5_signal():
     core=mkt("1X2",72,strong=12000)

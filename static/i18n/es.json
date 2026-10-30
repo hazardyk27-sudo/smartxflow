@@ -612,7 +612,6 @@
       "summary_default": "Señales de motores",
       "initial_loading": "Los datos se cargan al abrir el panel.",
       "engine_early_core_desc": "Movimientos tempranos de dinero",
-      "engine_early_t12_desc": "Movimientos tempranos en T-12",
       "engine_v1_desc": "Concentración de dinero 1X2 · V1",
       "engine_v2_desc": "Concentración de dinero 1X2 · V2",
       "engine_heavy_desc": "Alta concentración 1X2",

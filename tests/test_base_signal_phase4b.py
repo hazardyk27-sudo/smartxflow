@@ -132,15 +132,6 @@ def test_t8_available_market_survives_other_missing_markets():
     assert payload["markets"]["OU25"]["checkpoint"] is None
 
 
-def test_early_t12_missing_source_waits_but_complete_no_hit_is_final():
-    job=CheckpointJob(REF,12,"EARLY_T12")
-    rpc=Rpc(job=job)
-    assert execute_claims(Reader([]),store(rpc),worker_id="w")["skipped_data"]==1
-    rpc=Rpc(job=job)
-    answer=execute_claims(Reader([snap("1X2",12,strong=False)]),store(rpc),worker_id="w")
-    assert answer["completed"]==1
-    assert rpc.calls[-1][1]["p_payload"]["status"]=="NO_SIGNAL"
-
 
 def test_early_t60_can_evaluate_independently_but_first_hit_history_is_marked():
     from base_signal_engine.source_quality import CapturingReader

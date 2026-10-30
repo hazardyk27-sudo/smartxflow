@@ -17,12 +17,11 @@ from .rules import (
     choose_base_checkpoint,
     evaluate_base,
     evaluate_early,
-    evaluate_early_t12,
     select_snapshot,
 )
 
 __all__ = [
     "BASE_CHECKPOINTS", "EARLY_CORE_CHECKPOINTS", "EARLY_RETENTION_CHECKPOINTS",
     "CheckpointEvaluation", "EarlyEvaluation", "Fixture", "Quote", "Signal", "Snapshot",
-    "choose_base_checkpoint", "evaluate_base", "evaluate_early", "evaluate_early_t12", "select_snapshot",
+    "choose_base_checkpoint", "evaluate_base", "evaluate_early", "select_snapshot",
 ]

@@ -54,7 +54,7 @@ def main():
     kickoff = datetime.combine(tr_now.date(), time(18, 0), ZoneInfo("Europe/Istanbul")).astimezone(timezone.utc).isoformat()
     payload = {
         "status": "ok", "phase": "SHADOW", "ruleset_mode": "CURRENT", "engines": [
-            "EARLY_MONEY_CORE", "EARLY_MONEY_T12", "1X2_CONCENTRATION_V1",
+            "EARLY_MONEY_CORE", "1X2_CONCENTRATION_V1",
             "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
             "STABLE_OVER_2_5", "PREMIUM_OVER_2_5",
             "PREMIUM_OVER_MIN1_70", "BTTS_YES"

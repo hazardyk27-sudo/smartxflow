@@ -8,10 +8,10 @@ MIGRATION=ROOT/"migrations/2026_10_22_signal_motor_independent_checkpoints.sql"
 RECOVERY=ROOT/"deploy/signal_motor_v2_restore_sibling_jobs_20261022.sql"
 
 
-def test_all_t_checkpoints_are_family_specific_not_fixture_wide():
+def test_active_checkpoint_tasks_exclude_retired_t12():
     assert CHECKPOINT_TASKS == (
         (72, "EARLY_CORE"), (60, "EARLY_CORE"), (40, "EARLY_CORE"),
-        (24, "EARLY_CORE"), (12, "EARLY_T12"),
+        (24, "EARLY_CORE"),
         (8, "BASE"), (6, "BASE"), (6, "EARLY_RETENTION"),
         (5, "EARLY_RETENTION"), (4, "EARLY_RETENTION"), (3, "EARLY_RETENTION"),
     )

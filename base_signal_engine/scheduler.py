@@ -13,7 +13,7 @@ from typing import Protocol, Sequence
 
 from .rules import (
     Fixture, Snapshot, _utc, choose_base_checkpoint, evaluate_base,
-    evaluate_early, evaluate_early_t12, select_snapshot,
+    evaluate_early, select_snapshot,
 )
 
 # Prospective V3 release identity: V1/V2 immutable history remains untouched.
@@ -22,7 +22,7 @@ INGESTION_GRACE = timedelta(minutes=10)
 # Early's T-5/T-4/T-3 checkpoints are retention ONLY, not Base triggers.
 CHECKPOINT_TASKS = (
     (72, "EARLY_CORE"), (60, "EARLY_CORE"), (40, "EARLY_CORE"),
-    (24, "EARLY_CORE"), (12, "EARLY_T12"),
+    (24, "EARLY_CORE"),
     (8, "BASE"), (6, "BASE"), (6, "EARLY_RETENTION"),
     (5, "EARLY_RETENTION"), (4, "EARLY_RETENTION"), (3, "EARLY_RETENTION"),
 )
@@ -110,8 +110,6 @@ def _market_for_engine(name: str) -> str:
 def _reader_hours(job: CheckpointJob) -> tuple[int, ...]:
     if job.family == "BASE":
         return (8,) if job.hours == 8 else (8, 6)
-    if job.family == "EARLY_T12":
-        return (12,)
     if job.family == "EARLY_CORE":
         return tuple(h for h in (72, 60, 40, 24) if h >= job.hours)
     if job.family == "EARLY_RETENTION":
@@ -162,11 +160,6 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
             payload["markets"][market]["v2_state"] = result.v2_state if market == "1X2" else "N/A"
             payload["signals"].extend(_serialize_signal(s) for s in result.signals
                                       if _market_for_engine(s.engine) == market)
-    elif job.family == "EARLY_T12":
-        signal = evaluate_early_t12(fixture, snaps)
-        payload["status"] = "SIGNAL" if signal else "NO_SIGNAL"
-        if signal:
-            payload["signals"] = [_serialize_signal(signal)]
     else:
         early = evaluate_early(fixture, snaps)
         if job.family == "EARLY_CORE":

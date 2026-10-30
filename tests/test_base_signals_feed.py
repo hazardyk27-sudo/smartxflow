@@ -459,7 +459,6 @@ def test_all_rejected_lincoln_twente_checkpoints_do_not_create_signal_cards():
     events=[]
     for ident,engine,price,hours in [
         (210,"EARLY_MONEY_CORE","1.27",72),
-        (211,"EARLY_MONEY_T12","1.24",12),
         (212,"HEAVY_1X2_CONCENTRATION","1.25",8),
         (213,"HEAVY_1X2_CONCENTRATION","1.24",6),
     ]:
@@ -471,7 +470,7 @@ def test_all_rejected_lincoln_twente_checkpoints_do_not_create_signal_cards():
         events.append(row)
     source=Source(start,events=events)
     assert _feed(source).read(start)["items"]==[]
-    assert len(source.events)==4
+    assert len(source.events)==3
 
 
 def test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges():
@@ -484,20 +483,13 @@ def test_mixed_valid_and_rejected_engines_show_only_actual_eligible_badges():
     assert [x["engine"] for x in valid]==["1X2_CONCENTRATION_V1"]
 
 
-def test_retroactive_signal_remains_audit_record_not_timely_pick():
+def test_retired_early_t12_events_are_not_surfaced():
     start=_day()
     event=_event(start,ident=202,engine="EARLY_MONEY_T12",kind="EARLY_SIGNAL")
     event["job_checkpoint_hours"]=12
     event["source_checkpoint_hours"]=12
-    event["recorded_at"]=(datetime.fromisoformat(_stamp(start))+
-                          timedelta(minutes=1)).isoformat()
-    event["details"]["selection_status"]="ELIGIBLE"
     result=_feed(Source(start,events=[event])).read(start)
-    item=result["items"][0]
-    assert item["review_state"]=="LATE_HISTORY"
-    assert item["valid_on_time"] is False
-    assert item["delivery_timing"]=="LATE_EVALUATION"
-
+    assert result["items"]==[]
 
 def test_timely_eligible_signal_is_countable():
     start=_day()
