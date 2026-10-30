@@ -192,13 +192,25 @@ def performance_day(source: str, day: str):
             settlements = detail.get("settlements")
             if not isinstance(settlements, list) or len(settlements) > 5000:
                 return jsonify(error="INVALID_ARCHIVE_DAY"), 502
-            settlements = [
-                item for item in settlements
-                if isinstance(item, dict)
-                and not any(_is_retired_engine(engine)
-                            for engine in (item.get("engine_tags") or []))
-                and not _is_retired_engine(item.get("engine"))
-            ]
+            active_settlements = []
+            for item in settlements:
+                if not isinstance(item, dict):
+                    continue
+                raw_tags = item.get("engine_tags")
+                if isinstance(raw_tags, list):
+                    active_tags = [engine for engine in raw_tags
+                                   if not _is_retired_engine(engine)]
+                    if raw_tags and not active_tags and (
+                        not item.get("engine") or _is_retired_engine(item.get("engine"))
+                    ):
+                        continue
+                    if active_tags != raw_tags:
+                        item = dict(item)
+                        item["engine_tags"] = active_tags
+                elif _is_retired_engine(item.get("engine")):
+                    continue
+                active_settlements.append(item)
+            settlements = active_settlements
             return jsonify({
                 "source": "CAPITALE · tarihsel araştırma",
                 "date": day,
