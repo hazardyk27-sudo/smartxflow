@@ -612,7 +612,6 @@
       "summary_default": "Motorsignalen",
       "initial_loading": "Gegevens laden wanneer het signaalvenster wordt geopend.",
       "engine_early_core_desc": "Vroege geldbewegingen",
-      "engine_early_t12_desc": "Vroege bewegingen op T-12",
       "engine_v1_desc": "1X2-geldconcentratie · V1",
       "engine_v2_desc": "1X2-geldconcentratie · V2",
       "engine_heavy_desc": "Sterke 1X2-concentratie",

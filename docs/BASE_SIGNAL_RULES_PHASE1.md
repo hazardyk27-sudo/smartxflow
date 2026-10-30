@@ -38,7 +38,7 @@ V2 calculation verifies full 1X2 snapshots at hourly anchors over the preceding 
 - `EARLY_MONEY_CORE`: T-72/T-60 >=£5,000, >=50% share; T-40/T-24 >=£10,000, >=50% share; top-money HOME/AWAY. Use the **first** qualifying Early checkpoint as the core signal.
 - `EARLY_T24_COHORT` is a **label on the Early Core signal**, not a new stand-alone engine. There is no independent "Early -24" definition in the supplied file.
 - Retention is tracked at T-6/T-5/T-4/T-3 for the **original selected side**. Any <55% share creates irreversible `RETENTION_BREAK`; missing checkpoints are `INSUFFICIENT_DATA`, never silently assumed good.
-- `EARLY_MONEY_T12`: independent checkpoint T-12, top-money HOME/AWAY amount >=£1,000, share >=80%, never pooled into Early Core.
+- `EARLY_MONEY_T12` was retired from active generation on 2026-10-30; historic records remain archived.
 
 ## Intentionally not in Phase 1
 

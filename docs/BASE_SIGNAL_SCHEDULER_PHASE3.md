@@ -9,7 +9,6 @@ Phase 3 is **not a 24/7 live service** yet. A deliberately gated, executable sha
 ## Scheduling and precedence
 
 - Early Core: T-72, T-60, T-40, T-24; first eligible signal per fixture only. T-24 is a Core cohort, *not a new standalone motor*.
-- Early T-12: independent check at T-12.
 - Early retention: T-6/T-5/T-4/T-3, tracked separately; a <55% reading breaks validity irreversibly under existing rules.
 - Other Base motors: T-8 preliminary; T-6 authoritative when a complete relevant market exists. T-8 becomes `FALLBACK_T8` only if the **market** has no valid T-6 snapshot. If T-6 exists but a rule fails, do not use T-8 to revive it.
 - Market-level decisions are independent: 1X2 could use T-6 and BTTS T-8 for the same fixture.

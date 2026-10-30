@@ -7,8 +7,8 @@ BASE decision: T-6 takes precedence, T-8 only when T-6 data is unavailable.
 Early Money Core retains its independent 72/60/40/24 and 6/5/4/3 schedule.
 Surprise Hold, Draw Trap and experimental growth are intentionally excluded.
 
-T-24 Early is a cohort of Early Core, NOT a separate frozen engine. The source
-file separately defines EARLY_MONEY_T12, which is implemented as-is.
+T-24 Early is a cohort of Early Core, NOT a separate frozen engine. The
+standalone EARLY_MONEY_T12 engine was retired on 2026-10-30.
 
 Operational freshness uses the historic 30-minute observation window. Exact
 production latency/grace and identity checks belong to the future worker.
@@ -314,12 +314,3 @@ def evaluate_early(fixture: Fixture, snapshots: Sequence[Snapshot]) -> EarlyEval
     return EarlyEvaluation(first, first.checkpoint == 24, status, tuple(states), core_v2)
 
 
-def evaluate_early_t12(fixture: Fixture, snapshots: Sequence[Snapshot]) -> Signal | None:
-    snap = select_snapshot(fixture, "1X2", 12, snapshots)
-    if snap is None:
-        return None
-    side = _top_team(snap)
-    q = snap.quotes[side]
-    if q.amount >= 1000 and q.share >= 80:
-        return _make("EARLY_MONEY_T12", side, 12, snap)
-    return None

@@ -612,7 +612,6 @@
       "summary_default": "Engine signals",
       "initial_loading": "Data loads when the signal panel opens.",
       "engine_early_core_desc": "Early money movements",
-      "engine_early_t12_desc": "T-12 early movements",
       "engine_v1_desc": "1X2 money concentration · V1",
       "engine_v2_desc": "1X2 money concentration · V2",
       "engine_heavy_desc": "Strong 1X2 concentration",

@@ -6,7 +6,7 @@ import pytest
 
 from base_signal_engine import (
     Fixture, Quote, Snapshot, choose_base_checkpoint, evaluate_base,
-    evaluate_early, evaluate_early_t12, select_snapshot,
+    evaluate_early, select_snapshot,
 )
 
 KICKOFF = datetime(2026, 10, 19, 21, tzinfo=timezone.utc)
@@ -185,14 +185,12 @@ def test_no_late_checkpoint_except_early_retention():
         evaluate_base(FX, 5, [])
 
 
-def test_early_t24_is_cohort_and_early_t12_independent():
+def test_early_t24_is_cohort_and_retention_applies():
     core = snapshot("1X2", 24, **{"1": ("1.52", "12000", "85"), "X": ("3.4", "1200", "10"), "2": ("5", "600", "5")})
     ret = [snapshot("1X2", h) for h in (6, 5, 4, 3)]
     result = evaluate_early(FX, [core, *ret])
     assert result.core_signal and result.core_signal.checkpoint == 24
     assert result.t24_cohort and result.retention_status == "RETAINED"
-    t12 = evaluate_early_t12(FX, [snapshot("1X2", 12)])
-    assert t12 and t12.engine == "EARLY_MONEY_T12"
 
 
 def test_early_retention_break_never_reopens():

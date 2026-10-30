@@ -96,8 +96,6 @@ def source_coverage(job: CheckpointJob, source: Any, payload: dict) -> dict:
         # Previous missing Early data is separately marked as history-unknown
         # in the payload, never claimed as a proven first qualifying moment.
         required = (job.hours,)
-    elif job.family == "EARLY_T12":
-        required = (12,)
     elif job.family == "EARLY_RETENTION":
         required = _EARLY_CORE + tuple(h for h in _RETENTION if h >= job.hours)
     else:

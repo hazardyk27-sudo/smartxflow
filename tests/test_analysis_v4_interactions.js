@@ -288,9 +288,6 @@ test('Lincoln Red Imps – FC Twente has zero visible cards when all records are
     {...common,id:11,uid:'lincoln-twente',home:'Lincoln Red Imps',
       away:'FC Twente',engine:'EARLY_MONEY_CORE',checkpoint:72,odds:1.27,
       selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
-    {...common,id:12,uid:'lincoln-twente',home:'Lincoln Red Imps',
-      away:'FC Twente',engine:'EARLY_MONEY_T12',checkpoint:12,odds:1.24,
-      selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
     {...common,id:13,uid:'lincoln-twente',home:'Lincoln Red Imps',
       away:'FC Twente',engine:'HEAVY_1X2_CONCENTRATION',checkpoint:8,odds:1.25,
       selection:'2',selection_status:'PRICE_FILTER_REJECT',review_state:'PRICE_REJECTED'},
@@ -302,7 +299,7 @@ test('Lincoln Red Imps – FC Twente has zero visible cards when all records are
   mock.window.openBaseSignalsPanel();await flush();
   const index=mock.get('sxfSignalContent').innerHTML;
   assert.doesNotMatch(index,/Lincoln Red Imps|FC Twente/);
-  for (const engine of ['EARLY_MONEY_CORE','EARLY_MONEY_T12','HEAVY_1X2_CONCENTRATION']) {
+  for (const engine of ['EARLY_MONEY_CORE','HEAVY_1X2_CONCENTRATION']) {
     mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
       .find(x=>x.dataset.motor===engine).click();
     const detail=mock.get('sxfSignalContent').innerHTML;
@@ -322,8 +319,6 @@ test('reject only the unsuitable engine of a match, not the valid supporting eng
       review_state:'PRICE_REJECTED',selection_status:'PRICE_FILTER_REJECT'},
     {...good,id:4,engine:'EARLY_MONEY_CORE',odds:1.91,
       selection_status:'HISTORY_INCOMPLETE',review_state:'HISTORY_INCOMPLETE'},
-    {...good,id:5,engine:'EARLY_MONEY_T12',odds:1.25,
-      selection_status:'ELIGIBLE',review_state:'VALID_PREMATCH_RECORD'}
   ];
   const mock=setup(data);mock.window.openBaseSignalsPanel();await flush();
   mock.get('sxfSignalContent').querySelectorAll('[data-motor]')

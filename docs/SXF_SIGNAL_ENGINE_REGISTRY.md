@@ -56,18 +56,9 @@ The V2 filter is applied to the first qualifying EARLY_MONEY_CORE candidate. If 
 
 The supplied 9–26 October 2026 historical study reports 46 cases and 38 wins (82.6%). This is the source document's retrospective result, not an independent prospective validation.
 
-## 2. EARLY_MONEY_T12
+## 2. EARLY_MONEY_T12 — RETIRED (2026-10-30)
 
-Purpose: track a later high-concentration Early observation separately from the strong Early core.
-
-Criteria:
-- T-12 checkpoint.
-- top-money HOME/AWAY team.
-- amount `>= £1,000`.
-- share `>=80%`.
-
-Rule:
-- Do not silently pool T-12 into the T-72/T-60/T-40/T-24 core performance figure.
+This standalone engine no longer generates, queues, or surfaces signals. Historical signals and their source events remain preserved for audit; they are excluded from current motor output and performance capture.
 
 ## 3. 1X2_CONCENTRATION_V1
 
