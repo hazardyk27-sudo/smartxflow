@@ -67,10 +67,10 @@
     </section>
 
     <section class="section">
-      <div class="section-head"><div><div class="section-title"><h2>Tarihsel gün raporları</h2><span id="historyCount" class="count"></span></div><p id="historyPeriod">CAPİTALE arşivinden yükleniyor…</p></div><span class="tag">Kaynak: CAPİTALE</span></div>
+      <div class="section-head"><div><div class="section-title"><h2>Günlük performans raporları</h2><span id="historyCount" class="count"></span></div><p id="historyPeriod">CAPİTALE ve SmartXFlow günlük kayıtları yükleniyor…</p></div><span class="tag">Kaynak: CAPİTALE + SmartXFlow</span></div>
       <div id="historyWarning" class="small"></div>
       <div class="table-wrap"><table><thead><tr><th>Gün</th><th class="num">Sinyal</th><th class="num">Sonuçlanan</th><th class="num">Kazanan</th><th class="num">İsabet</th><th>Yöntem</th></tr></thead><tbody id="historyDays"></tbody></table></div>
-      <div id="historyEmpty" class="empty" hidden>Tarihsel günlük kayıt bulunamadı.</div>
+      <div id="historyEmpty" class="empty" hidden>Günlük performans kaydı bulunamadı.</div>
     </section>
 
     <section class="section">
@@ -118,8 +118,11 @@
         [days.length,'Günlük arşiv günü']
       ];
       document.getElementById('summary').innerHTML=cards.map(card=>'<div class="summary-card"><span class="value">'+escapeHtml(card[0])+'</span><span class="label">'+escapeHtml(card[1])+'</span></div>').join('');
-      document.getElementById('historyPeriod').textContent=h.period_start&&h.period_end ? h.period_start+' – '+h.period_end+' · 90 dk sonuç' : 'Tarihsel dönem bilgisi yok.';
-      document.getElementById('historyCount').textContent=(h.days||[]).length+' gün';
+      const historicalRange=h.period_start&&h.period_end ? 'CAPİTALE '+h.period_start+' – '+h.period_end : 'CAPİTALE dönem bilgisi yok';
+      const runtimeDates=days.map(day=>day.date).filter(Boolean).sort();
+      const runtimeRange=runtimeDates.length ? 'SmartXFlow '+runtimeDates[0]+' – '+runtimeDates[runtimeDates.length-1] : 'SmartXFlow günlük kaydı yok';
+      document.getElementById('historyPeriod').textContent=historicalRange+' · '+runtimeRange;
+      document.getElementById('historyCount').textContent=(h.days||[]).length+days.length+' gün kaydı';
       document.getElementById('runtimeCount').textContent=days.length+' gün · '+rSignals+' sinyal · '+rSettled+' sonuçlanan';
       document.getElementById('runtimePhase').textContent=(r.phase||'Gölge ölçümü')+(r.source_complete===false?' · kaynak kısmi':'');
       document.getElementById('enginePeriod').textContent=selectedMode==='historical'
@@ -180,17 +183,31 @@
     }
 
     function renderDailyTables(){
-      const h=overview.historical||{}, r=overview.runtime||{}, history=h.days||[], days=r.days||[];
-      document.getElementById('historyEmpty').hidden=history.length>0;
-      document.getElementById('historyDays').innerHTML=history.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(day=>{
-        const engines=Object.values(day.engine||{});
-        const signals=engines.reduce((n,m)=>n+Number(m.signals||0),0);
-        const settled=engines.reduce((n,m)=>n+Number(m.settled||0),0);
-        const wins=engines.reduce((n,m)=>n+Number(m.hits||0),0);
-        return '<tr data-source="historical" data-day="'+escapeHtml(day.date)+'"><td>'+escapeHtml(day.date)+'</td><td class="num">'+signals+'</td><td class="num">'+settled+'</td><td class="num good-text">'+wins+'</td><td class="num">'+percent(settled?wins*100/settled:null)+'</td><td>CAPİTALE araştırması</td></tr>';
+      const h=overview.historical||{}, r=overview.runtime||{}, history=h.days||[], runtime=r.days||[];
+      const rows=[
+        ...history.map(day=>({source:'historical',day})),
+        ...runtime.map(day=>({source:'runtime',day}))
+      ].sort((a,b)=>String(b.day.date||'').localeCompare(String(a.day.date||''))||a.source.localeCompare(b.source));
+      document.getElementById('historyEmpty').hidden=rows.length>0;
+      document.getElementById('historyDays').innerHTML=rows.map(({source,day})=>{
+        let signals=0,settled=0,wins=0,method='';
+        if(source==='runtime'){
+          const engines=Object.values(day.engines||{});
+          signals=engines.reduce((n,m)=>n+Number(m.signals||0),0);
+          settled=engines.reduce((n,m)=>n+Number(m.settled||0),0);
+          wins=engines.reduce((n,m)=>n+Number(m.wins||0),0);
+          method='SmartXFlow gölge arşivi';
+        }else{
+          const engines=Object.values(day.engine||{});
+          signals=engines.reduce((n,m)=>n+Number(m.signals||0),0);
+          settled=engines.reduce((n,m)=>n+Number(m.settled||0),0);
+          wins=engines.reduce((n,m)=>n+Number(m.hits||0),0);
+          method='CAPİTALE araştırması';
+        }
+        return '<tr data-source="'+source+'" data-day="'+escapeHtml(day.date)+'"><td>'+escapeHtml(day.date)+'</td><td class="num">'+signals+'</td><td class="num">'+settled+'</td><td class="num good-text">'+wins+'</td><td class="num">'+percent(settled?wins*100/settled:null)+'</td><td>'+method+'</td></tr>';
       }).join('');
-      document.getElementById('runtimeEmpty').hidden=days.length>0;
-      document.getElementById('runtimeDays').innerHTML=days.map(day=>{
+      document.getElementById('runtimeEmpty').hidden=runtime.length>0;
+      document.getElementById('runtimeDays').innerHTML=runtime.map(day=>{
         const status=day.status==='IN_PROGRESS'?'Sürüyor':day.status==='NO_SIGNALS'?'Sinyal yok':'Arşivlendi';
         return '<tr data-source="runtime" data-day="'+escapeHtml(day.date)+'"><td>'+escapeHtml(day.date)+'</td><td class="pending-text">'+status+'</td><td class="num">'+Number(day.logged_events||0)+'</td><td class="num">'+Number(day.settled_signals||0)+'</td><td class="num">'+Number(day.pending_signals||0)+'</td><td>'+runtimeEngineRates(day)+'</td></tr>';
       }).join('');
