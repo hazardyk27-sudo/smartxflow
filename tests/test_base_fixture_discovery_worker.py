@@ -56,7 +56,7 @@ def test_full_80h_sweep_schedules_all_fixture_families_and_is_idempotent():
                                  progress_hook=lambda:pings.append("ack"))
     assert result["status"]=="SCANNED"
     assert result["fixtures"]==37
-    assert result["new_jobs"]==37*11
+    assert result["new_jobs"]==37*len(CHECKPOINT_TASKS)
     assert result["fixtures_needing_enqueue"]==37
     assert result["coverage_verified_for_snapshot"] is True
     assert len(store.keys)==37*11
@@ -111,9 +111,9 @@ def test_rescheduled_kickoff_generates_new_identity_and_quarantines_old():
     f1=fixture(4,NOW+timedelta(hours=62))
     old={CheckpointJob(f0,h,fam).key for h,fam in CHECKPOINT_TASKS}
     store=Store(old)
-    store.drift=11
+    store.drift=len(CHECKPOINT_TASKS)
     report=app.scan_horizon_once(None,store,now=NOW,catalog=Catalog([f1]))
-    assert report["new_jobs"]==11 and report["superseded_drift_jobs"]==11
+    assert report["new_jobs"]==len(CHECKPOINT_TASKS) and report["superseded_drift_jobs"]==len(CHECKPOINT_TASKS)
     assert all(CheckpointJob(f1,h,fam).key in store.keys for h,fam in CHECKPOINT_TASKS)
     assert report["drift_may_remain"] is False
 
@@ -338,13 +338,13 @@ def test_concurrent_fixture_reschedule_retries_instead_of_killing_discovery():
         app.scan_horizon_once(None, store, now=NOW, catalog=cat)
     assert cat.calls == 2
     assert ("enqueue", 1, 200) in store.calls
-    assert len(store.keys) == 11
+    assert len(store.keys) == len(CHECKPOINT_TASKS)
     # No historical record is deleted; the fresh kickoff creates its own
     # independent, idempotent 11-job identity in the following sweep.
     result = app.scan_horizon_once(None, store, now=NOW, catalog=cat)
     assert result["status"] == "SCANNED"
     assert result["coverage_verified_for_snapshot"]
-    assert result["new_jobs"] == 11
+    assert result["new_jobs"] == len(CHECKPOINT_TASKS)
     assert len(store.keys) == 22
 
 

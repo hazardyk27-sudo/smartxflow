@@ -80,10 +80,10 @@ def test_all_motor_jobs_enqueued_once_and_with_identity():
 
 def test_enqueue_chunking_and_empty_universe():
     twin = FixtureRef(str(uuid4()), KO)
-    fake = FakeRpc(result_by_rpc={'sxf_base_enqueue_jobs': [3, 3, 3, 3, 3, 3, 3, 1]})
+    fake = FakeRpc(result_by_rpc={'sxf_base_enqueue_jobs': [3, 3, 3, 3, 3, 3, 2]})
     s = store(fake)
-    assert s.enqueue([REF, twin], batch_size=3) == 22
-    assert len(fake.calls) == 8
+    assert s.enqueue([REF, twin], batch_size=3) == 20
+    assert len(fake.calls) == 7
     assert s.enqueue([]) == 0
     assert len(fake.calls) == 8
 

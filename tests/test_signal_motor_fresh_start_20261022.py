@@ -19,7 +19,7 @@ def test_new_ruleset_is_explicit_and_all_jobs_get_new_identity():
     ref = FixtureRef("fake-fixture-uid",datetime(2026,10,22,20,tzinfo=timezone.utc))
     job = CheckpointJob(ref,8,"BASE")
     assert job.key.startswith(V3 + ":")
-    assert len(CHECKPOINT_TASKS)==11
+    assert len(CHECKPOINT_TASKS)==10
 
 
 def test_live_claims_cannot_reclaim_v1_backlog():
