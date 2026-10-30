@@ -487,7 +487,7 @@ class BaseSignalsFeed:
             engine = row.get("engine")
             market = row.get("market")
             selection = row.get("selection")
-            if not (isinstance(engine, str) and engine.strip() and
+            if not (isinstance(engine, str) and engine in KNOWN_ENGINES and
                     market in ("1X2", "OU25", "BTTS") and
                     isinstance(selection, str) and selection.strip() and
                     row.get("kind") in VISIBLE_KINDS):
