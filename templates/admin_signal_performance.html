@@ -9,12 +9,12 @@
     *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Segoe UI",Arial,sans-serif}
     header{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px max(20px,calc((100vw - 1280px)/2));background:#141a20;border-bottom:1px solid var(--line)}
     h1{font-size:20px;margin:0;letter-spacing:-.02em}h2{font-size:17px;margin:0}h3{font-size:15px;margin:0}.sub{color:var(--muted);font-size:12px;margin-top:3px}
-    .actions{display:flex;gap:8px}.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 12px;text-decoration:none;cursor:pointer;font:600 12px inherit}.button:hover{border-color:#536170}
+    .actions{display:flex;gap:8px}.button{border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);padding:9px 12px;text-decoration:none;cursor:pointer;font:600 12px/1.2 Inter,"Segoe UI",Arial,sans-serif}.button:hover{border-color:#536170}
     main{max-width:1280px;margin:0 auto;padding:22px 20px 50px}.notice{padding:12px 14px;border:1px solid #594b2c;border-radius:10px;background:#282317;color:#eadbb4;font-size:12px;margin-bottom:15px}
     .summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 16px}.summary-card,.section{background:var(--panel);border:1px solid var(--line);border-radius:12px}.summary-card{padding:13px 15px}.summary-card .value{display:block;font-size:23px;font-weight:700;line-height:1.2}.summary-card .label{display:block;color:var(--muted);font-size:11px;margin-top:5px}
     .section{padding:16px;margin:14px 0}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:13px}.section-head p{color:var(--muted);font-size:12px;margin:4px 0 0}
     .switcher{display:flex;gap:6px;padding:4px;border:1px solid var(--line);border-radius:10px;background:#11161b;margin:0 0 12px;width:max-content;max-width:100%}
-    .switcher button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:8px 12px;font:600 12px inherit;cursor:pointer}
+    .switcher button{border:0;border-radius:7px;background:transparent;color:var(--muted);padding:8px 12px;font:600 12px/1.2 Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}
     .switcher button[aria-pressed="true"]{background:#26323d;color:var(--text);box-shadow:inset 0 0 0 1px #3b4b5a}
     .period{color:var(--muted);font-size:11px;margin:0 0 12px}.engines{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
     .engine{background:#141a20;border:1px solid var(--line);border-radius:10px;padding:13px;min-width:0}
@@ -191,7 +191,7 @@
     }
     function renderItems(data){
       document.getElementById('detailTitle').textContent=data.date+' · Maç ayrıntıları';
-      document.getElementById('detailSubtitle').textContent=(data.source||'')+' · '+(data.score_rule||'90 dakika');
+      document.getElementById('detailSubtitle').textContent=(data.mode==='SHADOW'?'SmartXFlow günlük gölge motor kaydı':'CAPİTALE tarihsel araştırması')+' · '+(data.score_rule||'90 dakika');
       const items=data.items||[];
       document.getElementById('detailRows').innerHTML=items.map(item=>{
         const runtime=item.event==='SIGNAL_RECORDED', settlement=runtime?item.settlement:item;
