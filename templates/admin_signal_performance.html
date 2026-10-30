@@ -55,6 +55,7 @@
       <div id="engineDrilldown" class="engine-drilldown" hidden>
         <div class="section-title"><h3 id="drilldownTitle">Sinyal ayrıntıları</h3><span id="drilldownCount" class="count"></span></div>
         <p class="small">Bu sinyalin bulunduğu günleri seçerek maçları ve sonuçlarını inceleyin.</p>
+        <div id="enginePrefetchStatus" class="small" role="status" hidden></div>
         <div id="engineDays" class="engine-days"></div>
         <div id="engineMatches" class="engine-matches" hidden>
           <div class="table-wrap"><table><thead><tr><th>Maç</th><th>Lig</th><th>Piyasa / seçim</th><th>Oran</th><th>90 dk skoru</th><th>Sonuç</th></tr></thead><tbody id="engineMatchRows"></tbody></table></div>
@@ -90,17 +91,17 @@
     const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     const percent = value => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toFixed(1).replace(/\.0$/,'') + '%';
     const engineNames = {
-      EARLY_CORE:'Erken Para Çekirdeği', EARLY_MONEY_CORE:'Erken Para Çekirdeği',
-      EARLY_CORE_V2:'Erken Para Çekirdeği V2', EARLY_MONEY_CORE_V2:'Erken Para Çekirdeği V2',
-      V1:'Para Akışı 1X2 V1', '1X2_CONCENTRATION_V1':'Para Akışı 1X2 V1',
-      V2:'Para Akışı 1X2 V2', '1X2_CONCENTRATION_V2':'Para Akışı 1X2 V2',
-      HEAVY:'Yoğun Para 1X2', HEAVY_1X2_CONCENTRATION:'Yoğun Para 1X2',
-      SURPRISE_TEAM:'Sürpriz Takım', STABLE_OVER_2_5:'2,5 Üst Dengeli',
-      PREMIUM_OVER_2_5:'2,5 Üst Premium', PREMIUM_OVER_MIN1_70:'2,5 Üst Premium 1,70+',
-      BTTS_YES:'Karşılıklı Gol Var'
+      EARLY_CORE:'Early Money Core', EARLY_MONEY_CORE:'Early Money Core',
+      EARLY_CORE_V2:'Early Money Core V2', EARLY_MONEY_CORE_V2:'Early Money Core V2',
+      V1:'Moneyway 1X2 V1', '1X2_CONCENTRATION_V1':'Moneyway 1X2 V1',
+      V2:'Moneyway 1X2 V2', '1X2_CONCENTRATION_V2':'Moneyway 1X2 V2',
+      HEAVY:'Heavy 1X2', HEAVY_1X2_CONCENTRATION:'Heavy 1X2',
+      SURPRISE_TEAM:'Surprise Team', STABLE_OVER_2_5:'Stable Over 2.5',
+      PREMIUM_OVER_2_5:'Premium Over 2.5', PREMIUM_OVER_MIN1_70:'Premium Over 2.5 1.70+',
+      BTTS_YES:'BTTS Yes'
     };
     const engineName = key => engineNames[key] || String(key||'').replaceAll('_',' ');
-    let overview = null, selectedMode = 'historical', selectedEngine = null, selectedEngineDay = null, engineDayCache = {};
+    let overview = null, selectedMode = 'historical', selectedEngine = null, selectedEngineDay = null, engineDayCache = {}, prefetchGeneration = 0;
 
     function setSummary(data){
       const h=data.historical||{}, r=data.runtime||{}, days=r.days||[], totals=h.totals||{};
@@ -224,10 +225,11 @@
       return values.some(value=>canonical(value)===canonical(key));
     }
     function selectEngine(key){
-      selectedEngine=selectedEngine===key?null:key;selectedEngineDay=null;
+      selectedEngine=selectedEngine===key?null:key;selectedEngineDay=null;prefetchGeneration++;
       document.getElementById('engineMatches').hidden=true;
       document.getElementById('engineMatchError').hidden=true;
       renderEngineCards();
+      if(selectedEngine)prefetchEngineDays();
     }
     function engineDayEntries(){
       if(!overview||!selectedEngine)return [];
@@ -246,12 +248,44 @@
       }).join('')||'<div class="empty">Bu dönemde bu sinyal için gün kaydı bulunamadı.</div>';
       document.querySelectorAll('[data-engine-day]').forEach(button=>button.addEventListener('click',()=>loadEngineDay(button.dataset.engineDay)));
     }
+    function getEngineDayData(source,day){
+      const cacheKey=source+':'+day;
+      if(!engineDayCache[cacheKey]){
+        const request=fetch('/api/admin/signal-performance/day/'+encodeURIComponent(source)+'/'+encodeURIComponent(day)).then(async response=>{
+          const data=await response.json();
+          if(!response.ok)throw new Error(data.message||'Günlük maç kayıtları yüklenemedi.');
+          return data;
+        });
+        engineDayCache[cacheKey]=request;
+        request.catch(()=>{if(engineDayCache[cacheKey]===request)delete engineDayCache[cacheKey];});
+      }
+      return engineDayCache[cacheKey];
+    }
+    function prefetchEngineDays(){
+      const generation=++prefetchGeneration,rows=engineDayEntries(),status=document.getElementById('enginePrefetchStatus');
+      if(!rows.length){status.hidden=true;return;}
+      let next=0,done=0,failed=0;
+      status.hidden=false;status.textContent='Maç ayrıntıları hazırlanıyor (0/'+rows.length+')…';
+      async function worker(){
+        while(next<rows.length&&generation===prefetchGeneration){
+          const row=rows[next++];
+          try{await getEngineDayData(row.source,row.date);}catch(_error){failed++;}
+          done++;
+          if(generation===prefetchGeneration)status.textContent='Maç ayrıntıları hazırlanıyor ('+done+'/'+rows.length+')…';
+        }
+      }
+      Promise.all(Array.from({length:Math.min(8,rows.length)},()=>worker())).then(()=>{
+        if(generation===prefetchGeneration)status.textContent=failed?'Bazı günler yüklenemedi; seçince yeniden denenecek.':'Maç ayrıntıları hazır.';
+      });
+    }
     function renderEngineMatches(data){
       const runtime=data.mode==='SHADOW';
       const items=(data.items||[]).filter(item=>itemHasEngine(item,selectedEngine,runtime));
       document.getElementById('engineMatches').hidden=false;
       document.getElementById('engineMatchError').hidden=true;
-      document.getElementById('engineMatchEmpty').hidden=items.length>0;
+      const empty=document.getElementById('engineMatchEmpty');
+      empty.hidden=items.length>0;
+      empty.textContent=items.length?'':'Bu gün için bu sinyale ait eşleşen maç kaydı bulunamadı.';
       document.getElementById('engineMatchRows').innerHTML=items.map(item=>{
         const settlement=runtime?item.settlement:item;
         const outcome=settlement?.outcome||settlement?.settlement||item.selected_team_outcome_90m||item.settlement||'BEKLEYEN';
@@ -263,10 +297,8 @@
       selectedEngineDay=day;renderEngineDrilldown();
       const panel=document.getElementById('engineMatches'),errorBox=document.getElementById('engineMatchError');panel.hidden=false;errorBox.hidden=true;
       document.getElementById('engineMatchRows').innerHTML='';document.getElementById('engineMatchEmpty').hidden=false;document.getElementById('engineMatchEmpty').textContent='Maçlar yükleniyor…';
-      const cacheKey=selectedMode+':'+day;
       try{
-        let data=engineDayCache[cacheKey];
-        if(!data){const response=await fetch('/api/admin/signal-performance/day/'+encodeURIComponent(selectedMode)+'/'+encodeURIComponent(day));data=await response.json();if(!response.ok)throw new Error(data.message||'Günlük maç kayıtları yüklenemedi.');engineDayCache[cacheKey]=data;}
+        const data=await getEngineDayData(selectedMode,day);
         if(selectedEngineDay===day&&selectedEngine)renderEngineMatches(data);
       }catch(error){errorBox.textContent=error.message;errorBox.hidden=false;document.getElementById('engineMatchEmpty').hidden=true;}
     }
@@ -319,14 +351,14 @@
     }
 
     document.getElementById('showHistorical').addEventListener('click',()=>{
-      selectedMode='historical';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;
+      selectedMode='historical';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;prefetchGeneration++;
       document.getElementById('showHistorical').setAttribute('aria-pressed','true');
       document.getElementById('showRuntime').setAttribute('aria-pressed','false');
       if(overview){document.getElementById('enginePeriod').textContent=overview.historical?.period_start&&overview.historical?.period_end
-        ? overview.historical.period_start+' – '+overview.historical.period_end+' · CAPİTALE tarihsel raporu':'Tarihsel rapor yüklenemedi.';renderEngineCards();}
+        ? overview.historical.period_start+' – '+overview.historical.period_end+' · CAPİTALE tarihsel raporu':'Tarihsel rapor yüklenemedi.';renderEngineCards();prefetchEngineDays();}
     });
-    document.getElementById('showRuntime').addEventListener('click',()=>{
-      selectedMode='runtime';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;
+    document.getElementById('refresh').addEventListener('click',()=>{
+      selectedMode='runtime';selectedEngineDay=null;document.getElementById('engineMatches').hidden=true;prefetchGeneration++;
       document.getElementById('showHistorical').setAttribute('aria-pressed','false');
       document.getElementById('showRuntime').setAttribute('aria-pressed','true');
       if(overview){document.getElementById('enginePeriod').textContent='Son 21 gün · SmartXFlow gölge kayıtları';renderEngineCards();}
