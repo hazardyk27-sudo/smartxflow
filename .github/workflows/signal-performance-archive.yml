@@ -1,6 +1,9 @@
 name: Signal Performance Archive
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # After the signal/result retention cleanup and the overnight FT updates.
     - cron: '17 4 * * *'
@@ -15,7 +18,7 @@ concurrency:
 
 jobs:
   archive:
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
