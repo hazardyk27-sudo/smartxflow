@@ -215,6 +215,14 @@ def main(argv=None) -> int:
         failure = {"status": "STOPPED", "stage": stage, "error_type": type(exc).__name__}
         if isinstance(exc, (BaseFeedUnavailable, SignalArchiveError)):
             failure["reason"] = str(exc)[:160]
+        frames = __import__("traceback").extract_tb(exc.__traceback__)
+        if frames:
+            frame = frames[-1]
+            failure["location"] = {
+                "file": PurePosixPath(frame.filename).name,
+                "function": frame.name,
+                "line": frame.lineno,
+            }
         print(json.dumps(failure, ensure_ascii=False, sort_keys=True))
         return 1
 
