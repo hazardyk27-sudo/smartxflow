@@ -141,7 +141,13 @@ def archive(feed: dict, backend: GitHubContents, *, on_stage=None) -> dict:
         try:
             previous_events, file_sha = decode_day(current[0]) if current else ([], None)
         except (SignalArchiveError, ValueError) as exc:
-            raise SignalArchiveError(f"stored archive for {day} could not be decoded") from exc
+            # This verified Git blob is the known 20-byte empty gzip placeholder
+            # created for 2026-10-11/12; it contains no events and can be rebuilt
+            # from the authoritative source feed without losing archived records.
+            if current and current[1] == "86e43ea3218b5890302b754bbf8927f94e79f7ee":
+                previous_events, file_sha = [], current[1]
+            else:
+                raise SignalArchiveError(f"stored archive for {day} could not be decoded") from exc
         merged, changed = merge_feed_day(day, by_day[day], previous_events)
         if changed or current is None:
             prior_count = len(previous_events)
