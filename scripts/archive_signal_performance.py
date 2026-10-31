@@ -138,16 +138,24 @@ def archive(feed: dict, backend: GitHubContents, *, on_stage=None) -> dict:
         current = backend.read(day_path)
         if on_stage:
             on_stage(f"archive_day_decode:{day}")
+        quarantine_path = None
         try:
             previous_events, file_sha = decode_day(current[0]) if current else ([], None)
         except (SignalArchiveError, ValueError) as exc:
-            # This verified Git blob is the known 20-byte empty gzip placeholder
-            # created for 2026-10-11/12; it contains no events and can be rebuilt
-            # from the authoritative source feed without losing archived records.
-            if current and current[1] == "86e43ea3218b5890302b754bbf8927f94e79f7ee":
-                previous_events, file_sha = [], current[1]
-            else:
+            if current is None:
                 raise SignalArchiveError(f"stored archive for {day} could not be decoded") from exc
+            quarantine_path = f"{ROOT}/quarantine/{day}-{current[1]}.jsonl.gz"
+            preserved = backend.read(quarantine_path)
+            if preserved is None:
+                backend.write(
+                    quarantine_path, current[0], sha=None,
+                    message=f"Preserve unreadable signal archive {day}",
+                )
+            elif preserved[0] != current[0]:
+                raise SignalArchiveError(f"quarantine collision while preserving {day}") from exc
+            # Rebuild this day from the authoritative feed; the original exact
+            # bytes remain recoverable at the SHA-addressed quarantine path.
+            previous_events, file_sha = [], current[1]
         merged, changed = merge_feed_day(day, by_day[day], previous_events)
         if changed or current is None:
             prior_count = len(previous_events)
@@ -166,6 +174,7 @@ def archive(feed: dict, backend: GitHubContents, *, on_stage=None) -> dict:
             "path": day_path,
             "archive_bytes": len(encode_day(merged)),
             "source_state": feed.get("results_source_state"),
+            **({"quarantined_path": quarantine_path} if quarantine_path else {}),
         }
 
     index = {
