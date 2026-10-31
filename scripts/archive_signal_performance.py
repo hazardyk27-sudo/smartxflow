@@ -201,15 +201,21 @@ def main(argv=None) -> int:
     if not url or not key or not token:
         print(json.dumps({"status": "STOPPED", "error": "required archive credentials are unavailable"}))
         return 2
+    stage = "source_read"
     try:
         start = datetime.now(TR_TZ).date() - timedelta(days=20)
         feed = BaseSignalsFeed(url, key).read(start, days=21)
+        stage = "archive_read_write"
         result = archive(feed, GitHubContents(token))
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
-    except (BaseFeedUnavailable, SignalArchiveError, requests.RequestException, ValueError, TypeError):
-        # Do not include response bodies, request URLs, keys, or raw source rows in Actions logs.
-        print(json.dumps({"status": "STOPPED", "error": "signal source/archive integrity check failed"}))
+    except (BaseFeedUnavailable, SignalArchiveError, requests.RequestException, ValueError, TypeError) as exc:
+        # Emit only a bounded phase, exception class, and static internal message.
+        # Never include response bodies, request URLs, credentials, or raw rows.
+        failure = {"status": "STOPPED", "stage": stage, "error_type": type(exc).__name__}
+        if isinstance(exc, (BaseFeedUnavailable, SignalArchiveError)):
+            failure["reason"] = str(exc)[:160]
+        print(json.dumps(failure, ensure_ascii=False, sort_keys=True))
         return 1
 
 
