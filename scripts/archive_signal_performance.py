@@ -94,7 +94,7 @@ def _read_json(backend: GitHubContents, path: str) -> tuple[dict, str | None]:
     return value, sha
 
 
-def archive(feed: dict, backend: GitHubContents) -> dict:
+def archive(feed: dict, backend: GitHubContents, *, on_stage=None) -> dict:
     if not isinstance(feed, dict) or feed.get("status") != "ok" or not isinstance(feed.get("items"), list):
         raise SignalArchiveError("Base signal feed is incomplete; no archive write attempted")
     existing_index, index_sha = _read_json(backend, INDEX_PATH)
@@ -133,8 +133,15 @@ def archive(feed: dict, backend: GitHubContents) -> dict:
     final_index = None
     for day in sorted(by_day):
         day_path = f"{ROOT}/days/{day[:4]}/{day[5:7]}/{day[8:10]}.jsonl.gz"
+        if on_stage:
+            on_stage(f"archive_day_read:{day}")
         current = backend.read(day_path)
-        previous_events, file_sha = decode_day(current[0]) if current else ([], None)
+        if on_stage:
+            on_stage(f"archive_day_decode:{day}")
+        try:
+            previous_events, file_sha = decode_day(current[0]) if current else ([], None)
+        except (SignalArchiveError, ValueError) as exc:
+            raise SignalArchiveError(f"stored archive for {day} could not be decoded") from exc
         merged, changed = merge_feed_day(day, by_day[day], previous_events)
         if changed or current is None:
             prior_count = len(previous_events)
@@ -206,7 +213,10 @@ def main(argv=None) -> int:
         start = datetime.now(TR_TZ).date() - timedelta(days=20)
         feed = BaseSignalsFeed(url, key).read(start, days=21)
         stage = "archive_read_write"
-        result = archive(feed, GitHubContents(token))
+        def mark_stage(value):
+            nonlocal stage
+            stage = value
+        result = archive(feed, GitHubContents(token), on_stage=mark_stage)
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except (BaseFeedUnavailable, SignalArchiveError, requests.RequestException, ValueError, TypeError) as exc:
