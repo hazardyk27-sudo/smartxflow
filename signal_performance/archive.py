@@ -121,6 +121,10 @@ def _settlement_event(item: dict[str, Any], archived_at: str) -> dict[str, Any] 
 def decode_day(payload: bytes) -> list[dict[str, Any]]:
     if not payload:
         return []
+    # Canonical 20-byte gzip member emitted for an empty day by encode_day([]).
+    # Treat it as empty explicitly so empty-day placeholders do not block a backfill.
+    if payload == bytes.fromhex("1f8b08000000000002ff03000000000000000000"):
+        return []
     try:
         raw = gzip.decompress(payload)
         rows = [json.loads(line) for line in raw.splitlines() if line.strip()]
