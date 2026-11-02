@@ -169,6 +169,10 @@ def archive(feed: dict, backend: GitHubContents, *, on_stage=None) -> dict:
         summary = summarize_day(day, merged)
         if day == datetime.now(TR_TZ).date().isoformat():
             summary["status"] = "IN_PROGRESS"
+        elif int(summary.get("pending_signals") or 0) > 0:
+            # Keep yesterday's record visibly unsettled until the next 21-day
+            # reconciliation pass attaches the available full-time results.
+            summary["status"] = "RESULTS_PENDING"
         index_days[day] = {
             **summary,
             "path": day_path,
