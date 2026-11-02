@@ -304,17 +304,17 @@
     function engineMatchIdentity(item){
       const uid=String(item?.fixture_uid||'').trim();
       if(uid)return 'fixture:'+uid;
-      const normalize=value=>String(value||'').trim().replace(/\\s+/g,' ').toLocaleLowerCase();
+      const normalize=value=>String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase();
       const home=normalize(item?.home),away=normalize(item?.away),kickoff=String(item?.kickoff_utc||'').trim();
       if(home&&away&&kickoff)return 'match:'+home+'|'+away+'|'+kickoff;
-      return 'row:'+String(item?.selection_id||item?.event_id||Math.random());
+      return '';
     }
     function engineMatchOrder(item,runtime){
       if(runtime){
         const eventId=Number(item?.event_id||0);
         return String(item?.recorded_at||'')+'|'+String(eventId).padStart(20,'0');
       }
-      const match=String(item?.selection_id||'').match(/s(\\d+)$/i);
+      const match=String(item?.selection_id||'').match(/s(\d+)$/i);
       return match?'|'+String(Number(match[1])).padStart(12,'0'):String(item?.selection_id||'');
     }
     function uniqueEngineMatches(items,runtime){
@@ -322,7 +322,7 @@
         .sort((a,b)=>a.order.localeCompare(b.order)||a.index-b.index);
       const seen=new Set(),result=[];
       for(const row of ordered){
-        const key=engineMatchIdentity(row.item);
+        const key=engineMatchIdentity(row.item)||'row:'+row.index;
         if(seen.has(key))continue;
         seen.add(key);result.push(row.item);
       }
