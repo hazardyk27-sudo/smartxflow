@@ -5,8 +5,10 @@ on:
     branches:
       - main
   schedule:
-    # After the signal/result retention cleanup and the overnight FT updates.
+    # Morning archive capture; GitHub may delay scheduled starts under load.
     - cron: '17 4 * * *'
+    # Second daily pass after the prior day's matches have finished in Turkey.
+    - cron: '17 23 * * *'
   workflow_dispatch:
 
 permissions:
