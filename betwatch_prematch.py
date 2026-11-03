@@ -39,6 +39,26 @@ except Exception:
 
 _UID_FIRST_TRUE = {"1", "true", "yes", "on"}
 
+# A recognized market can still arrive without any usable odds or money data.
+# Do not persist those placeholder rows into history tables.
+_MARKET_OBSERVATION_FIELDS = {
+    "1X2": ("odds1", "oddsx", "odds2", "pct1", "pctx", "pct2", "amt1", "amtx", "amt2", "volume"),
+    "OU25": ("over", "under", "pctover", "pctunder", "amtover", "amtunder", "volume"),
+    "BTTS": ("yes", "no", "pctyes", "pctno", "amtyes", "amtno", "volume"),
+}
+
+def _has_market_observation(row: dict, market_key: str) -> bool:
+    """Return true only when the row contains at least one non-empty market value."""
+    for field in _MARKET_OBSERVATION_FIELDS.get(market_key, ()):
+        value = row.get(field)
+        if value is None:
+            continue
+        text = str(value).strip().casefold()
+        if text not in ("", "-", "—", "–", "null", "none", "n/a", "na"):
+            return True
+    return False
+
+
 
 def log(msg: str):
     ts = datetime.now().strftime("%H:%M:%S")
@@ -447,6 +467,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
             if market_key == "1X2":
                 mw_row = _build_mw_1x2(home, away, league, date, runners_by_sel)
+                if not _has_market_observation(mw_row, market_key):
+                    continue
                 mw_1x2_rows.append(mw_row)
                 prev = prev_do_1x2.get(prev_key, {})
                 do_row = _build_do_1x2(home, away, league, date, runners_by_sel, prev)
@@ -475,6 +497,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
             elif market_key == "OU25":
                 mw_row = _build_mw_ou25(home, away, league, date, runners_by_sel)
+                if not _has_market_observation(mw_row, market_key):
+                    continue
                 mw_ou25_rows.append(mw_row)
                 prev = prev_do_ou25.get(prev_key, {})
                 do_row = _build_do_ou25(home, away, league, date, runners_by_sel, prev)
@@ -501,6 +525,8 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
             elif market_key == "BTTS":
                 mw_row = _build_mw_btts(home, away, league, date, runners_by_sel)
+                if not _has_market_observation(mw_row, market_key):
+                    continue
                 mw_btts_rows.append(mw_row)
                 prev = prev_do_btts.get(prev_key, {})
                 do_row = _build_do_btts(home, away, league, date, runners_by_sel, prev)
