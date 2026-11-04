@@ -220,7 +220,7 @@ def write_provider_authoritative_fixture_batch(
             if "exact fixture already owned by Betwatch event" in message:
                 return None, message
             status = getattr(response, "status_code", "unknown")
-            return None, f"provider_fixture_rpc_http_{status}: {message[:240]}"
+            return None, f"provider_fixture_rpc_http_{status}"
         try:
             payload = response.json()
             result = payload[0] if isinstance(payload, list) and payload else payload
