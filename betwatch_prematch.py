@@ -89,6 +89,38 @@ def _vol_amt(v) -> str:
         return ""
 
 
+def _moneyway_runner_volume(runner: dict) -> float | None:
+    raw = runner.get("volume") if isinstance(runner, dict) else None
+    if raw in (None, ""):
+        return None
+    try:
+        value = float(raw)
+        return value if math.isfinite(value) and value >= 0 else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _moneyway_volumes(runners_by_sel: dict, selections: tuple[str, ...]):
+    values = {
+        selection: _moneyway_runner_volume(runners_by_sel.get(selection, {}))
+        for selection in selections
+    }
+    total = sum(values.values()) if all(value is not None for value in values.values()) else None
+    return values, total
+
+
+def _moneyway_amount(value: float | None) -> str:
+    if value is None or not math.isfinite(value) or value < 0:
+        return ""
+    return f"£ {int(value)}" if value == int(value) else f"£ {value:g}"
+
+
+def _moneyway_share(value: float | None, total: float | None) -> str:
+    if value is None or total is None or not math.isfinite(total) or total <= 0:
+        return ""
+    return f"{(value / total * 100):.1f}%"
+
+
 def _vol_pct(v: float, total: float) -> str:
     try:
         if total <= 0 or v <= 0:
@@ -208,47 +240,43 @@ def _build_mw_1x2(home, away, league, date, runners_by_sel) -> dict:
     r1 = runners_by_sel.get("1", {})
     rx = runners_by_sel.get("X", {})
     r2 = runners_by_sel.get("2", {})
-    v1 = float(r1.get("volume") or 0)
-    vx = float(rx.get("volume") or 0)
-    v2 = float(r2.get("volume") or 0)
-    total = v1 + vx + v2
+    values, total = _moneyway_volumes(runners_by_sel, ("1", "X", "2"))
+    v1, vx, v2 = values["1"], values["X"], values["2"]
     return {
         "league": league, "date": date, "home": home, "away": away,
         "odds1": _coef(r1.get("odd")), "oddsx": _coef(rx.get("odd")), "odds2": _coef(r2.get("odd")),
-        "pct1": _vol_pct(v1, total), "amt1": _vol_amt(v1),
-        "pctx": _vol_pct(vx, total), "amtx": _vol_amt(vx),
-        "pct2": _vol_pct(v2, total), "amt2": _vol_amt(v2),
-        "volume": _vol_amt(total),
+        "pct1": _moneyway_share(v1, total), "amt1": _moneyway_amount(v1),
+        "pctx": _moneyway_share(vx, total), "amtx": _moneyway_amount(vx),
+        "pct2": _moneyway_share(v2, total), "amt2": _moneyway_amount(v2),
+        "volume": _moneyway_amount(total),
     }
 
 
 def _build_mw_ou25(home, away, league, date, runners_by_sel) -> dict:
     ro = runners_by_sel.get("O", {})
     ru = runners_by_sel.get("U", {})
-    vo = float(ro.get("volume") or 0)
-    vu = float(ru.get("volume") or 0)
-    total = vo + vu
+    values, total = _moneyway_volumes(runners_by_sel, ("O", "U"))
+    vo, vu = values["O"], values["U"]
     return {
         "league": league, "date": date, "home": home, "away": away,
         "over": _coef(ro.get("odd")), "under": _coef(ru.get("odd")), "line": "2.5",
-        "pctover": _vol_pct(vo, total), "amtover": _vol_amt(vo),
-        "pctunder": _vol_pct(vu, total), "amtunder": _vol_amt(vu),
-        "volume": _vol_amt(total),
+        "pctover": _moneyway_share(vo, total), "amtover": _moneyway_amount(vo),
+        "pctunder": _moneyway_share(vu, total), "amtunder": _moneyway_amount(vu),
+        "volume": _moneyway_amount(total),
     }
 
 
 def _build_mw_btts(home, away, league, date, runners_by_sel) -> dict:
     ry = runners_by_sel.get("Y", {})
     rn = runners_by_sel.get("N", {})
-    vy = float(ry.get("volume") or 0)
-    vn = float(rn.get("volume") or 0)
-    total = vy + vn
+    values, total = _moneyway_volumes(runners_by_sel, ("Y", "N"))
+    vy, vn = values["Y"], values["N"]
     return {
         "league": league, "date": date, "home": home, "away": away,
         "yes": _coef(ry.get("odd")), "no": _coef(rn.get("odd")),
-        "pctyes": _vol_pct(vy, total), "amtyes": _vol_amt(vy),
-        "pctno": _vol_pct(vn, total), "amtno": _vol_amt(vn),
-        "volume": _vol_amt(total),
+        "pctyes": _moneyway_share(vy, total), "amtyes": _moneyway_amount(vy),
+        "pctno": _moneyway_share(vn, total), "amtno": _moneyway_amount(vn),
+        "volume": _moneyway_amount(total),
     }
 
 
@@ -477,13 +505,10 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
                 r1 = runners_by_sel.get("1", {})
                 rx = runners_by_sel.get("X", {})
                 r2 = runners_by_sel.get("2", {})
-                v1 = float(r1.get("volume") or 0)
-                vx = float(rx.get("volume") or 0)
-                v2 = float(r2.get("volume") or 0)
-                total = v1 + vx + v2
-                for sel, r, v in [("1", r1, v1), ("X", rx, vx), ("2", r2, v2)]:
-                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
-                    if odd_f or (vol_f is not None and vol_f > 0):
+                values, total = _moneyway_volumes(runners_by_sel, ("1", "X", "2"))
+                for sel, r in [("1", r1), ("X", rx), ("2", r2)]:
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, values[sel], total)
+                    if odd_f is not None or vol_f is not None:
                         all_snapshots.append({
                             "match_id_hash": mhash,
                             "market": "1X2",
@@ -506,12 +531,10 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
                 ro = runners_by_sel.get("O", {})
                 ru = runners_by_sel.get("U", {})
-                vo = float(ro.get("volume") or 0)
-                vu = float(ru.get("volume") or 0)
-                total = vo + vu
-                for sel, r, v in [("O", ro, vo), ("U", ru, vu)]:
-                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
-                    if odd_f or (vol_f is not None and vol_f > 0):
+                values, total = _moneyway_volumes(runners_by_sel, ("O", "U"))
+                for sel, r in [("O", ro), ("U", ru)]:
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, values[sel], total)
+                    if odd_f is not None or vol_f is not None:
                         all_snapshots.append({
                             "match_id_hash": mhash,
                             "market": "OU25",
@@ -534,12 +557,10 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
 
                 ry = runners_by_sel.get("Y", {})
                 rn = runners_by_sel.get("N", {})
-                vy = float(ry.get("volume") or 0)
-                vn = float(rn.get("volume") or 0)
-                total = vy + vn
-                for sel, r, v in [("Y", ry, vy), ("N", rn, vn)]:
-                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, v, total)
-                    if odd_f or (vol_f is not None and vol_f > 0):
+                values, total = _moneyway_volumes(runners_by_sel, ("Y", "N"))
+                for sel, r in [("Y", ry), ("N", rn)]:
+                    odd_f, vol_f, shr_f = observed_snapshot_quote(r, values[sel], total)
+                    if odd_f is not None or vol_f is not None:
                         all_snapshots.append({
                             "match_id_hash": mhash,
                             "market": "BTTS",
