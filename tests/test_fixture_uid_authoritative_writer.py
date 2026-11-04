@@ -127,6 +127,56 @@ def test_writer_calls_single_transactional_rpc_and_requires_complete_count():
     assert len(calls[0][1]["json"]["p_rows"]) == 2
 
 
+def test_exact_fixture_owner_conflict_isolated_without_blocking_safe_rows():
+    calls = []
+
+    class Response:
+        def __init__(self, status_code, payload):
+            self.status_code = status_code
+            self.payload = payload
+
+        def json(self):
+            return self.payload
+
+    class Writer:
+        def _rest_url(self, table):
+            return "https://example.invalid/rest/v1/" + table
+
+        def _headers(self):
+            return {}
+
+    def fake_post(url, headers, json, timeout):
+        batch = json["p_rows"]
+        calls.append([row["source_event_id"] for row in batch])
+        if any(row["source_event_id"] == "evt-2" for row in batch):
+            return Response(409, {
+                "message": "exact fixture already owned by Betwatch event evt-owner"
+            })
+        return Response(200, [{
+            "received_count": len(batch),
+            "mapped_updated_count": len(batch),
+            "linked_existing_count": 0,
+            "inserted_new_count": 0,
+        }])
+
+    writer = Writer()
+    stats = write_provider_authoritative_fixture_batch(
+        writer,
+        [
+            _match("evt-1", "2026-10-06T18:00:00Z"),
+            _match("evt-2", "2026-10-07T18:00:00Z"),
+        ],
+        request_post=fake_post,
+    )
+
+    assert stats["error"] is None
+    assert stats["received_count"] == 1
+    assert stats["rejected_event_ids"] == ["evt-2"]
+    assert stats["identity_conflict_count"] == 1
+    assert calls == [["evt-1", "evt-2"], ["evt-1"], ["evt-2"]]
+    assert set(writer._fixture_identity_event_by_physical.values()) == {"evt-1"}
+
+
 def test_rpc_error_never_falls_back_to_legacy_hash_writer():
     class Response:
         status_code = 409
