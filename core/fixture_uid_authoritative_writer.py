@@ -186,36 +186,90 @@ def write_provider_authoritative_fixture_batch(
     clear_betwatch_identity_stage()
     clear_betwatch_authoritative_payload()
 
-    try:
-        response = request_post(
-            writer._rest_url("rpc/record_betwatch_fixture_batch_v2"),
-            headers=headers,
-            json={
-                "p_observed_at": observed_at,
-                "p_rows": rows,
-            },
-            timeout=45,
-        )
+    rpc_url = writer._rest_url("rpc/record_betwatch_fixture_batch_v2")
+    accepted_rows = []
+    rejected_event_ids = []
+    totals = {
+        "received_count": 0,
+        "mapped_updated_count": 0,
+        "linked_existing_count": 0,
+        "inserted_new_count": 0,
+    }
+
+    def submit(batch):
+        try:
+            response = request_post(
+                rpc_url,
+                headers=headers,
+                json={"p_observed_at": observed_at, "p_rows": batch},
+                timeout=45,
+            )
+        except Exception as exc:
+            return None, str(exc)[:300]
         if getattr(response, "status_code", 0) != 200:
-            stats["error"] = f"provider_fixture_rpc_http_{getattr(response, 'status_code', 'unknown')}"
-            return stats
-        payload = response.json()
-        row = payload[0] if isinstance(payload, list) and payload else payload
-        if not isinstance(row, Mapping):
-            stats["error"] = "provider_fixture_rpc_unexpected_payload"
-            return stats
-        for key in (
-            "received_count",
-            "mapped_updated_count",
-            "linked_existing_count",
-            "inserted_new_count",
-        ):
-            stats[key] = int(row.get(key) or 0)
-        if stats["received_count"] != len(rows):
-            stats["error"] = "provider_fixture_rpc_incomplete_batch"
-            return stats
-        _install_physical_provider_context(writer, matches)
+            try:
+                body = response.json()
+            except Exception:
+                body = getattr(response, "text", "")
+            if isinstance(body, Mapping):
+                message = " ".join(
+                    _text(body.get(key)) for key in ("message", "details", "hint")
+                ).strip()
+            else:
+                message = _text(body)
+            if "exact fixture already owned by Betwatch event" in message:
+                return None, message
+            status = getattr(response, "status_code", "unknown")
+            return None, f"provider_fixture_rpc_http_{status}: {message[:240]}"
+        try:
+            payload = response.json()
+            result = payload[0] if isinstance(payload, list) and payload else payload
+        except Exception as exc:
+            return None, f"provider_fixture_rpc_invalid_json: {str(exc)[:200]}"
+        if not isinstance(result, Mapping):
+            return None, "provider_fixture_rpc_unexpected_payload"
+        counts = {}
+        for key in totals:
+            counts[key] = int(result.get(key) or 0)
+        if counts["received_count"] != len(batch):
+            return None, "provider_fixture_rpc_incomplete_batch"
+        return counts, None
+
+    def submit_with_collision_isolation(batch):
+        counts, error = submit(batch)
+        if counts is not None:
+            for key, value in counts.items():
+                totals[key] += value
+            accepted_rows.extend(batch)
+            return None
+        if error and "exact fixture already owned by Betwatch event" in error:
+            if len(batch) == 1:
+                rejected_event_ids.append(batch[0]["source_event_id"])
+                return None
+            middle = len(batch) // 2
+            left_error = submit_with_collision_isolation(batch[:middle])
+            if left_error:
+                return left_error
+            return submit_with_collision_isolation(batch[middle:])
+        return error
+
+    error = submit_with_collision_isolation(rows)
+    if error:
+        stats["error"] = error
         return stats
-    except Exception as exc:
-        stats["error"] = str(exc)[:300]
+
+    stats.update(totals)
+    stats["rejected_event_ids"] = sorted(set(rejected_event_ids))
+    stats["identity_conflict_count"] = len(stats["rejected_event_ids"])
+    stats["accepted_event_count"] = len(accepted_rows)
+    if stats["received_count"] != len(accepted_rows):
+        stats["error"] = "provider_fixture_rpc_incomplete_accepted_count"
         return stats
+    rejected = set(stats["rejected_event_ids"])
+    accepted_matches = [
+        match for match in matches
+        if _text(getattr(extract_betwatch_identity(match), "event_id", ""))
+        not in rejected
+    ]
+    _install_physical_provider_context(writer, accepted_matches)
+    return stats
