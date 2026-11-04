@@ -426,12 +426,26 @@ def run_scrape_betwatch(writer: SupabaseWriter, logger_callback=None) -> int:
             )
             _log(f"[BW-Pre] HATA — UID-authoritative fixture batch fail-closed: {fixture_uid_stats['error']}")
             return 0
+        rejected_event_ids = set(fixture_uid_stats.get("rejected_event_ids", []))
+        if rejected_event_ids:
+            original_count = len(matches)
+            matches = [
+                match for match in matches
+                if str(getattr(extract_betwatch_identity(match), "event_id", "") or "")
+                not in rejected_event_ids
+            ]
+            _log(
+                "[BW-Pre] UID kimlik çakışmalı maçlar güvenli biçimde atlandı — "
+                f"skipped={original_count - len(matches)} "
+                f"events={','.join(sorted(rejected_event_ids))}"
+            )
         _log(
             "[BW-Pre] UID-authoritative fixtures OK — "
             f"received={fixture_uid_stats.get('received_count', 0)} "
             f"mapped={fixture_uid_stats.get('mapped_updated_count', 0)} "
             f"linked={fixture_uid_stats.get('linked_existing_count', 0)} "
-            f"inserted={fixture_uid_stats.get('inserted_new_count', 0)}"
+            f"inserted={fixture_uid_stats.get('inserted_new_count', 0)} "
+            f"identity_conflicts_skipped={fixture_uid_stats.get('identity_conflict_count', 0)}"
         )
 
     # 2. Read previous dropping odds for trend calculation
