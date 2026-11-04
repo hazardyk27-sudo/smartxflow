@@ -116,8 +116,10 @@ def _moneyway_amount(value: float | None) -> str:
 
 
 def _moneyway_share(value: float | None, total: float | None) -> str:
-    if value is None or total is None or not math.isfinite(total) or total <= 0:
+    if value is None or total is None or not math.isfinite(total) or total < 0:
         return ""
+    if total == 0:
+        return "0.0%" if value == 0 else ""
     return f"{(value / total * 100):.1f}%"
 
 
