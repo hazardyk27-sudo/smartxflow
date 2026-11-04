@@ -30,7 +30,8 @@ def observed_snapshot_quote(runner: dict, value: float, total: float) -> tuple:
         denominator=float(total) if total is not None else None
         share=(round(source_volume / denominator * 100,1)
                if observed and denominator is not None
-               and math.isfinite(denominator) and denominator > 0 else None)
+               and math.isfinite(denominator) and denominator > 0
+               else (0.0 if observed and denominator == 0 and source_volume == 0 else None))
     except (TypeError,ValueError,OverflowError,ZeroDivisionError):
         share=None
     return odd,volume,share
