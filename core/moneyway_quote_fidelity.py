@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 
 
-def observed_snapshot_quote(runner: dict, value: float, total: float) -> tuple:
+def observed_snapshot_quote(runner: dict, value: float | None, total: float | None) -> tuple:
     """Return (odds,volume,share) from one actual provider runner only."""
     raw_odd=runner.get("odd")
     try:
