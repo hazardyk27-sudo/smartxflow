@@ -21,9 +21,16 @@ def observed_snapshot_quote(runner: dict, value: float, total: float) -> tuple:
     try:
         source_volume=float(raw_volume) if raw_volume not in (None,"") else None
         observed=(source_volume is not None and math.isfinite(source_volume)
-                  and source_volume >= 0 and math.isfinite(value) and value >= 0)
+                  and source_volume >= 0)
     except (TypeError,ValueError,OverflowError):
         observed=False
-    volume=value if observed else None
-    share=round(value / total * 100,1) if observed and total > 0 else None
+        source_volume=None
+    volume=source_volume if observed else None
+    try:
+        denominator=float(total) if total is not None else None
+        share=(round(source_volume / denominator * 100,1)
+               if observed and denominator is not None
+               and math.isfinite(denominator) and denominator > 0 else None)
+    except (TypeError,ValueError,OverflowError,ZeroDivisionError):
+        share=None
     return odd,volume,share
