@@ -24,7 +24,9 @@ from alarm_recent_part2 import EXPECTED_SELECTIONS, _market_min_volume
 SHARP_PREVIOUS_SIGNALS = 21
 OPENING_BATCH_SIZE = 80
 OPENING_QUERY_LIMIT = 2000
-OPENING_RPC_BATCH_SIZE = 500
+# Keep each indexed lookup batch below the Postgres statement timeout. Large
+# arrays can still force many per-key historical scans on the existing hash index.
+OPENING_RPC_BATCH_SIZE = 10
 OPENING_RPC_NAME = "get_dropping_opening_odds"
 CLEANUP_INTERVAL_SECONDS = 3600
 
