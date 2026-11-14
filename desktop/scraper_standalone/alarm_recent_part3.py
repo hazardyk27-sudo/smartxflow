@@ -24,6 +24,8 @@ from alarm_recent_part2 import EXPECTED_SELECTIONS, _market_min_volume
 SHARP_PREVIOUS_SIGNALS = 21
 OPENING_BATCH_SIZE = 80
 OPENING_QUERY_LIMIT = 2000
+OPENING_RPC_BATCH_SIZE = 500
+OPENING_RPC_NAME = "get_dropping_opening_odds"
 CLEANUP_INTERVAL_SECONDS = 3600
 
 
@@ -387,27 +389,106 @@ def _fetch_opening_odds(
         cache = {}
         calculator._dropping_opening_cache = cache
     requested = set(keys)
-    missing_hashes = sorted({key[0] for key in requested if key not in cache})
-    for start in range(0, len(missing_hashes), OPENING_BATCH_SIZE):
-        chunk = missing_hashes[start:start + OPENING_BATCH_SIZE]
-        if not chunk:
-            continue
-        rows = calculator._get(
-            "moneyway_snapshots",
-            "select=match_id_hash,market,selection,odds,scraped_at_utc"
-            f"&match_id_hash=in.({','.join(chunk)})"
-            "&odds=gt.0&order=scraped_at_utc.asc"
-            f"&limit={OPENING_QUERY_LIMIT}",
-        ) or []
-        for row in rows:
-            key = (
-                str(row.get("match_id_hash") or ""),
-                str(row.get("market") or ""),
-                str(row.get("selection") or ""),
+    missing_keys = sorted(key for key in requested if key not in cache)
+
+    # Fetch one first-valid observation per exact selection in PostgreSQL.
+    # The previous REST query loaded up to 2,000 rows for 80 fixtures, sorted
+    # them by timestamp, and silently left later selections without an opening
+    # price. On the 10M+ row snapshots table this also caused repeated SELECT
+    # statement timeouts. The RPC uses an indexed LATERAL lookup per key.
+    rpc_available = True
+    for start in range(0, len(missing_keys), OPENING_RPC_BATCH_SIZE):
+        chunk = missing_keys[start:start + OPENING_RPC_BATCH_SIZE]
+        payload = {
+            "p_keys": [
+                {"match_id_hash": match_hash, "market": market, "selection": selection}
+                for match_hash, market, selection in chunk
+            ]
+        }
+        try:
+            response = _legacy.httpx.post(
+                calculator._rest_url(f"rpc/{OPENING_RPC_NAME}"),
+                headers=calculator._headers(),
+                json=payload,
+                timeout=30,
             )
-            odds = _legacy.parse_float(row.get("odds"))
-            if key in requested and odds > 0 and key not in cache:
-                cache[key] = odds
+        except Exception as exc:
+            _legacy.log(f"[Dropping Opening] RPC request failed: {exc}")
+            rpc_available = None
+            break
+
+        if response.status_code in (200, 201):
+            try:
+                rows = response.json()
+            except Exception as exc:
+                _legacy.log(f"[Dropping Opening] RPC returned invalid JSON: {exc}")
+                rpc_available = None
+                break
+            if not isinstance(rows, list):
+                _legacy.log("[Dropping Opening] RPC returned an unexpected payload")
+                rpc_available = None
+                break
+            for row in rows:
+                key = (
+                    str(row.get("match_id_hash") or ""),
+                    str(row.get("market") or ""),
+                    str(row.get("selection") or ""),
+                )
+                odds = _legacy.parse_float(row.get("opening_odds"))
+                if key in requested and odds > 0 and key not in cache:
+                    cache[key] = odds
+            continue
+
+        error_text = str(getattr(response, "text", "") or "")[:240]
+        function_missing = (
+            response.status_code in (400, 404)
+            and ("PGRST202" in error_text or "function" in error_text.lower())
+        )
+        if function_missing:
+            _legacy.log(
+                f"[Dropping Opening] RPC {OPENING_RPC_NAME} is not installed; "
+                "using the compatibility query until its migration is applied"
+            )
+            rpc_available = False
+        else:
+            _legacy.log(
+                f"[Dropping Opening] RPC HTTP {response.status_code}: {error_text}"
+            )
+            rpc_available = None
+        break
+
+    # Compatibility for deployments where the function migration has not yet
+    # been applied. Keep its old result shape, but report any missing openings
+    # explicitly so a failed request cannot look like a valid zero-candidate run.
+    if rpc_available is False:
+        missing_hashes = sorted({key[0] for key in missing_keys if key not in cache})
+        for start in range(0, len(missing_hashes), OPENING_BATCH_SIZE):
+            chunk = missing_hashes[start:start + OPENING_BATCH_SIZE]
+            if not chunk:
+                continue
+            rows = calculator._get(
+                "moneyway_snapshots",
+                "select=match_id_hash,market,selection,odds,scraped_at_utc"
+                f"&match_id_hash=in.({','.join(chunk)})"
+                "&odds=gt.0&order=scraped_at_utc.asc"
+                f"&limit={OPENING_QUERY_LIMIT}",
+            ) or []
+            for row in rows:
+                key = (
+                    str(row.get("match_id_hash") or ""),
+                    str(row.get("market") or ""),
+                    str(row.get("selection") or ""),
+                )
+                odds = _legacy.parse_float(row.get("odds"))
+                if key in requested and odds > 0 and key not in cache:
+                    cache[key] = odds
+
+    missing_count = sum(1 for key in requested if key not in cache)
+    if missing_count:
+        _legacy.log(
+            f"[Dropping Opening] opening odds unavailable for {missing_count}/"
+            f"{len(requested)} changed selections; those candidates are skipped"
+        )
     return cache
 
 
