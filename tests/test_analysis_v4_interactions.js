@@ -222,7 +222,9 @@ test('unknown retired engines are excluded; archived Base evidence is preserved'
   const mock=setup(data);
   mock.window.openBaseSignalsPanel(); await flush();
   const tiles=mock.get('sxfSignalContent').querySelectorAll('[data-motor]');
-  assert.equal(tiles.length,10);
+  assert.equal(tiles.length,12);
+  assert.ok(tiles.some(x=>x.dataset.motor==='EKOL_3'));
+  assert.ok(tiles.some(x=>x.dataset.motor==='OVER_STRONG'));
   assert.doesNotMatch(mock.get('sxfSignalContent').innerHTML,/LEGACY_UNDERDOG/);
   tiles.find(x=>x.dataset.motor==='1X2_CONCENTRATION_V1').click();
   const html=mock.get('sxfSignalContent').innerHTML;

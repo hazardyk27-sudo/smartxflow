@@ -65,7 +65,7 @@ def test_ekol3_rejects_no_t7_and_stale_t7_and_future_t6():
 def test_ekol3_rejects_first_second_and_price():
     base = _x(8, 1600, 200, 200)
     assert run(base, _x(7, 1700, 240, 240), _x(6, 2300, 260, 260))[1]["EKOL_3"] == "FIRST_HOUR_ACCEL_FAIL"
-    assert run(base, _x(7, 1960, 220, 220), _x(6, 2000, 300, 300))[1]["EKOL_3"] == "TWO_HOUR_ACCEL_FAIL"
+    assert run(base, _x(7, 1960, 220, 220), _x(6, 2200, 275, 275))[1]["EKOL_3"] == "TWO_HOUR_ACCEL_FAIL"
     assert run(base, _x(7, 1960, 220, 220), _x(6, 2320, 240, 240, odds="1.85"))[1]["EKOL_3"] == "DEVIG_PRICE_CONFIRM_FAIL"
 
 
