@@ -7,10 +7,12 @@ the durable journal/storage implementation belongs to a separate phase.
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+import os
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Protocol, Sequence
 
+from .experimental_engines import EXPERIMENTAL_RULESET, evaluate_t6_experiments
 from .rules import (
     Fixture, Snapshot, _utc, choose_base_checkpoint, evaluate_base,
     evaluate_early, select_snapshot,
@@ -98,7 +100,7 @@ def _serialize_signal(signal) -> dict:
 
 
 def _market_for_engine(name: str) -> str:
-    if name.startswith(("1X2_", "HEAVY_", "SURPRISE_")):
+    if name == "EKOL_3" or name.startswith(("1X2_", "HEAVY_", "SURPRISE_")):
         return "1X2"
     if "OVER" in name:
         return "OU25"
@@ -160,6 +162,26 @@ def evaluate_job(job: CheckpointJob, reader: SnapshotPort,
             payload["markets"][market]["v2_state"] = result.v2_state if market == "1X2" else "N/A"
             payload["signals"].extend(_serialize_signal(s) for s in result.signals
                                       if _market_for_engine(s.engine) == market)
+        # New experimental tags attach only to future, authoritative T-6 BASE
+        # jobs. The immutable V3 core evaluation and earlier events are untouched.
+        # A release must install the DB engine registry BEFORE enabling this.
+        activation = os.environ.get("SXF_EXPERIMENTAL_ACTIVATED_AT_UTC", "")
+        enabled = os.environ.get("SXF_EXPERIMENTAL_ENGINES", "") == "1"
+        if enabled and activation and job.hours == 6:
+            try:
+                active_from = datetime.fromisoformat(activation.replace("Z", "+00:00"))
+                active_from = _utc(active_from)
+            except (ValueError, TypeError):
+                raise ValueError("invalid experimental activation timestamp")
+            if job.timestamp >= active_from and 6 in evaluations:
+                tags, states = evaluate_t6_experiments(fixture, snaps, evaluations[6])
+                selected = {"EKOL_3": "1X2", "OVER_STRONG": "OU25"}
+                payload["experimental_ruleset_version"] = EXPERIMENTAL_RULESET
+                payload["experimental_states"] = states
+                for tag in tags:
+                    # Never add a tag to a market without a valid own T-6.
+                    if payload["markets"][selected[tag["engine"]]]["checkpoint"] == 6:
+                        payload["signals"].append(tag)
     else:
         early = evaluate_early(fixture, snaps)
         if job.family == "EARLY_CORE":

@@ -16,7 +16,9 @@
     STABLE_OVER_2_5: { name: 'Stable Over 2.5', description: '2.5 üst istikrarı', market: 'ALT / ÜST', code: 'O2' },
     PREMIUM_OVER_2_5: { name: 'Premium Over 2.5', description: '2.5 üst premium hareketleri', market: 'ALT / ÜST', code: 'PO' },
     PREMIUM_OVER_MIN1_70: { name: 'Premium Over · Min 1.70', description: '1.70+ premium üst · güç etiketi', market: 'ALT / ÜST', code: 'P70' },
-    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' }
+    BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' },
+    EKOL_3: { name: 'EKOL 3 · Deneysel', description: 'T-8/T-7/T-6 erken para ivmesi ve fiyat teyidi', market: 'MAÇ SONUCU', code: 'EK3' },
+    OVER_STRONG: { name: 'OVER STRONG · Deneysel', description: 'Üst 2.5 para kalıcılığı ve KG VAR fiyat teyidi', market: 'ALT / ÜST', code: 'OVS' }
   };
   // All visible text is resolved from the active 7-language app dictionary.
   // Turkish is a temporary compatibility fallback if i18n has not loaded yet.
@@ -50,9 +52,11 @@
     '1X2_CONCENTRATION_V1':'cat_1x2', '1X2_CONCENTRATION_V2':'cat_1x2',
     HEAVY_1X2_CONCENTRATION:'cat_1x2', SURPRISE_TEAM:'cat_1x2',
     STABLE_OVER_2_5:'cat_over', PREMIUM_OVER_2_5:'cat_over',
-    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts'
+    PREMIUM_OVER_MIN1_70:'cat_over', BTTS_YES:'cat_btts',
+    EKOL_3:'cat_1x2', OVER_STRONG:'cat_over'
   };
   function engineDescription(id, descriptor) {
+    if (id === 'EKOL_3' || id === 'OVER_STRONG') return descriptor.description;
     return t(DESC[id] || 'engine_unknown_desc', descriptor.description);
   }
   function engineCategory(id, descriptor) {
@@ -144,7 +148,9 @@
         'STABLE_OVER_2_5':[1.40,1.80],
         'PREMIUM_OVER_2_5':[1.40,1.80],
         'PREMIUM_OVER_MIN1_70':[1.70,1.80],
-        'BTTS_YES':[1.60,1.90]
+        'BTTS_YES':[1.60,1.90],
+        'EKOL_3':[1.40,2.50],
+        'OVER_STRONG':[1.40,1.80]
       };
       if (x.engine === 'EARLY_MONEY_CORE_V2' &&
           !(x.odds < 2.00 && typeof x.share === 'number' && x.share < 95)) return false;
@@ -245,7 +251,8 @@
     '1X2_CONCENTRATION_V1':'V1','1X2_CONCENTRATION_V2':'V2',
     HEAVY_1X2_CONCENTRATION:'HEAVY', SURPRISE_TEAM:'SURPRISE',
     STABLE_OVER_2_5:'STABLE', PREMIUM_OVER_2_5:'PREMIUM',
-    PREMIUM_OVER_MIN1_70:'PREMIUM 1.70+', BTTS_YES:'BTTS'
+    PREMIUM_OVER_MIN1_70:'PREMIUM 1.70+', BTTS_YES:'BTTS',
+    EKOL_3:'EKOL 3*', OVER_STRONG:'OVER STRONG*'
   };
   function recordTime(item) {
     var value = Date.parse(item.observed_at || item.recorded_at || '');

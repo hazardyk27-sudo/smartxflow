@@ -15,6 +15,7 @@ from uuid import UUID
 import requests
 
 from .scheduler import RULESET_VERSION
+from .experimental_engines import EXPERIMENTAL_RULESET
 
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
@@ -25,6 +26,7 @@ KNOWN_ENGINES = (
     "EARLY_MONEY_CORE", "EARLY_MONEY_CORE_V2", "1X2_CONCENTRATION_V1",
     "1X2_CONCENTRATION_V2", "HEAVY_1X2_CONCENTRATION", "SURPRISE_TEAM",
     "STABLE_OVER_2_5", "PREMIUM_OVER_2_5", "PREMIUM_OVER_MIN1_70", "BTTS_YES",
+    "EKOL_3", "OVER_STRONG",
 )
 FIELDS = "event_id,job_id,fixture_uid,kickoff_utc,kind,engine,market,selection,family,job_checkpoint_hours,source_checkpoint_hours,recorded_at,details,ruleset_version"
 PAGE_SIZE = 250
@@ -43,6 +45,8 @@ V3_PRICE_BANDS = {
     "PREMIUM_OVER_2_5": (1.40, 1.80),
     "PREMIUM_OVER_MIN1_70": (1.70, 1.80),
     "BTTS_YES": (1.60, 1.90),
+    "EKOL_3": (1.40, 2.50),
+    "OVER_STRONG": (1.40, 1.80),
 }
 
 
@@ -509,6 +513,14 @@ class BaseSignalsFeed:
             details = row.get("details")
             if not isinstance(details, dict):
                 details = {}
+            if engine in ("EKOL_3", "OVER_STRONG") and (
+                details.get("experimental_ruleset") != EXPERIMENTAL_RULESET or
+                details.get("label") != "EXPERIMENTAL" or
+                row.get("kind") != "FINAL_SIGNAL" or
+                row.get("job_checkpoint_hours") != 6 or
+                row.get("source_checkpoint_hours") != 6
+            ):
+                continue
             if row["kind"] == "CORRECTED" and details.get("decision") != "HIT":
                 # A NO_HIT correction is not a fresh betting signal.
                 continue
