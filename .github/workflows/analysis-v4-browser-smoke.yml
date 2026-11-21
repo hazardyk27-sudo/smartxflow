@@ -49,7 +49,8 @@ permissions:
   contents: read
 jobs:
   responsive-viewports:
-    runs-on: ubuntu-latest
+    # Playwright 1.55 has no Ubuntu 26.04 Chromium dependency bundle.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
