@@ -732,7 +732,11 @@
       "legacy_unavailable_title": "Les anciens signaux sont indisponibles",
       "legacy_unavailable_desc": "Les signaux Base restent disponibles ; la source des anciens moteurs n'a pas pu être vérifiée.",
       "legacy_unavailable_notice": "SIGNAUX BASE DISPONIBLES · Source historique indisponible",
-      "engine_early_core_v2_desc": "Premier signal précoce : cote <2,00 et part des mises <95 % · Retention-55"
+      "engine_early_core_v2_desc": "Premier signal précoce : cote <2,00 et part des mises <95 % · Retention-55",
+      "engine_ekol3_name": "EKOL 3",
+      "engine_ekol3_desc": "Accélération des mises à T-8/T-7/T-6 et confirmation des cotes",
+      "engine_over_strong_name": "OVER STRONG",
+      "engine_over_strong_desc": "Maintien de la part des mises sur Plus de 2,5 et validation des cotes BTTS"
     },
     "live": {
       "pro_gerekli": "Un abonnement <strong>Pro</strong> est nécessaire pour les données en direct",

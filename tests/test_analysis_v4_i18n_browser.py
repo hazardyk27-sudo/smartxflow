@@ -56,6 +56,18 @@ def main():
             page.add_script_tag(content=ui)
             page.evaluate("window.openBaseSignalsPanel()")
             page.locator('[data-motor="1X2_CONCENTRATION_V1"]').wait_for()
+            # New engines must render translated names, descriptions and
+            # category labels on both mobile and desktop in all seven locales.
+            for lang in LANGS:
+                page.evaluate("async c => await window.SXFI18n.set(c)", lang)
+                words = locales[lang]["app"]["v4"]
+                for engine,prefix in (("EKOL_3","engine_ekol3"),("OVER_STRONG","engine_over_strong")):
+                    tile = page.locator('[data-motor="'+engine+'"]')
+                    assert tile.locator(".sxf-engine-name").inner_text() == words[prefix+"_name"],(viewport,lang,engine)
+                    assert tile.locator(".sxf-engine-description").inner_text() == words[prefix+"_desc"],(viewport,lang,engine)
+                    assert "Deneysel" not in tile.inner_text() and "Experimental" not in tile.inner_text(),(viewport,lang,engine)
+                    assert words["cat_1x2" if engine == "EKOL_3" else "cat_over"] in tile.inner_text(),(viewport,lang,engine)
+                assert len(calls)==1, "language switching must not re-fetch the signal feed"
             page.locator('[data-motor="1X2_CONCENTRATION_V1"]').click()
             assert len(calls)==1
             for lang in LANGS:

@@ -17,8 +17,8 @@
     PREMIUM_OVER_2_5: { name: 'Premium Over 2.5', description: '2.5 üst premium hareketleri', market: 'ALT / ÜST', code: 'PO' },
     PREMIUM_OVER_MIN1_70: { name: 'Premium Over · Min 1.70', description: '1.70+ premium üst · güç etiketi', market: 'ALT / ÜST', code: 'P70' },
     BTTS_YES: { name: 'BTTS Yes', description: 'Karşılıklı gol var sinyalleri', market: 'KG VAR / YOK', code: 'KG' },
-    EKOL_3: { name: 'EKOL 3 · Deneysel', description: 'T-8/T-7/T-6 erken para ivmesi ve fiyat teyidi', market: 'MAÇ SONUCU', code: 'EK3' },
-    OVER_STRONG: { name: 'OVER STRONG · Deneysel', description: 'Üst 2.5 para kalıcılığı ve KG VAR fiyat teyidi', market: 'ALT / ÜST', code: 'OVS' }
+    EKOL_3: { name: 'EKOL 3', description: 'T-8/T-7/T-6 money inflow acceleration and odds confirmation', market: 'MATCH RESULT', code: 'EK3' },
+    OVER_STRONG: { name: 'OVER STRONG', description: 'Over 2.5 money share retention and BTTS odds confirmation', market: 'UNDER / OVER', code: 'OVS' }
   };
   // All visible text is resolved from the active 7-language app dictionary.
   // Turkish is a temporary compatibility fallback if i18n has not loaded yet.
@@ -45,7 +45,8 @@
     '1X2_CONCENTRATION_V1':'engine_v1_desc', '1X2_CONCENTRATION_V2':'engine_v2_desc',
     HEAVY_1X2_CONCENTRATION:'engine_heavy_desc', SURPRISE_TEAM:'engine_surprise_desc',
     STABLE_OVER_2_5:'engine_stable_over_desc', PREMIUM_OVER_2_5:'engine_premium_over_desc',
-    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc'
+    PREMIUM_OVER_MIN1_70:'engine_premium_min_desc', BTTS_YES:'engine_btts_desc',
+    EKOL_3:'engine_ekol3_desc', OVER_STRONG:'engine_over_strong_desc'
   };
   var CATS = {
     EARLY_MONEY_CORE:'cat_money', EARLY_MONEY_CORE_V2:'cat_money',
@@ -56,7 +57,6 @@
     EKOL_3:'cat_1x2', OVER_STRONG:'cat_over'
   };
   function engineDescription(id, descriptor) {
-    if (id === 'EKOL_3' || id === 'OVER_STRONG') return descriptor.description;
     return t(DESC[id] || 'engine_unknown_desc', descriptor.description);
   }
   function engineCategory(id, descriptor) {
@@ -90,7 +90,11 @@
       timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
     }).format(d);
   }
-  function labelEngine(id) { return (ENGINES[id] && ENGINES[id].name) || String(id).replace(/_/g, ' '); }
+  function labelEngine(id) {
+    if (id === 'EKOL_3') return t('engine_ekol3_name', 'EKOL 3');
+    if (id === 'OVER_STRONG') return t('engine_over_strong_name', 'OVER STRONG');
+    return (ENGINES[id] && ENGINES[id].name) || String(id).replace(/_/g, ' ');
+  }
   function isEarlyCoreEngine(id) { return id === 'EARLY_MONEY_CORE' || id === 'EARLY_MONEY_CORE_V2'; }
   function marketLabel(m) {
     return m === 'OU25' ? t('market_ou','Alt / Üst 2.5') :
@@ -219,11 +223,11 @@
     var unavailable = false;
     return '<button type="button" class="sxf-engine-tile" data-motor="' + esc(name) +
       '" aria-label="' + esc(fmt('motor_open','{name} motorunu aç, {count} maç',
-        {name:descriptor.name,count:fixtures})) + '">' +
+        {name:labelEngine(name),count:fixtures})) + '">' +
       '<span class="sxf-engine-tile-top"><span class="sxf-engine-mark" aria-hidden="true">' +
       esc(descriptor.code) + '</span><span class="sxf-engine-category">' +
       esc(engineCategory(name, descriptor)) +
-      '</span></span><strong class="sxf-engine-name">' + esc(descriptor.name) + '</strong>' +
+      '</span></span><strong class="sxf-engine-name">' + esc(labelEngine(name)) + '</strong>' +
       '<span class="sxf-engine-description">' + esc(engineDescription(name, descriptor)) + '</span>' +
       '<span class="sxf-engine-tile-bottom"><span>' +
       (unavailable ? '<b class="sxf-unknown-count">—</b> ' +

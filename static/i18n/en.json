@@ -732,7 +732,11 @@
       "legacy_unavailable_title": "Legacy signals are currently unavailable",
       "legacy_unavailable_desc": "Base signals remain available; the legacy engine source could not be verified.",
       "legacy_unavailable_notice": "BASE SIGNALS AVAILABLE · Legacy source unavailable",
-      "engine_early_core_v2_desc": "First early signal: odds <2.00 and money share <95% · Retention-55"
+      "engine_early_core_v2_desc": "First early signal: odds <2.00 and money share <95% · Retention-55",
+      "engine_ekol3_name": "EKOL 3",
+      "engine_ekol3_desc": "T-8/T-7/T-6 money inflow acceleration and odds confirmation",
+      "engine_over_strong_name": "OVER STRONG",
+      "engine_over_strong_desc": "Over 2.5 money share retention and BTTS odds confirmation"
     },
     "live": {
       "pro_gerekli": "<strong>Pro</strong> membership is required for live data",
