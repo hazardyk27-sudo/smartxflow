@@ -712,6 +712,8 @@
       "other_picks_count": "+{count} andere keuzes",
       "status_timely": "Op tijd",
       "status_archive": "Archief",
+      "status_eliminated": "AFGEVALLEN",
+      "eliminated_t6_reason": "Niet meer voldaan aan de T-6-voorwaarden",
       "status_mixed": "Op tijd + archief",
       "status_unverified": "Niet geverifieerd",
       "status_rejected": "Niet geschikt",

@@ -771,3 +771,46 @@ def test_v3_heavy_price_floor_is_checked_independently_of_stored_eligibility():
 def test_retired_archive_read_parameter_is_not_supported():
     with pytest.raises(TypeError, match="archive"):
         _feed(Source(_day())).read(_day(), days=1, archive=True)
+
+def test_t8_elimination_is_engine_selection_specific_and_keeps_history():
+    start = _day()
+    old = _event(start, ident=1001, engine="PREMIUM_OVER_MIN1_70", selection="O")
+    old["market"] = "OU25"
+    old["details"]["odds"] = "1.74"
+    sibling = {**old, "event_id": 1002, "engine": "PREMIUM_OVER_2_5"}
+    decision = {**old, "event_id": 1003, "kind": "MARKET_DECISION",
+                "engine": None, "selection": None, "job_checkpoint_hours": 6,
+                "source_checkpoint_hours": 6, "details": {"state": "AUTHORITATIVE_T6"}}
+    final = {**sibling, "event_id": 1004, "kind": "FINAL_SIGNAL",
+             "job_checkpoint_hours": 6, "source_checkpoint_hours": 6,
+             "details": {**sibling["details"], "odds": "1.65"}}
+    result = _feed(Source(start, events=[old, sibling, decision, final])).read(start)
+    by_id = {x["id"]: x for x in result["items"]}
+    assert len(by_id) == 3
+    assert by_id[1001]["elimination_reason"] == "T6_NO_HIT"
+    assert by_id[1001]["valid_on_time"] is False
+    assert by_id[1001]["odds"] == 1.74
+    assert "elimination_reason" not in by_id[1002]
+    assert "elimination_reason" not in by_id[1004]
+    assert "elimination_reason" not in old
+
+def test_t8_without_authoritative_t6_is_not_eliminated():
+    start = _day()
+    old = _event(start, ident=1011)
+    decision = {**old, "event_id": 1012, "kind": "MARKET_DECISION",
+                "engine": None, "selection": None, "job_checkpoint_hours": 6,
+                "source_checkpoint_hours": 6, "details": {"state": "INSUFFICIENT_DATA"}}
+    item = _feed(Source(start, events=[old, decision])).read(start)["items"][0]
+    assert "elimination_reason" not in item
+
+def test_authoritative_t6_different_side_does_not_confirm_old_side():
+    start = _day()
+    old = _event(start, ident=1021, selection="2")
+    decision = {**old, "event_id": 1022, "kind": "MARKET_DECISION",
+                "engine": None, "selection": None, "job_checkpoint_hours": 6,
+                "source_checkpoint_hours": 6, "details": {"state": "AUTHORITATIVE_T6"}}
+    final = {**old, "event_id": 1023, "kind": "FINAL_SIGNAL", "selection": "1",
+             "job_checkpoint_hours": 6, "source_checkpoint_hours": 6}
+    items = _feed(Source(start, events=[old, decision, final])).read(start)["items"]
+    assert items[0]["elimination_reason"] == "T6_NO_HIT"
+    assert "elimination_reason" not in items[1]

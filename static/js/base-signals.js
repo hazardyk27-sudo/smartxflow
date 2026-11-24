@@ -274,7 +274,12 @@
       item.stage_status === 'T8_HISTORICAL' || item.valid_on_time === false ||
       item.review_state === 'LATE_HISTORY' || item.review_state === 'RECONCILED_HISTORY';
   }
+  function isEliminated(item) {
+    return item.elimination_reason === 'T6_NO_HIT';
+  }
+  function eliminatedLabel() { return t('status_eliminated','ELENDİ'); }
   function rowState(item) {
+    if (isEliminated(item)) return eliminatedLabel();
     if (item.review_state === 'RETENTION_BROKEN') return t('retention_broken','Süreklilik bozuldu');
     if (item.review_state === 'PRICE_REJECTED') return t('status_rejected','Uygun değil');
     if (item.review_state === 'HISTORY_INCOMPLETE') return t('history_unverified','Early geçmişi eksik');
@@ -315,7 +320,8 @@
       '<span><small>' + esc(t('recorded_share','Para payı')) + '</small> <b>' +
       esc(recordedShare(item.share)) + '</b></span></span>' +
       '<span class="sxf-history-price">' + esc(t('odds','Oran')) + ' <b>' + esc(price) + '</b></span>' +
-      '<span class="sxf-history-status">' + esc(rowState(item)) + '</span>' + outcome +
+      '<span class="sxf-history-status' + (isEliminated(item) ? ' is-eliminated' : '') +
+      '">' + esc(rowState(item)) + '</span>' + outcome +
       '</div>';
   }
   function retentionLabel(item) {
@@ -372,13 +378,16 @@
   function signalGroupInfo(rows) {
     var item = rows[0], price = recordPrice(rows);
     var engines = Array.from(new Set(rows.map(function (r) { return r.engine; })));
+    var selected = rows.filter(function (r) { return r.engine === current.engine; });
+    var eliminated = (selected.length ? selected : rows).every(isEliminated);
+    if (eliminated && selected.length) price = recordPrice(selected);
     var timely = rows.some(function (r) {
       return r.valid_on_time === true && !isHistorical(r);
     });
     var archived = rows.some(isHistorical);
-    var state = timely && archived ? 'mixed' : timely ? 'timely' :
+    var state = eliminated ? 'eliminated' : timely && archived ? 'mixed' : timely ? 'timely' :
       archived ? 'archive' : 'unverified';
-    var status = state === 'mixed' ? t('status_mixed','Zamanında + arşiv') :
+    var status = state === 'eliminated' ? eliminatedLabel() : state === 'mixed' ? t('status_mixed','Zamanında + arşiv') :
       state === 'timely' ? t('status_timely','Zamanında') :
       state === 'archive' ? t('status_archive','Arşiv') :
       t('status_unverified','Doğrulanmadı');
@@ -386,11 +395,13 @@
       var broken = isEarlyCoreEngine(engine) && rows.some(function (r) {
         return r.engine === engine && r.retention && r.retention.status === 'BROKEN';
       });
+      var dropped = rows.filter(function (r) { return r.engine === engine; }).every(isEliminated);
       return '<span class="sxf-direction-badge' + (broken ? ' is-retention-broken' : '') +
-        '" title="' + esc(labelEngine(engine) + (broken ? ' — ' +
+        (dropped ? ' is-eliminated' : '') +
+        '" title="' + esc(labelEngine(engine) + (dropped ? ' — ' + eliminatedLabel() : broken ? ' — ' +
           t('retention_broken','Süreklilik bozuldu') : '')) + '">' +
         esc(SHORT_ENGINE[engine] || labelEngine(engine)) +
-        (broken ? ' <span aria-hidden="true">×</span>' : '') + '</span>';
+        (dropped ? ' · ' + esc(eliminatedLabel()) : broken ? ' <span aria-hidden="true">×</span>' : '') + '</span>';
     }).join('');
     return { item:item, price:price, status:status, state:state, badges:badges };
   }
@@ -433,9 +444,10 @@
     var representative = directions[0].find(function (r) {
       return r.engine === current.engine;
     }) || directions[0][0];
-    var nowText = isEarlyCoreEngine(representative.engine) ?
+    var nowText = primary.state === 'eliminated' ?
+      t('eliminated_t6_reason','T-6 koşulları artık sağlanmıyor') : isEarlyCoreEngine(representative.engine) ?
       retentionLabel(representative) : liveCheckLabel(representative);
-    var nowFlag = isEarlyCoreEngine(representative.engine) ?
+    var nowFlag = primary.state === 'eliminated' ? 'is-broken' : isEarlyCoreEngine(representative.engine) ?
       (representative.retention && representative.retention.status === 'BROKEN' ? 'is-broken' :
        representative.retention && representative.retention.status === 'RETAINED' ? 'is-retained' : '') :
       (representative.as_of_state === 'THRESHOLD_FAIL' ? 'is-broken' :

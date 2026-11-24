@@ -822,3 +822,17 @@ body.sxf-signals-open{overflow:hidden!important}
 @media(max-width:700px){
   #sxfBaseSignalOverlay .sxf-line-odds{flex-direction:row;align-items:baseline;gap:5px}
 }
+
+/* A rejected T-8 signal stays visible, but is not an active recommendation. */
+#sxfBaseSignalOverlay .sxf-line-state.is-eliminated>span{
+  color:var(--accent-red,#ef4444);font-size:17px;font-weight:800;
+  letter-spacing:.025em;line-height:1.25;overflow-wrap:anywhere
+}
+#sxfBaseSignalOverlay .sxf-direction-badge.is-eliminated{
+  color:var(--accent-red,#ef4444)!important;
+  border-color:color-mix(in srgb,var(--accent-red,#ef4444) 45%,transparent)!important;
+  font-weight:750
+}
+#sxfBaseSignalOverlay .sxf-history-status.is-eliminated{
+  color:var(--accent-red,#ef4444);font-size:13px;font-weight:800
+}

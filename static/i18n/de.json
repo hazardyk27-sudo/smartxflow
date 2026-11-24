@@ -712,6 +712,8 @@
       "other_picks_count": "+{count} weitere Tipps",
       "status_timely": "Rechtzeitig",
       "status_archive": "Archiv",
+      "status_eliminated": "AUSGESCHIEDEN",
+      "eliminated_t6_reason": "T-6-Bedingungen nicht mehr erfüllt",
       "status_mixed": "Rechtzeitig + Archiv",
       "status_unverified": "Nicht verifiziert",
       "status_rejected": "Nicht geeignet",

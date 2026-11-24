@@ -427,9 +427,15 @@ class BaseSignalsFeed:
                 continue
             source_job = jobs.get(_uid(event.get("job_id")))
             if source_job and source_job.get("state") == "COMPLETED":
+                uid = _uid(event.get("fixture_uid"))
+                kickoff = _utc(event.get("kickoff_utc"))
+                fixture = fixtures.get(uid)
+                if (not fixture or _uid(source_job.get("fixture_uid")) != uid or
+                        _utc(source_job.get("kickoff_utc")) != kickoff or
+                        _utc(fixture.get("kickoff_utc")) != kickoff):
+                    continue
                 authoritative_t6.add(
-                    (_uid(event.get("fixture_uid")), event.get("market"),
-                     _utc(event.get("kickoff_utc")),
+                    (uid, event.get("market"), kickoff,
                      event.get("ruleset_version") or RULESET_VERSION))
 
         # Retention checkpoints are audit events, never standalone picks.
@@ -672,6 +678,23 @@ class BaseSignalsFeed:
                 "strength_tag": details.get("label") == "STRENGTH_TAG",
                 "shadow": True,
             })
+        # A superseded T-8 record is not necessarily eliminated: an eligible
+        # T-6 record for the exact engine and selection may have replaced it.
+        # Compute the distinction from validated feed items, never final scores.
+        def signal_key(item):
+            return tuple(item[k] for k in (
+                "uid", "kickoff_utc", "ruleset_version", "market", "engine", "selection"
+            ))
+
+        confirmed_t6 = {
+            signal_key(item) for item in items
+            if item["kind"] in ("FINAL_SIGNAL", "CORRECTED")
+            and item["checkpoint"] == 6 and item["source_checkpoint"] == 6
+        }
+        for item in items:
+            if (item["stage_status"] == "T8_HISTORICAL"
+                    and signal_key(item) not in confirmed_t6):
+                item["elimination_reason"] = "T6_NO_HIT"
         results_source_state = self._finished_results(items, fixtures) if items else "ok"
         if items:
             self._enrich_current_1x2(items, now=read_as_of)

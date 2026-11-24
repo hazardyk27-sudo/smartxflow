@@ -712,6 +712,8 @@
       "other_picks_count": "+{count} otras opciones",
       "status_timely": "A tiempo",
       "status_archive": "Archivo",
+      "status_eliminated": "ELIMINADO",
+      "eliminated_t6_reason": "Ya no cumple las condiciones T-6",
       "status_mixed": "A tiempo + archivo",
       "status_unverified": "Sin verificar",
       "status_rejected": "No apto",

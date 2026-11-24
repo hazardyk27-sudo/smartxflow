@@ -513,3 +513,35 @@ test('missing or invalid frozen money never becomes a fake zero or percentage',a
   assert.equal((html.match(/<small>Para payı<\/small> <b>—<\/b>/g)||[]).length,2);
   assert.doesNotMatch(html,/\$999|120%|NaN|Infinity/);
 });
+
+test('T8 elimination remains visible, scoped to the selected engine, in all seven locales', async () => {
+  const day = todayTR();
+  const data = signals(day);
+  const base = {...data.items[0], uid:'levante-elche', home:'Levante', away:'Elche',
+    market:'OU25', selection:'O', kind:'PRELIMINARY_SIGNAL', engine:'PREMIUM_OVER_MIN1_70',
+    odds:1.74, valid_on_time:false, stage_status:'T8_HISTORICAL', elimination_reason:'T6_NO_HIT'};
+  const final = {...base, id:4, engine:'PREMIUM_OVER_2_5', odds:1.65,
+    kind:'FINAL_SIGNAL', stage_status:'AS_RECORDED', checkpoint:6,
+    source_checkpoint:6, valid_on_time:true, elimination_reason:undefined};
+  for (const lang of ['tr','en','de','fr','nl','it','es']) {
+    const mock = setup({...data,items:[{...base},{...final}]});
+    const catalog = JSON.parse(fs.readFileSync(path.join(__dirname,'../static/i18n/'+lang+'.json'),'utf8'));
+    const dict = catalog.app.v4;
+    mock.window.SXFI18n = {current:()=>lang,t:key=>dict[key.replace('app.v4.','')] || key};
+    mock.window.openBaseSignalsPanel(); await flush();
+    mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+      .find(x=>x.dataset.motor==='PREMIUM_OVER_MIN1_70').click();
+    let html = mock.get('sxfSignalContent').innerHTML;
+    assert.match(html,/Levante/);
+    assert.ok(html.includes('sxf-line-state is-eliminated"><span>'+dict.status_eliminated+'</span>'),lang);
+    assert.ok(html.includes(dict.eliminated_t6_reason),lang);
+    assert.ok(html.includes('1.74</span>'),lang);
+    assert.match(mock.get('sxfSignalSummary').textContent,/0/);
+    mock.get('sxfSignalBack').click();
+    mock.get('sxfSignalContent').querySelectorAll('[data-motor]')
+      .find(x=>x.dataset.motor==='PREMIUM_OVER_2_5').click();
+    html = mock.get('sxfSignalContent').innerHTML;
+    assert.doesNotMatch(html,/sxf-line-state is-eliminated/);
+    assert.match(html,/sxf-direction-badge is-eliminated/);
+  }
+});

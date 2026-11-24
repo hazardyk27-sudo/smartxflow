@@ -712,6 +712,8 @@
       "other_picks_count": "+{count} diğer tercih",
       "status_timely": "Zamanında",
       "status_archive": "Arşiv",
+      "status_eliminated": "ELENDİ",
+      "eliminated_t6_reason": "T-6 koşulları artık sağlanmıyor",
       "status_mixed": "Zamanında + arşiv",
       "status_unverified": "Doğrulanmadı",
       "status_rejected": "Uygun değil",

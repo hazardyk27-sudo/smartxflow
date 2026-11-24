@@ -712,6 +712,8 @@
       "other_picks_count": "+{count} other picks",
       "status_timely": "On time",
       "status_archive": "Archive",
+      "status_eliminated": "ELIMINATED",
+      "eliminated_t6_reason": "T-6 conditions are no longer met",
       "status_mixed": "On time + archive",
       "status_unverified": "Unverified",
       "status_rejected": "Not eligible",
